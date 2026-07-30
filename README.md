@@ -1,29 +1,72 @@
-# Welcome to your Lovable project
+# Saborosamente — Loja de Marmitas Congeladas
 
-This project was built with [Lovable](https://lovable.dev).
+Sistema independente (frontend) para a loja de marmitas congeladas **Saborosamente**.
+Esta primeira entrega cobre vitrine, catálogo, carrinho e checkout simulado, sem
+dependência de ERP externo e **sem backend gerenciado** (Lovable Cloud desativado por decisão do projeto).
 
-## Build with Lovable
+## Stack
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- **React 19 + TypeScript** (strict)
+- **TanStack Start / TanStack Router** (rotas por arquivo em `src/routes`)
+- **Tailwind CSS v4** com design system em `src/styles.css` (tokens `oklch`)
+- **react-hook-form + Zod** para validação de formulários
+- **sonner** para notificações
+- Estado do carrinho em React Context + `localStorage`
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Setup
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+bun install       # ou npm install
+bun run dev       # http://localhost:8080
+bun run build     # build de produção
+bun run lint      # eslint
 ```
 
-## Built with
+## Estrutura
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+```
+src/
+  assets/                 imagens dos produtos e hero
+  components/             SiteHeader, SiteFooter, ProductCard, ui/ (shadcn)
+  lib/
+    products.ts           catálogo mock + tipos (schema futuro de `produtos`)
+    cart.tsx              CartProvider / useCart (persistência em localStorage)
+  routes/
+    __root.tsx            shell, metadados, providers, header/footer
+    index.tsx             página inicial (hero, benefícios, destaques, CTA)
+    catalogo.tsx          catálogo com filtro por categoria
+    carrinho.tsx          carrinho, quantidades, frete e total
+    checkout.tsx          formulário validado + confirmação simulada
+  styles.css              design system (cores da identidade visual, fontes, sombras)
+```
+
+## Identidade visual
+
+Cores principais: `#086e45`, `#a8cf45`, `#fff688`, `#ffffff`, `#e76800`, `#119e8f`.
+Secundárias: `#3d3c3c`, `#055635`, `#749c0b`, `#fff212`, `#0088c6`, `#ad1515`.
+Tipografia: Poppins (títulos/corpo, substituindo Mazzard Soft L) + Pacifico (script).
+Todas as cores são tokens semânticos — nunca use classes de cor fixas nos componentes.
+
+## Modelo de dados planejado
+
+Quando um backend for adotado (Supabase ou outro), as estruturas previstas são:
+
+- `produtos`: id, nome, descricao, ingredientes[], preco, peso, categoria, imagem, destaque, estoque
+- `pedidos`: id, cliente (nome, email, telefone), endereco, pagamento, status, total, created_at
+- `pedido_itens`: id, pedido_id, produto_id, quantidade, preco_unitario
+
+`src/lib/products.ts` já expõe o tipo `Product` alinhado a esse schema, então a troca
+do mock por uma consulta real fica isolada nesse módulo.
+
+## Próximos passos
+
+- Persistência real de produtos e pedidos
+- Autenticação de clientes e histórico de pedidos
+- Pagamento real (PIX/cartão) e gestão de estoque
+- Painel administrativo e integração com entregas
+
+## Contribuição
+
+1. Crie uma branch a partir de `main`.
+2. Rode `bun run lint` e `bunx tsgo --noEmit` antes do commit.
+3. Abra um Pull Request descrevendo o escopo da mudança.
