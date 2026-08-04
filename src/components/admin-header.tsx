@@ -67,7 +67,7 @@ export function AdminHeader() {
   return (
     <header className="bg-primary text-white shadow-lg sticky top-0 z-[9999] w-full border-b border-white/10">
       <div className="mx-auto flex h-16 max-w-[1800px] items-center justify-between px-4 gap-4">
-        <div className="flex items-center gap-2 xl:gap-8 overflow-x-auto no-scrollbar py-2 scroll-smooth">
+        <div className="flex items-center gap-2 xl:gap-8 py-2">
           <Link to="/admin" className="flex items-center gap-2 font-bold text-lg xl:text-xl shrink-0 hover:opacity-90 transition-opacity mr-2">
             <div className="h-9 w-9 bg-white/20 rounded-lg flex items-center justify-center border border-white/20">
               <span className="text-white font-black">PD</span>
