@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Error: Failed to run sql query: ERROR: 42P07: relation \&quot;produtos\&quot; already exists">
+      <body data-message="certinho, pode puxar agora todos os produtos do site atual: www.saborosamente.com \n\ninclua todos os produtos, inclusive variações, combos e bebidas">
         {children}
         <Scripts />
       </body>
