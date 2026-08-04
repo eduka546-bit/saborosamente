@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="certinho, pode puxar agora todos os produtos do site atual: www.saborosamente.com \n\ninclua todos os produtos, inclusive variações, combos e bebidas">
+      <body data-message="Failed to run sql query: ERROR:  42703: column \&quot;imagem_url\&quot; of relation \&quot;produtos\&quot; does not exist\n\nLINE 10: INSERT INTO public.produtos (nome, descricao, preco, imagem_url, categoria_id, ingredientes, status)">
         {children}
         <Scripts />
       </body>
