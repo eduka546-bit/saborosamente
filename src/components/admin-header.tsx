@@ -23,14 +23,8 @@ interface NavItemProps {
 }
 
 function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <div 
-      className="relative group"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-    >
+    <div className="relative group">
       <button
         type="button"
         className={cn(
@@ -40,25 +34,24 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
       >
         <Icon size={18} strokeWidth={2.5} />
         <span className="whitespace-nowrap">{label}</span>
-        {items && <ChevronDown size={14} className={cn("ml-0.5 transition-transform duration-200", isOpen && "rotate-180")} />}
+        {items && <ChevronDown size={14} className="ml-0.5 transition-transform duration-200 group-hover:rotate-180" />}
       </button>
 
       {items && (
         <div 
-          className={cn(
-            "absolute left-0 mt-0 w-56 rounded-b-md bg-white py-1 shadow-xl ring-1 ring-black/5 z-[10000] transition-all duration-200 origin-top-left",
-            isOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"
-          )}
+          className="absolute left-0 mt-0 w-64 rounded-b-md bg-white py-2 shadow-xl ring-1 ring-black/5 z-[10000] opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto"
         >
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href as any}
-              className="block px-4 py-2.5 text-xs xl:text-sm text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors font-medium border-b border-gray-50 last:border-0"
-            >
-              {item.label}
-            </Link>
-          ))}
+          <div className="py-1">
+            {items.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href as any}
+                className="block px-4 py-2 text-xs xl:text-sm text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors font-medium border-b border-gray-50 last:border-0"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>
