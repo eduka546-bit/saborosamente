@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Tá eu vou mandar exatamente como eu quero as coisas:&#10;&#10;Marketing e Integrações, não precisam, apenas as outras sessoes dos prints, todas devem ser apenas para o modo admin">
+      <body data-message="Quando tento acessar o admin, diz que está errado o usuario e senha, preciso publicar o projeto e entrar sem ser no lovable?">
         {children}
         <Scripts />
       </body>
