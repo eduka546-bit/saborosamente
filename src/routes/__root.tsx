@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Credenciais do Supabase configuradas com sucesso.">
+      <body data-message="Gerando SQL para configuração das tabelas no Supabase...">
         {children}
         <Scripts />
       </body>
