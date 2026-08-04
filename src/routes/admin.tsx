@@ -1,6 +1,5 @@
-import { createFileRoute, redirect, Outlet, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminHeader } from "@/components/admin-header";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
