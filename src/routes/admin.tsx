@@ -1,6 +1,5 @@
-import { createFileRoute, redirect, Outlet, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminHeader } from "@/components/admin-header";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -27,18 +26,8 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const router = useRouter();
-  const pathname = router.state.location.pathname;
-  const isLoginPage = pathname === "/admin/login";
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      {/* Forçamos a visibilidade se estivermos em qualquer rota /admin que não seja login */}
-      {!isLoginPage && (
-        <div className="block">
-          <AdminHeader />
-        </div>
-      )}
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>

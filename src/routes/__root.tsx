@@ -15,6 +15,7 @@ import { CartProvider } from "@/lib/cart";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
+import { AdminHeader } from "@/components/admin-header";
 
 function NotFoundComponent() {
   return (
@@ -123,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="nada, não alterou absolutamente nada">
+      <body data-message="não tem outra coisa pra fazer? porque não está funcionando isso, coloca verde tbm o menu pra manter a identidade visual da saborosamente">
         {children}
         <Scripts />
       </body>
@@ -156,17 +157,20 @@ function RootFooter() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
-  const isAdminPath = router.state.location.pathname.startsWith("/admin");
-  const isLoginPage = router.state.location.pathname === "/admin/login";
+  const pathname = router.state.location.pathname;
+  const isAdminPath = pathname.startsWith("/admin");
+  const isLoginPage = pathname === "/admin/login";
 
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          {!isAdminPath && <SiteHeader />}
+          {isAdminPath ? <AdminHeader /> : <SiteHeader />}
+          
           <main className="flex-1">
             <Outlet />
           </main>
+          
           {!isAdminPath && <SiteFooter />}
         </div>
         <Toaster />
