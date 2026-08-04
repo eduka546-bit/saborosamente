@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="anabolic.foodsbs@gmail.com\nc1ae1980-d058-4023-a04d-34f6d0a7e63f">
+      <body data-message="precisa rodar a sql? não rodei">
         {children}
         <Scripts />
       </body>
