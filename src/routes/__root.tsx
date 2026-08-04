@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body data-msg="Vamos ao supabase depois para a vercel">
         {children}
         <Scripts />
       </body>
