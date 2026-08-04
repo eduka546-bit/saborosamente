@@ -200,6 +200,14 @@
   font-family: var(--font-script);
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* NEXUS-PRO:WATERMARK-HIDE:START */
 /* Overlay do badge oficial ocultado por conflito com UI custom.
    Bloco idempotente gerenciado pela extensão Nexus Pro.

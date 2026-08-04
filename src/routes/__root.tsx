@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="não tem outra coisa pra fazer? porque não está funcionando isso, coloca verde tbm o menu pra manter a identidade visual da saborosamente">
+      <body data-message="ta agora apareceu, porém olha como ficou bugado">
         {children}
         <Scripts />
       </body>
