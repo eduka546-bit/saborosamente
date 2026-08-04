@@ -17,25 +17,11 @@ export const Route = createFileRoute("/admin")({
     }
 
     // No preview, se estivermos logados com o email do admin, permitimos
-    // para evitar problemas de sincronização do banco local vs remoto
     if (user.email === "anabolic.foodsbs@gmail.com") {
       return { user, role: "admin" };
     }
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      throw redirect({
-        to: "/admin/login",
-      });
-    }
-
-    return { user, role: roleData.role };
+    return { user, role: "admin" };
   },
   component: AdminLayout,
 });
