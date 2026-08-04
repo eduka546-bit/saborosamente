@@ -165,17 +165,17 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          {/* Menu Admin se estiver em /admin e não for login */}
-          {isAdminPath && !isLoginPage && <AdminHeader />}
-          
-          {/* Menu Site se não for /admin */}
-          {!isAdminPath && <SiteHeader />}
+          {/* Forçamos o AdminHeader em qualquer rota que contenha /admin (exceto login se quiser, mas aqui vamos forçar para teste) */}
+          {isAdminPath ? (
+            !isLoginPage && <AdminHeader />
+          ) : (
+            <SiteHeader />
+          )}
           
           <main className="flex-1">
             <Outlet />
           </main>
           
-          {/* Footer apenas no site */}
           {!isAdminPath && <SiteFooter />}
         </div>
         <Toaster />
