@@ -35,7 +35,8 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   const router = useRouter();
-  const isLoginPage = router.state.location.pathname === "/admin/login";
+  const pathname = router.state.location.pathname;
+  const isLoginPage = pathname === "/admin/login" || pathname === "/admin/login/";
 
   if (isLoginPage) {
     return (
