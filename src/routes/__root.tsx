@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="continua igual, será que não está indo pra area inicial isso? precisa aparecer apenas para o modo admin">
+      <body data-message="agora não aparece nada kk">
         {children}
         <Scripts />
       </body>
