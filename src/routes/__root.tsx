@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Posso te passar as chaves por aqui?">
+      <body data-message="Onde pego cada uma, vamos passo a passo">
         {children}
         <Scripts />
       </body>
