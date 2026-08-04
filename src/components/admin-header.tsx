@@ -26,26 +26,35 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative group">
+    <div 
+      className="relative group"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
         className={cn(
-          "flex items-center gap-2 px-3 py-2 text-xs xl:text-sm font-medium transition-colors hover:text-white shrink-0",
-          active ? "text-white" : "text-white/70"
+          "flex items-center gap-2 px-3 py-2 text-xs xl:text-sm font-medium transition-colors hover:text-white shrink-0 outline-none cursor-default",
+          active ? "text-white" : "text-white/90"
         )}
       >
-        <Icon size={18} />
-        <span>{label}</span>
-        {items && <ChevronDown size={14} className={cn("transition-transform", isOpen && "rotate-180")} />}
+        <Icon size={18} strokeWidth={2.5} />
+        <span className="whitespace-nowrap">{label}</span>
+        {items && <ChevronDown size={14} className={cn("ml-0.5 transition-transform duration-200", isOpen && "rotate-180")} />}
       </button>
 
-      {items && isOpen && (
-        <div className="absolute left-0 mt-1 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+      {items && (
+        <div 
+          className={cn(
+            "absolute left-0 mt-0 w-56 rounded-b-md bg-white py-1 shadow-xl ring-1 ring-black/5 z-[10000] transition-all duration-200 origin-top-left",
+            isOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"
+          )}
+        >
           {items.map((item) => (
             <Link
               key={item.href}
               to={item.href as any}
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block px-4 py-2.5 text-xs xl:text-sm text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors font-medium border-b border-gray-50 last:border-0"
             >
               {item.label}
             </Link>
@@ -63,14 +72,14 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="bg-primary text-white shadow-md sticky top-0 z-[9999] block !visible opacity-100">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4">
-        <div className="flex items-center gap-2 xl:gap-6 overflow-x-auto no-scrollbar py-2">
-          <Link to="/admin" className="flex items-center gap-2 font-bold text-xl">
-            <div className="h-8 w-8 bg-white/20 rounded-md flex items-center justify-center">
-              <span className="text-white">PD</span>
+    <header className="bg-primary text-white shadow-lg sticky top-0 z-[9999] w-full border-b border-white/10">
+      <div className="mx-auto flex h-16 max-w-[1800px] items-center justify-between px-4 gap-4">
+        <div className="flex items-center gap-2 xl:gap-8 overflow-x-auto no-scrollbar py-2 scroll-smooth">
+          <Link to="/admin" className="flex items-center gap-2 font-bold text-lg xl:text-xl shrink-0 hover:opacity-90 transition-opacity mr-2">
+            <div className="h-9 w-9 bg-white/20 rounded-lg flex items-center justify-center border border-white/20">
+              <span className="text-white font-black">PD</span>
             </div>
-            <span>Admin</span>
+            <span className="tracking-tight">Admin</span>
           </Link>
 
           <nav className="flex items-center">
@@ -158,17 +167,17 @@ export function AdminHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-end text-xs">
-            <span className="font-semibold text-white">Saborosamente</span>
-            <span className="text-white/60">Admin</span>
+        <div className="flex items-center gap-3 shrink-0 ml-auto pl-4 border-l border-white/10">
+          <div className="hidden sm:flex flex-col items-end text-[10px] xl:text-xs">
+            <span className="font-bold text-white uppercase tracking-wider">Saborosamente</span>
+            <span className="text-white/70 font-medium">Painel Gestor</span>
           </div>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-1 rounded-md bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20"
+            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs xl:text-sm font-semibold hover:bg-white/25 transition-all active:scale-95 border border-white/20"
           >
-            <LogOut size={16} />
-            <span>Sair</span>
+            <LogOut size={16} strokeWidth={2.5} />
+            <span className="hidden lg:inline">Sair</span>
           </button>
         </div>
       </div>
