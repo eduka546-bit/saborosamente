@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Crie o primeiro usuário administrador no Supabase e gere o SQL de INSERT para atribuir a role 'admin' no user_roles.\n\nlogin: saborosamente\nsenha: churrasco301907">
+      <body data-message="anabolic.foodsbs@gmail.com\nc1ae1980-d058-4023-a04d-34f6d0a7e63f">
         {children}
         <Scripts />
       </body>
