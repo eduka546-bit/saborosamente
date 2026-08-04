@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="agora não aparece nada kk">
+      <body data-message="não resolveu, não precisa rodar algum sql pra isso?">
         {children}
         <Scripts />
       </body>
@@ -157,16 +157,17 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const isAdminPath = router.state.location.pathname.startsWith("/admin");
+  const isLoginPage = router.state.location.pathname === "/admin/login";
 
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className={isAdminPath ? "min-h-screen flex flex-col" : "flex min-h-screen flex-col"}>
-          {!isAdminPath && <RootHeader />}
+          {!isAdminPath && <SiteHeader />}
           <main className="flex-1">
             <Outlet />
           </main>
-          {!isAdminPath && <RootFooter />}
+          {!isAdminPath && <SiteFooter />}
         </div>
         <Toaster />
       </CartProvider>

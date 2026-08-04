@@ -63,9 +63,9 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="bg-[#6B46C1] text-white shadow-md">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-2">
-        <div className="flex items-center gap-2 xl:gap-6 overflow-x-auto lg:overflow-visible no-scrollbar">
+    <header className="bg-[#6B46C1] text-white shadow-md sticky top-0 z-[100]">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4">
+        <div className="flex items-center gap-2 xl:gap-6 overflow-x-auto no-scrollbar py-2">
           <Link to="/admin" className="flex items-center gap-2 font-bold text-xl">
             <div className="h-8 w-8 bg-white/20 rounded-md flex items-center justify-center">
               <span className="text-white">PD</span>
