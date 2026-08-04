@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Vamos primeiro para o cardápio">
+      <body data-message="conforme ser necessario SQL me envia aqui no chat mesmo para eu copiar e rodar lá no supabase">
         {children}
         <Scripts />
       </body>
