@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Failed to run sql query: ERROR:  42703: column \&quot;imagem_url\&quot; of relation \&quot;produtos\&quot; does not exist\n\nLINE 10: INSERT INTO public.produtos (nome, descricao, preco, imagem_url, categoria_id, ingredientes, status)">
+      <body data-message="Failed to run sql query: ERROR:  23502: null value in column \&quot;categoria\&quot; of relation \&quot;produtos\&quot; violates not-null constraint\n\nDETAIL:  Failing row contains (021825e3-d79b-4e31-854b-bfd53dc31295, TD01 - Tiras de Alcatra ao Molho Madeira, Carne bovina de alcatra, arroz com brócolis..., {Alcatra,Arroz,Brócolis,Sal}, 16.90, null, null, https://pd-clientes-all.s3.us-west-2.amazonaws.com/cdn.anabolicf..., f, 2026-08-04 21:26:42.743665+00, 40a44384-b812-42dc-8a0e-162fc8d974dc, null, ativo, 2026-08-04 21:26:42.743665+00).">
         {children}
         <Scripts />
       </body>
