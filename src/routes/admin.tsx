@@ -36,25 +36,17 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const router = useRouter();
   const pathname = router.state.location.pathname;
-  const isLoginPage = pathname === "/admin/login" || pathname === "/admin/login/";
-
-  if (isLoginPage) {
-    return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
-    );
-  }
+  // Use startsWith para garantir que capturamos /admin/login de forma segura
+  const isLoginPage = pathname.startsWith("/admin/login");
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <AdminHeader />
+      {!isLoginPage && <AdminHeader />}
       <main className="flex-1">
         <Outlet />
       </main>
     </div>
   );
 }
+
 
