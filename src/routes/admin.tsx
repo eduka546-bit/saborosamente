@@ -37,9 +37,11 @@ function AdminLayout() {
   const router = useRouter();
   const isLoginPage = router.state.location.pathname === "/admin/login";
 
+  console.log("AdminLayout rendering", { isLoginPage, path: router.state.location.pathname });
+
   if (isLoginPage) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
+      <div className="flex min-h-screen flex-col bg-gray-50 border-4 border-red-500">
         <main className="flex-1">
           <Outlet />
         </main>
@@ -48,13 +50,15 @@ function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50 border-4 border-green-500">
       <AdminHeader />
+      <div className="bg-purple-900 text-white p-4">DEBUG: ADMIN HEADER SHOULD BE ABOVE</div>
       <main className="flex-1">
         <Outlet />
       </main>
     </div>
   );
 }
+
 
 
