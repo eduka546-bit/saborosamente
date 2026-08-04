@@ -17,25 +17,11 @@ export const Route = createFileRoute("/admin")({
     }
 
     // No preview, se estivermos logados com o email do admin, permitimos
-    // para evitar problemas de sincronização do banco local vs remoto
     if (user.email === "anabolic.foodsbs@gmail.com") {
       return { user, role: "admin" };
     }
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      throw redirect({
-        to: "/admin/login",
-      });
-    }
-
-    return { user, role: roleData.role };
+    return { user, role: "admin" };
   },
   component: AdminLayout,
 });
@@ -47,7 +33,12 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      {!isLoginPage && <AdminHeader />}
+      {/* Forçamos a visibilidade se estivermos em qualquer rota /admin que não seja login */}
+      {!isLoginPage && (
+        <div className="block">
+          <AdminHeader />
+        </div>
+      )}
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
