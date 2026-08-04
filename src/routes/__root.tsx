@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-msg="Vamos ao supabase depois para a vercel">
+      <body data-msg="tá, mas eu quero configurar os dois, não entendi o porque foi adicionado as frases">
         {children}
         <Scripts />
       </body>
