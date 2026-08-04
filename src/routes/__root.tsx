@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Vamos primeiro fazer o login e cadastro do admin, vc acha que precisa os usuarios ter login e cadastro ou dá pra conforme eles pedirem salvar os dados deles, como endereço, ultimo pedido, telefone e etc?">
+      <body data-message="Crie o primeiro usuário administrador no Supabase e gere o SQL de INSERT para atribuir a role 'admin' no user_roles.\n\nlogin: saborosamente\nsenha: churrasco301907">
         {children}
         <Scripts />
       </body>
