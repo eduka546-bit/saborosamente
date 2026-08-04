@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="está tudo certo">
+      <body data-message="deu certo, fiz o login, porém está apenas assim">
         {children}
         <Scripts />
       </body>
