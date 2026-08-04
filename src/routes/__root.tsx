@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="agora não aparece nada kk">
+      <body data-message="não resolveu, não precisa rodar algum sql pra isso?">
         {children}
         <Scripts />
       </body>

@@ -43,12 +43,12 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const router = useRouter();
   const pathname = router.state.location.pathname;
-  const isLoginPage = pathname.includes("/admin/login");
+  const isLoginPage = pathname === "/admin/login";
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       {!isLoginPage && <AdminHeader />}
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
     </div>
