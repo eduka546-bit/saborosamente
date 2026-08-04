@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="precisa rodar a sql? não rodei">
+      <body data-message="quero o sql com os dados corretos que preciso só copiar e colar">
         {children}
         <Scripts />
       </body>
