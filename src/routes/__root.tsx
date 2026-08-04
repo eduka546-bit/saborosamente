@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="A estrutura do banco está pronta. Próximo passo: Autenticação e Storage?">
+      <body data-message="Vamos primeiro fazer o login e cadastro do admin, vc acha que precisa os usuarios ter login e cadastro ou dá pra conforme eles pedirem salvar os dados deles, como endereço, ultimo pedido, telefone e etc?">
         {children}
         <Scripts />
       </body>
