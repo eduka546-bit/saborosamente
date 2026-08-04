@@ -165,12 +165,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          {/* Forçamos o AdminHeader em qualquer rota que contenha /admin (exceto login se quiser, mas aqui vamos forçar para teste) */}
-          {isAdminPath ? (
-            !isLoginPage && <AdminHeader />
-          ) : (
-            <SiteHeader />
-          )}
+          {isAdminPath ? <AdminHeader /> : <SiteHeader />}
           
           <main className="flex-1">
             <Outlet />
