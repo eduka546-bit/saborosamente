@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="quero o sql com os dados corretos que preciso só copiar e colar">
+      <body data-message="Error: Failed to run sql query: ERROR: 42710: type &quot;app_role&quot; already exists">
         {children}
         <Scripts />
       </body>
