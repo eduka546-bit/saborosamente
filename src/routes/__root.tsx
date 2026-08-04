@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="INSERT INTO public.user_roles (user_id, role) &#10;&#10;VALUES ('c1ae1980-d058-4023-a04d-34f6d0a7e63f', 'admin')&#10;&#10;ON CONFLICT (user_id, role) DO NOTHING;&#10;&#10;&#10;qual é o sql correto?">
+      <body data-message="Deu certo e agora?">
         {children}
         <Scripts />
       </body>
