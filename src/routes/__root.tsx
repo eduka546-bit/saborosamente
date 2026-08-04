@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="só não está aparecendo as opções">
+      <body data-message="só aparece quando rola o scroll ali em cima, tem como ele descer sem ter que rolar o scroll?">
         {children}
         <Scripts />
       </body>
