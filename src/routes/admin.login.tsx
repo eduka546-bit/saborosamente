@@ -77,8 +77,7 @@ function AdminLogin() {
                   placeholder="admin@saborosamente.com"
                   className="pl-10"
                   value={email}
-                  onChange={(e) => setEmail(e.target.setSelectionRange ? e.target.value : e.target.value)}
-                  onInput={(e: any) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
