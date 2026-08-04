@@ -10,20 +10,26 @@ export const Route = createFileRoute("/admin")({
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     
+    console.log("Admin beforeLoad check", { hasSession: !!session, userId: user?.id, path: location.pathname });
+
     if (!user) {
+      console.log("No user found, redirecting to login");
       throw redirect({
         to: "/admin/login",
       });
     }
 
-    const { data: roleData } = await supabase
+    const { data: roleData, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
       .maybeSingle();
 
+    console.log("Admin role check", { roleData, error });
+
     if (!roleData) {
+      console.log("Not an admin, signing out and redirecting");
       await supabase.auth.signOut();
       throw redirect({
         to: "/admin/login",
@@ -32,6 +38,7 @@ export const Route = createFileRoute("/admin")({
   },
   component: AdminLayout,
 });
+
 
 function AdminLayout() {
   const router = useRouter();
