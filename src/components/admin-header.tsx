@@ -63,7 +63,7 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="bg-[#6B46C1] text-white shadow-md sticky top-0 z-[9999] block !visible opacity-100">
+    <header className="bg-primary text-white shadow-md sticky top-0 z-[9999] block !visible opacity-100">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4">
         <div className="flex items-center gap-2 xl:gap-6 overflow-x-auto no-scrollbar py-2">
           <Link to="/admin" className="flex items-center gap-2 font-bold text-xl">

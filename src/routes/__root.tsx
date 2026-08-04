@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="nada, não alterou absolutamente nada">
+      <body data-message="não tem outra coisa pra fazer? porque não está funcionando isso, coloca verde tbm o menu pra manter a identidade visual da saborosamente">
         {children}
         <Scripts />
       </body>
@@ -156,17 +156,25 @@ function RootFooter() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
-  const isAdminPath = router.state.location.pathname.startsWith("/admin");
-  const isLoginPage = router.state.location.pathname === "/admin/login";
+  const pathname = router.state.location.pathname;
+  const isAdminPath = pathname.startsWith("/admin");
+  const isLoginPage = pathname === "/admin/login";
 
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
+          {/* Menu Admin se estiver em /admin e não for login */}
+          {isAdminPath && !isLoginPage && <AdminHeader />}
+          
+          {/* Menu Site se não for /admin */}
           {!isAdminPath && <SiteHeader />}
+          
           <main className="flex-1">
             <Outlet />
           </main>
+          
+          {/* Footer apenas no site */}
           {!isAdminPath && <SiteFooter />}
         </div>
         <Toaster />
