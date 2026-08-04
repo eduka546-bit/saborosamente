@@ -123,12 +123,34 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Ainda não está aparecendo, precisa aparecer todas aquelas opções que pedi">
+      <body data-message="continua igual, será que não está indo pra area inicial isso? precisa aparecer apenas para o modo admin">
         {children}
         <Scripts />
       </body>
     </html>
   );
+}
+
+function RootHeader() {
+  const router = useRouter();
+  const isAdminPath = router.state.location.pathname.startsWith("/admin");
+  const isLoginPage = router.state.location.pathname === "/admin/login";
+
+  if (isAdminPath) {
+    if (isLoginPage) return null; // O AdminHeader será renderizado pelo layout de admin ou não aparecerá no login
+    return null; // As rotas /admin já renderizam o AdminHeader no src/routes/admin.tsx
+  }
+
+  return <SiteHeader />;
+}
+
+function RootFooter() {
+  const router = useRouter();
+  const isAdminPath = router.state.location.pathname.startsWith("/admin");
+  
+  if (isAdminPath) return null;
+  
+  return <SiteFooter />;
 }
 
 function RootComponent() {
@@ -138,12 +160,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          <SiteHeader />
+          <RootHeader />
           <main className="flex-1">
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </main>
-          <SiteFooter />
+          <RootFooter />
         </div>
         <Toaster />
       </CartProvider>
