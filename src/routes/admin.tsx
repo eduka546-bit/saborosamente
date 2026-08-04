@@ -7,7 +7,8 @@ export const Route = createFileRoute("/admin")({
     // Se for a rota de login, não redirecionamos
     if (location.pathname === "/admin/login") return;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     
     if (!user) {
       throw redirect({
@@ -37,7 +38,13 @@ function AdminLayout() {
   const isLoginPage = router.state.location.pathname === "/admin/login";
 
   if (isLoginPage) {
-    return <Outlet />;
+    return (
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <main className="flex-1">
+          <Outlet />
+        </main>
+      </div>
+    );
   }
 
   return (
