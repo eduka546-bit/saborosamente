@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Quando tento acessar o admin, diz que está errado o usuario e senha, preciso publicar o projeto e entrar sem ser no lovable?">
+      <body data-message="está tudo certo">
         {children}
         <Scripts />
       </body>
