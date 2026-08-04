@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Perfeito, agora sim, vamos configurar rota por rota, você consegue puxar todas as informações do site atual da saborosamente?">
+      <body data-message="Vamos primeiro para o cardápio">
         {children}
         <Scripts />
       </body>
