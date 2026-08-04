@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, Outlet, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { AdminHeader } from "@/components/admin-header";
 
 export const Route = createFileRoute("/admin")({
@@ -19,6 +19,7 @@ function AdminLayout() {
     </div>
   );
 }
+
 
 
 
