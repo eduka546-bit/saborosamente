@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Lock, Mail } from "lucide-react";
 
-export const Route = createFileRoute("/admin/login" as any)({
+export const Route = createFileRoute("/admin/login")({
   component: AdminLogin,
 });
 
