@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Deu certo e agora?">
+      <body data-message="Tá eu vou mandar exatamente como eu quero as coisas:&#10;&#10;Marketing e Integrações, não precisam, apenas as outras sessoes dos prints, todas devem ser apenas para o modo admin">
         {children}
         <Scripts />
       </body>
