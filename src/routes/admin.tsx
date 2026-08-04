@@ -8,9 +8,7 @@ export const Route = createFileRoute("/admin" as any)({
     if (!user) {
       throw redirect({
         to: "/admin/login" as any,
-        search: {
-          redirect: location.href,
-        },
+        search: { } as any,
       });
     }
 
