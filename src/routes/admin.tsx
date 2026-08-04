@@ -47,7 +47,12 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      {!isLoginPage && <AdminHeader />}
+      {/* Forçamos a visibilidade se estivermos em qualquer rota /admin que não seja login */}
+      {!isLoginPage && (
+        <div className="block">
+          <AdminHeader />
+        </div>
+      )}
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
