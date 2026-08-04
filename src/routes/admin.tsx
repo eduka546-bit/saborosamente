@@ -24,7 +24,8 @@ export const Route = createFileRoute("/admin")({
       .maybeSingle();
 
     if (!roleData) {
-      await supabase.auth.signOut();
+      // O signOut aqui pode estar limpando a sessão antes da navegação completar no preview
+      // Vamos apenas redirecionar e deixar o login tratar se a sessão é inválida
       throw redirect({
         to: "/admin/login",
       });
@@ -36,25 +37,20 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const router = useRouter();
   const pathname = router.state.location.pathname;
-  const isLoginPage = pathname === "/admin/login" || pathname === "/admin/login/";
-
-  if (isLoginPage) {
-    return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
-    );
-  }
+  const isLoginPage = pathname.includes("/admin/login");
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <AdminHeader />
+      {!isLoginPage && <AdminHeader />}
       <main className="flex-1">
         <Outlet />
       </main>
     </div>
   );
 }
+
+
+
+
+
 
