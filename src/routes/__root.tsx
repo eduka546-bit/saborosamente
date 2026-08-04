@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="ta agora apareceu, porém olha como ficou bugado">
+      <body data-message="só não está aparecendo as opções">
         {children}
         <Scripts />
       </body>
