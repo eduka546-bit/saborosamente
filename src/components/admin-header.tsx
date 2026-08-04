@@ -30,7 +30,7 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:text-white",
+          "flex items-center gap-2 px-3 py-2 text-xs xl:text-sm font-medium transition-colors hover:text-white shrink-0",
           active ? "text-white" : "text-white/70"
         )}
       >
@@ -64,8 +64,8 @@ export function AdminHeader() {
 
   return (
     <header className="bg-[#6B46C1] text-white shadow-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <div className="flex items-center gap-8">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-2">
+        <div className="flex items-center gap-2 xl:gap-6 overflow-x-auto lg:overflow-visible no-scrollbar">
           <Link to="/admin" className="flex items-center gap-2 font-bold text-xl">
             <div className="h-8 w-8 bg-white/20 rounded-md flex items-center justify-center">
               <span className="text-white">PD</span>
@@ -73,7 +73,7 @@ export function AdminHeader() {
             <span>Admin</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center">
+          <nav className="flex items-center">
             <NavItem 
               label="Pedidos" 
               icon={ClipboardList} 
