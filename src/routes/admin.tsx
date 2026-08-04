@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminHeader } from "@/components/admin-header";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -32,9 +33,19 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
+  const isLoginPage = window.location.pathname === "/admin/login";
+
+  if (isLoginPage) {
+    return <Outlet />;
+  }
+
   return (
-    <div className="flex-1">
-      <Outlet />
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <AdminHeader />
+      <main className="flex-1">
+        <Outlet />
+      </main>
     </div>
   );
 }
+
