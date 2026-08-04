@@ -155,20 +155,22 @@ function RootFooter() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const isAdminPath = router.state.location.pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        <div className="flex min-h-screen flex-col">
-          <RootHeader />
+        <div className={isAdminPath ? "min-h-screen flex flex-col" : "flex min-h-screen flex-col"}>
+          {!isAdminPath && <RootHeader />}
           <main className="flex-1">
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </main>
-          <RootFooter />
+          {!isAdminPath && <RootFooter />}
         </div>
         <Toaster />
       </CartProvider>
     </QueryClientProvider>
   );
 }
+
