@@ -60,7 +60,7 @@ function Index() {
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] md:text-6xl">
               Comida caseira,
               <br />
-              <span className="font-script text-primary">saborosamente</span> prática. Vamos ao supabase depois para a vercel.
+              <span className="font-script text-primary">saborosamente</span> prática
             </h1>
             <p className="mt-6 max-w-lg text-base text-muted-foreground md:text-lg">
               Pratos preparados com ingredientes frescos, porcionados e congelados no ponto certo.
