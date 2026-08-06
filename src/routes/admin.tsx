@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
+import { createFileRoute, redirect, Outlet, useRouter, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -7,7 +7,7 @@ export const Route = createFileRoute("/admin")({
     console.log("Admin route beforeLoad started", location.pathname);
     
     // Se for a rota de login, não redirecionamos
-    if (location.pathname === "/admin/login") return;
+    if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") return;
 
     try {
       // Adicionando um timeout de segurança para o getSession
@@ -68,15 +68,21 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { role } = Route.useRouteContext();
+  const router = useRouter();
+  const isLoginPage = router.state.location.pathname === "/admin/login" || router.state.location.pathname === "/admin/login/";
+  const { role } = Route.useRouteContext() || {};
   
+  if (isLoginPage) {
+    return <Outlet />;
+  }
+
   if (role !== "admin") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-red-600">Acesso Restrito</h1>
           <p className="text-gray-600">Você não tem permissão para acessar esta área.</p>
-          <a href="/admin/login" className="text-primary hover:underline font-medium">Voltar para o login</a>
+          <Link to="/admin/login" className="text-primary hover:underline font-medium">Voltar para o login</Link>
         </div>
       </div>
     );
