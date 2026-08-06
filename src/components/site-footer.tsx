@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -54,7 +54,7 @@ export function SiteFooter() {
               <Phone className="size-4" aria-hidden="true" /> (47) 99150-7757
             </li>
             <li className="flex items-center gap-2">
-              <Instagram className="size-4" aria-hidden="true" /> @saborosamente
+              <span className="size-4 opacity-70"></span> @saborosamente
             </li>
           </ul>
         </div>
