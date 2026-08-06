@@ -50,21 +50,21 @@ export function SiteHeader() {
            {/* Removido o texto "Saborosamente" conforme solicitado */}
         </Link>
 
-        {/* Navigation Links */}
-        <nav className="hidden items-center gap-10 lg:flex">
+        {/* Navigation Links - Now side-by-side even on mobile */}
+        <nav className="flex items-center gap-4 sm:gap-6 lg:gap-10">
           {links.map((l) => (
             <Link
               key={l.label}
               to={l.to}
               style={{ color: navText }}
-              className="flex items-center gap-2 text-[13px] font-semibold transition-opacity hover:opacity-70"
+              className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
             >
-              <l.icon size={18} className="opacity-80" />
+              <l.icon size={16} className="opacity-80 hidden sm:block" />
               {l.label}
             </Link>
           ))}
           
-          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70">
+          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
             <User size={20} />
           </Link>
 
@@ -81,15 +81,6 @@ export function SiteHeader() {
             )}
           </Link>
         </nav>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="lg:hidden p-2"
-          style={{ color: navText }}
-        >
-          <Menu size={24} />
-        </button>
       </div>
 
       {/* Hero / Cover Section */}
