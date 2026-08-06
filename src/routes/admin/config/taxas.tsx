@@ -222,7 +222,7 @@ function AdminConfigTaxasPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-
+                <div>
                   <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
                   <Input name="taxa" type="number" step="0.01" required placeholder="5.00" />
                 </div>
@@ -231,6 +231,7 @@ function AdminConfigTaxasPage() {
                   <Input name="tempo" required placeholder="30-45 min" />
                 </div>
               </div>
+
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsAdding(false)} className="flex-1">Cancelar</Button>
                 <Button type="submit" className="flex-1 bg-[#5850ec] text-white">Adicionar</Button>
