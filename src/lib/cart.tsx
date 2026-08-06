@@ -9,7 +9,9 @@ import {
 } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { getPublicProducts } from "./products.functions";
+import { getTaxas } from "./taxas.functions";
 import { useQuery } from "@tanstack/react-query";
+
 
 // Variável global para cache de produtos no lado do cliente
 let cachedProducts: any[] = [];
@@ -43,6 +45,7 @@ interface CartContextValue {
   total: number;
   selectedCity: string;
   selectedBairro: string;
+  taxas: any[];
   setSelectedCity: (city: string) => void;
   setSelectedBairro: (bairro: string) => void;
   add: (productId: string, quantity?: number, weight?: string) => void;
@@ -50,6 +53,7 @@ interface CartContextValue {
   remove: (productId: string, weight?: string) => void;
   clear: () => void;
 }
+
 
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -78,6 +82,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
+
+  const MOCK_TAXAS = [
+    // São Bento do Sul
+    { id: 1, bairro: "Centro (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 2, bairro: "Progresso (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 3, bairro: "25 de Julho (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 4, bairro: "Alpino (SBS)", taxa: 17.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 5, bairro: "Boehmerwald (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 6, bairro: "Brasília (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 7, bairro: "Centenário (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 8, bairro: "Colonial (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 9, bairro: "Cruzeiro (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 10, bairro: "Industrial Sudoeste (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 11, bairro: "Loteamento Itália (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 12, bairro: "Mato Preto (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 13, bairro: "Oxford (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 14, bairro: "Parque Mariani (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 15, bairro: "Residencial Santa Fé (SBS)", taxa: 12.50, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 16, bairro: "Rio Negro (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 17, bairro: "Schramm (SBS)", taxa: 9.00, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 18, bairro: "Serra Alta (SBS)", taxa: 13.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 19, bairro: "Dona Francisca (SBS)", taxa: 15.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 20, bairro: "Bela Aliança (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 21, bairro: "Campo do Meio (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 22, bairro: "Castelo Branco (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 23, bairro: "Estrada das Neves (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 24, bairro: "Estrada dos Bugres (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 25, bairro: "Lençol (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 26, bairro: "Rio Natal (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 27, bairro: "Rio Represo (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 28, bairro: "Rio Vermelho Estação (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 29, bairro: "Rio Vermelho Povoado (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 30, bairro: "Sertãozinho (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    // Rio Negrinho
+    { id: 31, bairro: "Centro (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 32, bairro: "Vila Nova (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 33, bairro: "Quitandinha (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    // Campo Alegre
+    { id: 54, bairro: "Centro (CA)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Campo Alegre" },
+    // ... simplificado por agora para não sobrecarregar
+  ];
+
+  const { data: serverTaxas } = useQuery({
+    queryKey: ["taxas"],
+    queryFn: () => getTaxas(),
+  });
+
+  const taxas = serverTaxas || MOCK_TAXAS;
+
 
   
   const { data: serverProducts = [] } = useQuery({
@@ -149,7 +202,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const count = detailed.reduce((acc, l) => acc + l.quantity, 0);
 
     // Lógica de Frete e Regras de Negócio
-    let shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
+    let shipping = SHIPPING_FEE;
+
+    // Se tiver bairro selecionado, pegar a taxa específica
+    if (selectedBairro) {
+      const taxaItem = taxas.find(t => t.bairro === selectedBairro && t.cidade === selectedCity);
+      if (taxaItem) {
+        shipping = taxaItem.taxa;
+      }
+    }
+
+    if (subtotal === 0 || subtotal >= FREE_SHIPPING_FROM) {
+      shipping = 0;
+    }
 
     // Se tiver cidade selecionada, podemos aplicar regras específicas
     if (selectedCity) {
@@ -161,6 +226,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
+
     return {
       lines: detailed,
       count,
@@ -169,8 +235,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       total: subtotal + shipping,
       selectedCity,
       selectedBairro,
+      taxas,
       setSelectedCity,
       setSelectedBairro,
+
       add,
       setQuantity,
       remove,

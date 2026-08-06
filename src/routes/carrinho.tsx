@@ -29,6 +29,10 @@ function Carrinho() {
     count,
     selectedCity,
     setSelectedCity,
+    selectedBairro,
+    setSelectedBairro,
+    taxas,
+
     setQuantity,
     remove,
     clear,
@@ -119,25 +123,47 @@ function Carrinho() {
           <aside className="h-fit rounded-3xl border border-border bg-card p-6 shadow-soft">
             <h2 className="text-lg font-semibold">Resumo do pedido</h2>
 
-            <div className="mt-4 space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase">
-                Cidade para entrega
-              </label>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="">Selecione a cidade...</option>
-                <option value="São Bento do Sul">São Bento do Sul</option>
-                <option value="Rio Negrinho">Rio Negrinho</option>
-                <option value="Campo Alegre">Campo Alegre</option>
-                <option value="Corupá">Corupá</option>
-                <option value="Piên">Piên</option>
-                <option value="Rio Negro">Rio Negro</option>
-                <option value="Mafra">Mafra</option>
-              </select>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">
+                  Cidade
+                </label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => {
+                    setSelectedCity(e.target.value);
+                    setSelectedBairro(""); // Reset bairro ao mudar cidade
+                  }}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Selecione...</option>
+                  {[...new Set(taxas.map(t => t.cidade))].sort().map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">
+                  Bairro
+                </label>
+                <select
+                  value={selectedBairro}
+                  onChange={(e) => setSelectedBairro(e.target.value)}
+                  disabled={!selectedCity}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                >
+                  <option value="">Selecione...</option>
+                  {taxas
+                    .filter(t => t.cidade === selectedCity)
+                    .sort((a, b) => a.bairro.localeCompare(b.bairro))
+                    .map(t => (
+                      <option key={t.id} value={t.bairro}>{t.bairro}</option>
+                    ))}
+                </select>
+              </div>
             </div>
+
 
             <dl className="mt-5 space-y-3 text-sm">
 
@@ -156,6 +182,28 @@ function Carrinho() {
                 <dd className="font-bold text-primary">{formatBRL(total)}</dd>
               </div>
             </dl>
+
+            {/* Barra de Progresso Frete SBS */}
+            {selectedCity.toLowerCase().includes("são bento do sul") && (
+              <div className="mt-6 space-y-2">
+                <div className="flex justify-between text-xs font-semibold uppercase tracking-wider">
+                  <span className="text-muted-foreground">Progresso Frete Reduzido (R$ 5,00)</span>
+                  <span className="text-primary">
+                    {Math.min(100, Math.max((subtotal / 70) * 100, (count / 5) * 100)).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div 
+                    className="h-full bg-primary transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min(100, Math.max((subtotal / 70) * 100, (count / 5) * 100))}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  * Válido para pedidos acima de R$ 70,00 ou 5 itens.
+                </p>
+              </div>
+            )}
+
             {selectedCity.toLowerCase().includes("são bento do sul") &&
               shipping !== 0 &&
               (subtotal < 70 && count < 5) && (
