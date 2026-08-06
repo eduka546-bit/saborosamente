@@ -58,33 +58,9 @@ function Index() {
 
   return (
     <>
+      {/* Hero Info & Banners Section */}
       <section className="mx-auto max-w-7xl px-4 -mt-10 sm:-mt-20 relative z-30 pb-12">
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* Menu de Categorias - Lado Esquerdo */}
-          <div className="w-full md:w-72 space-y-2 pt-16 sm:pt-24 shrink-0">
-            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
-              SaborosaMente - Atacado de Refeições e Sopas Congeladas
-            </h1>
-            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-6">
-              Para o corpo e para a mente, SaborosaMente!
-            </p>
-            
-            {[
-              "Combos Prontos",
-              "Combos Escolha Você Mesmo",
-              "Linha Refeições (200g - 300g - 400g)",
-              "Sopas (400g)",
-              "Complementos de Proteínas 150g"
-            ].map((cat) => (
-              <button 
-                key={cat}
-                className="w-full text-left px-5 py-3 rounded-xl bg-gray-100/50 text-gray-600 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent"
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex flex-col md:flex-row gap-6 items-start justify-end">
           <div className="flex-1 w-full space-y-6">
             {/* Info Card & Search */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
@@ -134,39 +110,70 @@ function Index() {
         </div>
       </section>
 
+      {/* Main Content: Filters + Products */}
       <section className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">Mais pedidas da semana</h2>
-            <p className="mt-1 text-xs text-muted-foreground font-medium">
-              As marmitas que saem primeiro do nosso freezer.
+        <div className="flex flex-col md:flex-row gap-8 items-start">
+          {/* Menu de Categorias - Agora ao lado das Marmitas */}
+          <div className="w-full md:w-72 space-y-2 shrink-0">
+            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
+              SaborosaMente - Atacado de Refeições e Sopas Congeladas
+            </h1>
+            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-6">
+              Para o corpo e para a mente, SaborosaMente!
             </p>
-          </div>
-          <Link to="/catalogo" className="text-xs font-bold text-[#086e45] hover:underline uppercase tracking-wider">
-            Ver todas as marmitas →
-          </Link>
-        </div>
-
-        <div className="mt-8">
-          {isLoading ? (
-            <div className="flex flex-col items-center py-10 gap-3">
-              <Loader2 className="animate-spin text-primary" size={32} />
-              <p className="text-muted-foreground text-sm">Carregando sugestões...</p>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {displayProducts.map((product: any) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={{
-                    ...product,
-                    categoria: product.categorias?.nome || "Marmita",
-                    imagem: product.imagem_url
-                  }} 
-                />
+            
+            <div className="space-y-2">
+              {[
+                "Combos Prontos",
+                "Combos Escolha Você Mesmo",
+                "Linha Refeições (200g - 300g - 400g)",
+                "Sopas (400g)",
+                "Complementos de Proteínas 150g"
+              ].map((cat) => (
+                <button 
+                  key={cat}
+                  className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
+                >
+                  {cat}
+                </button>
               ))}
             </div>
-          )}
+          </div>
+
+          {/* Products List */}
+          <div className="flex-1 w-full">
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">Mais pedidas da semana</h2>
+                <p className="mt-1 text-xs text-muted-foreground font-medium">
+                  As marmitas que saem primeiro do nosso freezer.
+                </p>
+              </div>
+              <Link to="/catalogo" className="text-xs font-bold text-[#086e45] hover:underline uppercase tracking-wider">
+                Ver todas as marmitas →
+              </Link>
+            </div>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center py-10 gap-3">
+                <Loader2 className="animate-spin text-primary" size={32} />
+                <p className="text-muted-foreground text-sm">Carregando sugestões...</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                {displayProducts.map((product: any) => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={{
+                      ...product,
+                      categoria: product.categorias?.nome || "Marmita",
+                      imagem: product.imagem_url
+                    }} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
