@@ -33,17 +33,53 @@ function AdminSiteConfig() {
   const heroRef = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading, error: queryError } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
+      console.log("Fetching site settings...");
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
         .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching site settings:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.log("No site settings found, seeding default...");
+        const defaultSettings = {
+          announcement_text: "FRETE GRÁTIS ACIMA DE R$ 120,00",
+          announcement_bg_color: "#086e45",
+          announcement_text_color: "#ffffff",
+          nav_bg_color: "#ffffff",
+          nav_text_color: "#086e45",
+          hero_image_url: "",
+          profile_image_url: "",
+          hero_features: [
+            { label: "6 MESES DE", value: "VALIDADE" },
+            { label: "SEM ADIÇÃO DE", value: "CONSERVANTES" },
+            { label: "BAIXO TEOR DE", value: "SÓDIO" }
+          ]
+        };
+        
+        const { data: newData, error: insertError } = await supabase
+          .from("site_settings")
+          .insert(defaultSettings)
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Error seeding site settings:", insertError);
+          throw insertError;
+        }
+        return newData;
+      }
+      
       return data;
-    }
+    },
+    retry: 1
   });
 
   const [formData, setFormData] = useState<any>(null);
@@ -71,10 +107,26 @@ function AdminSiteConfig() {
     }
   });
 
-  if (isLoading || !formData) {
+  if (isLoading || (!formData && !queryError)) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-[400px] flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-[#5850ec]" size={40} />
+        <p className="text-muted-foreground animate-pulse">Carregando configurações...</p>
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="flex h-[400px] flex-col items-center justify-center gap-4 p-4 text-center">
+        <AlertCircle className="text-red-500" size={40} />
+        <h2 className="text-xl font-bold">Erro ao carregar configurações</h2>
+        <p className="text-muted-foreground max-w-md">
+          Não foi possível conectar ao banco de dados para carregar as configurações do site.
+        </p>
+        <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["site-settings"] })}>
+          Tentar Novamente
+        </Button>
       </div>
     );
   }
