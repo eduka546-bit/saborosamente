@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Failed to run sql query: ERROR:  23502: null value in column 'categoria' of relation 'produtos' violates not-null constraint">
+      <body data-message="Success. No rows returned">
         {children}
         <Scripts />
       </body>
