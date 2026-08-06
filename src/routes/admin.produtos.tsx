@@ -173,6 +173,8 @@ function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -234,6 +236,28 @@ function AdminProductsPage() {
       toast.success("Preço atualizado!");
     },
   });
+
+  const updateProduct = useMutation({
+    mutationFn: async (updatedData: any) => {
+      const { id, ...data } = updatedData;
+      const { error } = await supabase
+        .from("produtos")
+        .update(data)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      toast.success("Produto atualizado com sucesso!");
+      setIsEditModalOpen(false);
+      setEditingProduct(null);
+    },
+  });
+
+  const handleEdit = (product: any) => {
+    setEditingProduct(product);
+    setIsEditModalOpen(true);
+  };
 
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
@@ -350,7 +374,7 @@ function AdminProductsPage() {
                         key={product.id} 
                         product={product} 
                         onUpdateStatus={(id: string, status: string) => updateStatus.mutate({ id, status })}
-                        onDelete={(id: string) => deleteProduct.mutate(id)}
+                        onEdit={handleEdit}
                         onUpdatePrice={(id: string, val: string) => {
                           const price = parseFloat(val.replace(',', '.'));
                           if (!isNaN(price)) updatePrice.mutate({ id, preco: price });
