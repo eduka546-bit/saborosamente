@@ -64,7 +64,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       setFormData({
         ...product,
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
-        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || ""
+        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
+        status: product.status === 'Pausado' ? 'pausado' : 'ativo'
       });
     } else {
       // Default data for new product
@@ -133,7 +134,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       return;
     }
 
-    onSave({ ...rest, preco, preco_promocional });
+    const status = formData.status === 'pausado' ? 'Pausado' : 'Ativo';
+    onSave({ ...rest, preco, preco_promocional, status });
   };
 
   return (
@@ -593,7 +595,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'pausado')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'pausado' 
+              product.status === 'Pausado' || product.status === 'pausado'
                 ? 'bg-red-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -603,7 +605,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'ativo')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'ativo' 
+              product.status === 'Ativo' || product.status === 'ativo'
                 ? 'bg-green-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -669,11 +671,12 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      console.log('Solicitando atualização de status:', id, '->', status);
+      const dbStatus = status === 'pausado' ? 'Pausado' : 'Ativo';
+      console.log('Solicitando atualização de status:', id, '->', dbStatus);
       
       const { data, error } = await supabase
         .from("produtos")
-        .update({ status })
+        .update({ status: dbStatus })
         .eq("id", id)
         .select();
 
