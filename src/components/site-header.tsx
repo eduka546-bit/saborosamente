@@ -102,18 +102,27 @@ export function SiteHeader() {
     staleTime: 1000 * 60 * 60,
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings, isPending: isSettingsPending } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
       const { data } = await supabase.from("site_settings").select("*").maybeSingle();
       return data;
-    }
+    },
+    staleTime: 1000 * 60,
   });
 
   const navBg = settings?.nav_bg_color || "#ffffff";
   const navText = settings?.nav_text_color || "#086e45";
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
+
+  /**
+   * Imagens do banner: sempre priorizamos o que foi enviado pelo painel admin.
+   * Enquanto a consulta ainda não respondeu, NÃO renderizamos a imagem padrão —
+   * isso evitava o "flash" da capa original antes da capa atualizada aparecer.
+   */
+  const heroDesktopSrc = settings?.hero_image_url || bannerDesktopAsset.url;
+  const heroMobileSrc = settings?.hero_image_url || bannerMobileAsset.url;
 
   return (
     <header className="relative z-[200] transition-all duration-300">
