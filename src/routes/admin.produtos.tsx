@@ -136,7 +136,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-500">R$ {formData.preco?.toFixed(2).replace('.', ',') || "0,00"}</span>
           </div>
-          <DialogTitle className="hidden">Editar Produto</DialogTitle>
+          <DialogTitle className="hidden">{product ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="detalhes" className="w-full">
