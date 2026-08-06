@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { 
   Plus, Search, MoreVertical, GripVertical, Loader2, Utensils, 
   Filter, X, Save, Copy, Trash2, Edit3, Image as ImageIcon, 
-  Calendar, Package, Star, Tag, Info, Check, Clock
+  Calendar, Package, Star, Tag, Info, Check, Clock, Upload, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
   DndContext, 
@@ -55,6 +56,8 @@ export const Route = createFileRoute("/admin/produtos")({
 
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useMemo(() => {
     if (product) {
@@ -66,6 +69,36 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   }, [product]);
 
   if (!product || !formData) return null;
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, imagem_url: publicUrl });
+      toast.success("Imagem enviada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro no upload:", error);
+      toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = () => {
     const { preco_formatado, categorias, ...rest } = formData;
@@ -105,10 +138,27 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     ) : (
                       <ImageIcon className="text-gray-300" size={48} />
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="secondary" size="sm" className="text-xs font-bold uppercase">Trocar Imagem Principal</Button>
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="text-xs font-bold uppercase"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? <Loader2 className="animate-spin mr-2" size={14} /> : null}
+                        Trocar Imagem Principal
+                      </Button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleImageUpload}
+                      />
                     </div>
                   </div>
+                  <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">Resolução recomendada: 800x800px</p>
                 </div>
 
                 <div className="space-y-6">
@@ -266,21 +316,160 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               </div>
             </TabsContent>
 
-            {/* Other tabs placeholder content for visual consistency */}
-            <TabsContent value="estoque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Estoque em desenvolvimento
+            <TabsContent value="destaque" className="m-0 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 border rounded-xl">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-semibold text-gray-700">Destaque na Home</label>
+                      <p className="text-xs text-gray-500">Exibir este produto na seção "Mais Pedidos"</p>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-xl">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-semibold text-gray-700">Novidade</label>
+                      <p className="text-xs text-gray-500">Sinalizar como novo item no cardápio</p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 text-purple-600">
+                    <Star size={20} />
+                    <span className="text-sm font-bold uppercase tracking-wider">Sugestões de Venda</span>
+                  </div>
+                  <p className="text-xs text-purple-800/70">Este produto será sugerido no carrinho quando o cliente estiver finalizando o pedido.</p>
+                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-100 text-xs font-bold uppercase py-6">Configurar Gatilhos</Button>
+                </div>
+              </div>
             </TabsContent>
-            <TabsContent value="destaque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Destaque em desenvolvimento
+
+            <TabsContent value="estoque" className="m-0 space-y-6">
+              <div className="bg-blue-50/50 p-4 rounded-lg flex items-start gap-3">
+                <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-blue-900">Gerenciamento de Estoque</p>
+                  <p className="text-xs text-blue-700">Ative o controle de estoque para este produto. Quando o saldo chegar a zero, o produto será pausado automaticamente.</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-w-md">
+                <div className="flex items-center justify-between p-4 border rounded-xl">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-semibold text-gray-700">Ativar Controle de Estoque</label>
+                    <p className="text-xs text-gray-500">Deduzir do saldo a cada venda</p>
+                  </div>
+                  <Switch 
+                    checked={formData.controle_estoque} 
+                    onCheckedChange={(checked) => setFormData({ ...formData, controle_estoque: checked })}
+                  />
+                </div>
+
+                {formData.controle_estoque && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Quantidade em Estoque</label>
+                      <Input 
+                        type="number"
+                        value={formData.estoque_atual || 0}
+                        onChange={(e) => setFormData({ ...formData, estoque_atual: parseInt(e.target.value) })}
+                        className="h-10 border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Aviso de Estoque Baixo</label>
+                      <Input 
+                        type="number"
+                        value={formData.estoque_minimo || 5}
+                        onChange={(e) => setFormData({ ...formData, estoque_minimo: parseInt(e.target.value) })}
+                        className="h-10 border-gray-200"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </TabsContent>
-            <TabsContent value="promocao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Promoção em desenvolvimento
+
+            <TabsContent value="promocao" className="m-0 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor Promocional (Opcional)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                      <Input 
+                        placeholder="0,00"
+                        value={formData.preco_promocional_formatado || ""}
+                        onChange={(e) => setFormData({ ...formData, preco_promocional_formatado: e.target.value })}
+                        className="h-10 pl-9 border-gray-200"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400">Se preenchido, este valor substituirá o valor original com uma tag de oferta.</p>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-semibold text-gray-700">Frete Grátis</label>
+                        <p className="text-xs text-gray-500">Aplicar frete grátis apenas para este produto</p>
+                      </div>
+                      <Switch />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-semibold text-gray-700">Bloquear Cupom</label>
+                        <p className="text-xs text-gray-500">Não permitir uso de cupons neste item</p>
+                      </div>
+                      <Switch />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <Tag size={20} />
+                    <span className="text-sm font-bold uppercase tracking-wider">Agendar Promoção</span>
+                  </div>
+                  <p className="text-xs text-orange-800/70">Defina um período específico para que esta promoção fique ativa automaticamente no site.</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Início</label>
+                      <Input type="date" className="h-9 border-orange-200 bg-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Término</label>
+                      <Input type="date" className="h-9 border-orange-200 bg-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
-            <TabsContent value="integracao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Integração iFood / 99Food
+
+            <TabsContent value="integracao" className="m-0 space-y-6">
+              <div className="max-w-md space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Código PDV / Integração</label>
+                  <Input placeholder="Ex: IFD-123" className="h-10 border-gray-200" />
+                  <p className="text-[10px] text-gray-400">Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.</p>
+                </div>
+              </div>
             </TabsContent>
-            <TabsContent value="contabilidade" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Dados Contábeis
+
+            <TabsContent value="contabilidade" className="m-0 space-y-6">
+              <div className="max-w-md space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Preço de Custo</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                    <Input placeholder="0,00" className="h-10 pl-9 border-gray-200" />
+                  </div>
+                  <p className="text-[10px] text-gray-400">Este valor não é exibido para o cliente. Usado apenas para relatórios de lucratividade.</p>
+                </div>
+              </div>
             </TabsContent>
           </div>
         </Tabs>
