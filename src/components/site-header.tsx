@@ -1,21 +1,28 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare } from "lucide-react";
+import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const links = [
   { to: "/catalogo", label: "Cardápio", icon: Menu },
-  { to: "/admin/config/taxas", label: "Áreas de entrega", icon: MapPin },
+  { type: "modal", label: "Áreas de entrega", icon: MapPin },
   { to: "/", label: "Cashback", icon: Sparkles },
   { to: "/", label: "Fale conosco", icon: MessageSquare },
 ] as const;
 
 export function SiteHeader() {
   const { count } = useCart();
-  const [open, setOpen] = useState(false);
+  const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
 
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
@@ -53,15 +60,27 @@ export function SiteHeader() {
         {/* Navigation Links - Now side-by-side even on mobile */}
         <nav className="flex items-center gap-4 sm:gap-6 lg:gap-10">
           {links.map((l) => (
-            <Link
-              key={l.label}
-              to={l.to}
-              style={{ color: navText }}
-              className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
-            >
-              <l.icon size={16} className="opacity-80 hidden sm:block" />
-              {l.label}
-            </Link>
+            l.type === "modal" ? (
+              <button
+                key={l.label}
+                onClick={() => setOpenDeliveryModal(true)}
+                style={{ color: navText }}
+                className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
+              >
+                <l.icon size={16} className="opacity-80 hidden sm:block" />
+                {l.label}
+              </button>
+            ) : (
+              <Link
+                key={l.label}
+                to={l.to as any}
+                style={{ color: navText }}
+                className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
+              >
+                <l.icon size={16} className="opacity-80 hidden sm:block" />
+                {l.label}
+              </Link>
+            )
           ))}
           
           <Link to="/admin" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
@@ -123,6 +142,94 @@ export function SiteHeader() {
           </div>
         )}
       </div>
+
+      <DeliveryAreasModal 
+        open={openDeliveryModal} 
+        onOpenChange={setOpenDeliveryModal} 
+      />
     </header>
+  );
+}
+
+function DeliveryAreasModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+  const { data: areas } = useQuery({
+    queryKey: ["delivery-areas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("delivery_rates")
+        .select("*")
+        .order("city", { ascending: true })
+        .order("neighborhood", { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const groupedAreas = areas?.reduce((acc: any, curr) => {
+    if (!acc[curr.city]) acc[curr.city] = [];
+    acc[curr.city].push(curr);
+    return acc;
+  }, {});
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl">
+        <DialogHeader className="p-6 pb-0 flex flex-row items-center justify-between border-b bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <MapPin className="text-primary size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-black text-primary uppercase tracking-tight">Onde entregamos</DialogTitle>
+              <p className="text-xs text-muted-foreground font-medium">Confira os bairros atendidos e taxas</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} className="text-gray-400" />
+          </button>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 p-6">
+          <div className="space-y-8">
+            {groupedAreas && Object.entries(groupedAreas).map(([city, neighborhoods]: [string, any]) => (
+              <div key={city} className="space-y-3">
+                <h3 className="text-sm font-black text-primary/80 uppercase tracking-widest flex items-center gap-2 border-b pb-1">
+                  <span className="size-1.5 rounded-full bg-primary" />
+                  {city}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {neighborhoods.map((area: any) => (
+                    <div 
+                      key={area.id} 
+                      className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-primary/20 hover:shadow-sm transition-all group"
+                    >
+                      <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">{area.neighborhood}</span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {area.rate === 0 ? "Grátis" : `R$ ${area.rate.toFixed(2).replace(".", ",")}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!areas && (
+              <div className="py-20 text-center space-y-3">
+                <div className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+                <p className="text-sm text-muted-foreground font-medium">Carregando áreas de entrega...</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+        <div className="p-4 bg-gray-50 border-t text-center">
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+            Consulte condições para frete grátis no carrinho
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
