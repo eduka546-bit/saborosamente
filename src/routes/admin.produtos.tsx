@@ -459,7 +459,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         <label className="text-sm font-semibold text-gray-700">Frete Grátis</label>
                         <p className="text-xs text-gray-500">Aplicar frete grátis apenas para este produto</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={!!formData.frete_gratis} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, frete_gratis: checked })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between">
