@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Leaf, Snowflake, Truck, Clock } from "lucide-react";
+import { Leaf, Snowflake, Truck, Clock, Loader2 } from "lucide-react";
 import heroImage from "@/assets/hero-marmitas.jpg";
 import { ProductCard } from "@/components/product-card";
-import { products } from "@/lib/products";
+import { useQuery } from "@tanstack/react-query";
+import { getPublicProducts } from "@/lib/products.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,7 +48,15 @@ const beneficios = [
 ];
 
 function Index() {
-  const destaques = products.filter((p) => p.destaque);
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["public-products-featured"],
+    queryFn: () => getPublicProducts(),
+  });
+
+  const destaques = products.filter((p: any) => p.destaque).slice(0, 3);
+  
+  // Se não houver destaques marcados, pegar os primeiros 3
+  const displayProducts = destaques.length > 0 ? destaques : products.slice(0, 3);
 
   return (
     <>
@@ -122,10 +131,26 @@ function Index() {
           </Link>
         </div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {destaques.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        <div className="mt-8">
+          {isLoading ? (
+            <div className="flex flex-col items-center py-10 gap-3">
+              <Loader2 className="animate-spin text-primary" size={32} />
+              <p className="text-muted-foreground text-sm">Carregando sugestões...</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {displayProducts.map((product: any) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={{
+                    ...product,
+                    categoria: product.categorias?.nome || "Marmita",
+                    imagem: product.imagem_url
+                  }} 
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
