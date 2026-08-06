@@ -703,57 +703,38 @@ function AdminProductsPage() {
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
       // Normalização rigorosa baseada no erro de constraint 23514
-      // Se 'ativo'/'pausado' falhou e 'Ativo'/'Pausado' falhou, 
-      // pode ser que a constraint esteja esperando MAIÚSCULAS ou outro formato.
-      const dbStatus = status.toLowerCase() === 'ativo' ? 'Ativo' : 'Pausado';
+      // Vamos tentar garantir que o valor enviado seja exatamente o que o banco espera.
       
-      console.log('Tentativa de atualização de status (Normalizado):', id, '->', dbStatus);
-      
-      const { data, error } = await supabase
-        .from("produtos")
-        .update({ status: dbStatus })
-        .eq("id", id)
-        .select();
+      const tryUpdate = async (val: string) => {
+        console.log(`Tentando atualizar status para: ${val}`);
+        return await supabase
+          .from("produtos")
+          .update({ status: val })
+          .eq("id", id)
+          .select();
+      };
 
-      if (error) {
-        console.error('Erro na primeira tentativa (Capitalizado):', error);
-        
-        // Se falhou com erro de constraint, tenta minúsculo
-        if (error.code === '23514') {
-          const lowerStatus = dbStatus.toLowerCase();
-          console.log('Tentando fallback para minúsculo:', lowerStatus);
-          const { data: retryData, error: retryError } = await supabase
-            .from("produtos")
-            .update({ status: lowerStatus })
-            .eq("id", id)
-            .select();
-          
-          if (retryError) {
-             // Se ainda falhar, tenta MAIÚSCULAS
-             if (retryError.code === '23514') {
-                const upperStatus = dbStatus.toUpperCase();
-                console.log('Tentando fallback para MAIÚSCULAS:', upperStatus);
-                const { data: finalData, error: finalError } = await supabase
-                  .from("produtos")
-                  .update({ status: upperStatus })
-                  .eq("id", id)
-                  .select();
-                
-                if (finalError) throw finalError;
-                return finalData[0];
-             }
-             throw retryError;
-          }
-          return retryData[0];
+      // Ordem de tentativa: Capitalizado, Minúsculo, Maiúsculo
+      const attempts = [
+        status.charAt(0).toUpperCase() + status.slice(1).toLowerCase(), // Ativo / Pausado
+        status.toLowerCase(), // ativo / pausado
+        status.toUpperCase() // ATIVO / PAUSADO
+      ];
+
+      let lastError = null;
+      for (const val of attempts) {
+        const { data, error } = await tryUpdate(val);
+        if (!error && data && data.length > 0) {
+          console.log(`Sucesso com valor: ${val}`);
+          return data[0];
         }
-        throw error;
+        if (error && error.code !== '23514') {
+          throw error;
+        }
+        lastError = error;
       }
 
-      if (!data || data.length === 0) {
-        throw new Error("Produto não encontrado ou sem permissão.");
-      }
-
-      return data[0];
+      throw lastError || new Error("Falha ao atualizar status após múltiplas tentativas.");
     },
     onMutate: async ({ id, status }: { id: string, status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
@@ -771,10 +752,14 @@ function AdminProductsPage() {
         queryClient.setQueryData(["admin-products"], context.previousProducts);
       }
       
-      // Feedback mais específico
       const errorMsg = err.message || "Tente novamente";
       const detail = err.details || (err.code ? `Erro: ${err.code}` : "");
-      toast.error(`Erro ao atualizar status: ${errorMsg} ${detail}`);
+      
+      if (err.code === '23514') {
+        toast.error("Erro de restrição no banco. Por favor, execute o SQL de correção de status enviado no chat.");
+      } else {
+        toast.error(`Erro ao atualizar status: ${errorMsg} ${detail}`);
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
