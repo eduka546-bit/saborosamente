@@ -88,7 +88,7 @@ function AdminProductsPage() {
         </div>
       ) : (
         <div className="space-y-10 pb-20">
-          {groupedProducts.map(({ category, products }) => (
+          {groupedProducts.map(({ category, products }: any) => (
             <div key={category.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h2 className="text-sm font-bold text-primary uppercase tracking-wider">
