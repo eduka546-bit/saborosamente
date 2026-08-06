@@ -750,10 +750,49 @@ function AdminProductsPage() {
 
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
+    if (!over) return;
+
     if (active.id !== over.id) {
-      // Logic for persistent reordering would go here, updating an 'ordem' column
-      // For now we just swap in UI
-      toast.info("Reordenação salva localmente (implementando persistência...)");
+      const activeItem = products.find((p: any) => p.id === active.id);
+      const overItem = products.find((p: any) => p.id === over.id);
+
+      if (activeItem && overItem && activeItem.categoria_id === overItem.categoria_id) {
+        const catProducts = products
+          .filter((p: any) => p.categoria_id === activeItem.categoria_id)
+          .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0));
+
+        const oldIndex = catProducts.findIndex((p: any) => p.id === active.id);
+        const newIndex = catProducts.findIndex((p: any) => p.id === over.id);
+
+        const newOrder = arrayMove(catProducts, oldIndex, newIndex);
+
+        // Update local state for immediate feedback
+        queryClient.setQueryData(["admin-products"], (old: any) => {
+          const otherCats = old.filter((p: any) => p.categoria_id !== activeItem.categoria_id);
+          const updatedCatProducts = newOrder.map((p, idx) => ({ ...p, ordem: idx }));
+          return [...otherCats, ...updatedCatProducts];
+        });
+
+        // Persist to DB
+        try {
+          const updates = newOrder.map((p, idx) => ({
+            id: p.id,
+            ordem: idx
+          }));
+
+          for (const update of updates) {
+            await supabase
+              .from("produtos")
+              .update({ ordem: update.ordem })
+              .eq("id", update.id);
+          }
+          toast.success("Ordem atualizada!");
+        } catch (error) {
+          console.error("Erro ao salvar ordem:", error);
+          toast.error("Erro ao salvar nova ordem");
+          queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+        }
+      }
     }
   };
 
