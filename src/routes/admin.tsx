@@ -9,8 +9,11 @@ export const Route = createFileRoute("/admin")({
     if (location.pathname === "/admin/login") return;
 
     try {
-      // getSession() já busca do localStorage se existir
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Adicionando um timeout de segurança para o getSession
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase timeout")), 8000));
+      
+      const { data: { session }, error: sessionError } = await (Promise.race([sessionPromise, timeoutPromise]) as Promise<any>);
       
       if (sessionError) {
         console.error("Session error:", sessionError);
