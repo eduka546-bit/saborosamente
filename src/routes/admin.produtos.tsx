@@ -138,10 +138,27 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     ) : (
                       <ImageIcon className="text-gray-300" size={48} />
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="secondary" size="sm" className="text-xs font-bold uppercase">Trocar Imagem Principal</Button>
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="text-xs font-bold uppercase"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? <Loader2 className="animate-spin mr-2" size={14} /> : null}
+                        Trocar Imagem Principal
+                      </Button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleImageUpload}
+                      />
                     </div>
                   </div>
+                  <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">Resolução recomendada: 800x800px</p>
                 </div>
 
                 <div className="space-y-6">
