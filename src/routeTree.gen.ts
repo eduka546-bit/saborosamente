@@ -16,6 +16,7 @@ import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
+import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
@@ -55,6 +56,11 @@ const AdminClientesRoute = AdminClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCuponsRoute = AdminCuponsRouteImport.update({
+  id: '/cupons',
+  path: '/cupons',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/admin/clientes': typeof AdminClientesRoute
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/admin/clientes': typeof AdminClientesRoute
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/checkout': typeof CheckoutRoute
   '/admin/clientes': typeof AdminClientesRoute
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/checkout'
     | '/admin/clientes'
+    | '/admin/cupons'
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/checkout'
     | '/admin/clientes'
+    | '/admin/cupons'
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/checkout'
     | '/admin/clientes'
+    | '/admin/cupons'
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -204,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminClientesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cupons': {
+      id: '/admin/cupons'
+      path: '/cupons'
+      fullPath: '/admin/cupons'
+      preLoaderRoute: typeof AdminCuponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
@@ -230,6 +249,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminClientesRoute: typeof AdminClientesRoute
+  AdminCuponsRoute: typeof AdminCuponsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
@@ -238,6 +258,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminClientesRoute: AdminClientesRoute,
+  AdminCuponsRoute: AdminCuponsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
@@ -256,13 +277,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
