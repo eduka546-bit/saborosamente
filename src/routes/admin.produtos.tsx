@@ -702,9 +702,12 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      // Try lowercase first, if it fails we check the error
-      const dbStatus = (status || 'ativo').toLowerCase();
-      console.log('Solicitando atualização de status:', id, '->', dbStatus);
+      // Normalização rigorosa baseada no erro de constraint 23514
+      // Se 'ativo'/'pausado' falhou e 'Ativo'/'Pausado' falhou, 
+      // pode ser que a constraint esteja esperando MAIÚSCULAS ou outro formato.
+      const dbStatus = status.toLowerCase() === 'ativo' ? 'Ativo' : 'Pausado';
+      
+      console.log('Tentativa de atualização de status (Normalizado):', id, '->', dbStatus);
       
       const { data, error } = await supabase
         .from("produtos")
@@ -712,31 +715,44 @@ function AdminProductsPage() {
         .eq("id", id)
         .select();
 
-      if (error && error.code === '23514') {
-        // If lowercase fails, try capitalized as a fallback
-        const altStatus = dbStatus.charAt(0).toUpperCase() + dbStatus.slice(1);
-        console.log('Tentando fallback para capitalizado:', altStatus);
-        const { data: retryData, error: retryError } = await supabase
-          .from("produtos")
-          .update({ status: altStatus })
-          .eq("id", id)
-          .select();
-        
-        if (retryError) throw retryError;
-        return retryData[0];
-      }
-
       if (error) {
-        console.error('Erro Supabase (UpdateStatus):', error);
+        console.error('Erro na primeira tentativa (Capitalizado):', error);
+        
+        // Se falhou com erro de constraint, tenta minúsculo
+        if (error.code === '23514') {
+          const lowerStatus = dbStatus.toLowerCase();
+          console.log('Tentando fallback para minúsculo:', lowerStatus);
+          const { data: retryData, error: retryError } = await supabase
+            .from("produtos")
+            .update({ status: lowerStatus })
+            .eq("id", id)
+            .select();
+          
+          if (retryError) {
+             // Se ainda falhar, tenta MAIÚSCULAS
+             if (retryError.code === '23514') {
+                const upperStatus = dbStatus.toUpperCase();
+                console.log('Tentando fallback para MAIÚSCULAS:', upperStatus);
+                const { data: finalData, error: finalError } = await supabase
+                  .from("produtos")
+                  .update({ status: upperStatus })
+                  .eq("id", id)
+                  .select();
+                
+                if (finalError) throw finalError;
+                return finalData[0];
+             }
+             throw retryError;
+          }
+          return retryData[0];
+        }
         throw error;
       }
 
       if (!data || data.length === 0) {
-        console.warn('Nenhum dado retornado ou linha não encontrada:', id);
-        throw new Error("Produto não encontrado ou permissão negada (RLS)");
+        throw new Error("Produto não encontrado ou sem permissão.");
       }
 
-      console.log('Status atualizado com sucesso no DB:', data[0]);
       return data[0];
     },
     onMutate: async ({ id, status }: { id: string, status: string }) => {
