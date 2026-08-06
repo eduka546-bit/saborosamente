@@ -680,7 +680,7 @@ function AdminProductsPage() {
       if (context?.previousProducts) {
         queryClient.setQueryData(["admin-products"], context.previousProducts);
       }
-      toast.error("Erro ao atualizar status");
+      toast.error("Erro ao atualizar status: " + (err instanceof Error ? err.message : "Tente novamente"));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
