@@ -12,36 +12,62 @@ export const Route = createFileRoute("/admin/config/taxas")({
 
 function AdminConfigTaxasPage() {
   const [locais, setLocais] = useState([
-    { id: 1, bairro: "Centro", taxa: 8.90, tempo: "30-45 min", ativo: true },
-    { id: 2, bairro: "Progresso", taxa: 8.90, tempo: "30-45 min", ativo: true },
-    { id: 3, bairro: "25 de Julho", taxa: 10.50, tempo: "40-60 min", ativo: true },
-    { id: 4, bairro: "Alpino", taxa: 17.00, tempo: "40-60 min", ativo: true },
-    { id: 5, bairro: "Boehmerwald", taxa: 10.50, tempo: "40-60 min", ativo: true },
-    { id: 6, bairro: "Brasília", taxa: 12.00, tempo: "40-60 min", ativo: true },
-    { id: 7, bairro: "Centenário", taxa: 10.50, tempo: "40-60 min", ativo: true },
-    { id: 8, bairro: "Colonial", taxa: 10.50, tempo: "40-60 min", ativo: true },
-    { id: 9, bairro: "Cruzeiro", taxa: 10.50, tempo: "40-60 min", ativo: true },
-    { id: 10, bairro: "Industrial Sudoeste", taxa: 11.00, tempo: "40-60 min", ativo: true },
-    { id: 11, bairro: "Loteamento Itália", taxa: 9.50, tempo: "30-45 min", ativo: true },
-    { id: 12, bairro: "Mato Preto", taxa: 12.00, tempo: "40-60 min", ativo: true },
-    { id: 13, bairro: "Oxford", taxa: 11.00, tempo: "40-60 min", ativo: true },
-    { id: 14, bairro: "Parque Mariani", taxa: 9.50, tempo: "30-45 min", ativo: true },
-    { id: 15, bairro: "Residencial Santa Fé", taxa: 12.50, tempo: "45-70 min", ativo: true },
-    { id: 16, bairro: "Rio Negro", taxa: 10.00, tempo: "40-60 min", ativo: true },
-    { id: 17, bairro: "Schramm", taxa: 9.00, tempo: "30-45 min", ativo: true },
-    { id: 18, bairro: "Serra Alta", taxa: 13.00, tempo: "45-70 min", ativo: true },
-    { id: 19, bairro: "Dona Francisca", taxa: 15.00, tempo: "50-80 min", ativo: true },
-    { id: 20, bairro: "Bela Aliança", taxa: 10.00, tempo: "40-60 min", ativo: true },
-    { id: 21, bairro: "Campo do Meio", taxa: 10.00, tempo: "40-60 min", ativo: true },
-    { id: 22, bairro: "Castelo Branco", taxa: 10.00, tempo: "40-60 min", ativo: true },
-    { id: 23, bairro: "Estrada das Neves", taxa: 10.00, tempo: "45-70 min", ativo: true },
-    { id: 24, bairro: "Estrada dos Bugres", taxa: 10.00, tempo: "45-70 min", ativo: true },
-    { id: 25, bairro: "Lençol", taxa: 10.00, tempo: "40-60 min", ativo: true },
-    { id: 26, bairro: "Rio Natal", taxa: 10.00, tempo: "50-80 min", ativo: true },
-    { id: 27, bairro: "Rio Represo", taxa: 10.00, tempo: "50-80 min", ativo: true },
-    { id: 28, bairro: "Rio Vermelho Estação", taxa: 10.00, tempo: "50-80 min", ativo: true },
-    { id: 29, bairro: "Rio Vermelho Povoado", taxa: 10.00, tempo: "50-80 min", ativo: true },
-    { id: 30, bairro: "Sertãozinho", taxa: 10.00, tempo: "45-70 min", ativo: true },
+    // São Bento do Sul
+    { id: 1, bairro: "Centro (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 2, bairro: "Progresso (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 3, bairro: "25 de Julho (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 4, bairro: "Alpino (SBS)", taxa: 17.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 5, bairro: "Boehmerwald (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 6, bairro: "Brasília (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 7, bairro: "Centenário (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 8, bairro: "Colonial (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 9, bairro: "Cruzeiro (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 10, bairro: "Industrial Sudoeste (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 11, bairro: "Loteamento Itália (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 12, bairro: "Mato Preto (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 13, bairro: "Oxford (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 14, bairro: "Parque Mariani (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 15, bairro: "Residencial Santa Fé (SBS)", taxa: 12.50, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 16, bairro: "Rio Negro (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 17, bairro: "Schramm (SBS)", taxa: 9.00, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 18, bairro: "Serra Alta (SBS)", taxa: 13.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 19, bairro: "Dona Francisca (SBS)", taxa: 15.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 20, bairro: "Bela Aliança (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 21, bairro: "Campo do Meio (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 22, bairro: "Castelo Branco (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 23, bairro: "Estrada das Neves (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 24, bairro: "Estrada dos Bugres (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 25, bairro: "Lençol (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 26, bairro: "Rio Natal (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 27, bairro: "Rio Represo (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 28, bairro: "Rio Vermelho Estação (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 29, bairro: "Rio Vermelho Povoado (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
+    { id: 30, bairro: "Sertãozinho (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
+
+    // Rio Negrinho
+    { id: 31, bairro: "Ceramarte", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 32, bairro: "Alegre", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 33, bairro: "Bairro Preto", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 34, bairro: "Barro Preto", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 35, bairro: "Bela Vista", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 36, bairro: "Campo Lençol", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 37, bairro: "Centro (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 38, bairro: "Colônia Olsen", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 39, bairro: "Cruzeiro (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 40, bairro: "Industrial Norte", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 41, bairro: "Industrial Sul", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 42, bairro: "Jardim Hantschel", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 43, bairro: "Pinheirinho", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 44, bairro: "Quitandinha", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 45, bairro: "Rio Casa de Pedra", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 46, bairro: "Rio Preto", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 47, bairro: "Rio dos Bugres", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 48, bairro: "Serro Azul", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 49, bairro: "São Pedro", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 50, bairro: "São Rafael", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 51, bairro: "Vila Nova", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 52, bairro: "Vista Alegre", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
+    { id: 53, bairro: "Volta Grande", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
   ]);
 
   const [isAdding, setIsAdding] = useState(false);
@@ -54,12 +80,14 @@ function AdminConfigTaxasPage() {
       bairro: formData.get("bairro") as string,
       taxa: Number(formData.get("taxa")),
       tempo: formData.get("tempo") as string,
-      ativo: true
+      ativo: true,
+      cidade: formData.get("cidade") as string
     };
     setLocais([...locais, novo]);
     setIsAdding(false);
     toast.success("Local de entrega adicionado!");
   };
+
 
   const handleRemoveLocal = (id: number) => {
     setLocais(locais.filter(l => l.id !== id));
@@ -95,6 +123,7 @@ function AdminConfigTaxasPage() {
                   <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-widest border-b">
                     <tr>
                       <th className="px-6 py-4">Bairro / Região</th>
+                      <th className="px-6 py-4">Cidade</th>
                       <th className="px-6 py-4">Taxa (R$)</th>
                       <th className="px-6 py-4">Tempo Est.</th>
                       <th className="px-6 py-4 text-right">Ações</th>
@@ -104,6 +133,7 @@ function AdminConfigTaxasPage() {
                     {locais.map((local) => (
                       <tr key={local.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-gray-900">{local.bairro}</td>
+                        <td className="px-6 py-4 text-gray-500">{local.cidade || "N/A"}</td>
                         <td className="px-6 py-4 text-green-600 font-bold">R$ {local.taxa.toFixed(2)}</td>
                         <td className="px-6 py-4 text-gray-500 flex items-center gap-1">
                           <Clock size={14} /> {local.tempo}
@@ -122,6 +152,7 @@ function AdminConfigTaxasPage() {
                     ))}
                   </tbody>
                 </table>
+
               </div>
             </CardContent>
           </Card>
@@ -184,6 +215,12 @@ function AdminConfigTaxasPage() {
                 <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome do Bairro / Região</label>
                 <Input name="bairro" required placeholder="EX: Santa Rosa" />
               </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Cidade</label>
+                <Input name="cidade" required placeholder="EX: Rio Negrinho" />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
@@ -194,6 +231,7 @@ function AdminConfigTaxasPage() {
                   <Input name="tempo" required placeholder="30-45 min" />
                 </div>
               </div>
+
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsAdding(false)} className="flex-1">Cancelar</Button>
                 <Button type="submit" className="flex-1 bg-[#5850ec] text-white">Adicionar</Button>
