@@ -160,7 +160,7 @@ export function AdminHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 ml-auto pl-4 border-l border-white/10">
+        <div className="flex items-center gap-3 shrink-0 ml-auto pl-4">
           <div className="hidden sm:flex flex-col items-end text-[10px] xl:text-xs">
             <span className="font-bold text-white uppercase tracking-wider">Saborosamente</span>
             <span className="text-white/70 font-medium">Painel Gestor</span>

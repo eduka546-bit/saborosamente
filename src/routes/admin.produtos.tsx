@@ -41,15 +41,14 @@ function AdminProductsPage() {
   })).filter((group: any) => group.products.length > 0);
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto min-h-screen bg-gray-50/50">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gerenciar Cardápio</h1>
-          <p className="text-muted-foreground">Adicione, edite ou remova produtos da sua loja.</p>
+          <h1 className="text-xl font-bold text-gray-800">Cardápio</h1>
         </div>
-        <Button className="bg-primary hover:bg-brand-dark flex items-center gap-2 rounded-full px-6">
+        <Button className="bg-[#086e45] hover:bg-[#086e45]/90 flex items-center gap-2 rounded-md px-4 h-10 text-xs font-bold uppercase tracking-wider">
           <Plus size={18} />
-          Novo Produto
+          Cadastrar novo
         </Button>
       </div>
 
@@ -89,15 +88,17 @@ function AdminProductsPage() {
       ) : (
         <div className="space-y-10 pb-20">
           {groupedProducts.map(({ category, products }: any) => (
-            <div key={category.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-sm font-bold text-primary uppercase tracking-wider">
+            <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gray-50 px-4 md:px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-xs font-bold text-gray-800 uppercase tracking-widest">
                   {category.nome}
                 </h2>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-white border border-gray-200 rounded-md px-2 py-1">
-                    <span className="text-[10px] font-bold text-gray-400 mr-2 uppercase tracking-tighter">Status</span>
-                    <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Ativo</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Status</span>
+                    <div className="flex items-center bg-white border border-gray-200 rounded px-2 py-0.5">
+                      <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Ativo</span>
+                    </div>
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                     <span className="font-bold text-gray-400 text-lg">⋮</span>
@@ -158,9 +159,9 @@ function AdminProductsPage() {
                 ))}
               </div>
 
-              <div className="px-6 py-4 bg-gray-50/30 border-t border-gray-50">
-                <button className="flex items-center gap-2 text-xs xl:text-sm font-bold text-teal-500 hover:text-teal-600 transition-colors uppercase tracking-wider">
-                  <Plus size={16} strokeWidth={3} />
+              <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
+                <button className="flex items-center gap-2 text-[10px] font-bold text-teal-500 hover:text-teal-600 transition-colors uppercase tracking-widest">
+                  <Plus size={14} strokeWidth={3} />
                   Adicionar novo item
                 </button>
               </div>
