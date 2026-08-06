@@ -249,7 +249,7 @@ function DeliveryAreasModal({
                 </div>
               </div>
             ))}
-            {!areas && (
+            {isLoading && (
               <div className="py-20 text-center space-y-3">
                 <div className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
                 <p className="text-sm text-muted-foreground font-medium">Carregando áreas de entrega...</p>
