@@ -118,6 +118,13 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
   const handleSave = () => {
     const { preco_formatado, preco_promocional_formatado, categorias, ...rest } = formData;
+    
+    // Ensure we have a name and category
+    if (!formData.nome || !formData.categoria_id) {
+      toast.error("Nome e categoria são obrigatórios");
+      return;
+    }
+
     const preco = parseFloat(preco_formatado.replace(',', '.'));
     const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
     
