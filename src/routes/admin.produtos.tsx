@@ -519,7 +519,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Preço de Custo</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                    <Input placeholder="0,00" className="h-10 pl-9 border-gray-200" />
+                    <Input 
+                      placeholder="0,00" 
+                      className="h-10 pl-9 border-gray-200" 
+                      value={formData.preco_custo_formatado || ""}
+                      onChange={(e) => setFormData({ ...formData, preco_custo_formatado: e.target.value })}
+                    />
                   </div>
                   <p className="text-[10px] text-gray-400">Este valor não é exibido para o cliente. Usado apenas para relatórios de lucratividade.</p>
                 </div>
