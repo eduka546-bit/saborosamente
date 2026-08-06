@@ -213,7 +213,7 @@ export function SiteHeader() {
               <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
                 {/* Left side text from print could be here, but we focus on badges */}
                 <div className="hidden lg:flex items-center gap-12 ml-auto">
-                    {settings.hero_features?.map((feature: any, i: number) => (
+                    {(settings?.hero_features as any[] | undefined)?.map((feature: any, i: number) => (
                       <div key={i} className="flex flex-col items-center text-center text-white">
                         <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
                         <span className="text-xl font-black">{feature.value}</span>
