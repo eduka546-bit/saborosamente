@@ -470,7 +470,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         <label className="text-sm font-semibold text-gray-700">Bloquear Cupom</label>
                         <p className="text-xs text-gray-500">Não permitir uso de cupons neste item</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={!!formData.bloquear_cupom} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, bloquear_cupom: checked })}
+                      />
                     </div>
                   </div>
                 </div>
