@@ -875,7 +875,14 @@ function AdminProductsPage() {
 
                 <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
                   <button 
-                    onClick={() => toast.info(`Adicionar item na categoria: ${category.nome}`)}
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setIsEditModalOpen(true);
+                      // Pre-set category for new item
+                      setTimeout(() => {
+                        // This will be handled by useMemo in modal
+                      }, 0);
+                    }}
                     className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
                   >
                     <Plus size={14} strokeWidth={3} />
