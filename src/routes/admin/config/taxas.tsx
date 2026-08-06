@@ -212,10 +212,11 @@ function AdminConfigTaxasPage() {
             <h2 className="text-xl font-bold mb-6 text-[#5850ec]">Novo Bairro de Entrega</h2>
             <form onSubmit={handleAddLocal} className="space-y-4">
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome do Bairro / Região</label>
-                <Input name="bairro" required placeholder="EX: Santa Rosa" />
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Cidade</label>
+                <Input name="cidade" required placeholder="EX: Rio Negrinho" />
               </div>
               <div className="grid grid-cols-2 gap-4">
+
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
                   <Input name="taxa" type="number" step="0.01" required placeholder="5.00" />
