@@ -668,9 +668,23 @@ function AdminProductsPage() {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-products"] });
+      const previousProducts = queryClient.getQueryData(["admin-products"]);
+      queryClient.setQueryData(["admin-products"], (old: any) => 
+        old?.map((p: any) => p.id === id ? { ...p, status } : p)
+      );
+      return { previousProducts };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["admin-products"], context.previousProducts);
+      }
+      toast.error("Erro ao atualizar status");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Status atualizado com sucesso!");
+      toast.success("Status atualizado!");
     },
   });
 
