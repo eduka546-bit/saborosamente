@@ -194,12 +194,15 @@ export function SiteHeader() {
 
       {/* Hero / Cover Section */}
       <div className="relative w-full overflow-visible bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
-        {settings?.hero_image_url ? (
+        {isSettingsPending ? (
+          /* Placeholder com a cor da marca enquanto as configurações carregam */
+          <div className="w-full aspect-[1920/240] max-md:aspect-[1000/360]" />
+        ) : settings?.hero_image_url || !settings ? (
           <div className="relative w-full">
             <picture className="w-full h-full">
-              <source media="(max-width: 768px)" srcSet={bannerMobileAsset.url} />
+              <source media="(max-width: 768px)" srcSet={heroMobileSrc} />
               <img 
-                src={bannerDesktopAsset.url} 
+                src={heroDesktopSrc}
                 alt="Site Banner" 
                 className="w-full h-full object-cover opacity-90"
               />
