@@ -3,8 +3,8 @@ import { Instagram, Mail, MapPin, Phone } from "lucide-react";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 bg-gradient-brand text-primary-foreground">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
+    <footer className="mt-24 bg-primary text-white">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <p className="font-script text-3xl">Saborosamente</p>
           <p className="mt-3 max-w-xs text-sm opacity-85">
@@ -35,22 +35,35 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-widest opacity-80">Contato</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest opacity-80">Atendimento</h2>
           <ul className="mt-4 space-y-3 text-sm opacity-90">
-            <li className="flex items-center gap-2">
-              <Phone className="size-4" aria-hidden="true" /> (11) 90000-0000
-            </li>
-            <li className="flex items-center gap-2">
-              <Mail className="size-4" aria-hidden="true" /> contato@saborosamente.com
+            <li className="flex items-center gap-2 font-bold">
+              <Phone className="size-4" aria-hidden="true" /> (47) 99150-7757
             </li>
             <li className="flex items-center gap-2">
               <Instagram className="size-4" aria-hidden="true" /> @saborosamente
             </li>
-            <li className="flex items-center gap-2">
-              <MapPin className="size-4" aria-hidden="true" /> Entregas em toda a região
-            </li>
           </ul>
         </div>
+
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest opacity-80">Localização</h2>
+          <p className="mt-4 text-xs leading-relaxed opacity-90">
+            Rua Augusto Wunderwald, 7, SaborosaMente Alimentação Saudável São Bento do Sul - Progresso, (Em frente ao Topa Tudo)<br/>
+            CEP 89281-060. São Bento do Sul - SC
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest opacity-80">Formas de Pagamento</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+             {/* Simulação de ícones de pagamento baseados no vídeo */}
+             {['PIX', 'Cartão', 'Dinheiro', 'VR', 'Alelo'].map(p => (
+               <span key={p} className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold">{p}</span>
+             ))}
+          </div>
+        </div>
+
       </div>
       <div className="border-t border-primary-foreground/20 py-5 text-center text-xs opacity-75">
         © {new Date().getFullYear()} Saborosamente. Todos os direitos reservados.
