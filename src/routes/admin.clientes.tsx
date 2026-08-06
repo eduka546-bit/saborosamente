@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Search, Filter, Mail, Phone, ShoppingBag, MapPin, MoreVertical, Eye } from "lucide-react";
+import { Users, Search, Filter, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,20 +13,18 @@ export const Route = createFileRoute("/admin/clientes")({
 
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
     queryFn: async () => {
-      // Como não temos uma tabela de perfis de clientes dedicada além de auth.users, 
-      // vamos extrair clientes únicos da tabela de pedidos
       const { data, error } = await supabase
         .from("pedidos")
-        .select("nome_cliente, telefone_cliente, created_at, valor_total")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Agrupar por telefone para simular uma lista de clientes
       const clientMap = new Map();
       data.forEach(order => {
         const key = order.telefone_cliente || order.nome_cliente;
@@ -34,17 +32,19 @@ function AdminClientesPage() {
           clientMap.set(key, {
             nome: order.nome_cliente,
             telefone: order.telefone_cliente,
+            email: order.email_cliente || "Não informado",
+            endereco: order.endereco_entrega,
             totalPedidos: 1,
             valorGasto: order.valor_total || 0,
-            ultimoPedido: order.created_at
+            ultimoPedido: order.created_at,
+            pedidos: [order]
           });
         } else {
           const existing = clientMap.get(key);
-          clientMap.set(key, {
-            ...existing,
-            totalPedidos: existing.totalPedidos + 1,
-            valorGasto: existing.valorGasto + (order.valor_total || 0),
-          });
+          existing.totalPedidos += 1;
+          existing.valorGasto += (order.valor_total || 0);
+          existing.pedidos.push(order);
+          clientMap.set(key, existing);
         }
       });
 
@@ -105,7 +105,7 @@ function AdminClientesPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-[#5850ec]/10 flex items-center justify-center text-[#5850ec]">
-                        <UsersIcon className="h-5 w-5" />
+                        <Users className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-900">{client.nome || "Cliente Final"}</p>
@@ -119,7 +119,12 @@ function AdminClientesPage() {
                     {new Date(client.ultimoPedido).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => setSelectedClient(client)}
+                    >
                       <Eye size={16} />
                     </Button>
                   </td>
@@ -129,10 +134,75 @@ function AdminClientesPage() {
           </tbody>
         </table>
       </div>
+
+      {selectedClient && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50">
+          <div className="bg-white h-full w-full max-w-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-[#5850ec]">Detalhes do Cliente</h2>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedClient(null)}>
+                <X size={24} />
+              </Button>
+            </div>
+
+            <div className="bg-[#5850ec]/5 rounded-2xl p-6 mb-8 flex flex-col md:flex-row gap-6">
+              <div className="h-20 w-20 rounded-full bg-[#5850ec] flex items-center justify-center text-white text-3xl font-bold shrink-0">
+                {selectedClient.nome?.charAt(0) || "C"}
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome}</h3>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
+                  <span className="flex items-center gap-1"><Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}</span>
+                  <span className="flex items-center gap-1"><Mail size={14} className="text-[#5850ec]" /> {selectedClient.email}</span>
+                  <span className="flex items-center gap-1 w-full md:w-auto"><MapPin size={14} className="text-[#5850ec]" /> {selectedClient.endereco}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white border rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pedidos</p>
+                <p className="text-lg font-black text-gray-900">{selectedClient.totalPedidos}</p>
+              </div>
+              <div className="bg-white border rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Gasto</p>
+                <p className="text-lg font-black text-green-600">R$ {selectedClient.valorGasto.toFixed(2)}</p>
+              </div>
+              <div className="bg-white border rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ticket Médio</p>
+                <p className="text-lg font-black text-[#5850ec]">R$ {(selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2)}</p>
+              </div>
+              <div className="bg-white border rounded-xl p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Último Pedido</p>
+                <p className="text-sm font-bold text-gray-700">{new Date(selectedClient.ultimoPedido).toLocaleDateString('pt-BR')}</p>
+              </div>
+            </div>
+
+            <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
+            <div className="space-y-4">
+              {selectedClient.pedidos.map((pedido: any) => (
+                <div key={pedido.id} className="border rounded-xl p-4 hover:border-[#5850ec]/30 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        Pedido #{pedido.id.slice(0, 8)}
+                        <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">
+                          {pedido.status}
+                        </Badge>
+                      </p>
+                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                        <Calendar size={12} /> {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <p className="font-bold text-[#5850ec]">R$ {pedido.valor_total.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function UsersIcon({ className }: { className?: string }) {
-  return <Users className={className} />;
-}
