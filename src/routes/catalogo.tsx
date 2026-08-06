@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/product-card";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, products, type ProductCategory } from "@/lib/products";
+import { formatBRL } from "@/lib/products";
+import { useQuery } from "@tanstack/react-query";
+import { getPublicProducts, getCategories } from "@/lib/products.functions";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/catalogo")({
   head: () => ({
@@ -23,17 +26,25 @@ export const Route = createFileRoute("/catalogo")({
   component: Catalogo,
 });
 
-type Filter = ProductCategory | "Todas";
-
 function Catalogo() {
-  const [filter, setFilter] = useState<Filter>("Todas");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
 
-  const visible = useMemo(
-    () => (filter === "Todas" ? products : products.filter((p) => p.categoria === filter)),
-    [filter],
-  );
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["public-products"],
+    queryFn: () => getPublicProducts(),
+  });
 
-  const filters: Filter[] = ["Todas", ...CATEGORIES];
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getCategories(),
+  });
+
+  const visible = useMemo(() => {
+    if (selectedCategory === "Todas") return products;
+    return products.filter((p: any) => p.categorias?.nome === selectedCategory);
+  }, [selectedCategory, products]);
+
+  const categoryList = ["Todas", ...categories.map((c: any) => c.nome)];
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-14">
@@ -43,15 +54,15 @@ function Catalogo() {
       </p>
 
       <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
-        {filters.map((f) => (
+        {categoryList.map((f) => (
           <button
             key={f}
             type="button"
-            aria-pressed={filter === f}
-            onClick={() => setFilter(f)}
+            aria-pressed={selectedCategory === f}
+            onClick={() => setSelectedCategory(f)}
             className={cn(
               "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-              filter === f
+              selectedCategory === f
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-card text-muted-foreground hover:text-primary",
             )}
@@ -61,14 +72,26 @@ function Catalogo() {
         ))}
       </div>
 
-      {visible.length === 0 ? (
+      {productsLoading ? (
+        <div className="mt-20 flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-primary" size={40} />
+          <p className="text-muted-foreground">Carregando cardápio completo...</p>
+        </div>
+      ) : visible.length === 0 ? (
         <p className="mt-12 rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           Nenhuma marmita nesta categoria por enquanto.
         </p>
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {visible.map((product: any) => (
+            <ProductCard 
+              key={product.id} 
+              product={{
+                ...product,
+                categoria: product.categorias?.nome || "Sem categoria",
+                imagem: product.imagem_url
+              }} 
+            />
           ))}
         </div>
       )}
