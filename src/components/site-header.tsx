@@ -227,11 +227,6 @@ function DeliveryAreasModal({ open, onOpenChange }: { open: boolean, onOpenChang
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 bg-gray-50 border-t text-center">
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-            Consulte condições para frete grátis no carrinho
-          </p>
-        </div>
       </DialogContent>
     </Dialog>
   );
