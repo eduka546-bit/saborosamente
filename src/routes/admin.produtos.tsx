@@ -294,7 +294,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     className="text-red-500 hover:text-red-600 hover:bg-red-50 p-0 h-auto text-xs font-bold uppercase tracking-wider flex items-center gap-2"
                     onClick={() => {
                       if (confirm("Tem certeza que deseja excluir este produto?")) {
-                        onDelete(product.id);
+                        if (product?.id) {
+                          onDelete(product.id);
+                        }
                         onClose();
                       }
                     }}
