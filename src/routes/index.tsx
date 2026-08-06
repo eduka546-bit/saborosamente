@@ -60,7 +60,7 @@ function Index() {
   return (
     <>
       {/* Hero Info & Banners Section */}
-      <section className="mx-auto max-w-5xl px-4 mt-8 md:mt-12 relative z-30 pb-12">
+      <section className="mx-auto max-w-5xl px-4 mt-8 md:mt-12 relative z-10 pb-12">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1 w-full space-y-6">
             {/* Info Card & Search */}

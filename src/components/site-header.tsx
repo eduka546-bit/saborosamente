@@ -184,7 +184,7 @@ export function SiteHeader() {
       </div>
 
       {/* Hero / Cover Section */}
-      <div className="relative w-full overflow-hidden bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
+      <div className="relative w-full overflow-visible bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
         {settings?.hero_image_url ? (
           <div className="relative w-full">
             <picture className="w-full h-full">
@@ -219,15 +219,15 @@ export function SiteHeader() {
         
         {/* Centralized PFP/Logo that overlaps the next section */}
         {settings?.profile_image_url && (
-          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-[210] flex items-center justify-center">
-            <div className="size-32 md:size-48 rounded-full border-[6px] border-[#086e45] bg-white shadow-2xl flex items-center justify-center overflow-hidden">
-              <img 
-                src={settings.profile_image_url} 
-                className="w-full h-full object-contain p-2" 
-                alt="Profile" 
-              />
-            </div>
+        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-[300] flex items-center justify-center pointer-events-none">
+          <div className="size-32 md:size-48 rounded-full border-[6px] border-[#086e45] bg-white shadow-2xl flex items-center justify-center overflow-hidden pointer-events-auto">
+            <img 
+              src={settings?.profile_image_url} 
+              className="w-full h-full object-contain p-2" 
+              alt="Profile" 
+            />
           </div>
+        </div>
         )}
       </div>
 
