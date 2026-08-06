@@ -48,7 +48,6 @@ const infoCards = [
 
 function Index() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = (window as any).useState?.("") || ["", () => {}]; // Fallback for safety, but using local state
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-featured"],
     queryFn: () => getPublicProducts(),
