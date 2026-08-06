@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Leaf, Snowflake, Truck, Clock, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Leaf, Snowflake, Truck, Clock, Loader2, MapPin, CreditCard, Calendar } from "lucide-react";
+import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import heroImage from "@/assets/hero-marmitas.jpg";
 import { ProductCard } from "@/components/product-card";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +26,27 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
+
+const infoCards = [
+  {
+    icon: MapPin,
+    titulo: "Taxa de entrega",
+    subtitulo: "A partir de R$ 8,90",
+    cor: "text-[#086e45]"
+  },
+  {
+    icon: Truck,
+    titulo: "Formas de entrega",
+    subtitulo: "Delivery ou Retirada",
+    cor: "text-[#086e45]"
+  },
+  {
+    icon: Calendar,
+    titulo: "Funcionamento",
+    subtitulo: "Encomendas podem ser feitas em tempo integral!",
+    cor: "text-[#086e45]"
+  }
+];
 
 const beneficios = [
   {
@@ -48,6 +72,8 @@ const beneficios = [
 ];
 
 function Index() {
+  const [emblaRef] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 4000 })]);
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-featured"],
     queryFn: () => getPublicProducts(),
@@ -66,11 +92,31 @@ function Index() {
 
 
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-6xl px-4 py-8">
+        {/* Info Carousel (Carrossel Triplo conforme print) */}
+        <div className="overflow-hidden bg-white rounded-3xl border shadow-soft mb-12" ref={emblaRef}>
+          <div className="flex">
+            {infoCards.map((card, i) => (
+              <div key={i} className="flex-[0_0_100%] sm:flex-[0_0_33.33%] min-w-0 p-6 sm:p-8 flex items-start gap-4 border-r last:border-r-0">
+                <div className={cn("mt-1 p-2 bg-gray-50 rounded-xl", card.cor)}>
+                  <card.icon size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{card.titulo}</h4>
+                  <p className="mt-1 text-base sm:text-lg font-black text-[#086e45] leading-tight whitespace-pre-line">
+                    {card.subtitulo}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Benefícios Originais (Pequenos badges/caixas secundárias) */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {beneficios.map(({ icon: Icon, titulo, texto }) => (
-            <div key={titulo} className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-              <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-primary">
+            <div key={titulo} className="rounded-3xl border border-border bg-card p-6 shadow-soft hover:shadow-md transition-shadow">
+              <span className="grid size-11 place-items-center rounded-2xl bg-[#086e45]/10 text-[#086e45]">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
               <h3 className="mt-4 text-base font-semibold">{titulo}</h3>
