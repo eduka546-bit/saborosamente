@@ -502,7 +502,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               <div className="max-w-md space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Código PDV / Integração</label>
-                  <Input placeholder="Ex: IFD-123" className="h-10 border-gray-200" />
+                  <Input 
+                    placeholder="Ex: IFD-123" 
+                    className="h-10 border-gray-200" 
+                    value={formData.codigo_integracao || ""}
+                    onChange={(e) => setFormData({ ...formData, codigo_integracao: e.target.value })}
+                  />
                   <p className="text-[10px] text-gray-400">Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.</p>
                 </div>
               </div>
