@@ -807,7 +807,9 @@ function AdminProductsPage() {
   const groupedProducts = useMemo(() => 
     categories.map((cat: any) => ({
       category: cat,
-      products: filteredProducts.filter((p: any) => p.categoria_id === cat.id)
+      products: filteredProducts
+        .filter((p: any) => p.categoria_id === cat.id)
+        .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0))
     })),
     [categories, filteredProducts]
   );
