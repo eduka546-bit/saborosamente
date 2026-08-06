@@ -671,7 +671,7 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      const dbStatus = status === 'pausado' ? 'Pausado' : 'Ativo';
+      const dbStatus = status === 'pausado' ? 'pausado' : 'ativo'; // Try lowercase again first, but with select to see why it fails
       console.log('Solicitando atualização de status:', id, '->', dbStatus);
       
       const { data, error } = await supabase
