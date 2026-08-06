@@ -83,46 +83,56 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
 
-  const MOCK_TAXAS = [
-    // São Bento do Sul
-    { id: 1, bairro: "Centro (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 2, bairro: "Progresso (SBS)", taxa: 8.90, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 3, bairro: "25 de Julho (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 4, bairro: "Alpino (SBS)", taxa: 17.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 5, bairro: "Boehmerwald (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 6, bairro: "Brasília (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 7, bairro: "Centenário (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 8, bairro: "Colonial (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 9, bairro: "Cruzeiro (SBS)", taxa: 10.50, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 10, bairro: "Industrial Sudoeste (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 11, bairro: "Loteamento Itália (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 12, bairro: "Mato Preto (SBS)", taxa: 12.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 13, bairro: "Oxford (SBS)", taxa: 11.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 14, bairro: "Parque Mariani (SBS)", taxa: 9.50, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 15, bairro: "Residencial Santa Fé (SBS)", taxa: 12.50, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 16, bairro: "Rio Negro (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 17, bairro: "Schramm (SBS)", taxa: 9.00, tempo: "30-45 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 18, bairro: "Serra Alta (SBS)", taxa: 13.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 19, bairro: "Dona Francisca (SBS)", taxa: 15.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 20, bairro: "Bela Aliança (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 21, bairro: "Campo do Meio (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 22, bairro: "Castelo Branco (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 23, bairro: "Estrada das Neves (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 24, bairro: "Estrada dos Bugres (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 25, bairro: "Lençol (SBS)", taxa: 10.00, tempo: "40-60 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 26, bairro: "Rio Natal (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 27, bairro: "Rio Represo (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 28, bairro: "Rio Vermelho Estação (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 29, bairro: "Rio Vermelho Povoado (SBS)", taxa: 10.00, tempo: "50-80 min", ativo: true, cidade: "São Bento do Sul" },
-    { id: 30, bairro: "Sertãozinho (SBS)", taxa: 10.00, tempo: "45-70 min", ativo: true, cidade: "São Bento do Sul" },
-    // Rio Negrinho
-    { id: 31, bairro: "Centro (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
-    { id: 32, bairro: "Vila Nova (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
-    { id: 33, bairro: "Quitandinha (RN)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Rio Negrinho" },
-    // Campo Alegre
-    { id: 54, bairro: "Centro (CA)", taxa: 10.00, tempo: "45-60 min", ativo: true, cidade: "Campo Alegre" },
-    // ... simplificado por agora para não sobrecarregar
-  ];
+  const MOCK_TAXAS = useMemo(() => {
+    const dataMap = {
+      "São Bento do Sul": [
+        { neighborhood: "Centro", rate: 8.90 }, { neighborhood: "Progresso", rate: 8.90 },
+        { neighborhood: "25 de Julho", rate: 10.50 }, { neighborhood: "Alpino", rate: 17.00 },
+        { neighborhood: "Boehmerwald", rate: 10.50 }, { neighborhood: "Brasília", rate: 12.00 },
+        { neighborhood: "Centenário", rate: 10.50 }, { neighborhood: "Colonial", rate: 10.50 },
+        { neighborhood: "Cruzeiro", rate: 10.50 }, { neighborhood: "Industrial Sudoeste", rate: 11.00 },
+        { neighborhood: "Loteamento Itália", rate: 9.50 }, { neighborhood: "Mato Preto", rate: 12.00 },
+        { neighborhood: "Oxford", rate: 11.00 }, { neighborhood: "Parque Mariani", rate: 9.50 },
+        { neighborhood: "Residencial Santa Fé", rate: 12.50 }, { neighborhood: "Rio Negro", rate: 10.00 },
+        { neighborhood: "Schramm", rate: 9.00 }, { neighborhood: "Serra Alta", rate: 13.00 },
+        { neighborhood: "Dona Francisca", rate: 15.00 }, { neighborhood: "Bela Aliança", rate: 10.00 },
+        { neighborhood: "Campo do Meio", rate: 10.00 }, { neighborhood: "Castelo Branco", rate: 10.00 },
+        { neighborhood: "Estrada das Neves", rate: 10.00 }, { neighborhood: "Estrada dos Bugres", rate: 10.00 },
+        { neighborhood: "Lençol", rate: 10.00 }, { neighborhood: "Rio Natal", rate: 10.00 },
+        { neighborhood: "Rio Represo", rate: 10.00 }, { neighborhood: "Rio Vermelho Estação", rate: 10.00 },
+        { neighborhood: "Rio Vermelho Povoado", rate: 10.00 }, { neighborhood: "Sertãozinho", rate: 10.00 }
+      ],
+      "Rio Negrinho": [
+        "Ceramarte", "Alegre", "Bairro Preto", "Barro Preto", "Bela Vista", "Campo Lençol", "Centro", "Colônia Olsen", "Cruzeiro", "Industrial Norte", "Industrial Sul", "Jardim Hantschel", "Pinheirinho", "Quitandinha", "Rio Casa de Pedra", "Rio Preto", "Rio dos Bugres", "Serro Azul", "São Pedro", "São Rafael", "Vila Nova", "Vista Alegre", "Volta Grande"
+      ],
+      "Campo Alegre": [
+        "Avenquinha", "Bateias de Baixo", "Bateias de Cima", "Belo Horizonte", "Cascata", "Cascatas", "Centro", "Corredeiras", "Fragosos", "Lajeado", "Mato Limpo", "Pinhais", "Povoado de Fragosos", "Ribeirão do Meio", "Rio Represo", "Rio do Bugre", "Saltinho", "Santo Antônio", "São Miguel", "Vila Novo Mundo"
+      ],
+      "Corupá": [
+        "Ano Bom", "Bomplandt", "Caminho Pequeno", "Centro", "Faxinal", "Itapocu", "Izabel", "João Tozini", "Pedra de Amolar", "Poço D'Anta", "Putinga", "Rio Correa", "Rio Feio", "Rio Novo", "Rio Paulo", "Rio da Veada", "Seminário", "XV de Novembro"
+      ],
+      "Mafra": [
+        "Augusta Vitória", "Autódromo", "Avencal São Sebastião", "Avencal de Cima", "Avencal do Meio", "Bairro do Autódromo", "Bela Vista do Sul", "Bituvinha", "Butiá dos Tabordas", "Campina Konkel", "Campo da Lança", "Caçador", "Centro I - Baixada", "Centro II - Alto de Mafra", "Centro III Monte Alegre", "Espigão do Bugre", "Faxinal", "Fazenda Potreiro", "General Brito", "Imbuial", "Jardim América", "Jardim Novo Horizonte", "Jardim do Moinho", "Maurício Caillet", "Nossa Senhora Aparecida", "Passo", "Restinga", "Rio Preto", "Rio da Areia", "Rio da Areia de Baixo", "Rio da Areia de Cima", "Rio do Cedro", "Saltinho do Canivete", "São Lourenço", "Vila Argentina", "Vila Buenos Aires", "Vila Clementina", "Vila Edson Luis", "Vila Ferroviária", "Vila Formosa", "Vila Industrial", "Vila Ivete", "Vila Nova", "Vila Ruthes", "Vila Solidariedade", "Vila Velha", "Vila das Flores", "Vilinha", "Vista Alegre"
+      ],
+      "Piên": [
+        "Aterrado Alto", "Avencal", "Boa Vista", "Cachoeirinha", "Campina dos Crespins", "Campina dos Maia", "Campo Novo", "Centro", "Cerro Verde", "Gramados", "Lageado", "Letreiro", "Mosquito", "Palmito", "Palmito de Cima", "Picacinho", "Pocinho", "Poço Frio", "Poço Frio dos Moreiras", "Quicé", "Trigolândia", "Vermelhinho"
+      ],
+      "Rio Negro": [
+        "Bairro Alto", "Bairro do Seminário", "Bom Jesus", "Bom Jesus do Rio Negro", "Campina dos Andrades", "Campo do Gado", "Centro", "Estação Nova", "Fazendinha", "Jardim Zelinda", "Lageado dos Vieiras", "Maitaca", "Passa Três", "Passo do Valo", "Retiro", "Roseira", "Seminário", "Sítio dos Rauen", "Tijuco Preto", "Vila Militar", "Vila Paraná", "Vila Paraíso", "Volta Grande"
+      ]
+    };
+
+    const flat: any[] = [];
+    let id = 1000;
+    Object.entries(dataMap).forEach(([city, neighborhoods]) => {
+      neighborhoods.forEach(n => {
+        const name = typeof n === 'string' ? n : n.neighborhood;
+        const rate = typeof n === 'string' ? 10.00 : n.rate;
+        flat.push({ id: id++, bairro: name, taxa: rate, cidade: city, ativo: true });
+      });
+    });
+    return flat;
+  }, []);
 
   const { data: serverTaxas } = useQuery({
     queryKey: ["taxas"],
