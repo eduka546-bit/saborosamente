@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Success. No rows returned">
+      <body data-message="Sim, as imagens já foram mapeadas!">
         {children}
         <Scripts />
       </body>
