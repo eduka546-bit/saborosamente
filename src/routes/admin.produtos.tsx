@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Filter, Loader2, Utensils } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminProducts } from "@/lib/products.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin/produtos")({
   component: AdminProductsPage,
