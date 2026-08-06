@@ -60,49 +60,11 @@ function Index() {
 
   return (
     <>
-      <section className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <span className="inline-flex items-center rounded-full bg-lime px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-lime-foreground">
-              Marmitas congeladas artesanais
-            </span>
-            <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] md:text-6xl">
-              Comida caseira,
-              <br />
-              <span className="font-script text-primary">saborosamente</span> prática
-            </h1>
-            <p className="mt-6 max-w-lg text-base text-muted-foreground md:text-lg">
-              Pratos preparados com ingredientes frescos, porcionados e congelados no ponto certo.
-              Escolha seus favoritos, monte o combo da semana e receba em casa.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/catalogo"
-                className="inline-flex items-center rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition-transform hover:scale-[1.03]"
-              >
-                Ver catálogo
-              </Link>
-              <Link
-                to="/carrinho"
-                className="inline-flex items-center rounded-full border border-primary px-7 py-3 text-sm font-semibold text-primary transition-colors hover:bg-secondary"
-              >
-                Meu carrinho
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-6 rounded-[3rem] bg-gradient-sun opacity-60 blur-2xl" />
-            <img
-              src={heroImage}
-              alt="Marmitas congeladas com frango grelhado, arroz integral e legumes"
-              width={1600}
-              height={1008}
-              className="relative rounded-[2.5rem] object-cover shadow-lift"
-            />
-          </div>
-        </div>
+      {/* Seção Hero removida daqui, movida para o Header conforme solicitado pelo layout unificado */}
+      <section className="pt-24 pb-12">
+        {/* Espaçamento para o PFP centralizado que invade esta seção */}
       </section>
+
 
       <section className="mx-auto max-w-6xl px-4 py-12">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
