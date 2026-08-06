@@ -662,11 +662,15 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
+      console.log('Updating status for product:', id, 'to:', status);
       const { error } = await supabase
         .from("produtos")
         .update({ status })
         .eq("id", id);
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error updating status:', error);
+        throw error;
+      }
     },
     onMutate: async ({ id, status }: { id: string, status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
