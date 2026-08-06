@@ -11,9 +11,11 @@ export interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { add } = useCart();
-  const weights = product.peso?.includes(",") 
-    ? product.peso.split(",").map(w => w.trim()) 
-    : product.peso ? [product.peso] : [];
+  const weights = product.peso?.includes("-") 
+    ? product.peso.split("-").map(w => w.trim()) 
+    : product.peso?.includes(",") 
+      ? product.peso.split(",").map(w => w.trim())
+      : product.peso ? [product.peso] : [];
   const [selectedWeight, setSelectedWeight] = useState(weights[1] || weights[0] || ""); // Default para 300g se disponível
 
   return (
