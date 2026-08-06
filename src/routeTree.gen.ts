@@ -22,6 +22,7 @@ import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/index'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'
+import { Route as AdminConfigSiteRouteImport } from './routes/admin.config.site'
 import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
 import { Route as AdminFinanceiroIndexRouteImport } from './routes/admin/financeiro/index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
@@ -93,6 +94,11 @@ const AdminConfigIndexRoute = AdminConfigIndexRouteImport.update({
   path: '/config/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigSiteRoute = AdminConfigSiteRouteImport.update({
+  id: '/config/site',
+  path: '/config/site',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminConfigTaxasRoute = AdminConfigTaxasRouteImport.update({
   id: '/config/taxas',
   path: '/config/taxas',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/clientes': typeof AdminClientesIndexRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/'
+    | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
     | '/admin/clientes/'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/produtos'
     | '/admin'
+    | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
     | '/admin/clientes'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/'
+    | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
     | '/admin/clientes/'
@@ -338,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/site': {
+      id: '/admin/config/site'
+      path: '/config/site'
+      fullPath: '/admin/config/site'
+      preLoaderRoute: typeof AdminConfigSiteRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/config/taxas': {
       id: '/admin/config/taxas'
       path: '/config/taxas'
@@ -407,6 +426,7 @@ interface AdminRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminProdutosRoute: typeof AdminProdutosRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminConfigSiteRoute: typeof AdminConfigSiteRoute
   AdminConfigTaxasRoute: typeof AdminConfigTaxasRoute
   AdminRelatoriosKpiRoute: typeof AdminRelatoriosKpiRoute
   AdminConfigIndexRoute: typeof AdminConfigIndexRoute
@@ -421,6 +441,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminProdutosRoute: AdminProdutosRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminConfigSiteRoute: AdminConfigSiteRoute,
   AdminConfigTaxasRoute: AdminConfigTaxasRoute,
   AdminRelatoriosKpiRoute: AdminRelatoriosKpiRoute,
   AdminConfigIndexRoute: AdminConfigIndexRoute,
@@ -440,3 +461,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
