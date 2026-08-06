@@ -668,7 +668,7 @@ function AdminProductsPage() {
         .eq("id", id);
       if (error) throw error;
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status }: { id: string, status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
       const previousProducts = queryClient.getQueryData(["admin-products"]);
       queryClient.setQueryData(["admin-products"], (old: any) => 
