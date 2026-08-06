@@ -98,12 +98,12 @@ export function SiteHeader() {
               <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
                 {/* Left side text from print could be here, but we focus on badges */}
                 <div className="hidden lg:flex items-center gap-12 ml-auto">
-                   {settings.hero_features?.map((feature: any, i: number) => (
-                     <div key={i} className="flex flex-col items-center text-center text-white">
+                    {settings.hero_features?.map((feature: any, i: number) => (
+                      <div key={i} className="flex flex-col items-center text-center text-white">
                         <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
                         <span className="text-xl font-black">{feature.value}</span>
-                     </div>
-                   ))}
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -123,28 +123,6 @@ export function SiteHeader() {
           </div>
         )}
       </div>
-
-      {/* Mobile Drawer */}
-      {open && (
-        <div className="fixed inset-0 z-[100] bg-white lg:hidden">
-          <div className="flex h-20 items-center justify-between px-6 border-b">
-            <span className="font-bold text-primary">Menu</span>
-            <button onClick={() => setOpen(false)} className="text-gray-500">✕ Fechar</button>
-          </div>
-          <div className="flex flex-col p-6 gap-6">
-            {links.map((l) => (
-              <Link 
-                key={l.label} 
-                to={l.to} 
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-4 text-lg font-bold text-primary"
-              >
-                <l.icon /> {l.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
