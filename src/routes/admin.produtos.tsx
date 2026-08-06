@@ -716,21 +716,31 @@ function AdminProductsPage() {
     },
   });
 
-  const updateProduct = useMutation({
+  const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
-      const { error } = await supabase
-        .from("produtos")
-        .update(data)
-        .eq("id", id);
-      if (error) throw error;
+      if (id) {
+        const { error } = await supabase
+          .from("produtos")
+          .update(data)
+          .eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("produtos")
+          .insert([data]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Produto atualizado com sucesso!");
+      toast.success(editingProduct ? "Produto atualizado!" : "Produto criado!");
       setIsEditModalOpen(false);
       setEditingProduct(null);
     },
+    onError: (error: any) => {
+      toast.error("Erro ao salvar produto: " + error.message);
+    }
   });
 
   const handleEdit = (product: any) => {
