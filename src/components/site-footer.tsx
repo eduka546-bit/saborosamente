@@ -1,9 +1,22 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export function SiteFooter() {
+  const { data: settings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
+      return data;
+    }
+  });
+
+  const footerBg = settings?.announcement_bg_color || "#086e45";
+  const footerText = settings?.announcement_text_color || "#ffffff";
+
   return (
-    <footer className="mt-24 bg-primary text-white">
+    <footer style={{ backgroundColor: footerBg, color: footerText }} className="mt-24">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 md:grid-cols-4">
         <div>
           <p className="font-script text-3xl">Saborosamente</p>
@@ -54,10 +67,9 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <div>
+        <div className="md:col-span-4">
           <h2 className="text-xs font-bold uppercase tracking-widest opacity-80">Formas de Pagamento</h2>
           <div className="mt-4 flex flex-wrap gap-2">
-             {/* Simulação de ícones de pagamento baseados no vídeo */}
              {['PIX', 'Cartão', 'Dinheiro', 'VR', 'Alelo'].map(p => (
                <span key={p} className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold">{p}</span>
              ))}
@@ -65,7 +77,7 @@ export function SiteFooter() {
         </div>
 
       </div>
-      <div className="border-t border-primary-foreground/20 py-5 text-center text-xs opacity-75">
+      <div className="border-t border-white/10 py-5 text-center text-xs opacity-75">
         © {new Date().getFullYear()} Saborosamente. Todos os direitos reservados.
       </div>
     </footer>

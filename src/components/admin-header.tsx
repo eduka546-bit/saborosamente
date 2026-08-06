@@ -142,6 +142,7 @@ export function AdminHeader() {
               label="Configurações" 
               icon={Settings} 
               items={[
+                { label: "Personalizar Site", href: "/admin/config/site" },
                 { label: "Unidades", href: "/admin/config/unidades" },
                 { label: "Horário de funcionamento", href: "/admin/config/horarios" },
                 { label: "Exceção de funcionamento", href: "/admin/config/excecoes" },

@@ -1,88 +1,159 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag } from "lucide-react";
+import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const links = [
-  { to: "/", label: "Início" },
-  { to: "/catalogo", label: "Catálogo" },
-  { to: "/checkout", label: "Checkout" },
+  { to: "/catalogo", label: "Cardápio", icon: Menu },
+  { to: "/admin/config/taxas", label: "Áreas de entrega", icon: MapPin },
+  { to: "#", label: "Cashback", icon: Sparkles },
+  { to: "#", label: "Fale conosco", icon: MessageSquare },
 ] as const;
 
 export function SiteHeader() {
   const { count } = useCart();
   const [open, setOpen] = useState(false);
 
+  const { data: settings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
+      return data;
+    }
+  });
+
+  const navBg = settings?.nav_bg_color || "#ffffff";
+  const navText = settings?.nav_text_color || "#086e45";
+  const announceBg = settings?.announcement_bg_color || "#086e45";
+  const announceText = settings?.announcement_text_color || "#ffffff";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur text-white">
-      <div className="bg-primary py-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.2em] sm:text-xs">
-        Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!
+    <header className="relative z-50 transition-all duration-300">
+      {/* Announcement Bar */}
+      <div 
+        style={{ backgroundColor: announceBg, color: announceText }}
+        className="relative py-2 px-8 text-center text-[10px] font-bold uppercase tracking-wider sm:text-xs z-[60]"
+      >
+        {settings?.announcement_text || "Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!"}
+        <button className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100">✕</button>
       </div>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 bg-primary">
-        <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="grid size-9 place-items-center rounded-full bg-white text-primary">
-            <span className="font-script text-lg leading-none">S</span>
-          </span>
-          <span className="text-lg font-bold tracking-tight text-white">Saborosamente</span>
+
+      {/* Main Navigation Bar (White in the print) */}
+      <div 
+        style={{ backgroundColor: navBg }}
+        className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12 border-b"
+      >
+        <Link to="/" className="flex items-center gap-2">
+           <span className="font-script text-2xl" style={{ color: navText }}>Saborosamente</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Navigation Links */}
+        <nav className="hidden items-center gap-10 lg:flex">
           {links.map((l) => (
             <Link
-              key={l.to}
+              key={l.label}
               to={l.to}
-              className="text-xs font-bold uppercase tracking-wider text-white/80 transition-colors hover:text-white"
-              activeProps={{ className: "text-white" }}
-              activeOptions={{ exact: l.to === "/" }}
+              style={{ color: navText }}
+              className="flex items-center gap-2 text-[13px] font-semibold transition-opacity hover:opacity-70"
             >
+              <l.icon size={18} className="opacity-80" />
               {l.label}
             </Link>
           ))}
-        </nav>
+          
+          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70">
+            <User size={20} />
+          </Link>
 
-        <div className="flex items-center gap-2">
           <Link
             to="/carrinho"
-            aria-label={`Abrir carrinho (${count} itens)`}
-            className="relative inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-primary transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="relative flex items-center justify-center size-10 rounded-full hover:bg-black/5 transition-colors"
+            style={{ color: navText }}
           >
-            <ShoppingBag className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Carrinho</span>
+            <ShoppingBag size={22} />
             {count > 0 && (
-              <span className="grid min-w-5 place-items-center rounded-full bg-sun px-1.5 text-xs font-black text-sun-foreground">
+              <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
                 {count}
               </span>
             )}
           </Link>
-          <button
-            type="button"
-            aria-label="Abrir menu"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            className="grid size-10 place-items-center rounded-full border border-white/20 text-white md:hidden"
-          >
-            <Menu className="size-5" aria-hidden="true" />
-          </button>
-        </div>
+        </nav>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="lg:hidden p-2"
+          style={{ color: navText }}
+        >
+          <Menu size={24} />
+        </button>
       </div>
 
-      <div className={cn("border-t border-white/10 bg-primary md:hidden", open ? "block" : "hidden")}>
-        <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              onClick={() => setOpen(false)}
-              className="py-3 text-sm font-bold uppercase tracking-wider text-white/80 hover:text-white"
-              activeProps={{ className: "text-white" }}
-              activeOptions={{ exact: l.to === "/" }}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+      {/* Hero / Cover Section */}
+      <div className="relative w-full overflow-hidden bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
+        {settings?.hero_image_url ? (
+          <div className="relative aspect-[21/9] w-full">
+            <img 
+              src={settings.hero_image_url} 
+              alt="Site Banner" 
+              className="w-full h-full object-cover opacity-90"
+            />
+            
+            {/* Overlay for features matching the image style */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
+                {/* Left side text from print could be here, but we focus on badges */}
+                <div className="hidden lg:flex items-center gap-12 ml-auto">
+                   {settings.hero_features?.map((feature: any, i: number) => (
+                     <div key={i} className="flex flex-col items-center text-center text-white">
+                        <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
+                        <span className="text-xl font-black">{feature.value}</span>
+                     </div>
+                   ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-24 text-center text-white px-6">
+            <h1 className="text-4xl font-black uppercase tracking-tighter">PRÁTICO & SAUDÁVEL & SABOROSO</h1>
+          </div>
+        )}
+        
+        {/* Centralized PFP/Logo that overlaps the next section */}
+        {settings?.profile_image_url && (
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-20">
+            <div className="size-32 md:size-48 rounded-full border-[8px] border-white bg-white shadow-2xl overflow-hidden ring-4 ring-black/5">
+              <img src={settings.profile_image_url} className="w-full h-full object-cover" alt="Profile" />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Mobile Drawer */}
+      {open && (
+        <div className="fixed inset-0 z-[100] bg-white lg:hidden">
+          <div className="flex h-20 items-center justify-between px-6 border-b">
+            <span className="font-bold text-primary">Menu</span>
+            <button onClick={() => setOpen(false)} className="text-gray-500">✕ Fechar</button>
+          </div>
+          <div className="flex flex-col p-6 gap-6">
+            {links.map((l) => (
+              <Link 
+                key={l.label} 
+                to={l.to} 
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-4 text-lg font-bold text-primary"
+              >
+                <l.icon /> {l.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
