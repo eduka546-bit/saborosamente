@@ -65,7 +65,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         ...product,
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
-        status: product.status === 'Pausado' ? 'pausado' : 'ativo'
+        status: (product.status || 'ativo').toLowerCase()
       });
     } else {
       // Default data for new product
