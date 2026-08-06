@@ -72,8 +72,10 @@ export function ProductCard({ product }: ProductCardProps) {
           <button
             type="button"
             onClick={() => {
-              add(product.id);
-              toast.success("Adicionado ao carrinho", { description: product.nome });
+              add(product.id, 1, selectedWeight);
+              toast.success("Adicionado ao carrinho", { 
+                description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}` 
+              });
             }}
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
