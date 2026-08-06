@@ -34,10 +34,12 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
         </div>
         <p className="text-sm text-muted-foreground">{product.descricao}</p>
-        <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Ingredientes: </span>
-          {product.ingredientes.join(", ")}
-        </p>
+        {product.ingredientes && product.ingredientes.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Ingredientes: </span>
+            {Array.isArray(product.ingredientes) ? product.ingredientes.join(", ") : product.ingredientes}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between pt-3">
           <span className="text-xl font-bold text-primary">{formatBRL(product.preco)}</span>
