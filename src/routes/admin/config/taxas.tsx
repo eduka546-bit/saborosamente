@@ -1,45 +1,180 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, MapPin, DollarSign, Clock, Store, Info } from "lucide-react";
+import { Settings, MapPin, DollarSign, Clock, Store, Info, Plus, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/config/taxas")({
   component: AdminConfigTaxasPage,
 });
 
 function AdminConfigTaxasPage() {
+  const [locais, setLocais] = useState([
+    { id: 1, bairro: "Centro", taxa: 5.00, tempo: "30-45 min", ativo: true },
+    { id: 2, bairro: "Jardim América", taxa: 7.50, tempo: "40-60 min", ativo: true },
+    { id: 3, bairro: "Santa Rosa", taxa: 10.00, tempo: "45-70 min", ativo: true },
+  ]);
+
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddLocal = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const novo = {
+      id: Date.now(),
+      bairro: formData.get("bairro") as string,
+      taxa: Number(formData.get("taxa")),
+      tempo: formData.get("tempo") as string,
+      ativo: true
+    };
+    setLocais([...locais, novo]);
+    setIsAdding(false);
+    toast.success("Local de entrega adicionado!");
+  };
+
+  const handleRemoveLocal = (id: number) => {
+    setLocais(locais.filter(l => l.id !== id));
+    toast.success("Local removido.");
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#5850ec]">Taxa e tempo de entrega</h1>
-        <p className="text-gray-500 text-sm mt-1">Configure o raio de atuação e o custo de frete.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-[#5850ec]">Entregas e Locais</h1>
+          <p className="text-gray-500 text-sm mt-1">Configure taxas por bairro e tempos estimados.</p>
+        </div>
+        <Button 
+          onClick={() => setIsAdding(true)}
+          className="bg-[#5850ec] hover:bg-[#5850ec]/90 flex items-center gap-2"
+        >
+          <Plus size={18} /> Adicionar Bairro
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border p-8 max-w-2xl">
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader className="border-b bg-gray-50/50">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                <MapPin size={18} className="text-[#5850ec]" /> Bairros Atendidos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-widest border-b">
+                    <tr>
+                      <th className="px-6 py-4">Bairro / Região</th>
+                      <th className="px-6 py-4">Taxa (R$)</th>
+                      <th className="px-6 py-4">Tempo Est.</th>
+                      <th className="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {locais.map((local) => (
+                      <tr key={local.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-gray-900">{local.bairro}</td>
+                        <td className="px-6 py-4 text-green-600 font-bold">R$ {local.taxa.toFixed(2)}</td>
+                        <td className="px-6 py-4 text-gray-500 flex items-center gap-1">
+                          <Clock size={14} /> {local.tempo}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-gray-400 hover:text-red-500"
+                            onClick={() => handleRemoveLocal(local.id)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <DollarSign size={14} /> Taxa de entrega fixa (R$)
-            </label>
-            <Input defaultValue="5,00" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <Clock size={14} /> Tempo médio de entrega (min)
-            </label>
-            <Input defaultValue="45" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <MapPin size={14} /> Raio máximo de entrega (km)
-            </label>
-            <Input defaultValue="10" />
-          </div>
-          <div className="pt-4">
-            <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90">Salvar Configurações</Button>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                <Settings size={18} className="text-[#5850ec]" /> Regras Gerais
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-gray-400">Frete Grátis a partir de (R$)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Input defaultValue="120.00" className="pl-10 font-bold" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-gray-400">Tempo Geral (min)</label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Input defaultValue="45-60" className="pl-10 font-bold" />
+                </div>
+              </div>
+              <Button className="w-full bg-[#5850ec] mt-4">Salvar Configurações</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#5850ec]/5 border-[#5850ec]/10">
+            <CardContent className="p-6">
+              <div className="flex gap-4">
+                <div className="h-10 w-10 rounded-full bg-[#5850ec] flex items-center justify-center text-white shrink-0">
+                  <Store size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900 mb-1">Retirada no Local</h4>
+                  <p className="text-xs text-gray-500">Permite que o cliente retire o pedido sem taxa de entrega.</p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <div className="h-4 w-8 bg-[#5850ec] rounded-full relative">
+                      <div className="absolute right-1 top-1 h-2 w-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-xs font-bold text-[#5850ec]">Ativo</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {isAdding && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold mb-6 text-[#5850ec]">Novo Bairro de Entrega</h2>
+            <form onSubmit={handleAddLocal} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome do Bairro / Região</label>
+                <Input name="bairro" required placeholder="EX: Santa Rosa" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
+                  <Input name="taxa" type="number" step="0.01" required placeholder="5.00" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Tempo Est.</label>
+                  <Input name="tempo" required placeholder="30-45 min" />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAdding(false)} className="flex-1">Cancelar</Button>
+                <Button type="submit" className="flex-1 bg-[#5850ec] text-white">Adicionar</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
