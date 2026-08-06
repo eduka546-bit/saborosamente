@@ -46,10 +46,16 @@ function AdminProductsPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Cardápio</h1>
         </div>
-        <Button className="bg-[#086e45] hover:bg-[#086e45]/90 flex items-center gap-2 rounded-md px-4 h-10 text-xs font-bold uppercase tracking-wider">
-          <Plus size={18} />
-          Cadastrar novo
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 flex items-center gap-2">
+            <span className="text-lg">↻</span>
+            ORDENAR CATEGORIAS
+          </Button>
+          <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 flex items-center gap-2 rounded-md px-4 h-10 text-xs font-bold uppercase tracking-wider text-white">
+            <Plus size={18} />
+            ADICIONAR CATEGORIA
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
