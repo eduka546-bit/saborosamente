@@ -49,9 +49,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
-export const Route = createFileRoute("/admin/produtos")({
-  component: AdminProductsPage,
-});
 
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
