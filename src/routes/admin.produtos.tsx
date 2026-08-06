@@ -353,6 +353,3 @@ function AdminProductsPage() {
     </div>
   );
 }
-    </div>
-  );
-}
