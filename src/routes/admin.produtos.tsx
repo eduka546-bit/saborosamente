@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { 
   Plus, Search, MoreVertical, GripVertical, Loader2, Utensils, 
   Filter, X, Save, Copy, Trash2, Edit3, Image as ImageIcon, 
-  Calendar, Package, Star, Tag, Info, Check, Clock
+  Calendar, Package, Star, Tag, Info, Check, Clock, Upload, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
   DndContext, 
