@@ -86,32 +86,49 @@ function Index() {
 
   return (
     <>
-      <section className="pt-24 sm:pt-32 pb-12">
-        {/* Espaçamento para o PFP centralizado que invade esta seção */}
-      </section>
+      <section className="mx-auto max-w-7xl px-4 -mt-10 sm:-mt-20 relative z-30 pb-12">
+        <div className="grid lg:grid-cols-[1.2fr_3fr] gap-8 items-start">
+          {/* Text Content - Left Side */}
+          <div className="pt-16 sm:pt-24 text-left">
+            <h1 className="text-xl sm:text-2xl font-black text-[#086e45] leading-tight uppercase tracking-tight">
+              SaborosaMente - Atacado de Refeições e Sopas Congeladas
+            </h1>
+            <p className="mt-2 text-sm text-[#086e45] font-medium leading-relaxed opacity-90">
+              Para o corpo e para a mente, SaborosaMente!
+            </p>
+          </div>
 
-
-
-      <section className="mx-auto max-w-6xl px-4 py-8">
-        {/* Info Carousel (Carrossel Triplo conforme print) */}
-        <div className="overflow-hidden bg-white rounded-3xl border shadow-soft mb-12" ref={emblaRef}>
-          <div className="flex">
-            {infoCards.map((card, i) => (
-              <div key={i} className="flex-[0_0_100%] sm:flex-[0_0_33.33%] min-w-0 p-6 sm:p-8 flex items-start gap-4 border-r last:border-r-0">
-                <div className={cn("mt-1 p-2 bg-gray-50 rounded-xl", card.cor)}>
-                  <card.icon size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{card.titulo}</h4>
-                  <p className="mt-1 text-base sm:text-lg font-black text-[#086e45] leading-tight whitespace-pre-line">
+          {/* Info Card - Right Side */}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-soft flex flex-col sm:flex-row items-stretch overflow-hidden">
+            <div className="flex-1 flex flex-wrap">
+              {infoCards.map((card, i) => (
+                <div key={i} className="flex-1 min-w-[180px] p-6 sm:p-8 flex flex-col justify-center border-b sm:border-b-0 sm:border-r border-gray-50 last:border-r-0">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                    {card.titulo}
+                    {card.titulo === "Funcionamento" && <span className="size-1.5 rounded-full bg-green-500" />}
+                  </h4>
+                  <p className={cn("text-[13px] sm:text-[14px] font-bold leading-tight", card.cor)}>
                     {card.subtitulo}
                   </p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            
+            {/* Search Bar matching the design */}
+            <div className="px-8 flex items-center border-l border-gray-50 bg-gray-50/10">
+               <div className="flex items-center gap-3 text-gray-400">
+                 <span className="text-sm font-medium">Pesquisar...</span>
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                   <circle cx="11" cy="11" r="8"></circle>
+                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                 </svg>
+               </div>
+            </div>
           </div>
         </div>
+      </section>
 
+      <section className="mx-auto max-w-6xl px-4 py-8">
         {/* Benefícios Originais (Pequenos badges/caixas secundárias) */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {beneficios.map(({ icon: Icon, titulo, texto }) => (
