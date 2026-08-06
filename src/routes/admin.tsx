@@ -3,39 +3,62 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
+    console.log("Admin route beforeLoad started", location.pathname);
+    
     // Se for a rota de login, não redirecionamos
     if (location.pathname === "/admin/login") return;
 
-    // getSession() já busca do localStorage se existir, mantendo a persistência automática do Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    
-    if (!user) {
-      throw redirect({
-        to: "/admin/login",
-      });
-    }
+    try {
+      // getSession() já busca do localStorage se existir
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        throw redirect({ to: "/admin/login" });
+      }
 
-    // Verificação de permissão admin
-    // No preview, se estivermos logados com o email do admin ou tivermos a role no banco
-    if (user.email === "anabolic.foodsbs@gmail.com") {
+      const user = session?.user;
+      
+      if (!user) {
+        console.log("No user found, redirecting to login");
+        throw redirect({
+          to: "/admin/login",
+        });
+      }
+
+      // Verificação rápida para o admin principal
+      if (user.email === "anabolic.foodsbs@gmail.com") {
+        console.log("Admin authenticated by email");
+        return { user, role: "admin" };
+      }
+
+      // Verificação de permissão admin no banco
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (roleError) {
+        console.error("Role check error:", roleError);
+      }
+
+      if (!roleData) {
+        console.log("User is not admin, redirecting to login");
+        await supabase.auth.signOut();
+        throw redirect({
+          to: "/admin/login",
+        });
+      }
+
+      console.log("Admin authenticated by role");
       return { user, role: "admin" };
+    } catch (err) {
+      if (err instanceof Error && 'to' in err) throw err; // Re-throw redirects
+      console.error("Critical error in admin beforeLoad:", err);
+      throw redirect({ to: "/admin/login" });
     }
-
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
-      throw redirect({
-        to: "/admin/login",
-      });
-    }
-
-    return { user, role: "admin" };
   },
   component: AdminLayout,
 });

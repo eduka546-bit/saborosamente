@@ -25,40 +25,41 @@ function AdminDashboard() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString();
-
-      // Pedidos hoje
-      const { count: ordersToday } = await supabase
-        .from("pedidos")
-        .select("*", { count: 'exact', head: true })
-        .gte("created_at", todayStr);
-
-      // Produtos ativos
-      const { count: activeProducts } = await supabase
-        .from("produtos")
-        .select("*", { count: 'exact', head: true })
-        .eq("status", "Ativo");
-
-      // Receita mensal
       const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-      const { data: monthlyOrders } = await supabase
-        .from("pedidos")
-        .select("valor_total")
-        .gte("created_at", firstDayOfMonth);
-      
-      const monthlyRevenue = monthlyOrders?.reduce((acc, o) => acc + (o.valor_total || 0), 0) || 0;
 
-      // Últimos pedidos
-      const { data: recentOrders } = await supabase
-        .from("pedidos")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
+      // Executar queries em paralelo para evitar gargalos
+      const [
+        ordersTodayRes,
+        activeProductsRes,
+        monthlyOrdersRes,
+        recentOrdersRes
+      ] = await Promise.all([
+        supabase
+          .from("pedidos")
+          .select("*", { count: 'exact', head: true })
+          .gte("created_at", todayStr),
+        supabase
+          .from("produtos")
+          .select("*", { count: 'exact', head: true })
+          .eq("status", "Ativo"),
+        supabase
+          .from("pedidos")
+          .select("valor_total")
+          .gte("created_at", firstDayOfMonth),
+        supabase
+          .from("pedidos")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5)
+      ]);
+
+      const monthlyRevenue = monthlyOrdersRes.data?.reduce((acc, o) => acc + (o.valor_total || 0), 0) || 0;
 
       return {
-        ordersToday: ordersToday || 0,
-        activeProducts: activeProducts || 0,
+        ordersToday: ordersTodayRes.count || 0,
+        activeProducts: activeProductsRes.count || 0,
         monthlyRevenue,
-        recentOrders: recentOrders || []
+        recentOrders: recentOrdersRes.data || []
       };
     }
   });
