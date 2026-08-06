@@ -15,17 +15,16 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-primary bg-background/85 backdrop-blur text-white">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur text-white">
       <div className="bg-primary py-2 px-4 text-center text-[10px] font-bold uppercase tracking-[0.2em] sm:text-xs">
         Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!
       </div>
-
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 bg-primary">
         <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <span className="grid size-9 place-items-center rounded-full bg-gradient-brand text-primary-foreground">
+          <span className="grid size-9 place-items-center rounded-full bg-white text-primary">
             <span className="font-script text-lg leading-none">S</span>
           </span>
-          <span className="text-lg font-semibold tracking-tight">Saborosamente</span>
+          <span className="text-lg font-bold tracking-tight text-white">Saborosamente</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -33,8 +32,8 @@ export function SiteHeader() {
             <Link
               key={l.to}
               to={l.to}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-              activeProps={{ className: "text-primary" }}
+              className="text-xs font-bold uppercase tracking-wider text-white/80 transition-colors hover:text-white"
+              activeProps={{ className: "text-white" }}
               activeOptions={{ exact: l.to === "/" }}
             >
               {l.label}
@@ -76,7 +75,7 @@ export function SiteHeader() {
               to={l.to}
               onClick={() => setOpen(false)}
               className="py-3 text-sm font-bold uppercase tracking-wider text-white/80 hover:text-white"
-              activeProps={{ className: "text-primary" }}
+              activeProps={{ className: "text-white" }}
               activeOptions={{ exact: l.to === "/" }}
             >
               {l.label}

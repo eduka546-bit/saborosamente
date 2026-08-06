@@ -63,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
         <div className="mt-2 space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Marca: {product.categoria === 'Marmita' ? 'Amo' : 'Sabor em Casa'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Marca: {product.categoria === ('Marmita' as any) ? 'Amo' : 'Sabor em Casa'}</p>
           <p className="text-[10px] font-medium text-muted-foreground">
             <span className="font-bold text-foreground">Valor Nutricional: </span>
             {Math.floor(Math.random() * 100) + 50} KCAL | {Math.floor(Math.random() * 15) + 5}g PROT | {Math.floor(Math.random() * 20) + 10}g CARB (a cada 100g)
