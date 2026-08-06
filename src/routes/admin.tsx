@@ -18,14 +18,14 @@ export const Route = createFileRoute("/admin")({
       
       if (sessionError) {
         console.error("Session error:", sessionError);
-        throw redirect({ to: "/admin/login" });
+        return redirect({ to: "/admin/login" });
       }
 
       const user = session?.user;
       
       if (!user) {
         console.log("No user found, redirecting to login");
-        throw redirect({
+        return redirect({
           to: "/admin/login",
         });
       }
@@ -51,17 +51,17 @@ export const Route = createFileRoute("/admin")({
       if (!roleData) {
         console.log("User is not admin, redirecting to login");
         await supabase.auth.signOut();
-        throw redirect({
+        return redirect({
           to: "/admin/login",
         });
       }
 
       console.log("Admin authenticated by role");
       return { user, role: "admin" };
-    } catch (err) {
-      if (err instanceof Error && 'to' in err) throw err; // Re-throw redirects
+    } catch (err: any) {
+      if (err && typeof err === 'object' && 'to' in err) return err;
       console.error("Critical error in admin beforeLoad:", err);
-      throw redirect({ to: "/admin/login" });
+      return redirect({ to: "/admin/login" });
     }
   },
   component: AdminLayout,
