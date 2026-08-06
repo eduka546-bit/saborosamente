@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
