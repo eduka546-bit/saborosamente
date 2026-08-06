@@ -1,10 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { Leaf, Snowflake, Truck, Clock, Loader2, MapPin, CreditCard, Calendar } from "lucide-react";
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
+import { Loader2, Truck, MapPin, Calendar } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
-import heroImage from "@/assets/hero-marmitas.jpg";
 import { ProductCard } from "@/components/product-card";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
@@ -49,52 +46,26 @@ const infoCards = [
   }
 ];
 
-const beneficios = [
-  {
-    icon: Leaf,
-    titulo: "Comida de verdade",
-    texto: "Ingredientes frescos, sem conservantes e sem excesso de sódio.",
-  },
-  {
-    icon: Snowflake,
-    titulo: "Congelamento rápido",
-    texto: "Congelamos logo após o preparo para manter sabor e nutrientes.",
-  },
-  {
-    icon: Clock,
-    titulo: "Pronto em 6 minutos",
-    texto: "Do freezer ao prato, sem sujeira e sem complicação.",
-  },
-  {
-    icon: Truck,
-    titulo: "Entrega refrigerada",
-    texto: "Frete grátis nos pedidos acima de R$ 120.",
-  },
-];
-
 function Index() {
-  const [emblaRef] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 4000 })]);
-
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-featured"],
     queryFn: () => getPublicProducts(),
   });
 
-  const destaques = products.filter((p: any) => p.destaque).slice(0, 3);
-  
-  // Se não houver destaques marcados, pegar os primeiros 3
-  const displayProducts = destaques.length > 0 ? destaques : products.slice(0, 3);
+  const displayProducts = products.filter((p: any) => p.destaque).slice(0, 3).length > 0 
+    ? products.filter((p: any) => p.destaque).slice(0, 3) 
+    : products.slice(0, 3);
 
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 -mt-10 sm:-mt-20 relative z-30 pb-12">
-        <div className="grid lg:grid-cols-[280px_1fr] gap-8 items-start">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
           {/* Menu de Categorias - Lado Esquerdo */}
-          <div className="space-y-2 pt-16 sm:pt-24">
-            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-6">
+          <div className="w-full md:w-72 space-y-2 pt-16 sm:pt-24 shrink-0">
+            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
               SaborosaMente - Atacado de Refeições e Sopas Congeladas
             </h1>
-            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-8">
+            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-6">
               Para o corpo e para a mente, SaborosaMente!
             </p>
             
@@ -107,78 +78,71 @@ function Index() {
             ].map((cat) => (
               <button 
                 key={cat}
-                className="w-full text-left px-6 py-3 rounded-xl bg-[#086e45]/5 text-[#086e45] text-xs font-bold hover:bg-[#086e45]/10 transition-colors border border-transparent hover:border-[#086e45]/20"
+                className="w-full text-left px-5 py-3 rounded-xl bg-gray-100/50 text-gray-600 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent"
               >
                 {cat}
               </button>
             ))}
           </div>
 
-          {/* Info Card - Right Side */}
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-soft flex flex-col sm:flex-row items-stretch overflow-hidden">
-            <div className="flex-1 flex flex-wrap">
-              {infoCards.map((card, i) => (
-                <div key={i} className="flex-1 min-w-[180px] p-6 sm:p-8 flex flex-col justify-center border-b sm:border-b-0 sm:border-r border-gray-50 last:border-r-0">
-                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-1">
-                    {card.titulo}
-                    {card.titulo === "Funcionamento" && <span className="size-1.5 rounded-full bg-green-500" />}
-                  </h4>
-                  <p className={cn("text-[13px] sm:text-[14px] font-bold leading-tight", card.cor)}>
-                    {card.subtitulo}
-                  </p>
+          <div className="flex-1 w-full space-y-6">
+            {/* Info Card & Search */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
+              <div className="flex-1 flex w-full">
+                {infoCards.map((card, i) => (
+                  <div key={i} className="flex-1 p-4 md:p-6 flex flex-col justify-center border-r border-gray-50 last:border-r-0">
+                    <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                      {card.titulo}
+                      {card.titulo === "Funcionamento" && <span className="size-1.5 rounded-full bg-green-500" />}
+                    </h4>
+                    <p className={cn("text-[11px] md:text-[12px] font-bold leading-tight", card.cor)}>
+                      {card.subtitulo}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="px-6 py-4 md:py-0 flex items-center border-t md:border-t-0 md:border-l border-gray-50 w-full md:w-auto min-h-[60px]">
+                 <div className="flex items-center gap-3 text-gray-300 w-full md:w-48 justify-end">
+                   <span className="text-[11px] font-medium">Pesquisar...</span>
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+                     <circle cx="11" cy="11" r="8"></circle>
+                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                   </svg>
+                 </div>
+              </div>
+            </div>
+
+            {/* Banners Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { img: bannerCarouselAsset.url, alt: "Marmitas" },
+                { img: bannerCarouselAsset.url, alt: "Loja" },
+                { img: bannerCarouselAsset.url, alt: "Entregas" }
+              ].map((b, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 aspect-[4/5] relative group bg-white">
+                  <img 
+                    src={b.img} 
+                    alt={b.alt} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 border-[8px] border-white/0 group-hover:border-white/10 transition-all pointer-events-none rounded-2xl" />
                 </div>
               ))}
             </div>
-            
-            {/* Search Bar matching the design */}
-            <div className="px-8 flex items-center border-l border-gray-50 bg-gray-50/10">
-               <div className="flex items-center gap-3 text-gray-400">
-                 <span className="text-sm font-medium">Pesquisar...</span>
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
-                   <circle cx="11" cy="11" r="8"></circle>
-                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                 </svg>
-               </div>
-            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Marmitas Congeladas" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Nossa Loja em SBS" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Nossas Entregas" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold">Mais pedidas da semana</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">Mais pedidas da semana</h2>
+            <p className="mt-1 text-xs text-muted-foreground font-medium">
               As marmitas que saem primeiro do nosso freezer.
             </p>
           </div>
-          <Link to="/catalogo" className="text-sm font-semibold text-primary hover:underline">
+          <Link to="/catalogo" className="text-xs font-bold text-[#086e45] hover:underline uppercase tracking-wider">
             Ver todas as marmitas →
           </Link>
         </div>
@@ -206,7 +170,7 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="rounded-[2.5rem] bg-gradient-brand px-8 py-14 text-center text-primary-foreground shadow-lift">
           <h2 className="text-3xl font-bold md:text-4xl">Sua semana resolvida em um pedido</h2>
           <p className="mx-auto mt-4 max-w-xl text-sm opacity-90 md:text-base">
