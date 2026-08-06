@@ -84,7 +84,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     }
   }, [product, categories]);
 
-  if (!product || !formData) return null;
+  if (!formData) return null;
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
