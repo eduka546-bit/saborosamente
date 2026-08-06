@@ -372,7 +372,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       <label className="text-sm font-semibold text-gray-700">Novidade</label>
                       <p className="text-xs text-gray-500">Sinalizar como novo item no cardápio</p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={!!formData.is_novidade} 
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_novidade: checked })}
+                    />
                   </div>
                 </div>
 
