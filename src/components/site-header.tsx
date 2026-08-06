@@ -228,13 +228,6 @@ export function SiteHeader() {
               />
             </div>
           </div>
-              <img 
-                src={settings.profile_image_url} 
-                className="w-full h-full object-contain p-2" 
-                alt="Profile" 
-              />
-            </div>
-          </div>
         )}
       </div>
 
