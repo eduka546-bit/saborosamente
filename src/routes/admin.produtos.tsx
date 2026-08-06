@@ -65,6 +65,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         ...product,
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
+        preco_custo_formatado: product.preco_custo?.toFixed(2).replace('.', ',') || "",
         status: (product.status || 'ativo').toLowerCase()
       });
     } else {
@@ -118,7 +119,13 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   };
 
   const handleSave = () => {
-    const { preco_formatado, preco_promocional_formatado, categorias, ...rest } = formData;
+    const { 
+      preco_formatado, 
+      preco_promocional_formatado, 
+      preco_custo_formatado,
+      categorias, 
+      ...rest 
+    } = formData;
     
     // Ensure we have a name and category
     if (!formData.nome || !formData.categoria_id) {
@@ -128,6 +135,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     const preco = parseFloat(preco_formatado.replace(',', '.'));
     const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
+    const preco_custo = preco_custo_formatado ? parseFloat(preco_custo_formatado.replace(',', '.')) : null;
     
     if (isNaN(preco)) {
       toast.error("Por favor, insira um preço válido");
@@ -136,7 +144,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
     const status = (formData.status || 'ativo').toLowerCase();
-    onSave({ ...rest, preco, preco_promocional, status });
+    onSave({ ...rest, preco, preco_promocional, preco_custo, status });
   };
 
   return (
@@ -361,7 +369,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       <label className="text-sm font-semibold text-gray-700">Destaque na Home</label>
                       <p className="text-xs text-gray-500">Exibir este produto na seção "Mais Pedidos"</p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={!!formData.is_destaque} 
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_destaque: checked })}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between p-4 border rounded-xl">
@@ -369,7 +380,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       <label className="text-sm font-semibold text-gray-700">Novidade</label>
                       <p className="text-xs text-gray-500">Sinalizar como novo item no cardápio</p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={!!formData.is_novidade} 
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_novidade: checked })}
+                    />
                   </div>
                 </div>
 
@@ -453,7 +467,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         <label className="text-sm font-semibold text-gray-700">Frete Grátis</label>
                         <p className="text-xs text-gray-500">Aplicar frete grátis apenas para este produto</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={!!formData.frete_gratis} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, frete_gratis: checked })}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -461,7 +478,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         <label className="text-sm font-semibold text-gray-700">Bloquear Cupom</label>
                         <p className="text-xs text-gray-500">Não permitir uso de cupons neste item</p>
                       </div>
-                      <Switch />
+                      <Switch 
+                        checked={!!formData.bloquear_cupom} 
+                        onCheckedChange={(checked) => setFormData({ ...formData, bloquear_cupom: checked })}
+                      />
                     </div>
                   </div>
                 </div>
@@ -490,7 +510,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               <div className="max-w-md space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Código PDV / Integração</label>
-                  <Input placeholder="Ex: IFD-123" className="h-10 border-gray-200" />
+                  <Input 
+                    placeholder="Ex: IFD-123" 
+                    className="h-10 border-gray-200" 
+                    value={formData.codigo_integracao || ""}
+                    onChange={(e) => setFormData({ ...formData, codigo_integracao: e.target.value })}
+                  />
                   <p className="text-[10px] text-gray-400">Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.</p>
                 </div>
               </div>
@@ -502,7 +527,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Preço de Custo</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                    <Input placeholder="0,00" className="h-10 pl-9 border-gray-200" />
+                    <Input 
+                      placeholder="0,00" 
+                      className="h-10 pl-9 border-gray-200" 
+                      value={formData.preco_custo_formatado || ""}
+                      onChange={(e) => setFormData({ ...formData, preco_custo_formatado: e.target.value })}
+                    />
                   </div>
                   <p className="text-[10px] text-gray-400">Este valor não é exibido para o cliente. Usado apenas para relatórios de lucratividade.</p>
                 </div>
