@@ -9,8 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 const links = [
   { to: "/catalogo", label: "Cardápio", icon: Menu },
   { to: "/admin/config/taxas", label: "Áreas de entrega", icon: MapPin },
-  { to: "#", label: "Cashback", icon: Sparkles },
-  { to: "#", label: "Fale conosco", icon: MessageSquare },
+  { to: "/", label: "Cashback", icon: Sparkles },
+  { to: "/", label: "Fale conosco", icon: MessageSquare },
 ] as const;
 
 export function SiteHeader() {
@@ -47,24 +47,24 @@ export function SiteHeader() {
         className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12 border-b"
       >
         <Link to="/" className="flex items-center gap-2">
-           <span className="font-script text-2xl" style={{ color: navText }}>Saborosamente</span>
+           {/* Removido o texto "Saborosamente" conforme solicitado */}
         </Link>
 
-        {/* Navigation Links */}
-        <nav className="hidden items-center gap-10 lg:flex">
+        {/* Navigation Links - Now side-by-side even on mobile */}
+        <nav className="flex items-center gap-4 sm:gap-6 lg:gap-10">
           {links.map((l) => (
             <Link
               key={l.label}
               to={l.to}
               style={{ color: navText }}
-              className="flex items-center gap-2 text-[13px] font-semibold transition-opacity hover:opacity-70"
+              className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
             >
-              <l.icon size={18} className="opacity-80" />
+              <l.icon size={16} className="opacity-80 hidden sm:block" />
               {l.label}
             </Link>
           ))}
           
-          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70">
+          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
             <User size={20} />
           </Link>
 
@@ -81,15 +81,6 @@ export function SiteHeader() {
             )}
           </Link>
         </nav>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="lg:hidden p-2"
-          style={{ color: navText }}
-        >
-          <Menu size={24} />
-        </button>
       </div>
 
       {/* Hero / Cover Section */}
@@ -107,12 +98,12 @@ export function SiteHeader() {
               <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
                 {/* Left side text from print could be here, but we focus on badges */}
                 <div className="hidden lg:flex items-center gap-12 ml-auto">
-                   {settings.hero_features?.map((feature: any, i: number) => (
-                     <div key={i} className="flex flex-col items-center text-center text-white">
+                    {settings.hero_features?.map((feature: any, i: number) => (
+                      <div key={i} className="flex flex-col items-center text-center text-white">
                         <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
                         <span className="text-xl font-black">{feature.value}</span>
-                     </div>
-                   ))}
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -132,28 +123,6 @@ export function SiteHeader() {
           </div>
         )}
       </div>
-
-      {/* Mobile Drawer */}
-      {open && (
-        <div className="fixed inset-0 z-[100] bg-white lg:hidden">
-          <div className="flex h-20 items-center justify-between px-6 border-b">
-            <span className="font-bold text-primary">Menu</span>
-            <button onClick={() => setOpen(false)} className="text-gray-500">✕ Fechar</button>
-          </div>
-          <div className="flex flex-col p-6 gap-6">
-            {links.map((l) => (
-              <Link 
-                key={l.label} 
-                to={l.to} 
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-4 text-lg font-bold text-primary"
-              >
-                <l.icon /> {l.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
