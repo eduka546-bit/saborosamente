@@ -53,7 +53,7 @@ export const Route = createFileRoute("/admin/produtos")({
   component: AdminProductsPage,
 });
 
-function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice }: any) {
+function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit }: any) {
   const {
     attributes,
     listeners,
@@ -92,7 +92,10 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice }
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">
+          <h3 
+            className="text-sm font-semibold text-gray-900 truncate cursor-pointer hover:text-[#5850ec] transition-colors"
+            onClick={() => onEdit(product)}
+          >
             {product.nome}
           </h3>
           {product.peso && (
@@ -144,7 +147,10 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice }
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem className="text-xs font-medium uppercase tracking-wider">
+            <DropdownMenuItem 
+              className="text-xs font-medium uppercase tracking-wider"
+              onClick={() => onEdit(product)}
+            >
               Editar
             </DropdownMenuItem>
             <DropdownMenuItem className="text-xs font-medium uppercase tracking-wider">
