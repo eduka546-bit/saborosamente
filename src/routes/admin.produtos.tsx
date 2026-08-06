@@ -38,7 +38,7 @@ function AdminProductsPage() {
   const groupedProducts = categories.map((cat: any) => ({
     category: cat,
     products: filteredProducts.filter((p: any) => p.categoria_id === cat.id)
-  })).filter(group => group.products.length > 0);
+  })).filter((group: any) => group.products.length > 0);
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto min-h-screen bg-gray-50/50">
