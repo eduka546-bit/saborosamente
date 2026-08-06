@@ -669,33 +669,51 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      console.log('Updating status for product:', id, 'to:', status);
-      const { error } = await supabase
+      console.log('Solicitando atualização de status:', id, '->', status);
+      
+      const { data, error } = await supabase
         .from("produtos")
         .update({ status })
-        .eq("id", id);
+        .eq("id", id)
+        .select();
+
       if (error) {
-        console.error('Supabase error updating status:', error);
+        console.error('Erro Supabase (UpdateStatus):', error);
         throw error;
       }
+
+      if (!data || data.length === 0) {
+        console.warn('Nenhum dado retornado ou linha não encontrada:', id);
+        throw new Error("Produto não encontrado ou permissão negada (RLS)");
+      }
+
+      console.log('Status atualizado com sucesso no DB:', data[0]);
+      return data[0];
     },
     onMutate: async ({ id, status }: { id: string, status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
       const previousProducts = queryClient.getQueryData(["admin-products"]);
+      
       queryClient.setQueryData(["admin-products"], (old: any) => 
         old?.map((p: any) => p.id === id ? { ...p, status } : p)
       );
+      
       return { previousProducts };
     },
-    onError: (err, variables, context: any) => {
+    onError: (err: any, variables, context: any) => {
+      console.error('Falha na mutação de status:', err);
       if (context?.previousProducts) {
         queryClient.setQueryData(["admin-products"], context.previousProducts);
       }
-      toast.error("Erro ao atualizar status: " + (err instanceof Error ? err.message : "Tente novamente"));
+      
+      // Feedback mais específico
+      const errorMsg = err.message || "Tente novamente";
+      const detail = err.details || (err.code ? `Erro: ${err.code}` : "");
+      toast.error(`Erro ao atualizar status: ${errorMsg} ${detail}`);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Status atualizado!");
+      toast.success(`Status "${data.status}" salvo com sucesso!`);
     },
   });
 
