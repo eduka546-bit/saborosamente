@@ -38,7 +38,7 @@ function AdminProductsPage() {
   const groupedProducts = categories.map((cat: any) => ({
     category: cat,
     products: filteredProducts.filter((p: any) => p.categoria_id === cat.id)
-  })).filter((group: any) => group.products.length > 0);
+  })); // Removed the .filter() that was hiding empty categories
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
