@@ -65,7 +65,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         ...product,
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
-        status: product.status === 'Pausado' ? 'pausado' : 'ativo'
+        status: (product.status || 'ativo').toLowerCase()
       });
     } else {
       // Default data for new product
@@ -134,7 +134,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       return;
     }
 
-    const status = formData.status === 'pausado' ? 'Pausado' : 'Ativo';
+    // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
+    const status = (formData.status || 'ativo').toLowerCase();
     onSave({ ...rest, preco, preco_promocional, status });
   };
 
@@ -595,7 +596,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'pausado')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'Pausado' || product.status === 'pausado'
+              (product.status || '').toLowerCase() === 'pausado'
                 ? 'bg-red-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -605,7 +606,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'ativo')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'Ativo' || product.status === 'ativo'
+              (product.status || '').toLowerCase() === 'ativo'
                 ? 'bg-green-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -671,7 +672,8 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      const dbStatus = status === 'pausado' ? 'Pausado' : 'Ativo';
+      // Try lowercase first, if it fails we check the error
+      const dbStatus = (status || 'ativo').toLowerCase();
       console.log('Solicitando atualização de status:', id, '->', dbStatus);
       
       const { data, error } = await supabase
@@ -679,6 +681,20 @@ function AdminProductsPage() {
         .update({ status: dbStatus })
         .eq("id", id)
         .select();
+
+      if (error && error.code === '23514') {
+        // If lowercase fails, try capitalized as a fallback
+        const altStatus = dbStatus.charAt(0).toUpperCase() + dbStatus.slice(1);
+        console.log('Tentando fallback para capitalizado:', altStatus);
+        const { data: retryData, error: retryError } = await supabase
+          .from("produtos")
+          .update({ status: altStatus })
+          .eq("id", id)
+          .select();
+        
+        if (retryError) throw retryError;
+        return retryData[0];
+      }
 
       if (error) {
         console.error('Erro Supabase (UpdateStatus):', error);
