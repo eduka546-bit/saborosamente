@@ -55,7 +55,10 @@ export function SiteHeader() {
           { neighborhood: "Estrada das Neves", rate: 10.00 }, { neighborhood: "Estrada dos Bugres", rate: 10.00 },
           { neighborhood: "Lençol", rate: 10.00 }, { neighborhood: "Rio Natal", rate: 10.00 },
           { neighborhood: "Rio Represo", rate: 10.00 }, { neighborhood: "Rio Vermelho Estação", rate: 10.00 },
-          { neighborhood: "Rio Vermelho Povoado", rate: 10.00 }, { neighborhood: "Sertãozinho", rate: 10.00 }
+          { neighborhood: "Rio Vermelho Povoado", rate: 10.00 }, { neighborhood: "Sertãozinho", rate: 10.00 },
+          { neighborhood: "Serra Alta I", rate: 13.00 }, { neighborhood: "Serra Alta II", rate: 13.00 },
+          { neighborhood: "Rio Vermelho", rate: 12.00 }, { neighborhood: "Oxford I", rate: 11.00 },
+          { neighborhood: "Oxford II", rate: 11.00 }
         ],
         "Rio Negrinho": [
           "Ceramarte", "Alegre", "Bairro Preto", "Barro Preto", "Bela Vista", "Campo Lençol", "Centro", "Colônia Olsen", "Cruzeiro", "Industrial Norte", "Industrial Sul", "Jardim Hantschel", "Pinheirinho", "Quitandinha", "Rio Casa de Pedra", "Rio Preto", "Rio dos Bugres", "Serro Azul", "São Pedro", "São Rafael", "Vila Nova", "Vista Alegre", "Volta Grande"
