@@ -978,9 +978,3 @@ function AdminProductsPage() {
     </div>
   );
 }
-
-        onDelete={(id: string) => deleteProduct.mutate(id)}
-      />
-    </div>
-  );
-}
