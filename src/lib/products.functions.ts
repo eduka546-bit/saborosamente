@@ -18,6 +18,7 @@ export const getAdminProducts = createServerFn({ method: "GET" })
     return [...(data || [])].sort((a, b) => {
       const regexTD = /TD(\d+)/i;
       const regexSO = /SO(\d+)/i;
+      const regexCO = /CO(\d+)/i;
       
       const matchA_TD = a.nome.match(regexTD);
       const matchB_TD = b.nome.match(regexTD);
@@ -32,12 +33,21 @@ export const getAdminProducts = createServerFn({ method: "GET" })
       if (matchA_SO && matchB_SO) {
         return parseInt(matchA_SO[1]) - parseInt(matchB_SO[1]);
       }
+
+      const matchA_CO = a.nome.match(regexCO);
+      const matchB_CO = b.nome.match(regexCO);
       
-      // Keep TD at top, then SO
+      if (matchA_CO && matchB_CO) {
+        return parseInt(matchA_CO[1]) - parseInt(matchB_CO[1]);
+      }
+      
+      // Order: TD, then SO, then CO
       if (matchA_TD) return -1;
       if (matchB_TD) return 1;
       if (matchA_SO) return -1;
       if (matchB_SO) return 1;
+      if (matchA_CO) return -1;
+      if (matchB_CO) return 1;
       
       return a.nome.localeCompare(b.nome);
     });
