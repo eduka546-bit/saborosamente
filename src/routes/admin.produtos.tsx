@@ -924,9 +924,9 @@ function AdminProductsPage() {
                       setEditingProduct(null);
                       setIsEditModalOpen(true);
                       // Pre-set category for new item
-                      setTimeout(() => {
-                        // This will be handled by useMemo in modal
-                      }, 0);
+                      // The modal handles initial data for new items automatically
+                      // when editingProduct is null
+
                     }}
                     className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
                   >
