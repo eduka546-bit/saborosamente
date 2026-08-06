@@ -19,6 +19,8 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminDashboard() {
+  console.log("AdminDashboard rendering");
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
