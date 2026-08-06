@@ -102,18 +102,27 @@ export function SiteHeader() {
     staleTime: 1000 * 60 * 60,
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings, isPending: isSettingsPending } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
       const { data } = await supabase.from("site_settings").select("*").maybeSingle();
       return data;
-    }
+    },
+    staleTime: 1000 * 60,
   });
 
   const navBg = settings?.nav_bg_color || "#ffffff";
   const navText = settings?.nav_text_color || "#086e45";
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
+
+  /**
+   * Imagens do banner: sempre priorizamos o que foi enviado pelo painel admin.
+   * Enquanto a consulta ainda não respondeu, NÃO renderizamos a imagem padrão —
+   * isso evitava o "flash" da capa original antes da capa atualizada aparecer.
+   */
+  const heroDesktopSrc = settings?.hero_image_url || bannerDesktopAsset.url;
+  const heroMobileSrc = settings?.hero_image_url || bannerMobileAsset.url;
 
   return (
     <header className="relative z-[200] transition-all duration-300">
@@ -185,12 +194,15 @@ export function SiteHeader() {
 
       {/* Hero / Cover Section */}
       <div className="relative w-full overflow-visible bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
-        {settings?.hero_image_url ? (
+        {isSettingsPending ? (
+          /* Placeholder com a cor da marca enquanto as configurações carregam */
+          <div className="w-full aspect-[1920/240] max-md:aspect-[1000/360]" />
+        ) : settings?.hero_image_url || !settings ? (
           <div className="relative w-full">
             <picture className="w-full h-full">
-              <source media="(max-width: 768px)" srcSet={bannerMobileAsset.url} />
+              <source media="(max-width: 768px)" srcSet={heroMobileSrc} />
               <img 
-                src={bannerDesktopAsset.url} 
+                src={heroDesktopSrc}
                 alt="Site Banner" 
                 className="w-full h-full object-cover opacity-90"
               />
@@ -201,7 +213,7 @@ export function SiteHeader() {
               <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
                 {/* Left side text from print could be here, but we focus on badges */}
                 <div className="hidden lg:flex items-center gap-12 ml-auto">
-                    {settings.hero_features?.map((feature: any, i: number) => (
+                    {(settings?.hero_features as any[] | undefined)?.map((feature: any, i: number) => (
                       <div key={i} className="flex flex-col items-center text-center text-white">
                         <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
                         <span className="text-xl font-black">{feature.value}</span>
