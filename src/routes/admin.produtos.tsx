@@ -63,10 +63,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     if (product) {
       setFormData({
         ...product,
-        preco_formatado: product.preco.toFixed(2).replace('.', ',')
+        preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
+        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || ""
+      });
+    } else {
+      // Default data for new product
+      setFormData({
+        nome: "",
+        preco: 0,
+        preco_formatado: "0,00",
+        categoria_id: categories[0]?.id || "",
+        status: 'ativo',
+        imagem_url: "",
+        descricao: "",
+        informacao_nutricional: "",
+        controle_estoque: false,
+        estoque_atual: 0,
+        estoque_minimo: 5
       });
     }
-  }, [product]);
+  }, [product, categories]);
 
   if (!product || !formData) return null;
 
@@ -101,9 +117,16 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   };
 
   const handleSave = () => {
-    const { preco_formatado, categorias, ...rest } = formData;
+    const { preco_formatado, preco_promocional_formatado, categorias, ...rest } = formData;
     const preco = parseFloat(preco_formatado.replace(',', '.'));
-    onSave({ ...rest, preco });
+    const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
+    
+    if (isNaN(preco)) {
+      toast.error("Por favor, insira um preço válido");
+      return;
+    }
+
+    onSave({ ...rest, preco, preco_promocional });
   };
 
   return (
@@ -111,9 +134,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white rounded-xl">
         <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-500">R$ {formData.preco.toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-medium text-gray-500">R$ {formData.preco?.toFixed(2).replace('.', ',') || "0,00"}</span>
           </div>
-          <DialogTitle className="hidden">Editar Produto</DialogTitle>
+          <DialogTitle className="hidden">{product ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="detalhes" className="w-full">
@@ -271,7 +294,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     className="text-red-500 hover:text-red-600 hover:bg-red-50 p-0 h-auto text-xs font-bold uppercase tracking-wider flex items-center gap-2"
                     onClick={() => {
                       if (confirm("Tem certeza que deseja excluir este produto?")) {
-                        onDelete(product.id);
+                        if (product?.id) {
+                          onDelete(product.id);
+                        }
                         onClose();
                       }
                     }}
@@ -308,7 +333,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="pt-4 border-t flex flex-col gap-2">
                     <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Link de compartilhamento:</label>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] text-gray-400 truncate flex-1">https://prefirodelivery.com/saborosamente/produto/{product.id}</p>
+                      <p className="text-[10px] text-gray-400 truncate flex-1">
+                        {product?.id ? `https://prefirodelivery.com/saborosamente/produto/${product.id}` : 'Disponível após salvar'}
+                      </p>
                       <Button variant="outline" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-4 rounded-full border-none">Copiar Link</Button>
                     </div>
                   </div>
@@ -478,10 +505,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
           <Button variant="outline" onClick={onClose} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider text-gray-500 border-none bg-gray-200/50 hover:bg-gray-200">Cancelar</Button>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={handleSave} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider border-[#5850ec] text-[#5850ec] hover:bg-[#5850ec] hover:text-white transition-all flex items-center gap-2">
-              <Check size={16} /> Salvar e Novo
+              <Check size={16} /> Salvar {product ? 'e Fechar' : 'e Criar'}
             </Button>
             <Button onClick={handleSave} className="rounded-full px-8 h-10 text-xs font-bold uppercase tracking-wider bg-[#5850ec] hover:bg-[#5850ec]/90 text-white shadow-lg flex items-center gap-2">
-              <Check size={16} /> Salvar
+              <Check size={16} /> {product ? 'Salvar Alterações' : 'Adicionar Produto'}
             </Button>
           </div>
         </DialogFooter>
@@ -641,9 +668,23 @@ function AdminProductsPage() {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-products"] });
+      const previousProducts = queryClient.getQueryData(["admin-products"]);
+      queryClient.setQueryData(["admin-products"], (old: any) => 
+        old?.map((p: any) => p.id === id ? { ...p, status } : p)
+      );
+      return { previousProducts };
+    },
+    onError: (err, variables, context: any) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["admin-products"], context.previousProducts);
+      }
+      toast.error("Erro ao atualizar status");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Status atualizado com sucesso!");
+      toast.success("Status atualizado!");
     },
   });
 
@@ -675,21 +716,31 @@ function AdminProductsPage() {
     },
   });
 
-  const updateProduct = useMutation({
+  const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
-      const { error } = await supabase
-        .from("produtos")
-        .update(data)
-        .eq("id", id);
-      if (error) throw error;
+      if (id) {
+        const { error } = await supabase
+          .from("produtos")
+          .update(data)
+          .eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("produtos")
+          .insert([data]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Produto atualizado com sucesso!");
+      toast.success(editingProduct ? "Produto atualizado!" : "Produto criado!");
       setIsEditModalOpen(false);
       setEditingProduct(null);
     },
+    onError: (error: any) => {
+      toast.error("Erro ao salvar produto: " + error.message);
+    }
   });
 
   const handleEdit = (product: any) => {
@@ -699,10 +750,49 @@ function AdminProductsPage() {
 
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
+    if (!over) return;
+
     if (active.id !== over.id) {
-      // Logic for persistent reordering would go here, updating an 'ordem' column
-      // For now we just swap in UI
-      toast.info("Reordenação salva localmente (implementando persistência...)");
+      const activeItem = products.find((p: any) => p.id === active.id);
+      const overItem = products.find((p: any) => p.id === over.id);
+
+      if (activeItem && overItem && activeItem.categoria_id === overItem.categoria_id) {
+        const catProducts = products
+          .filter((p: any) => p.categoria_id === activeItem.categoria_id)
+          .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0));
+
+        const oldIndex = catProducts.findIndex((p: any) => p.id === active.id);
+        const newIndex = catProducts.findIndex((p: any) => p.id === over.id);
+
+        const newOrder = arrayMove(catProducts, oldIndex, newIndex);
+
+        // Update local state for immediate feedback
+        queryClient.setQueryData(["admin-products"], (old: any) => {
+          const otherCats = old.filter((p: any) => p.categoria_id !== activeItem.categoria_id);
+          const updatedCatProducts = newOrder.map((p, idx) => ({ ...p, ordem: idx }));
+          return [...otherCats, ...updatedCatProducts];
+        });
+
+        // Persist to DB
+        try {
+          const updates = newOrder.map((p, idx) => ({
+            id: p.id,
+            ordem: idx
+          }));
+
+          for (const update of updates) {
+            await supabase
+              .from("produtos")
+              .update({ ordem: update.ordem })
+              .eq("id", update.id);
+          }
+          toast.success("Ordem atualizada!");
+        } catch (error) {
+          console.error("Erro ao salvar ordem:", error);
+          toast.error("Erro ao salvar nova ordem");
+          queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+        }
+      }
     }
   };
 
@@ -717,7 +807,9 @@ function AdminProductsPage() {
   const groupedProducts = useMemo(() => 
     categories.map((cat: any) => ({
       category: cat,
-      products: filteredProducts.filter((p: any) => p.categoria_id === cat.id)
+      products: filteredProducts
+        .filter((p: any) => p.categoria_id === cat.id)
+        .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0))
     })),
     [categories, filteredProducts]
   );
@@ -824,7 +916,14 @@ function AdminProductsPage() {
 
                 <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
                   <button 
-                    onClick={() => toast.info(`Adicionar item na categoria: ${category.nome}`)}
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setIsEditModalOpen(true);
+                      // Pre-set category for new item
+                      setTimeout(() => {
+                        // This will be handled by useMemo in modal
+                      }, 0);
+                    }}
                     className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
                   >
                     <Plus size={14} strokeWidth={3} />
@@ -844,7 +943,7 @@ function AdminProductsPage() {
         }}
         product={editingProduct}
         categories={categories}
-        onSave={(data: any) => updateProduct.mutate(data)}
+        onSave={(data: any) => saveProduct.mutate(data)}
         onDelete={(id: string) => deleteProduct.mutate(id)}
       />
     </div>
