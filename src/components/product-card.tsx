@@ -1,7 +1,9 @@
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
+import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
+import { cn } from "@/lib/utils";
 
 export interface ProductCardProps {
   product: Product;
@@ -9,6 +11,10 @@ export interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { add } = useCart();
+  const weights = product.peso?.includes(",") 
+    ? product.peso.split(",").map(w => w.trim()) 
+    : product.peso ? [product.peso] : [];
+  const [selectedWeight, setSelectedWeight] = useState(weights[1] || weights[0] || ""); // Default para 300g se disponível
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
@@ -29,9 +35,29 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           <h3 className="text-base font-semibold leading-snug">{product.nome}</h3>
-          <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
-            {product.peso}
-          </p>
+          {weights.length > 1 ? (
+            <div className="mt-2 flex gap-2">
+              {weights.map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setSelectedWeight(w)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                    selectedWeight === w
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                  )}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
+              {product.peso}
+            </p>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">{product.descricao}</p>
         {product.ingredientes && product.ingredientes.length > 0 && (
