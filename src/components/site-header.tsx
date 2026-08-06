@@ -219,7 +219,7 @@ export function SiteHeader() {
         
         {/* Centralized PFP/Logo that overlaps the next section */}
         {settings?.profile_image_url && (
-        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-[300] flex items-center justify-center pointer-events-none">
+        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-[calc(50%-2px)] z-[300] flex items-center justify-center pointer-events-none">
           <div className="size-[100px] md:size-[140px] rounded-full border-[4px] border-[#fff688] bg-[#086e45] shadow-2xl flex items-center justify-center overflow-hidden pointer-events-auto">
             <img 
               src={settings?.profile_image_url} 
