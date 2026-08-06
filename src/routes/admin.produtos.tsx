@@ -117,9 +117,16 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   };
 
   const handleSave = () => {
-    const { preco_formatado, categorias, ...rest } = formData;
+    const { preco_formatado, preco_promocional_formatado, categorias, ...rest } = formData;
     const preco = parseFloat(preco_formatado.replace(',', '.'));
-    onSave({ ...rest, preco });
+    const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
+    
+    if (isNaN(preco)) {
+      toast.error("Por favor, insira um preço válido");
+      return;
+    }
+
+    onSave({ ...rest, preco, preco_promocional });
   };
 
   return (
