@@ -144,7 +144,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
     const status = (formData.status || 'ativo').toLowerCase();
-    onSave({ ...rest, preco, preco_promocional, status });
+    onSave({ ...rest, preco, preco_promocional, preco_custo, status });
   };
 
   return (
