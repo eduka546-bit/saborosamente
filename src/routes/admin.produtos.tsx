@@ -333,7 +333,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="pt-4 border-t flex flex-col gap-2">
                     <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Link de compartilhamento:</label>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] text-gray-400 truncate flex-1">https://prefirodelivery.com/saborosamente/produto/{product.id}</p>
+                      <p className="text-[10px] text-gray-400 truncate flex-1">
+                        {product?.id ? `https://prefirodelivery.com/saborosamente/produto/${product.id}` : 'Disponível após salvar'}
+                      </p>
                       <Button variant="outline" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-4 rounded-full border-none">Copiar Link</Button>
                     </div>
                   </div>
