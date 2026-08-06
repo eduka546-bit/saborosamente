@@ -316,7 +316,37 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               </div>
             </TabsContent>
 
-            {/* Other tabs placeholder content for visual consistency */}
+            <TabsContent value="destaque" className="m-0 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 border rounded-xl">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-semibold text-gray-700">Destaque na Home</label>
+                      <p className="text-xs text-gray-500">Exibir este produto na seção "Mais Pedidos"</p>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-xl">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-semibold text-gray-700">Novidade</label>
+                      <p className="text-xs text-gray-500">Sinalizar como novo item no cardápio</p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 text-purple-600">
+                    <Star size={20} />
+                    <span className="text-sm font-bold uppercase tracking-wider">Sugestões de Venda</span>
+                  </div>
+                  <p className="text-xs text-purple-800/70">Este produto será sugerido no carrinho quando o cliente estiver finalizando o pedido.</p>
+                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-100 text-xs font-bold uppercase py-6">Configurar Gatilhos</Button>
+                </div>
+              </div>
+            </TabsContent>
+
             <TabsContent value="estoque" className="m-0 space-y-6">
               <div className="bg-blue-50/50 p-4 rounded-lg flex items-start gap-3">
                 <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
