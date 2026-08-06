@@ -49,7 +49,7 @@ const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 function Checkout() {
-  const { lines, subtotal, shipping, total, clear } = useCart();
+  const { lines, subtotal, shipping, total, clear, selectedCity, setSelectedCity } = useCart();
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | null>(null);
 
@@ -59,8 +59,12 @@ function Checkout() {
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { pagamento: "pix" },
+    defaultValues: { 
+      pagamento: "pix",
+      cidade: selectedCity 
+    },
   });
+
 
   // Envio simulado: substituir por persistência real quando o backend existir.
   const onSubmit = async (data: CheckoutForm) => {
