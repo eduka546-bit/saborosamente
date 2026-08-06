@@ -59,8 +59,8 @@ function Index() {
   return (
     <>
       {/* Hero Info & Banners Section */}
-      <section className="mx-auto max-w-7xl px-4 -mt-10 sm:-mt-20 relative z-30 pb-12">
-        <div className="flex flex-col md:flex-row gap-6 items-start justify-end">
+      <section className="mx-auto max-w-7xl px-4 mt-8 md:mt-12 relative z-30 pb-12">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1 w-full space-y-6">
             {/* Info Card & Search */}
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
