@@ -1,5 +1,3 @@
-import json
-
 data_map = {
     "São Bento do Sul": [
         {"neighborhood": "Centro", "rate": 8.90}, {"neighborhood": "Progresso", "rate": 8.90},
@@ -34,7 +32,8 @@ for city, neighborhoods in data_map.items():
     for n in neighborhoods:
         name = n["neighborhood"] if isinstance(n, dict) else n
         rate = n["rate"] if isinstance(n, dict) else 10.00
-        values.append(f"('{city}', '{name.replace(\"'\", \"''\")}', {rate})")
+        safe_name = name.replace("'", "''")
+        values.append(f"('{city}', '{safe_name}', {rate})")
 
-sql = f"INSERT INTO public.delivery_rates (city, neighborhood, rate) VALUES\n" + ",\n".join(values) + "\nON CONFLICT (city, neighborhood) DO UPDATE SET rate = EXCLUDED.rate;"
+sql = "INSERT INTO public.delivery_rates (city, neighborhood, rate) VALUES\n" + ",\n".join(values) + "\nON CONFLICT (city, neighborhood) DO UPDATE SET rate = EXCLUDED.rate;"
 print(sql)
