@@ -166,7 +166,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          {isAdminPath ? <AdminHeader /> : <SiteHeader />}
+          {isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />}
           
           <main className="flex-1">
             <Outlet />
