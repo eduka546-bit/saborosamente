@@ -596,7 +596,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'pausado')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'Pausado' || product.status === 'pausado'
+              (product.status || '').toLowerCase() === 'pausado'
                 ? 'bg-red-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -606,7 +606,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           <button 
             onClick={() => onUpdateStatus(product.id, 'ativo')}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              product.status === 'Ativo' || product.status === 'ativo'
+              (product.status || '').toLowerCase() === 'ativo'
                 ? 'bg-green-500 text-white shadow-sm' 
                 : 'text-gray-400 hover:text-gray-600'
             }`}
