@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -22,7 +22,24 @@ const links = [
 
 export function SiteHeader() {
   const { count } = useCart();
+  const queryClient = useQueryClient();
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
+
+  // Prefetch delivery areas on mount
+  useQuery({
+    queryKey: ["delivery-areas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("delivery_rates")
+        .select("*")
+        .order("city", { ascending: true })
+        .order("neighborhood", { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
@@ -157,23 +174,18 @@ export function SiteHeader() {
 function DeliveryAreasModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const { data: areas } = useQuery({
     queryKey: ["delivery-areas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("delivery_rates")
-        .select("*")
-        .order("city", { ascending: true })
-        .order("neighborhood", { ascending: true });
-      
-      if (error) throw error;
-      return data;
-    }
+    enabled: true, // Should already be prefetched
+    staleTime: 1000 * 60 * 60,
   });
 
-  const groupedAreas = areas?.reduce((acc: any, curr) => {
-    if (!acc[curr.city]) acc[curr.city] = [];
-    acc[curr.city].push(curr);
-    return acc;
-  }, {});
+  const groupedAreas = useMemo(() => {
+    if (!areas) return null;
+    return areas.reduce((acc: any, curr) => {
+      if (!acc[curr.city]) acc[curr.city] = [];
+      acc[curr.city].push(curr);
+      return acc;
+    }, {});
+  }, [areas]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
