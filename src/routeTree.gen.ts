@@ -20,6 +20,8 @@ import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
+import { Route as AdminRelatoriosKpiRouteImport } from './routes/admin/relatorios/kpi'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +78,16 @@ const AdminProdutosRoute = AdminProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigTaxasRoute = AdminConfigTaxasRouteImport.update({
+  id: '/config/taxas',
+  path: '/config/taxas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRelatoriosKpiRoute = AdminRelatoriosKpiRouteImport.update({
+  id: '/relatorios/kpi',
+  path: '/relatorios/kpi',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +101,8 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,6 +115,8 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,6 +131,8 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,6 +148,8 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/'
+    | '/admin/config/taxas'
+    | '/admin/relatorios/kpi'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,6 +162,8 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin'
+    | '/admin/config/taxas'
+    | '/admin/relatorios/kpi'
   id:
     | '__root__'
     | '/'
@@ -155,6 +177,8 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/'
+    | '/admin/config/taxas'
+    | '/admin/relatorios/kpi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -244,6 +268,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProdutosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/taxas': {
+      id: '/admin/config/taxas'
+      path: '/config/taxas'
+      fullPath: '/admin/config/taxas'
+      preLoaderRoute: typeof AdminConfigTaxasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/kpi': {
+      id: '/admin/relatorios/kpi'
+      path: '/relatorios/kpi'
+      fullPath: '/admin/relatorios/kpi'
+      preLoaderRoute: typeof AdminRelatoriosKpiRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -254,6 +292,8 @@ interface AdminRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminConfigTaxasRoute: typeof AdminConfigTaxasRoute
+  AdminRelatoriosKpiRoute: typeof AdminRelatoriosKpiRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -263,6 +303,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminConfigTaxasRoute: AdminConfigTaxasRoute,
+  AdminRelatoriosKpiRoute: AdminRelatoriosKpiRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
