@@ -53,6 +53,258 @@ export const Route = createFileRoute("/admin/produtos")({
   component: AdminProductsPage,
 });
 
+function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
+  const [formData, setFormData] = useState<any>(null);
+
+  useMemo(() => {
+    if (product) {
+      setFormData({
+        ...product,
+        preco_formatado: product.preco.toFixed(2).replace('.', ',')
+      });
+    }
+  }, [product]);
+
+  if (!product || !formData) return null;
+
+  const handleSave = () => {
+    const { preco_formatado, categorias, ...rest } = formData;
+    const preco = parseFloat(preco_formatado.replace(',', '.'));
+    onSave({ ...rest, preco });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white rounded-xl">
+        <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">R$ {formData.preco.toFixed(2).replace('.', ',')}</span>
+          </div>
+          <DialogTitle className="hidden">Editar Produto</DialogTitle>
+        </DialogHeader>
+
+        <Tabs defaultValue="detalhes" className="w-full">
+          <TabsList className="w-full justify-start px-6 border-b rounded-none bg-transparent h-12 gap-6">
+            <TabsTrigger value="detalhes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Detalhes</TabsTrigger>
+            <TabsTrigger value="complementos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Complementos</TabsTrigger>
+            <TabsTrigger value="disponibilidade" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Disponibilidade</TabsTrigger>
+            <TabsTrigger value="estoque" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Estoque</TabsTrigger>
+            <TabsTrigger value="destaque" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Destaque</TabsTrigger>
+            <TabsTrigger value="promocao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Promoção</TabsTrigger>
+            <TabsTrigger value="integracao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Integração</TabsTrigger>
+            <TabsTrigger value="contabilidade" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Contabilidade</TabsTrigger>
+          </TabsList>
+
+          <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <TabsContent value="detalhes" className="m-0 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8">
+                <div className="space-y-4">
+                  <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center relative overflow-hidden group">
+                    {formData.imagem_url ? (
+                      <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="text-gray-300" size={48} />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="secondary" size="sm" className="text-xs font-bold uppercase">Trocar Imagem Principal</Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Nome *</label>
+                      <Input 
+                        value={formData.nome} 
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                        className="h-10 border-gray-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                        <Input 
+                          value={formData.preco_formatado} 
+                          onChange={(e) => setFormData({ ...formData, preco_formatado: e.target.value })}
+                          className="h-10 pl-9 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Categoria</label>
+                      <select 
+                        className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20"
+                        value={formData.categoria_id}
+                        onChange={(e) => setFormData({ ...formData, categoria_id: e.target.value })}
+                      >
+                        {categories.map((cat: any) => (
+                          <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <Tabs defaultValue="descricao" className="w-full">
+                    <TabsList className="bg-transparent h-auto p-0 gap-4 border-b rounded-none mb-4">
+                      <TabsTrigger value="descricao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Descrição</TabsTrigger>
+                      <TabsTrigger value="nutricional" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Tabela Nutricional</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="descricao">
+                      <textarea 
+                        className="w-full min-h-[150px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20 resize-none"
+                        value={formData.descricao || ""}
+                        onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                        placeholder="Descreva o produto..."
+                      />
+                    </TabsContent>
+                    <TabsContent value="nutricional">
+                      <textarea 
+                        className="w-full min-h-[150px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20 resize-none"
+                        value={formData.informacao_nutricional || ""}
+                        onChange={(e) => setFormData({ ...formData, informacao_nutricional: e.target.value })}
+                        placeholder="Informações nutricionais..."
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="complementos" className="m-0 py-12 flex flex-col items-center justify-center space-y-4">
+              <p className="text-gray-500 text-sm">Este produto não tem Complementos</p>
+              <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 text-xs font-bold uppercase tracking-wider h-10 px-6 rounded-full">Criar Novo Complemento</Button>
+            </TabsContent>
+
+            <TabsContent value="disponibilidade" className="m-0 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Status</label>
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+                      <button 
+                        onClick={() => setFormData({ ...formData, status: 'pausado' })}
+                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === 'pausado' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      >Pausado</button>
+                      <button 
+                        onClick={() => setFormData({ ...formData, status: 'ativo' })}
+                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === 'ativo' ? 'bg-green-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                      >Ativo</button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Exibir no cardápio</label>
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-gray-400">Não</button>
+                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-green-500 text-white shadow-sm">Sim</button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 max-w-[200px]">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Qtd. máxima por pedido</label>
+                      <Input className="h-10 border-gray-200" placeholder="" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Qtd. mínima por pedido</label>
+                      <Input className="h-10 border-gray-200" placeholder="" />
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="ghost" 
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 p-0 h-auto text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                    onClick={() => {
+                      if (confirm("Tem certeza que deseja excluir este produto?")) {
+                        onDelete(product.id);
+                        onClose();
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Excluir Produto
+                  </Button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Disponibilidade por dia</label>
+                      <Button variant="ghost" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-3 rounded-full">Horários</Button>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => (
+                        <div key={day} className="flex items-center gap-2">
+                          <Checkbox checked id={`day-${day}`} className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]" />
+                          <label htmlFor={`day-${day}`} className="text-xs font-medium text-gray-700">{day}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Disponibilidade por unidade</label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked id="unidade-main" className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]" />
+                      <label htmlFor="unidade-main" className="text-xs font-medium text-gray-700">SaborosaMente Atacado de Refeições e Sopas Congeladas</label>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t flex flex-col gap-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Link de compartilhamento:</label>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] text-gray-400 truncate flex-1">https://prefirodelivery.com/saborosamente/produto/{product.id}</p>
+                      <Button variant="outline" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-4 rounded-full border-none">Copiar Link</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Other tabs placeholder content for visual consistency */}
+            <TabsContent value="estoque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
+              Funcionalidade de Estoque em desenvolvimento
+            </TabsContent>
+            <TabsContent value="destaque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
+              Funcionalidade de Destaque em desenvolvimento
+            </TabsContent>
+            <TabsContent value="promocao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
+              Funcionalidade de Promoção em desenvolvimento
+            </TabsContent>
+            <TabsContent value="integracao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
+              Integração iFood / 99Food
+            </TabsContent>
+            <TabsContent value="contabilidade" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
+              Dados Contábeis
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <DialogFooter className="px-6 py-4 border-t bg-gray-50/50 flex flex-row items-center justify-between sm:justify-between gap-4">
+          <Button variant="outline" onClick={onClose} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider text-gray-500 border-none bg-gray-200/50 hover:bg-gray-200">Cancelar</Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleSave} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider border-[#5850ec] text-[#5850ec] hover:bg-[#5850ec] hover:text-white transition-all flex items-center gap-2">
+              <Check size={16} /> Salvar e Novo
+            </Button>
+            <Button onClick={handleSave} className="rounded-full px-8 h-10 text-xs font-bold uppercase tracking-wider bg-[#5850ec] hover:bg-[#5850ec]/90 text-white shadow-lg flex items-center gap-2">
+              <Check size={16} /> Salvar
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export const Route = createFileRoute("/admin/produtos")({
+  component: AdminProductsPage,
+});
+
 function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit }: any) {
   const {
     attributes,
@@ -398,6 +650,17 @@ function AdminProductsPage() {
           </DndContext>
         </div>
       )}
+      <ProductEditModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingProduct(null);
+        }}
+        product={editingProduct}
+        categories={categories}
+        onSave={(data: any) => updateProduct.mutate(data)}
+        onDelete={(id: string) => deleteProduct.mutate(id)}
+      />
     </div>
   );
 }
