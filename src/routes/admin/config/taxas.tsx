@@ -221,8 +221,8 @@ function AdminConfigTaxasPage() {
                 <Input name="cidade" required placeholder="EX: Rio Negrinho" />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
 
-                <div>
                   <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
                   <Input name="taxa" type="number" step="0.01" required placeholder="5.00" />
                 </div>
