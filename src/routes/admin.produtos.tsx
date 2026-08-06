@@ -361,7 +361,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       <label className="text-sm font-semibold text-gray-700">Destaque na Home</label>
                       <p className="text-xs text-gray-500">Exibir este produto na seção "Mais Pedidos"</p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={!!formData.is_destaque} 
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_destaque: checked })}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between p-4 border rounded-xl">
