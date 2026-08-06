@@ -56,6 +56,8 @@ export const Route = createFileRoute("/admin/produtos")({
 
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useMemo(() => {
     if (product) {
@@ -67,6 +69,36 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   }, [product]);
 
   if (!product || !formData) return null;
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, imagem_url: publicUrl });
+      toast.success("Imagem enviada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro no upload:", error);
+      toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = () => {
     const { preco_formatado, categorias, ...rest } = formData;
