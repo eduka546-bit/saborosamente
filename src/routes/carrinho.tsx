@@ -41,7 +41,7 @@ function Carrinho() {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           <ul className="space-y-4">
-            {lines.map(({ product, quantity, subtotal: lineTotal }) => (
+            {lines.map(({ product, quantity, weight, subtotal: lineTotal }) => (
               <li
                 key={product.id}
                 className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center"
@@ -57,14 +57,14 @@ function Carrinho() {
                 <div className="flex-1">
                   <h2 className="text-sm font-semibold">{product.nome}</h2>
                   <p className="text-xs text-muted-foreground">
-                    {product.peso} • {formatBRL(product.preco)} cada
+                    {weight || product.peso} • {formatBRL(product.preco)} cada
                   </p>
                   <div className="mt-3 flex items-center gap-3">
                     <div className="flex items-center gap-1 rounded-full border border-border">
                       <button
                         type="button"
                         aria-label={`Diminuir quantidade de ${product.nome}`}
-                        onClick={() => setQuantity(product.id, quantity - 1)}
+                        onClick={() => setQuantity(product.id, quantity - 1, weight)}
                         className="grid size-8 place-items-center rounded-full hover:bg-secondary"
                       >
                         <Minus className="size-4" aria-hidden="true" />
@@ -73,7 +73,7 @@ function Carrinho() {
                       <button
                         type="button"
                         aria-label={`Aumentar quantidade de ${product.nome}`}
-                        onClick={() => setQuantity(product.id, quantity + 1)}
+                        onClick={() => setQuantity(product.id, quantity + 1, weight)}
                         className="grid size-8 place-items-center rounded-full hover:bg-secondary"
                       >
                         <Plus className="size-4" aria-hidden="true" />
@@ -81,7 +81,7 @@ function Carrinho() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => remove(product.id)}
+                      onClick={() => remove(product.id, weight)}
                       className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
                     >
                       <Trash2 className="size-3.5" aria-hidden="true" /> Remover
