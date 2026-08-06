@@ -184,7 +184,7 @@ export function SiteHeader() {
       </div>
 
       {/* Hero / Cover Section */}
-      <div className="relative w-full overflow-hidden bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
+      <div className="relative w-full overflow-visible bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
         {settings?.hero_image_url ? (
           <div className="relative w-full">
             <picture className="w-full h-full">
