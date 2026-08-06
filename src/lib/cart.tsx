@@ -21,6 +21,7 @@ export const SHIPPING_FEE = 14.9;
 export interface CartLine {
   productId: string;
   quantity: number;
+  weight?: string;
 }
 
 export interface CartLineDetailed extends CartLine {
@@ -34,9 +35,9 @@ interface CartContextValue {
   subtotal: number;
   shipping: number;
   total: number;
-  add: (productId: string, quantity?: number) => void;
-  setQuantity: (productId: string, quantity: number) => void;
-  remove: (productId: string) => void;
+  add: (productId: string, quantity?: number, weight?: string) => void;
+  setQuantity: (productId: string, quantity: number, weight?: string) => void;
+  remove: (productId: string, weight?: string) => void;
   clear: () => void;
 }
 
@@ -97,28 +98,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cachedProducts.find(p => p.id === id);
   }, []);
 
-  const add = useCallback((productId: string, quantity = 1) => {
+  const add = useCallback((productId: string, quantity = 1, weight?: string) => {
     setLines((prev) => {
-      const existing = prev.find((l) => l.productId === productId);
+      const existing = prev.find((l) => l.productId === productId && l.weight === weight);
       if (existing) {
         return prev.map((l) =>
-          l.productId === productId ? { ...l, quantity: l.quantity + quantity } : l,
+          l.productId === productId && l.weight === weight ? { ...l, quantity: l.quantity + quantity } : l,
         );
       }
-      return [...prev, { productId, quantity }];
+      return [...prev, { productId, quantity, weight }];
     });
   }, []);
 
-  const setQuantity = useCallback((productId: string, quantity: number) => {
+  const setQuantity = useCallback((productId: string, quantity: number, weight?: string) => {
     setLines((prev) =>
       quantity <= 0
-        ? prev.filter((l) => l.productId !== productId)
-        : prev.map((l) => (l.productId === productId ? { ...l, quantity } : l)),
+        ? prev.filter((l) => !(l.productId === productId && l.weight === weight))
+        : prev.map((l) => (l.productId === productId && l.weight === weight ? { ...l, quantity } : l)),
     );
   }, []);
 
-  const remove = useCallback((productId: string) => {
-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+  const remove = useCallback((productId: string, weight?: string) => {
+    setLines((prev) => prev.filter((l) => !(l.productId === productId && l.weight === weight)));
   }, []);
 
   const clear = useCallback(() => setLines([]), []);
