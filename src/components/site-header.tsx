@@ -31,7 +31,7 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   return (
-    <header className="sticky top-0 z-50 shadow-sm transition-all duration-300">
+    <header className="relative z-50 transition-all duration-300">
       {/* Announcement Bar */}
       <div 
         style={{ backgroundColor: announceBg, color: announceText }}
@@ -41,14 +41,13 @@ export function SiteHeader() {
         <button className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100">✕</button>
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation Bar (White in the print) */}
       <div 
         style={{ backgroundColor: navBg }}
-        className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12"
+        className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12 border-b"
       >
-        {/* Logo (Omitido no print, mas mantido para navegação) */}
         <Link to="/" className="flex items-center gap-2">
-           {/* Logo could be here, but using placeholder for layout match */}
+           <span className="font-script text-2xl" style={{ color: navText }}>Saborosamente</span>
         </Link>
 
         {/* Navigation Links */}
@@ -93,25 +92,46 @@ export function SiteHeader() {
         </button>
       </div>
 
-      {/* Hero / Cover Section as requested by user below the menu */}
-      {settings?.hero_image_url && (
-        <div className="relative w-full overflow-hidden">
-          <img 
-            src={settings.hero_image_url} 
-            alt="Site Banner" 
-            className="w-full h-auto object-cover min-h-[200px]"
-          />
-          
-          {/* Centralized PFP/Logo */}
-          {settings.profile_image_url && (
-            <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-10">
-              <div className="size-40 rounded-full border-[6px] border-white bg-white shadow-xl overflow-hidden">
-                <img src={settings.profile_image_url} className="w-full h-full object-cover" alt="Profile" />
+      {/* Hero / Cover Section */}
+      <div className="relative w-full overflow-hidden bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
+        {settings?.hero_image_url ? (
+          <div className="relative aspect-[21/9] w-full">
+            <img 
+              src={settings.hero_image_url} 
+              alt="Site Banner" 
+              className="w-full h-full object-cover opacity-90"
+            />
+            
+            {/* Overlay for features matching the image style */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
+                {/* Left side text from print could be here, but we focus on badges */}
+                <div className="hidden lg:flex items-center gap-12 ml-auto">
+                   {settings.hero_features?.map((feature: any, i: number) => (
+                     <div key={i} className="flex flex-col items-center text-center text-white">
+                        <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">{feature.label}</span>
+                        <span className="text-xl font-black">{feature.value}</span>
+                     </div>
+                   ))}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="py-24 text-center text-white px-6">
+            <h1 className="text-4xl font-black uppercase tracking-tighter">PRÁTICO & SAUDÁVEL & SABOROSO</h1>
+          </div>
+        )}
+        
+        {/* Centralized PFP/Logo that overlaps the next section */}
+        {settings?.profile_image_url && (
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-20">
+            <div className="size-32 md:size-48 rounded-full border-[8px] border-white bg-white shadow-2xl overflow-hidden ring-4 ring-black/5">
+              <img src={settings.profile_image_url} className="w-full h-full object-cover" alt="Profile" />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Mobile Drawer */}
       {open && (
