@@ -9,8 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 const links = [
   { to: "/catalogo", label: "Cardápio", icon: Menu },
   { to: "/admin/config/taxas", label: "Áreas de entrega", icon: MapPin },
-  { to: "#", label: "Cashback", icon: Sparkles },
-  { to: "#", label: "Fale conosco", icon: MessageSquare },
+  { to: "/", label: "Cashback", icon: Sparkles },
+  { to: "/", label: "Fale conosco", icon: MessageSquare },
 ] as const;
 
 export function SiteHeader() {
