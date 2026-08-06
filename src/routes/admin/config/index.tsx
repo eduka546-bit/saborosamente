@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
 
-export const Route = createFileRoute("/admin/config/index")({
+export const Route = createFileRoute("/admin/config/")({
   component: AdminConfigIndex,
 });
 

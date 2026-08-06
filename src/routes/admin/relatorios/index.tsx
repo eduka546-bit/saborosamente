@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BarChart3 } from "lucide-react";
 
-export const Route = createFileRoute("/admin/relatorios/index")({
+export const Route = createFileRoute("/admin/relatorios/")({
   component: AdminRelatoriosIndex,
 });
 

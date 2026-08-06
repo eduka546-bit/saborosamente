@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClipboardList, Users, Utensils, Ticket, CircleDollarSign, BarChart3, Settings } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/admin/pedidos/index")({
+export const Route = createFileRoute("/admin/pedidos/")({
   component: AdminPedidosIndex,
 });
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CircleDollarSign } from "lucide-react";
 
-export const Route = createFileRoute("/admin/financeiro/index")({
+export const Route = createFileRoute("/admin/financeiro/")({
   component: AdminFinanceiroIndex,
 });
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 
-export const Route = createFileRoute("/admin/clientes/index")({
+export const Route = createFileRoute("/admin/clientes/")({
   component: AdminClientesIndex,
 });
 
