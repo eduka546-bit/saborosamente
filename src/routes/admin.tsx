@@ -6,6 +6,7 @@ export const Route = createFileRoute("/admin")({
     // Se for a rota de login, não redirecionamos
     if (location.pathname === "/admin/login") return;
 
+    // getSession() já busca do localStorage se existir, mantendo a persistência automática do Supabase
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     
@@ -15,9 +16,23 @@ export const Route = createFileRoute("/admin")({
       });
     }
 
-    // No preview, se estivermos logados com o email do admin, permitimos
+    // Verificação de permissão admin
+    // No preview, se estivermos logados com o email do admin ou tivermos a role no banco
     if (user.email === "anabolic.foodsbs@gmail.com") {
       return { user, role: "admin" };
+    }
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      throw redirect({
+        to: "/admin/login",
+      });
     }
 
     return { user, role: "admin" };
@@ -34,6 +49,7 @@ function AdminLayout() {
     </div>
   );
 }
+
 
 
 
