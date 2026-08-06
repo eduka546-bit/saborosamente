@@ -67,7 +67,7 @@ export const getCategories = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("categorias")
       .select("*")
-      .order("nome");
+      .order("ordem", { ascending: true });
 
     if (error) throw error;
     return data;
