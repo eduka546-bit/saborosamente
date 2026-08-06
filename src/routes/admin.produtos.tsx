@@ -84,7 +84,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     }
   }, [product, categories]);
 
-  if (!product || !formData) return null;
+  if (!formData) return null;
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -118,6 +118,13 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
   const handleSave = () => {
     const { preco_formatado, preco_promocional_formatado, categorias, ...rest } = formData;
+    
+    // Ensure we have a name and category
+    if (!formData.nome || !formData.categoria_id) {
+      toast.error("Nome e categoria são obrigatórios");
+      return;
+    }
+
     const preco = parseFloat(preco_formatado.replace(',', '.'));
     const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
     
@@ -662,13 +669,17 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
+      console.log('Updating status for product:', id, 'to:', status);
       const { error } = await supabase
         .from("produtos")
         .update({ status })
         .eq("id", id);
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error updating status:', error);
+        throw error;
+      }
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status }: { id: string, status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
       const previousProducts = queryClient.getQueryData(["admin-products"]);
       queryClient.setQueryData(["admin-products"], (old: any) => 
@@ -680,7 +691,7 @@ function AdminProductsPage() {
       if (context?.previousProducts) {
         queryClient.setQueryData(["admin-products"], context.previousProducts);
       }
-      toast.error("Erro ao atualizar status");
+      toast.error("Erro ao atualizar status: " + (err instanceof Error ? err.message : "Tente novamente"));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
@@ -920,9 +931,9 @@ function AdminProductsPage() {
                       setEditingProduct(null);
                       setIsEditModalOpen(true);
                       // Pre-set category for new item
-                      setTimeout(() => {
-                        // This will be handled by useMemo in modal
-                      }, 0);
+                      // The modal handles initial data for new items automatically
+                      // when editingProduct is null
+
                     }}
                     className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
                   >
