@@ -144,31 +144,6 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Marmitas Congeladas" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Nossa Loja em SBS" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
-            <img 
-              src={bannerCarouselAsset.url} 
-              alt="Nossas Entregas" 
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          </div>
-        </div>
-      </section>
 
       <section className="mx-auto max-w-6xl px-4 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
