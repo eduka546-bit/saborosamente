@@ -44,12 +44,18 @@ function AdminProductsPage() {
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Cardápio</h1>
+          <h1 className="text-2xl font-semibold text-[#5850ec]">Cardápio</h1>
         </div>
-        <Button className="bg-[#086e45] hover:bg-[#086e45]/90 flex items-center gap-2 rounded-md px-4 h-10 text-xs font-bold uppercase tracking-wider">
-          <Plus size={18} />
-          Cadastrar novo
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 flex items-center gap-2">
+            <span className="text-lg">↻</span>
+            ORDENAR CATEGORIAS
+          </Button>
+          <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 flex items-center gap-2 rounded-md px-4 h-10 text-xs font-bold uppercase tracking-wider text-white">
+            <Plus size={18} />
+            ADICIONAR CATEGORIA
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
@@ -90,7 +96,7 @@ function AdminProductsPage() {
           {groupedProducts.map(({ category, products }: any) => (
             <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 px-4 md:px-6 py-3 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xs font-bold text-gray-800 uppercase tracking-widest">
+                <h2 className="text-sm font-semibold text-[#5850ec] uppercase tracking-wide">
                   {category.nome}
                 </h2>
                 <div className="flex items-center gap-3">
@@ -160,7 +166,7 @@ function AdminProductsPage() {
               </div>
 
               <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
-                <button className="flex items-center gap-2 text-[10px] font-bold text-teal-500 hover:text-teal-600 transition-colors uppercase tracking-widest">
+                <button className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider">
                   <Plus size={14} strokeWidth={3} />
                   Adicionar novo item
                 </button>
