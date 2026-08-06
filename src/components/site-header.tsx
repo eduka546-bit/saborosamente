@@ -116,7 +116,7 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   return (
-    <header className="relative z-[100] transition-all duration-300">
+    <header className="relative z-[200] transition-all duration-300">
       {/* Announcement Bar */}
       <div 
         style={{ backgroundColor: announceBg, color: announceText }}
