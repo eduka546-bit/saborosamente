@@ -12,7 +12,10 @@ import {
   Type, 
   Plus, 
   Trash2,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Truck,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,6 +143,7 @@ function AdminSiteConfig() {
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
+          <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="header" className="mt-6 space-y-6">
@@ -297,7 +301,57 @@ function AdminSiteConfig() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="info" className="mt-6 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Layout className="text-[#5850ec]" size={20} /> Banners de Informação (Carrossel)
+            </h3>
+            <p className="text-sm text-muted-foreground">Estes são os banners que aparecem logo abaixo do topo na página inicial.</p>
+            
+            <div className="grid gap-6">
+              <div className="p-4 border rounded-xl space-y-3 bg-gray-50">
+                <div className="flex items-center gap-2 text-[#086e45] font-bold">
+                  <MapPin size={18} /> Taxa de Entrega
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto de Destaque</Label>
+                  <Input value="A partir de R$ 8,90" disabled className="bg-white" />
+                  <p className="text-[10px] text-muted-foreground italic">* Editável via Banco de Dados no momento</p>
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-xl space-y-3 bg-gray-50">
+                <div className="flex items-center gap-2 text-[#086e45] font-bold">
+                  <Truck size={18} /> Formas de Entrega
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto de Destaque</Label>
+                  <Input value="Delivery ou Retirada" disabled className="bg-white" />
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-xl space-y-3 bg-gray-50">
+                <div className="flex items-center gap-2 text-[#086e45] font-bold">
+                  <Calendar size={18} /> Funcionamento
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto de Destaque</Label>
+                  <Input value="Encomendas podem ser feitas em tempo integral!" disabled className="bg-white" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
+              <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+              <p className="text-xs text-amber-700 leading-relaxed">
+                <strong>Dica:</strong> No momento, os textos destes banners são baseados nas políticas globais da loja. Você pode ver como eles aparecem na página inicial.
+              </p>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
+
   );
 }
