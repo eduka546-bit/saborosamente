@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
@@ -67,6 +68,20 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
+  const { role } = Route.useRouteContext();
+  
+  if (role !== "admin") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-red-600">Acesso Restrito</h1>
+          <p className="text-gray-600">Você não tem permissão para acessar esta área.</p>
+          <a href="/admin/login" className="text-primary hover:underline font-medium">Voltar para o login</a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 overflow-x-hidden">
