@@ -7,7 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getProduct, type Product } from "@/lib/products";
+import { formatBRL, type Product } from "@/lib/products";
+import { getPublicProducts } from "./products.functions";
+import { useQuery } from "@tanstack/react-query";
+
+// Variável global para cache de produtos no lado do cliente
+let cachedProducts: any[] = [];
 
 const STORAGE_KEY = "saborosamente.cart.v1";
 export const FREE_SHIPPING_FROM = 120;
@@ -39,7 +44,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 function readStorage(): CartLine[] {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -51,7 +56,7 @@ function readStorage(): CartLine[] {
           typeof (l as CartLine).productId === "string" &&
           typeof (l as CartLine).quantity === "number",
       )
-      .filter((l) => l.quantity > 0 && Boolean(getProduct(l.productId)));
+      .filter((l) => l.quantity > 0);
   } catch {
     return [];
   }
@@ -59,22 +64,40 @@ function readStorage(): CartLine[] {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
+  
+  const { data: serverProducts = [] } = useQuery({
+    queryKey: ["public-products-cart"],
+    queryFn: () => getPublicProducts(),
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
 
-  // Hidratação apenas no cliente: evita divergência entre SSR e browser.
+  useEffect(() => {
+    if (serverProducts.length > 0) {
+      cachedProducts = serverProducts.map(p => ({
+        ...p,
+        categoria: p.categorias?.nome || "Marmita",
+        imagem: p.imagem_url
+      }));
+    }
+  }, [serverProducts]);
+
   useEffect(() => {
     setLines(readStorage());
   }, []);
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
-    } catch {
-      /* storage indisponível (modo privado): carrinho segue em memória */
-    }
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+      }
+    } catch {}
   }, [lines]);
 
+  const findProduct = useCallback((id: string) => {
+    return cachedProducts.find(p => p.id === id);
+  }, []);
+
   const add = useCallback((productId: string, quantity = 1) => {
-    if (!getProduct(productId) || quantity <= 0) return;
     setLines((prev) => {
       const existing = prev.find((l) => l.productId === productId);
       if (existing) {
@@ -102,7 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
-      const product = getProduct(line.productId);
+      const product = cachedProducts.find(p => p.id === line.productId);
       if (!product) return [];
       return [{ ...line, product, subtotal: product.preco * line.quantity }];
     });
@@ -119,7 +142,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove,
       clear,
     };
-  }, [lines, add, setQuantity, remove, clear]);
+  }, [lines, serverProducts, add, setQuantity, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

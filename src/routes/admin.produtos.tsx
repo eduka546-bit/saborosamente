@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, Filter } from "lucide-react";
-import { products, formatBRL } from "@/lib/products";
+import { Plus, Search, Edit2, Trash2, Filter, Loader2 } from "lucide-react";
+import { formatBRL } from "@/lib/products";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminProducts } from "@/lib/products.functions";
 
 export const Route = createFileRoute("/admin/produtos")({
   component: AdminProductsPage,
@@ -12,9 +15,14 @@ export const Route = createFileRoute("/admin/produtos")({
 function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredProducts = products.filter((p) =>
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["admin-products"],
+    queryFn: () => getAdminProducts(),
+  });
+
+  const filteredProducts = products.filter((p: any) =>
     p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.categorias?.nome || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -66,12 +74,21 @@ function AdminProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filteredProducts.map((product) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="animate-spin text-primary" size={24} />
+                    <span className="text-muted-foreground">Carregando produtos...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredProducts.map((product: any) => (
               <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <img 
-                      src={product.imagem} 
+                      src={product.imagem_url} 
                       alt={product.nome} 
                       className="w-10 h-10 rounded-md object-cover bg-gray-100"
                     />
@@ -85,18 +102,21 @@ function AdminProductsPage() {
                 </td>
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-primary">
-                    {product.categoria}
+                    {product.categorias?.nome || "Sem categoria"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center text-sm text-muted-foreground">
-                  {product.peso}
+                  {product.peso || "-"}
                 </td>
                 <td className="px-6 py-4 text-right font-semibold text-foreground">
                   {formatBRL(product.preco)}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
-                    Ativo
+                  <span className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                    product.status === "ativo" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                  )}>
+                    {product.status || "Ativo"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -111,7 +131,7 @@ function AdminProductsPage() {
                 </td>
               </tr>
             ))}
-            {filteredProducts.length === 0 && (
+            {!isLoading && filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                   Nenhum produto encontrado para sua busca.
