@@ -11,10 +11,21 @@ export const getAdminProducts = createServerFn({ method: "GET" })
           nome
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("nome", { ascending: true });
 
     if (error) throw error;
-    return data;
+    
+    // Sort logic to handle TD01, TD02, etc. properly
+    return data.sort((a, b) => {
+      const matchA = a.nome.match(/TD(\d+)/);
+      const matchB = b.nome.match(/TD(\d+)/);
+      
+      if (matchA && matchB) {
+        return parseInt(matchA[1]) - parseInt(matchB[1]);
+      }
+      
+      return a.nome.localeCompare(b.nome);
+    });
   });
 
 export const getPublicProducts = createServerFn({ method: "GET" })
@@ -28,10 +39,20 @@ export const getPublicProducts = createServerFn({ method: "GET" })
         )
       `)
       .eq("status", "ativo")
-      .order("created_at", { ascending: false });
+      .order("nome", { ascending: true });
 
     if (error) throw error;
-    return data;
+
+    return data.sort((a, b) => {
+      const matchA = a.nome.match(/TD(\d+)/);
+      const matchB = b.nome.match(/TD(\d+)/);
+      
+      if (matchA && matchB) {
+        return parseInt(matchA[1]) - parseInt(matchB[1]);
+      }
+      
+      return a.nome.localeCompare(b.nome);
+    });
   });
 
 export const getCategories = createServerFn({ method: "GET" })
