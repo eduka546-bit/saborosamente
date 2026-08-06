@@ -123,6 +123,7 @@ function AdminConfigTaxasPage() {
                   <thead className="bg-gray-50 text-gray-400 font-bold uppercase text-[10px] tracking-widest border-b">
                     <tr>
                       <th className="px-6 py-4">Bairro / Região</th>
+                      <th className="px-6 py-4">Cidade</th>
                       <th className="px-6 py-4">Taxa (R$)</th>
                       <th className="px-6 py-4">Tempo Est.</th>
                       <th className="px-6 py-4 text-right">Ações</th>
@@ -132,6 +133,7 @@ function AdminConfigTaxasPage() {
                     {locais.map((local) => (
                       <tr key={local.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-gray-900">{local.bairro}</td>
+                        <td className="px-6 py-4 text-gray-500">{local.cidade || "N/A"}</td>
                         <td className="px-6 py-4 text-green-600 font-bold">R$ {local.taxa.toFixed(2)}</td>
                         <td className="px-6 py-4 text-gray-500 flex items-center gap-1">
                           <Clock size={14} /> {local.tempo}
@@ -150,6 +152,7 @@ function AdminConfigTaxasPage() {
                     ))}
                   </tbody>
                 </table>
+
               </div>
             </CardContent>
           </Card>
