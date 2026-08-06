@@ -10,19 +10,23 @@ export const getAdminProducts = createServerFn({ method: "GET" })
         categorias (
           nome
         )
-      `)
-      .order("nome", { ascending: true });
+      `);
 
     if (error) throw error;
     
-    // Sort logic to handle TD01, TD02, etc. properly
-    return data.sort((a, b) => {
-      const matchA = a.nome.match(/TD(\d+)/);
-      const matchB = b.nome.match(/TD(\d+)/);
+    // Custom sort to handle TD01, TD02... TD28 correctly
+    return [...(data || [])].sort((a, b) => {
+      const regex = /TD(\d+)/i;
+      const matchA = a.nome.match(regex);
+      const matchB = b.nome.match(regex);
       
       if (matchA && matchB) {
         return parseInt(matchA[1]) - parseInt(matchB[1]);
       }
+      
+      // If only one has TD, TD comes first
+      if (matchA) return -1;
+      if (matchB) return 1;
       
       return a.nome.localeCompare(b.nome);
     });
@@ -38,18 +42,21 @@ export const getPublicProducts = createServerFn({ method: "GET" })
           nome
         )
       `)
-      .eq("status", "ativo")
-      .order("nome", { ascending: true });
+      .eq("status", "ativo");
 
     if (error) throw error;
 
-    return data.sort((a, b) => {
-      const matchA = a.nome.match(/TD(\d+)/);
-      const matchB = b.nome.match(/TD(\d+)/);
+    return [...(data || [])].sort((a, b) => {
+      const regex = /TD(\d+)/i;
+      const matchA = a.nome.match(regex);
+      const matchB = b.nome.match(regex);
       
       if (matchA && matchB) {
         return parseInt(matchA[1]) - parseInt(matchB[1]);
       }
+      
+      if (matchA) return -1;
+      if (matchB) return 1;
       
       return a.nome.localeCompare(b.nome);
     });
