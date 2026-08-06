@@ -317,20 +317,129 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             </TabsContent>
 
             {/* Other tabs placeholder content for visual consistency */}
-            <TabsContent value="estoque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Estoque em desenvolvimento
+            <TabsContent value="estoque" className="m-0 space-y-6">
+              <div className="bg-blue-50/50 p-4 rounded-lg flex items-start gap-3">
+                <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-blue-900">Gerenciamento de Estoque</p>
+                  <p className="text-xs text-blue-700">Ative o controle de estoque para este produto. Quando o saldo chegar a zero, o produto será pausado automaticamente.</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-w-md">
+                <div className="flex items-center justify-between p-4 border rounded-xl">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-semibold text-gray-700">Ativar Controle de Estoque</label>
+                    <p className="text-xs text-gray-500">Deduzir do saldo a cada venda</p>
+                  </div>
+                  <Switch 
+                    checked={formData.controle_estoque} 
+                    onCheckedChange={(checked) => setFormData({ ...formData, controle_estoque: checked })}
+                  />
+                </div>
+
+                {formData.controle_estoque && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Quantidade em Estoque</label>
+                      <Input 
+                        type="number"
+                        value={formData.estoque_atual || 0}
+                        onChange={(e) => setFormData({ ...formData, estoque_atual: parseInt(e.target.value) })}
+                        className="h-10 border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Aviso de Estoque Baixo</label>
+                      <Input 
+                        type="number"
+                        value={formData.estoque_minimo || 5}
+                        onChange={(e) => setFormData({ ...formData, estoque_minimo: parseInt(e.target.value) })}
+                        className="h-10 border-gray-200"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </TabsContent>
-            <TabsContent value="destaque" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Destaque em desenvolvimento
+
+            <TabsContent value="promocao" className="m-0 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor Promocional (Opcional)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                      <Input 
+                        placeholder="0,00"
+                        value={formData.preco_promocional_formatado || ""}
+                        onChange={(e) => setFormData({ ...formData, preco_promocional_formatado: e.target.value })}
+                        className="h-10 pl-9 border-gray-200"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400">Se preenchido, este valor substituirá o valor original com uma tag de oferta.</p>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-semibold text-gray-700">Frete Grátis</label>
+                        <p className="text-xs text-gray-500">Aplicar frete grátis apenas para este produto</p>
+                      </div>
+                      <Switch />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-semibold text-gray-700">Bloquear Cupom</label>
+                        <p className="text-xs text-gray-500">Não permitir uso de cupons neste item</p>
+                      </div>
+                      <Switch />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <Tag size={20} />
+                    <span className="text-sm font-bold uppercase tracking-wider">Agendar Promoção</span>
+                  </div>
+                  <p className="text-xs text-orange-800/70">Defina um período específico para que esta promoção fique ativa automaticamente no site.</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Início</label>
+                      <Input type="date" className="h-9 border-orange-200 bg-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Término</label>
+                      <Input type="date" className="h-9 border-orange-200 bg-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
-            <TabsContent value="promocao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Funcionalidade de Promoção em desenvolvimento
+
+            <TabsContent value="integracao" className="m-0 space-y-6">
+              <div className="max-w-md space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Código PDV / Integração</label>
+                  <Input placeholder="Ex: IFD-123" className="h-10 border-gray-200" />
+                  <p className="text-[10px] text-gray-400">Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.</p>
+                </div>
+              </div>
             </TabsContent>
-            <TabsContent value="integracao" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Integração iFood / 99Food
-            </TabsContent>
-            <TabsContent value="contabilidade" className="m-0 py-12 text-center text-gray-400 text-xs uppercase tracking-widest">
-              Dados Contábeis
+
+            <TabsContent value="contabilidade" className="m-0 space-y-6">
+              <div className="max-w-md space-y-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Preço de Custo</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                    <Input placeholder="0,00" className="h-10 pl-9 border-gray-200" />
+                  </div>
+                  <p className="text-[10px] text-gray-400">Este valor não é exibido para o cliente. Usado apenas para relatórios de lucratividade.</p>
+                </div>
+              </div>
             </TabsContent>
           </div>
         </Tabs>
