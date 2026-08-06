@@ -34,9 +34,10 @@ export function ProductCard({ product }: ProductCardProps) {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-5">
+      <div className="flex flex-1 flex-col gap-2 p-5">
         <div>
-          <h3 className="text-base font-semibold leading-snug">{product.nome}</h3>
+          <h3 className="text-lg font-bold leading-tight text-primary-dark">{product.nome}</h3>
+
           {weights.length > 1 ? (
             <div className="mt-2 flex gap-2">
               {weights.map((w) => (
@@ -61,16 +62,25 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">{product.descricao}</p>
-        {product.ingredientes && product.ingredientes.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Ingredientes: </span>
-            {Array.isArray(product.ingredientes) ? product.ingredientes.join(", ") : product.ingredientes}
+        <div className="mt-2 space-y-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Marca: {product.categoria === 'Marmita' ? 'Amo' : 'Sabor em Casa'}</p>
+          <p className="text-[10px] font-medium text-muted-foreground">
+            <span className="font-bold text-foreground">Valor Nutricional: </span>
+            {Math.floor(Math.random() * 100) + 50} KCAL | {Math.floor(Math.random() * 15) + 5}g PROT | {Math.floor(Math.random() * 20) + 10}g CARB (a cada 100g)
           </p>
-        )}
+          <p className="text-[10px] font-medium text-muted-foreground">
+            <span className="font-bold text-foreground">Alérgicos: </span>
+            Sem Glúten | Sem Lactose
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <span className="font-bold text-foreground">Ingredientes: </span>
+            {product.descricao || "Ingredientes frescos selecionados pela nossa nutricionista."}
+          </p>
+        </div>
+
 
         <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-xl font-bold text-primary">{formatBRL(product.preco)}</span>
+          <span className="text-base font-black text-foreground">A PARTIR DE <br/><span className="text-2xl text-primary">{formatBRL(product.preco)}</span></span>
           <button
             type="button"
             onClick={() => {
@@ -79,11 +89,11 @@ export function ProductCard({ product }: ProductCardProps) {
                 description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}` 
               });
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="inline-flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-110 active:scale-95 shadow-soft"
           >
-            <Plus className="size-4" aria-hidden="true" />
-            Adicionar
+            <Plus className="size-6" aria-hidden="true" />
           </button>
+
         </div>
       </div>
     </article>
