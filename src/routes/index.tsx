@@ -60,10 +60,10 @@ function Index() {
 
   return (
     <>
-      {/* Seção Hero removida daqui, movida para o Header conforme solicitado pelo layout unificado */}
-      <section className="pt-24 pb-12">
+      <section className="pt-24 sm:pt-32 pb-12">
         {/* Espaçamento para o PFP centralizado que invade esta seção */}
       </section>
+
 
 
       <section className="mx-auto max-w-6xl px-4 py-12">
