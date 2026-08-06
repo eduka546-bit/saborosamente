@@ -180,7 +180,7 @@ function DeliveryAreasModal({ open, onOpenChange }: { open: boolean, onOpenChang
 
   const groupedAreas = useMemo(() => {
     if (!areas) return null;
-    return areas.reduce((acc: any, curr) => {
+    return (areas as any[]).reduce((acc: any, curr: any) => {
       if (!acc[curr.city]) acc[curr.city] = [];
       acc[curr.city].push(curr);
       return acc;
