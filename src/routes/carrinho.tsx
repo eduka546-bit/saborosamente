@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { FREE_SHIPPING_FROM, useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
+import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/carrinho")({
   head: () => ({
@@ -19,7 +21,19 @@ export const Route = createFileRoute("/carrinho")({
 });
 
 function Carrinho() {
-  const { lines, subtotal, shipping, total, setQuantity, remove, clear } = useCart();
+  const {
+    lines,
+    subtotal,
+    shipping,
+    total,
+    count,
+    selectedCity,
+    setSelectedCity,
+    setQuantity,
+    remove,
+    clear,
+  } = useCart();
+
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-14">
@@ -104,7 +118,29 @@ function Carrinho() {
 
           <aside className="h-fit rounded-3xl border border-border bg-card p-6 shadow-soft">
             <h2 className="text-lg font-semibold">Resumo do pedido</h2>
+
+            <div className="mt-4 space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase">
+                Cidade para entrega
+              </label>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">Selecione a cidade...</option>
+                <option value="São Bento do Sul">São Bento do Sul</option>
+                <option value="Rio Negrinho">Rio Negrinho</option>
+                <option value="Campo Alegre">Campo Alegre</option>
+                <option value="Corupá">Corupá</option>
+                <option value="Piên">Piên</option>
+                <option value="Rio Negro">Rio Negro</option>
+                <option value="Mafra">Mafra</option>
+              </select>
+            </div>
+
             <dl className="mt-5 space-y-3 text-sm">
+
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
                 <dd className="font-medium">{formatBRL(subtotal)}</dd>
@@ -120,17 +156,33 @@ function Carrinho() {
                 <dd className="font-bold text-primary">{formatBRL(total)}</dd>
               </div>
             </dl>
-            {shipping > 0 && (
-              <p className="mt-4 rounded-2xl bg-secondary p-3 text-xs text-secondary-foreground">
-                Faltam {formatBRL(FREE_SHIPPING_FROM - subtotal)} para frete grátis.
-              </p>
-            )}
+            {selectedCity.toLowerCase().includes("são bento do sul") &&
+              shipping !== 0 &&
+              (subtotal < 70 && count < 5) && (
+                <p className="mt-4 rounded-2xl bg-secondary p-3 text-xs text-secondary-foreground">
+                  Dica: Pedidos acima de R$ 70 ou 5 itens baixam o frete para R$ 5,00 em SBS!
+                </p>
+              )}
+
+            {!selectedCity.toLowerCase().includes("são bento do sul") &&
+              selectedCity !== "" &&
+              (subtotal < 70 && count < 5) && (
+                <div className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                  Pedido mínimo de R$ 70,00 ou 5 unidades para esta cidade.
+                </div>
+              )}
+
             <Link
               to="/checkout"
-              className="mt-6 flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark"
+              disabled={selectedCity !== "" && !selectedCity.toLowerCase().includes("são bento do sul") && subtotal < 70 && count < 5}
+              className={cn(
+                "mt-6 flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark",
+                selectedCity !== "" && !selectedCity.toLowerCase().includes("são bento do sul") && subtotal < 70 && count < 5 && "opacity-50 pointer-events-none"
+              )}
             >
               Finalizar pedido
             </Link>
+
           </aside>
         </div>
       )}

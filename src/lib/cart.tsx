@@ -18,6 +18,12 @@ const STORAGE_KEY = "saborosamente.cart.v1";
 export const FREE_SHIPPING_FROM = 120;
 export const SHIPPING_FEE = 14.9;
 
+export const RULES = {
+  MIN_ORDER_AMOUNT: 70,
+  MIN_ORDER_QUANTITY: 5,
+  SBS_DISCOUNTED_SHIPPING: 5,
+};
+
 export interface CartLine {
   productId: string;
   quantity: number;
@@ -35,11 +41,16 @@ interface CartContextValue {
   subtotal: number;
   shipping: number;
   total: number;
+  selectedCity: string;
+  selectedBairro: string;
+  setSelectedCity: (city: string) => void;
+  setSelectedBairro: (bairro: string) => void;
   add: (productId: string, quantity?: number, weight?: string) => void;
   setQuantity: (productId: string, quantity: number, weight?: string) => void;
   remove: (productId: string, weight?: string) => void;
   clear: () => void;
 }
+
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -65,6 +76,9 @@ function readStorage(): CartLine[] {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedBairro, setSelectedBairro] = useState<string>("");
+
   
   const { data: serverProducts = [] } = useQuery({
     queryKey: ["public-products-cart"],
@@ -126,24 +140,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
-      const product = cachedProducts.find(p => p.id === line.productId);
+      const product = cachedProducts.find((p) => p.id === line.productId);
       if (!product) return [];
       return [{ ...line, product, subtotal: product.preco * line.quantity }];
     });
+
     const subtotal = detailed.reduce((acc, l) => acc + l.subtotal, 0);
-    const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
+    const count = detailed.reduce((acc, l) => acc + l.quantity, 0);
+
+    // Lógica de Frete e Regras de Negócio
+    let shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE;
+
+    // Se tiver cidade selecionada, podemos aplicar regras específicas
+    if (selectedCity) {
+      const isSBS = selectedCity.toLowerCase().includes("são bento do sul");
+      const meetsMinRules = subtotal >= RULES.MIN_ORDER_AMOUNT || count >= RULES.MIN_ORDER_QUANTITY;
+
+      if (isSBS && meetsMinRules) {
+        shipping = RULES.SBS_DISCOUNTED_SHIPPING;
+      }
+    }
+
     return {
       lines: detailed,
-      count: detailed.reduce((acc, l) => acc + l.quantity, 0),
+      count,
       subtotal,
       shipping,
       total: subtotal + shipping,
+      selectedCity,
+      selectedBairro,
+      setSelectedCity,
+      setSelectedBairro,
       add,
       setQuantity,
       remove,
       clear,
     };
-  }, [lines, serverProducts, add, setQuantity, remove, clear]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, add, setQuantity, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
