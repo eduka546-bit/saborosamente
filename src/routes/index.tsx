@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Loader2, Truck, MapPin, Calendar } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
@@ -47,6 +47,8 @@ const infoCards = [
 ];
 
 function Index() {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = (window as any).useState?.("") || ["", () => {}]; // Fallback for safety, but using local state
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-featured"],
     queryFn: () => getPublicProducts(),
@@ -59,11 +61,11 @@ function Index() {
   return (
     <>
       {/* Hero Info & Banners Section */}
-      <section className="mx-auto max-w-7xl px-4 mt-8 md:mt-12 relative z-30 pb-12">
+      <section className="mx-auto max-w-5xl px-4 mt-8 md:mt-12 relative z-30 pb-12">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex-1 w-full space-y-6">
             {/* Info Card & Search */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
               <div className="flex-1 flex w-full">
                 {infoCards.map((card, i) => (
                   <div key={i} className="flex-1 p-4 md:p-6 flex flex-col justify-center border-r border-gray-50 last:border-r-0">
@@ -79,13 +81,28 @@ function Index() {
               </div>
               
               <div className="px-6 py-4 md:py-0 flex items-center border-t md:border-t-0 md:border-l border-gray-50 w-full md:w-auto min-h-[60px]">
-                 <div className="flex items-center gap-3 text-gray-300 w-full md:w-48 justify-end">
-                   <span className="text-[11px] font-medium">Pesquisar...</span>
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
-                     <circle cx="11" cy="11" r="8"></circle>
-                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                   </svg>
-                 </div>
+                 <form 
+                   onSubmit={(e) => {
+                     e.preventDefault();
+                     const formData = new FormData(e.currentTarget);
+                     const q = formData.get("q") as string;
+                     if (q) navigate({ to: "/catalogo", search: { q } });
+                   }}
+                   className="flex items-center gap-3 text-gray-400 w-full md:w-48 justify-end group"
+                 >
+                   <input 
+                     name="q"
+                     type="text" 
+                     placeholder="Pesquisar..." 
+                     className="bg-transparent border-none outline-none text-[11px] font-medium w-full text-right placeholder:text-gray-300 focus:placeholder:text-gray-200"
+                   />
+                   <button type="submit" className="hover:scale-110 transition-transform">
+                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-focus-within:opacity-80">
+                       <circle cx="11" cy="11" r="8"></circle>
+                       <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                     </svg>
+                   </button>
+                 </form>
               </div>
             </div>
 
