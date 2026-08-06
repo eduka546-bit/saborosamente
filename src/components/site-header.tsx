@@ -47,7 +47,7 @@ export function SiteHeader() {
         className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12 border-b"
       >
         <Link to="/" className="flex items-center gap-2">
-           <span className="font-script text-2xl" style={{ color: navText }}>Saborosamente</span>
+           {/* Removido o texto "Saborosamente" conforme solicitado */}
         </Link>
 
         {/* Navigation Links */}
