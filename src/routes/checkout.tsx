@@ -29,7 +29,8 @@ const checkoutSchema = z.object({
   nome: z.string().trim().min(3, "Informe seu nome completo").max(80),
   email: z.string().trim().email("E-mail inválido").max(120),
   telefone: z.string().trim().min(10, "Telefone com DDD").max(20),
-  cep: z.string().trim().regex(/^\d{5}-?\d{3}$/, "CEP no formato 00000-000"),
+  cep: z.string().trim().optional(),
+
   endereco: z.string().trim().min(5, "Informe rua e número").max(160),
   complemento: z.string().trim().max(80).optional(),
   cidade: z.string().trim().min(2, "Informe a cidade").max(80),
@@ -49,7 +50,19 @@ const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 function Checkout() {
-  const { lines, subtotal, shipping, total, clear, selectedCity, setSelectedCity } = useCart();
+  const { 
+    lines, 
+    subtotal, 
+    shipping, 
+    total, 
+    clear, 
+    selectedCity, 
+    setSelectedCity,
+    selectedBairro,
+    setSelectedBairro,
+    taxas
+  } = useCart();
+
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | null>(null);
 
@@ -168,24 +181,63 @@ function Checkout() {
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Entrega
             </legend>
+            <div className="grid gap-4 sm:grid-cols-1">
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="cidade" className="text-sm font-medium">
+                    Cidade
+                  </label>
+                  <select
+                    id="cidade"
+                    className={fieldClass}
+                    {...register("cidade")}
+                    onChange={(e) => {
+                      setSelectedCity(e.target.value);
+                      setSelectedBairro("");
+                    }}
+                  >
+                    <option value="">Selecione...</option>
+                    {[...new Set(taxas.map(t => t.cidade))].sort().map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                  {errors.cidade && (
+                    <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
+                <label htmlFor="bairro" className="text-sm font-medium">
+                  Bairro
+                </label>
+                <select
+                  id="bairro"
+                  className={cn(fieldClass, !selectedCity && "opacity-50")}
+                  disabled={!selectedCity}
+                  value={selectedBairro}
+                  onChange={(e) => setSelectedBairro(e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {taxas
+                    .filter(t => t.cidade === selectedCity)
+                    .sort((a, b) => a.bairro.localeCompare(b.bairro))
+                    .map(t => (
+                      <option key={t.id} value={t.bairro}>{t.bairro}</option>
+                    ))}
+                </select>
+              </div>
+              <div>
                 <label htmlFor="cep" className="text-sm font-medium">
-                  CEP
+                  CEP (opcional)
                 </label>
                 <input id="cep" placeholder="00000-000" className={fieldClass} {...register("cep")} />
                 {errors.cep && <p className="mt-1 text-xs text-destructive">{errors.cep.message}</p>}
               </div>
-              <div>
-                <label htmlFor="cidade" className="text-sm font-medium">
-                  Cidade
-                </label>
-                <input id="cidade" className={fieldClass} {...register("cidade")} />
-                {errors.cidade && (
-                  <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
-                )}
-              </div>
             </div>
+
             <div>
               <label htmlFor="endereco" className="text-sm font-medium">
                 Endereço e número
