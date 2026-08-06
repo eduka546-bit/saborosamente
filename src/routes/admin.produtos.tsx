@@ -63,10 +63,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     if (product) {
       setFormData({
         ...product,
-        preco_formatado: product.preco.toFixed(2).replace('.', ',')
+        preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
+        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || ""
+      });
+    } else {
+      // Default data for new product
+      setFormData({
+        nome: "",
+        preco: 0,
+        preco_formatado: "0,00",
+        categoria_id: categories[0]?.id || "",
+        status: 'ativo',
+        imagem_url: "",
+        descricao: "",
+        informacao_nutricional: "",
+        controle_estoque: false,
+        estoque_atual: 0,
+        estoque_minimo: 5
       });
     }
-  }, [product]);
+  }, [product, categories]);
 
   if (!product || !formData) return null;
 
