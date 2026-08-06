@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import bannerDesktopAsset from "@/assets/banner-desktop.jpg.asset.json";
+import bannerMobileAsset from "@/assets/banner-mobile.jpg.asset.json";
 import {
   Dialog,
   DialogContent,
@@ -184,12 +186,15 @@ export function SiteHeader() {
       {/* Hero / Cover Section */}
       <div className="relative w-full overflow-hidden bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
         {settings?.hero_image_url ? (
-          <div className="relative aspect-[21/9] w-full">
-            <img 
-              src={settings.hero_image_url} 
-              alt="Site Banner" 
-              className="w-full h-full object-cover opacity-90"
-            />
+          <div className="relative w-full">
+            <picture className="w-full h-full">
+              <source media="(max-width: 768px)" srcSet={bannerMobileAsset.url} />
+              <img 
+                src={bannerDesktopAsset.url} 
+                alt="Site Banner" 
+                className="w-full h-full object-cover opacity-90"
+              />
+            </picture>
             
             {/* Overlay for features matching the image style */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
