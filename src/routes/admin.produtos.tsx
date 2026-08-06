@@ -505,10 +505,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
           <Button variant="outline" onClick={onClose} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider text-gray-500 border-none bg-gray-200/50 hover:bg-gray-200">Cancelar</Button>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={handleSave} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider border-[#5850ec] text-[#5850ec] hover:bg-[#5850ec] hover:text-white transition-all flex items-center gap-2">
-              <Check size={16} /> Salvar e Novo
+              <Check size={16} /> Salvar {product ? 'e Fechar' : 'e Criar'}
             </Button>
             <Button onClick={handleSave} className="rounded-full px-8 h-10 text-xs font-bold uppercase tracking-wider bg-[#5850ec] hover:bg-[#5850ec]/90 text-white shadow-lg flex items-center gap-2">
-              <Check size={16} /> Salvar
+              <Check size={16} /> {product ? 'Salvar Alterações' : 'Adicionar Produto'}
             </Button>
           </div>
         </DialogFooter>
