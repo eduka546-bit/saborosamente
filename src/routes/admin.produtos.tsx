@@ -672,7 +672,8 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      const dbStatus = status === 'pausado' ? 'pausado' : 'ativo'; // Try lowercase again first, but with select to see why it fails
+      // Try lowercase first, if it fails we check the error
+      const dbStatus = (status || 'ativo').toLowerCase();
       console.log('Solicitando atualização de status:', id, '->', dbStatus);
       
       const { data, error } = await supabase
@@ -680,6 +681,20 @@ function AdminProductsPage() {
         .update({ status: dbStatus })
         .eq("id", id)
         .select();
+
+      if (error && error.code === '23514') {
+        // If lowercase fails, try capitalized as a fallback
+        const altStatus = dbStatus.charAt(0).toUpperCase() + dbStatus.slice(1);
+        console.log('Tentando fallback para capitalizado:', altStatus);
+        const { data: retryData, error: retryError } = await supabase
+          .from("produtos")
+          .update({ status: altStatus })
+          .eq("id", id)
+          .select();
+        
+        if (retryError) throw retryError;
+        return retryData[0];
+      }
 
       if (error) {
         console.error('Erro Supabase (UpdateStatus):', error);
