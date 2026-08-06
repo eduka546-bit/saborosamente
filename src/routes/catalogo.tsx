@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { z } from "zod";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/product-card";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,11 @@ import { getPublicProducts, getCategories } from "@/lib/products.functions";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/catalogo")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return z.object({
+      q: z.string().optional().catch(""),
+    }).parse(search);
+  },
   head: () => ({
     meta: [
       { title: "Catálogo de Marmitas Congeladas | Saborosamente" },
@@ -27,6 +33,7 @@ export const Route = createFileRoute("/catalogo")({
 });
 
 function Catalogo() {
+  const { q } = Route.useSearch();
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
@@ -40,9 +47,23 @@ function Catalogo() {
   });
 
   const visible = useMemo(() => {
-    if (selectedCategory === "Todas") return products;
-    return products.filter((p: any) => p.categorias?.nome === selectedCategory);
-  }, [selectedCategory, products]);
+    let filtered = products;
+    
+    if (selectedCategory !== "Todas") {
+      filtered = filtered.filter((p: any) => p.categorias?.nome === selectedCategory);
+    }
+    
+    if (q) {
+      const search = q.toLowerCase();
+      filtered = filtered.filter((p: any) => 
+        p.nome?.toLowerCase().includes(search) || 
+        p.descricao?.toLowerCase().includes(search) ||
+        p.categorias?.nome?.toLowerCase().includes(search)
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, products, q]);
 
   const categoryList = ["Todas", ...categories.map((c: any) => c.nome)];
 
@@ -50,7 +71,11 @@ function Catalogo() {
     <section className="mx-auto max-w-6xl px-4 py-14">
       <h1 className="text-4xl font-extrabold md:text-5xl">Nosso catálogo</h1>
       <p className="mt-3 max-w-xl text-muted-foreground">
-        Todas as marmitas são preparadas na semana, porcionadas e congeladas individualmente.
+        {q ? (
+          <span>Mostrando resultados para: <strong className="text-primary">"{q}"</strong></span>
+        ) : (
+          "Todas as marmitas são preparadas na semana, porcionadas e congeladas individualmente."
+        )}
       </p>
 
       <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
