@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Leaf, Snowflake, Truck, Clock, Loader2, MapPin, CreditCard, Calendar } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
+import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import heroImage from "@/assets/hero-marmitas.jpg";
 import { ProductCard } from "@/components/product-card";
 import { useQuery } from "@tanstack/react-query";
@@ -87,15 +88,30 @@ function Index() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 -mt-10 sm:-mt-20 relative z-30 pb-12">
-        <div className="grid lg:grid-cols-[1.2fr_3fr] gap-8 items-start">
-          {/* Text Content - Left Side */}
-          <div className="pt-16 sm:pt-24 text-left">
-            <h1 className="text-xl sm:text-2xl font-black text-[#086e45] leading-tight uppercase tracking-tight">
+        <div className="grid lg:grid-cols-[280px_1fr] gap-8 items-start">
+          {/* Menu de Categorias - Lado Esquerdo */}
+          <div className="space-y-2 pt-16 sm:pt-24">
+            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-6">
               SaborosaMente - Atacado de Refeições e Sopas Congeladas
             </h1>
-            <p className="mt-2 text-sm text-[#086e45] font-medium leading-relaxed opacity-90">
+            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-8">
               Para o corpo e para a mente, SaborosaMente!
             </p>
+            
+            {[
+              "Combos Prontos",
+              "Combos Escolha Você Mesmo",
+              "Linha Refeições (200g - 300g - 400g)",
+              "Sopas (400g)",
+              "Complementos de Proteínas 150g"
+            ].map((cat) => (
+              <button 
+                key={cat}
+                className="w-full text-left px-6 py-3 rounded-xl bg-[#086e45]/5 text-[#086e45] text-xs font-bold hover:bg-[#086e45]/10 transition-colors border border-transparent hover:border-[#086e45]/20"
+              >
+                {cat}
+              </button>
+            ))}
           </div>
 
           {/* Info Card - Right Side */}
@@ -128,18 +144,29 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-8">
-        {/* Benefícios Originais (Pequenos badges/caixas secundárias) */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {beneficios.map(({ icon: Icon, titulo, texto }) => (
-            <div key={titulo} className="rounded-3xl border border-border bg-card p-6 shadow-soft hover:shadow-md transition-shadow">
-              <span className="grid size-11 place-items-center rounded-2xl bg-[#086e45]/10 text-[#086e45]">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <h3 className="mt-4 text-base font-semibold">{titulo}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{texto}</p>
-            </div>
-          ))}
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
+            <img 
+              src={bannerCarouselAsset.url} 
+              alt="Marmitas Congeladas" 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
+            <img 
+              src={bannerCarouselAsset.url} 
+              alt="Nossa Loja em SBS" 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-soft border border-gray-100 aspect-[4/5] relative group">
+            <img 
+              src={bannerCarouselAsset.url} 
+              alt="Nossas Entregas" 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
         </div>
       </section>
 
