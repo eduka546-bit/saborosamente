@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body data-message="Failed to run sql query: ERROR:  42P10: there is no unique or exclusion constraint matching the ON CONFLICT specification">
+      <body data-message="Failed to run sql query: ERROR:  23502: null value in column 'categoria' of relation 'produtos' violates not-null constraint">
         {children}
         <Scripts />
       </body>
