@@ -134,7 +134,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       return;
     }
 
-    onSave({ ...rest, preco, preco_promocional });
+    const status = formData.status === 'pausado' ? 'Pausado' : 'Ativo';
+    onSave({ ...rest, preco, preco_promocional, status });
   };
 
   return (
