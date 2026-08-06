@@ -265,7 +265,7 @@ function DeliveryAreasModal({
           </button>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-6" style={{ height: 'calc(80vh - 100px)' }}>
           <div className="space-y-8">
             {groupedAreas && Object.entries(groupedAreas).map(([city, neighborhoods]: [string, any]) => (
               <div key={city} className="space-y-3">
