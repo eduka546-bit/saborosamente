@@ -215,7 +215,7 @@ export function SiteHeader() {
         {/* Centralized PFP/Logo that overlaps the next section */}
         {settings?.profile_image_url && (
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-20">
-            <div className="size-32 md:size-48 rounded-full border-[8px] border-white bg-white shadow-2xl overflow-hidden ring-4 ring-black/5">
+            <div className="size-36 md:size-52 rounded-full border-[8px] border-white bg-white shadow-2xl overflow-hidden ring-4 ring-black/5">
               <img src={settings.profile_image_url} className="w-full h-full object-cover" alt="Profile" />
             </div>
           </div>
