@@ -57,8 +57,8 @@ export function SiteHeader() {
            {/* Removido o texto "Saborosamente" conforme solicitado */}
         </Link>
 
-        {/* Navigation Links - Now side-by-side even on mobile */}
-        <nav className="flex items-center gap-4 sm:gap-6 lg:gap-10">
+        {/* Navigation Links - Centered options */}
+        <nav className="flex-1 flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
           {links.map((l) => (
             l.type === "modal" ? (
               <button
@@ -82,7 +82,10 @@ export function SiteHeader() {
               </Link>
             )
           ))}
-          
+        </nav>
+
+        {/* Right side - User and Cart */}
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link to="/admin" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
             <User size={20} />
           </Link>
@@ -99,7 +102,7 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
-        </nav>
+        </div>
       </div>
 
       {/* Hero / Cover Section */}
@@ -224,11 +227,6 @@ function DeliveryAreasModal({ open, onOpenChange }: { open: boolean, onOpenChang
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 bg-gray-50 border-t text-center">
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-            Consulte condições para frete grátis no carrinho
-          </p>
-        </div>
       </DialogContent>
     </Dialog>
   );
