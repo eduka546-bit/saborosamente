@@ -902,7 +902,7 @@ function AdminProductsPage() {
         }}
         product={editingProduct}
         categories={categories}
-        onSave={(data: any) => updateProduct.mutate(data)}
+        onSave={(data: any) => saveProduct.mutate(data)}
         onDelete={(id: string) => deleteProduct.mutate(id)}
       />
     </div>
