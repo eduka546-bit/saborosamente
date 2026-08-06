@@ -116,7 +116,7 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   return (
-    <header className="relative z-50 transition-all duration-300">
+    <header className="relative z-[100] transition-all duration-300">
       {/* Announcement Bar */}
       <div 
         style={{ backgroundColor: announceBg, color: announceText }}
@@ -129,7 +129,7 @@ export function SiteHeader() {
       {/* Main Navigation Bar (White in the print) */}
       <div 
         style={{ backgroundColor: navBg }}
-        className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12 border-b"
+        className="mx-auto flex h-16 items-center justify-between px-6 lg:px-12 border-b relative z-[70]"
       >
         <Link to="/" className="flex items-center gap-2">
            {/* Removido o texto "Saborosamente" conforme solicitado */}
@@ -219,8 +219,8 @@ export function SiteHeader() {
         
         {/* Centralized PFP/Logo that overlaps the next section */}
         {settings?.profile_image_url && (
-          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-20">
-            <div className="size-36 md:size-52 rounded-full border-[8px] border-white bg-white shadow-2xl overflow-hidden ring-4 ring-black/5">
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-[80]">
+            <div className="size-36 md:size-52 rounded-full border-[6px] border-[#086e45] bg-[#086e45] shadow-2xl overflow-hidden">
               <img 
                 src={settings.profile_image_url} 
                 className="w-full h-full object-contain p-2" 
