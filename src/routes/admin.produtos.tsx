@@ -669,11 +669,12 @@ function AdminProductsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      console.log('Solicitando atualização de status:', id, '->', status);
+      const dbStatus = status === 'pausado' ? 'Pausado' : 'Ativo';
+      console.log('Solicitando atualização de status:', id, '->', dbStatus);
       
       const { data, error } = await supabase
         .from("produtos")
-        .update({ status })
+        .update({ status: dbStatus })
         .eq("id", id)
         .select();
 
