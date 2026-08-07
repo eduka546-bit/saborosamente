@@ -224,9 +224,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor *</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (200g) *</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
                         <Input 
@@ -236,6 +236,31 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         />
                       </div>
                     </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (300g)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                        <Input 
+                          value={formData.preco_300g_formatado} 
+                          onChange={(e) => setFormData({ ...formData, preco_300g_formatado: e.target.value })}
+                          className="h-10 pl-9 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (400g)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                        <Input 
+                          value={formData.preco_400g_formatado} 
+                          onChange={(e) => setFormData({ ...formData, preco_400g_formatado: e.target.value })}
+                          className="h-10 pl-9 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Categoria</label>
                       <select 
