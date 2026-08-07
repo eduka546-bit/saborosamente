@@ -223,7 +223,8 @@ function Checkout() {
           contato para confirmar a entrega. Você pode acompanhar o status no seu perfil.
         </p>
         <Link
-          to="/#cardapio"
+          to="/"
+          hash="cardapio"
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Continuar comprando
@@ -277,7 +278,8 @@ function Checkout() {
             Fazer login / Cadastro rápido
           </Link>
           <Link
-            to="/#cardapio"
+            to="/"
+            hash="cardapio"
             className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3 text-sm font-bold transition-colors hover:bg-muted"
           >
             Continuar comprando
@@ -412,7 +414,7 @@ function Checkout() {
                       </button>
                     ))}
                     <Link 
-                      to="/_authenticated/perfil"
+                      to="/perfil"
                       className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border p-4 text-center hover:bg-muted/50 transition-colors"
                     >
                       <Plus className="h-5 w-5 text-muted-foreground mb-1" />
