@@ -515,8 +515,8 @@ function AdminSiteConfig() {
               <Users className="text-[#5850ec]" size={20} /> Importação de Clientes
             </h3>
             <p className="text-sm text-muted-foreground">
-              Importar clientes da planilha Excel para o Supabase Auth. 
-              O login será o e-mail e a senha será o CPF (apenas números).
+              Importar clientes da planilha Excel enviada recentemente (Cadastro_de_Clientes-3.xlsx).
+              O login será o e-mail e a senha o CPF (apenas números).
             </p>
 
             <div className="p-6 border-2 border-dashed rounded-2xl bg-gray-50 flex flex-col items-center justify-center gap-4">
@@ -524,8 +524,8 @@ function AdminSiteConfig() {
                 <Users className="text-[#5850ec]" size={32} />
               </div>
               <div className="text-center">
-                <p className="font-medium">450 clientes preparados para importação</p>
-                <p className="text-xs text-muted-foreground">Baseado no arquivo Cadastro_de_Clientes-2.xlsx</p>
+                <p className="font-medium">Novos clientes preparados para importação</p>
+                <p className="text-xs text-muted-foreground">Baseado no arquivo Cadastro_de_Clientes-3.xlsx</p>
               </div>
               <Button 
                 onClick={async () => {
@@ -533,10 +533,13 @@ function AdminSiteConfig() {
                   try {
                     setIsImporting(true);
                     const result = await importFn();
-                    toast.success(`Importação concluída! Sucesso: ${result.success}, Erros/Pulados: ${result.errors}`, { duration: 6000 });
+                    toast.success(`Importação concluída! Sucesso: ${result.success}, Erros/Pulados: ${result.errors}`, { 
+                      duration: 10000,
+                      description: result.errors > 0 ? "Alguns registros falharam. Verifique o console para detalhes." : undefined
+                    });
 
-                    if (result.errors > 0) {
-                      console.log("Erros de importação:", result.details);
+                    if (result.details && result.details.length > 0) {
+                      console.log("Detalhes da importação:", result.details);
                     }
                   } catch (err: any) {
                     toast.error("Erro na importação: " + err.message);
@@ -550,12 +553,12 @@ function AdminSiteConfig() {
                 {isImporting ? (
                   <>
                     <Loader2 className="mr-2 animate-spin size-4" />
-                    Importando...
+                    Importando registros...
                   </>
                 ) : (
                   <>
                     <History className="mr-2 size-4" />
-                    Iniciar Importação Agora
+                    Iniciar Migração Automática Agora
                   </>
                 )}
               </Button>
