@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { AdminHeader } from "@/components/admin-header";
+import { FloatingDiscountWidget } from "@/components/floating-discount-widget";
 
 function NotFoundComponent() {
   return (
@@ -182,6 +183,7 @@ function RootComponent() {
           {!isAdminPath && <SiteFooter />}
         </div>
         <Toaster />
+        {!isAdminPath && <FloatingDiscountWidget />}
       </CartProvider>
     </QueryClientProvider>
   );

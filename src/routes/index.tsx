@@ -155,7 +155,7 @@ function Index() {
       <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8 items-start">
           {/* Menu de Categorias - Agora ao lado das Marmitas */}
-          <div className="w-full md:w-72 space-y-2 shrink-0 md:sticky md:top-24">
+          <div className="w-full md:w-72 space-y-2 shrink-0">
             <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
               SaborosaMente - Atacado de Refeições e Sopas Congeladas
             </h1>
