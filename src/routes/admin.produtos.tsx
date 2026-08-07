@@ -87,7 +87,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         informacao_nutricional: "",
         controle_estoque: false,
         estoque_atual: 0,
-        estoque_minimo: 5
+        estoque_minimo: 5,
+        imagens: []
       });
     }
   }, [product, categories]);
@@ -210,6 +211,36 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     </div>
                   </div>
                   <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">Resolução recomendada: 800x800px</p>
+
+                  <div className="space-y-2 mt-4">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Outras Imagens (Galeria)</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {formData.imagens?.map((img: string, idx: number) => (
+                        <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-gray-200 group">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button 
+                            onClick={() => {
+                              const newImgs = [...formData.imagens];
+                              newImgs.splice(idx, 1);
+                              setFormData({...formData, imagens: newImgs});
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        onClick={() => {
+                          const url = prompt("Cole a URL da imagem:");
+                          if (url) setFormData({...formData, imagens: [...(formData.imagens || []), url]});
+                        }}
+                        className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-6">

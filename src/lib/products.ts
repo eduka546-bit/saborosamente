@@ -23,6 +23,7 @@ export interface Product {
   peso: string;
   categoria: ProductCategory;
   imagem: string;
+  imagens?: string[];
   destaque?: boolean;
 }
 
