@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Os produtos que tiverem variações de tamanhos, precisa ter 3 preços, como tem como habilitar essa opção no editar?</div>
+        <div className="sr-only">Habilitei a opção de 3 preços (200g, 300g e 400g) no editor de produtos. Rode o SQL enviado para atualizar seu banco.</div>
         {children}
         <Scripts />
       </body>
