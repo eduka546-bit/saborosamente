@@ -97,13 +97,19 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                       <td colSpan={3} className="px-4 py-3 text-right text-gray-500">Subtotal:</td>
                       <td className="px-4 py-3 text-right">R$ {order.valor_total.toFixed(2).replace('.', ',')}</td>
                     </tr>
+                    {order.desconto_aplicado > 0 && (
+                      <tr className="text-red-500">
+                        <td colSpan={3} className="px-4 py-3 text-right">Desconto:</td>
+                        <td className="px-4 py-3 text-right">- R$ {order.desconto_aplicado.toFixed(2).replace('.', ',')}</td>
+                      </tr>
+                    )}
                     <tr>
                       <td colSpan={3} className="px-4 py-3 text-right text-gray-500">Taxa de Entrega:</td>
                       <td className="px-4 py-3 text-right">R$ {order.taxa_entrega?.toFixed(2).replace('.', ',') || "0,00"}</td>
                     </tr>
                     <tr className="text-lg text-[#5850ec]">
                       <td colSpan={3} className="px-4 py-3 text-right">Total:</td>
-                      <td className="px-4 py-3 text-right font-bold">R$ {(order.valor_total + (order.taxa_entrega || 0)).toFixed(2).replace('.', ',')}</td>
+                      <td className="px-4 py-3 text-right font-bold">R$ {(order.valor_total - (order.desconto_aplicado || 0) + (order.taxa_entrega || 0)).toFixed(2).replace('.', ',')}</td>
                     </tr>
                   </tfoot>
                 </table>
