@@ -264,22 +264,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Lógica de Desconto Progressivo
+    // Lógica de Desconto Progressivo (Desativada)
     let discount = 0;
-    const applicableDiscount = [...RULES.PROGRESSIVE_DISCOUNT]
-      .reverse()
-      .find(d => count >= d.minItems);
-    
-    if (applicableDiscount) {
-      // Sopas contam na quantidade mas o valor é fixo (não recebem desconto)
-      const discountableSubtotal = detailed.reduce((acc, l) => {
-        const isSopa = l.product.categoria?.toLowerCase().includes("sopa");
-        if (isSopa) return acc;
-        return acc + l.subtotal;
-      }, 0);
 
-      discount = discountableSubtotal * (applicableDiscount.discountPercent / 100);
-    }
 
     return {
       lines: detailed,
