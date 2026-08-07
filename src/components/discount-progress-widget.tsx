@@ -1,19 +1,9 @@
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
+import { ShoppingBag } from "lucide-react";
 
 export function DiscountProgressWidget({ className }: { className?: string }) {
   const { count } = useCart();
-
-  const tiers = [
-    { minItems: 5, discount: 3 },
-    { minItems: 10, discount: 5 },
-    { minItems: 20, discount: 7 }
-  ];
-  
-  const nextTier = tiers.find(t => count < t.minItems);
-  const currentTier = [...tiers].reverse().find(t => count >= t.minItems);
-
-  if (!nextTier && !currentTier) return null;
 
   return (
     <div className={cn("rounded-2xl bg-primary/5 p-4 border border-primary/10", className)}>
