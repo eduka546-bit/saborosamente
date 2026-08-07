@@ -165,9 +165,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [serverProducts]);
 
-  useEffect(() => {
-    setLines(readStorage());
-  }, []);
 
   useEffect(() => {
     try {
