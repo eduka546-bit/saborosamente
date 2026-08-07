@@ -114,7 +114,7 @@ function Catalogo() {
           </div>
         </div>
 
-        <div className="hidden lg:block">
+        <div className="hidden lg:block sticky top-24">
           <DiscountProgressWidget />
         </div>
       </div>
