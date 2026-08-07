@@ -215,7 +215,7 @@ function Checkout() {
     <section className="mx-auto max-w-6xl px-4 py-14">
       <h1 className="text-4xl font-extrabold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Preencha os dados de entrega. O pagamento é simulado nesta primeira versão.
+        Preencha os dados de entrega para finalizar seu pedido.
       </p>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
