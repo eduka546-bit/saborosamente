@@ -136,20 +136,26 @@ function AuthPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">{isLogin ? "Senha (Seu CPF)" : "Senha (Crie uma senha)"}</Label>
+            <Label htmlFor="password">{isLogin ? "Senha (Seu CPF)" : "CPF (será sua senha)"}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type="text"
-                placeholder="Seu CPF ou senha"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder={isLogin ? "Digite seu CPF" : "Apenas números"}
                 className="pl-10"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setPassword(val);
+                }}
                 required
               />
             </div>
           </div>
+
 
           <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
             {loading ? "Processando..." : (isLogin ? "Entrar" : "Cadastrar")}
