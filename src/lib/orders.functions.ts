@@ -29,11 +29,12 @@ const createOrderSchema = z.object({
 });
 
 export const createOrder = createServerFn({ method: "POST" })
-  .input(createOrderSchema)
+  .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
+    // Pegar o usuário logado (opcional, para vincular o pedido)
     const { data: { user } } = await supabase.auth.getUser();
     
-    // 1. Criar o pedido
+    // 1. Criar o pedido na tabela 'pedidos'
     const { data: order, error: orderError } = await supabase
       .from("pedidos")
       .insert({
@@ -46,7 +47,6 @@ export const createOrder = createServerFn({ method: "POST" })
         endereco_cidade: data.cidade,
         endereco_bairro: data.bairro,
         endereco_rua: data.endereco,
-        endereco_numero: "", // O campo endereco no checkout já contém numero as vezes
         endereco_complemento: data.complemento,
         metodo_pagamento: data.pagamento,
         observacao: data.observacoes,
@@ -60,8 +60,8 @@ export const createOrder = createServerFn({ method: "POST" })
 
     if (orderError) throw new Error(orderError.message);
 
-    // 2. Criar os itens do pedido
-    const itemsToInsert = data.items.map(item => ({
+    // 2. Criar os itens do pedido na tabela 'pedido_itens'
+    const itemsToInsert = data.items.map((item) => ({
       pedido_id: order.id,
       produto_id: item.productId,
       quantidade: item.quantity,
