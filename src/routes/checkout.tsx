@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, MapPin, Plus } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -65,10 +66,13 @@ function Checkout() {
 
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
@@ -77,6 +81,49 @@ function Checkout() {
       cidade: selectedCity 
     },
   });
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // Fetch Profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+    
+    if (profile) {
+      setValue("nome", profile.nome || "");
+      setValue("email", session.user.email || "");
+      setValue("telefone", profile.telefone || "");
+    }
+
+    // Fetch Addresses
+    const { data: addresses } = await supabase
+      .from("user_addresses")
+      .select("*")
+      .eq("user_id", session.user.id);
+    
+    if (addresses && addresses.length > 0) {
+      setSavedAddresses(addresses);
+      const defaultAddr = addresses.find(a => a.is_default) || addresses[0];
+      applyAddress(defaultAddr);
+    }
+  };
+
+  const applyAddress = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setSelectedCity(addr.cidade);
+    setSelectedBairro(addr.bairro);
+    setValue("cidade", addr.cidade);
+    setValue("endereco", `${addr.rua}, ${addr.numero}`);
+    setValue("complemento", addr.complemento || "");
+  };
 
 
   // Envio simulado: substituir por persistência real quando o backend existir.
@@ -179,8 +226,50 @@ function Checkout() {
 
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Entrega
+            Entrega
             </legend>
+
+            {savedAddresses.length > 0 && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Seus endereços salvos</label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => applyAddress(addr)}
+                      className={cn(
+                        "flex flex-col items-start rounded-2xl border p-4 text-left transition-all",
+                        selectedAddressId === addr.id 
+                          ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <div className="flex w-full items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                          {addr.label}
+                        </span>
+                        {selectedAddressId === addr.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                      </div>
+                      <p className="mt-1 text-sm font-medium line-clamp-1">
+                        {addr.rua}, {addr.numero}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {addr.bairro}, {addr.cidade}
+                      </p>
+                    </button>
+                  ))}
+                  <Link 
+                    to="/_authenticated/perfil"
+                    className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border p-4 text-center hover:bg-muted/50 transition-colors"
+                  >
+                    <Plus className="h-5 w-5 text-muted-foreground mb-1" />
+                    <span className="text-xs font-medium text-muted-foreground">Novo endereço</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-1">
 
               <div className="space-y-4">
