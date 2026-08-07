@@ -147,15 +147,30 @@ function Checkout() {
   // Envio simulado: substituir por persistência real quando o backend existir.
   const onSubmit = async (data: CheckoutForm) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      const id = `SB-${Date.now().toString().slice(-6)}`;
-      console.info("[checkout] pedido simulado", { id, cliente: data.nome, itens: lines.length });
-      setOrderId(id);
+      const orderData = {
+        ...data,
+        bairro: selectedBairro,
+        valorTotal: total,
+        taxaEntrega: shipping,
+        desconto: discount,
+        items: lines.map(line => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          weight: line.weight,
+          price: line.subtotal / line.quantity // Preço unitário
+        }))
+      };
+
+      const result = await createOrderFn({ data: orderData });
+      
+      setOrderId(result.id);
       clear();
-      toast.success("Pedido registrado!", { description: `Protocolo ${id}` });
-    } catch (error) {
+      toast.success("Pedido registrado!", { description: `Número do pedido: ${result.id.slice(0, 8)}` });
+    } catch (error: any) {
       console.error("[checkout] falha ao registrar pedido", error);
-      toast.error("Não foi possível registrar o pedido. Tente novamente.");
+      toast.error("Não foi possível registrar o pedido.", {
+        description: error.message || "Tente novamente mais tarde."
+      });
     }
   };
 
