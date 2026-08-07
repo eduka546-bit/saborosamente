@@ -85,7 +85,7 @@ function readStorage(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([]);
+  const [lines, setLines] = useState<CartLine[]>(() => readStorage());
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
 
