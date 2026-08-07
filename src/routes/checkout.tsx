@@ -110,22 +110,26 @@ function Checkout() {
   const fetchUserData = async () => {
     setIsCheckingAuth(true);
     const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession) {
+      navigate({ to: "/auth", search: { redirect: "/checkout" } });
+      return;
+    }
+
     setSession(currentSession);
     setIsCheckingAuth(false);
-
-    if (!currentSession) return;
 
 
     // Fetch Profile
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", currentSession.user.id)
       .single();
     
     if (profile) {
       setValue("nome", profile.nome || "");
-      setValue("email", session.user.email || "");
+      setValue("email", currentSession.user.email || "");
       setValue("telefone", profile.telefone || "");
     }
 
@@ -133,7 +137,7 @@ function Checkout() {
     const { data: addresses } = await supabase
       .from("user_addresses")
       .select("*")
-      .eq("user_id", session.user.id);
+      .eq("user_id", currentSession.user.id);
     
     if (addresses && addresses.length > 0) {
       setSavedAddresses(addresses);
@@ -267,7 +271,7 @@ function Checkout() {
         </div>
         <h1 className="text-3xl font-extrabold">Finalize seu pedido</h1>
         <p className="mt-4 text-muted-foreground">
-          Para iniciar a compra não precisa login, mas na hora do checkout o cliente precisa fazer o cadastro rápido se ainda não tem, daí para colocar as informações de entrega, forma de pagamento e etc.
+          Para concluir sua compra, você precisa entrar na sua conta ou fazer um cadastro rápido. Isso nos ajuda a salvar seu endereço e histórico de pedidos.
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
