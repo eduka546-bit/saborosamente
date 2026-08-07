@@ -238,6 +238,95 @@ function Carrinho() {
               Finalizar pedido
             </Link>
 
+            {/* Widget de Desconto Progressivo */}
+            <div className="mt-8 rounded-3xl bg-primary/5 p-6 border-2 border-primary/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-primary animate-pulse" />
+                  Desconto Progressivo
+                </h3>
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+                  {count} {count === 1 ? 'item' : 'itens'}
+                </span>
+              </div>
+
+              {(() => {
+                const tiers = [
+                  { minItems: 10, discount: 5 },
+                  { minItems: 20, discount: 10 },
+                  { minItems: 30, discount: 15 }
+                ];
+                
+                const nextTier = tiers.find(t => count < t.minItems);
+                const currentTier = [...tiers].reverse().find(t => count >= t.minItems);
+
+                if (!nextTier && currentTier) {
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-primary-dark uppercase">Parabéns! Desconto máximo atingido!</span>
+                        <span className="text-primary">15% OFF</span>
+                      </div>
+                      <div className="h-3 w-full rounded-full bg-primary shadow-inner" />
+                    </div>
+                  );
+                }
+
+                if (nextTier) {
+                  const itemsNeeded = nextTier.minItems - count;
+                  const prevGoal = tiers.find((t, i) => tiers[i+1]?.minItems === nextTier.minItems)?.minItems || 0;
+                  const range = nextTier.minItems - prevGoal;
+                  const currentInRange = count - prevGoal;
+                  const progress = (currentInRange / range) * 100;
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-[11px] font-bold uppercase tracking-tight">
+                        <span className="text-muted-foreground">
+                          Faltam <span className="text-primary">{itemsNeeded}</span> {itemsNeeded === 1 ? 'marmita' : 'marmitas'}
+                        </span>
+                        <span className="text-primary-dark">Para ganhar {nextTier.discount}% OFF</span>
+                      </div>
+                      <div className="h-3 w-full overflow-hidden rounded-full bg-white border border-primary/20 p-[2px]">
+                        <div 
+                          className="h-full bg-primary transition-all duration-700 ease-out rounded-full shadow-sm"
+                          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                        />
+                      </div>
+                      {currentTier && (
+                        <p className="text-[10px] text-center font-bold text-primary italic">
+                          * Você já tem {currentTier.discount}% de desconto aplicado!
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              <div className="mt-6 grid grid-cols-3 gap-2">
+                {[
+                  { q: 10, d: 5 },
+                  { q: 20, d: 10 },
+                  { q: 30, d: 15 }
+                ].map((tier) => (
+                  <div 
+                    key={tier.q}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all",
+                      count >= tier.q 
+                        ? "bg-primary text-white border-primary shadow-md scale-105 z-10" 
+                        : "bg-white text-muted-foreground border-border opacity-70"
+                    )}
+                  >
+                    <span className="text-[10px] font-black">{tier.q} UNID.</span>
+                    <span className="text-sm font-black">{tier.d}% OFF</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+
           </aside>
         </div>
       )}
