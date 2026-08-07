@@ -239,12 +239,11 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 lg:w-[800px]">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-[640px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
           <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
-          <TabsTrigger value="system">Sistema</TabsTrigger>
         </TabsList>
 
 
@@ -509,77 +508,8 @@ function AdminSiteConfig() {
             </div>
           </div>
         </TabsContent>
-        <TabsContent value="system" className="mt-6 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Users className="text-[#5850ec]" size={20} /> Importação de Clientes
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Importar clientes da planilha Excel enviada recentemente (Cadastro_de_Clientes-3.xlsx).
-              O login será o e-mail e a senha o CPF (apenas números).
-            </p>
-
-            <div className="p-6 border-2 border-dashed rounded-2xl bg-gray-50 flex flex-col items-center justify-center gap-4">
-              <div className="p-4 bg-white rounded-full shadow-sm">
-                <Users className="text-[#5850ec]" size={32} />
-              </div>
-              <div className="text-center">
-                <p className="font-medium">Novos clientes preparados para importação</p>
-                <p className="text-xs text-muted-foreground">Baseado no arquivo Cadastro_de_Clientes-3.xlsx</p>
-              </div>
-              <Button 
-                onClick={async () => {
-                  if (!confirm("Isso irá criar contas de acesso para os clientes preparados. Continuar?")) return;
-                  try {
-                    setIsImporting(true);
-                    const result = await importFn();
-                    toast.success(`Importação concluída! Sucesso: ${result.success}, Erros/Pulados: ${result.errors}`, { 
-                      duration: 10000,
-                      description: result.errors > 0 ? "Alguns registros falharam. Verifique o console para detalhes." : undefined
-                    });
-
-                    if (result.details && result.details.length > 0) {
-                      console.log("Detalhes da importação:", result.details);
-                    }
-                  } catch (err: any) {
-                    toast.error("Erro na importação: " + err.message);
-                  } finally {
-                    setIsImporting(false);
-                  }
-                }}
-                disabled={isImporting}
-                className="bg-[#5850ec] hover:bg-[#4338ca]"
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 className="mr-2 animate-spin size-4" />
-                    Importando registros...
-                  </>
-                ) : (
-                  <>
-                    <History className="mr-2 size-4" />
-                    Iniciar Migração Automática Agora
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 flex items-start gap-3">
-              <AlertCircle className="text-blue-500 shrink-0 mt-0.5" size={18} />
-              <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>Informações Importantes:</strong></p>
-                <ul className="list-disc ml-4 space-y-1">
-                  <li>Clientes com o mesmo e-mail terão seus perfis atualizados mas a conta auth não será duplicada.</li>
-                  <li>O histórico de pedidos será vinculado automaticamente se o e-mail for o mesmo.</li>
-                  <li>A senha padrão para todos os clientes importados será o CPF (apenas números).</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
-
   );
 }
 
