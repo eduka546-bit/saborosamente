@@ -51,7 +51,8 @@ function Carrinho() {
             Escolha suas marmitas favoritas e volte aqui para finalizar.
           </p>
           <Link
-            to="/catalogo"
+            to="/"
+            hash="cardapio"
             className="mt-6 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
           >
             Ver catálogo

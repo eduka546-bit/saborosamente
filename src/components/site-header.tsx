@@ -217,7 +217,7 @@ export function SiteHeader() {
                   <p className="text-xs font-medium truncate opacity-70">{user.email}</p>
                 </div>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-                  <Link to="/_authenticated/perfil" className="flex items-center gap-2 w-full">
+                  <Link to="/perfil" className="flex items-center gap-2 w-full">
                     <User className="h-4 w-4" />
                     <span className="font-semibold text-xs">Meu Perfil</span>
                   </Link>
@@ -241,7 +241,7 @@ export function SiteHeader() {
           ) : (
             <Link 
               to="/auth" 
-              style={{ color: navText }} 
+              search={{ redirect: "/" }}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
             >
               <User size={20} />

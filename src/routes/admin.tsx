@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location }): Promise<any> => {
     console.log("Admin route beforeLoad started", location.pathname);
     
     // Se for a rota de login, não redirecionamos
@@ -64,13 +64,15 @@ export const Route = createFileRoute("/admin")({
       return redirect({ to: "/admin/login" });
     }
   },
-  component: AdminLayout,
+  component: function AdminLayoutWrapper() {
+    return <AdminLayout />;
+  },
 });
 
 function AdminLayout() {
   const router = useRouter();
   const isLoginPage = router.state.location.pathname === "/admin/login" || router.state.location.pathname === "/admin/login/";
-  const { role } = Route.useRouteContext() || {};
+  const { role } = (Route.useRouteContext() as any) || {};
   
   if (isLoginPage) {
     return <Outlet />;

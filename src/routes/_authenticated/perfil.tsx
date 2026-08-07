@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   beforeLoad: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      throw redirect({ to: "/auth" });
+      throw redirect({ to: "/auth", search: { redirect: "/perfil" } });
     }
     return { session };
   },

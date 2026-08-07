@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { Lock, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/admin/login")({
-  component: AdminLogin,
+  component: function AdminLoginWrapper() {
+    return <AdminLogin />;
+  },
 });
 
 function AdminLogin() {
