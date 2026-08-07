@@ -24,7 +24,11 @@ export const RULES = {
   MIN_ORDER_AMOUNT: 70,
   MIN_ORDER_QUANTITY: 5,
   SBS_DISCOUNTED_SHIPPING: 8.9, // Valor padrão de SBS conforme SiteHeader
-  PROGRESSIVE_DISCOUNT: [], // Desativado
+  PROGRESSIVE_DISCOUNT: [
+    { min: 5, discount: 0.03 },
+    { min: 10, discount: 0.05 },
+    { min: 15, discount: 0.07 }
+  ],
 };
 
 export interface CartLine {
@@ -264,8 +268,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Lógica de Desconto Progressivo (Desativada)
+    // Lógica de Desconto Progressivo
     let discount = 0;
+    const applicableRule = [...RULES.PROGRESSIVE_DISCOUNT]
+      .sort((a, b) => b.min - a.min)
+      .find(rule => count >= rule.min);
+
+    if (applicableRule) {
+      discount = subtotal * applicableRule.discount;
+    }
 
 
     return {
