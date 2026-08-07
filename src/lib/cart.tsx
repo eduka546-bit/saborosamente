@@ -85,9 +85,17 @@ function readStorage(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>(() => readStorage());
+  const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
+
+  // Efeito para carregar o carrinho logo no início
+  useEffect(() => {
+    const stored = readStorage();
+    if (stored.length > 0) {
+      setLines(stored);
+    }
+  }, []);
 
   const MOCK_TAXAS = useMemo(() => {
     const dataMap = {
