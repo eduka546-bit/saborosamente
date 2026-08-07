@@ -165,8 +165,9 @@ export function SiteHeader() {
    * Enquanto a consulta ainda não respondeu, NÃO renderizamos a imagem padrão —
    * isso evitava o "flash" da capa original antes da capa atualizada aparecer.
    */
-  const heroDesktopSrc = settings?.hero_image_url || bannerDesktopAsset.url;
-  const heroMobileSrc = settings?.hero_image_url || bannerMobileAsset.url;
+  const heroDesktopSrc = settings?.hero_image_url;
+  const heroMobileSrc = settings?.hero_image_url;
+
 
   return (
     <header className="relative z-[40] transition-all duration-300 pointer-events-none">
@@ -288,16 +289,18 @@ export function SiteHeader() {
         {isSettingsPending ? (
           /* Placeholder com a cor da marca enquanto as configurações carregam */
           <div className="w-full aspect-[1920/240] max-md:aspect-[1000/360]" />
-        ) : settings?.hero_image_url || !settings ? (
+        ) : settings?.hero_image_url ? (
           <div className="relative w-full">
             <picture className="w-full h-full">
-              <source media="(max-width: 768px)" srcSet={heroMobileSrc} />
+              {/* Se houver uma imagem mobile específica (podemos adicionar no futuro no banco), usamos ela, senão usamos a mesma */}
               <img 
                 src={heroDesktopSrc}
                 alt="Site Banner" 
                 className="w-full h-full object-cover opacity-90"
+                loading="eager"
               />
             </picture>
+
             
             {/* Overlay for features matching the image style */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
