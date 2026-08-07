@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "./ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartSheet } from "./cart-sheet";
 
 const links = [
