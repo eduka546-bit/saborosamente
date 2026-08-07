@@ -17,7 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 let cachedProducts: any[] = [];
 
 const STORAGE_KEY = "saborosamente.cart.v1";
-export const FREE_SHIPPING_FROM = 120;
+export const FREE_SHIPPING_FROM = 999999; // Desativado
 export const SHIPPING_FEE = 14.9;
 
 export const RULES = {

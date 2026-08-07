@@ -275,7 +275,7 @@ function Index() {
         <div className="rounded-[2.5rem] bg-gradient-brand px-8 py-14 text-center text-primary-foreground shadow-lift">
           <h2 className="text-3xl font-bold md:text-4xl">Sua semana resolvida em um pedido</h2>
           <p className="mx-auto mt-4 max-w-xl text-sm opacity-90 md:text-base">
-            Monte um combo com 10 marmitas e ganhe frete grátis. Sem assinatura, sem fidelidade.
+            Comida de verdade, sem conservantes e pronta em minutos. Sem assinatura, sem fidelidade.
           </p>
           <a
             href="#cardapio"

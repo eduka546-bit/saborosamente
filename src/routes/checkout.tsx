@@ -54,7 +54,7 @@ const checkoutSchema = z.object({
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 const pagamentos: { value: CheckoutForm["pagamento"]; label: string; hint: string }[] = [
-  { value: "pix", label: "PIX", hint: "5% de desconto na confirmação" },
+  { value: "pix", label: "PIX", hint: "Pagamento imediato" },
   { value: "cartao", label: "Cartão", hint: "Até 3x sem juros" },
   { value: "dinheiro", label: "Dinheiro", hint: "Pagamento na entrega" },
 ];
