@@ -12,9 +12,10 @@ async function run() {
   const { data: categories } = await supabase.from('categorias').select('*');
   console.log('Categorias:', JSON.stringify(categories, null, 2));
 
-  const targetCategory = categories?.find(c => c.nome.includes('Complementos de Proteínas 150g'));
+  const targetCategory = categories?.find(c => c.nome.toUpperCase() === 'COMPLEMENTOS DE PROTEÍNAS 150G');
   if (!targetCategory) {
-    console.error('Categoria "Complementos de Proteínas 150g" não encontrada.');
+    console.error('Categoria "COMPLEMENTOS DE PROTEÍNAS 150G" não encontrada.');
+    console.log('Categorias disponíveis:', categories?.map(c => c.nome));
     return;
   }
 
