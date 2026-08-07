@@ -217,7 +217,7 @@ function Checkout() {
               user_id: session.user.id,
               label: "Endereço do Pedido",
               cidade: data.cidade,
-              bairro: selectedBairro,
+              bairro: data.bairro || selectedBairro,
               rua: data.endereco?.split(",")[0].trim() || data.endereco,
               numero: data.endereco?.split(",")[1]?.trim() || "",
               complemento: data.complemento,
