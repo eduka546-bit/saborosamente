@@ -28,7 +28,6 @@ import { Route as AdminFinanceiroIndexRouteImport } from './routes/admin/finance
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosKpiRouteImport } from './routes/admin/relatorios/kpi'
-import { Route as ApiPublicSeedComplementosRouteImport } from './routes/api.public.seed-complementos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -125,12 +124,6 @@ const AdminRelatoriosKpiRoute = AdminRelatoriosKpiRouteImport.update({
   path: '/relatorios/kpi',
   getParentRoute: () => AdminRoute,
 } as any)
-const ApiPublicSeedComplementosRoute =
-  ApiPublicSeedComplementosRouteImport.update({
-    id: '/api/public/seed-complementos',
-    path: '/api/public/seed-complementos',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -147,7 +140,6 @@ export interface FileRoutesByFullPath {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/api/public/seed-complementos': typeof ApiPublicSeedComplementosRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
@@ -166,7 +158,6 @@ export interface FileRoutesByTo {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/api/public/seed-complementos': typeof ApiPublicSeedComplementosRoute
   '/admin/clientes': typeof AdminClientesIndexRoute
   '/admin/config': typeof AdminConfigIndexRoute
   '/admin/financeiro': typeof AdminFinanceiroIndexRoute
@@ -189,7 +180,6 @@ export interface FileRoutesById {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/api/public/seed-complementos': typeof ApiPublicSeedComplementosRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
@@ -213,7 +203,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/api/public/seed-complementos'
     | '/admin/clientes/'
     | '/admin/config/'
     | '/admin/financeiro/'
@@ -232,7 +221,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/api/public/seed-complementos'
     | '/admin/clientes'
     | '/admin/config'
     | '/admin/financeiro'
@@ -254,7 +242,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/api/public/seed-complementos'
     | '/admin/clientes/'
     | '/admin/config/'
     | '/admin/financeiro/'
@@ -268,7 +255,6 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CatalogoRoute: typeof CatalogoRoute
   CheckoutRoute: typeof CheckoutRoute
-  ApiPublicSeedComplementosRoute: typeof ApiPublicSeedComplementosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -406,13 +392,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosKpiRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/api/public/seed-complementos': {
-      id: '/api/public/seed-complementos'
-      path: '/api/public/seed-complementos'
-      fullPath: '/api/public/seed-complementos'
-      preLoaderRoute: typeof ApiPublicSeedComplementosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -478,7 +457,6 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CatalogoRoute: CatalogoRoute,
   CheckoutRoute: CheckoutRoute,
-  ApiPublicSeedComplementosRoute: ApiPublicSeedComplementosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
