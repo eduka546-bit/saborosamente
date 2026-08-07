@@ -96,7 +96,6 @@ function Checkout() {
 
   const currentMetodo = watch("metodoEntrega");
 
-
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -140,7 +139,6 @@ function Checkout() {
     setValue("complemento", addr.complemento || "");
   };
 
-
   // Envio simulado: substituir por persistência real quando o backend existir.
   const onSubmit = async (data: CheckoutForm) => {
     try {
@@ -166,7 +164,7 @@ function Checkout() {
           contato para confirmar a entrega. (Pagamento simulado nesta versão.)
         </p>
         <Link
-          to="/catalogo"
+          to="/#cardapio"
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Continuar comprando
@@ -184,7 +182,7 @@ function Checkout() {
         </p>
         <button
           type="button"
-          onClick={() => navigate({ to: "/catalogo" })}
+          onClick={() => navigate({ to: "/" })}
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Ver catálogo
@@ -286,120 +284,120 @@ function Checkout() {
                 Endereço de Entrega
               </legend>
 
-            {savedAddresses.length > 0 && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Seus endereços salvos</label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {savedAddresses.map((addr) => (
-                    <button
-                      key={addr.id}
-                      type="button"
-                      onClick={() => applyAddress(addr)}
-                      className={cn(
-                        "flex flex-col items-start rounded-2xl border p-4 text-left transition-all",
-                        selectedAddressId === addr.id 
-                          ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                          : "border-border hover:border-primary/50"
-                      )}
+              {savedAddresses.length > 0 && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Seus endereços salvos</label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {savedAddresses.map((addr) => (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => applyAddress(addr)}
+                        className={cn(
+                          "flex flex-col items-start rounded-2xl border p-4 text-left transition-all",
+                          selectedAddressId === addr.id 
+                            ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <div className="flex w-full items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                            {addr.label}
+                          </span>
+                          {selectedAddressId === addr.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                        </div>
+                        <p className="mt-1 text-sm font-medium line-clamp-1">
+                          {addr.rua}, {addr.numero}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {addr.bairro}, {addr.cidade}
+                        </p>
+                      </button>
+                    ))}
+                    <Link 
+                      to="/_authenticated/perfil"
+                      className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border p-4 text-center hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex w-full items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                          {addr.label}
-                        </span>
-                        {selectedAddressId === addr.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      </div>
-                      <p className="mt-1 text-sm font-medium line-clamp-1">
-                        {addr.rua}, {addr.numero}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {addr.bairro}, {addr.cidade}
-                      </p>
-                    </button>
-                  ))}
-                  <Link 
-                    to="/_authenticated/perfil"
-                    className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border p-4 text-center hover:bg-muted/50 transition-colors"
-                  >
-                    <Plus className="h-5 w-5 text-muted-foreground mb-1" />
-                    <span className="text-xs font-medium text-muted-foreground">Novo endereço</span>
-                  </Link>
+                      <Plus className="h-5 w-5 text-muted-foreground mb-1" />
+                      <span className="text-xs font-medium text-muted-foreground">Novo endereço</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-1">
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="cidade" className="text-sm font-medium">
+                      Cidade
+                    </label>
+                    <select
+                      id="cidade"
+                      className={fieldClass}
+                      {...register("cidade")}
+                      onChange={(e) => {
+                        setSelectedCity(e.target.value);
+                        setSelectedBairro("");
+                      }}
+                    >
+                      <option value="">Selecione...</option>
+                      {[...new Set(taxas.map(t => t.cidade))].sort().map(city => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                    {errors.cidade && (
+                      <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-
-            <div className="grid gap-4 sm:grid-cols-1">
-
-              <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="cidade" className="text-sm font-medium">
-                    Cidade
+                  <label htmlFor="bairro" className="text-sm font-medium">
+                    Bairro
                   </label>
                   <select
-                    id="cidade"
-                    className={fieldClass}
-                    {...register("cidade")}
-                    onChange={(e) => {
-                      setSelectedCity(e.target.value);
-                      setSelectedBairro("");
-                    }}
+                    id="bairro"
+                    className={cn(fieldClass, !selectedCity && "opacity-50")}
+                    disabled={!selectedCity}
+                    value={selectedBairro}
+                    onChange={(e) => setSelectedBairro(e.target.value)}
                   >
                     <option value="">Selecione...</option>
-                    {[...new Set(taxas.map(t => t.cidade))].sort().map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
+                    {taxas
+                      .filter(t => t.cidade === selectedCity)
+                      .sort((a, b) => a.bairro.localeCompare(b.bairro))
+                      .map(t => (
+                        <option key={t.id} value={t.bairro}>{t.bairro}</option>
+                      ))}
                   </select>
-                  {errors.cidade && (
-                    <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
-                  )}
+                </div>
+                <div>
+                  <label htmlFor="cep" className="text-sm font-medium">
+                    CEP (opcional)
+                  </label>
+                  <input id="cep" placeholder="00000-000" className={fieldClass} {...register("cep")} />
+                  {errors.cep && <p className="mt-1 text-xs text-destructive">{errors.cep.message}</p>}
                 </div>
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="bairro" className="text-sm font-medium">
-                  Bairro
-                </label>
-                <select
-                  id="bairro"
-                  className={cn(fieldClass, !selectedCity && "opacity-50")}
-                  disabled={!selectedCity}
-                  value={selectedBairro}
-                  onChange={(e) => setSelectedBairro(e.target.value)}
-                >
-                  <option value="">Selecione...</option>
-                  {taxas
-                    .filter(t => t.cidade === selectedCity)
-                    .sort((a, b) => a.bairro.localeCompare(b.bairro))
-                    .map(t => (
-                      <option key={t.id} value={t.bairro}>{t.bairro}</option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="cep" className="text-sm font-medium">
-                  CEP (opcional)
-                </label>
-                <input id="cep" placeholder="00000-000" className={fieldClass} {...register("cep")} />
-                {errors.cep && <p className="mt-1 text-xs text-destructive">{errors.cep.message}</p>}
-              </div>
-            </div>
 
-            <div>
-              <label htmlFor="endereco" className="text-sm font-medium">
-                Endereço e número
-              </label>
-              <input id="endereco" className={fieldClass} {...register("endereco")} />
-              {errors.endereco && (
-                <p className="mt-1 text-xs text-destructive">{errors.endereco.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="complemento" className="text-sm font-medium">
-                Complemento (opcional)
-              </label>
-              <input id="complemento" className={fieldClass} {...register("complemento")} />
-            </div>
-          </fieldset>
+              <div>
+                <label htmlFor="endereco" className="text-sm font-medium">
+                  Endereço e número
+                </label>
+                <input id="endereco" className={fieldClass} {...register("endereco")} />
+                {errors.endereco && (
+                  <p className="mt-1 text-xs text-destructive">{errors.endereco.message}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="complemento" className="text-sm font-medium">
+                  Complemento (opcional)
+                </label>
+                <input id="complemento" className={fieldClass} {...register("complemento")} />
+              </div>
+            </fieldset>
+          )}
 
           <fieldset className="space-y-3">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
