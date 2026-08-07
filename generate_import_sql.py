@@ -31,12 +31,15 @@ for _, row in df.iterrows():
     tel_safe = (telefone or "").replace("'", "''")
     bairro_safe = (bairro or "").replace("'", "''")
     
-    # Updated SQL: Removed 'email' column from public.profiles insert/update
+    # Updated SQL: Handling CPF conflicts by setting it to NULL or existing value if already taken
+    # Also handles duplicate users by checking email first.
     sql = f"""
 DO $$
 DECLARE
     new_user_id UUID;
+    existing_cpf_user_id UUID;
 BEGIN
+    -- 1. Find or Create User
     SELECT id INTO new_user_id FROM auth.users WHERE email = '{email}';
     
     IF new_user_id IS NULL THEN
@@ -61,19 +64,33 @@ BEGIN
         RETURNING id INTO new_user_id;
     END IF;
 
+    -- 2. Handle Profile with CPF conflict check
+    -- If the CPF is not empty and already exists for ANOTHER user, we don't update it to avoid constraint error
+    IF '{cpf_safe}' != '' THEN
+        SELECT id INTO existing_cpf_user_id FROM public.profiles WHERE cpf = '{cpf_safe}' AND id != new_user_id LIMIT 1;
+    ELSE
+        existing_cpf_user_id := NULL;
+    END IF;
+
     INSERT INTO public.profiles (id, nome, cpf, telefone, bairro)
-    VALUES (new_user_id, '{nome_safe}', '{cpf_safe}', '{tel_safe}', '{bairro_safe}')
+    VALUES (
+        new_user_id, 
+        '{nome_safe}', 
+        CASE WHEN existing_cpf_user_id IS NULL THEN '{cpf_safe}' ELSE NULL END, 
+        '{tel_safe}', 
+        '{bairro_safe}'
+    )
     ON CONFLICT (id) DO UPDATE SET
         nome = EXCLUDED.nome,
-        cpf = EXCLUDED.cpf,
+        cpf = CASE WHEN existing_cpf_user_id IS NULL THEN EXCLUDED.cpf ELSE public.profiles.cpf END,
         telefone = EXCLUDED.telefone,
         bairro = EXCLUDED.bairro;
 END $$;"""
     sql_statements.append(sql)
 
-with open('/mnt/documents/import_clientes_v2.sql', 'w') as f:
-    f.write("-- Script de Importação de Clientes (Versão 2 - Sem coluna email em profiles)\n")
+with open('/mnt/documents/import_clientes_v3.sql', 'w') as f:
+    f.write("-- Script de Importação de Clientes (Versão 3 - Tratamento de CPF duplicado)\n")
     f.write("-- Cole este script no Editor SQL do seu Painel do Supabase\n\n")
     f.write("\n".join(sql_statements))
 
-print(f"Gerado SQL v2 para {len(sql_statements)} clientes em /mnt/documents/import_clientes_v2.sql")
+print(f"Gerado SQL v3 para {len(sql_statements)} clientes em /mnt/documents/import_clientes_v3.sql")
