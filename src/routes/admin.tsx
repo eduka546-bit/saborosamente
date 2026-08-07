@@ -1,5 +1,7 @@
 import { createFileRoute, redirect, Outlet, useRouter, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { Store, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -92,6 +94,31 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
+      <header className="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors group">
+            <div className="bg-primary/10 p-2 rounded-lg group-hover:bg-primary/20">
+              <Store size={20} />
+            </div>
+            <span className="font-bold text-sm uppercase tracking-wider">Voltar para a Loja</span>
+          </Link>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-500 hover:text-red-600 gap-2"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.navigate({ to: "/admin/login" });
+            }}
+          >
+            <LogOut size={18} />
+            <span className="hidden sm:inline">Sair</span>
+          </Button>
+        </div>
+      </header>
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
