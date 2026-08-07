@@ -221,7 +221,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
-      if (!product) return [];
+      
+      // Fallback para quando o produto ainda não carregou do servidor mas está no cache local/storage
+      if (!product) {
+        return [];
+      }
       
       const isSopa = product.categoria?.toLowerCase().includes("sopa");
       const price = isSopa ? 18.00 : (line.weight === "300g" && product.preco_300g 
