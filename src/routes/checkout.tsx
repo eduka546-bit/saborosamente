@@ -110,10 +110,14 @@ function Checkout() {
   const fetchUserData = async () => {
     setIsCheckingAuth(true);
     const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (!currentSession) {
+      navigate({ to: "/auth", search: { redirect: "/checkout" } });
+      return;
+    }
+
     setSession(currentSession);
     setIsCheckingAuth(false);
-
-    if (!currentSession) return;
 
 
     // Fetch Profile
