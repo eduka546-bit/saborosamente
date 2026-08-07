@@ -25,20 +25,21 @@ for _, row in df.iterrows():
     if not email:
         continue
         
-    email = email.lower()
+    email = email.lower().replace("'", "''")
+    nome_safe = (nome or "Cliente Importado").replace("'", "''")
+    cpf_safe = (cpf or "").replace("'", "''")
+    tel_safe = (telefone or "").replace("'", "''")
+    bairro_safe = (bairro or "").replace("'", "''")
     
-    # We use a DO block for each user to handle both auth.users and public.profiles
-    # This script is designed to be run in the Supabase SQL Editor
+    # Updated SQL: Removed 'email' column from public.profiles insert/update
     sql = f"""
 DO $$
 DECLARE
     new_user_id UUID;
 BEGIN
-    -- Check if user exists in auth.users
     SELECT id INTO new_user_id FROM auth.users WHERE email = '{email}';
     
     IF new_user_id IS NULL THEN
-        -- Insert into auth.users (minimal fields for a working account)
         INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token)
         VALUES (
             '00000000-0000-0000-0000-000000000000',
@@ -49,7 +50,7 @@ BEGIN
             crypt('{cpf if cpf else "123456"}', gen_salt('bf')),
             now(),
             '{{"provider":"email","providers":["email"]}}',
-            '{json.dumps({"nome": nome, "telefone": telefone})}',
+            '{json.dumps({"nome": nome_safe, "telefone": tel_safe})}',
             now(),
             now(),
             '',
@@ -60,21 +61,19 @@ BEGIN
         RETURNING id INTO new_user_id;
     END IF;
 
-    -- Upsert profile (the trigger usually creates it, but we ensure data is correct)
-    INSERT INTO public.profiles (id, nome, email, cpf, telefone, bairro)
-    VALUES (new_user_id, '{nome or "Cliente Importado"}', '{email}', '{cpf or ""}', '{telefone or ""}', '{bairro or ""}')
+    INSERT INTO public.profiles (id, nome, cpf, telefone, bairro)
+    VALUES (new_user_id, '{nome_safe}', '{cpf_safe}', '{tel_safe}', '{bairro_safe}')
     ON CONFLICT (id) DO UPDATE SET
         nome = EXCLUDED.nome,
         cpf = EXCLUDED.cpf,
         telefone = EXCLUDED.telefone,
-        bairro = EXCLUDED.bairro,
-        email = EXCLUDED.email;
+        bairro = EXCLUDED.bairro;
 END $$;"""
     sql_statements.append(sql)
 
-with open('/mnt/documents/import_clientes.sql', 'w') as f:
-    f.write("-- Script de Importação de Clientes\n")
+with open('/mnt/documents/import_clientes_v2.sql', 'w') as f:
+    f.write("-- Script de Importação de Clientes (Versão 2 - Sem coluna email em profiles)\n")
     f.write("-- Cole este script no Editor SQL do seu Painel do Supabase\n\n")
     f.write("\n".join(sql_statements))
 
-print(f"Gerado SQL para {len(sql_statements)} clientes em /mnt/documents/import_clientes.sql")
+print(f"Gerado SQL v2 para {len(sql_statements)} clientes em /mnt/documents/import_clientes_v2.sql")
