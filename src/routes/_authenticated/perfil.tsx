@@ -53,7 +53,32 @@ function PerfilPage() {
   useEffect(() => {
     fetchProfile();
     fetchAddresses();
+    fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select(`
+          *,
+          itens:pedido_itens(
+            *,
+            produtos(nome)
+          ),
+          historico:pedido_status_historico(*)
+        `)
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar pedidos:", err.message);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
 
   const fetchProfile = async () => {
     const { data, error } = await supabase
