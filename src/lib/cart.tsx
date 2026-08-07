@@ -17,18 +17,14 @@ import { useQuery } from "@tanstack/react-query";
 let cachedProducts: any[] = [];
 
 const STORAGE_KEY = "saborosamente.cart.v1";
-export const FREE_SHIPPING_FROM = 120;
+export const FREE_SHIPPING_FROM = 999999; // Desativado
 export const SHIPPING_FEE = 14.9;
 
 export const RULES = {
   MIN_ORDER_AMOUNT: 70,
   MIN_ORDER_QUANTITY: 5,
-  SBS_DISCOUNTED_SHIPPING: 5,
-  PROGRESSIVE_DISCOUNT: [
-    { minItems: 5, discountPercent: 3 },
-    { minItems: 10, discountPercent: 5 },
-    { minItems: 20, discountPercent: 7 },
-  ],
+  SBS_DISCOUNTED_SHIPPING: 8.9, // Valor padrão de SBS conforme SiteHeader
+  PROGRESSIVE_DISCOUNT: [], // Desativado
 };
 
 export interface CartLine {
@@ -268,22 +264,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Lógica de Desconto Progressivo
+    // Lógica de Desconto Progressivo (Desativada)
     let discount = 0;
-    const applicableDiscount = [...RULES.PROGRESSIVE_DISCOUNT]
-      .reverse()
-      .find(d => count >= d.minItems);
-    
-    if (applicableDiscount) {
-      // Sopas contam na quantidade mas o valor é fixo (não recebem desconto)
-      const discountableSubtotal = detailed.reduce((acc, l) => {
-        const isSopa = l.product.categoria?.toLowerCase().includes("sopa");
-        if (isSopa) return acc;
-        return acc + l.subtotal;
-      }, 0);
 
-      discount = discountableSubtotal * (applicableDiscount.discountPercent / 100);
-    }
 
     return {
       lines: detailed,
