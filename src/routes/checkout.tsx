@@ -82,18 +82,19 @@ function Checkout() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { 
       pagamento: "pix",
       metodoEntrega: "entrega",
+      horarioEntrega: "",
       cidade: selectedCity 
     },
   });
 
-  const metodoEntrega = useFormContext?.()?.watch?.("metodoEntrega") || "entrega"; // Using watch inside component
-  // Wait, I need to use watch from the hook instance
+  const currentMetodo = watch("metodoEntrega");
 
 
   useEffect(() => {
