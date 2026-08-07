@@ -57,7 +57,9 @@ export const Route = createFileRoute("/admin/produtos")({
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   useMemo(() => {
     if (product) {
@@ -125,6 +127,42 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleGalleryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingGallery(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `gallery/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ 
+        ...formData, 
+        imagens: [...(formData.imagens || []), publicUrl] 
+      });
+      toast.success("Imagem adicionada à galeria!");
+    } catch (error: any) {
+      console.error("Erro no upload da galeria:", error);
+      toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
+    } finally {
+      setIsUploadingGallery(false);
+      if (galleryFileInputRef.current) {
+        galleryFileInputRef.current.value = "";
+      }
     }
   };
 
@@ -234,14 +272,23 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         </div>
                       ))}
                       <button 
-                        onClick={() => {
-                          const url = prompt("Cole a URL da imagem:");
-                          if (url) setFormData({...formData, imagens: [...(formData.imagens || []), url]});
-                        }}
-                        className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors"
+                        onClick={() => galleryFileInputRef.current?.click()}
+                        disabled={isUploadingGallery}
+                        className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors relative"
                       >
-                        <Plus size={20} />
+                        {isUploadingGallery ? (
+                          <Loader2 className="animate-spin" size={20} />
+                        ) : (
+                          <Plus size={20} />
+                        )}
                       </button>
+                      <input 
+                        type="file" 
+                        ref={galleryFileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleGalleryImageUpload}
+                      />
                     </div>
                   </div>
                 </div>
