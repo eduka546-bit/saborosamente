@@ -64,7 +64,9 @@ export const Route = createFileRoute("/admin")({
       return redirect({ to: "/admin/login" });
     }
   },
-  component: AdminLayout,
+  component: function AdminLayoutWrapper() {
+    return <AdminLayout />;
+  },
 });
 
 function AdminLayout() {
