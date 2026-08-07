@@ -437,7 +437,7 @@ function Checkout() {
             disabled={isSubmitting}
             className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
           >
-            {isSubmitting ? "Registrando pedido..." : `Confirmar pedido • ${formatBRL(total)}`}
+            {isSubmitting ? "Registrando pedido..." : `Vamos para o checkout agora • ${formatBRL(total)}`}
           </button>
         </form>
 
