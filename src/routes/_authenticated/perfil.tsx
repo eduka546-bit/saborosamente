@@ -1,11 +1,11 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight } from "lucide-react";
+import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -29,8 +29,11 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
 });
 
+import { useCart } from "@/lib/cart";
+
 function PerfilPage() {
   const { session } = Route.useRouteContext();
+  const { taxas } = useCart();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -55,7 +58,8 @@ function PerfilPage() {
     bairro: "",
     rua: "",
     numero: "",
-    complemento: ""
+    complemento: "",
+    cep: ""
   });
 
   useEffect(() => {
@@ -133,17 +137,19 @@ function PerfilPage() {
 
   const handleCepSearch = async (cep: string) => {
     const numericCep = cep.replace(/\D/g, "");
+    setNewAddress(prev => ({ ...prev, cep: numericCep }));
+
     if (numericCep.length === 8) {
       try {
         const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
         const data = await response.json();
         if (!data.erro) {
-          setNewAddress({
-            ...newAddress,
+          setNewAddress(prev => ({
+            ...prev,
             rua: data.logradouro,
             bairro: data.bairro,
             cidade: data.localidade
-          });
+          }));
           toast.success("CEP encontrado!");
         } else {
           toast.error("CEP não encontrado.");
@@ -177,6 +183,7 @@ function PerfilPage() {
             rua: newAddress.rua,
             numero: newAddress.numero,
             complemento: newAddress.complemento,
+            cep: newAddress.cep,
           })
           .eq("id", editingAddressId);
 
@@ -191,6 +198,7 @@ function PerfilPage() {
           rua: newAddress.rua,
           numero: newAddress.numero,
           complemento: newAddress.complemento,
+          cep: newAddress.cep,
           is_default: addresses.length === 0
         });
 
@@ -200,7 +208,7 @@ function PerfilPage() {
 
       setIsAddingAddress(false);
       setEditingAddressId(null);
-      setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "" });
+      setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "", cep: "" });
       fetchAddresses();
     } catch (error: any) {
       toast.error("Erro ao salvar endereço: " + error.message);
@@ -215,7 +223,8 @@ function PerfilPage() {
       bairro: addr.bairro,
       rua: addr.rua,
       numero: addr.numero,
-      complemento: addr.complemento || ""
+      complemento: addr.complemento || "",
+      cep: addr.cep || ""
     });
     setEditingAddressId(addr.id);
     setIsAddingAddress(true);
@@ -234,6 +243,14 @@ function PerfilPage() {
       toast.error("Erro ao remover: " + error.message);
     }
   };
+
+  const currentTaxa = useMemo(() => {
+    if (!newAddress.cidade || !newAddress.bairro) return null;
+    return taxas.find(
+      t => t.cidade.toLowerCase().trim() === newAddress.cidade.toLowerCase().trim() && 
+           t.bairro.toLowerCase().trim() === newAddress.bairro.toLowerCase().trim()
+    );
+  }, [newAddress.cidade, newAddress.bairro, taxas]);
 
   if (loading) return <div className="p-8 text-center">Carregando...</div>;
 
@@ -436,6 +453,7 @@ function PerfilPage() {
                         <Input 
                           id="cep" 
                           placeholder="00000-000"
+                          value={newAddress.cep}
                           onChange={e => handleCepSearch(e.target.value)}
                         />
                       </div>
@@ -450,6 +468,15 @@ function PerfilPage() {
                         />
                       </div>
                     </div>
+
+                    {currentTaxa && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
+                        <Truck size={18} />
+                        <span className="text-sm font-bold">
+                          Taxa de entrega para este local: R$ {currentTaxa.taxa.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
