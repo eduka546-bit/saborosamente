@@ -167,7 +167,7 @@ function Checkout() {
     
     if (profile) {
       setValue("nome", profile.nome || "");
-      setValue("email", currentSession.user.email || "");
+      setValue("email", currentSession.user.email || currentSession.user.user_metadata?.email || "");
       setValue("telefone", profile.telefone || "");
     }
 
