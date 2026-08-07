@@ -211,7 +211,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
       if (!product) return [];
-      return [{ ...line, product, subtotal: product.preco * line.quantity }];
+      
+      const isSopa = product.categoria?.toLowerCase().includes("sopa");
+      const price = isSopa ? 18.00 : (line.weight === "300g" && product.preco_300g 
+        ? product.preco_300g 
+        : line.weight === "400g" && product.preco_400g
+          ? product.preco_400g
+          : product.preco);
+          
+      return [{ ...line, product, subtotal: price * line.quantity }];
     });
 
     const subtotal = detailed.reduce((acc, l) => acc + l.subtotal, 0);
