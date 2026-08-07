@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { ChevronRight, Percent } from "lucide-react";
+import { ChevronRight, Percent, ShoppingBag } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
@@ -15,7 +15,16 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
   const nextTier = tiers.find(t => count < t.minItems);
   const currentTier = [...tiers].reverse().find(t => count >= t.minItems);
 
-  if (count === 0) return null;
+  if (count === 0) {
+    return (
+      <div 
+        onClick={onClick}
+        className="fixed right-4 bottom-24 z-50 flex items-center justify-center bg-primary text-white size-14 rounded-full shadow-2xl border-4 border-white cursor-pointer hover:scale-110 transition-transform animate-in fade-in slide-in-from-bottom-4 duration-500 group"
+      >
+        <ShoppingBag size={24} className="group-hover:animate-bounce" />
+      </div>
+    );
+  }
 
   return (
     <div 
