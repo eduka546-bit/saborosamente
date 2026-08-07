@@ -445,6 +445,63 @@ function AdminSiteConfig() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="promos" className="mt-6 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <ImageIcon className="text-[#5850ec]" size={20} /> Carrossel de 3 Banners (Home)
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Troque as três imagens exibidas abaixo da capa. Proporção recomendada: 4:5 (ex.: 800x1000px).
+            </p>
+
+            <div className="grid gap-6 sm:grid-cols-3">
+              {promoBanners.map((banner, index) => (
+                <div key={index} className="space-y-3 p-3 border rounded-xl bg-gray-50">
+                  <Label>Banner {index + 1}</Label>
+                  <div className="relative aspect-[4/5] rounded-xl bg-white overflow-hidden border">
+                    {banner.image_url ? (
+                      <img src={banner.image_url} alt={banner.alt || ""} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sem imagem</div>
+                    )}
+                    <Button
+                      size="sm"
+                      className="absolute bottom-2 right-2 bg-white text-black hover:bg-gray-100"
+                      onClick={() => promoRefs[index]?.current?.click()}
+                      disabled={isUploading[`promo_${index}`]}
+                    >
+                      {isUploading[`promo_${index}`] ? <Loader2 className="animate-spin size-4" /> : <Upload size={14} className="mr-2" />}
+                      Trocar
+                    </Button>
+                    <input
+                      ref={promoRefs[index]}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={e => e.target.files?.[0] && handlePromoUpload(e.target.files[0], index)}
+                    />
+                  </div>
+                  <Input
+                    placeholder="Texto alternativo (acessibilidade)"
+                    value={banner.alt || ""}
+                    onChange={e => handlePromoChange(index, "alt", e.target.value)}
+                  />
+                  <Input
+                    placeholder="Link ao clicar (opcional)"
+                    value={banner.link || ""}
+                    onChange={e => handlePromoChange(index, "link", e.target.value)}
+                  />
+                  {banner.image_url && (
+                    <Button variant="ghost" size="sm" className="text-red-500 w-full" onClick={() => handlePromoChange(index, "image_url", "")}>
+                      <Trash2 size={16} className="mr-2" /> Remover imagem
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
 
