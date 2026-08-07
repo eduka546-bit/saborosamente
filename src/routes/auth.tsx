@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { redirect } = Route.useSearch();
-  const navigate = useNavigate();
+
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
