@@ -35,19 +35,35 @@ export function SiteHeader() {
   const { count } = useCart();
   const queryClient = useQueryClient();
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) checkAdminStatus(u.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) checkAdminStatus(u.id);
+      else setIsAdmin(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkAdminStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    
+    setIsAdmin(!!data);
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -222,12 +238,14 @@ export function SiteHeader() {
                     <span className="font-semibold text-xs">Meu Perfil</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
-                  <Link to="/admin" className="flex items-center gap-2 w-full">
-                    <Lock className="h-4 w-4" />
-                    <span className="font-semibold text-xs">Painel Admin</span>
-                  </Link>
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                    <Link to="/admin" className="flex items-center gap-2 w-full">
+                      <Lock className="h-4 w-4" />
+                      <span className="font-semibold text-xs">Painel Admin</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleSignOut}
