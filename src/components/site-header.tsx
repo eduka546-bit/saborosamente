@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X } from "lucide-react";
+import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X, ShoppingCart } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
@@ -177,18 +177,19 @@ export function SiteHeader() {
             <User size={20} />
           </Link>
 
-          <Link
-            to="/carrinho"
-            className="relative flex items-center justify-center size-10 rounded-full hover:bg-black/5 transition-colors"
-            style={{ color: navText }}
-          >
-            <ShoppingBag size={22} />
-            {count > 0 && (
-              <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
-                {count}
-              </span>
-            )}
-          </Link>
+          <CartSheet>
+            <button
+              className="relative flex items-center justify-center size-10 rounded-full hover:bg-black/5 transition-colors"
+              style={{ color: navText }}
+            >
+              <ShoppingBag size={22} />
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                  {count}
+                </span>
+              )}
+            </button>
+          </CartSheet>
         </div>
       </div>
 
