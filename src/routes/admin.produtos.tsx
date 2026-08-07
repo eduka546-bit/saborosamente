@@ -66,6 +66,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
         preco_custo_formatado: product.preco_custo?.toFixed(2).replace('.', ',') || "",
+        preco_300g_formatado: product.preco_300g?.toFixed(2).replace('.', ',') || "",
+        preco_400g_formatado: product.preco_400g?.toFixed(2).replace('.', ',') || "",
         status: (product.status || 'ativo').toLowerCase()
       });
     } else {
@@ -74,6 +76,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         nome: "",
         preco: 0,
         preco_formatado: "0,00",
+        preco_300g: null,
+        preco_300g_formatado: "",
+        preco_400g: null,
+        preco_400g_formatado: "",
         categoria_id: categories[0]?.id || "",
         status: 'ativo',
         imagem_url: "",
