@@ -45,7 +45,7 @@ export function ProductCard({ product }: ProductCardProps) {
     add(product.id, 1, selectedWeight);
     toast.success("Adicionado", { 
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
-      className: "max-w-[300px] text-xs py-2 px-3",
+      className: "max-w-[280px] text-xs font-medium",
     });
   };
 
