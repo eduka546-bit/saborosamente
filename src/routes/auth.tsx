@@ -27,6 +27,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -49,6 +50,7 @@ function AuthPage() {
             data: {
               nome,
               telefone,
+              cpf,
             },
           },
         });
@@ -135,8 +137,28 @@ function AuthPage() {
             </div>
           </div>
 
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <div className="relative">
+                <Fingerprint className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="cpf"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Seu CPF"
+                  className="pl-10"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="password">{isLogin ? "Senha (Seu CPF)" : "CPF (será sua senha)"}</Label>
+            <Label htmlFor="password">{isLogin ? "Senha (Seu CPF)" : "Senha (Crie sua senha)"}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -150,6 +172,7 @@ function AuthPage() {
                 onChange={(e) => {
                   const val = e.target.value.replace(/\D/g, "");
                   setPassword(val);
+                  if (!isLogin) setCpf(val);
                 }}
                 required
               />
