@@ -65,6 +65,7 @@ function Checkout() {
   const { 
     lines, 
     subtotal, 
+    discount,
     shipping, 
     total, 
     clear, 
@@ -74,6 +75,8 @@ function Checkout() {
     setSelectedBairro,
     taxas
   } = useCart();
+
+  const createOrderFn = useServerFn(createOrder);
 
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | null>(null);
