@@ -85,6 +85,7 @@ function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [session, setSession] = useState<any>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isFetchingCEP, setIsFetchingCEP] = useState(false);
 
   const {
     register,
