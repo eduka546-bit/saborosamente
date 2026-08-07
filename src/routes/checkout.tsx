@@ -184,6 +184,11 @@ function Checkout() {
     setSelectedAddressId(addr.id);
     setSelectedCity(addr.cidade);
     setSelectedBairro(addr.bairro);
+    if (addr.cep) {
+      const digits = String(addr.cep).replace(/\D/g, "");
+      const masked = digits.length === 8 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : String(addr.cep);
+      setValue("cep", masked, { shouldDirty: true, shouldValidate: true });
+    }
     setValue("cidade", addr.cidade);
     setValue("bairro", addr.bairro);
     setValue("endereco", `${addr.rua}, ${addr.numero}`);
