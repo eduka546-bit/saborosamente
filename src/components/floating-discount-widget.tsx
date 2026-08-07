@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { ChevronRight, Percent } from "lucide-react";
+import { ChevronRight, Percent, ShoppingBag } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
@@ -15,7 +15,16 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
   const nextTier = tiers.find(t => count < t.minItems);
   const currentTier = [...tiers].reverse().find(t => count >= t.minItems);
 
-  if (count === 0) return null;
+  if (count === 0) {
+    return (
+      <div 
+        onClick={onClick}
+        className="fixed right-4 bottom-24 z-50 flex items-center justify-center bg-primary text-white size-14 rounded-full shadow-2xl border-4 border-white cursor-pointer hover:scale-110 transition-transform animate-in fade-in slide-in-from-bottom-4 duration-500 group"
+      >
+        <ShoppingBag size={24} className="group-hover:animate-bounce" />
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -66,8 +75,11 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
       </div>
       
       {/* Floating indicator for mobile or simple view */}
-      <div className="md:hidden bg-primary text-white size-12 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
-        <span className="text-xs font-black">{count}</span>
+      <div className="md:hidden bg-primary text-white size-14 rounded-full flex items-center justify-center shadow-xl border-4 border-white relative">
+        <ShoppingBag size={20} />
+        <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-black size-5 rounded-full flex items-center justify-center border-2 border-white">
+          {count}
+        </span>
       </div>
     </div>
   );
