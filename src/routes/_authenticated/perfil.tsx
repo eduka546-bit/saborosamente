@@ -68,8 +68,7 @@ function PerfilPage() {
           ),
           historico:pedido_status_historico(*)
         `)
-        // .eq("user_id", session.user.id) // Temporariamente desativado até rodar o SQL
-        .eq("email_cliente", session.user.email)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
