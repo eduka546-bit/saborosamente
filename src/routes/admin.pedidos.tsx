@@ -231,7 +231,8 @@ function AdminOrdersPage() {
           itens:pedido_itens(
             *,
             produtos(nome)
-          )
+          ),
+          historico:pedido_status_historico(*)
         `)
         .order("created_at", { ascending: false });
 
