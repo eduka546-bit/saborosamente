@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X, ShoppingCart } from "lucide-react";
+import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X, LogOut, Lock } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
@@ -13,7 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "./ui/button";
 import { CartSheet } from "./cart-sheet";
 
 const links = [
@@ -27,6 +34,24 @@ export function SiteHeader() {
   const { count } = useCart();
   const queryClient = useQueryClient();
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   const { data: areas, isLoading } = useQuery({
     queryKey: ["delivery-areas"],
@@ -175,9 +200,52 @@ export function SiteHeader() {
 
         {/* Right side - User and Cart */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link to="/auth" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
-            <User size={20} />
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary overflow-hidden"
+                  style={{ color: navText }}
+                >
+                  <User size={20} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-soft border-border bg-white z-[300]">
+                <div className="px-2 py-1.5 mb-1 border-b border-border/50">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sua Conta</p>
+                  <p className="text-xs font-medium truncate opacity-70">{user.email}</p>
+                </div>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                  <Link to="/_authenticated/perfil" className="flex items-center gap-2 w-full">
+                    <User className="h-4 w-4" />
+                    <span className="font-semibold text-xs">Meu Perfil</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                  <Link to="/admin" className="flex items-center gap-2 w-full">
+                    <Lock className="h-4 w-4" />
+                    <span className="font-semibold text-xs">Painel Admin</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleSignOut}
+                  className="rounded-xl cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span className="font-semibold text-xs">Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link 
+              to="/auth" 
+              style={{ color: navText }} 
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
+            >
+              <User size={20} />
+            </Link>
+          )}
 
           <CartSheet>
             <button
