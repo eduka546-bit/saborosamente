@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Precisa também ter opção no editor de alterar a tabela nutricional de cada tamanho, fixo só para colocar o valor de kcal, carb e prot.</div>
+        <div className="sr-only">lembre se de que cada sql que eu precisar rodar no supabase, me envia aqui no chat</div>
         {children}
         <Scripts />
       </body>
