@@ -82,6 +82,8 @@ function Checkout() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [session, setSession] = useState<any>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const {
     register,
@@ -106,8 +108,13 @@ function Checkout() {
   }, []);
 
   const fetchUserData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    setIsCheckingAuth(true);
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    setSession(currentSession);
+    setIsCheckingAuth(false);
+
+    if (!currentSession) return;
+
 
     // Fetch Profile
     const { data: profile } = await supabase
@@ -211,7 +218,45 @@ function Checkout() {
     );
   }
 
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <section className="mx-auto max-w-xl px-4 py-24 text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <MapPin className="h-8 w-8" />
+        </div>
+        <h1 className="text-3xl font-extrabold">Finalize seu pedido</h1>
+        <p className="mt-4 text-muted-foreground">
+          Para iniciar a compra não precisa login, mas na hora do checkout o cliente precisa fazer o cadastro rápido se ainda não tem, daí para colocar as informações de entrega, forma de pagamento e etc.
+        </p>
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            to="/auth"
+            search={{ redirect: "/checkout" }}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:scale-105"
+          >
+            Fazer login / Cadastro rápido
+          </Link>
+          <Link
+            to="/#cardapio"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-background px-8 py-3 text-sm font-bold transition-colors hover:bg-muted"
+          >
+            Continuar comprando
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
+
     <section className="mx-auto max-w-6xl px-4 py-14">
       <h1 className="text-4xl font-extrabold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">

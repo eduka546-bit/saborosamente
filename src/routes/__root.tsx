@@ -128,11 +128,10 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Vamos ter que fazer um cadastro rápido de cada cliente, já vou te enviar os que já temos no outro site, para os clientes que já tem cadastro continuar com o histórico:
-O login vai ser email e a senha o CPF</div>
         {children}
         <Scripts />
       </body>
+
     </html>
   );
 }
