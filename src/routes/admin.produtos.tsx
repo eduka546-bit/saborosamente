@@ -57,7 +57,9 @@ export const Route = createFileRoute("/admin/produtos")({
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   useMemo(() => {
     if (product) {
