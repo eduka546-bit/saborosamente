@@ -9,6 +9,8 @@ import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { createOrder } from "@/lib/orders.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
