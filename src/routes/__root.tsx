@@ -126,9 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Error: Failed to run sql query: ERROR: 42P07: relation "categorias" already exists
-
-precisa aparecer agora apenas os complementos que foram adicionados</div>
+        <div className="sr-only">Habilitei a opção de 3 preços (200g, 300g e 400g) no editor de produtos. Rode o SQL enviado para atualizar seu banco.</div>
         {children}
         <Scripts />
       </body>

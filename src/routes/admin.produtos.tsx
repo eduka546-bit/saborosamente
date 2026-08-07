@@ -66,6 +66,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
         preco_custo_formatado: product.preco_custo?.toFixed(2).replace('.', ',') || "",
+        preco_300g_formatado: product.preco_300g?.toFixed(2).replace('.', ',') || "",
+        preco_400g_formatado: product.preco_400g?.toFixed(2).replace('.', ',') || "",
         status: (product.status || 'ativo').toLowerCase()
       });
     } else {
@@ -74,6 +76,10 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         nome: "",
         preco: 0,
         preco_formatado: "0,00",
+        preco_300g: null,
+        preco_300g_formatado: "",
+        preco_400g: null,
+        preco_400g_formatado: "",
         categoria_id: categories[0]?.id || "",
         status: 'ativo',
         imagem_url: "",
@@ -123,6 +129,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       preco_formatado, 
       preco_promocional_formatado, 
       preco_custo_formatado,
+      preco_300g_formatado,
+      preco_400g_formatado,
       categorias, 
       ...rest 
     } = formData;
@@ -136,6 +144,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     const preco = parseFloat(preco_formatado.replace(',', '.'));
     const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
     const preco_custo = preco_custo_formatado ? parseFloat(preco_custo_formatado.replace(',', '.')) : null;
+    const preco_300g = preco_300g_formatado ? parseFloat(preco_300g_formatado.replace(',', '.')) : null;
+    const preco_400g = preco_400g_formatado ? parseFloat(preco_400g_formatado.replace(',', '.')) : null;
     
     if (isNaN(preco)) {
       toast.error("Por favor, insira um preço válido");
@@ -144,7 +154,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
     const status = (formData.status || 'ativo').toLowerCase();
-    onSave({ ...rest, preco, preco_promocional, preco_custo, status });
+    onSave({ ...rest, preco, preco_promocional, preco_custo, preco_300g, preco_400g, status });
   };
 
   return (
@@ -214,9 +224,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor *</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (200g) *</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
                         <Input 
@@ -226,6 +236,31 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         />
                       </div>
                     </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (300g)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                        <Input 
+                          value={formData.preco_300g_formatado} 
+                          onChange={(e) => setFormData({ ...formData, preco_300g_formatado: e.target.value })}
+                          className="h-10 pl-9 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (400g)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                        <Input 
+                          value={formData.preco_400g_formatado} 
+                          onChange={(e) => setFormData({ ...formData, preco_400g_formatado: e.target.value })}
+                          className="h-10 pl-9 border-gray-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Categoria</label>
                       <select 
