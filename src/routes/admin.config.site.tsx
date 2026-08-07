@@ -529,11 +529,12 @@ function AdminSiteConfig() {
               </div>
               <Button 
                 onClick={async () => {
-                  if (!confirm("Isso irá criar contas de acesso para 450 clientes. Continuar?")) return;
+                  if (!confirm("Isso irá criar contas de acesso para os clientes preparados. Continuar?")) return;
                   try {
                     setIsImporting(true);
                     const result = await importFn();
-                    toast.success(`Importação concluída! Sucesso: ${result.success}, Erros: ${result.errors}`);
+                    toast.success(`Importação concluída! Sucesso: ${result.success}, Erros/Pulados: ${result.errors}`, { duration: 6000 });
+
                     if (result.errors > 0) {
                       console.log("Erros de importação:", result.details);
                     }
