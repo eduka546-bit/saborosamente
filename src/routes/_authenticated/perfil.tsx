@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned } from "lucide-react";
+import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   beforeLoad: async () => {
@@ -25,8 +35,10 @@ function PerfilPage() {
   const [profile, setProfile] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
   
-  // Form state for new address
+  // Form state for new/edit address
   const [newAddress, setNewAddress] = useState({
     label: "",
     cidade: "",
@@ -62,36 +74,70 @@ function PerfilPage() {
     if (data) setAddresses(data);
   };
 
-  const handleAddAddress = async (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from("user_addresses").insert({
-        user_id: session.user.id,
-        label: newAddress.label || "Endereço",
-        cidade: newAddress.cidade,
-        bairro: newAddress.bairro,
-        rua: newAddress.rua,
-        numero: newAddress.numero,
-        complemento: newAddress.complemento,
-        is_default: addresses.length === 0
-      });
+      if (editingAddressId) {
+        const { error } = await supabase
+          .from("user_addresses")
+          .update({
+            label: newAddress.label || "Endereço",
+            cidade: newAddress.cidade,
+            bairro: newAddress.bairro,
+            rua: newAddress.rua,
+            numero: newAddress.numero,
+            complemento: newAddress.complemento,
+          })
+          .eq("id", editingAddressId);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success("Endereço atualizado!");
+      } else {
+        const { error } = await supabase.from("user_addresses").insert({
+          user_id: session.user.id,
+          label: newAddress.label || "Endereço",
+          cidade: newAddress.cidade,
+          bairro: newAddress.bairro,
+          rua: newAddress.rua,
+          numero: newAddress.numero,
+          complemento: newAddress.complemento,
+          is_default: addresses.length === 0
+        });
 
-      toast.success("Endereço adicionado com sucesso!");
+        if (error) throw error;
+        toast.success("Endereço adicionado!");
+      }
+
       setIsAddingAddress(false);
+      setEditingAddressId(null);
       setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "" });
       fetchAddresses();
     } catch (error: any) {
-      toast.error("Erro ao adicionar endereço: " + error.message);
+      toast.error("Erro ao salvar endereço: " + error.message);
     }
   };
 
-  const handleDeleteAddress = async (id: string) => {
+  const handleEditAddress = (addr: any) => {
+    setNewAddress({
+      label: addr.label,
+      cidade: addr.cidade,
+      bairro: addr.bairro,
+      rua: addr.rua,
+      numero: addr.numero,
+      complemento: addr.complemento || ""
+    });
+    setEditingAddressId(addr.id);
+    setIsAddingAddress(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteAddress = async () => {
+    if (!addressToDelete) return;
     try {
-      const { error } = await supabase.from("user_addresses").delete().eq("id", id);
+      const { error } = await supabase.from("user_addresses").delete().eq("id", addressToDelete);
       if (error) throw error;
       toast.success("Endereço removido");
+      setAddressToDelete(null);
       fetchAddresses();
     } catch (error: any) {
       toast.error("Erro ao remover: " + error.message);
@@ -139,7 +185,10 @@ function PerfilPage() {
               <MapPinned className="h-5 w-5 text-primary" />
               Meus Endereços
             </h2>
-            <Button onClick={() => setIsAddingAddress(!isAddingAddress)} size="sm" className="rounded-full">
+            <Button onClick={() => {
+              setIsAddingAddress(!isAddingAddress);
+              if (!isAddingAddress) setEditingAddressId(null);
+            }} size="sm" className="rounded-full">
               {isAddingAddress ? "Cancelar" : <><Plus className="mr-2 h-4 w-4" /> Novo Endereço</>}
             </Button>
           </div>
@@ -147,10 +196,10 @@ function PerfilPage() {
           {isAddingAddress && (
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader>
-                <CardTitle className="text-lg">Adicionar Novo Endereço</CardTitle>
+                <CardTitle className="text-lg">{editingAddressId ? "Editar Endereço" : "Adicionar Novo Endereço"}</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleAddAddress} className="space-y-4">
+                <form onSubmit={handleSaveAddress} className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
@@ -211,7 +260,7 @@ function PerfilPage() {
                       />
                     </div>
                   </div>
-                  <Button type="submit" className="w-full">Salvar Endereço</Button>
+                  <Button type="submit" className="w-full">{editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}</Button>
                 </form>
               </CardContent>
             </Card>
@@ -246,14 +295,24 @@ function PerfilPage() {
                         </p>
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteAddress(addr.id)}
-                    >
-                      <Trash2 size={18} />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => handleEditAddress(addr)}
+                      >
+                        <Pencil size={18} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setAddressToDelete(addr.id)}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -261,6 +320,26 @@ function PerfilPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+        <AlertDialogContent className="rounded-3xl border-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">Excluir endereço?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O endereço será removido permanentemente da sua conta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="rounded-full border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAddress}
+              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Exclusão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
