@@ -126,9 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Error: Failed to run sql query: ERROR: 42P07: relation "categorias" already exists
-
-precisa aparecer agora apenas os complementos que foram adicionados</div>
+        <div className="sr-only">Os produtos que tiverem variações de tamanhos, precisa ter 3 preços, como tem como habilitar essa opção no editar?</div>
         {children}
         <Scripts />
       </body>
