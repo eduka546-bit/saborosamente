@@ -4,7 +4,7 @@ import {
   Search, Filter, Calendar, Package, Clock, 
   ChevronRight, MoreVertical, CheckCircle2, 
   Clock3, XCircle, AlertCircle, Eye, Printer,
-  Smartphone, MapPin, User, Receipt
+  Smartphone, MapPin, User, Receipt, History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
