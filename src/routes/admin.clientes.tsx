@@ -98,12 +98,10 @@ function AdminClientesPage() {
       setIsImporting(true);
       const result = await importFn();
       
-      if (result.success) {
-        toast.success(`Importação concluída: ${result.imported} importados, ${result.skipped} pulados.`, {
+      if (result.success || result.errors) {
+        toast.success(`Importação concluída: ${result.success} sucessos, ${result.errors} erros/pulados.`, {
           duration: 5000
         });
-      } else {
-        toast.error("Erro na importação: " + result.error);
       }
     } catch (error: any) {
       toast.error("Falha ao iniciar importação: " + error.message);
