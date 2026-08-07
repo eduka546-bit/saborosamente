@@ -24,6 +24,7 @@ function Carrinho() {
   const {
     lines,
     subtotal,
+    discount,
     shipping,
     total,
     count,
@@ -171,6 +172,12 @@ function Carrinho() {
                 <dt className="text-muted-foreground">Subtotal</dt>
                 <dd className="font-medium">{formatBRL(subtotal)}</dd>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-brand-dark">
+                  <dt className="text-primary font-semibold">Desconto Progressivo</dt>
+                  <dd className="font-bold">-{formatBRL(discount)}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Entrega</dt>
                 <dd className="font-medium">

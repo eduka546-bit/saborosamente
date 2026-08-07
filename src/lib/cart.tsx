@@ -24,6 +24,11 @@ export const RULES = {
   MIN_ORDER_AMOUNT: 70,
   MIN_ORDER_QUANTITY: 5,
   SBS_DISCOUNTED_SHIPPING: 5,
+  PROGRESSIVE_DISCOUNT: [
+    { minItems: 10, discountPercent: 5 },
+    { minItems: 20, discountPercent: 10 },
+    { minItems: 30, discountPercent: 15 },
+  ],
 };
 
 export interface CartLine {
@@ -41,6 +46,7 @@ interface CartContextValue {
   lines: CartLineDetailed[];
   count: number;
   subtotal: number;
+  discount: number;
   shipping: number;
   total: number;
   selectedCity: string;
@@ -236,13 +242,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Lógica de Desconto Progressivo
+    let discount = 0;
+    const applicableDiscount = [...RULES.PROGRESSIVE_DISCOUNT]
+      .reverse()
+      .find(d => count >= d.minItems);
+    
+    if (applicableDiscount) {
+      discount = subtotal * (applicableDiscount.discountPercent / 100);
+    }
 
     return {
       lines: detailed,
       count,
       subtotal,
+      discount,
       shipping,
-      total: subtotal + shipping,
+      total: subtotal - discount + shipping,
       selectedCity,
       selectedBairro,
       taxas,
