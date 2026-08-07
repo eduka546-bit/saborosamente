@@ -51,7 +51,6 @@ export const createOrder = createServerFn({ method: "POST" })
       observacao: data.observacoes,
       valor_total: data.valorTotal,
       taxa_entrega: data.taxaEntrega,
-      cupom_codigo: data.cupom,
       status: "Pendente",
     };
 
