@@ -24,18 +24,19 @@ function AdminClientesPage() {
     queryKey: ["admin-clients"],
     queryFn: async () => {
       // 1. Buscar perfis (clientes cadastrados)
+      console.log("Iniciando busca de perfis...");
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .order("nome", { ascending: true });
 
       if (profileError) {
-        console.error("Profile error details:", profileError);
+        console.error("Erro ao buscar perfis:", profileError);
         toast.error("Erro ao carregar perfis: " + profileError.message);
         throw profileError;
       }
       
-      console.log("Profiles loaded:", profiles?.length);
+      console.log("Perfis encontrados no banco:", profiles?.length);
 
       // 2. Buscar pedidos para histórico
       const { data: orders, error: orderError } = await supabase
