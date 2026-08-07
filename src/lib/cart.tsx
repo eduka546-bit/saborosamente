@@ -23,12 +23,8 @@ export const SHIPPING_FEE = 14.9;
 export const RULES = {
   MIN_ORDER_AMOUNT: 70,
   MIN_ORDER_QUANTITY: 5,
-  SBS_DISCOUNTED_SHIPPING: 5,
-  PROGRESSIVE_DISCOUNT: [
-    { minItems: 5, discountPercent: 3 },
-    { minItems: 10, discountPercent: 5 },
-    { minItems: 20, discountPercent: 7 },
-  ],
+  SBS_DISCOUNTED_SHIPPING: 8.9, // Valor padrão de SBS conforme SiteHeader
+  PROGRESSIVE_DISCOUNT: [], // Desativado
 };
 
 export interface CartLine {
