@@ -169,7 +169,7 @@ export function SiteHeader() {
   const heroMobileSrc = settings?.hero_image_url || bannerMobileAsset.url;
 
   return (
-    <header className="relative z-[200] transition-all duration-300 pointer-events-none">
+    <header className="relative z-[40] transition-all duration-300 pointer-events-none">
       {/* Announcement Bar */}
       <div 
         style={{ backgroundColor: announceBg, color: announceText }}
