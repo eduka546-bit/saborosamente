@@ -33,7 +33,9 @@ export const Route = createFileRoute("/admin/config/site")({
 
 function AdminSiteConfig() {
   const queryClient = useQueryClient();
+  const importFn = useServerFn(importExistingCustomers);
   const [isUploading, setIsUploading] = useState<{ [key: string]: boolean }>({});
+  const [isImporting, setIsImporting] = useState(false);
   const heroRef = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
   const promoRefs = [
