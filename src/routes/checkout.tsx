@@ -30,13 +30,22 @@ const checkoutSchema = z.object({
   nome: z.string().trim().min(3, "Informe seu nome completo").max(80),
   email: z.string().trim().email("E-mail inválido").max(120),
   telefone: z.string().trim().min(10, "Telefone com DDD").max(20),
+  metodoEntrega: z.enum(["entrega", "retirada"]),
+  horarioEntrega: z.string().min(1, "Selecione um horário"),
   cep: z.string().trim().optional(),
-
-  endereco: z.string().trim().min(5, "Informe rua e número").max(160),
+  endereco: z.string().trim().max(160).optional(),
   complemento: z.string().trim().max(80).optional(),
-  cidade: z.string().trim().min(2, "Informe a cidade").max(80),
+  cidade: z.string().trim().max(80).optional(),
   pagamento: z.enum(["pix", "cartao", "dinheiro"]),
   observacoes: z.string().trim().max(300).optional(),
+}).refine((data) => {
+  if (data.metodoEntrega === "entrega") {
+    return !!data.cidade && !!data.endereco;
+  }
+  return true;
+}, {
+  message: "Endereço é obrigatório para entrega",
+  path: ["endereco"],
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
