@@ -233,10 +233,11 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-[640px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
+          <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
         </TabsList>
 
 
@@ -449,3 +450,4 @@ function AdminSiteConfig() {
 
   );
 }
+
