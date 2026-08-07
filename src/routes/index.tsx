@@ -52,6 +52,7 @@ const infoCards = [
 function Index() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
@@ -77,9 +78,20 @@ function Index() {
         ];
 
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === "Todas") return products;
-    return products.filter((p: any) => p.categorias?.nome === selectedCategory);
-  }, [products, selectedCategory]);
+    let result = products;
+    if (selectedCategory !== "Todas") {
+      result = result.filter((p: any) => p.categorias?.nome === selectedCategory);
+    }
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      result = result.filter((p: any) => 
+        p.nome?.toLowerCase().includes(search) || 
+        p.descricao?.toLowerCase().includes(search) ||
+        p.categorias?.nome?.toLowerCase().includes(search)
+      );
+    }
+    return result;
+  }, [products, selectedCategory, searchTerm]);
 
   const categoriesWithProducts = useMemo(() => {
     const set = new Set<string>();
@@ -120,16 +132,19 @@ function Index() {
                      e.preventDefault();
                      const formData = new FormData(e.currentTarget);
                      const q = formData.get("q") as string;
-                     if (q) navigate({ to: "/catalogo", search: { q } });
+                     setSearchTerm(q || "");
+                     document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
                    }}
                    className="flex items-center gap-3 text-gray-400 w-full md:w-48 justify-end group"
                  >
-                   <input 
-                     name="q"
-                     type="text" 
-                     placeholder="Pesquisar..." 
-                     className="bg-transparent border-none outline-none text-[11px] font-medium w-full text-right placeholder:text-gray-300 focus:placeholder:text-gray-200"
-                   />
+                    <input 
+                      name="q"
+                      type="text" 
+                      placeholder="Pesquisar..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-transparent border-none outline-none text-[11px] font-medium w-full text-right placeholder:text-gray-300 focus:placeholder:text-gray-200"
+                    />
                    <button type="submit" className="hover:scale-110 transition-transform">
                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-focus-within:opacity-80">
                        <circle cx="11" cy="11" r="8"></circle>
@@ -209,14 +224,24 @@ function Index() {
             <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">
-                  {selectedCategory === "Todas" ? "Nosso Cardápio" : selectedCategory}
+                  {searchTerm ? `Resultados para "${searchTerm}"` : selectedCategory === "Todas" ? "Nosso Cardápio" : selectedCategory}
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground font-medium">
-                  {selectedCategory === "Todas" 
-                    ? "Escolha suas marmitas favoritas e monte seu combo."
-                    : `Mostrando todas as opções em ${selectedCategory}.`}
+                  {searchTerm 
+                    ? `Encontramos ${filteredProducts.length} opções.`
+                    : selectedCategory === "Todas" 
+                      ? "Escolha suas marmitas favoritas e monte seu combo."
+                      : `Mostrando todas as opções em ${selectedCategory}.`}
                 </p>
               </div>
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm("")}
+                  className="text-xs font-bold text-[#e76800] hover:underline uppercase tracking-wider"
+                >
+                  Limpar busca ×
+                </button>
+              )}
             </div>
 
             {isLoading ? (
@@ -252,12 +277,16 @@ function Index() {
           <p className="mx-auto mt-4 max-w-xl text-sm opacity-90 md:text-base">
             Monte um combo com 10 marmitas e ganhe frete grátis. Sem assinatura, sem fidelidade.
           </p>
-          <Link
-            to="/catalogo"
+          <a
+            href="#cardapio"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className="mt-8 inline-flex items-center rounded-full bg-sun px-8 py-3 text-sm font-bold text-sun-foreground transition-transform hover:scale-[1.03]"
           >
             Montar meu combo
-          </Link>
+          </a>
         </div>
       </section>
     </>
