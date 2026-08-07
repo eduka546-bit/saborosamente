@@ -25,6 +25,7 @@ const createOrderSchema = z.object({
   valorTotal: z.number(),
   taxaEntrega: z.number(),
   desconto: z.number(),
+  cupom: z.string().optional(),
   items: z.array(orderItemSchema),
 });
 

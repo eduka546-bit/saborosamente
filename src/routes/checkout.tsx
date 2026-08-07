@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { createOrder } from "@/lib/orders.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { Ticket } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -41,6 +42,7 @@ const checkoutSchema = z.object({
   bairro: z.string().trim().max(80).optional(),
   pagamento: z.enum(["pix", "cartao", "dinheiro"]),
   observacoes: z.string().trim().max(300).optional(),
+  cupom: z.string().trim().optional(),
 }).refine((data) => {
   if (data.metodoEntrega === "entrega") {
     return !!data.cidade && !!data.endereco;
@@ -589,6 +591,21 @@ function Checkout() {
             </label>
             <textarea id="observacoes" rows={3} className={fieldClass} {...register("observacoes")} />
           </div>
+
+          <fieldset className="space-y-4">
+            <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              Cupom de Desconto
+            </legend>
+            <div className="relative">
+              <Ticket className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input 
+                id="cupom" 
+                placeholder="Tem um cupom?" 
+                className={cn(fieldClass, "pl-10 uppercase")} 
+                {...register("cupom")} 
+              />
+            </div>
+          </fieldset>
 
           <button
             type="submit"
