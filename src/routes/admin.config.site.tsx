@@ -508,6 +508,7 @@ function AdminSiteConfig() {
               ))}
             </div>
           </div>
+        </TabsContent>
         <TabsContent value="system" className="mt-6 space-y-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
