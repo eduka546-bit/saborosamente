@@ -53,7 +53,7 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Cadastro realizado! Verifique seu e-mail.");
+        toast.success("Cadastro realizado com sucesso!");
       }
       if (redirect && redirect !== "/") {
         window.location.href = redirect;
