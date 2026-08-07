@@ -206,7 +206,104 @@ function PerfilPage() {
         </Card>
 
         {/* Gerenciamento de Endereços */}
-        <div className="space-y-6">
+        {/* Gerenciamento de Endereços e Pedidos */}
+        <div className="space-y-12">
+          {/* Meus Pedidos */}
+          <section className="space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              Meus Pedidos
+            </h2>
+
+            {loadingOrders ? (
+              <div className="text-center py-8">Carregando pedidos...</div>
+            ) : orders.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                  <p className="text-muted-foreground">Você ainda não realizou nenhum pedido.</p>
+                  <Button asChild variant="outline" className="mt-4 rounded-full">
+                    <Link to="/">Ir para o Cardápio</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <Card key={order.id} className="overflow-hidden">
+                    <div className="bg-muted/30 px-6 py-4 flex items-center justify-between border-b">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pedido</p>
+                          <p className="font-bold text-primary">#{order.id.slice(0, 8)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Data</p>
+                          <p className="text-sm font-medium">
+                            {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+                          order.status === 'Entregue' ? 'bg-green-50 text-green-600 border-green-200' :
+                          order.status === 'Cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
+                          'bg-yellow-50 text-yellow-600 border-yellow-200'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                    </div>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-muted-foreground mb-2">
+                            {order.itens?.length} {order.itens?.length === 1 ? 'item' : 'itens'}
+                          </p>
+                          <div className="flex -space-x-2">
+                            {order.itens?.slice(0, 5).map((item: any) => (
+                              <div key={item.id} className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" title={item.produtos?.nome}>
+                                {item.quantidade}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total</p>
+                          <p className="text-lg font-bold">R$ {order.valor_total.toFixed(2).replace('.', ',')}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Histórico Simplificado */}
+                      {order.historico?.length > 0 && (
+                        <div className="mt-6 pt-6 border-t space-y-3">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                            <Clock size={12} /> Acompanhamento
+                          </p>
+                          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                            {order.historico.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((h: any, idx: number) => (
+                              <div key={h.id} className="flex items-center shrink-0">
+                                <div className="flex flex-col items-center">
+                                  <div className={`h-2 w-2 rounded-full ${idx === order.historico.length - 1 ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30'}`}></div>
+                                  <span className="text-[8px] mt-1 font-bold whitespace-nowrap">{h.status_novo}</span>
+                                </div>
+                                {idx < order.historico.length - 1 && (
+                                  <div className="w-8 h-px bg-muted mx-2 -mt-3"></div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="space-y-6">
+
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <MapPinned className="h-5 w-5 text-primary" />
