@@ -126,7 +126,9 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">preciso que vc me envie o SQL para rodar no supabase</div>
+        <div className="sr-only">Error: Failed to run sql query: ERROR: 42P07: relation "categorias" already exists
+
+precisa aparecer agora apenas os complementos que foram adicionados</div>
         {children}
         <Scripts />
       </body>
