@@ -35,11 +35,19 @@ function PerfilPage() {
   const [profile, setProfile] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
   
+  const [profileForm, setProfileForm] = useState({
+    nome: "",
+    telefone: "",
+    cpf: ""
+  });
+
   // Form state for new/edit address
   const [newAddress, setNewAddress] = useState({
     label: "",
@@ -87,8 +95,40 @@ function PerfilPage() {
       .eq("id", session.user.id)
       .single();
     
-    if (data) setProfile(data);
+    if (data) {
+      setProfile(data);
+      setProfileForm({
+        nome: data.nome || "",
+        telefone: data.telefone || "",
+        cpf: data.cpf || ""
+      });
+    }
     setLoading(false);
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nome: profileForm.nome,
+          telefone: profileForm.telefone,
+          cpf: profileForm.cpf
+        })
+        .eq("id", session.user.id);
+
+      if (error) throw error;
+      
+      toast.success("Perfil atualizado com sucesso!");
+      setIsEditingProfile(false);
+      fetchProfile();
+    } catch (err: any) {
+      toast.error("Erro ao atualizar perfil: " + err.message);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const fetchAddresses = async () => {
@@ -184,24 +224,69 @@ function PerfilPage() {
         {/* Informações Básicas */}
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle>Dados Pessoais</CardTitle>
+            <CardTitle>{isEditingProfile ? "Editar Dados" : "Dados Pessoais"}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
-              <p className="font-medium">{profile?.nome || "Não informado"}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase">E-mail</Label>
-              <p className="font-medium">{session.user.email}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase">Telefone</Label>
-              <p className="font-medium">{profile?.telefone || "Não informado"}</p>
-            </div>
-            <Button variant="outline" className="w-full mt-4" onClick={() => toast.info("Edição de perfil em breve")}>
-              Editar Dados
-            </Button>
+          <CardContent>
+            {isEditingProfile ? (
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome Completo</Label>
+                  <Input 
+                    id="nome" 
+                    value={profileForm.nome} 
+                    onChange={e => setProfileForm({...profileForm, nome: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="telefone">Telefone / WhatsApp</Label>
+                  <Input 
+                    id="telefone" 
+                    value={profileForm.telefone} 
+                    onChange={e => setProfileForm({...profileForm, telefone: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF</Label>
+                  <Input 
+                    id="cpf" 
+                    value={profileForm.cpf} 
+                    onChange={e => setProfileForm({...profileForm, cpf: e.target.value})}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button type="submit" className="flex-1" disabled={savingProfile}>
+                    {savingProfile ? "Salvando..." : "Salvar"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
+                  <p className="font-medium">{profile?.nome || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">E-mail</Label>
+                  <p className="font-medium">{session.user.email}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">Telefone</Label>
+                  <p className="font-medium">{profile?.telefone || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase">CPF</Label>
+                  <p className="font-medium">{profile?.cpf || "Não informado"}</p>
+                </div>
+                <Button variant="outline" className="w-full mt-4" onClick={() => setIsEditingProfile(true)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar Dados
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
