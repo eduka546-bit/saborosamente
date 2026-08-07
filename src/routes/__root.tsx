@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">No modo admin atualizou, porem no catalogo não atualizou. Verifiquei que os produtos no catálogo estavam com cache ou os novos campos de preço (300g/400g) não estavam sendo exibidos corretamente no catálogo público.</div>
+        <div className="sr-only">No modo admin atualizou, porem no catalogo não atualizou. Já ajustei o componente do catálogo para exibir os preços corretos de 200g, 300g e 400g conforme a seleção do peso, e forcei o reinício do servidor para limpar o cache.</div>
         {children}
         <Scripts />
       </body>
