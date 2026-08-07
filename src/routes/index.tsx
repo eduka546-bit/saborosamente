@@ -168,21 +168,30 @@ function Index() {
                   <Loader2 className="animate-spin text-[#086e45]/20" size={20} />
                 </div>
               ) : (
-                [
-                  "Combos Prontos",
-                  "Combos Escolha Você Mesmo",
-                  "Linha Refeições (200g - 300g - 400g)",
-                  "Sopas (400g)",
-                  "Complementos de Proteínas 150g"
-                ].map((cat) => (
-                  <button 
-                    key={cat}
-                    onClick={() => navigate({ to: "/catalogo", search: { q: cat } })}
-                    className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
-                  >
-                    {cat}
-                  </button>
-                ))
+                (() => {
+                  const categoriesWithProducts = new Set<string>();
+                  products.forEach((p: any) => {
+                    if (p.categorias?.nome) {
+                      categoriesWithProducts.add(p.categorias.nome);
+                    }
+                  });
+
+                  return [
+                    "Combos Prontos",
+                    "Combos Escolha Você Mesmo",
+                    "Linha Refeições (200g - 300g - 400g)",
+                    "Sopas (400g)",
+                    "Complementos de Proteínas 150g"
+                  ].filter(cat => categoriesWithProducts.has(cat)).map((cat) => (
+                    <button 
+                      key={cat}
+                      onClick={() => navigate({ to: "/catalogo", search: { q: cat } })}
+                      className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
+                    >
+                      {cat}
+                    </button>
+                  ));
+                })()
               )}
             </div>
           </div>

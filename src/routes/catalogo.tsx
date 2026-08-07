@@ -46,6 +46,19 @@ function Catalogo() {
     queryFn: () => getCategories(),
   });
 
+  const activeCategories = useMemo(() => {
+    if (!products.length) return ["Todas"];
+    
+    const categoriesWithProducts = new Set<string>();
+    products.forEach((p: any) => {
+      if (p.categorias?.nome) {
+        categoriesWithProducts.add(p.categorias.nome);
+      }
+    });
+
+    return ["Todas", ...categories.map((c: any) => c.nome).filter(name => categoriesWithProducts.has(name))];
+  }, [products, categories]);
+
   const visible = useMemo(() => {
     let filtered = products;
     
@@ -65,7 +78,7 @@ function Catalogo() {
     return filtered;
   }, [selectedCategory, products, q]);
 
-  const categoryList = ["Todas", ...categories.map((c: any) => c.nome)];
+  const categoryList = activeCategories;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-14">
