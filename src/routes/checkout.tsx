@@ -106,7 +106,6 @@ function Checkout() {
   });
 
   const currentMetodo = watch("metodoEntrega");
-  const currentCEP = watch("cep");
 
   useEffect(() => {
     fetchUserData();
