@@ -130,6 +130,42 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     }
   };
 
+  const handleGalleryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingGallery(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `gallery/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData({ 
+        ...formData, 
+        imagens: [...(formData.imagens || []), publicUrl] 
+      });
+      toast.success("Imagem adicionada à galeria!");
+    } catch (error: any) {
+      console.error("Erro no upload da galeria:", error);
+      toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
+    } finally {
+      setIsUploadingGallery(false);
+      if (galleryFileInputRef.current) {
+        galleryFileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleSave = () => {
     const { 
       preco_formatado, 
