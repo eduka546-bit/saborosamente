@@ -71,11 +71,8 @@ function Index() {
   const promoBanners: { image_url?: string; alt?: string; link?: string }[] =
     Array.isArray((settings as any)?.promo_banners) && (settings as any).promo_banners.length > 0
       ? (settings as any).promo_banners
-      : [
-          { image_url: bannerCarouselAsset.url, alt: "Marmitas" },
-          { image_url: bannerCarouselAsset.url, alt: "Loja" },
-          { image_url: bannerCarouselAsset.url, alt: "Entregas" },
-        ];
+      : [];
+
 
   const filteredProducts = useMemo(() => {
     let result = products;
