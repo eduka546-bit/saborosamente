@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cart";
 import { ChevronRight, Percent } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
-export function FloatingDiscountWidget() {
+export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
   const { count } = useCart();
 
   const tiers = [
@@ -18,9 +18,9 @@ export function FloatingDiscountWidget() {
   if (count === 0) return null;
 
   return (
-    <Link 
-      to="/carrinho"
-      className="fixed right-4 bottom-24 z-50 flex flex-col items-end gap-2 group animate-in fade-in slide-in-from-right-4 duration-500"
+    <div 
+      onClick={onClick}
+      className="fixed right-4 bottom-24 z-50 flex flex-col items-end gap-2 group animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer"
     >
       <div className="flex items-center gap-3 bg-white rounded-2xl shadow-2xl border border-primary/20 p-3 pr-4 transition-transform group-hover:-translate-x-2">
         <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shrink-0">
@@ -69,6 +69,6 @@ export function FloatingDiscountWidget() {
       <div className="md:hidden bg-primary text-white size-12 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
         <span className="text-xs font-black">{count}</span>
       </div>
-    </Link>
+    </div>
   );
 }
