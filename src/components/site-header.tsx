@@ -175,7 +175,7 @@ export function SiteHeader() {
 
         {/* Right side - User and Cart */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link to="/admin" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
+          <Link to="/auth" style={{ color: navText }} className="hover:opacity-70 hidden sm:block">
             <User size={20} />
           </Link>
 
