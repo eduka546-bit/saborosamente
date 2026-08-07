@@ -141,8 +141,8 @@ function AuthPage() {
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
-                type="password"
-                placeholder="••••••••"
+                type="text"
+                placeholder="Seu CPF ou senha"
                 className="pl-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
