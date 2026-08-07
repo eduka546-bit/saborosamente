@@ -38,6 +38,7 @@ const checkoutSchema = z.object({
   endereco: z.string().trim().max(160).optional(),
   complemento: z.string().trim().max(80).optional(),
   cidade: z.string().trim().max(80).optional(),
+  bairro: z.string().trim().max(80).optional(),
   pagamento: z.enum(["pix", "cartao", "dinheiro"]),
   observacoes: z.string().trim().max(300).optional(),
 }).refine((data) => {
@@ -84,6 +85,7 @@ function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [session, setSession] = useState<any>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isFetchingCEP, setIsFetchingCEP] = useState(false);
 
   const {
     register,
@@ -102,10 +104,46 @@ function Checkout() {
   });
 
   const currentMetodo = watch("metodoEntrega");
+  const currentCEP = watch("cep");
 
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    const cep = currentCEP?.replace(/\D/g, "");
+    if (cep?.length === 8) {
+      handleCEP(cep);
+    }
+  }, [currentCEP]);
+
+  const handleCEP = async (cep: string) => {
+    try {
+      setIsFetchingCEP(true);
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+
+      // Preencher campos
+      setValue("endereco", data.logradouro);
+      setValue("bairro", data.bairro);
+      setValue("cidade", data.localidade);
+      
+      // Atualizar estados do carrinho para cálculo de frete
+      setSelectedCity(data.localidade);
+      setSelectedBairro(data.bairro);
+      
+      toast.success("Endereço preenchido via CEP!");
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setIsFetchingCEP(false);
+    }
+  };
 
   const fetchUserData = async () => {
     setIsCheckingAuth(true);
@@ -151,6 +189,7 @@ function Checkout() {
     setSelectedCity(addr.cidade);
     setSelectedBairro(addr.bairro);
     setValue("cidade", addr.cidade);
+    setValue("bairro", addr.bairro);
     setValue("endereco", `${addr.rua}, ${addr.numero}`);
     setValue("complemento", addr.complemento || "");
   };
@@ -178,7 +217,7 @@ function Checkout() {
               user_id: session.user.id,
               label: "Endereço do Pedido",
               cidade: data.cidade,
-              bairro: selectedBairro,
+              bairro: data.bairro || selectedBairro,
               rua: data.endereco?.split(",")[0].trim() || data.endereco,
               numero: data.endereco?.split(",")[1]?.trim() || "",
               complemento: data.complemento,
@@ -191,7 +230,7 @@ function Checkout() {
 
       const orderData = {
         ...data,
-        bairro: selectedBairro,
+        bairro: data.bairro || selectedBairro,
         valorTotal: total,
         taxaEntrega: shipping,
         desconto: discount,
@@ -463,8 +502,11 @@ function Checkout() {
                     id="bairro"
                     className={cn(fieldClass, !selectedCity && "opacity-50")}
                     disabled={!selectedCity}
-                    value={selectedBairro}
-                    onChange={(e) => setSelectedBairro(e.target.value)}
+                    {...register("bairro")}
+                    onChange={(e) => {
+                      setSelectedBairro(e.target.value);
+                      setValue("bairro", e.target.value);
+                    }}
                   >
                     <option value="">Selecione...</option>
                     {taxas
@@ -474,12 +516,25 @@ function Checkout() {
                         <option key={t.id} value={t.bairro}>{t.bairro}</option>
                       ))}
                   </select>
+                  {errors.bairro && <p className="mt-1 text-xs text-destructive">{errors.bairro.message}</p>}
                 </div>
-                <div>
+                <div className="relative">
                   <label htmlFor="cep" className="text-sm font-medium">
-                    CEP (opcional)
+                    CEP
                   </label>
-                  <input id="cep" placeholder="00000-000" className={fieldClass} {...register("cep")} />
+                  <div className="relative">
+                    <input 
+                      id="cep" 
+                      placeholder="00000-000" 
+                      className={cn(fieldClass, isFetchingCEP && "pr-10")} 
+                      {...register("cep")} 
+                    />
+                    {isFetchingCEP && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    )}
+                  </div>
                   {errors.cep && <p className="mt-1 text-xs text-destructive">{errors.cep.message}</p>}
                 </div>
               </div>
