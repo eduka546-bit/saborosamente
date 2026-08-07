@@ -124,12 +124,12 @@ function Checkout() {
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", currentSession.user.id)
       .single();
     
     if (profile) {
       setValue("nome", profile.nome || "");
-      setValue("email", session.user.email || "");
+      setValue("email", currentSession.user.email || "");
       setValue("telefone", profile.telefone || "");
     }
 
@@ -137,7 +137,7 @@ function Checkout() {
     const { data: addresses } = await supabase
       .from("user_addresses")
       .select("*")
-      .eq("user_id", session.user.id);
+      .eq("user_id", currentSession.user.id);
     
     if (addresses && addresses.length > 0) {
       setSavedAddresses(addresses);
