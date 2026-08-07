@@ -169,11 +169,11 @@ export function SiteHeader() {
   const heroMobileSrc = settings?.hero_image_url || bannerMobileAsset.url;
 
   return (
-    <header className="relative z-[200] transition-all duration-300">
+    <header className="relative z-[200] transition-all duration-300 pointer-events-none">
       {/* Announcement Bar */}
       <div 
         style={{ backgroundColor: announceBg, color: announceText }}
-        className="relative py-2 px-8 text-center text-[10px] font-bold uppercase tracking-wider sm:text-xs z-[60]"
+        className="relative py-2 px-8 text-center text-[10px] font-bold uppercase tracking-wider sm:text-xs z-[60] pointer-events-auto"
       >
         {settings?.announcement_text || "Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!"}
         <button className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100">✕</button>
@@ -182,7 +182,7 @@ export function SiteHeader() {
       {/* Main Navigation Bar (White in the print) */}
       <div 
         style={{ backgroundColor: navBg }}
-        className="mx-auto flex h-16 items-center justify-between px-6 lg:px-12 border-b relative z-[70]"
+        className="mx-auto flex h-16 items-center justify-between px-6 lg:px-12 border-b relative z-[70] pointer-events-auto"
       >
         <Link to="/" className="flex items-center gap-2">
            {/* Removido o texto "Saborosamente" conforme solicitado */}
@@ -284,7 +284,7 @@ export function SiteHeader() {
       </div>
 
       {/* Hero / Cover Section */}
-      <div className="relative w-full overflow-visible bg-[#086e45]" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
+      <div className="relative w-full overflow-visible bg-[#086e45] pointer-events-auto" style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}>
         {isSettingsPending ? (
           /* Placeholder com a cor da marca enquanto as configurações carregam */
           <div className="w-full aspect-[1920/240] max-md:aspect-[1000/360]" />
