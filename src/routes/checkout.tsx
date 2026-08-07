@@ -38,6 +38,7 @@ const checkoutSchema = z.object({
   endereco: z.string().trim().max(160).optional(),
   complemento: z.string().trim().max(80).optional(),
   cidade: z.string().trim().max(80).optional(),
+  bairro: z.string().trim().max(80).optional(),
   pagamento: z.enum(["pix", "cartao", "dinheiro"]),
   observacoes: z.string().trim().max(300).optional(),
 }).refine((data) => {
