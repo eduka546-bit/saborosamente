@@ -272,14 +272,23 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         </div>
                       ))}
                       <button 
-                        onClick={() => {
-                          const url = prompt("Cole a URL da imagem:");
-                          if (url) setFormData({...formData, imagens: [...(formData.imagens || []), url]});
-                        }}
-                        className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors"
+                        onClick={() => galleryFileInputRef.current?.click()}
+                        disabled={isUploadingGallery}
+                        className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors relative"
                       >
-                        <Plus size={20} />
+                        {isUploadingGallery ? (
+                          <Loader2 className="animate-spin" size={20} />
+                        ) : (
+                          <Plus size={20} />
+                        )}
                       </button>
+                      <input 
+                        type="file" 
+                        ref={galleryFileInputRef} 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleGalleryImageUpload}
+                      />
                     </div>
                   </div>
                 </div>
