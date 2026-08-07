@@ -154,6 +154,37 @@ function Checkout() {
   // Envio simulado: substituir por persistência real quando o backend existir.
   const onSubmit = async (data: CheckoutForm) => {
     try {
+      // 1. Atualizar Perfil se estiver logado
+      if (session?.user?.id) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            nome: data.nome,
+            telefone: data.telefone
+          })
+          .eq("id", session.user.id);
+        
+        if (profileError) console.error("Erro ao atualizar perfil:", profileError);
+
+        // 2. Salvar endereço automaticamente se for novo e método for entrega
+        if (data.metodoEntrega === "entrega" && !selectedAddressId) {
+          const { error: addrError } = await supabase
+            .from("user_addresses")
+            .insert({
+              user_id: session.user.id,
+              label: "Endereço do Pedido",
+              cidade: data.cidade,
+              bairro: selectedBairro,
+              rua: data.endereco?.split(",")[0].trim() || data.endereco,
+              numero: data.endereco?.split(",")[1]?.trim() || "",
+              complemento: data.complemento,
+              is_default: savedAddresses.length === 0
+            });
+          
+          if (addrError) console.error("Erro ao salvar endereço automático:", addrError);
+        }
+      }
+
       const orderData = {
         ...data,
         bairro: selectedBairro,
@@ -174,6 +205,7 @@ function Checkout() {
       clear();
       toast.success("Pedido registrado!", { description: `Número do pedido: ${result.id.slice(0, 8)}` });
     } catch (error: any) {
+
       console.error("[checkout] falha ao registrar pedido", error);
       toast.error("Não foi possível registrar o pedido.", {
         description: error.message || "Tente novamente mais tarde."
