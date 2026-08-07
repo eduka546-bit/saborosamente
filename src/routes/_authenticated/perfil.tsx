@@ -1,11 +1,11 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight } from "lucide-react";
+import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -29,8 +29,11 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
 });
 
+import { useCart } from "@/lib/cart";
+
 function PerfilPage() {
   const { session } = Route.useRouteContext();
+  const { taxas } = useCart();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -180,6 +183,7 @@ function PerfilPage() {
             rua: newAddress.rua,
             numero: newAddress.numero,
             complemento: newAddress.complemento,
+            cep: newAddress.cep,
           })
           .eq("id", editingAddressId);
 
@@ -194,6 +198,7 @@ function PerfilPage() {
           rua: newAddress.rua,
           numero: newAddress.numero,
           complemento: newAddress.complemento,
+          cep: newAddress.cep,
           is_default: addresses.length === 0
         });
 
@@ -238,6 +243,14 @@ function PerfilPage() {
       toast.error("Erro ao remover: " + error.message);
     }
   };
+
+  const currentTaxa = useMemo(() => {
+    if (!newAddress.cidade || !newAddress.bairro) return null;
+    return taxas.find(
+      t => t.cidade.toLowerCase().trim() === newAddress.cidade.toLowerCase().trim() && 
+           t.bairro.toLowerCase().trim() === newAddress.bairro.toLowerCase().trim()
+    );
+  }, [newAddress.cidade, newAddress.bairro, taxas]);
 
   if (loading) return <div className="p-8 text-center">Carregando...</div>;
 
