@@ -41,7 +41,7 @@ export const createOrder = createServerFn({ method: "POST" })
         // user_id: user?.id, // Temporariamente desativado até rodar o SQL
         nome_cliente: data.nome,
         telefone_cliente: data.telefone,
-        email_cliente: data.email,
+        // email_cliente: data.email,
         metodo_entrega: data.metodoEntrega,
         horario_recebimento: data.horarioEntrega,
         endereco_cidade: data.cidade,
