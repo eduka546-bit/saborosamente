@@ -98,7 +98,7 @@ function AdminClientesPage() {
       setIsImporting(true);
       const result = await importFn();
       
-      if (result.success || result.errors) {
+      if (result && (result.success || result.errors)) {
         toast.success(`Importação concluída: ${result.success} sucessos, ${result.errors} erros/pulados.`, {
           duration: 5000
         });
