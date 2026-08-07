@@ -183,7 +183,7 @@ function RootComponent() {
           
           {!isAdminPath && <SiteFooter />}
         </div>
-        <Toaster />
+        <Toaster position="top-right" closeButton={false} offset={20} />
         {!isAdminPath && (
           <CartSheet>
             <FloatingDiscountWidget />
