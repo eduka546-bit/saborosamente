@@ -85,9 +85,17 @@ function readStorage(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>(() => readStorage());
+  const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
+
+  // Efeito para carregar o carrinho logo no início
+  useEffect(() => {
+    const stored = readStorage();
+    if (stored.length > 0) {
+      setLines(stored);
+    }
+  }, []);
 
   const MOCK_TAXAS = useMemo(() => {
     const dataMap = {
@@ -162,6 +170,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         categoria: p.categorias?.nome || "Marmita",
         imagem: p.imagem_url
       }));
+      // Forçar atualização do estado das linhas para que o useMemo recalcule os detalhes
+      // agora que temos os produtos carregados
+      setLines(prev => [...prev]);
     }
   }, [serverProducts]);
 
@@ -169,7 +180,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+        const stored = readStorage();
+        // Só salva se o estado atual for diferente do que está no storage
+        // para evitar sobrescrever com array vazio durante a hidratação inicial
+        const isInitialLoad = lines.length === 0 && stored.length > 0;
+        if (!isInitialLoad) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+        }
       }
     } catch {}
   }, [lines]);
@@ -207,7 +224,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
-      if (!product) return [];
+      
+      // Fallback para quando o produto ainda não carregou do servidor mas está no cache local/storage
+      if (!product) {
+        return [];
+      }
       
       const isSopa = product.categoria?.toLowerCase().includes("sopa");
       const price = isSopa ? 18.00 : (line.weight === "300g" && product.preco_300g 
