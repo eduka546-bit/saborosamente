@@ -75,8 +75,11 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
       </div>
       
       {/* Floating indicator for mobile or simple view */}
-      <div className="md:hidden bg-primary text-white size-12 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
-        <span className="text-xs font-black">{count}</span>
+      <div className="md:hidden bg-primary text-white size-14 rounded-full flex items-center justify-center shadow-xl border-4 border-white relative">
+        <ShoppingBag size={20} />
+        <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-black size-5 rounded-full flex items-center justify-center border-2 border-white">
+          {count}
+        </span>
       </div>
     </div>
   );
