@@ -189,6 +189,7 @@ function Checkout() {
     setSelectedCity(addr.cidade);
     setSelectedBairro(addr.bairro);
     setValue("cidade", addr.cidade);
+    setValue("bairro", addr.bairro);
     setValue("endereco", `${addr.rua}, ${addr.numero}`);
     setValue("complemento", addr.complemento || "");
   };
