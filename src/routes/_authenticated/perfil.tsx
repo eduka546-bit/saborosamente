@@ -432,6 +432,14 @@ function PerfilPage() {
                   <form onSubmit={handleSaveAddress} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
+                        <Label htmlFor="cep">CEP</Label>
+                        <Input 
+                          id="cep" 
+                          placeholder="00000-000"
+                          onChange={e => handleCepSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
                         <Input 
                           id="label" 
@@ -441,6 +449,8 @@ function PerfilPage() {
                           required
                         />
                       </div>
+                    </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="cidade">Cidade</Label>
                         <Input 
