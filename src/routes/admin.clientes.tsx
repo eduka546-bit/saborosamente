@@ -26,9 +26,16 @@ function AdminClientesPage() {
       // 1. Buscar perfis (clientes cadastrados)
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .order("nome", { ascending: true });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile error details:", profileError);
+        toast.error("Erro ao carregar perfis: " + profileError.message);
+        throw profileError;
+      }
+      
+      console.log("Profiles loaded:", profiles?.length);
 
       // 2. Buscar pedidos para histórico
       const { data: orders, error: orderError } = await supabase
