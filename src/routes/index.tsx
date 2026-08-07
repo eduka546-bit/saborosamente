@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, Truck, MapPin, Calendar } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
+import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -161,6 +162,8 @@ function Index() {
             <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-6">
               Para o corpo e para a mente, SaborosaMente!
             </p>
+            
+            <DiscountProgressWidget className="mb-6" />
             
             <div className="space-y-2">
               {isLoading ? (

@@ -2,6 +2,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/product-card";
+import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
 import { useQuery } from "@tanstack/react-query";
