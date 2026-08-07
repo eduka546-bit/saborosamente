@@ -241,8 +241,50 @@ function Checkout() {
 
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Entrega
+              Opções de Recebimento
             </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={cn(
+                "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
+                currentMetodo === "entrega" && "border-primary bg-primary/5 ring-1 ring-primary"
+              )}>
+                <input type="radio" value="entrega" className="sr-only" {...register("metodoEntrega")} />
+                <span className="block text-sm font-bold">Entrega em domicílio</span>
+                <span className="mt-1 block text-xs text-muted-foreground">Receba no seu endereço</span>
+              </label>
+              <label className={cn(
+                "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
+                currentMetodo === "retirada" && "border-primary bg-primary/5 ring-1 ring-primary"
+              )}>
+                <input type="radio" value="retirada" className="sr-only" {...register("metodoEntrega")} />
+                <span className="block text-sm font-bold">Retirar na loja</span>
+                <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="horarioEntrega" className="text-sm font-medium">
+                {currentMetodo === "entrega" ? "Horário preferencial de entrega" : "Horário de retirada"}
+              </label>
+              <select id="horarioEntrega" className={fieldClass} {...register("horarioEntrega")}>
+                <option value="">Selecione um horário...</option>
+                <option value="09:00 - 10:00">09:00 às 10:00</option>
+                <option value="10:00 - 11:00">10:00 às 11:00</option>
+                <option value="11:00 - 12:00">11:00 às 12:00</option>
+                <option value="14:00 - 15:00">14:00 às 15:00</option>
+                <option value="15:00 - 16:00">15:00 às 16:00</option>
+                <option value="16:00 - 17:00">16:00 às 17:00</option>
+                <option value="17:00 - 18:00">17:00 às 18:00</option>
+              </select>
+              {errors.horarioEntrega && <p className="mt-1 text-xs text-destructive">{errors.horarioEntrega.message}</p>}
+            </div>
+          </fieldset>
+
+          {currentMetodo === "entrega" && (
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+                Endereço de Entrega
+              </legend>
 
             {savedAddresses.length > 0 && (
               <div className="space-y-3">
