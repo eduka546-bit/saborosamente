@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
 import { 
   Plus, Search, MoreVertical, GripVertical, Loader2, Utensils, 
@@ -266,9 +266,39 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               </div>
             </TabsContent>
 
-            <TabsContent value="complementos" className="m-0 py-12 flex flex-col items-center justify-center space-y-4">
-              <p className="text-gray-500 text-sm">Este produto não tem Complementos</p>
-              <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 text-xs font-bold uppercase tracking-wider h-10 px-6 rounded-full">Criar Novo Complemento</Button>
+            <TabsContent value="complementos" className="m-0 space-y-6">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider">Grupos de Complementos</h3>
+                  <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider h-8 px-4 rounded-full flex items-center gap-2">
+                    <Plus size={14} />
+                    Vincular Grupo
+                  </Button>
+                </div>
+
+                <div className="rounded-xl border border-dashed border-gray-200 p-8 flex flex-col items-center justify-center text-center space-y-3 bg-gray-50/30">
+                  <div className="size-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600">Nenhum complemento vinculado</p>
+                    <p className="text-xs text-gray-400 max-w-[280px] mt-1">
+                      Adicione grupos de complementos (como "Escolha sua bebida" ou "Adicionais") para oferecer mais opções aos seus clientes.
+                    </p>
+                  </div>
+                  <Button variant="outline" className="text-xs font-bold uppercase tracking-wider h-9 px-5 rounded-full mt-2">
+                    Ver todos os complementos
+                  </Button>
+                </div>
+
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
+                    <Info className="text-blue-500 shrink-0" size={18} />
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      <strong>Dica:</strong> Você pode gerenciar todos os seus complementos globalmente na seção 
+                      <Link to="/admin" className="font-bold underline ml-1">Configurações {" > "} Complementos</Link>.
+                    </p>
+                  </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="disponibilidade" className="m-0 space-y-8">
