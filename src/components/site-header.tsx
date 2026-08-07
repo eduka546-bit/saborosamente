@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartSheet } from "./cart-sheet";
 
 const links = [
-  { to: "/#cardapio", label: "Cardápio", icon: Menu, type: "link" },
+  { to: "/", hash: "cardapio", label: "Cardápio", icon: Menu, type: "link" },
   { to: "#", label: "Áreas de entrega", icon: MapPin, type: "modal" },
   { to: "/", label: "Cashback", icon: Sparkles, type: "link" },
   { to: "/", label: "Fale conosco", icon: MessageSquare, type: "link" },
@@ -162,6 +162,7 @@ export function SiteHeader() {
               <Link
                 key={l.label}
                 to={l.to as any}
+                hash={(l as any).hash}
                 style={{ color: navText }}
                 className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
               >
