@@ -129,6 +129,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       preco_formatado, 
       preco_promocional_formatado, 
       preco_custo_formatado,
+      preco_300g_formatado,
+      preco_400g_formatado,
       categorias, 
       ...rest 
     } = formData;
@@ -142,6 +144,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     const preco = parseFloat(preco_formatado.replace(',', '.'));
     const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
     const preco_custo = preco_custo_formatado ? parseFloat(preco_custo_formatado.replace(',', '.')) : null;
+    const preco_300g = preco_300g_formatado ? parseFloat(preco_300g_formatado.replace(',', '.')) : null;
+    const preco_400g = preco_400g_formatado ? parseFloat(preco_400g_formatado.replace(',', '.')) : null;
     
     if (isNaN(preco)) {
       toast.error("Por favor, insira um preço válido");
@@ -150,7 +154,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
     const status = (formData.status || 'ativo').toLowerCase();
-    onSave({ ...rest, preco, preco_promocional, preco_custo, status });
+    onSave({ ...rest, preco, preco_promocional, preco_custo, preco_300g, preco_400g, status });
   };
 
   return (
