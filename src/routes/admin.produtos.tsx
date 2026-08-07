@@ -358,8 +358,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
                   <Tabs defaultValue="descricao" className="w-full">
                     <TabsList className="bg-transparent h-auto p-0 gap-4 border-b rounded-none mb-4">
-                      <TabsTrigger value="descricao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Descrição</TabsTrigger>
+                      <TabsTrigger value="descricao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Descrição / Ingredientes</TabsTrigger>
                       <TabsTrigger value="nutricional" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Tabela Nutricional</TabsTrigger>
+                      <TabsTrigger value="restricoes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Restrições</TabsTrigger>
                     </TabsList>
                     <TabsContent value="descricao">
                       <textarea 
