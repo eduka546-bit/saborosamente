@@ -72,7 +72,7 @@ export const Route = createFileRoute("/admin")({
 function AdminLayout() {
   const router = useRouter();
   const isLoginPage = router.state.location.pathname === "/admin/login" || router.state.location.pathname === "/admin/login/";
-  const { role } = Route.useRouteContext() || {};
+  const { role } = (Route.useRouteContext() as any) || {};
   
   if (isLoginPage) {
     return <Outlet />;
