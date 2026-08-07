@@ -466,6 +466,17 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         </div>
                       </div>
                     </TabsContent>
+                    <TabsContent value="restricoes">
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Restrições (ex: Sem Glúten | Sem Lactose)</label>
+                        <Input 
+                          value={formData.informacao_nutricional || ""} 
+                          onChange={(e) => setFormData({ ...formData, informacao_nutricional: e.target.value })}
+                          className="h-10 border-gray-200"
+                          placeholder="ex: Sem Glúten | Sem Lactose"
+                        />
+                      </div>
+                    </TabsContent>
                   </Tabs>
                 </div>
               </div>
