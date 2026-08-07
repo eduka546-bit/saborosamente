@@ -502,8 +502,11 @@ function Checkout() {
                     id="bairro"
                     className={cn(fieldClass, !selectedCity && "opacity-50")}
                     disabled={!selectedCity}
-                    value={selectedBairro}
-                    onChange={(e) => setSelectedBairro(e.target.value)}
+                    {...register("bairro")}
+                    onChange={(e) => {
+                      setSelectedBairro(e.target.value);
+                      setValue("bairro", e.target.value);
+                    }}
                   >
                     <option value="">Selecione...</option>
                     {taxas
@@ -513,12 +516,25 @@ function Checkout() {
                         <option key={t.id} value={t.bairro}>{t.bairro}</option>
                       ))}
                   </select>
+                  {errors.bairro && <p className="mt-1 text-xs text-destructive">{errors.bairro.message}</p>}
                 </div>
-                <div>
+                <div className="relative">
                   <label htmlFor="cep" className="text-sm font-medium">
-                    CEP (opcional)
+                    CEP
                   </label>
-                  <input id="cep" placeholder="00000-000" className={fieldClass} {...register("cep")} />
+                  <div className="relative">
+                    <input 
+                      id="cep" 
+                      placeholder="00000-000" 
+                      className={cn(fieldClass, isFetchingCEP && "pr-10")} 
+                      {...register("cep")} 
+                    />
+                    {isFetchingCEP && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    )}
+                  </div>
                   {errors.cep && <p className="mt-1 text-xs text-destructive">{errors.cep.message}</p>}
                 </div>
               </div>
