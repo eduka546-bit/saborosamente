@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Search, Filter, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign } from "lucide-react";
+import { Users, Search, Filter, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { importExistingCustomers } from "@/lib/customers.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/admin/clientes")({
   component: AdminClientesPage,
@@ -14,6 +17,8 @@ export const Route = createFileRoute("/admin/clientes")({
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const importFn = useServerFn(importExistingCustomers);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
@@ -88,11 +93,41 @@ function AdminClientesPage() {
     );
   }, [clients, searchTerm]);
 
+  const handleImport = async () => {
+    try {
+      setIsImporting(true);
+      const result = await importFn();
+      
+      if (result.success) {
+        toast.success(`Importação concluída: ${result.imported} importados, ${result.skipped} pulados.`, {
+          duration: 5000
+        });
+      } else {
+        toast.error("Erro na importação: " + result.error);
+      }
+    } catch (error: any) {
+      toast.error("Falha ao iniciar importação: " + error.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#5850ec]">Clientes</h1>
-        <p className="text-gray-500 text-sm mt-1">Gerencie sua base de clientes e histórico de compras.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#5850ec]">Clientes</h1>
+          <p className="text-gray-500 text-sm mt-1">Gerencie sua base de clientes e histórico de compras.</p>
+        </div>
+        
+        <Button 
+          onClick={handleImport} 
+          disabled={isImporting}
+          className="bg-[#086e45] hover:bg-[#065a38] text-white flex items-center gap-2"
+        >
+          {isImporting ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+          Importar Clientes Antigos
+        </Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
