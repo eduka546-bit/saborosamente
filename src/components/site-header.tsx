@@ -35,6 +35,7 @@ export function SiteHeader() {
   const { count } = useCart();
   const queryClient = useQueryClient();
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
