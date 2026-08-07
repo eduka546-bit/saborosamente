@@ -180,7 +180,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const stored = readStorage();
         // Só salva se o estado atual for diferente do que está no storage
         // para evitar sobrescrever com array vazio durante a hidratação inicial
-        if (lines.length > 0 || stored.length > 0) {
+        const isInitialLoad = lines.length === 0 && stored.length > 0;
+        if (!isInitialLoad) {
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
         }
       }
