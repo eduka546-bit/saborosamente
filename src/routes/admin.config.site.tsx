@@ -524,12 +524,12 @@ function AdminSiteConfig() {
                 <Users className="text-[#5850ec]" size={32} />
               </div>
               <div className="text-center">
-                <p className="font-medium">382 clientes preparados para importação</p>
-                <p className="text-xs text-muted-foreground">Baseado no arquivo Cadastro_de_Clientes.xlsx</p>
+                <p className="font-medium">450 clientes preparados para importação</p>
+                <p className="text-xs text-muted-foreground">Baseado no arquivo Cadastro_de_Clientes-2.xlsx</p>
               </div>
               <Button 
                 onClick={async () => {
-                  if (!confirm("Isso irá criar contas de acesso para 382 clientes. Continuar?")) return;
+                  if (!confirm("Isso irá criar contas de acesso para 450 clientes. Continuar?")) return;
                   try {
                     setIsImporting(true);
                     const result = await importFn();
