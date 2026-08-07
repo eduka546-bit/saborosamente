@@ -35,26 +35,33 @@ export const createOrder = createServerFn({ method: "POST" })
     const { data: { user } } = await supabase.auth.getUser();
     
     // 1. Criar o pedido na tabela 'pedidos'
+    const insertData: any = {
+      user_id: user?.id,
+      nome_cliente: data.nome,
+      telefone_cliente: data.telefone,
+      email_cliente: data.email,
+      metodo_entrega: data.metodoEntrega,
+      horario_recebimento: data.horarioEntrega,
+      endereco_cidade: data.cidade,
+      endereco_bairro: data.bairro,
+      endereco_rua: data.endereco,
+      endereco_complemento: data.complemento,
+      metodo_pagamento: data.pagamento,
+      observacao: data.observacoes,
+      valor_total: data.valorTotal,
+      taxa_entrega: data.taxaEntrega,
+      status: "Pendente",
+    };
+
+    // Apenas incluir desconto_aplicado se a coluna existir ou for suportada
+    // Se a coluna ainda não foi criada no Supabase, a inserção falhará se incluirmos
+    // Mas o erro atual é que ela NÃO foi encontrada no cache mas está sendo referenciada.
+    // Vamos remover do insert para contornar o erro imediato enquanto a migração não é feita.
+    // insertData.desconto_aplicado = data.desconto;
+
     const { data: order, error: orderError } = await supabase
       .from("pedidos")
-      .insert({
-        user_id: user?.id,
-        nome_cliente: data.nome,
-        telefone_cliente: data.telefone,
-        email_cliente: data.email,
-        metodo_entrega: data.metodoEntrega,
-        horario_recebimento: data.horarioEntrega,
-        endereco_cidade: data.cidade,
-        endereco_bairro: data.bairro,
-        endereco_rua: data.endereco,
-        endereco_complemento: data.complemento,
-        metodo_pagamento: data.pagamento,
-        observacao: data.observacoes,
-        valor_total: data.valorTotal,
-        taxa_entrega: data.taxaEntrega,
-        desconto_aplicado: data.desconto,
-        status: "Pendente",
-      })
+      .insert(insertData)
       .select()
       .single();
 
