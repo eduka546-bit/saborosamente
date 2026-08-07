@@ -35,7 +35,7 @@ export const createOrder = createServerFn({ method: "POST" })
     // Pegar o usuário logado (opcional, para vincular o pedido)
     const { data: { user } } = await supabase.auth.getUser();
     
-    // 1. Criar o pedido na tabela 'pedidos'
+    // 1. Criar o pedido na tabela 'pedidos' com campos seguros
     const insertData: any = {
       user_id: user?.id,
       nome_cliente: data.nome,
@@ -43,16 +43,21 @@ export const createOrder = createServerFn({ method: "POST" })
       email_cliente: data.email,
       metodo_entrega: data.metodoEntrega,
       horario_recebimento: data.horarioEntrega,
-      endereco_cidade: data.cidade,
-      endereco_bairro: data.bairro,
-      endereco_rua: data.endereco,
-      endereco_complemento: data.complemento,
       metodo_pagamento: data.pagamento,
       observacao: data.observacoes,
       valor_total: data.valorTotal,
       taxa_entrega: data.taxaEntrega,
       status: "Pendente",
     };
+
+    // Só adiciona os campos de endereço se houver valor, para evitar erros em 'retirada'
+    // e facilitar o debug de colunas faltando no banco
+    if (data.metodoEntrega === "entrega") {
+      if (data.cidade) insertData.endereco_cidade = data.cidade;
+      if (data.bairro) insertData.endereco_bairro = data.bairro;
+      if (data.endereco) insertData.endereco_rua = data.endereco;
+      if (data.complemento) insertData.endereco_complemento = data.complemento;
+    }
 
     // Apenas incluir desconto_aplicado se a coluna existir ou for suportada
     // Se a coluna ainda não foi criada no Supabase, a inserção falhará se incluirmos
