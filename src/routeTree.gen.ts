@@ -21,7 +21,6 @@ import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
-import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/index'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'
 import { Route as AdminConfigSiteRouteImport } from './routes/admin.config.site'
 import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
@@ -90,11 +89,6 @@ const AdminProdutosRoute = AdminProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminClientesIndexRoute = AdminClientesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminClientesRoute,
-} as any)
 const AdminConfigIndexRoute = AdminConfigIndexRouteImport.update({
   id: '/config/',
   path: '/config/',
@@ -138,7 +132,7 @@ export interface FileRoutesByFullPath {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/admin/clientes': typeof AdminClientesRouteWithChildren
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
@@ -147,7 +141,6 @@ export interface FileRoutesByFullPath {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -159,6 +152,7 @@ export interface FileRoutesByTo {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -166,7 +160,6 @@ export interface FileRoutesByTo {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/admin/clientes': typeof AdminClientesIndexRoute
   '/admin/config': typeof AdminConfigIndexRoute
   '/admin/financeiro': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -180,7 +173,7 @@ export interface FileRoutesById {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/admin/clientes': typeof AdminClientesRouteWithChildren
+  '/admin/clientes': typeof AdminClientesRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
@@ -189,7 +182,6 @@ export interface FileRoutesById {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
-  '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -213,7 +205,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/admin/clientes/'
     | '/admin/config/'
     | '/admin/financeiro/'
     | '/admin/pedidos/'
@@ -225,6 +216,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/perfil'
+    | '/admin/clientes'
     | '/admin/cupons'
     | '/admin/login'
     | '/admin/produtos'
@@ -232,7 +224,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/admin/clientes'
     | '/admin/config'
     | '/admin/financeiro'
     | '/admin/pedidos'
@@ -254,7 +245,6 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/relatorios/kpi'
-    | '/admin/clientes/'
     | '/admin/config/'
     | '/admin/financeiro/'
     | '/admin/pedidos/'
@@ -356,13 +346,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProdutosRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/clientes/': {
-      id: '/admin/clientes/'
-      path: '/'
-      fullPath: '/admin/clientes/'
-      preLoaderRoute: typeof AdminClientesIndexRouteImport
-      parentRoute: typeof AdminClientesRoute
-    }
     '/admin/config/': {
       id: '/admin/config/'
       path: '/config'
@@ -415,18 +398,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AdminClientesRouteChildren {
-  AdminClientesIndexRoute: typeof AdminClientesIndexRoute
-}
-
-const AdminClientesRouteChildren: AdminClientesRouteChildren = {
-  AdminClientesIndexRoute: AdminClientesIndexRoute,
-}
-
-const AdminClientesRouteWithChildren = AdminClientesRoute._addFileChildren(
-  AdminClientesRouteChildren,
-)
-
 interface AdminPedidosRouteChildren {
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
@@ -440,7 +411,7 @@ const AdminPedidosRouteWithChildren = AdminPedidosRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
-  AdminClientesRoute: typeof AdminClientesRouteWithChildren
+  AdminClientesRoute: typeof AdminClientesRoute
   AdminCuponsRoute: typeof AdminCuponsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
@@ -455,7 +426,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminClientesRoute: AdminClientesRouteWithChildren,
+  AdminClientesRoute: AdminClientesRoute,
   AdminCuponsRoute: AdminCuponsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
