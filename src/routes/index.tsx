@@ -5,6 +5,7 @@ import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,6 +53,24 @@ function Index() {
     queryKey: ["public-products-featured"],
     queryFn: () => getPublicProducts(),
   });
+
+  const { data: settings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("*").maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const promoBanners: { image_url?: string; alt?: string; link?: string }[] =
+    Array.isArray((settings as any)?.promo_banners) && (settings as any).promo_banners.length > 0
+      ? (settings as any).promo_banners
+      : [
+          { image_url: bannerCarouselAsset.url, alt: "Marmitas" },
+          { image_url: bannerCarouselAsset.url, alt: "Loja" },
+          { image_url: bannerCarouselAsset.url, alt: "Entregas" },
+        ];
 
   const displayProducts = products.filter((p: any) => p.destaque).slice(0, 3).length > 0 
     ? products.filter((p: any) => p.destaque).slice(0, 3) 
@@ -107,20 +126,25 @@ function Index() {
 
             {/* Banners Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { img: bannerCarouselAsset.url, alt: "Marmitas" },
-                { img: bannerCarouselAsset.url, alt: "Loja" },
-                { img: bannerCarouselAsset.url, alt: "Entregas" }
-              ].map((b, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 aspect-[4/5] relative group bg-white">
-                  <img 
-                    src={b.img} 
-                    alt={b.alt} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 border-[8px] border-white/0 group-hover:border-white/10 transition-all pointer-events-none rounded-2xl" />
-                </div>
-              ))}
+              {promoBanners.filter((b) => b?.image_url).map((b, i) => {
+                const content = (
+                  <>
+                    <img
+                      src={b.image_url}
+                      alt={b.alt || "Banner promocional Saborosamente"}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 border-[8px] border-white/0 group-hover:border-white/10 transition-all pointer-events-none rounded-2xl" />
+                  </>
+                );
+                const cls = "rounded-2xl overflow-hidden shadow-sm border border-gray-100 aspect-[4/5] relative group bg-white block";
+                return b.link ? (
+                  <a key={i} href={b.link} className={cls}>{content}</a>
+                ) : (
+                  <div key={i} className={cls}>{content}</div>
+                );
+              })}
             </div>
           </div>
         </div>

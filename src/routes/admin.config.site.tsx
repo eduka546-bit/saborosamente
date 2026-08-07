@@ -32,6 +32,11 @@ function AdminSiteConfig() {
   const [isUploading, setIsUploading] = useState<{ [key: string]: boolean }>({});
   const heroRef = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
+  const promoRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   const { data: settings, isLoading, error: queryError } = useQuery({
     queryKey: ["site-settings"],
@@ -61,6 +66,11 @@ function AdminSiteConfig() {
             { label: "6 MESES DE", value: "VALIDADE" },
             { label: "SEM ADIÇÃO DE", value: "CONSERVANTES" },
             { label: "BAIXO TEOR DE", value: "SÓDIO" }
+          ],
+          promo_banners: [
+            { image_url: "", alt: "Banner 1", link: "" },
+            { image_url: "", alt: "Banner 2", link: "" },
+            { image_url: "", alt: "Banner 3", link: "" }
           ]
         };
         
@@ -174,6 +184,37 @@ function AdminSiteConfig() {
     setFormData({ ...formData, hero_features: newFeatures });
   };
 
+  const promoBanners: any[] = Array.isArray(formData.promo_banners) && formData.promo_banners.length === 3
+    ? formData.promo_banners
+    : [
+        { image_url: "", alt: "Banner 1", link: "" },
+        { image_url: "", alt: "Banner 2", link: "" },
+        { image_url: "", alt: "Banner 3", link: "" },
+      ];
+
+  const handlePromoChange = (index: number, field: string, value: string) => {
+    const next = promoBanners.map((b, i) => (i === index ? { ...b, [field]: value } : b));
+    setFormData({ ...formData, promo_banners: next });
+  };
+
+  const handlePromoUpload = async (file: File, index: number) => {
+    const key = `promo_${index}`;
+    try {
+      setIsUploading(prev => ({ ...prev, [key]: true }));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `site_promo_${index}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      handlePromoChange(index, "image_url", publicUrl);
+      toast.success("Imagem enviada!");
+    } catch (error: any) {
+      toast.error("Erro no upload: " + error.message);
+    } finally {
+      setIsUploading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
       <div className="flex items-center justify-between">
@@ -192,11 +233,13 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-[640px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
+          <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="header" className="mt-6 space-y-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
@@ -402,8 +445,66 @@ function AdminSiteConfig() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="promos" className="mt-6 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <ImageIcon className="text-[#5850ec]" size={20} /> Carrossel de 3 Banners (Home)
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Troque as três imagens exibidas abaixo da capa. Proporção recomendada: 4:5 (ex.: 800x1000px).
+            </p>
+
+            <div className="grid gap-6 sm:grid-cols-3">
+              {promoBanners.map((banner, index) => (
+                <div key={index} className="space-y-3 p-3 border rounded-xl bg-gray-50">
+                  <Label>Banner {index + 1}</Label>
+                  <div className="relative aspect-[4/5] rounded-xl bg-white overflow-hidden border">
+                    {banner.image_url ? (
+                      <img src={banner.image_url} alt={banner.alt || ""} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sem imagem</div>
+                    )}
+                    <Button
+                      size="sm"
+                      className="absolute bottom-2 right-2 bg-white text-black hover:bg-gray-100"
+                      onClick={() => promoRefs[index]?.current?.click()}
+                      disabled={isUploading[`promo_${index}`]}
+                    >
+                      {isUploading[`promo_${index}`] ? <Loader2 className="animate-spin size-4" /> : <Upload size={14} className="mr-2" />}
+                      Trocar
+                    </Button>
+                    <input
+                      ref={promoRefs[index]}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={e => e.target.files?.[0] && handlePromoUpload(e.target.files[0], index)}
+                    />
+                  </div>
+                  <Input
+                    placeholder="Texto alternativo (acessibilidade)"
+                    value={banner.alt || ""}
+                    onChange={e => handlePromoChange(index, "alt", e.target.value)}
+                  />
+                  <Input
+                    placeholder="Link ao clicar (opcional)"
+                    value={banner.link || ""}
+                    onChange={e => handlePromoChange(index, "link", e.target.value)}
+                  />
+                  {banner.image_url && (
+                    <Button variant="ghost" size="sm" className="text-red-500 w-full" onClick={() => handlePromoChange(index, "image_url", "")}>
+                      <Trash2 size={16} className="mr-2" /> Remover imagem
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
 
   );
 }
+
