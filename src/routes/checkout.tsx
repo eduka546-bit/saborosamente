@@ -106,23 +106,16 @@ function Checkout() {
   });
 
   const currentMetodo = watch("metodoEntrega");
-  const currentCEP = watch("cep");
 
   useEffect(() => {
     fetchUserData();
   }, []);
 
-  useEffect(() => {
-    const cep = currentCEP?.replace(/\D/g, "");
-    if (cep && cep.length === 8) {
-      handleCEP(cep);
-    }
-  }, [currentCEP]);
-
   const handleCEP = async (cep: string) => {
     try {
       setIsFetchingCEP(true);
       const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      if (!response.ok) throw new Error("Não foi possível consultar o CEP");
       const data = await response.json();
 
       if (data.erro) {
@@ -131,9 +124,9 @@ function Checkout() {
       }
 
       // Preencher campos
-      setValue("endereco", data.logradouro);
-      setValue("bairro", data.bairro);
-      setValue("cidade", data.localidade);
+      setValue("endereco", data.logradouro || "", { shouldDirty: true, shouldValidate: true });
+      setValue("bairro", data.bairro || "", { shouldDirty: true, shouldValidate: true });
+      setValue("cidade", data.localidade || "", { shouldDirty: true, shouldValidate: true });
       
       // Atualizar estados do carrinho para cálculo de frete
       setSelectedCity(data.localidade);
@@ -142,6 +135,7 @@ function Checkout() {
       toast.success("Endereço preenchido via CEP!");
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
+      toast.error("Não foi possível buscar o CEP. Tente novamente.");
     } finally {
       setIsFetchingCEP(false);
     }
@@ -529,7 +523,12 @@ function Checkout() {
                       id="cep" 
                       placeholder="00000-000" 
                       className={cn(fieldClass, isFetchingCEP && "pr-10")} 
-                      {...register("cep")} 
+                      {...register("cep", {
+                        onChange: (event) => {
+                          const cep = event.target.value.replace(/\D/g, "");
+                          if (cep.length === 8) void handleCEP(cep);
+                        },
+                      })} 
                     />
                     {isFetchingCEP && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
