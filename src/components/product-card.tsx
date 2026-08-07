@@ -117,9 +117,9 @@ export function ProductCard({ product }: ProductCardProps) {
         </article>
       </DialogTrigger>
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl">
-        <div className="flex flex-col md:flex-row">
-          <div className="relative aspect-square w-full md:w-1/2">
+      <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto p-0 sm:max-w-4xl lg:max-w-5xl">
+        <div className="flex flex-col md:flex-row min-h-full">
+          <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 min-h-[300px] md:min-h-[500px]">
             <img
               src={product.imagem}
               alt={product.nome}

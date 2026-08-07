@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Implementado o modal de detalhes do produto. Agora, ao clicar em qualquer lugar do card (exceto nos botões de peso e adicionar direto), abrirá uma janela com informações completas, imagem ampliada, detalhes nutricionais e a opção de adicionar ao carrinho.</div>
+        <div className="sr-only">Aumentei o tamanho do modal de detalhes para ocupar mais espaço na tela e reduzi a necessidade de scroll, tornando a visualização mais ampla e fluida.</div>
         {children}
         <Scripts />
       </body>
