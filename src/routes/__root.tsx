@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Tem como colocar mais imagens de cada produto e também ter aquelas setinhas para no catálogo?</div>
+        <div className="sr-only">Precisa também ter opção no editor de alterar a tabela nutricional de cada tamanho, fixo só para colocar o valor de kcal, carb e prot.</div>
         {children}
         <Scripts />
       </body>
