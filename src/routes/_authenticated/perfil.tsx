@@ -55,7 +55,8 @@ function PerfilPage() {
     bairro: "",
     rua: "",
     numero: "",
-    complemento: ""
+    complemento: "",
+    cep: ""
   });
 
   useEffect(() => {
@@ -133,17 +134,19 @@ function PerfilPage() {
 
   const handleCepSearch = async (cep: string) => {
     const numericCep = cep.replace(/\D/g, "");
+    setNewAddress(prev => ({ ...prev, cep: numericCep }));
+
     if (numericCep.length === 8) {
       try {
         const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
         const data = await response.json();
         if (!data.erro) {
-          setNewAddress({
-            ...newAddress,
+          setNewAddress(prev => ({
+            ...prev,
             rua: data.logradouro,
             bairro: data.bairro,
             cidade: data.localidade
-          });
+          }));
           toast.success("CEP encontrado!");
         } else {
           toast.error("CEP não encontrado.");
@@ -200,7 +203,7 @@ function PerfilPage() {
 
       setIsAddingAddress(false);
       setEditingAddressId(null);
-      setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "" });
+      setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "", cep: "" });
       fetchAddresses();
     } catch (error: any) {
       toast.error("Erro ao salvar endereço: " + error.message);
@@ -215,7 +218,8 @@ function PerfilPage() {
       bairro: addr.bairro,
       rua: addr.rua,
       numero: addr.numero,
-      complemento: addr.complemento || ""
+      complemento: addr.complemento || "",
+      cep: addr.cep || ""
     });
     setEditingAddressId(addr.id);
     setIsAddingAddress(true);
