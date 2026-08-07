@@ -177,12 +177,12 @@ function PerfilPage() {
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <div className="mb-8 space-y-2">
         <h1 className="text-3xl font-bold">Meu Perfil</h1>
-        <p className="text-muted-foreground">Gerencie suas informações e endereços de entrega.</p>
+        <p className="text-muted-foreground">Gerencie suas informações e pedidos.</p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
         {/* Informações Básicas */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle>Dados Pessoais</CardTitle>
           </CardHeader>
@@ -205,8 +205,6 @@ function PerfilPage() {
           </CardContent>
         </Card>
 
-        {/* Gerenciamento de Endereços */}
-        {/* Gerenciamento de Endereços e Pedidos */}
         <div className="space-y-12">
           {/* Meus Pedidos */}
           <section className="space-y-6">
@@ -274,7 +272,6 @@ function PerfilPage() {
                         </div>
                       </div>
                       
-                      {/* Histórico Simplificado */}
                       {order.historico?.length > 0 && (
                         <div className="mt-6 pt-6 border-t space-y-3">
                           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
@@ -302,146 +299,147 @@ function PerfilPage() {
             )}
           </section>
 
-        </div>
-      </div>
+          {/* Gerenciamento de Endereços */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <MapPinned className="h-5 w-5 text-primary" />
+                Meus Endereços
+              </h2>
+              <Button onClick={() => {
+                setIsAddingAddress(!isAddingAddress);
+                if (!isAddingAddress) setEditingAddressId(null);
+              }} size="sm" className="rounded-full">
+                {isAddingAddress ? "Cancelar" : <><Plus className="mr-2 h-4 w-4" /> Novo Endereço</>}
+              </Button>
+            </div>
 
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <MapPinned className="h-5 w-5 text-primary" />
-              Meus Endereços
-            </h2>
-            <Button onClick={() => {
-              setIsAddingAddress(!isAddingAddress);
-              if (!isAddingAddress) setEditingAddressId(null);
-            }} size="sm" className="rounded-full">
-              {isAddingAddress ? "Cancelar" : <><Plus className="mr-2 h-4 w-4" /> Novo Endereço</>}
-            </Button>
-          </div>
-
-          {isAddingAddress && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-lg">{editingAddressId ? "Editar Endereço" : "Adicionar Novo Endereço"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSaveAddress} className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
-                      <Input 
-                        id="label" 
-                        value={newAddress.label} 
-                        onChange={e => setNewAddress({...newAddress, label: e.target.value})}
-                        placeholder="Ex: Casa"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cidade">Cidade</Label>
-                      <Input 
-                        id="cidade" 
-                        value={newAddress.cidade} 
-                        onChange={e => setNewAddress({...newAddress, cidade: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="bairro">Bairro</Label>
-                      <Input 
-                        id="bairro" 
-                        value={newAddress.bairro} 
-                        onChange={e => setNewAddress({...newAddress, bairro: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="rua">Rua</Label>
-                      <Input 
-                        id="rua" 
-                        value={newAddress.rua} 
-                        onChange={e => setNewAddress({...newAddress, rua: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="numero">Número</Label>
-                      <Input 
-                        id="numero" 
-                        value={newAddress.numero} 
-                        onChange={e => setNewAddress({...newAddress, numero: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="complemento">Complemento (opcional)</Label>
-                      <Input 
-                        id="complemento" 
-                        value={newAddress.complemento} 
-                        onChange={e => setNewAddress({...newAddress, complemento: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full">{editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}</Button>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid gap-4">
-            {addresses.length === 0 ? (
-              <div className="text-center py-12 bg-muted/30 rounded-3xl border border-dashed">
-                <MapPin className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-2 text-muted-foreground">Nenhum endereço cadastrado.</p>
-              </div>
-            ) : (
-              addresses.map((addr) => (
-                <Card key={addr.id} className={addr.is_default ? "border-primary/50 shadow-sm" : ""}>
-                  <CardContent className="p-6 flex items-start justify-between">
-                    <div className="flex gap-4">
-                      <div className="mt-1 bg-primary/10 p-2 rounded-xl text-primary">
-                        {addr.label?.toLowerCase().includes("casa") ? <Home size={20} /> : 
-                         addr.label?.toLowerCase().includes("trabalho") ? <Briefcase size={20} /> : 
-                         <MapPin size={20} />}
+            {isAddingAddress && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-lg">{editingAddressId ? "Editar Endereço" : "Adicionar Novo Endereço"}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSaveAddress} className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
+                        <Input 
+                          id="label" 
+                          value={newAddress.label} 
+                          onChange={e => setNewAddress({...newAddress, label: e.target.value})}
+                          placeholder="Ex: Casa"
+                          required
+                        />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold">{addr.label}</h3>
-                          {addr.is_default && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Padrão</span>}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {addr.rua}, {addr.numero}{addr.complemento ? ` - ${addr.complemento}` : ""}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {addr.bairro}, {addr.cidade}
-                        </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="cidade">Cidade</Label>
+                        <Input 
+                          id="cidade" 
+                          value={newAddress.cidade} 
+                          onChange={e => setNewAddress({...newAddress, cidade: e.target.value})}
+                          required
+                        />
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={() => handleEditAddress(addr)}
-                      >
-                        <Pencil size={18} />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setAddressToDelete(addr.id)}
-                      >
-                        <Trash2 size={18} />
-                      </Button>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="bairro">Bairro</Label>
+                        <Input 
+                          id="bairro" 
+                          value={newAddress.bairro} 
+                          onChange={e => setNewAddress({...newAddress, bairro: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rua">Rua</Label>
+                        <Input 
+                          id="rua" 
+                          value={newAddress.rua} 
+                          onChange={e => setNewAddress({...newAddress, rua: e.target.value})}
+                          required
+                        />
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="numero">Número</Label>
+                        <Input 
+                          id="numero" 
+                          value={newAddress.numero} 
+                          onChange={e => setNewAddress({...newAddress, numero: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="complemento">Complemento (opcional)</Label>
+                        <Input 
+                          id="complemento" 
+                          value={newAddress.complemento} 
+                          onChange={e => setNewAddress({...newAddress, complemento: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full">{editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}</Button>
+                  </form>
+                </CardContent>
+              </Card>
             )}
-          </div>
+
+            <div className="grid gap-4">
+              {addresses.length === 0 ? (
+                <div className="text-center py-12 bg-muted/30 rounded-3xl border border-dashed">
+                  <MapPin className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-2 text-muted-foreground">Nenhum endereço cadastrado.</p>
+                </div>
+              ) : (
+                addresses.map((addr) => (
+                  <Card key={addr.id} className={addr.is_default ? "border-primary/50 shadow-sm" : ""}>
+                    <CardContent className="p-6 flex items-start justify-between">
+                      <div className="flex gap-4">
+                        <div className="mt-1 bg-primary/10 p-2 rounded-xl text-primary">
+                          {addr.label?.toLowerCase().includes("casa") ? <Home size={20} /> : 
+                           addr.label?.toLowerCase().includes("trabalho") ? <Briefcase size={20} /> : 
+                           <MapPin size={20} />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold">{addr.label}</h3>
+                            {addr.is_default && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Padrão</span>}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {addr.rua}, {addr.numero}{addr.complemento ? ` - ${addr.complemento}` : ""}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {addr.bairro}, {addr.cidade}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleEditAddress(addr)}
+                        >
+                          <Pencil size={18} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setAddressToDelete(addr.id)}
+                        >
+                          <Trash2 size={18} />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </div>
 
