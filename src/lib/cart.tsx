@@ -170,6 +170,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         categoria: p.categorias?.nome || "Marmita",
         imagem: p.imagem_url
       }));
+      // Forçar atualização do estado das linhas para que o useMemo recalcule os detalhes
+      // agora que temos os produtos carregados
+      setLines(prev => [...prev]);
     }
   }, [serverProducts]);
 
