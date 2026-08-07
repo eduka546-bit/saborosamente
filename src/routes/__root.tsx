@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">Aumentei o tamanho do modal de detalhes para ocupar mais espaço na tela e reduzi a necessidade de scroll, tornando a visualização mais ampla e fluida.</div>
+        <div className="sr-only">Tem como colocar mais imagens de cada produto e também ter aquelas setinhas para no catálogo?</div>
         {children}
         <Scripts />
       </body>
