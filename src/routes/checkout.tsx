@@ -267,7 +267,7 @@ function Checkout() {
         </div>
         <h1 className="text-3xl font-extrabold">Finalize seu pedido</h1>
         <p className="mt-4 text-muted-foreground">
-          Para iniciar a compra não precisa login, mas na hora do checkout o cliente precisa fazer o cadastro rápido se ainda não tem, daí para colocar as informações de entrega, forma de pagamento e etc.
+          Para concluir sua compra, você precisa entrar na sua conta ou fazer um cadastro rápido. Isso nos ajuda a salvar seu endereço e histórico de pedidos.
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
