@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { ChevronRight, Percent, ShoppingBag } from "lucide-react";
+import { ChevronRight, ShoppingBag } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
