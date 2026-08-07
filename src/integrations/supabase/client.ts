@@ -15,8 +15,8 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storageKey: 'sb-lxcgbrovdmpjatywweiv-auth-token', // Garantir a mesma chave
-      storage: window.localStorage
+      storageKey: 'sb-lxcgbrovdmpjatywweiv-auth-token',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }
   }
 );
