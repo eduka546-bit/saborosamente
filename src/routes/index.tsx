@@ -163,20 +163,27 @@ function Index() {
             </p>
             
             <div className="space-y-2">
-              {[
-                "Combos Prontos",
-                "Combos Escolha Você Mesmo",
-                "Linha Refeições (200g - 300g - 400g)",
-                "Sopas (400g)",
-                "Complementos de Proteínas 150g"
-              ].map((cat) => (
-                <button 
-                  key={cat}
-                  className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
-                >
-                  {cat}
-                </button>
-              ))}
+              {isLoading ? (
+                <div className="py-4 flex justify-center">
+                  <Loader2 className="animate-spin text-[#086e45]/20" size={20} />
+                </div>
+              ) : (
+                [
+                  "Combos Prontos",
+                  "Combos Escolha Você Mesmo",
+                  "Linha Refeições (200g - 300g - 400g)",
+                  "Sopas (400g)",
+                  "Complementos de Proteínas 150g"
+                ].map((cat) => (
+                  <button 
+                    key={cat}
+                    onClick={() => navigate({ to: "/catalogo", search: { q: cat } })}
+                    className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
+                  >
+                    {cat}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
