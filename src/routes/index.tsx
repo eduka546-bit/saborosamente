@@ -7,6 +7,7 @@ import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { useState, useMemo } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -50,8 +51,10 @@ const infoCards = [
 
 function Index() {
   const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
+  
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["public-products-featured"],
+    queryKey: ["public-products-all"],
     queryFn: () => getPublicProducts(),
   });
 
@@ -73,9 +76,21 @@ function Index() {
           { image_url: bannerCarouselAsset.url, alt: "Entregas" },
         ];
 
-  const displayProducts = products.filter((p: any) => p.destaque).slice(0, 3).length > 0 
-    ? products.filter((p: any) => p.destaque).slice(0, 3) 
-    : products.slice(0, 3);
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === "Todas") return products;
+    return products.filter((p: any) => p.categorias?.nome === selectedCategory);
+  }, [products, selectedCategory]);
+
+  const categoriesWithProducts = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p: any) => {
+      if (p.categorias?.nome) {
+        set.add(p.categorias.nome);
+      }
+    });
+    // Order matters - we can use the default order or just alphabetically
+    return ["Todas", ...Array.from(set).sort()];
+  }, [products]);
 
   return (
     <>
@@ -152,10 +167,10 @@ function Index() {
       </section>
 
       {/* Main Content: Filters + Products */}
-      <section className="mx-auto max-w-7xl px-4 py-12">
+      <section id="cardapio" className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8 items-start">
-          {/* Menu de Categorias - Agora ao lado das Marmitas */}
-          <div className="w-full md:w-72 space-y-2 shrink-0">
+          {/* Menu de Categorias - Sticky */}
+          <div className="w-full md:w-72 md:sticky md:top-24 space-y-2 shrink-0">
             <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
               SaborosaMente - Atacado de Refeições e Sopas Congeladas
             </h1>
@@ -165,44 +180,26 @@ function Index() {
             
             <DiscountProgressWidget className="mb-6" />
             
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {isLoading ? (
                 <div className="py-4 flex justify-center">
                   <Loader2 className="animate-spin text-[#086e45]/20" size={20} />
                 </div>
               ) : (
-                (() => {
-                  const categoriesWithProducts = new Set<string>();
-                  products.forEach((p: any) => {
-                    if (p.categorias?.nome) {
-                      categoriesWithProducts.add(p.categorias.nome);
-                    }
-                  });
-
-                  // Se não houver produtos ou categorias com produtos, mostramos as categorias padrão
-                  // para não deixar o menu vazio enquanto carrega ou se for o estado inicial.
-                  const defaultCategories = [
-                    "Combos Prontos",
-                    "Combos Escolha Você Mesmo",
-                    "Linha Refeições (200g - 300g - 400g)",
-                    "Sopas (400g)",
-                    "Complementos de Proteínas 150g"
-                  ];
-
-                  const categoriesToShow = categoriesWithProducts.size > 0 
-                    ? defaultCategories.filter(cat => categoriesWithProducts.has(cat))
-                    : defaultCategories;
-
-                  return categoriesToShow.map((cat) => (
-                    <button 
-                      key={cat}
-                      onClick={() => navigate({ to: "/catalogo", search: { q: cat } })}
-                      className="w-full text-left px-5 py-3 rounded-full bg-gray-50 text-gray-500 text-[11px] font-bold hover:bg-[#086e45]/10 hover:text-[#086e45] transition-all border border-transparent shadow-sm"
-                    >
-                      {cat}
-                    </button>
-                  ));
-                })()
+                categoriesWithProducts.map((cat) => (
+                  <button 
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "w-full text-left px-5 py-3 rounded-full text-[11px] font-bold transition-all border shadow-sm",
+                      selectedCategory === cat 
+                        ? "bg-[#086e45] text-white border-[#086e45]"
+                        : "bg-gray-50 text-gray-500 border-transparent hover:bg-[#086e45]/10 hover:text-[#086e45]"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))
               )}
             </div>
           </div>
@@ -211,24 +208,29 @@ function Index() {
           <div className="flex-1 w-full">
             <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
               <div>
-                <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">Mais pedidas da semana</h2>
+                <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">
+                  {selectedCategory === "Todas" ? "Nosso Cardápio" : selectedCategory}
+                </h2>
                 <p className="mt-1 text-xs text-muted-foreground font-medium">
-                  As marmitas que saem primeiro do nosso freezer.
+                  {selectedCategory === "Todas" 
+                    ? "Escolha suas marmitas favoritas e monte seu combo."
+                    : `Mostrando todas as opções em ${selectedCategory}.`}
                 </p>
               </div>
-              <Link to="/catalogo" className="text-xs font-bold text-[#086e45] hover:underline uppercase tracking-wider">
-                Ver todas as marmitas →
-              </Link>
             </div>
 
             {isLoading ? (
-              <div className="flex flex-col items-center py-10 gap-3">
-                <Loader2 className="animate-spin text-primary" size={32} />
-                <p className="text-muted-foreground text-sm">Carregando sugestões...</p>
+              <div className="flex flex-col items-center py-20 gap-3">
+                <Loader2 className="animate-spin text-[#086e45]" size={32} />
+                <p className="text-muted-foreground text-sm font-medium">Carregando o cardápio...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="py-20 text-center bg-gray-50 rounded-[2rem] border border-dashed">
+                <p className="text-muted-foreground text-sm">Nenhum produto encontrado nesta categoria.</p>
               </div>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                {displayProducts.map((product: any) => (
+                {filteredProducts.map((product: any) => (
                   <ProductCard 
                     key={product.id} 
                     product={{
