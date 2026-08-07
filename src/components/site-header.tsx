@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartSheet } from "./cart-sheet";
 
 const links = [
-  { to: "/catalogo", label: "Cardápio", icon: Menu, type: "link" },
+  { to: "/#cardapio", label: "Cardápio", icon: Menu, type: "link" },
   { to: "#", label: "Áreas de entrega", icon: MapPin, type: "modal" },
   { to: "/", label: "Cashback", icon: Sparkles, type: "link" },
   { to: "/", label: "Fale conosco", icon: MessageSquare, type: "link" },
