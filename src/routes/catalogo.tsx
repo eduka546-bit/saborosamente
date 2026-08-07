@@ -2,6 +2,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { z } from "zod";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/product-card";
+import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
 import { useQuery } from "@tanstack/react-query";
@@ -91,23 +92,35 @@ function Catalogo() {
         )}
       </p>
 
-      <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
-        {categoryList.map((f) => (
-          <button
-            key={f}
-            type="button"
-            aria-pressed={selectedCategory === f}
-            onClick={() => setSelectedCategory(f)}
-            className={cn(
-              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-              selectedCategory === f
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-muted-foreground hover:text-primary",
-            )}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px] items-start">
+        <div className="space-y-8">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+            {categoryList.map((f) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={selectedCategory === f}
+                onClick={() => setSelectedCategory(f)}
+                className={cn(
+                  "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                  selectedCategory === f
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:text-primary",
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden lg:block">
+          <DiscountProgressWidget />
+        </div>
+      </div>
+
+      <div className="lg:hidden mt-6">
+        <DiscountProgressWidget />
       </div>
 
       {productsLoading ? (
