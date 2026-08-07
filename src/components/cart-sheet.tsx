@@ -134,7 +134,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <Button asChild className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20">
-              <Link to="/checkout">Finalizar Pedido</Link>
+              <Link to="/checkout">Vamos para o checkout agora</Link>
             </Button>
           </SheetFooter>
         )}
