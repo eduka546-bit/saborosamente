@@ -38,10 +38,10 @@ export const createOrder = createServerFn({ method: "POST" })
     const { data: order, error: orderError } = await supabase
       .from("pedidos")
       .insert({
-        // user_id: user?.id, // Temporariamente desativado até rodar o SQL
+        user_id: user?.id,
         nome_cliente: data.nome,
         telefone_cliente: data.telefone,
-        // email_cliente: data.email,
+        email_cliente: data.email,
         metodo_entrega: data.metodoEntrega,
         horario_recebimento: data.horarioEntrega,
         endereco_cidade: data.cidade,
