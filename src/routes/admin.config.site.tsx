@@ -32,6 +32,11 @@ function AdminSiteConfig() {
   const [isUploading, setIsUploading] = useState<{ [key: string]: boolean }>({});
   const heroRef = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
+  const promoRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
 
   const { data: settings, isLoading, error: queryError } = useQuery({
     queryKey: ["site-settings"],
@@ -61,6 +66,11 @@ function AdminSiteConfig() {
             { label: "6 MESES DE", value: "VALIDADE" },
             { label: "SEM ADIÇÃO DE", value: "CONSERVANTES" },
             { label: "BAIXO TEOR DE", value: "SÓDIO" }
+          ],
+          promo_banners: [
+            { image_url: "", alt: "Banner 1", link: "" },
+            { image_url: "", alt: "Banner 2", link: "" },
+            { image_url: "", alt: "Banner 3", link: "" }
           ]
         };
         
@@ -172,6 +182,37 @@ function AdminSiteConfig() {
   const removeFeature = (index: number) => {
     const newFeatures = formData.hero_features.filter((_: any, i: number) => i !== index);
     setFormData({ ...formData, hero_features: newFeatures });
+  };
+
+  const promoBanners: any[] = Array.isArray(formData.promo_banners) && formData.promo_banners.length === 3
+    ? formData.promo_banners
+    : [
+        { image_url: "", alt: "Banner 1", link: "" },
+        { image_url: "", alt: "Banner 2", link: "" },
+        { image_url: "", alt: "Banner 3", link: "" },
+      ];
+
+  const handlePromoChange = (index: number, field: string, value: string) => {
+    const next = promoBanners.map((b, i) => (i === index ? { ...b, [field]: value } : b));
+    setFormData({ ...formData, promo_banners: next });
+  };
+
+  const handlePromoUpload = async (file: File, index: number) => {
+    const key = `promo_${index}`;
+    try {
+      setIsUploading(prev => ({ ...prev, [key]: true }));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `site_promo_${index}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      handlePromoChange(index, "image_url", publicUrl);
+      toast.success("Imagem enviada!");
+    } catch (error: any) {
+      toast.error("Erro no upload: " + error.message);
+    } finally {
+      setIsUploading(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   return (
