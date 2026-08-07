@@ -2,7 +2,8 @@ import { Minus, Plus, Trash2, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { 
   Sheet, 
   SheetContent, 
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DiscountProgressWidget } from "./discount-progress-widget";
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
   const {
     lines,
     subtotal,
@@ -28,7 +30,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   } = useCart();
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
@@ -133,8 +135,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 * Entrega calculada no checkout
               </p>
             </div>
-            <Button asChild className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20">
-              <Link to="/checkout">Vamos para o checkout agora</Link>
+            <Button 
+              onClick={() => setOpen(false)}
+              asChild 
+              className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20"
+            >
+              <Link to="/checkout">Finalizar compra</Link>
             </Button>
           </SheetFooter>
         )}
