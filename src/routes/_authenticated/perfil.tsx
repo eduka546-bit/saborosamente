@@ -131,6 +131,29 @@ function PerfilPage() {
     }
   };
 
+  const handleCepSearch = async (cep: string) => {
+    const numericCep = cep.replace(/\D/g, "");
+    if (numericCep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setNewAddress({
+            ...newAddress,
+            rua: data.logradouro,
+            bairro: data.bairro,
+            cidade: data.localidade
+          });
+          toast.success("CEP encontrado!");
+        } else {
+          toast.error("CEP não encontrado.");
+        }
+      } catch (err) {
+        toast.error("Erro ao buscar CEP.");
+      }
+    }
+  };
+
   const fetchAddresses = async () => {
     const { data, error } = await supabase
       .from("user_addresses")
@@ -183,6 +206,7 @@ function PerfilPage() {
       toast.error("Erro ao salvar endereço: " + error.message);
     }
   };
+
 
   const handleEditAddress = (addr: any) => {
     setNewAddress({
