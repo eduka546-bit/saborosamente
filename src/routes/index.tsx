@@ -176,13 +176,21 @@ function Index() {
                     }
                   });
 
-                  return [
+                  // Se não houver produtos ou categorias com produtos, mostramos as categorias padrão
+                  // para não deixar o menu vazio enquanto carrega ou se for o estado inicial.
+                  const defaultCategories = [
                     "Combos Prontos",
                     "Combos Escolha Você Mesmo",
                     "Linha Refeições (200g - 300g - 400g)",
                     "Sopas (400g)",
                     "Complementos de Proteínas 150g"
-                  ].filter(cat => categoriesWithProducts.has(cat)).map((cat) => (
+                  ];
+
+                  const categoriesToShow = categoriesWithProducts.size > 0 
+                    ? defaultCategories.filter(cat => categoriesWithProducts.has(cat))
+                    : defaultCategories;
+
+                  return categoriesToShow.map((cat) => (
                     <button 
                       key={cat}
                       onClick={() => navigate({ to: "/catalogo", search: { q: cat } })}
