@@ -43,8 +43,9 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     add(product.id, 1, selectedWeight);
-    toast.success("Adicionado ao carrinho", { 
-      description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}` 
+    toast.success("Adicionado", { 
+      description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
+      className: "max-w-[300px] text-xs py-2 px-3",
     });
   };
 
