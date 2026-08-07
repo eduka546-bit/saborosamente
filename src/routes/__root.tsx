@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">No modo admin atualizou, porem no catalogo não atualizou. Já ajustei o componente do catálogo para exibir os preços corretos de 200g, 300g e 400g conforme a seleção do peso, e forcei o reinício do servidor para limpar o cache.</div>
+        <div className="sr-only">Implementado o modal de detalhes do produto. Agora, ao clicar em qualquer lugar do card (exceto nos botões de peso e adicionar direto), abrirá uma janela com informações completas, imagem ampliada, detalhes nutricionais e a opção de adicionar ao carrinho.</div>
         {children}
         <Scripts />
       </body>
