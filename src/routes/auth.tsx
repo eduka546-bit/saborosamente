@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,19 @@ import { User, Lock, Mail, Phone, Fingerprint } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || "/",
+    };
+  },
   component: AuthPage,
 });
 
+
 function AuthPage() {
+  const { redirect } = Route.useSearch();
+  const navigate = useNavigate();
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +55,12 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Cadastro realizado! Verifique seu e-mail.");
       }
-      window.location.href = "/#cardapio";
+      if (redirect && redirect !== "/") {
+        window.location.href = redirect;
+      } else {
+        window.location.href = "/#cardapio";
+      }
+
     } catch (error: any) {
       toast.error(error.message || "Erro na autenticação");
     } finally {
