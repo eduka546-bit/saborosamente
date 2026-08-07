@@ -25,9 +25,9 @@ export const RULES = {
   MIN_ORDER_QUANTITY: 5,
   SBS_DISCOUNTED_SHIPPING: 5,
   PROGRESSIVE_DISCOUNT: [
+    { minItems: 5, discountPercent: 3 },
     { minItems: 10, discountPercent: 5 },
-    { minItems: 20, discountPercent: 10 },
-    { minItems: 30, discountPercent: 15 },
+    { minItems: 20, discountPercent: 7 },
   ],
 };
 
@@ -249,7 +249,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .find(d => count >= d.minItems);
     
     if (applicableDiscount) {
-      discount = subtotal * (applicableDiscount.discountPercent / 100);
+      // Sopas contam na quantidade mas o valor é fixo (não recebem desconto)
+      const discountableSubtotal = detailed.reduce((acc, l) => {
+        const isSopa = l.product.categoria?.toLowerCase().includes("sopa");
+        if (isSopa) return acc;
+        return acc + l.subtotal;
+      }, 0);
+
+      discount = discountableSubtotal * (applicableDiscount.discountPercent / 100);
     }
 
     return {
