@@ -451,6 +451,7 @@ function PerfilPage() {
                       </div>
                     </div>
 
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cidade">Cidade</Label>
                         <Input 
@@ -461,6 +462,7 @@ function PerfilPage() {
                         />
                       </div>
                     </div>
+
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="bairro">Bairro</Label>
