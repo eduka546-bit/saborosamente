@@ -87,9 +87,14 @@ function Checkout() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: { 
       pagamento: "pix",
+      metodoEntrega: "entrega",
       cidade: selectedCity 
     },
   });
+
+  const metodoEntrega = useFormContext?.()?.watch?.("metodoEntrega") || "entrega"; // Using watch inside component
+  // Wait, I need to use watch from the hook instance
+
 
   useEffect(() => {
     fetchUserData();
