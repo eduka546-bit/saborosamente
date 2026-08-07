@@ -18,6 +18,8 @@ export interface Product {
   descricao: string;
   ingredientes: string[];
   preco: number;
+  preco_300g?: number;
+  preco_400g?: number;
   peso: string;
   categoria: ProductCategory;
   imagem: string;
