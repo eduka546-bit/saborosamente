@@ -291,13 +291,13 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   </Button>
                 </div>
 
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
-                  <Info className="text-blue-500 shrink-0" size={18} />
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    <strong>Dica:</strong> Você pode gerenciar todos os seus complementos globalmente na seção 
-                    <Link to="/admin" className="font-bold underline ml-1">Configurações > Complementos</Link>.
-                  </p>
-                </div>
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
+                    <Info className="text-blue-500 shrink-0" size={18} />
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      <strong>Dica:</strong> Você pode gerenciar todos os seus complementos globalmente na seção 
+                      <Link to="/admin" className="font-bold underline ml-1">Configurações {" > "} Complementos</Link>.
+                    </p>
+                  </div>
               </div>
             </TabsContent>
 
