@@ -46,7 +46,7 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Cadastro realizado! Verifique seu e-mail.");
       }
-      window.location.href = "/";
+      window.location.href = "/#cardapio";
     } catch (error: any) {
       toast.error(error.message || "Erro na autenticação");
     } finally {
