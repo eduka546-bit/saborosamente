@@ -195,7 +195,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Restrições</h4>
-                  <p className="text-xs mt-1">Sem Glúten | Sem Lactose</p>
+                  <p className="text-xs mt-1">{product.informacao_nutricional || "Sem Glúten | Sem Lactose"}</p>
                 </div>
               </div>
 
