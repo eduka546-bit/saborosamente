@@ -126,7 +126,13 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">lembre se de que cada sql que eu precisar rodar no supabase, me envia aqui no chat</div>
+        <div className="sr-only">Tá vou te explicar como funciona o desconto progressivo:
+
+5 a 9 produtos = 3% de desconto, sopas somam na contagem, porém o valor continua fixo em R$ 18,00.
+
+10 a 19 produtos = 5% de desconto, sopas somam na contagem, porém o valor continua fixo em R$ 18,00.
+
+20+ produtos = 7% de desconto, sopas somam na contagem, porém o valor continua fixo em R$ 18,00.</div>
         {children}
         <Scripts />
       </body>

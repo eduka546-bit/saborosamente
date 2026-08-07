@@ -27,11 +27,12 @@ export function ProductCard({ product }: ProductCardProps) {
       : product.peso ? [product.peso] : [];
   const [selectedWeight, setSelectedWeight] = useState(weights.includes("300g") ? "300g" : (weights[0] || ""));
 
-  const currentPrice = selectedWeight === "300g" && product.preco_300g 
+  const isSopa = product.categoria?.toLowerCase().includes("sopa");
+  const currentPrice = isSopa ? 18.00 : (selectedWeight === "300g" && product.preco_300g 
     ? product.preco_300g 
     : selectedWeight === "400g" && product.preco_400g
       ? product.preco_400g
-      : product.preco;
+      : product.preco);
 
   const currentNutritional = selectedWeight === "300g" && product.tabela_nutricional_300g
     ? product.tabela_nutricional_300g

@@ -252,9 +252,9 @@ function Carrinho() {
 
               {(() => {
                 const tiers = [
+                  { minItems: 5, discount: 3 },
                   { minItems: 10, discount: 5 },
-                  { minItems: 20, discount: 10 },
-                  { minItems: 30, discount: 15 }
+                  { minItems: 20, discount: 7 }
                 ];
                 
                 const nextTier = tiers.find(t => count < t.minItems);
@@ -265,7 +265,7 @@ function Carrinho() {
                     <div className="space-y-3">
                       <div className="flex justify-between text-xs font-bold">
                         <span className="text-primary-dark uppercase">Parabéns! Desconto máximo atingido!</span>
-                        <span className="text-primary">15% OFF</span>
+                        <span className="text-primary">7% OFF</span>
                       </div>
                       <div className="h-3 w-full rounded-full bg-primary shadow-inner" />
                     </div>
@@ -306,9 +306,9 @@ function Carrinho() {
 
               <div className="mt-6 grid grid-cols-3 gap-2">
                 {[
+                  { q: 5, d: 3 },
                   { q: 10, d: 5 },
-                  { q: 20, d: 10 },
-                  { q: 30, d: 15 }
+                  { q: 20, d: 7 }
                 ].map((tier) => (
                   <div 
                     key={tier.q}
