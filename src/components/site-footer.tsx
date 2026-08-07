@@ -35,7 +35,7 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link to="/catalogo" className="opacity-85 hover:opacity-100">
+              <Link to="/" hash="cardapio" className="opacity-85 hover:opacity-100">
                 Catálogo
               </Link>
             </li>
