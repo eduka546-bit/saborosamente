@@ -126,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">qual sql para rodar e aparecer os produtos?</div>
+        <div className="sr-only">preciso que vc me envie o SQL para rodar no supabase</div>
         {children}
         <Scripts />
       </body>
