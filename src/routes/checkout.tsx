@@ -230,7 +230,7 @@ function Checkout() {
 
       const orderData = {
         ...data,
-        bairro: selectedBairro,
+        bairro: data.bairro || selectedBairro,
         valorTotal: total,
         taxaEntrega: shipping,
         desconto: discount,
