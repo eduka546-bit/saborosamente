@@ -1,4 +1,4 @@
-import { Plus, Info, X, ShoppingCart } from "lucide-react";
+import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useState } from "react";
@@ -45,7 +45,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <Dialog>
       <DialogTrigger asChild>
         <article className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
-          <div className="relative aspect-4/3 overflow-hidden bg-muted">
+          <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
             <img
               src={product.imagem}
               alt={`Marmita de ${product.nome}`}
@@ -54,6 +54,16 @@ export function ProductCard({ product }: ProductCardProps) {
               height={800}
               className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {product.imagens && product.imagens.length > 0 && (
+              <div className="absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-between px-2">
+                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
+                   <ChevronLeft size={16} />
+                 </div>
+                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
+                   <ChevronRight size={16} />
+                 </div>
+              </div>
+            )}
             <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-xs font-semibold text-sun-foreground">
               {product.categoria}
             </span>
@@ -119,13 +129,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto p-0 sm:max-w-4xl lg:max-w-5xl">
         <div className="flex flex-col md:flex-row min-h-full">
-          <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 min-h-[300px] md:min-h-[500px]">
-            <img
-              src={product.imagem}
-              alt={product.nome}
-              className="size-full object-cover"
-            />
-            <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun">
+          <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 min-h-[300px] md:min-h-[500px] bg-muted overflow-hidden">
+            {product.imagens && product.imagens.length > 0 ? (
+              <div className="relative size-full group/carousel">
+                <ProductCarousel images={[product.imagem, ...product.imagens]} />
+              </div>
+            ) : (
+              <img
+                src={product.imagem}
+                alt={product.nome}
+                className="size-full object-cover"
+              />
+            )}
+            <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun z-10">
               {product.categoria}
             </Badge>
           </div>
@@ -216,5 +232,65 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ProductCarousel({ images }: { images: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const prev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const next = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div className="relative size-full overflow-hidden">
+      <div 
+        className="flex size-full transition-transform duration-500 ease-in-out" 
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+      >
+        {images.map((img, i) => (
+          <img 
+            key={i} 
+            src={img} 
+            className="size-full object-cover shrink-0" 
+            alt={`Imagem ${i + 1}`} 
+          />
+        ))}
+      </div>
+      
+      {images.length > 1 && (
+        <>
+          <button 
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronLeft className="size-6" />
+          </button>
+          <button 
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronRight className="size-6" />
+          </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <div 
+                key={i} 
+                className={cn(
+                  "size-1.5 rounded-full transition-all",
+                  currentIndex === i ? "w-4 bg-primary" : "bg-white/50"
+                )}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
