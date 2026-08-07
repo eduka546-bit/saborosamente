@@ -175,7 +175,7 @@ export function SiteHeader() {
         style={{ backgroundColor: announceBg, color: announceText }}
         className="relative py-2 px-8 text-center text-[10px] font-bold uppercase tracking-wider sm:text-xs z-[60] pointer-events-auto"
       >
-        {settings?.announcement_text || "Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!"}
+        {settings?.announcement_text || "PEÇA PARA ENTREGA OU VENHA ESCOLHER PESSOALMENTE EM NOSSA LOJA EM SÃO BENTO DO SUL!"}
         <button className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100">✕</button>
       </div>
 
