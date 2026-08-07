@@ -18,22 +18,49 @@ function AdminClientesPage() {
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1. Buscar perfis (clientes cadastrados)
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("*");
+
+      if (profileError) throw profileError;
+
+      // 2. Buscar pedidos para histórico
+      const { data: orders, error: orderError } = await supabase
         .from("pedidos")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (orderError) throw orderError;
       
       const clientMap = new Map();
-      data.forEach(order => {
-        const key = order.telefone_cliente || order.nome_cliente;
+
+      // Mapear perfis primeiro
+      profiles?.forEach(profile => {
+        clientMap.set(profile.id, {
+          id: profile.id,
+          nome: profile.nome,
+          telefone: profile.telefone,
+          email: profile.email || "Não informado",
+          cpf: profile.cpf,
+          bairro: profile.bairro,
+          totalPedidos: 0,
+          valorGasto: 0,
+          ultimoPedido: null,
+          pedidos: []
+        });
+      });
+
+      // Vincular pedidos aos perfis ou criar clientes convidados
+      orders?.forEach(order => {
+        const userId = order.user_id;
+        const key = userId || order.email_cliente || order.telefone_cliente;
+
         if (!clientMap.has(key)) {
           clientMap.set(key, {
             nome: order.nome_cliente,
             telefone: order.telefone_cliente,
             email: order.email_cliente || "Não informado",
-            endereco: order.endereco_entrega,
             totalPedidos: 1,
             valorGasto: order.valor_total || 0,
             ultimoPedido: order.created_at,
@@ -44,7 +71,9 @@ function AdminClientesPage() {
           existing.totalPedidos += 1;
           existing.valorGasto += (order.valor_total || 0);
           existing.pedidos.push(order);
-          clientMap.set(key, existing);
+          if (!existing.ultimoPedido || new Date(order.created_at) > new Date(existing.ultimoPedido)) {
+            existing.ultimoPedido = order.created_at;
+          }
         }
       });
 
@@ -109,14 +138,14 @@ function AdminClientesPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-900">{client.nome || "Cliente Final"}</p>
-                        <p className="text-xs text-gray-500">{client.telefone || "Sem telefone"}</p>
+                        <p className="text-[10px] text-gray-400 font-medium">{client.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">{client.totalPedidos} pedidos</td>
                   <td className="px-6 py-4 text-sm font-bold text-green-600">R$ {client.valorGasto.toFixed(2).replace('.', ',')}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {new Date(client.ultimoPedido).toLocaleDateString('pt-BR')}
+                    {client.ultimoPedido ? new Date(client.ultimoPedido).toLocaleDateString('pt-BR') : 'N/A'}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <Button 
@@ -154,7 +183,8 @@ function AdminClientesPage() {
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
                   <span className="flex items-center gap-1"><Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}</span>
                   <span className="flex items-center gap-1"><Mail size={14} className="text-[#5850ec]" /> {selectedClient.email}</span>
-                  <span className="flex items-center gap-1 w-full md:w-auto"><MapPin size={14} className="text-[#5850ec]" /> {selectedClient.endereco}</span>
+                  {selectedClient.cpf && <span className="flex items-center gap-1"><DollarSign size={14} className="text-[#5850ec]" /> CPF: {selectedClient.cpf}</span>}
+                  {selectedClient.bairro && <span className="flex items-center gap-1 w-full md:w-auto"><MapPin size={14} className="text-[#5850ec]" /> Bairro: {selectedClient.bairro}</span>}
                 </div>
               </div>
             </div>
