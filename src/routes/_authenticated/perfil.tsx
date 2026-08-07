@@ -131,6 +131,29 @@ function PerfilPage() {
     }
   };
 
+  const handleCepSearch = async (cep: string) => {
+    const numericCep = cep.replace(/\D/g, "");
+    if (numericCep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setNewAddress({
+            ...newAddress,
+            rua: data.logradouro,
+            bairro: data.bairro,
+            cidade: data.localidade
+          });
+          toast.success("CEP encontrado!");
+        } else {
+          toast.error("CEP não encontrado.");
+        }
+      } catch (err) {
+        toast.error("Erro ao buscar CEP.");
+      }
+    }
+  };
+
   const fetchAddresses = async () => {
     const { data, error } = await supabase
       .from("user_addresses")
@@ -183,6 +206,7 @@ function PerfilPage() {
       toast.error("Erro ao salvar endereço: " + error.message);
     }
   };
+
 
   const handleEditAddress = (addr: any) => {
     setNewAddress({
@@ -408,6 +432,14 @@ function PerfilPage() {
                   <form onSubmit={handleSaveAddress} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
+                        <Label htmlFor="cep">CEP</Label>
+                        <Input 
+                          id="cep" 
+                          placeholder="00000-000"
+                          onChange={e => handleCepSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
                         <Input 
                           id="label" 
@@ -417,6 +449,9 @@ function PerfilPage() {
                           required
                         />
                       </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cidade">Cidade</Label>
                         <Input 
@@ -427,6 +462,7 @@ function PerfilPage() {
                         />
                       </div>
                     </div>
+
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="bairro">Bairro</Label>
