@@ -104,10 +104,46 @@ function Checkout() {
   });
 
   const currentMetodo = watch("metodoEntrega");
+  const currentCEP = watch("cep");
 
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    const cep = currentCEP?.replace(/\D/g, "");
+    if (cep?.length === 8) {
+      handleCEP(cep);
+    }
+  }, [currentCEP]);
+
+  const handleCEP = async (cep: string) => {
+    try {
+      setIsFetchingCEP(true);
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+
+      // Preencher campos
+      setValue("endereco", data.logradouro);
+      setValue("bairro", data.bairro);
+      setValue("cidade", data.localidade);
+      
+      // Atualizar estados do carrinho para cálculo de frete
+      setSelectedCity(data.localidade);
+      setSelectedBairro(data.bairro);
+      
+      toast.success("Endereço preenchido via CEP!");
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setIsFetchingCEP(false);
+    }
+  };
 
   const fetchUserData = async () => {
     setIsCheckingAuth(true);
