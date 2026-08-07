@@ -453,6 +453,7 @@ function PerfilPage() {
                         <Input 
                           id="cep" 
                           placeholder="00000-000"
+                          value={newAddress.cep}
                           onChange={e => handleCepSearch(e.target.value)}
                         />
                       </div>
@@ -467,6 +468,15 @@ function PerfilPage() {
                         />
                       </div>
                     </div>
+
+                    {currentTaxa && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
+                        <Truck size={18} />
+                        <span className="text-sm font-bold">
+                          Taxa de entrega para este local: R$ {currentTaxa.taxa.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
