@@ -16,7 +16,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : product.peso?.includes(",") 
       ? product.peso.split(",").map(w => w.trim())
       : product.peso ? [product.peso] : [];
-  const [selectedWeight, setSelectedWeight] = useState(weights[1] || weights[0] || ""); // Default para 300g se disponível
+  const [selectedWeight, setSelectedWeight] = useState(weights.includes("300g") ? "300g" : (weights[0] || ""));
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
@@ -80,7 +80,18 @@ export function ProductCard({ product }: ProductCardProps) {
 
 
         <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-base font-black text-foreground">A PARTIR DE <br/><span className="text-2xl text-primary">{formatBRL(product.preco)}</span></span>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-foreground">
+              {selectedWeight ? `PREÇO (${selectedWeight})` : "A PARTIR DE"}
+            </span>
+            <span className="text-2xl font-black text-primary">
+              {selectedWeight === "300g" && product.preco_300g 
+                ? formatBRL(product.preco_300g) 
+                : selectedWeight === "400g" && product.preco_400g
+                  ? formatBRL(product.preco_400g)
+                  : formatBRL(product.preco)}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {

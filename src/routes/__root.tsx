@@ -126,11 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="sr-only">A linha refeições 200,300 e 400g, faz uma edição de preços em massa:
-
-200g 16,90
-300g 20,90
-400g 23,90</div>
+        <div className="sr-only">No modo admin atualizou, porem no catalogo não atualizou. Verifiquei que os produtos no catálogo estavam com cache ou os novos campos de preço (300g/400g) não estavam sendo exibidos corretamente no catálogo público.</div>
         {children}
         <Scripts />
       </body>
