@@ -25,6 +25,7 @@ const createOrderSchema = z.object({
   valorTotal: z.number(),
   taxaEntrega: z.number(),
   desconto: z.number(),
+  cupom: z.string().optional(),
   items: z.array(orderItemSchema),
 });
 
@@ -50,6 +51,7 @@ export const createOrder = createServerFn({ method: "POST" })
       observacao: data.observacoes,
       valor_total: data.valorTotal,
       taxa_entrega: data.taxaEntrega,
+      cupom_codigo: data.cupom,
       status: "Pendente",
     };
 
