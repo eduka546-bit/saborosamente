@@ -34,6 +34,7 @@ export interface Product {
   tabela_nutricional?: NutritionalInfo;
   tabela_nutricional_300g?: NutritionalInfo;
   tabela_nutricional_400g?: NutritionalInfo;
+  informacao_nutricional?: string;
 }
 
 export const CATEGORIES: ProductCategory[] = [
