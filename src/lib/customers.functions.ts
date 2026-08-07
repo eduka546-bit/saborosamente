@@ -31,8 +31,11 @@ export const importExistingCustomers = createServerFn({ method: "POST" })
           // If user already exists, we might want to just update the profile
           if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
              // Try to find the user by email to get their ID
-             const { data: existingUsers } = await supabase.auth.admin.listUsers();
-             const existingUser = existingUsers.users.find(u => u.email === customer.email);
+             // listUsers can be paginated, so let's try to find it efficiently
+             const { data: listData, error: listError } = await supabase.auth.admin.listUsers({
+               perPage: 1000
+             });
+             const existingUser = listData?.users.find(u => u.email === customer.email);
              
              if (existingUser) {
                // Update profile
