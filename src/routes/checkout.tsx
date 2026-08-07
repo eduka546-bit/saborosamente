@@ -114,7 +114,7 @@ function Checkout() {
 
   useEffect(() => {
     const cep = currentCEP?.replace(/\D/g, "");
-    if (cep?.length === 8) {
+    if (cep && cep.length === 8) {
       handleCEP(cep);
     }
   }, [currentCEP]);
