@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CartSheet } from "./cart-sheet";
 
 const links = [
   { to: "/catalogo", label: "Cardápio", icon: Menu, type: "link" },
