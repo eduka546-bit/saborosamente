@@ -177,7 +177,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+        const stored = readStorage();
+        // Só salva se o estado atual for diferente do que está no storage
+        // para evitar sobrescrever com array vazio durante a hidratação inicial
+        if (lines.length > 0 || stored.length > 0) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+        }
       }
     } catch {}
   }, [lines]);
