@@ -12,6 +12,12 @@ import lasanha from "@/assets/prod-lasanha.jpg";
  */
 export type ProductCategory = "Fitness" | "Tradicional" | "Vegetariana" | "Low Carb";
 
+export interface NutritionalInfo {
+  kcal: string;
+  carb: string;
+  prot: string;
+}
+
 export interface Product {
   id: string;
   nome: string;
@@ -25,6 +31,9 @@ export interface Product {
   imagem: string;
   imagens?: string[];
   destaque?: boolean;
+  tabela_nutricional?: NutritionalInfo;
+  tabela_nutricional_300g?: NutritionalInfo;
+  tabela_nutricional_400g?: NutritionalInfo;
 }
 
 export const CATEGORIES: ProductCategory[] = [

@@ -33,6 +33,12 @@ export function ProductCard({ product }: ProductCardProps) {
       ? product.preco_400g
       : product.preco;
 
+  const currentNutritional = selectedWeight === "300g" && product.tabela_nutricional_300g
+    ? product.tabela_nutricional_300g
+    : selectedWeight === "400g" && product.tabela_nutricional_400g
+      ? product.tabela_nutricional_400g
+      : product.tabela_nutricional;
+
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     add(product.id, 1, selectedWeight);
@@ -171,9 +177,19 @@ export function ProductCard({ product }: ProductCardProps) {
               <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Valor Nutricional</h4>
-                  <p className="text-xs mt-1">
-                    {Math.floor(Math.random() * 100) + 150} KCAL | {Math.floor(Math.random() * 15) + 15}g PROT
-                  </p>
+                  <div className="text-xs mt-1 flex flex-wrap gap-x-2 text-muted-foreground">
+                    {currentNutritional?.kcal ? (
+                      <>
+                        <span className="font-bold text-primary">{currentNutritional.kcal} KCAL</span>
+                        <span>|</span>
+                        <span>{currentNutritional.carb}g CARB</span>
+                        <span>|</span>
+                        <span>{currentNutritional.prot}g PROT</span>
+                      </>
+                    ) : (
+                      <span className="italic">Consulte a embalagem para detalhes</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Restrições</h4>

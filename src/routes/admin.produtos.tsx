@@ -85,6 +85,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         imagem_url: "",
         descricao: "",
         informacao_nutricional: "",
+        tabela_nutricional: { kcal: "", carb: "", prot: "" },
+        tabela_nutricional_300g: { kcal: "", carb: "", prot: "" },
+        tabela_nutricional_400g: { kcal: "", carb: "" , prot: "" },
         controle_estoque: false,
         estoque_atual: 0,
         estoque_minimo: 5,
@@ -320,12 +323,100 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       />
                     </TabsContent>
                     <TabsContent value="nutricional">
-                      <textarea 
-                        className="w-full min-h-[150px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20 resize-none"
-                        value={formData.informacao_nutricional || ""}
-                        onChange={(e) => setFormData({ ...formData, informacao_nutricional: e.target.value })}
-                        placeholder="Informações nutricionais..."
-                      />
+                      <div className="space-y-6">
+                        <div className="rounded-lg border border-gray-100 p-4 space-y-4">
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho Padrão (200g)</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
+                              <Input 
+                                value={formData.tabela_nutricional?.kcal || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, kcal: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                                placeholder="ex: 350"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carboidratos (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional?.carb || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, carb: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                                placeholder="ex: 45"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Proteínas (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional?.prot || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, prot: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                                placeholder="ex: 25"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-gray-100 p-4 space-y-4">
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho 300g</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
+                              <Input 
+                                value={formData.tabela_nutricional_300g?.kcal || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, kcal: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carb (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional_300g?.carb || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, carb: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Prot (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional_300g?.prot || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, prot: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg border border-gray-100 p-4 space-y-4">
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho 400g</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
+                              <Input 
+                                value={formData.tabela_nutricional_400g?.kcal || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, kcal: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carb (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional_400g?.carb || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, carb: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Prot (g)</label>
+                              <Input 
+                                value={formData.tabela_nutricional_400g?.prot || ""} 
+                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, prot: e.target.value } })}
+                                className="h-8 border-gray-200 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </div>
