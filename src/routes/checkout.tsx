@@ -629,26 +629,23 @@ function Checkout() {
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => (
-                <label
+                <button
                   key={p.value}
+                  type="button"
+                  onClick={() => setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true })}
                   className={cn(
-                    "cursor-pointer rounded-2xl border border-border p-4 transition-colors hover:border-primary",
+                    "flex flex-col items-center justify-center rounded-2xl border border-border p-4 text-center transition-colors hover:border-primary",
                     currentPagamento === p.value && "border-primary bg-primary/5 ring-1 ring-primary"
                   )}
                 >
-                  <input
-                    type="radio"
-                    value={p.value}
-                    className="sr-only"
-                    {...register("pagamento")}
-                  />
                   {p.icon && (
                     <img src={p.icon} alt="" className="mb-2 size-6 object-contain" />
                   )}
                   <span className="block text-sm font-semibold">{p.label}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">{p.hint}</span>
-                </label>
+                </button>
               ))}
+              <input type="radio" className="sr-only" {...register("pagamento")} />
             </div>
 
             {currentPagamento === "dinheiro" && (
