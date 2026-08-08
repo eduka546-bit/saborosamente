@@ -103,6 +103,36 @@ function Checkout() {
     taxas
   } = useCart();
 
+  const { data: siteSettings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("*").maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const configuredPagamentos = useMemo(() => {
+    if (siteSettings?.payment_methods && Array.isArray(siteSettings.payment_methods)) {
+      return siteSettings.payment_methods.filter((p: any) => p.enabled);
+    }
+    return pagamentos;
+  }, [siteSettings]);
+
+  const configuredCartaoFlags = useMemo(() => {
+    if (siteSettings?.card_flags && Array.isArray(siteSettings.card_flags)) {
+      return siteSettings.card_flags.filter((f: any) => f.enabled);
+    }
+    return cartaoFlags;
+  }, [siteSettings]);
+
+  const configuredAlimentacaoFlags = useMemo(() => {
+    if (siteSettings?.meal_flags && Array.isArray(siteSettings.meal_flags)) {
+      return siteSettings.meal_flags.filter((f: any) => f.enabled);
+    }
+    return alimentacaoFlags;
+  }, [siteSettings]);
+
   const createOrderFn = useServerFn(createOrder);
 
   const navigate = useNavigate();
@@ -593,7 +623,7 @@ function Checkout() {
               Pagamento
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              {pagamentos.map((p) => (
+              {configuredPagamentos.map((p: any) => (
                 <label
                   key={p.value}
                   className={cn(
@@ -652,7 +682,7 @@ function Checkout() {
                     💳 Bandeiras aceitas
                   </span>
                   <div className="grid grid-cols-3 gap-x-4 gap-y-3">
-                    {cartaoFlags.map(flag => (
+                    {configuredCartaoFlags.map((flag: any) => (
                       <div key={flag.name} className="flex flex-col items-center gap-1.5">
                         <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1.5 shadow-sm border border-border/50">
                           <img src={flag.logo} alt={flag.name} className="size-full object-contain" />
@@ -672,7 +702,7 @@ function Checkout() {
                     🍴 Cartões aceitos
                   </span>
                   <div className="grid grid-cols-3 gap-x-4 gap-y-3">
-                    {alimentacaoFlags.map(flag => (
+                    {configuredAlimentacaoFlags.map((flag: any) => (
                       <div key={flag.name} className="flex flex-col items-center gap-1.5">
                         <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1.5 shadow-sm border border-border/50">
                           <img src={flag.logo} alt={flag.name} className="size-full object-contain" />
