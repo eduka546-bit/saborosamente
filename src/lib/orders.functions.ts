@@ -27,6 +27,8 @@ const createOrderSchema = z.object({
   desconto: z.number(),
   cupom: z.string().optional(),
   items: z.array(orderItemSchema),
+  troco: z.string().optional(),
+  tipoCartao: z.string().optional(),
 });
 
 export const createOrder = createServerFn({ method: "POST" })
@@ -44,7 +46,11 @@ export const createOrder = createServerFn({ method: "POST" })
       metodo_entrega: data.metodoEntrega,
       horario_recebimento: data.horarioEntrega,
       metodo_pagamento: data.pagamento,
-      observacao: data.observacoes,
+      observacao: [
+        data.observacoes,
+        data.troco ? `Troco para: ${data.troco}` : null,
+        data.tipoCartao ? `Cartão: ${data.tipoCartao}` : null
+      ].filter(Boolean).join(" | "),
       valor_total: data.valorTotal,
       taxa_entrega: data.taxaEntrega,
       status: "Pendente",
