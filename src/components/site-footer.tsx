@@ -3,6 +3,12 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/saborosamente-logo.png.asset.json";
+import {
+  defaultCardFlags,
+  defaultMealFlags,
+  defaultPaymentMethods,
+  enabledOrDefault,
+} from "@/lib/payment-options";
 
 export function SiteFooter() {
   const { data: settings } = useQuery({
@@ -15,6 +21,15 @@ export function SiteFooter() {
 
   const footerBg = settings?.announcement_bg_color || "#086e45";
   const footerText = settings?.announcement_text_color || "#ffffff";
+
+  const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
+  const cardFlags = enabledOrDefault((settings as any)?.card_flags, defaultCardFlags);
+  const mealFlags = enabledOrDefault((settings as any)?.meal_flags, defaultMealFlags);
+  const allLogos = [
+    ...methods.map((m) => ({ name: m.label || m.name || "", logo: m.icon || m.logo })),
+    ...cardFlags.map((f) => ({ name: f.name || f.label || "", logo: f.logo || f.icon })),
+    ...mealFlags.map((f) => ({ name: f.name || f.label || "", logo: f.logo || f.icon })),
+  ].filter((item, index, arr) => item.name && arr.findIndex((o) => o.name === item.name) === index);
 
   return (
     <footer style={{ backgroundColor: footerBg, color: footerText }} className="mt-24 relative overflow-hidden">
