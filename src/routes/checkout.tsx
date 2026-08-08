@@ -477,10 +477,8 @@ function Checkout() {
                 <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
               </label>
             </div>
-          </fieldset>
-
-            <div className="space-y-2">
-              <label htmlFor="horarioEntrega" className="text-sm font-medium">
+          <div className="space-y-2">
+            <label htmlFor="horarioEntrega" className="text-sm font-medium">
                 {currentMetodo === "entrega" ? "Horário preferencial de entrega" : "Horário de retirada"}
               </label>
               <select id="horarioEntrega" className={fieldClass} {...register("horarioEntrega")}>
