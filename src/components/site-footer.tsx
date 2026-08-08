@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import logoAsset from "@/assets/saborosamente-logo.png.asset.json";
 
 export function SiteFooter() {
   const { data: settings } = useQuery({
@@ -19,7 +20,14 @@ export function SiteFooter() {
     <footer style={{ backgroundColor: footerBg, color: footerText }} className="mt-24 relative overflow-hidden">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 md:grid-cols-4">
         <div className="space-y-4">
-          <p className="font-script text-4xl">Saborosamente</p>
+          <Link to="/" aria-label="Voltar para o início" className="inline-block transition-transform hover:scale-[1.03]">
+            <img
+              src={logoAsset.url}
+              alt="Saborosamente - alimentação saudável"
+              className="h-24 w-auto"
+              style={{ filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.45))" }}
+            />
+          </Link>
           <p className="max-w-xs text-sm opacity-85 leading-relaxed">
             Marmitas congeladas feitas com comida de verdade, congeladas no ponto e entregues
             prontas para o seu dia.
