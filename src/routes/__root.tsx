@@ -128,7 +128,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        Editei diretamente pelo github
         {children}
         <Scripts />
       </body>
