@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { importExistingCustomers } from "@/lib/customers.functions";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -239,11 +240,12 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-[640px]">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 lg:w-[800px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
           <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
+          <TabsTrigger value="payments">Pagamentos</TabsTrigger>
         </TabsList>
 
 
@@ -505,6 +507,80 @@ function AdminSiteConfig() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="payments" className="mt-6 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-6">
+            <div>
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Palette className="text-[#5850ec]" size={20} /> Métodos de Pagamento (Checkout)
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">Habilite ou desabilite o que aparece para o cliente.</p>
+            </div>
+
+            <div className="space-y-4">
+              {formData.payment_methods?.map((method: any, index: number) => (
+                <div key={method.id} className="flex items-center justify-between p-4 border rounded-xl bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <img src={method.icon} className="size-8 object-contain" alt="" />
+                    <div>
+                      <p className="text-sm font-bold">{method.label}</p>
+                      <p className="text-xs text-muted-foreground">{method.hint}</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={method.enabled} 
+                    onCheckedChange={(checked: boolean) => {
+                      const newMethods = [...formData.payment_methods];
+                      newMethods[index] = { ...method, enabled: checked };
+                      setFormData({ ...formData, payment_methods: newMethods });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-6 border-t">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">💳 Bandeiras de Cartão</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {formData.card_flags?.map((flag: any, index: number) => (
+                  <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
+                    <img src={flag.logo} className="h-6 object-contain" alt="" />
+                    <span className="text-[10px] font-bold">{flag.name}</span>
+                    <Switch 
+                      className="scale-75"
+                      checked={flag.enabled} 
+                      onCheckedChange={(checked: boolean) => {
+                        const newFlags = [...formData.card_flags];
+                        newFlags[index] = { ...flag, enabled: checked };
+                        setFormData({ ...formData, card_flags: newFlags });
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">🍴 Cartões Alimentação</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {formData.meal_flags?.map((flag: any, index: number) => (
+                  <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
+                    <img src={flag.logo} className="h-6 object-contain" alt="" />
+                    <span className="text-[10px] font-bold">{flag.name}</span>
+                    <Switch 
+                      className="scale-75"
+                      checked={flag.enabled} 
+                      onCheckedChange={(checked: boolean) => {
+                        const newFlags = [...formData.meal_flags];
+                        newFlags[index] = { ...flag, enabled: checked };
+                        setFormData({ ...formData, meal_flags: newFlags });
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </TabsContent>
