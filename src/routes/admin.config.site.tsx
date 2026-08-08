@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { importExistingCustomers } from "@/lib/customers.functions";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -530,7 +531,7 @@ function AdminSiteConfig() {
                   </div>
                   <Switch 
                     checked={method.enabled} 
-                    onCheckedChange={(checked) => {
+                    onCheckedChange={(checked: boolean) => {
                       const newMethods = [...formData.payment_methods];
                       newMethods[index] = { ...method, enabled: checked };
                       setFormData({ ...formData, payment_methods: newMethods });
@@ -550,7 +551,7 @@ function AdminSiteConfig() {
                     <Switch 
                       size="sm"
                       checked={flag.enabled} 
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         const newFlags = [...formData.card_flags];
                         newFlags[index] = { ...flag, enabled: checked };
                         setFormData({ ...formData, card_flags: newFlags });
@@ -571,7 +572,7 @@ function AdminSiteConfig() {
                     <Switch 
                       size="sm"
                       checked={flag.enabled} 
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         const newFlags = [...formData.meal_flags];
                         newFlags[index] = { ...flag, enabled: checked };
                         setFormData({ ...formData, meal_flags: newFlags });
