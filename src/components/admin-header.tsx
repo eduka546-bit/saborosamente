@@ -122,7 +122,8 @@ export function AdminHeader() {
               icon={CircleDollarSign} 
               items={[
                 { label: "Lançamentos", href: "/admin/financeiro/lancamentos" },
-                { label: "Transações", href: "/admin/financeiro/transacoes" }
+                { label: "Transações", href: "/admin/financeiro/transacoes" },
+                { label: "Configurar Pagamentos", href: "/admin/config/site" }
               ]} 
             />
             <NavItem 
