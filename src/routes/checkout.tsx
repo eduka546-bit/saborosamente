@@ -148,13 +148,7 @@ function Checkout() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isFetchingCEP, setIsFetchingCEP] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<CheckoutForm>({
+  const form = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { 
       pagamento: "pix",
@@ -164,8 +158,17 @@ function Checkout() {
     },
   });
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
+
   const currentMetodo = watch("metodoEntrega");
   const currentPagamento = watch("pagamento");
+  const currentTipoCartao = watch("tipoCartao");
 
   useEffect(() => {
     fetchUserData();
@@ -445,22 +448,40 @@ function Checkout() {
               Opções de Recebimento
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className={cn(
-                "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
-                currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
-              )}>
-                <input type="radio" value="entrega" className="sr-only" {...register("metodoEntrega")} />
-                <span className="block text-sm font-bold">Entrega em domicílio</span>
-                <span className="mt-1 block text-xs text-muted-foreground">Receba no seu endereço</span>
-              </label>
-              <label className={cn(
-                "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
-                currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
-              )}>
-                <input type="radio" value="retirada" className="sr-only" {...register("metodoEntrega")} />
-                <span className="block text-sm font-bold">Retirar na loja</span>
-                <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
-              </label>
+              <div 
+                onClick={() => setValue("metodoEntrega", "entrega", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                className={cn(
+                  "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
+                  currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
+                )}
+              >
+                <input 
+                  type="radio" 
+                  value="entrega" 
+                  checked={currentMetodo === "entrega"}
+                  readOnly
+                  className="sr-only" 
+                />
+                <span className="block text-sm font-bold pointer-events-none">Entrega em domicílio</span>
+                <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">Receba no seu endereço</span>
+              </div>
+              <div 
+                onClick={() => setValue("metodoEntrega", "retirada", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                className={cn(
+                  "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
+                  currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
+                )}
+              >
+                <input 
+                  type="radio" 
+                  value="retirada" 
+                  checked={currentMetodo === "retirada"}
+                  readOnly
+                  className="sr-only" 
+                />
+                <span className="block text-sm font-bold pointer-events-none">Retirar na loja</span>
+                <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">São Bento do Sul - Sem custo</span>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -628,35 +649,39 @@ function Checkout() {
               Pagamento
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              {configuredPagamentos.map((p: any) => (
-                <label
-                  key={p.value}
-                  className={cn(
-                    "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
-                    currentPagamento === p.value 
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
-                      : "border-border bg-card"
-                  )}
-                >
-                  <input 
-                    type="radio" 
-                    value={p.value} 
-                    className="sr-only" 
-                    {...register("pagamento", {
-                      onChange: (e) => {
-                        if (e.target.value === "alimentacao") {
-                          setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
-                        }
+              {configuredPagamentos.map((p: any) => {
+                const isSelected = currentPagamento === p.value;
+                return (
+                  <div
+                    key={p.value}
+                    onClick={() => {
+                      setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                      if (p.value === "alimentacao") {
+                        setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
                       }
-                    })}
-                  />
-                  {p.icon && (
-                    <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
-                  )}
-                  <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                </label>
-              ))}
+                    }}
+                    className={cn(
+                      "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
+                      isSelected 
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
+                        : "border-border bg-card"
+                    )}
+                  >
+                    <input 
+                      type="radio" 
+                      value={p.value} 
+                      checked={isSelected}
+                      readOnly
+                      className="sr-only" 
+                    />
+                    {p.icon && (
+                      <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
+                    )}
+                    <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
+                  </div>
+                );
+              })}
             </div>
 
             {currentPagamento === "dinheiro" && (
@@ -677,23 +702,28 @@ function Checkout() {
               <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
                 <label className="text-sm font-medium">Selecione o tipo de cartão</label>
                 <div className="flex flex-wrap gap-2">
-                  {["Crédito", "Débito"].map((tipo) => (
-                    <label
-                      key={tipo}
-                      className={cn(
-                        "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
-                        watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
-                      )}
-                    >
-                      <input 
-                        type="radio" 
-                        value={tipo} 
-                        className="sr-only" 
-                        {...register("tipoCartao")} 
-                      />
-                      {tipo}
-                    </label>
-                  ))}
+                  {["Crédito", "Débito"].map((tipo) => {
+                    const isSelected = currentTipoCartao === tipo;
+                    return (
+                      <div
+                        key={tipo}
+                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                        className={cn(
+                          "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
+                          isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
+                        )}
+                      >
+                        <input 
+                          type="radio" 
+                          value={tipo} 
+                          checked={isSelected}
+                          readOnly
+                          className="sr-only" 
+                        />
+                        {tipo}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="mt-2 rounded-2xl bg-muted/30 p-4">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
