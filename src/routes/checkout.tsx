@@ -696,7 +696,7 @@ function Checkout() {
                     >
                       <input type="radio" value={tipo} className="sr-only" {...register("tipoCartao")} />
                       {tipo}
-                    </label>
+                    </div>
                   ))}
                 </div>
                 <div className="mt-2 rounded-2xl bg-muted/30 p-4">
