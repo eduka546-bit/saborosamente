@@ -645,14 +645,8 @@ function Checkout() {
               {configuredPagamentos.map((p: any) => {
                 const isSelected = currentPagamento === p.value;
                 return (
-                  <div
+                  <label
                     key={p.value}
-                    onClick={() => {
-                      setValue("pagamento", p.value);
-                      if (p.value === "alimentacao") {
-                        setValue("tipoCartao", "Alimentação/Refeição");
-                      }
-                    }}
                     className={cn(
                       "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -663,8 +657,7 @@ function Checkout() {
                     <input 
                       type="radio" 
                       value={p.value} 
-                      checked={isSelected}
-                      readOnly
+                      {...register("pagamento")}
                       className="sr-only" 
                     />
                     {p.icon && (
@@ -672,7 +665,7 @@ function Checkout() {
                     )}
                     <span className="block text-sm font-bold">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">{p.hint}</span>
-                  </div>
+                  </label>
                 );
               })}
             </div>
