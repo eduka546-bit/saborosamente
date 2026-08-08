@@ -168,6 +168,15 @@ function Checkout() {
   const currentPagamento = watch("pagamento");
   const currentTipoCartao = watch("tipoCartao");
 
+  // Reset values when payment method changes
+  useEffect(() => {
+    if (currentPagamento === "alimentacao") {
+      setValue("tipoCartao", "Alimentação/Refeição");
+    } else if (currentPagamento !== "cartao") {
+      setValue("tipoCartao", undefined);
+    }
+  }, [currentPagamento, setValue]);
+
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -446,8 +455,7 @@ function Checkout() {
               Opções de Recebimento
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div 
-                onClick={() => setValue("metodoEntrega", "entrega")}
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -456,15 +464,13 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="entrega" 
-                  checked={currentMetodo === "entrega"}
-                  readOnly
+                  {...register("metodoEntrega")}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold">Entrega em domicílio</span>
                 <span className="mt-1 block text-xs text-muted-foreground">Receba no seu endereço</span>
-              </div>
-              <div 
-                onClick={() => setValue("metodoEntrega", "retirada")}
+              </label>
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -473,17 +479,15 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="retirada" 
-                  checked={currentMetodo === "retirada"}
-                  readOnly
+                  {...register("metodoEntrega")}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold">Retirar na loja</span>
                 <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
-              </div>
+              </label>
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="horarioEntrega" className="text-sm font-medium">
+          <div className="space-y-2">
+            <label htmlFor="horarioEntrega" className="text-sm font-medium">
                 {currentMetodo === "entrega" ? "Horário preferencial de entrega" : "Horário de retirada"}
               </label>
               <select id="horarioEntrega" className={fieldClass} {...register("horarioEntrega")}>
@@ -650,14 +654,8 @@ function Checkout() {
               {configuredPagamentos.map((p: any) => {
                 const isSelected = currentPagamento === p.value;
                 return (
-                  <div
+                  <label
                     key={p.value}
-                    onClick={() => {
-                      setValue("pagamento", p.value);
-                      if (p.value === "alimentacao") {
-                        setValue("tipoCartao", "Alimentação/Refeição");
-                      }
-                    }}
                     className={cn(
                       "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -668,8 +666,7 @@ function Checkout() {
                     <input 
                       type="radio" 
                       value={p.value} 
-                      checked={isSelected}
-                      readOnly
+                      {...register("pagamento")}
                       className="sr-only" 
                     />
                     {p.icon && (
@@ -677,7 +674,7 @@ function Checkout() {
                     )}
                     <span className="block text-sm font-bold">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground">{p.hint}</span>
-                  </div>
+                  </label>
                 );
               })}
             </div>
@@ -703,9 +700,8 @@ function Checkout() {
                   {["Crédito", "Débito"].map((tipo) => {
                     const isSelected = currentTipoCartao === tipo;
                     return (
-                      <div
+                      <label
                         key={tipo}
-                        onClick={() => setValue("tipoCartao", tipo)}
                         className={cn(
                           "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
                           isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
@@ -714,12 +710,11 @@ function Checkout() {
                         <input 
                           type="radio" 
                           value={tipo} 
-                          checked={isSelected}
-                          readOnly
+                          {...register("tipoCartao")}
                           className="sr-only" 
                         />
                         {tipo}
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
