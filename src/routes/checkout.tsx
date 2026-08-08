@@ -683,15 +683,18 @@ function Checkout() {
                     <label
                       key={tipo}
                       className={cn(
-                        "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
-                        watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
+                        "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
+                        currentTipoCartao === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
                       )}
                     >
                       <input 
                         type="radio" 
                         value={tipo} 
                         className="sr-only" 
-                        {...register("tipoCartao")} 
+                        {...register("tipoCartao")}
+                        onChange={(e) => {
+                          setValue("tipoCartao", e.target.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                        }}
                       />
                       {tipo}
                     </label>
