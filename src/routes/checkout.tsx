@@ -446,7 +446,8 @@ function Checkout() {
               Opções de Recebimento
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label 
+              <div 
+                onClick={() => setValue("metodoEntrega", "entrega")}
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -455,14 +456,15 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="entrega" 
-                  {...register("metodoEntrega")}
-                  onChange={() => setValue("metodoEntrega", "entrega", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                  checked={currentMetodo === "entrega"}
+                  readOnly
                   className="sr-only" 
                 />
-                <span className="block text-sm font-bold pointer-events-none">Entrega em domicílio</span>
-                <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">Receba no seu endereço</span>
-              </label>
-              <label 
+                <span className="block text-sm font-bold">Entrega em domicílio</span>
+                <span className="mt-1 block text-xs text-muted-foreground">Receba no seu endereço</span>
+              </div>
+              <div 
+                onClick={() => setValue("metodoEntrega", "retirada")}
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -471,13 +473,13 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="retirada" 
-                  {...register("metodoEntrega")}
-                  onChange={() => setValue("metodoEntrega", "retirada", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                  checked={currentMetodo === "retirada"}
+                  readOnly
                   className="sr-only" 
                 />
-                <span className="block text-sm font-bold pointer-events-none">Retirar na loja</span>
-                <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">São Bento do Sul - Sem custo</span>
-              </label>
+                <span className="block text-sm font-bold">Retirar na loja</span>
+                <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
+              </div>
             </div>
 
             <div className="space-y-2">
