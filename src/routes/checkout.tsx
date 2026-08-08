@@ -629,19 +629,10 @@ function Checkout() {
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => {
-                const isSelected = watch("pagamento") === p.value;
-                const handleClick = () => {
-                  setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                  if (p.value === "alimentacao") {
-                    setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
-                  }
-                };
+                const isSelected = currentPagamento === p.value;
                 return (
-                  <div
+                  <label
                     key={p.value}
-                    onClick={handleClick}
-
-
                     className={cn(
                       "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -653,14 +644,20 @@ function Checkout() {
                       type="radio" 
                       value={p.value} 
                       className="sr-only" 
-                      {...register("pagamento")} 
+                      {...register("pagamento", {
+                        onChange: (e) => {
+                          if (e.target.value === "alimentacao") {
+                            setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
+                          }
+                        }
+                      })} 
                     />
                     {p.icon && (
                       <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
                     )}
                     <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                  </div>
+                  </label>
                 );
               })}
             </div>
