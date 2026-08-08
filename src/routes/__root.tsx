@@ -128,7 +128,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        Sincronize as mudanças que fiz pelo github https://github.com/eduka546-bit/saborosamente-direct/blob/main/src/routes/checkout.tsx
         {children}
         <Scripts />
       </body>
