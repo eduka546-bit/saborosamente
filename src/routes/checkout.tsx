@@ -684,9 +684,10 @@ function Checkout() {
                 <label className="text-sm font-medium">Selecione o tipo de cartão</label>
                 <div className="flex flex-wrap gap-2">
                   {["Crédito", "Débito"].map((tipo) => (
-                    <label
+                    <div
                       key={tipo}
                       onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true })}
+
                       className={cn(
                         "cursor-pointer rounded-full border border-border px-4 py-1.5 text-xs font-medium transition-all",
                         watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"
