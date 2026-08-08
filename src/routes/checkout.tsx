@@ -700,26 +700,28 @@ function Checkout() {
               <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
                 <label className="text-sm font-medium">Selecione o tipo de cartão</label>
                 <div className="flex flex-wrap gap-2">
-                  {["Crédito", "Débito"].map((tipo) => (
-                    <label
-                      key={tipo}
-                      className={cn(
-                        "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
-                        currentTipoCartao === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
-                      )}
-                    >
-                      <input 
-                        type="radio" 
-                        value={tipo} 
-                        className="sr-only" 
-                        {...register("tipoCartao")}
-                        onChange={(e) => {
-                          setValue("tipoCartao", e.target.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                        }}
-                      />
-                      {tipo}
-                    </label>
-                  ))}
+                  {["Crédito", "Débito"].map((tipo) => {
+                    const isSelected = currentTipoCartao === tipo;
+                    return (
+                      <div
+                        key={tipo}
+                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+                        className={cn(
+                          "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
+                          isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
+                        )}
+                      >
+                        <input 
+                          type="radio" 
+                          value={tipo} 
+                          checked={isSelected}
+                          readOnly
+                          className="sr-only" 
+                        />
+                        {tipo}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="mt-2 rounded-2xl bg-muted/30 p-4">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
