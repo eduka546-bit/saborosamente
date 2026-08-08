@@ -166,6 +166,7 @@ function Checkout() {
 
   const currentMetodo = watch("metodoEntrega");
   const currentPagamento = watch("pagamento");
+  const currentTipoCartao = watch("tipoCartao");
 
   useEffect(() => {
     fetchUserData();
