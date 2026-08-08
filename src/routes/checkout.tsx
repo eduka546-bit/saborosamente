@@ -629,9 +629,8 @@ function Checkout() {
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => (
-                <div
+                <label
                   key={p.value}
-                  onClick={() => setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true })}
                   className={cn(
                     "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                     currentPagamento === p.value 
@@ -639,15 +638,19 @@ function Checkout() {
                       : "border-border bg-card"
                   )}
                 >
+                  <input 
+                    type="radio" 
+                    value={p.value} 
+                    className="sr-only" 
+                    {...register("pagamento")} 
+                  />
                   {p.icon && (
                     <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
                   )}
                   <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                   <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                </div>
+                </label>
               ))}
-              {/* Campo oculto para o formulário reconhecer o valor */}
-              <input type="hidden" {...register("pagamento")} />
             </div>
 
             {currentPagamento === "dinheiro" && (
