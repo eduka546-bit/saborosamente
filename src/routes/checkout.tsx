@@ -633,7 +633,7 @@ function Checkout() {
                 <label
                   key={p.value}
                   className={cn(
-                    "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
+                    "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                     currentPagamento === p.value 
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
                       : "border-border bg-card"
@@ -643,13 +643,14 @@ function Checkout() {
                     type="radio" 
                     value={p.value} 
                     className="sr-only" 
-                    {...register("pagamento", {
-                      onChange: (e) => {
-                        if (e.target.value === "alimentacao") {
-                          setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
-                        }
+                    {...register("pagamento")}
+                    onChange={(e) => {
+                      const val = e.target.value as CheckoutForm["pagamento"];
+                      setValue("pagamento", val, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                      if (val === "alimentacao") {
+                        setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
                       }
-                    })}
+                    }}
                   />
                   {p.icon && (
                     <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
