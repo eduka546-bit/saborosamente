@@ -652,14 +652,8 @@ function Checkout() {
               {configuredPagamentos.map((p: any) => {
                 const isSelected = currentPagamento === p.value;
                 return (
-                  <div
+                  <label
                     key={p.value}
-                    onClick={() => {
-                      setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                      if (p.value === "alimentacao") {
-                        setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                      }
-                    }}
                     className={cn(
                       "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -670,8 +664,14 @@ function Checkout() {
                     <input 
                       type="radio" 
                       value={p.value} 
-                      checked={isSelected}
-                      readOnly
+                      {...register("pagamento")}
+                      onChange={(e) => {
+                        const val = e.target.value as CheckoutForm["pagamento"];
+                        setValue("pagamento", val, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                        if (val === "alimentacao") {
+                          setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                        }
+                      }}
                       className="sr-only" 
                     />
                     {p.icon && (
@@ -679,7 +679,7 @@ function Checkout() {
                     )}
                     <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                  </div>
+                  </label>
                 );
               })}
             </div>
