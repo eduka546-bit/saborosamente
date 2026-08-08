@@ -637,9 +637,10 @@ function Checkout() {
                   }
                 };
                 return (
-                  <label
+                  <div
                     key={p.value}
                     onClick={handleClick}
+
 
                     className={cn(
                       "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
