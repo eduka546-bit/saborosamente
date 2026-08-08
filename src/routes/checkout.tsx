@@ -148,13 +148,7 @@ function Checkout() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isFetchingCEP, setIsFetchingCEP] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<CheckoutForm>({
+  const form = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { 
       pagamento: "pix",
@@ -163,6 +157,14 @@ function Checkout() {
       cidade: selectedCity 
     },
   });
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
 
   const currentMetodo = watch("metodoEntrega");
   const currentPagamento = watch("pagamento");
