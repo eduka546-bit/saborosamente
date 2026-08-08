@@ -447,7 +447,7 @@ function Checkout() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={cn(
                 "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
-                currentMetodo === "entrega" && "border-primary bg-primary/5 ring-1 ring-primary"
+                watch("metodoEntrega") === "entrega" && "border-primary bg-primary/5 ring-1 ring-primary"
               )}>
                 <input type="radio" value="entrega" className="sr-only" {...register("metodoEntrega")} />
                 <span className="block text-sm font-bold">Entrega em domicílio</span>
@@ -455,7 +455,7 @@ function Checkout() {
               </label>
               <label className={cn(
                 "cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
-                currentMetodo === "retirada" && "border-primary bg-primary/5 ring-1 ring-primary"
+                watch("metodoEntrega") === "retirada" && "border-primary bg-primary/5 ring-1 ring-primary"
               )}>
                 <input type="radio" value="retirada" className="sr-only" {...register("metodoEntrega")} />
                 <span className="block text-sm font-bold">Retirar na loja</span>
@@ -465,7 +465,7 @@ function Checkout() {
 
             <div className="space-y-2">
               <label htmlFor="horarioEntrega" className="text-sm font-medium">
-                {currentMetodo === "entrega" ? "Horário preferencial de entrega" : "Horário de retirada"}
+                {watch("metodoEntrega") === "entrega" ? "Horário preferencial de entrega" : "Horário de retirada"}
               </label>
               <select id="horarioEntrega" className={fieldClass} {...register("horarioEntrega")}>
                 <option value="">Selecione um horário...</option>
@@ -481,7 +481,7 @@ function Checkout() {
             </div>
           </fieldset>
 
-          {currentMetodo === "entrega" && (
+          {watch("metodoEntrega") === "entrega" && (
             <fieldset className="space-y-4">
               <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
                 Endereço de Entrega
