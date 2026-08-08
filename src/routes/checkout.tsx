@@ -40,7 +40,7 @@ const checkoutSchema = z.object({
   complemento: z.string().trim().max(80).optional(),
   cidade: z.string().trim().max(80).optional(),
   bairro: z.string().trim().max(80).optional(),
-  pagamento: z.enum(["pix", "cartao", "dinheiro", "alimentacao"]),
+  pagamento: z.enum(["pix", "cartao", "dinheiro", "alimentacao", "mercadopago"]),
   troco: z.string().optional(),
   tipoCartao: z.string().optional(),
   observacoes: z.string().trim().max(300).optional(),
@@ -61,6 +61,7 @@ const pagamentos: { value: CheckoutForm["pagamento"]; label: string; hint: strin
   { value: "pix", label: "PIX", hint: "Na entrega" },
   { value: "cartao", label: "Cartão", hint: "Crédito/Débito" },
   { value: "alimentacao", label: "Alimentação", hint: "Refeição/VR" },
+  { value: "mercadopago", label: "Mercado Pago", hint: "Link de Pagamento" },
   { value: "dinheiro", label: "Dinheiro", hint: "Na entrega" },
 ];
 
@@ -579,7 +580,7 @@ function Checkout() {
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Pagamento
             </legend>
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {pagamentos.map((p) => (
                 <label
                   key={p.value}
@@ -662,6 +663,18 @@ function Checkout() {
                     ))}
                   </div>
                   <input type="hidden" value="Alimentação/Refeição" {...register("tipoCartao")} />
+                </div>
+              </div>
+            )}
+            {currentPagamento === "mercadopago" && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4">
+                  <p className="text-sm font-medium text-primary">
+                    Pagamento via Mercado Pago
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Após finalizar o pedido, você receberá o link de pagamento do Mercado Pago pelo WhatsApp ou E-mail para concluir sua compra.
+                  </p>
                 </div>
               </div>
             )}
