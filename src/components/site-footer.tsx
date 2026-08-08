@@ -3,6 +3,12 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/saborosamente-logo.png.asset.json";
+import {
+  defaultCardFlags,
+  defaultMealFlags,
+  defaultPaymentMethods,
+  enabledOrDefault,
+} from "@/lib/payment-options";
 
 export function SiteFooter() {
   const { data: settings } = useQuery({
@@ -15,6 +21,15 @@ export function SiteFooter() {
 
   const footerBg = settings?.announcement_bg_color || "#086e45";
   const footerText = settings?.announcement_text_color || "#ffffff";
+
+  const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
+  const cardFlags = enabledOrDefault((settings as any)?.card_flags, defaultCardFlags);
+  const mealFlags = enabledOrDefault((settings as any)?.meal_flags, defaultMealFlags);
+  const allLogos = [
+    ...methods.map((m) => ({ name: m.label || m.name || "", logo: m.icon || m.logo })),
+    ...cardFlags.map((f) => ({ name: f.name || f.label || "", logo: f.logo || f.icon })),
+    ...mealFlags.map((f) => ({ name: f.name || f.label || "", logo: f.logo || f.icon })),
+  ].filter((item, index, arr) => item.name && arr.findIndex((o) => o.name === item.name) === index);
 
   return (
     <footer style={{ backgroundColor: footerBg, color: footerText }} className="mt-24 relative overflow-hidden">
@@ -142,18 +157,39 @@ export function SiteFooter() {
 
         <div className="md:col-span-4 pt-10 border-t border-white/5">
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-6 text-center">Formas de Pagamento</h2>
-          <div className="flex flex-wrap justify-center gap-3">
-             {['PIX', 'Cartão', 'Dinheiro', 'VR', 'Alelo'].map(p => (
-               <span key={p} className="rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-colors">
-                 {p}
-               </span>
-             ))}
+          <div className="flex flex-wrap justify-center gap-2.5">
+            {allLogos.map((item) => (
+              <div
+                key={item.name}
+                title={item.name}
+                className="flex h-10 w-16 items-center justify-center rounded-lg border border-white/10 bg-white px-2 shadow-sm transition-transform hover:scale-105"
+              >
+                {item.logo ? (
+                  <img
+                    src={item.logo}
+                    alt={item.name}
+                    loading="lazy"
+                    className="max-h-6 max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700">{item.name}</span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
       </div>
       <div className="border-t border-white/5 py-8 text-center text-[10px] font-bold uppercase tracking-widest opacity-40">
-        © {new Date().getFullYear()} Saborosamente. Feito com amor por Lovable.
+        © 2022 Saborosamente. Feito com amor por{" "}
+        <a
+          href="https://instagram.com/emf.digital"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-4 hover:underline hover:opacity-100"
+        >
+          @emf.digital
+        </a>
       </div>
     </footer>
   );
