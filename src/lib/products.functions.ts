@@ -63,7 +63,7 @@ export const getPublicProducts = createServerFn({ method: "GET" })
           nome
         )
       `)
-      .eq("status", "ativo");
+      .eq("ativo", true);
 
     if (error) throw error;
 
