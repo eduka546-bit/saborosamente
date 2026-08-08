@@ -40,7 +40,9 @@ const checkoutSchema = z.object({
   complemento: z.string().trim().max(80).optional(),
   cidade: z.string().trim().max(80).optional(),
   bairro: z.string().trim().max(80).optional(),
-  pagamento: z.enum(["pix", "cartao", "dinheiro"]),
+  pagamento: z.enum(["pix", "cartao", "dinheiro", "alimentacao"]),
+  troco: z.string().optional(),
+  tipoCartao: z.string().optional(),
   observacoes: z.string().trim().max(300).optional(),
   cupom: z.string().trim().optional(),
 }).refine((data) => {
@@ -56,9 +58,18 @@ const checkoutSchema = z.object({
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 const pagamentos: { value: CheckoutForm["pagamento"]; label: string; hint: string }[] = [
-  { value: "pix", label: "PIX", hint: "Pagamento imediato" },
-  { value: "cartao", label: "Cartão", hint: "Até 3x sem juros" },
-  { value: "dinheiro", label: "Dinheiro", hint: "Pagamento na entrega" },
+  { value: "pix", label: "PIX", hint: "Na entrega" },
+  { value: "cartao", label: "Cartão", hint: "Crédito/Débito" },
+  { value: "alimentacao", label: "Alimentação", hint: "Refeição/VR" },
+  { value: "dinheiro", label: "Dinheiro", hint: "Na entrega" },
+];
+
+const cartaoFlags = [
+  "Visa", "Mastercard", "Hiper", "Elo", "Hipercard", "Diners Club", "American Express"
+];
+
+const alimentacaoFlags = [
+  "VR", "Ticket", "Util Card", "Alelo", "Pluxee", "Sodexo", "Flash", "O² Plus Card", "Benefícios", "Caju", "Bee"
 ];
 
 const fieldClass =
@@ -106,6 +117,7 @@ function Checkout() {
   });
 
   const currentMetodo = watch("metodoEntrega");
+  const currentPagamento = watch("pagamento");
 
   useEffect(() => {
     fetchUserData();
@@ -567,13 +579,13 @@ function Checkout() {
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Pagamento
             </legend>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4">
               {pagamentos.map((p) => (
                 <label
                   key={p.value}
                   className={cn(
                     "cursor-pointer rounded-2xl border border-border p-4 transition-colors hover:border-primary",
-                    "has-checked:border-primary has-checked:bg-secondary",
+                    currentPagamento === p.value && "border-primary bg-primary/5 ring-1 ring-primary"
                   )}
                 >
                   <input
@@ -587,6 +599,72 @@ function Checkout() {
                 </label>
               ))}
             </div>
+
+            {currentPagamento === "dinheiro" && (
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                <label htmlFor="troco" className="text-sm font-medium">
+                  Precisa de troco para quanto?
+                </label>
+                <input
+                  id="troco"
+                  placeholder="Ex: R$ 50,00"
+                  className={fieldClass}
+                  {...register("troco")}
+                />
+              </div>
+            )}
+
+            {currentPagamento === "cartao" && (
+              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <label className="text-sm font-medium">Selecione o tipo de cartão</label>
+                <div className="flex flex-wrap gap-2">
+                  {["Crédito", "Débito"].map((tipo) => (
+                    <label
+                      key={tipo}
+                      className={cn(
+                        "cursor-pointer rounded-full border border-border px-4 py-1.5 text-xs font-medium transition-all",
+                        watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"
+                      )}
+                    >
+                      <input type="radio" value={tipo} className="sr-only" {...register("tipoCartao")} />
+                      {tipo}
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-2 rounded-2xl bg-muted/30 p-4">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
+                    💳 Bandeiras aceitas
+                  </span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    {cartaoFlags.map(flag => (
+                      <div key={flag} className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-primary/50" />
+                        {flag}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentPagamento === "alimentacao" && (
+              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <div className="rounded-2xl bg-muted/30 p-4">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
+                    🍴 Cartões aceitos
+                  </span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    {alimentacaoFlags.map(flag => (
+                      <div key={flag} className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-primary/50" />
+                        {flag}
+                      </div>
+                    ))}
+                  </div>
+                  <input type="hidden" value="Alimentação/Refeição" {...register("tipoCartao")} />
+                </div>
+              </div>
+            )}
           </fieldset>
 
           <div>
@@ -616,7 +694,7 @@ function Checkout() {
             disabled={isSubmitting}
             className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
           >
-            {isSubmitting ? "Registrando pedido..." : `Vamos para o checkout agora • ${formatBRL(total)}`}
+            {isSubmitting ? "Registrando pedido..." : `Finalizar compra • ${formatBRL(total)}`}
           </button>
         </form>
 
