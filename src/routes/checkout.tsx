@@ -630,9 +630,21 @@ function Checkout() {
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => {
                 const isSelected = currentPagamento === p.value;
+                const handleClick = () => {
+                  setValue("pagamento", p.value, { 
+                    shouldValidate: true, 
+                    shouldDirty: true, 
+                    shouldTouch: true 
+                  });
+                  if (p.value === "alimentacao") {
+                    setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
+                  }
+                };
+                
                 return (
-                  <label
+                  <div
                     key={p.value}
+                    onClick={handleClick}
                     className={cn(
                       "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -644,20 +656,15 @@ function Checkout() {
                       type="radio" 
                       value={p.value} 
                       className="sr-only" 
-                      {...register("pagamento", {
-                        onChange: (e) => {
-                          if (e.target.value === "alimentacao") {
-                            setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
-                          }
-                        }
-                      })} 
+                      checked={isSelected}
+                      readOnly
                     />
                     {p.icon && (
                       <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
                     )}
                     <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                  </label>
+                  </div>
                 );
               })}
             </div>
@@ -680,18 +687,22 @@ function Checkout() {
               <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
                 <label className="text-sm font-medium">Selecione o tipo de cartão</label>
                 <div className="flex flex-wrap gap-2">
-                  {["Crédito", "Débito"].map((tipo) => (
-                    <label
-                      key={tipo}
-                      className={cn(
-                        "cursor-pointer rounded-full border border-border px-4 py-1.5 text-xs font-medium transition-all",
-                        watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"
-                      )}
-                    >
-                      <input type="radio" value={tipo} className="sr-only" {...register("tipoCartao")} />
-                      {tipo}
-                    </label>
-                  ))}
+                  {["Crédito", "Débito"].map((tipo) => {
+                    const isCardSelected = watch("tipoCartao") === tipo;
+                    return (
+                      <div
+                        key={tipo}
+                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true })}
+                        className={cn(
+                          "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
+                          isCardSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
+                        )}
+                      >
+                        <input type="radio" value={tipo} className="sr-only" checked={isCardSelected} readOnly />
+                        {tipo}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="mt-2 rounded-2xl bg-muted/30 p-4">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
