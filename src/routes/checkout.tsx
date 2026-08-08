@@ -660,7 +660,7 @@ function Checkout() {
                     )}
                     <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                  </label>
+                  </div>
                 );
               })}
             </div>
