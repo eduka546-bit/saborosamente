@@ -9,6 +9,24 @@ import { User, Lock, Mail, Phone, Fingerprint } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({
+    meta: [
+      { title: "Entrar ou criar conta | Saborosamente" },
+      {
+        name: "description",
+        content:
+          "Acesse sua conta Saborosamente para acompanhar pedidos, salvar endereços e finalizar sua compra de marmitas congeladas mais rápido.",
+      },
+      { property: "og:title", content: "Entrar ou criar conta | Saborosamente" },
+      {
+        property: "og:description",
+        content: "Entre na sua conta Saborosamente e finalize seu pedido de marmitas congeladas em poucos cliques.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, follow" },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>) => {
     return {
       redirect: (search.redirect as string) || "/",

@@ -24,7 +24,11 @@ export const Route = createFileRoute("/checkout")({
       },
       { property: "og:title", content: "Checkout | Saborosamente" },
       { property: "og:description", content: "Finalize seu pedido de marmitas congeladas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, follow" },
     ],
+    links: [{ rel: "canonical", href: "https://saborosamente.lovable.app/checkout" }],
   }),
   component: Checkout,
 });
