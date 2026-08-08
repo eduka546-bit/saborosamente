@@ -270,9 +270,15 @@ function Index() {
 
       <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="rounded-[2.5rem] bg-gradient-brand px-8 py-14 text-center text-primary-foreground shadow-lift">
-          <h2 className="text-3xl font-bold md:text-4xl">Sua semana resolvida em um pedido</h2>
-          <p className="mx-auto mt-4 max-w-xl text-sm opacity-90 md:text-base">
-            Comida de verdade, sem conservantes e pronta em minutos. Sem assinatura, sem fidelidade.
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
+            🌿 Sem conservantes · Prontas em minutos · Sem fidelidade
+          </span>
+          <h2 className="mt-6 text-3xl font-bold md:text-4xl lg:text-5xl">
+            Comida de verdade, zero trabalho
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm opacity-95 md:text-base leading-relaxed">
+            Marmitas congeladas artesanais, feitas com ingredientes reais e muito sabor. 
+            Sem assinatura, sem fidelidade — só pede, recebe e aproveita seu tempo.
           </p>
           <a
             href="#cardapio"
