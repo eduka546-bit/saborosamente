@@ -23,6 +23,13 @@ import {
 import { Button } from "./ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartSheet } from "./cart-sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const links = [
   { to: "/", hash: "cardapio", label: "Cardápio", icon: Menu, type: "link" },
@@ -185,12 +192,50 @@ export function SiteHeader() {
         style={{ backgroundColor: navBg }}
         className="mx-auto flex h-16 items-center justify-between px-6 lg:px-12 border-b relative z-[70] pointer-events-auto"
       >
-        <Link to="/" className="flex items-center gap-2">
-           {/* Removido o texto "Saborosamente" conforme solicitado */}
-        </Link>
+        {/* Menu mobile — evita que os links estourem a largura da tela */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button
+              aria-label="Abrir menu"
+              className="md:hidden flex h-10 w-10 items-center justify-center rounded-full border border-border"
+              style={{ color: navText }}
+            >
+              <Menu size={20} />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[80vw] max-w-xs bg-white z-[300]">
+            <SheetHeader>
+              <SheetTitle className="text-primary font-black uppercase tracking-tight">Menu</SheetTitle>
+            </SheetHeader>
+            <nav className="mt-6 flex flex-col gap-1">
+              {links.map((l) =>
+                l.type === "modal" ? (
+                  <button
+                    key={l.label}
+                    onClick={() => setOpenDeliveryModal(true)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary text-left"
+                  >
+                    <l.icon size={18} className="text-primary" />
+                    {l.label}
+                  </button>
+                ) : (
+                  <Link
+                    key={l.label}
+                    to={l.to as any}
+                    hash={(l as any).hash}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+                  >
+                    <l.icon size={18} className="text-primary" />
+                    {l.label}
+                  </Link>
+                ),
+              )}
+            </nav>
+          </SheetContent>
+        </Sheet>
 
         {/* Navigation Links - Centered options */}
-        <nav className="flex-1 flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
+        <nav className="hidden flex-1 md:flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
           {links.map((l) => (
             l.type === "modal" ? (
               <button
