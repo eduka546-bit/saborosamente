@@ -222,6 +222,45 @@ function AdminSiteConfig() {
     }
   };
 
+  const handlePaymentItemUpload = async (file: File, type: 'method' | 'card' | 'meal', index: number) => {
+    const key = `payment_${type}_${index}`;
+    try {
+      setIsUploading(prev => ({ ...prev, [key]: true }));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `payment_${type}_${index}_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      if (type === 'method') {
+        const newMethods = [...formData.payment_methods];
+        newMethods[index] = { ...newMethods[index], icon: publicUrl };
+        setFormData({ ...formData, payment_methods: newMethods });
+      } else if (type === 'card') {
+        const newFlags = [...formData.card_flags];
+        newFlags[index] = { ...newFlags[index], logo: publicUrl };
+        setFormData({ ...formData, card_flags: newFlags });
+      } else if (type === 'meal') {
+        const newFlags = [...formData.meal_flags];
+        newFlags[index] = { ...newFlags[index], logo: publicUrl };
+        setFormData({ ...formData, meal_flags: newFlags });
+      }
+      
+      toast.success("Logo atualizada!");
+    } catch (error: any) {
+      toast.error("Erro no upload: " + error.message);
+    } finally {
+      setIsUploading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
       <div className="flex items-center justify-between">
@@ -523,7 +562,23 @@ function AdminSiteConfig() {
               {formData.payment_methods?.map((method: any, index: number) => (
                 <div key={method.id} className="flex items-center justify-between p-4 border rounded-xl bg-gray-50">
                   <div className="flex items-center gap-3">
-                    <img src={method.icon} className="size-8 object-contain" alt="" />
+                    <div className="relative group">
+                      <img src={method.icon} className="size-8 object-contain" alt="" />
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                        <Upload size={12} />
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'method', index)}
+                        />
+                      </label>
+                      {isUploading[`payment_method_${index}`] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
+                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <p className="text-sm font-bold">{method.label}</p>
                       <p className="text-xs text-muted-foreground">{method.hint}</p>
@@ -546,7 +601,23 @@ function AdminSiteConfig() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {formData.card_flags?.map((flag: any, index: number) => (
                   <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
-                    <img src={flag.logo} className="h-6 object-contain" alt="" />
+                    <div className="relative group w-full flex justify-center py-2">
+                      <img src={flag.logo} className="h-6 object-contain" alt="" />
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                        <Upload size={12} />
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'card', index)}
+                        />
+                      </label>
+                      {isUploading[`payment_card_${index}`] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
+                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
+                        </div>
+                      )}
+                    </div>
                     <span className="text-[10px] font-bold">{flag.name}</span>
                     <Switch 
                       className="scale-75"
@@ -567,7 +638,23 @@ function AdminSiteConfig() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {formData.meal_flags?.map((flag: any, index: number) => (
                   <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
-                    <img src={flag.logo} className="h-6 object-contain" alt="" />
+                    <div className="relative group w-full flex justify-center py-2">
+                      <img src={flag.logo} className="h-6 object-contain" alt="" />
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                        <Upload size={12} />
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'meal', index)}
+                        />
+                      </label>
+                      {isUploading[`payment_meal_${index}`] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
+                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
+                        </div>
+                      )}
+                    </div>
                     <span className="text-[10px] font-bold">{flag.name}</span>
                     <Switch 
                       className="scale-75"
