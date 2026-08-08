@@ -448,8 +448,7 @@ function Checkout() {
               Opções de Recebimento
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div 
-                onClick={() => setValue("metodoEntrega", "entrega", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -458,15 +457,14 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="entrega" 
-                  checked={currentMetodo === "entrega"}
-                  readOnly
+                  {...register("metodoEntrega")}
+                  onChange={() => setValue("metodoEntrega", "entrega", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold pointer-events-none">Entrega em domicílio</span>
                 <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">Receba no seu endereço</span>
-              </div>
-              <div 
-                onClick={() => setValue("metodoEntrega", "retirada", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
+              </label>
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -475,13 +473,13 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="retirada" 
-                  checked={currentMetodo === "retirada"}
-                  readOnly
+                  {...register("metodoEntrega")}
+                  onChange={() => setValue("metodoEntrega", "retirada", { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold pointer-events-none">Retirar na loja</span>
                 <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">São Bento do Sul - Sem custo</span>
-              </div>
+              </label>
             </div>
 
             <div className="space-y-2">
@@ -652,14 +650,8 @@ function Checkout() {
               {configuredPagamentos.map((p: any) => {
                 const isSelected = currentPagamento === p.value;
                 return (
-                  <div
+                  <label
                     key={p.value}
-                    onClick={() => {
-                      setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                      if (p.value === "alimentacao") {
-                        setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-                      }
-                    }}
                     className={cn(
                       "relative flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
                       isSelected 
@@ -670,8 +662,14 @@ function Checkout() {
                     <input 
                       type="radio" 
                       value={p.value} 
-                      checked={isSelected}
-                      readOnly
+                      {...register("pagamento")}
+                      onChange={(e) => {
+                        const val = e.target.value as CheckoutForm["pagamento"];
+                        setValue("pagamento", val, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                        if (val === "alimentacao") {
+                          setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                        }
+                      }}
                       className="sr-only" 
                     />
                     {p.icon && (
@@ -679,7 +677,7 @@ function Checkout() {
                     )}
                     <span className="block text-sm font-bold pointer-events-none">{p.label}</span>
                     <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
-                  </div>
+                  </label>
                 );
               })}
             </div>
@@ -705,9 +703,8 @@ function Checkout() {
                   {["Crédito", "Débito"].map((tipo) => {
                     const isSelected = currentTipoCartao === tipo;
                     return (
-                      <div
+                      <label
                         key={tipo}
-                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                         className={cn(
                           "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
                           isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
@@ -716,12 +713,12 @@ function Checkout() {
                         <input 
                           type="radio" 
                           value={tipo} 
-                          checked={isSelected}
-                          readOnly
+                          {...register("tipoCartao")}
+                          onChange={(e) => setValue("tipoCartao", e.target.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                           className="sr-only" 
                         />
                         {tipo}
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
