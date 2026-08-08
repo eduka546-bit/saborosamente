@@ -164,7 +164,7 @@ function Checkout() {
     },
   });
 
-  const currentMetodo = watch("metodoEntrega");
+  // Removendo variáveis watch do topo para usar diretamente no JSX e garantir reatividade local
   const currentPagamento = watch("pagamento");
 
   useEffect(() => {
