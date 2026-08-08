@@ -57,20 +57,32 @@ const checkoutSchema = z.object({
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
-const pagamentos: { value: CheckoutForm["pagamento"]; label: string; hint: string }[] = [
-  { value: "pix", label: "PIX", hint: "Na entrega" },
-  { value: "cartao", label: "Cartão", hint: "Crédito/Débito" },
-  { value: "alimentacao", label: "Alimentação", hint: "Refeição/VR" },
-  { value: "mercadopago", label: "Mercado Pago", hint: "Link de Pagamento" },
-  { value: "dinheiro", label: "Dinheiro", hint: "Na entrega" },
+const pagamentos: { value: CheckoutForm["pagamento"]; label: string; hint: string; icon?: string }[] = [
+  { value: "pix", label: "PIX", hint: "Na entrega", icon: "https://logospng.org/download/pix/logo-pix-icone-512.png" },
+  { value: "cartao", label: "Cartão", hint: "Crédito/Débito", icon: "https://cdn-icons-png.flaticon.com/512/6963/6963703.png" },
+  { value: "alimentacao", label: "Alimentação", hint: "Refeição/VR", icon: "https://cdn-icons-png.flaticon.com/512/2737/2737034.png" },
+  { value: "mercadopago", label: "Mercado Pago", hint: "Link", icon: "https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png" },
+  { value: "dinheiro", label: "Dinheiro", hint: "Na entrega", icon: "https://cdn-icons-png.flaticon.com/512/2489/2489756.png" },
 ];
 
 const cartaoFlags = [
-  "Visa", "Mastercard", "Hiper", "Elo", "Hipercard", "Diners Club", "American Express"
+  { name: "Visa", logo: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" },
+  { name: "Mastercard", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" },
+  { name: "Hiper", logo: "https://logodownload.org/wp-content/uploads/2015/05/hiper-logo.png" },
+  { name: "Elo", logo: "https://upload.wikimedia.org/wikipedia/commons/0/03/Logo_Elo_cortado.png" },
+  { name: "Hipercard", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Hipercard_logo.svg" },
+  { name: "Diners Club", logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Diners_Club_Logo3.svg" },
+  { name: "American Express", logo: "https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg" }
 ];
 
 const alimentacaoFlags = [
-  "VR", "Ticket", "Util Card", "Alelo", "Pluxee", "Sodexo", "Flash", "O² Plus Card", "Benefícios", "Caju", "Bee"
+  { name: "VR", logo: "https://vrsolucao.com.br/wp-content/uploads/2021/05/logo-vr.png" },
+  { name: "Ticket", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Ticket_Logotipo.svg/1200px-Ticket_Logotipo.svg.png" },
+  { name: "Alelo", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Alelo_logo.svg" },
+  { name: "Pluxee", logo: "https://logodownload.org/wp-content/uploads/2023/11/pluxee-logo.png" },
+  { name: "Sodexo", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Sodexo_logo.svg/1200px-Sodexo_logo.svg.png" },
+  { name: "Caju", logo: "https://media.licdn.com/dms/image/C4D0BAQG5k6Uv8xXkWA/company-logo_200_200/0/1630571932371?e=2147483647&v=beta&t=4m1O9nE7qI_pT_k5i_0i_0Y_0o_0o_0o_0" },
+  { name: "Flash", logo: "https://vagas.com.br/logos-empresas/81254/original.png" }
 ];
 
 const fieldClass =
@@ -595,6 +607,9 @@ function Checkout() {
                     className="sr-only"
                     {...register("pagamento")}
                   />
+                  {p.icon && (
+                    <img src={p.icon} alt="" className="mb-2 size-6 object-contain" />
+                  )}
                   <span className="block text-sm font-semibold">{p.label}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">{p.hint}</span>
                 </label>
@@ -636,11 +651,13 @@ function Checkout() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
                     💳 Bandeiras aceitas
                   </span>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                     {cartaoFlags.map(flag => (
-                      <div key={flag} className="flex items-center gap-2">
-                        <div className="size-1 rounded-full bg-primary/50" />
-                        {flag}
+                      <div key={flag.name} className="flex flex-col items-center gap-1.5">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1.5 shadow-sm border border-border/50">
+                          <img src={flag.logo} alt={flag.name} className="size-full object-contain" />
+                        </div>
+                        <span className="text-[10px] text-center font-medium leading-tight">{flag.name}</span>
                       </div>
                     ))}
                   </div>
@@ -654,11 +671,13 @@ function Checkout() {
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
                     🍴 Cartões aceitos
                   </span>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                     {alimentacaoFlags.map(flag => (
-                      <div key={flag} className="flex items-center gap-2">
-                        <div className="size-1 rounded-full bg-primary/50" />
-                        {flag}
+                      <div key={flag.name} className="flex flex-col items-center gap-1.5">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-white p-1.5 shadow-sm border border-border/50">
+                          <img src={flag.logo} alt={flag.name} className="size-full object-contain" />
+                        </div>
+                        <span className="text-[10px] text-center font-medium leading-tight">{flag.name}</span>
                       </div>
                     ))}
                   </div>
