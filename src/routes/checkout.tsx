@@ -705,9 +705,8 @@ function Checkout() {
                   {["Crédito", "Débito"].map((tipo) => {
                     const isSelected = currentTipoCartao === tipo;
                     return (
-                      <div
+                      <label
                         key={tipo}
-                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                         className={cn(
                           "relative cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
                           isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
@@ -716,12 +715,12 @@ function Checkout() {
                         <input 
                           type="radio" 
                           value={tipo} 
-                          checked={isSelected}
-                          readOnly
+                          {...register("tipoCartao")}
+                          onChange={(e) => setValue("tipoCartao", e.target.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true })}
                           className="sr-only" 
                         />
                         {tipo}
-                      </div>
+                      </label>
                     );
                   })}
                 </div>
