@@ -640,7 +640,7 @@ function Checkout() {
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center cursor-pointer rounded-2xl border p-4 text-center transition-all hover:border-primary/50",
-                    currentPagamento === p.value 
+                    watch("pagamento") === p.value 
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
                       : "border-border bg-card"
                   )}
