@@ -549,7 +549,7 @@ function AdminSiteConfig() {
                     <img src={flag.logo} className="h-6 object-contain" alt="" />
                     <span className="text-[10px] font-bold">{flag.name}</span>
                     <Switch 
-                      size="sm"
+                      className="scale-75"
                       checked={flag.enabled} 
                       onCheckedChange={(checked: boolean) => {
                         const newFlags = [...formData.card_flags];
@@ -570,7 +570,7 @@ function AdminSiteConfig() {
                     <img src={flag.logo} className="h-6 object-contain" alt="" />
                     <span className="text-[10px] font-bold">{flag.name}</span>
                     <Switch 
-                      size="sm"
+                      className="scale-75"
                       checked={flag.enabled} 
                       onCheckedChange={(checked: boolean) => {
                         const newFlags = [...formData.meal_flags];
