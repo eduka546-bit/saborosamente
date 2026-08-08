@@ -446,8 +446,7 @@ function Checkout() {
               Opções de Recebimento
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div 
-                onClick={() => setValue("metodoEntrega", "entrega")}
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "entrega" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -456,15 +455,13 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="entrega" 
-                  checked={currentMetodo === "entrega"}
-                  readOnly
+                  {...register("metodoEntrega")}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold">Entrega em domicílio</span>
                 <span className="mt-1 block text-xs text-muted-foreground">Receba no seu endereço</span>
-              </div>
-              <div 
-                onClick={() => setValue("metodoEntrega", "retirada")}
+              </label>
+              <label 
                 className={cn(
                   "relative cursor-pointer rounded-2xl border border-border p-4 transition-all hover:border-primary/50",
                   currentMetodo === "retirada" ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
@@ -473,14 +470,14 @@ function Checkout() {
                 <input 
                   type="radio" 
                   value="retirada" 
-                  checked={currentMetodo === "retirada"}
-                  readOnly
+                  {...register("metodoEntrega")}
                   className="sr-only" 
                 />
                 <span className="block text-sm font-bold">Retirar na loja</span>
                 <span className="mt-1 block text-xs text-muted-foreground">São Bento do Sul - Sem custo</span>
-              </div>
+              </label>
             </div>
+          </fieldset>
 
             <div className="space-y-2">
               <label htmlFor="horarioEntrega" className="text-sm font-medium">
