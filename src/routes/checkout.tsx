@@ -629,23 +629,26 @@ function Checkout() {
             </legend>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => (
-                <button
+                <label
                   key={p.value}
-                  type="button"
-                  onClick={() => setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true })}
                   className={cn(
-                    "flex flex-col items-center justify-center rounded-2xl border border-border p-4 text-center transition-colors hover:border-primary",
-                    currentPagamento === p.value && "border-primary bg-primary/5 ring-1 ring-primary"
+                    "flex flex-col items-center justify-center cursor-pointer rounded-2xl border border-border p-4 text-center transition-all hover:border-primary/50",
+                    currentPagamento === p.value ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-card"
                   )}
                 >
+                  <input
+                    type="radio"
+                    value={p.value}
+                    className="sr-only"
+                    {...register("pagamento")}
+                  />
                   {p.icon && (
-                    <img src={p.icon} alt="" className="mb-2 size-6 object-contain" />
+                    <img src={p.icon} alt="" className="mb-2 size-6 object-contain pointer-events-none" />
                   )}
-                  <span className="block text-sm font-semibold">{p.label}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">{p.hint}</span>
-                </button>
+                  <span className="block text-sm font-semibold pointer-events-none">{p.label}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground pointer-events-none">{p.hint}</span>
+                </label>
               ))}
-              <input type="radio" className="sr-only" {...register("pagamento")} />
             </div>
 
             {currentPagamento === "dinheiro" && (
