@@ -687,18 +687,22 @@ function Checkout() {
               <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
                 <label className="text-sm font-medium">Selecione o tipo de cartão</label>
                 <div className="flex flex-wrap gap-2">
-                  {["Crédito", "Débito"].map((tipo) => (
-                    <label
-                      key={tipo}
-                      className={cn(
-                        "cursor-pointer rounded-full border border-border px-4 py-1.5 text-xs font-medium transition-all",
-                        watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"
-                      )}
-                    >
-                      <input type="radio" value={tipo} className="sr-only" {...register("tipoCartao")} />
-                      {tipo}
-                    </label>
-                  ))}
+                  {["Crédito", "Débito"].map((tipo) => {
+                    const isCardSelected = watch("tipoCartao") === tipo;
+                    return (
+                      <div
+                        key={tipo}
+                        onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true })}
+                        className={cn(
+                          "cursor-pointer rounded-full border px-4 py-1.5 text-xs font-medium transition-all",
+                          isCardSelected ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-primary/50"
+                        )}
+                      >
+                        <input type="radio" value={tipo} className="sr-only" checked={isCardSelected} readOnly />
+                        {tipo}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="mt-2 rounded-2xl bg-muted/30 p-4">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
