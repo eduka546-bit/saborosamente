@@ -168,6 +168,15 @@ function Checkout() {
   const currentPagamento = watch("pagamento");
   const currentTipoCartao = watch("tipoCartao");
 
+  // Reset values when payment method changes
+  useEffect(() => {
+    if (currentPagamento === "alimentacao") {
+      setValue("tipoCartao", "Alimentação/Refeição");
+    } else if (currentPagamento !== "cartao") {
+      setValue("tipoCartao", undefined);
+    }
+  }, [currentPagamento, setValue]);
+
   useEffect(() => {
     fetchUserData();
   }, []);
