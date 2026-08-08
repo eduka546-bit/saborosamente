@@ -630,7 +630,13 @@ function Checkout() {
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {configuredPagamentos.map((p: any) => {
                 const isSelected = watch("pagamento") === p.value;
-                return (
+                const handleClick = () => {
+                  setValue("pagamento", p.value, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+                  if (p.value === "alimentacao") {
+                    setValue("tipoCartao", "Alimentação/Refeição", { shouldValidate: true });
+                  }
+                };
+
                   <label
                     key={p.value}
                     className={cn(
