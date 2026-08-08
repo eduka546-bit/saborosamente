@@ -15,7 +15,10 @@ export const Route = createFileRoute("/carrinho")({
       },
       { property: "og:title", content: "Carrinho | Saborosamente" },
       { property: "og:description", content: "Revise seu pedido de marmitas congeladas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://saborosamente.lovable.app/carrinho" }],
   }),
   component: Carrinho,
 });
