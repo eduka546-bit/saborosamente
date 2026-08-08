@@ -685,9 +685,11 @@ function Checkout() {
                   {["Crédito", "Débito"].map((tipo) => (
                     <label
                       key={tipo}
+                      onClick={() => setValue("tipoCartao", tipo, { shouldValidate: true })}
                       className={cn(
                         "cursor-pointer rounded-full border border-border px-4 py-1.5 text-xs font-medium transition-all",
                         watch("tipoCartao") === tipo ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"
+
                       )}
                     >
                       <input type="radio" value={tipo} className="sr-only" {...register("tipoCartao")} />
