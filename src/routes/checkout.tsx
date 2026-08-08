@@ -170,7 +170,8 @@ function Checkout() {
           contato para confirmar a entrega.
         </p>
         <Link
-          to="/catalogo"
+          to="/"
+          hash="cardapio"
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Continuar comprando
@@ -189,7 +190,7 @@ function Checkout() {
         </p>
         <button
           type="button"
-          onClick={() => navigate({ to: "/catalogo" })}
+          onClick={() => navigate({ to: "/", hash: "cardapio" })}
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Ver catálogo
