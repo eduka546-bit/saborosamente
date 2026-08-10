@@ -97,6 +97,7 @@ function Checkout() {
 
   const navigate = useNavigate();
   const search = useSearch({ from: "/checkout" });
+  const createOrderFn = useServerFn(createOrder);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [session, setSession] = useState<any>(null);
