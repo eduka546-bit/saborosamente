@@ -129,18 +129,29 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     if (!hasCart) return;
 
     const handleMouseLeave = async (e: MouseEvent) => {
-      if (e.clientY > 5) return;            // só borda superior
-      if (exitFiredRef.current) return;     // dispara apenas 1 vez
+      if (e.clientY > 5) return;
+      if (exitFiredRef.current) return;
       exitFiredRef.current = true;
 
       const coupon = generateAbandonCoupon();
       couponRef.current = coupon;
 
-      // Salva no banco antes de mostrar o modal
+      // Busca o percentual configurado no banco
+      let discountPercent = 5; // fallback padrão
+      try {
+        const { data } = await supabase
+          .from("site_settings")
+          .select("exit_intent_discount")
+          .maybeSingle();
+        if (data?.exit_intent_discount) {
+          discountPercent = Number(data.exit_intent_discount);
+        }
+      } catch {}
+
       await saveToDb("exit_intent");
       await saveCoupon(coupon);
 
-      onExitIntent(coupon);
+      onExitIntent(coupon, discountPercent);
     };
 
     document.addEventListener("mouseleave", handleMouseLeave);
