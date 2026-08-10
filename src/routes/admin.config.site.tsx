@@ -17,7 +17,8 @@ import {
   Truck,
   Calendar,
   Users,
-  History
+  History,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -550,126 +551,270 @@ function AdminSiteConfig() {
           </div>
         </TabsContent>
         <TabsContent value="payments" className="mt-6 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-6">
-            <div>
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Palette className="text-[#5850ec]" size={20} /> Métodos de Pagamento (Checkout)
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">Habilite ou desabilite o que aparece para o cliente.</p>
+
+          {/* ── Métodos de Pagamento ─────────────────────────────────────── */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Palette className="text-[#5850ec]" size={20} /> Métodos de Pagamento
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Adicione, edite, reordene e habilite/desabilite o que aparece para o cliente.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const novo = { id: `m-${Date.now()}`, label: "Novo método", hint: "", icon: "", enabled: true };
+                  setFormData({ ...formData, payment_methods: [...(formData.payment_methods ?? []), novo] });
+                }}
+              >
+                <Plus size={14} className="mr-1" /> Adicionar
+              </Button>
             </div>
 
-            <div className="space-y-4">
-              {formData.payment_methods?.map((method: any, index: number) => (
-                <div key={method.id} className="flex items-center justify-between p-4 border rounded-xl bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="relative group">
-                      <img src={method.icon} className="size-8 object-contain" alt="" />
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+            <div className="space-y-3">
+              {(formData.payment_methods ?? []).map((method: any, index: number) => (
+                <div key={method.id ?? index} className="flex items-center gap-3 p-3 border rounded-xl bg-gray-50">
+                  {/* logo com upload ao hover */}
+                  <div className="relative group shrink-0">
+                    {method.icon ? (
+                      <img src={method.icon} className="size-9 object-contain rounded" alt="" />
+                    ) : (
+                      <div className="size-9 rounded bg-gray-200 flex items-center justify-center text-gray-400">
+                        <ImageIcon size={16} />
+                      </div>
+                    )}
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                      {isUploading[`payment_method_${index}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
                         <Upload size={12} />
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'method', index)}
-                        />
-                      </label>
-                      {isUploading[`payment_method_${index}`] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
-                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
-                        </div>
                       )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">{method.label}</p>
-                      <p className="text-xs text-muted-foreground">{method.hint}</p>
-                    </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'method', index)}
+                      />
+                    </label>
                   </div>
-                  <Switch 
-                    checked={method.enabled} 
+
+                  {/* campos editáveis */}
+                  <div className="flex-1 grid grid-cols-2 gap-2 min-w-0">
+                    <Input
+                      placeholder="Nome (ex: PIX)"
+                      value={method.label ?? ""}
+                      onChange={(e) => {
+                        const next = [...formData.payment_methods];
+                        next[index] = { ...method, label: e.target.value };
+                        setFormData({ ...formData, payment_methods: next });
+                      }}
+                    />
+                    <Input
+                      placeholder="Subtítulo (ex: Na entrega)"
+                      value={method.hint ?? ""}
+                      onChange={(e) => {
+                        const next = [...formData.payment_methods];
+                        next[index] = { ...method, hint: e.target.value };
+                        setFormData({ ...formData, payment_methods: next });
+                      }}
+                    />
+                  </div>
+
+                  {/* ativar/desativar */}
+                  <Switch
+                    checked={method.enabled ?? true}
                     onCheckedChange={(checked: boolean) => {
-                      const newMethods = [...formData.payment_methods];
-                      newMethods[index] = { ...method, enabled: checked };
-                      setFormData({ ...formData, payment_methods: newMethods });
+                      const next = [...formData.payment_methods];
+                      next[index] = { ...method, enabled: checked };
+                      setFormData({ ...formData, payment_methods: next });
+                    }}
+                  />
+
+                  {/* excluir */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-400 hover:text-red-600 shrink-0"
+                    onClick={() => {
+                      const next = formData.payment_methods.filter((_: any, i: number) => i !== index);
+                      setFormData({ ...formData, payment_methods: next });
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Bandeiras de Cartão ──────────────────────────────────────── */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                💳 Bandeiras de Cartão
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const nova = { name: "Nova bandeira", logo: "", enabled: true };
+                  setFormData({ ...formData, card_flags: [...(formData.card_flags ?? []), nova] });
+                }}
+              >
+                <Plus size={14} className="mr-1" /> Adicionar
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(formData.card_flags ?? []).map((flag: any, index: number) => (
+                <div key={flag.name + index} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50 relative">
+                  {/* botão excluir */}
+                  <button
+                    type="button"
+                    className="absolute top-1.5 right-1.5 text-red-400 hover:text-red-600 transition-colors"
+                    onClick={() => {
+                      const next = formData.card_flags.filter((_: any, i: number) => i !== index);
+                      setFormData({ ...formData, card_flags: next });
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+
+                  {/* logo com upload */}
+                  <div className="relative group w-full flex justify-center py-2">
+                    {flag.logo ? (
+                      <img src={flag.logo} className="h-6 object-contain" alt="" />
+                    ) : (
+                      <div className="h-6 w-16 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <ImageIcon size={12} />
+                      </div>
+                    )}
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                      {isUploading[`payment_card_${index}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Upload size={12} />
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'card', index)}
+                      />
+                    </label>
+                  </div>
+
+                  {/* nome editável */}
+                  <Input
+                    className="text-center text-xs h-7 px-2"
+                    value={flag.name ?? ""}
+                    onChange={(e) => {
+                      const next = [...formData.card_flags];
+                      next[index] = { ...flag, name: e.target.value };
+                      setFormData({ ...formData, card_flags: next });
+                    }}
+                  />
+
+                  <Switch
+                    className="scale-75"
+                    checked={flag.enabled ?? true}
+                    onCheckedChange={(checked: boolean) => {
+                      const next = [...formData.card_flags];
+                      next[index] = { ...flag, enabled: checked };
+                      setFormData({ ...formData, card_flags: next });
                     }}
                   />
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="pt-6 border-t">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">💳 Bandeiras de Cartão</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {formData.card_flags?.map((flag: any, index: number) => (
-                  <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
-                    <div className="relative group w-full flex justify-center py-2">
-                      <img src={flag.logo} className="h-6 object-contain" alt="" />
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
-                        <Upload size={12} />
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'card', index)}
-                        />
-                      </label>
-                      {isUploading[`payment_card_${index}`] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
-                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-bold">{flag.name}</span>
-                    <Switch 
-                      className="scale-75"
-                      checked={flag.enabled} 
-                      onCheckedChange={(checked: boolean) => {
-                        const newFlags = [...formData.card_flags];
-                        newFlags[index] = { ...flag, enabled: checked };
-                        setFormData({ ...formData, card_flags: newFlags });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+          {/* ── Cartões Alimentação ──────────────────────────────────────── */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                🍴 Cartões Alimentação / Refeição
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const nova = { name: "Novo cartão", logo: "", enabled: true };
+                  setFormData({ ...formData, meal_flags: [...(formData.meal_flags ?? []), nova] });
+                }}
+              >
+                <Plus size={14} className="mr-1" /> Adicionar
+              </Button>
             </div>
 
-            <div className="pt-6 border-t">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">🍴 Cartões Alimentação</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {formData.meal_flags?.map((flag: any, index: number) => (
-                  <div key={flag.name} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50">
-                    <div className="relative group w-full flex justify-center py-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(formData.meal_flags ?? []).map((flag: any, index: number) => (
+                <div key={flag.name + index} className="flex flex-col items-center gap-2 p-3 border rounded-xl bg-gray-50 relative">
+                  {/* botão excluir */}
+                  <button
+                    type="button"
+                    className="absolute top-1.5 right-1.5 text-red-400 hover:text-red-600 transition-colors"
+                    onClick={() => {
+                      const next = formData.meal_flags.filter((_: any, i: number) => i !== index);
+                      setFormData({ ...formData, meal_flags: next });
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+
+                  {/* logo com upload */}
+                  <div className="relative group w-full flex justify-center py-2">
+                    {flag.logo ? (
                       <img src={flag.logo} className="h-6 object-contain" alt="" />
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                    ) : (
+                      <div className="h-6 w-16 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <ImageIcon size={12} />
+                      </div>
+                    )}
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity">
+                      {isUploading[`payment_meal_${index}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
                         <Upload size={12} />
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'meal', index)}
-                        />
-                      </label>
-                      {isUploading[`payment_meal_${index}`] && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
-                          <Loader2 size={12} className="animate-spin text-[#5850ec]" />
-                        </div>
                       )}
-                    </div>
-                    <span className="text-[10px] font-bold">{flag.name}</span>
-                    <Switch 
-                      className="scale-75"
-                      checked={flag.enabled} 
-                      onCheckedChange={(checked: boolean) => {
-                        const newFlags = [...formData.meal_flags];
-                        newFlags[index] = { ...flag, enabled: checked };
-                        setFormData({ ...formData, meal_flags: newFlags });
-                      }}
-                    />
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handlePaymentItemUpload(e.target.files[0], 'meal', index)}
+                      />
+                    </label>
                   </div>
-                ))}
-              </div>
+
+                  {/* nome editável */}
+                  <Input
+                    className="text-center text-xs h-7 px-2"
+                    value={flag.name ?? ""}
+                    onChange={(e) => {
+                      const next = [...formData.meal_flags];
+                      next[index] = { ...flag, name: e.target.value };
+                      setFormData({ ...formData, meal_flags: next });
+                    }}
+                  />
+
+                  <Switch
+                    className="scale-75"
+                    checked={flag.enabled ?? true}
+                    onCheckedChange={(checked: boolean) => {
+                      const next = [...formData.meal_flags];
+                      next[index] = { ...flag, enabled: checked };
+                      setFormData({ ...formData, meal_flags: next });
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
+
         </TabsContent>
       </Tabs>
     </div>

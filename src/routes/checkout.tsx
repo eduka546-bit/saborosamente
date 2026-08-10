@@ -1,13 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2, MessageCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, MapPin, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import {
+  defaultPaymentMethods,
+  defaultCardFlags,
+  defaultMealFlags,
+  enabledOrDefault,
+} from "@/lib/payment-options";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -42,8 +50,6 @@ const checkoutSchema = z
     observacoes: z.string().trim().max(300).optional(),
   })
   .superRefine((data, ctx) => {
-    // troco obrigatório apenas quando pagamento = dinheiro e o campo não estiver vazio
-    // (deixamos opcional — só validamos se preenchido)
     if (data.pagamento === "dinheiro" && data.troco && isNaN(Number(data.troco))) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -54,51 +60,16 @@ const checkoutSchema = z
   });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
-
-// ─── dados das opções de pagamento ───────────────────────────────────────────
-
 type PaymentValue = CheckoutForm["pagamento"];
 
-interface PaymentOption {
-  value: PaymentValue;
-  label: string;
-  sublabel: string;
-  icon: string;
-}
-
-const PAYMENT_OPTIONS: PaymentOption[] = [
-  { value: "pix",        label: "PIX",          sublabel: "Na entrega",        icon: "🟢" },
-  { value: "cartao",     label: "Cartão",        sublabel: "Crédito/Débito",    icon: "💳" },
-  { value: "alimentacao",label: "Alimentação",   sublabel: "Refeição/VR",       icon: "🍴" },
-  { value: "mercadopago",label: "Mercado Pago",  sublabel: "Link",              icon: "🔵" },
-  { value: "dinheiro",   label: "Dinheiro",      sublabel: "Na entrega",        icon: "💵" },
-];
-
-const CARD_BRANDS = [
-  "Visa",
-  "Mastercard",
-  "Hiper",
-  "Elo",
-  "Hipercard",
-  "Diners Club International",
-  "American Express",
-];
-
-const FOOD_VOUCHERS = [
-  "VR",
-  "Ticket",
-  "Util Card",
-  "Alelo",
-  "Pluxee",
-  "Sodexo",
-  "Flash",
-  "O² Plus Card",
-  "Benefícios",
-  "Caju",
-  "Bee",
-];
-
-// ─── estilos reutilizáveis ────────────────────────────────────────────────────
+// mapeamento entre a chave interna e o label exibido ao admin
+const PAYMENT_VALUE_MAP: Record<string, PaymentValue> = {
+  PIX: "pix",
+  Cartão: "cartao",
+  Alimentação: "alimentacao",
+  "Mercado Pago": "mercadopago",
+  Dinheiro: "dinheiro",
+};
 
 const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
@@ -122,6 +93,30 @@ function Checkout() {
   const navigate = useNavigate();
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
+  const [session, setSession] = useState<any>(null);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // ── buscar configurações de pagamento do banco ────────────────────────────
+  const { data: siteSettings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
+      return data;
+    },
+  });
+
+  const paymentMethods = enabledOrDefault(siteSettings?.payment_methods, defaultPaymentMethods);
+  const cardFlags = enabledOrDefault(siteSettings?.card_flags, defaultCardFlags);
+  const mealFlags = enabledOrDefault(siteSettings?.meal_flags, defaultMealFlags);
+
+  // transforma os métodos do banco em opções com o value correto
+  const PAYMENT_OPTIONS = paymentMethods.map((m) => ({
+    value: (PAYMENT_VALUE_MAP[m.label ?? ""] ?? "pix") as PaymentValue,
+    label: m.label ?? "",
+    sublabel: (m as any).hint ?? (m as any).sublabel ?? "",
+    icon: m.icon ?? "",
+  }));
 
   const {
     register,
@@ -135,6 +130,63 @@ function Checkout() {
       cidade: selectedCity,
     },
   });
+
+  // ── buscar sessão e dados do usuário ──────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (!s) return;
+      setSession(s);
+
+      // preenche email imediatamente do auth
+      setValue("email", s.user.email ?? "", { shouldValidate: false });
+
+      // busca perfil (nome, telefone)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nome, telefone")
+        .eq("id", s.user.id)
+        .single();
+
+      if (profile) {
+        if (profile.nome) setValue("nome", profile.nome, { shouldValidate: false });
+        if (profile.telefone) setValue("telefone", profile.telefone, { shouldValidate: false });
+      }
+
+      // busca endereços salvos
+      const { data: addrs } = await supabase
+        .from("user_addresses")
+        .select("*")
+        .eq("user_id", s.user.id)
+        .order("is_default", { ascending: false });
+
+      if (addrs && addrs.length > 0) {
+        setAddresses(addrs);
+        // pré-seleciona o endereço padrão
+        const defaultAddr = addrs.find((a) => a.is_default) ?? addrs[0];
+        applyAddress(defaultAddr);
+        setSelectedAddressId(defaultAddr.id);
+      }
+    });
+  }, []);
+
+  function applyAddress(addr: any) {
+    if (addr.cidade) {
+      setValue("cidade", addr.cidade, { shouldValidate: false });
+      setSelectedCity(addr.cidade);
+    }
+    if (addr.bairro) setSelectedBairro(addr.bairro);
+    const rua = [addr.rua, addr.numero].filter(Boolean).join(", ");
+    if (rua) setValue("endereco", rua, { shouldValidate: false });
+    setValue("complemento", addr.complemento ?? "", { shouldValidate: false });
+    setValue("cep", addr.cep ?? "", { shouldValidate: false });
+  }
+
+  function handleAddressSelect(id: string) {
+    setSelectedAddressId(id);
+    if (!id) return;
+    const addr = addresses.find((a) => a.id === id);
+    if (addr) applyAddress(addr);
+  }
 
   function handlePaymentSelect(value: PaymentValue) {
     setSelectedPayment(value);
@@ -258,6 +310,37 @@ function Checkout() {
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Entrega
             </legend>
+
+            {/* seletor de endereços salvos — só aparece quando logado */}
+            {addresses.length > 0 && (
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <MapPin size={14} className="text-primary" />
+                  Meus endereços salvos
+                </label>
+                <div className="relative mt-1.5">
+                  <select
+                    className={cn(fieldClass, "pr-8 mt-0")}
+                    value={selectedAddressId}
+                    onChange={(e) => handleAddressSelect(e.target.value)}
+                  >
+                    <option value="">Selecione um endereço salvo...</option>
+                    {addresses.map((addr) => (
+                      <option key={addr.id} value={addr.id}>
+                        {addr.label ? `${addr.label} — ` : ""}
+                        {addr.rua}, {addr.numero} — {addr.bairro}, {addr.cidade}
+                        {addr.is_default ? " ★" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="cidade" className="text-sm font-medium">
                 Cidade
@@ -267,8 +350,10 @@ function Checkout() {
                 className={fieldClass}
                 {...register("cidade")}
                 onChange={(e) => {
+                  setValue("cidade", e.target.value);
                   setSelectedCity(e.target.value);
                   setSelectedBairro("");
+                  setSelectedAddressId("");
                 }}
               >
                 <option value="">Selecione...</option>
@@ -295,7 +380,10 @@ function Checkout() {
                   className={cn(fieldClass, !selectedCity && "opacity-50")}
                   disabled={!selectedCity}
                   value={selectedBairro}
-                  onChange={(e) => setSelectedBairro(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedBairro(e.target.value);
+                    setSelectedAddressId("");
+                  }}
                 >
                   <option value="">Selecione...</option>
                   {taxas
@@ -344,10 +432,8 @@ function Checkout() {
               Pagamento
             </legend>
 
-            {/* campo hidden que o react-hook-form usa para validação */}
             <input type="hidden" {...register("pagamento")} />
 
-            {/* grade de botões */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {PAYMENT_OPTIONS.map((opt) => {
                 const isSelected = selectedPayment === opt.value;
@@ -364,9 +450,17 @@ function Checkout() {
                         : "border-border hover:border-primary",
                     )}
                   >
-                    <span className="text-2xl" aria-hidden="true">
-                      {opt.icon}
-                    </span>
+                    {/* logo do banco ou emoji fallback */}
+                    {opt.icon ? (
+                      <img
+                        src={opt.icon}
+                        alt={opt.label}
+                        className="size-7 object-contain"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span className="text-2xl" aria-hidden="true">💳</span>
+                    )}
                     <span className="text-sm font-semibold leading-tight">{opt.label}</span>
                     <span className="text-xs text-muted-foreground">{opt.sublabel}</span>
                   </button>
@@ -376,7 +470,6 @@ function Checkout() {
 
             {/* ── conteúdo condicional por método ─────────────────────────── */}
 
-            {/* PIX ou Mercado Pago → mensagem WhatsApp */}
             {(selectedPayment === "pix" || selectedPayment === "mercadopago") && (
               <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
                 <MessageCircle className="mt-0.5 size-5 shrink-0 text-green-600" aria-hidden="true" />
@@ -390,41 +483,40 @@ function Checkout() {
               </div>
             )}
 
-            {/* Cartão → bandeiras aceitas */}
             {selectedPayment === "cartao" && (
-              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2">
-                <p className="text-sm font-semibold">💳 Cartão de crédito</p>
-                <ul className="flex flex-wrap gap-2">
-                  {CARD_BRANDS.map((brand) => (
-                    <li
-                      key={brand}
-                      className="rounded-full border border-border bg-background px-3 py-1 text-xs"
-                    >
-                      {brand}
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
+                <p className="text-sm font-semibold">💳 Bandeiras aceitas</p>
+                <ul className="flex flex-wrap gap-2 items-center">
+                  {cardFlags.map((flag) => (
+                    <li key={flag.name} className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1">
+                      {flag.logo ? (
+                        <img src={flag.logo} alt={flag.name} className="h-4 object-contain" />
+                      ) : (
+                        <span className="text-xs">{flag.name}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Alimentação → redes aceitas */}
             {selectedPayment === "alimentacao" && (
-              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2">
-                <p className="text-sm font-semibold">🍴 Alimentação / Refeição</p>
-                <ul className="flex flex-wrap gap-2">
-                  {FOOD_VOUCHERS.map((voucher) => (
-                    <li
-                      key={voucher}
-                      className="rounded-full border border-border bg-background px-3 py-1 text-xs"
-                    >
-                      {voucher}
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
+                <p className="text-sm font-semibold">🍴 Cartões aceitos</p>
+                <ul className="flex flex-wrap gap-2 items-center">
+                  {mealFlags.map((flag) => (
+                    <li key={flag.name} className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1">
+                      {flag.logo ? (
+                        <img src={flag.logo} alt={flag.name} className="h-4 object-contain" />
+                      ) : (
+                        <span className="text-xs">{flag.name}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Dinheiro → campo de troco */}
             {selectedPayment === "dinheiro" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2">
                 <p className="text-sm font-semibold">💵 Troco</p>
