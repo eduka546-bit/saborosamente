@@ -663,7 +663,7 @@ function Checkout() {
           >
             {isSubmitting
               ? "Registrando pedido..."
-              : `Confirmar pedido • ${formatBRL(total)}`}
+              : `Confirmar pedido • ${formatBRL(finalTotal)}`}
           </button>
         </form>
 
