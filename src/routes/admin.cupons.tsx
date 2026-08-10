@@ -12,7 +12,7 @@ export const Route = createFileRoute("/admin/cupons")({
   component: AdminCuponsPage,
 });
 
-const EMPTY_FORM = { codigo: "", tipo: "Fixo", valor: 0, regra: "", validade: "", ativo: true };
+const EMPTY_FORM = { codigo: "", tipo: "Fixo", valor: 0, regra: "", validade: "", ativo: true, max_uso: "" };
 
 function AdminCuponsPage() {
   const queryClient = useQueryClient();
