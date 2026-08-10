@@ -178,10 +178,22 @@ function AdminCuponsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t">
-                <Badge className={cupom.ativo ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
-                  {cupom.ativo ? "Ativo" : "Pausado"}
-                </Badge>
+              <div className="flex items-center justify-between pt-4 border-t flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge className={cupom.ativo ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                    {cupom.ativo ? "Ativo" : "Pausado"}
+                  </Badge>
+                  {cupom.max_uso === 1 && (
+                    <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
+                      Uso único
+                    </Badge>
+                  )}
+                  {cupom.max_uso !== null && cupom.max_uso !== undefined && cupom.max_uso > 1 && cupom.uso >= cupom.max_uso && (
+                    <Badge className="bg-gray-100 text-gray-500 hover:bg-gray-100">
+                      Esgotado
+                    </Badge>
+                  )}
+                </div>
                 {cupom.validade && (
                   <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
                     <Calendar size={12} /> {new Date(cupom.validade).toLocaleDateString("pt-BR")}
