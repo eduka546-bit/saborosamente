@@ -599,6 +599,50 @@ function Checkout() {
             )}
           </fieldset>
 
+          {/* ── cupom de desconto ─────────────────────────────────────── */}
+          <div>
+            <label className="text-sm font-medium">Cupom de desconto</label>
+            <div className="mt-1.5 flex gap-2">
+              <input
+                value={couponInput}
+                onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); setAppliedCoupon(null); }}
+                onKeyDown={e => e.key === "Enter" && (e.preventDefault(), applyCoupon(couponInput))}
+                placeholder="Digite seu cupom"
+                className={cn(fieldClass, "flex-1 mt-0 uppercase tracking-widest font-bold", appliedCoupon ? "border-green-400 bg-green-50" : "")}
+                disabled={!!appliedCoupon}
+              />
+              {appliedCoupon ? (
+                <button
+                  type="button"
+                  onClick={() => { setAppliedCoupon(null); setCouponInput(""); }}
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 text-xs font-bold text-red-500 hover:bg-red-100 transition-colors"
+                >
+                  Remover
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => applyCoupon(couponInput)}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="rounded-2xl bg-primary px-4 text-xs font-bold text-primary-foreground hover:bg-brand-dark transition-colors disabled:opacity-50"
+                >
+                  {couponLoading ? "..." : "Aplicar"}
+                </button>
+              )}
+            </div>
+            {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
+            {appliedCoupon && (
+              <p className="mt-1 text-xs text-green-600 font-semibold">
+                ✓ Cupom <strong>{appliedCoupon.codigo}</strong> aplicado —{" "}
+                {appliedCoupon.tipo === "Percentual"
+                  ? `${appliedCoupon.valor}% de desconto`
+                  : appliedCoupon.tipo === "Entrega Grátis"
+                  ? "frete grátis"
+                  : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
+              </p>
+            )}
+          </div>
+
           {/* ── observações ────────────────────────────────────────────────── */}
           <div>
             <label htmlFor="observacoes" className="text-sm font-medium">
