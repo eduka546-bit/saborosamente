@@ -1258,6 +1258,7 @@ function AdminProductsPage() {
                         product={product} 
                         onUpdateStatus={(id: string, status: string) => updateStatus.mutate({ id, status })}
                         onEdit={handleEdit}
+                        onDuplicate={(p: any) => duplicateProduct.mutate(p)}
                         onUpdatePrice={(id: string, val: string) => {
                           const price = parseFloat(val.replace(',', '.'));
                           if (!isNaN(price)) updatePrice.mutate({ id, preco: price });
