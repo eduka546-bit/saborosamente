@@ -600,6 +600,23 @@ function AdminOrdersPage() {
                          >
                            <Eye size={18} />
                          </Button>
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           title="Imprimir comanda"
+                           className="h-9 w-9 rounded-full bg-gray-100 hover:bg-gray-200 transition-all"
+                           onClick={() => printReceipt({
+                             ...order,
+                             itens: (order.itens ?? []).map((i: any) => ({
+                               nome: i.produtos?.nome ?? "Produto",
+                               quantidade: i.quantidade,
+                               preco_unitario: i.preco_unitario,
+                               observacao: i.observacao,
+                             })),
+                           })}
+                         >
+                           <Printer size={16} />
+                         </Button>
                          <DropdownMenu>
                            <DropdownMenuTrigger asChild>
                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
