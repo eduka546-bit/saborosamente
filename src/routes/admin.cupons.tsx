@@ -246,6 +246,22 @@ function AdminCuponsPage() {
                   onChange={e => setForm({ ...form, validade: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Limite de usos
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={form.max_uso}
+                  onChange={e => setForm({ ...form, max_uso: e.target.value })}
+                  placeholder="Deixe vazio para sem limite"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Ex: <strong>1</strong> = uso único · <strong>50</strong> = 50 usos · vazio = ilimitado.
+                  Cupons gerados automaticamente pelo exit intent são sempre <strong>uso único</strong>.
+                </p>
+              </div>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">Cancelar</Button>
                 <Button type="submit" disabled={saveMutation.isPending} className="flex-1 bg-[#5850ec] text-white">
