@@ -206,9 +206,9 @@ export function SiteFooter() {
             >
               <MapPin size={15} className="shrink-0 mt-0.5" />
               <address className="not-italic">
-                Rua Augusto Wunderwald, 7<br />
-                Progresso — São Bento do Sul/SC<br />
-                CEP 89281-060
+                {addressLine1}<br />
+                {addressLine2}<br />
+                {addressCep}
               </address>
             </a>
             <div className="w-full h-36 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-lg">
