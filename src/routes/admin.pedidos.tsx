@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { 
   Search, Filter, Calendar, Package, Clock, 
   ChevronRight, MoreVertical, CheckCircle2, 
   Clock3, XCircle, AlertCircle, Eye, Printer,
-  Smartphone, MapPin, User, Receipt, History
+  Smartphone, MapPin, User, Receipt, History, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { printReceipt } from "@/components/thermal-receipt";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
