@@ -281,6 +281,20 @@ function AdminCuponsPage() {
                   Cupons gerados automaticamente pelo exit intent são sempre <strong>uso único</strong>.
                 </p>
               </div>
+              <div className="flex items-start justify-between p-3 border rounded-xl bg-gray-50 gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                    <ShoppingBag size={14} className="text-blue-500" /> Apenas primeira compra
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Bloqueia o cupom se o cliente já tiver feito algum pedido (usuário logado) ou se o mesmo e-mail/telefone já tiver comprado antes.
+                  </p>
+                </div>
+                <Switch
+                  checked={!!form.apenas_primeira_compra}
+                  onCheckedChange={v => setForm({ ...form, apenas_primeira_compra: v })}
+                />
+              </div>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">Cancelar</Button>
                 <Button type="submit" disabled={saveMutation.isPending} className="flex-1 bg-[#5850ec] text-white">
