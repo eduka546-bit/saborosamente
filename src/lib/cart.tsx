@@ -333,7 +333,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [lines, serverProducts, selectedCity, selectedBairro, add, setQuantity, remove, clear]);
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <>
+      <CartContext.Provider value={{ ...value, exitIntentCoupon, markConverted }}>
+        {children}
+      </CartContext.Provider>
+      <ExitIntentModal
+        isOpen={exitModalOpen}
+        onClose={() => setExitModalOpen(false)}
+        coupon={exitIntentCoupon ?? ""}
+        cartTotal={value.total}
+        cartCount={value.count}
+        onApplyCoupon={(coupon) => {
+          setExitIntentCoupon(coupon);
+          setExitModalOpen(false);
+        }}
+      />
+    </>
+  );
 }
 
 export function useCart(): CartContextValue {
