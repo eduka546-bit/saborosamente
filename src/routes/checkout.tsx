@@ -18,6 +18,9 @@ import {
 } from "@/lib/payment-options";
 
 export const Route = createFileRoute("/checkout")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    cupom: typeof search.cupom === "string" ? search.cupom : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Checkout | Saborosamente" },
