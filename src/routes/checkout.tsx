@@ -263,10 +263,18 @@ function Checkout() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 700));
       const id = `SB-${Date.now().toString().slice(-6)}`;
+
+      // ── registra uso do cupom ──────────────────────────────────────────
+      if (appliedCoupon) {
+        await supabase.rpc("incrementar_uso_cupom", { p_codigo: appliedCoupon.codigo });
+      }
+
       console.info("[checkout] pedido simulado", {
         id,
         cliente: data.nome,
         itens: lines.length,
+        cupom: appliedCoupon?.codigo ?? null,
+        desconto: couponDiscount,
       });
       setOrderId(id);
       clear();
