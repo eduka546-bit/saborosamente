@@ -24,7 +24,7 @@ function AdminRelatoriosClientesPage() {
   const { data: orders = [] } = useQuery({
     queryKey: ["relatorio-clientes-orders"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pedidos").select("user_id, valor_total, status").neq("status", "Cancelado");
+      const { data, error } = await supabase.from("pedidos").select("user_id, valor_total, status").neq("status", "cancelado");
       if (error) throw error;
       return data;
     },

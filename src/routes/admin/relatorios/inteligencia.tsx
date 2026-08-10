@@ -17,7 +17,7 @@ function AdminRelatoriosInteligenciaPage() {
       const { data, error } = await supabase
         .from("pedidos")
         .select("valor_total, created_at, status, endereco_bairro, endereco_cidade, metodo_pagamento")
-        .neq("status", "Cancelado");
+        .neq("status", "cancelado");
       if (error) throw error;
       return data;
     },

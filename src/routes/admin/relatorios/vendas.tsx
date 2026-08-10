@@ -29,7 +29,7 @@ function AdminRelatoriosVendasPage() {
     const days = eachDayOfInterval({ start: subDays(new Date(), 29), end: new Date() });
     return days.map(day => {
       const key = format(day, "yyyy-MM-dd");
-      const dayOrders = orders.filter((o: any) => o.created_at.startsWith(key) && o.status !== "Cancelado");
+      const dayOrders = orders.filter((o: any) => o.created_at.startsWith(key) && o.status !== "cancelado");
       return {
         name: format(day, "dd/MM", { locale: ptBR }),
         pedidos: dayOrders.length,
@@ -40,7 +40,7 @@ function AdminRelatoriosVendasPage() {
 
   const byPayment = useMemo(() => {
     const map = new Map<string, number>();
-    orders.filter((o: any) => o.status !== "Cancelado").forEach((o: any) => {
+    orders.filter((o: any) => o.status !== "cancelado").forEach((o: any) => {
       const key = o.metodo_pagamento ?? "Não informado";
       map.set(key, (map.get(key) ?? 0) + 1);
     });

@@ -43,7 +43,7 @@ function AdminRelatoriosKpiPage() {
     const prev30Start = subDays(now, 60).toISOString();
     const monthStart = startOfMonth(now).toISOString();
 
-    const notCancelled = orders.filter((o: any) => o.status !== "Cancelado");
+    const notCancelled = orders.filter((o: any) => o.status !== "cancelado");
     const curr = notCancelled.filter((o: any) => o.created_at >= curr30Start);
     const prev = notCancelled.filter((o: any) => o.created_at >= prev30Start && o.created_at < curr30Start);
     const thisMonth = notCancelled.filter((o: any) => o.created_at >= monthStart);

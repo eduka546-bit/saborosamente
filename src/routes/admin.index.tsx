@@ -73,11 +73,11 @@ function AdminDashboard() {
   });
 
   const statusColors: any = {
-    'Pendente': 'bg-yellow-100 text-yellow-700',
-    'Em preparo': 'bg-blue-100 text-blue-700',
-    'Saiu para entrega': 'bg-purple-100 text-purple-700',
-    'Entregue': 'bg-green-100 text-green-700',
-    'Cancelado': 'bg-red-100 text-red-700',
+    'pendente': 'bg-yellow-100 text-yellow-700',
+    'preparando': 'bg-blue-100 text-blue-700',
+    'saiu para entrega': 'bg-purple-100 text-purple-700',
+    'entregue': 'bg-green-100 text-green-700',
+    'cancelado': 'bg-red-100 text-red-700',
   };
 
   return (

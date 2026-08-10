@@ -37,11 +37,11 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
   if (!order) return null;
 
   const statusColors: any = {
-    'Pendente': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    'Em preparo': 'bg-blue-100 text-blue-700 border-blue-200',
-    'Saiu para entrega': 'bg-purple-100 text-purple-700 border-purple-200',
-    'Entregue': 'bg-green-100 text-green-700 border-green-200',
-    'Cancelado': 'bg-red-100 text-red-700 border-red-200',
+    'pendente': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    'preparando': 'bg-blue-100 text-blue-700 border-blue-200',
+    'saiu para entrega': 'bg-purple-100 text-purple-700 border-purple-200',
+    'entregue': 'bg-green-100 text-green-700 border-green-200',
+    'cancelado': 'bg-red-100 text-red-700 border-red-200',
   };
 
   return (
@@ -401,7 +401,7 @@ function AdminOrdersPage() {
     return {
       totalToday: todayOrders.length,
       revenueToday: todayOrders.reduce((acc: number, o: any) => acc + (o.valor_total || 0), 0),
-      pendingCount: orders.filter((o: any) => o.status === 'Pendente').length
+      pendingCount: orders.filter((o: any) => o.status === 'pendente').length
     };
   }, [orders]);
 
@@ -411,11 +411,11 @@ function AdminOrdersPage() {
   };
 
   const statusOptions = [
-    { label: 'Pendente', icon: Clock3, color: 'text-yellow-500' },
-    { label: 'Em preparo', icon: Package, color: 'text-blue-500' },
-    { label: 'Saiu para entrega', icon: MapPin, color: 'text-purple-500' },
-    { label: 'Entregue', icon: CheckCircle2, color: 'text-green-500' },
-    { label: 'Cancelado', icon: XCircle, color: 'text-red-500' },
+    { label: 'pendente', icon: Clock3, color: 'text-yellow-500' },
+    { label: 'preparando', icon: Package, color: 'text-blue-500' },
+    { label: 'saiu para entrega', icon: MapPin, color: 'text-purple-500' },
+    { label: 'entregue', icon: CheckCircle2, color: 'text-green-500' },
+    { label: 'cancelado', icon: XCircle, color: 'text-red-500' },
   ];
 
   return (
@@ -485,7 +485,7 @@ function AdminOrdersPage() {
               onChange={e => setFilterStatus(e.target.value)}
               className="h-9 px-3 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 bg-white"
             >
-              {["Todos", "Pendente", "Em preparo", "Saiu para entrega", "Entregue", "Cancelado"].map(s => (
+              {["Todos", "pendente", "preparando", "saiu para entrega", "entregue", "cancelado"].map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>

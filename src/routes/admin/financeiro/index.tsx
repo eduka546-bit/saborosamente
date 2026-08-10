@@ -24,7 +24,7 @@ function AdminFinanceiroIndex() {
       const { data, error } = await supabase
         .from("pedidos")
         .select("valor_total, taxa_entrega, desconto_aplicado, created_at, status")
-        .neq("status", "Cancelado")
+        .neq("status", "cancelado")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
