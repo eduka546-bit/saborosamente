@@ -125,10 +125,11 @@ function Checkout() {
     try {
       const { data, error } = await supabase
         .from("cupons")
-        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso")
+        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso, apenas_primeira_compra")
         .eq("codigo", c)
         .eq("ativo", true)
         .maybeSingle();
+
       if (error || !data) {
         setCouponError("Cupom inválido ou expirado.");
         setAppliedCoupon(null);
@@ -139,12 +140,31 @@ function Checkout() {
         setAppliedCoupon(null);
         return;
       }
-      // verifica limite de usos (max_uso null = sem limite)
+      // verifica limite de usos
       if (data.max_uso !== null && data.max_uso !== undefined && data.uso >= data.max_uso) {
         setCouponError("Este cupom já atingiu o limite de usos.");
         setAppliedCoupon(null);
         return;
       }
+      // verifica restrição de primeira compra
+      if (data.apenas_primeira_compra) {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (s?.user) {
+          // usuário logado — verifica pedidos pelo user_id
+          const { count } = await supabase
+            .from("pedidos")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", s.user.id)
+            .neq("status", "Cancelado");
+          if ((count ?? 0) > 0) {
+            setCouponError("Este cupom é exclusivo para a primeira compra.");
+            setAppliedCoupon(null);
+            return;
+          }
+        }
+        // visitante não logado — não bloqueia, mas o servidor pode checar e-mail/telefone no onSubmit
+      }
+
       setAppliedCoupon({ codigo: data.codigo, tipo: data.tipo, valor: data.valor });
       setCouponInput(data.codigo);
       setCouponError("");
