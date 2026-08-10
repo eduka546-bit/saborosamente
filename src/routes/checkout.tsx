@@ -222,7 +222,7 @@ function Checkout() {
           contato para confirmar a entrega.
         </p>
         <Link
-          to="/catalogo"
+          to="/"
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
         >
           Continuar comprando
