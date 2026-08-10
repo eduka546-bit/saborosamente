@@ -246,6 +246,90 @@ function AdminOrdersPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [filterDate, setFilterDate] = useState<"hoje" | "semana" | "mes" | "todos">("todos");
+  const [autoPrint, setAutoPrint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("admin.autoPrint") === "true";
+  });
+  const knownIdsRef = useRef<Set<string>>(new Set());
+
+  // ── Impressão automática via Realtime ─────────────────────────────────────
+  useEffect(() => {
+    // Inicializa o set com os pedidos já carregados (não imprime os antigos)
+    const channel = supabase
+      .channel("pedidos-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "pedidos" },
+        async (payload) => {
+          const newOrder = payload.new as any;
+
+          // Invalida a query para atualizar a lista
+          queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+
+          // Notificação sonora via Web Audio API
+          try {
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.value = 0.3;
+            osc.start();
+            osc.stop(ctx.currentTime + 0.18);
+            setTimeout(() => {
+              const osc2 = ctx.createOscillator();
+              const g2 = ctx.createGain();
+              osc2.connect(g2);
+              g2.connect(ctx.destination);
+              osc2.frequency.value = 1100;
+              g2.gain.value = 0.3;
+              osc2.start();
+              osc2.stop(ctx.currentTime + 0.18);
+            }, 220);
+          } catch {}
+
+          toast.info(`🛒 Novo pedido de ${newOrder.nome_cliente ?? "cliente"}!`, {
+            duration: 8000,
+            action: {
+              label: "Ver",
+              onClick: () => {
+                setSelectedOrder(newOrder);
+                setIsDetailsModalOpen(true);
+              },
+            },
+          });
+
+          // Impressão automática se ativada
+          if (autoPrint) {
+            // Busca itens do pedido para imprimir
+            try {
+              const { data: itens } = await supabase
+                .from("pedido_itens")
+                .select("*, produtos(nome)")
+                .eq("pedido_id", newOrder.id);
+
+              printReceipt({
+                ...newOrder,
+                itens: (itens ?? []).map((i: any) => ({
+                  nome: i.produtos?.nome ?? "Produto",
+                  quantidade: i.quantidade,
+                  preco_unitario: i.preco_unitario,
+                  observacao: i.observacao,
+                })),
+              });
+            } catch (e) {
+              console.error("Erro ao imprimir automaticamente:", e);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [autoPrint, queryClient]);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["admin-orders"],
