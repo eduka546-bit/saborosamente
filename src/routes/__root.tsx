@@ -131,10 +131,10 @@ function RootShell({ children }: { children: ReactNode }) {
         For the code present, I get the error below.
 
 Please think step-by-step in order to resolve it.
-```
+{"```"}
 The app returned 500 while handling GET /. The error was handled by a route or error boundary, so no stack was captured — check the failing loader/route code and the dev server output.
 
-{
+{"{"}
   "timestamp": 1786370279343,
   "error_type": "RUNTIME_ERROR",
   "filename": "Unknown file",
@@ -142,36 +142,13 @@ The app returned 500 while handling GET /. The error was handled by a route or e
   "colno": 0,
   "stack": "Unavailable",
   "has_blank_screen": true
-}
-```
+{"}"}
+{"```"}
         {children}
         <Scripts />
       </body>
-
     </html>
   );
-}
-
-function RootHeader() {
-  const router = useRouter();
-  const isAdminPath = router.state.location.pathname.startsWith("/admin");
-  const isLoginPage = router.state.location.pathname === "/admin/login";
-
-  if (isAdminPath) {
-    if (isLoginPage) return null; // O AdminHeader será renderizado pelo layout de admin ou não aparecerá no login
-    return null; // As rotas /admin já renderizam o AdminHeader no src/routes/admin.tsx
-  }
-
-  return <SiteHeader />;
-}
-
-function RootFooter() {
-  const router = useRouter();
-  const isAdminPath = router.state.location.pathname.startsWith("/admin");
-  
-  if (isAdminPath) return null;
-  
-  return <SiteFooter />;
 }
 
 function RootComponent() {
@@ -203,4 +180,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-
