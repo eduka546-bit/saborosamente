@@ -87,6 +87,7 @@ function Checkout() {
     subtotal,
     shipping,
     total,
+    discount,
     clear,
     selectedCity,
     setSelectedCity,
