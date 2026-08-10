@@ -128,7 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        Não quero que edite nada, quero ajuda para lançar na vercel
+        Precisa alterar algo?
         {children}
         <Scripts />
       </body>
