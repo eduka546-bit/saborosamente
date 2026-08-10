@@ -164,7 +164,7 @@ export function SiteFooter() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
                     <WhatsAppIcon className="size-4" />
                   </span>
-                  <span>(47) 99150-7757</span>
+                  <span>(+55) {whatsapp.replace(/^55/, "").replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</span>
                 </a>
               </li>
               <li>
