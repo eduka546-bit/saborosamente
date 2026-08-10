@@ -343,6 +343,8 @@ export function SiteHeader() {
                 alt="Site Banner" 
                 className="w-full h-full object-cover opacity-90"
                 loading="eager"
+                fetchPriority="high"
+                decoding="async"
               />
             </picture>
 
