@@ -2,12 +2,12 @@
   "version": "v1",
   "hooks": [
     {
-      "name": "Auto Commit & Push",
-      "trigger": "PostFileSave",
-      "description": "Debounce: anota o timestamp do save e um job separado commita/pusha após 60s de silêncio",
+      "name": "Auto Commit & Push on Session End",
+      "trigger": "Stop",
+      "description": "Faz commit e push único ao final da sessão do Kiro, não a cada save",
       "action": {
         "type": "command",
-        "command": "echo %DATE%%TIME% > \"c:\\Users\\arthu\\saborosamente\\.kiro\\.last-save-ts\""
+        "command": "cd \"c:\\Users\\arthu\\saborosamente\" && git add -A && git diff --cached --quiet || git commit -m \"auto: update files\" && git push origin HEAD"
       }
     }
   ]
