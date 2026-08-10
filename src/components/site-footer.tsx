@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Instagram, Clock, Leaf, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Clock, Leaf, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/saborosamente-logo.png.asset.json";
