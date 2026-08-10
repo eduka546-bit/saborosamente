@@ -687,11 +687,21 @@ function Checkout() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Entrega</dt>
-              <dd>{shipping === 0 ? "Grátis" : formatBRL(shipping)}</dd>
+              <dd>{appliedCoupon?.tipo === "Entrega Grátis" ? <span className="text-green-600 font-semibold">Grátis</span> : shipping === 0 ? "Grátis" : formatBRL(shipping)}</dd>
             </div>
+            {couponDiscount > 0 && appliedCoupon?.tipo !== "Entrega Grátis" && (
+              <div className="flex justify-between text-green-600">
+                <dt className="font-semibold flex items-center gap-1">
+                  🎟️ Cupom {appliedCoupon?.codigo}
+                </dt>
+                <dd>− {formatBRL(couponDiscount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-border pt-2 text-base">
               <dt className="font-semibold">Total</dt>
-              <dd className="font-bold text-primary">{formatBRL(total)}</dd>
+              <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
+            </div>
+          </dl>
             </div>
           </dl>
         </aside>
