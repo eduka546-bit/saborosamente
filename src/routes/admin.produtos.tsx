@@ -574,15 +574,27 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Disponibilidade por dia</label>
-                      <Button variant="ghost" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-3 rounded-full">Horários</Button>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(day => (
-                        <div key={day} className="flex items-center gap-2">
-                          <Checkbox checked id={`day-${day}`} className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]" />
-                          <label htmlFor={`day-${day}`} className="text-xs font-medium text-gray-700">{day}</label>
-                        </div>
-                      ))}
+                      {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, idx) => {
+                        const dias = formData.dias_disponiveis ?? [true, true, true, true, true, true, true];
+                        const isChecked = dias[idx] !== false;
+                        return (
+                          <div key={day} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`day-${day}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                const next = [...(formData.dias_disponiveis ?? [true, true, true, true, true, true, true])];
+                                next[idx] = !!checked;
+                                setFormData({ ...formData, dias_disponiveis: next });
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]"
+                            />
+                            <label htmlFor={`day-${day}`} className="text-xs font-medium text-gray-700 cursor-pointer">{day}</label>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
