@@ -28,7 +28,8 @@ function InstagramIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-  return (
+
+function LogoCard({ logo, name }: { logo?: string; name: string }) {
     <div
       title={name}
       className="group flex flex-col items-center gap-1.5"
