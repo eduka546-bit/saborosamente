@@ -227,6 +227,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setLines([]), []);
 
+  // ── Carrinho abandonado ───────────────────────────────────────────────────
+  // Precisa do value calculado abaixo, então usamos um useMemo intermediário
+  // para passar lines detalhadas ao hook sem duplicar a lógica.
+  const detailedForHook = useMemo(() =>
+    lines.flatMap((line) => {
+      const product = cachedProducts.find((p) => p.id === line.productId);
+      if (!product) return [];
+      const price = line.weight === "300g" && product.preco_300g
+        ? product.preco_300g
+        : line.weight === "400g" && product.preco_400g
+          ? product.preco_400g
+          : product.preco;
+      return [{ ...line, product, subtotal: price * line.quantity }];
+    }), [lines]);
+
+  const totalForHook = useMemo(() =>
+    detailedForHook.reduce((s, l) => s + l.subtotal, 0),
+    [detailedForHook]);
+
+  const { markConverted } = useAbandonedCart({
+    lines: detailedForHook,
+    total: totalForHook,
+    onExitIntent: (coupon) => {
+      setExitIntentCoupon(coupon);
+      setExitModalOpen(true);
+    },
+  });
+
   const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
