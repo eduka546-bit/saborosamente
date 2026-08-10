@@ -9,6 +9,7 @@ interface ExitIntentModalProps {
   coupon: string;
   cartTotal: number;
   cartCount: number;
+  discountPercent: number;
   onApplyCoupon: (coupon: string) => void;
 }
 
