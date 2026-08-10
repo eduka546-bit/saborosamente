@@ -702,8 +702,6 @@ function Checkout() {
               <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
           </dl>
-            </div>
-          </dl>
         </aside>
       </div>
     </section>
