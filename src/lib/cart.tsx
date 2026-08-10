@@ -346,6 +346,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         coupon={exitIntentCoupon ?? ""}
         cartTotal={value.total}
         cartCount={value.count}
+        discountPercent={exitDiscountPercent}
         onApplyCoupon={(coupon) => {
           setExitIntentCoupon(coupon);
           setExitModalOpen(false);
