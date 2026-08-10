@@ -348,13 +348,27 @@ function AdminOrdersPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <Button variant="outline" className="flex items-center gap-2 rounded-lg border-gray-200">
-              <Calendar size={18} /> Hoje
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2 rounded-lg border-gray-200">
-              <Filter size={18} /> Filtros
-            </Button>
+          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
+            {/* filtro de data */}
+            {(["todos", "hoje", "semana", "mes"] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setFilterDate(d)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterDate === d ? "bg-[#5850ec] text-white border-[#5850ec]" : "border-gray-200 text-gray-500 hover:border-[#5850ec]"}`}
+              >
+                {d === "todos" ? "Todos" : d === "hoje" ? "Hoje" : d === "semana" ? "7 dias" : "Este mês"}
+              </button>
+            ))}
+            {/* filtro de status */}
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 bg-white"
+            >
+              {["Todos", "Pendente", "Em preparo", "Saiu para entrega", "Entregue", "Cancelado"].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
