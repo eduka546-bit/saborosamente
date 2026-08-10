@@ -65,6 +65,7 @@ export function SiteFooter() {
 
   const bg = settings?.announcement_bg_color || "#086e45";
   const text = settings?.announcement_text_color || "#ffffff";
+  const logoUrl = (settings as any)?.profile_image_url || LOGO_URL;
 
   const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault((settings as any)?.card_flags, defaultCardFlags);
