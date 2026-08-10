@@ -190,6 +190,11 @@ function AdminCuponsPage() {
                       Uso único
                     </Badge>
                   )}
+                  {cupom.apenas_primeira_compra && (
+                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 flex items-center gap-1">
+                      <ShoppingBag size={10} /> 1ª compra
+                    </Badge>
+                  )}
                   {cupom.max_uso !== null && cupom.max_uso !== undefined && cupom.max_uso > 1 && cupom.uso >= cupom.max_uso && (
                     <Badge className="bg-gray-100 text-gray-500 hover:bg-gray-100">
                       Esgotado
