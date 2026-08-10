@@ -46,6 +46,8 @@ export function ExitIntentModal({
   const handleApply = () => {
     onApplyCoupon(coupon);
     onClose();
+    // Redireciona para o checkout com o cupom na URL
+    navigate({ to: "/checkout", search: { cupom: coupon } });
   };
 
   if (!isOpen) return null;
