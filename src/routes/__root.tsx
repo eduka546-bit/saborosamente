@@ -128,7 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        Qual desses dois saborosamente é o correto?
+        O que alterou? Não entendi? Perguntei qual dos dois diretorios eram o correto no github
         {children}
         <Scripts />
       </body>
