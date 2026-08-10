@@ -817,6 +817,159 @@ function AdminSiteConfig() {
           </div>
 
         </TabsContent>
+
+        {/* ── Footer ──────────────────────────────────────────────────────── */}
+        <TabsContent value="footer" className="mt-6 space-y-6">
+
+          {/* Logo do footer */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <ImageIcon className="text-[#5850ec]" size={20} /> Logo do Footer
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Esta imagem aparece no canto esquerdo do footer. Use um PNG com fundo transparente para melhor resultado.
+            </p>
+            <div className="flex items-center gap-6">
+              <div className="relative group w-40 h-24 rounded-xl bg-[#086e45] flex items-center justify-center overflow-hidden border">
+                {formData.footer_logo_url || formData.profile_image_url ? (
+                  <img
+                    src={formData.footer_logo_url || formData.profile_image_url}
+                    className="w-full h-full object-contain p-2"
+                    alt="Logo footer"
+                  />
+                ) : (
+                  <span className="text-white/40 text-xs">Sem logo</span>
+                )}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-xl">
+                  {isUploading["footer_logo"] ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(prev => ({ ...prev, footer_logo: true }));
+                      try {
+                        const ext = file.name.split('.').pop();
+                        const fileName = `footer_logo_${Date.now()}.${ext}`;
+                        const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
+                        if (uploadError) throw uploadError;
+                        const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(fileName);
+                        setFormData({ ...formData, footer_logo_url: publicUrl });
+                        toast.success("Logo atualizada!");
+                      } catch (err: any) {
+                        toast.error("Erro no upload: " + err.message);
+                      } finally {
+                        setIsUploading(prev => ({ ...prev, footer_logo: false }));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>Passe o mouse sobre a imagem para trocar.</p>
+                <p className="text-amber-600">Dica: use PNG com fundo transparente.</p>
+                {(formData.footer_logo_url || formData.profile_image_url) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 px-0"
+                    onClick={() => setFormData({ ...formData, footer_logo_url: "" })}
+                  >
+                    <Trash2 size={13} className="mr-1" /> Remover
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Contato */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Layout className="text-[#5850ec]" size={20} /> Contato e Redes Sociais
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>WhatsApp (com DDI, ex: 5547991507757)</Label>
+                <Input
+                  value={formData.footer_whatsapp ?? "5547991507757"}
+                  onChange={e => setFormData({ ...formData, footer_whatsapp: e.target.value })}
+                  placeholder="5547991507757"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instagram (sem @)</Label>
+                <Input
+                  value={formData.footer_instagram ?? "saborosamente.sbs"}
+                  onChange={e => setFormData({ ...formData, footer_instagram: e.target.value })}
+                  placeholder="saborosamente.sbs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <MapPin className="text-[#5850ec]" size={20} /> Endereço
+            </h3>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label>Linha 1 (rua e número)</Label>
+                <Input
+                  value={formData.footer_address_line1 ?? "Rua Augusto Wunderwald, 7"}
+                  onChange={e => setFormData({ ...formData, footer_address_line1: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Linha 2 (bairro, cidade)</Label>
+                <Input
+                  value={formData.footer_address_line2 ?? "Progresso — São Bento do Sul/SC"}
+                  onChange={e => setFormData({ ...formData, footer_address_line2: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CEP</Label>
+                <Input
+                  value={formData.footer_address_cep ?? "CEP 89281-060"}
+                  onChange={e => setFormData({ ...formData, footer_address_cep: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Link do Google Maps</Label>
+                <Input
+                  value={formData.footer_maps_url ?? ""}
+                  onChange={e => setFormData({ ...formData, footer_maps_url: e.target.value })}
+                  placeholder="https://maps.app.goo.gl/..."
+                />
+                <p className="text-xs text-muted-foreground">Cole o link de compartilhamento do Google Maps.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Descrição */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Type className="text-[#5850ec]" size={20} /> Texto do Footer
+            </h3>
+            <div className="space-y-2">
+              <Label>Descrição abaixo da logo</Label>
+              <Input
+                value={formData.footer_description ?? "Comida de verdade, congelada no ponto certo e entregue na sua porta."}
+                onChange={e => setFormData({ ...formData, footer_description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Crédito (desenvolvedor)</Label>
+              <Input
+                value={formData.footer_credit ?? "@emf.digital"}
+                onChange={e => setFormData({ ...formData, footer_credit: e.target.value })}
+              />
+            </div>
+          </div>
+
+        </TabsContent>
       </Tabs>
     </div>
   );
