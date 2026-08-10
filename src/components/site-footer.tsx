@@ -175,7 +175,7 @@ export function SiteFooter() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
                   <InstagramIcon className="size-4" />
                   </span>
-                  <span>@saborosamente</span>
+                  <span>@saborosamente.sbs</span>
                 </a>
               </li>
               <li className="pt-2">
