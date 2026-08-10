@@ -314,8 +314,8 @@ function Checkout() {
         <CheckCircle2 className="mx-auto size-14 text-primary" aria-hidden="true" />
         <h1 className="mt-6 text-3xl font-extrabold">Pedido recebido!</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Protocolo <strong className="text-foreground">{orderId}</strong>. Em breve entraremos em
-          contato para confirmar a entrega.
+          Protocolo <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em breve entraremos em
+          contato para confirmar.
         </p>
         <Link
           to="/"
