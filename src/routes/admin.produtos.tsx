@@ -1080,7 +1080,20 @@ function AdminProductsPage() {
     }
   });
 
-  const handleEdit = (product: any) => {
+  const duplicateProduct = useMutation({
+    mutationFn: async (product: any) => {
+      const { id, created_at, updated_at, categorias, ...rest } = product;
+      const { error } = await supabase
+        .from("produtos")
+        .insert([{ ...rest, nome: `${rest.nome} (Cópia)`, status: "pausado", ordem: (rest.ordem ?? 0) + 1 }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      toast.success("Produto duplicado! Ele foi pausado por padrão.");
+    },
+    onError: (error: any) => toast.error("Erro ao duplicar: " + error.message),
+  });
     setEditingProduct(product);
     setIsEditModalOpen(true);
   };
