@@ -136,7 +136,7 @@ function AdminDashboard() {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Novos Clientes</p>
-              <p className="text-2xl font-black text-gray-900">0</p>
+              <p className="text-2xl font-black text-gray-900">{isLoading ? "..." : stats?.newClients}</p>
             </div>
           </div>
         </div>
