@@ -128,6 +128,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        Qual desses dois saborosamente é o correto?
         {children}
         <Scripts />
       </body>
