@@ -153,20 +153,14 @@ export function SiteFooter() {
         <div className="md:col-span-4 pt-10 border-t border-white/5 space-y-8">
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 text-center">Formas de Pagamento</h2>
 
-          {/* Mercado Pago — link */}
+          {/* Mercado Pago — enviado via WhatsApp */}
           {(() => {
             const mp = methods.find((m) => (m.label || m.name || "").toLowerCase().includes("mercado"));
             if (!mp) return null;
             return (
               <div className="text-center space-y-3">
                 <p className="text-[9px] font-black uppercase tracking-[0.25em] opacity-40">Link de Pagamento</p>
-                <a
-                  href="https://mpago.la/1234"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white px-5 py-2.5 shadow-sm transition-transform hover:scale-105"
-                  title="Pagar via Mercado Pago"
-                >
+                <div className="inline-flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white px-5 py-2.5 shadow-sm">
                   {mp.icon || (mp as any).logo ? (
                     <img
                       src={mp.icon || (mp as any).logo}
@@ -176,8 +170,8 @@ export function SiteFooter() {
                   ) : (
                     <span className="text-xs font-bold text-neutral-700">Mercado Pago</span>
                   )}
-                  <span className="text-xs font-bold text-[#009ee3]">Pagar via link →</span>
-                </a>
+                  <span className="text-xs font-bold text-neutral-500">Enviado via WhatsApp 📲</span>
+                </div>
               </div>
             );
           })()}
