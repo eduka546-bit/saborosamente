@@ -297,7 +297,7 @@ export function SiteFooter() {
             rel="noopener noreferrer"
             className="text-[10px] font-semibold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-80"
           >
-            Desenvolvido por @emf.digital
+            Desenvolvido por {credit}
           </a>
         </div>
       </div>
