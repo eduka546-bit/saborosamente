@@ -167,7 +167,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <a
-                  href="https://instagram.com/saborosamente"
+                  href="https://instagram.com/saborosamente.sbs"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-3 opacity-80 transition-all hover:opacity-100 hover:translate-x-1"
