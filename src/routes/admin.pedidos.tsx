@@ -251,9 +251,15 @@ function AdminOrdersPage() {
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
 
+  // ── Pede permissão de notificação ao montar ───────────────────────────────
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // ── Impressão automática via Realtime ─────────────────────────────────────
   useEffect(() => {
-    // Inicializa o set com os pedidos já carregados (não imprime os antigos)
     const channel = supabase
       .channel("pedidos-realtime")
       .on(
@@ -262,34 +268,47 @@ function AdminOrdersPage() {
         async (payload) => {
           const newOrder = payload.new as any;
 
-          // Invalida a query para atualizar a lista
+          // Atualiza a lista
           queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
 
-          // Notificação sonora via Web Audio API
+          // ── Beep sonoro ───────────────────────────────────────────────────
           try {
             const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 880;
-            gain.gain.value = 0.3;
-            osc.start();
-            osc.stop(ctx.currentTime + 0.18);
-            setTimeout(() => {
-              const osc2 = ctx.createOscillator();
-              const g2 = ctx.createGain();
-              osc2.connect(g2);
-              g2.connect(ctx.destination);
-              osc2.frequency.value = 1100;
-              g2.gain.value = 0.3;
-              osc2.start();
-              osc2.stop(ctx.currentTime + 0.18);
-            }, 220);
+            const play = (freq: number, delay: number) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.value = freq;
+              gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+              osc.start(ctx.currentTime + delay);
+              osc.stop(ctx.currentTime + delay + 0.25);
+            };
+            play(880, 0);
+            play(1100, 0.28);
+            play(1320, 0.56);
           } catch {}
 
+          // ── Notificação do sistema (funciona com aba minimizada) ──────────
+          if ("Notification" in window && Notification.permission === "granted") {
+            const n = new Notification("🛒 Novo pedido!", {
+              body: `${newOrder.nome_cliente ?? "Cliente"} — R$ ${Number(newOrder.valor_total ?? 0).toFixed(2)}`,
+              icon: "/favicon.png",
+              tag: `pedido-${newOrder.id}`,
+              requireInteraction: true, // não fecha sozinha até clicar
+            });
+            n.onclick = () => {
+              window.focus();
+              setSelectedOrder(newOrder);
+              setIsDetailsModalOpen(true);
+              n.close();
+            };
+          }
+
+          // ── Toast na interface ────────────────────────────────────────────
           toast.info(`🛒 Novo pedido de ${newOrder.nome_cliente ?? "cliente"}!`, {
-            duration: 8000,
+            duration: 10000,
             action: {
               label: "Ver",
               onClick: () => {
@@ -299,9 +318,8 @@ function AdminOrdersPage() {
             },
           });
 
-          // Impressão automática se ativada
+          // ── Impressão automática ──────────────────────────────────────────
           if (autoPrint) {
-            // Busca itens do pedido para imprimir
             try {
               const { data: itens } = await supabase
                 .from("pedido_itens")
