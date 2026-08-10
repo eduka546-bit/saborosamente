@@ -128,7 +128,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        vamos lançar na vercel agora
         {children}
         <Scripts />
       </body>
