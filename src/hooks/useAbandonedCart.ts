@@ -99,8 +99,23 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     } catch {}
   }, []);
 
-  // ── Salva cupom no banco ──────────────────────────────────────────────────
+  // ── Salva cupom no banco com max_uso = 1 (uso único) ────────────────────
   const saveCoupon = useCallback(async (cupom: string) => {
+    try {
+      // Cria o cupom na tabela com max_uso = 1 (uso único garantido)
+      await supabase.from("cupons").insert({
+        codigo: cupom,
+        tipo: "Percentual",
+        valor: 10, // será sobrescrito pelo percentual configurado no admin
+        regra: "Cupom de carrinho abandonado — uso único",
+        ativo: true,
+        uso: 0,
+        max_uso: 1,
+      });
+    } catch {
+      // Ignora silenciosamente se o cupom já existir
+    }
+    // Salva o cupom no registro do carrinho abandonado
     if (!dbIdRef.current) return;
     try {
       await supabase
