@@ -94,11 +94,68 @@ function Checkout() {
   } = useCart();
 
   const navigate = useNavigate();
+  const search = useSearch({ from: "/checkout" });
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [session, setSession] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // ── cupom de desconto ─────────────────────────────────────────────────────
+  const [couponInput, setCouponInput] = useState(search.cupom ?? "");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ codigo: string; tipo: string; valor: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  // aplica cupom que vier da URL automaticamente
+  useEffect(() => {
+    if (search.cupom) {
+      applyCoupon(search.cupom);
+    }
+  }, []);
+
+  async function applyCoupon(code: string) {
+    const c = (code || couponInput).trim().toUpperCase();
+    if (!c) return;
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      const { data, error } = await supabase
+        .from("cupons")
+        .select("codigo, tipo, valor, ativo, validade, regra")
+        .eq("codigo", c)
+        .eq("ativo", true)
+        .maybeSingle();
+      if (error || !data) {
+        setCouponError("Cupom inválido ou expirado.");
+        setAppliedCoupon(null);
+        return;
+      }
+      if (data.validade && new Date(data.validade) < new Date()) {
+        setCouponError("Este cupom expirou.");
+        setAppliedCoupon(null);
+        return;
+      }
+      setAppliedCoupon({ codigo: data.codigo, tipo: data.tipo, valor: data.valor });
+      setCouponInput(data.codigo);
+      setCouponError("");
+    } catch {
+      setCouponError("Erro ao validar cupom. Tente novamente.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  // calcula desconto do cupom
+  const couponDiscount = appliedCoupon
+    ? appliedCoupon.tipo === "Percentual"
+      ? subtotal * (appliedCoupon.valor / 100)
+      : appliedCoupon.tipo === "Entrega Grátis"
+      ? shipping
+      : appliedCoupon.valor
+    : 0;
+
+  const finalTotal = total - couponDiscount;
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
