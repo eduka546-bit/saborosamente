@@ -161,7 +161,7 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       } catch {}
 
       await saveToDb("exit_intent");
-      await saveCoupon(coupon);
+      await saveCoupon(coupon, discountPercent);
 
       onExitIntent(coupon, discountPercent);
     };
