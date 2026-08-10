@@ -105,7 +105,7 @@ export function SiteFooter() {
               />
             </Link>
             <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">
-              Comida de verdade, congelada no ponto certo e entregue na sua porta.
+              {description}
             </p>
             <div className="flex flex-col gap-2 pt-1">
               <div className="flex items-center gap-2 text-xs opacity-70">
