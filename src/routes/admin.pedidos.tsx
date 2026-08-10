@@ -210,24 +210,14 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
             {/* Histórico */}
             <section>
               <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <History size={16} /> Histórico de Status
+                <History size={16} /> Status Atual
               </h3>
               <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:h-full before:w-0.5 before:bg-gray-100">
-                {order.historico?.length > 0 ? (
-                  order.historico.map((h: any, idx: number) => (
-                    <div key={h.id} className="relative pl-6">
-                      <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm"></div>
-                      <p className="text-xs font-bold text-gray-800">{h.status_novo}</p>
-                      <p className="text-[10px] text-gray-500">{format(new Date(h.created_at), "dd/MM HH:mm", { locale: ptBR })}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="relative pl-6">
-                    <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-gray-300 shadow-sm"></div>
-                    <p className="text-xs font-bold text-gray-800">{order.status}</p>
-                    <p className="text-[10px] text-gray-500">Status Inicial</p>
-                  </div>
-                )}
+                <div className="relative pl-6">
+                  <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm"></div>
+                  <p className="text-xs font-bold text-gray-800">{order.status}</p>
+                  <p className="text-[10px] text-gray-500">{format(new Date(order.created_at), "dd/MM HH:mm", { locale: ptBR })}</p>
+                </div>
               </div>
             </section>
 
@@ -358,8 +348,7 @@ function AdminOrdersPage() {
           itens:pedido_itens(
             *,
             produtos(nome)
-          ),
-          historico:pedido_status_historico(*)
+          )
         `)
         .order("created_at", { ascending: false });
 
