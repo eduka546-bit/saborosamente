@@ -245,8 +245,8 @@ export function SiteFooter() {
           {/* dois módulos lado a lado em desktop */}
           <div className="grid gap-10 md:grid-cols-2">
 
-            {/* cartão de crédito/débito */}
-            {cardFlags.length > 0 && (
+            {/* cartão de crédito/débito + mercado pago */}
+            {(cardFlags.length > 0 || mercadoPago) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
@@ -259,6 +259,20 @@ export function SiteFooter() {
                   {cardFlags.map((flag) => (
                     <LogoCard key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
                   ))}
+                  {mercadoPago && (
+                    <div title="Mercado Pago" className="group flex flex-col items-center gap-1.5">
+                      <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+                        {(mercadoPago.icon || (mercadoPago as any).logo) ? (
+                          <img src={mercadoPago.icon || (mercadoPago as any).logo} alt="Mercado Pago" loading="lazy" className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">MP</span>
+                        )}
+                      </div>
+                      <span className="text-[8px] font-semibold uppercase tracking-wide opacity-50 text-center leading-tight max-w-[4.5rem]">
+                        Mercado Pago
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
