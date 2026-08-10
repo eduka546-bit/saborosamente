@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { X, Tag, ShoppingBag, ArrowRight, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
