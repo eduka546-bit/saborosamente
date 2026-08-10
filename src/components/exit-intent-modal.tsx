@@ -102,7 +102,7 @@ export function ExitIntentModal({
               Oferta exclusiva para você
             </p>
             <p className="text-lg font-black text-gray-900">
-              10% de desconto na sua compra
+              {discountPercent}% de desconto na sua compra
             </p>
             <p className="text-xs text-gray-500">
               Use o cupom abaixo antes de finalizar o pedido
