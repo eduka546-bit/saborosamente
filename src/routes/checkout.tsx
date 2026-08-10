@@ -264,27 +264,46 @@ function Checkout() {
 
   const onSubmit = async (data: CheckoutForm) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      const id = `SB-${Date.now().toString().slice(-6)}`;
-
-      // ── registra uso do cupom ──────────────────────────────────────────
+      // registra uso do cupom
       if (appliedCoupon) {
         await supabase.rpc("incrementar_uso_cupom", { p_codigo: appliedCoupon.codigo });
       }
 
-      console.info("[checkout] pedido simulado", {
-        id,
-        cliente: data.nome,
-        itens: lines.length,
-        cupom: appliedCoupon?.codigo ?? null,
-        desconto: couponDiscount,
+      // cria o pedido real no banco
+      const order = await createOrderFn({
+        data: {
+          nome: data.nome,
+          email: data.email,
+          telefone: data.telefone,
+          metodoEntrega: selectedBairro ? "entrega" : "retirada",
+          horarioEntrega: "",
+          cidade: data.cidade,
+          bairro: selectedBairro,
+          endereco: data.endereco,
+          complemento: data.complemento,
+          cep: data.cep,
+          pagamento: data.pagamento,
+          observacoes: data.observacoes,
+          valorTotal: finalTotal,
+          taxaEntrega: shipping,
+          desconto: discount + couponDiscount,
+          cupom: appliedCoupon?.codigo,
+          troco: data.troco,
+          items: lines.map((l) => ({
+            productId: l.product.id,
+            quantity: l.quantity,
+            weight: l.weight,
+            price: l.subtotal / l.quantity,
+          })),
+        },
       });
-      setOrderId(id);
+
+      setOrderId(order.id);
       clear();
-      toast.success("Pedido registrado!", { description: `Protocolo ${id}` });
-    } catch (error) {
+      toast.success("Pedido registrado!", { description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}` });
+    } catch (error: any) {
       console.error("[checkout] falha ao registrar pedido", error);
-      toast.error("Não foi possível registrar o pedido. Tente novamente.");
+      toast.error("Não foi possível registrar o pedido: " + (error?.message ?? "Tente novamente."));
     }
   };
 
