@@ -168,7 +168,13 @@ function AdminCuponsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Usos</p>
-                  <p className="font-bold text-gray-800">{cupom.uso ?? 0} vezes</p>
+                  <p className="font-bold text-gray-800">
+                    {cupom.uso ?? 0}
+                    {cupom.max_uso !== null && cupom.max_uso !== undefined
+                      ? <span className="text-gray-400 font-normal"> / {cupom.max_uso}</span>
+                      : <span className="text-gray-400 font-normal"> / ∞</span>
+                    }
+                  </p>
                 </div>
               </div>
 
