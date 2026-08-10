@@ -218,12 +218,6 @@ export function SiteFooter() {
 
         {/* ── formas de pagamento ─────────────────────────────────────────── */}
         <div className="mt-16 border-t border-white/10 pt-12 space-y-10">
-          <div className="text-center">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.35em] opacity-40">
-              Formas de Pagamento Aceitas
-            </h3>
-            <div className="mx-auto mt-3 h-px w-16 bg-white/20" />
-          </div>
 
           {/* dois módulos lado a lado em desktop */}
           <div className="grid gap-10 md:grid-cols-2">
