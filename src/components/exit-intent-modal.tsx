@@ -25,6 +25,7 @@ export function ExitIntentModal({
 }: ExitIntentModalProps) {
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
+  const navigate = useNavigate();
 
   // Animação de entrada
   useEffect(() => {
