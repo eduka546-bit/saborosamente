@@ -89,6 +89,7 @@ function AdminCuponsPage() {
       validade: c.validade || "",
       ativo: c.ativo,
       max_uso: c.max_uso !== null && c.max_uso !== undefined ? String(c.max_uso) : "",
+      apenas_primeira_compra: c.apenas_primeira_compra ?? false,
     });
     setIsModalOpen(true);
   };
