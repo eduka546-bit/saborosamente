@@ -19,6 +19,7 @@ export function ExitIntentModal({
   coupon,
   cartTotal,
   cartCount,
+  discountPercent,
   onApplyCoupon,
 }: ExitIntentModalProps) {
   const [copied, setCopied] = useState(false);
