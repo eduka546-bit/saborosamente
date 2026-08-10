@@ -250,8 +250,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { markConverted } = useAbandonedCart({
     lines: detailedForHook,
     total: totalForHook,
-    onExitIntent: (coupon) => {
+    onExitIntent: (coupon, discountPercent) => {
       setExitIntentCoupon(coupon);
+      setExitDiscountPercent(discountPercent);
       setExitModalOpen(true);
     },
   });
