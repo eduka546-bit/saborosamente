@@ -56,7 +56,23 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
             </Badge>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => {
+                if (!order) return;
+                printReceipt({
+                  ...order,
+                  itens: (order.itens ?? []).map((i: any) => ({
+                    nome: i.produtos?.nome ?? "Produto",
+                    quantidade: i.quantidade,
+                    preco_unitario: i.preco_unitario,
+                    observacao: i.observacao,
+                  })),
+                });
+              }}
+            >
               <Printer size={14} /> Imprimir
             </Button>
           </div>
