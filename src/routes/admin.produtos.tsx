@@ -1083,6 +1083,11 @@ function AdminProductsPage() {
     }
   });
 
+  const handleEdit = (product: any) => {
+    setEditingProduct(product);
+    setIsEditModalOpen(true);
+  };
+
   const duplicateProduct = useMutation({
     mutationFn: async (product: any) => {
       const { id, created_at, updated_at, categorias, ...rest } = product;
