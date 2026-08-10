@@ -156,7 +156,7 @@ export function SiteFooter() {
             <ul className="space-y-4 text-sm">
               <li>
                 <a
-                  href="https://wa.me/5547991507757?text=Olá! Gostaria de fazer um pedido."
+                  href={`https://wa.me/${whatsapp}?text=Olá! Gostaria de fazer um pedido.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-3 font-semibold opacity-90 transition-all hover:opacity-100 hover:translate-x-1"
