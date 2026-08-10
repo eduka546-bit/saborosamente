@@ -97,7 +97,7 @@ function AdminCuponsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const max_uso = form.max_uso === "" ? null : Number(form.max_uso);
-    saveMutation.mutate({ ...form, valor: Number(form.valor), uso: editingCupom?.uso || 0, max_uso });
+    saveMutation.mutate({ ...form, valor: Number(form.valor), uso: editingCupom?.uso || 0, max_uso, apenas_primeira_compra: form.apenas_primeira_compra });
   };
 
   const filtered = cupons.filter((c: any) =>
