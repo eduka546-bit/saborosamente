@@ -80,13 +80,22 @@ function AdminCuponsPage() {
 
   const openEdit = (c: any) => {
     setEditingCupom(c);
-    setForm({ codigo: c.codigo, tipo: c.tipo, valor: c.valor, regra: c.regra || "", validade: c.validade || "", ativo: c.ativo });
+    setForm({
+      codigo: c.codigo,
+      tipo: c.tipo,
+      valor: c.valor,
+      regra: c.regra || "",
+      validade: c.validade || "",
+      ativo: c.ativo,
+      max_uso: c.max_uso !== null && c.max_uso !== undefined ? String(c.max_uso) : "",
+    });
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMutation.mutate({ ...form, valor: Number(form.valor), uso: editingCupom?.uso || 0 });
+    const max_uso = form.max_uso === "" ? null : Number(form.max_uso);
+    saveMutation.mutate({ ...form, valor: Number(form.valor), uso: editingCupom?.uso || 0, max_uso });
   };
 
   const filtered = cupons.filter((c: any) =>
