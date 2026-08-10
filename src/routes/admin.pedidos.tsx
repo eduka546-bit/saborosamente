@@ -267,11 +267,31 @@ function AdminOrdersPage() {
   });
 
   const filteredOrders = useMemo(() => {
-    return orders.filter((order: any) => 
-      (order.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [orders, searchTerm]);
+    const now = new Date();
+    return orders.filter((order: any) => {
+      // filtro de texto
+      const matchText =
+        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      // filtro de status
+      const matchStatus = filterStatus === "Todos" || order.status === filterStatus;
+
+      // filtro de data
+      const oDate = new Date(order.created_at);
+      let matchDate = true;
+      if (filterDate === "hoje") {
+        matchDate = oDate.toDateString() === now.toDateString();
+      } else if (filterDate === "semana") {
+        const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+        matchDate = oDate >= weekAgo;
+      } else if (filterDate === "mes") {
+        matchDate = oDate.getMonth() === now.getMonth() && oDate.getFullYear() === now.getFullYear();
+      }
+
+      return matchText && matchStatus && matchDate;
+    });
+  }, [orders, searchTerm, filterStatus, filterDate]);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
