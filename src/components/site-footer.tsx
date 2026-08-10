@@ -87,7 +87,7 @@ export function SiteFooter() {
           <div className="space-y-5 lg:col-span-1">
             <Link to="/" aria-label="Início" className="inline-block">
               <img
-                src={logoAsset.url}
+                src={LOGO_URL}
                 alt="Saborosamente"
                 className="h-20 w-auto transition-transform duration-300 hover:scale-[1.03]"
                 style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}
