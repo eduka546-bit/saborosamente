@@ -1102,9 +1102,6 @@ function AdminProductsPage() {
     },
     onError: (error: any) => toast.error("Erro ao duplicar: " + error.message),
   });
-    setEditingProduct(product);
-    setIsEditModalOpen(true);
-  };
 
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
