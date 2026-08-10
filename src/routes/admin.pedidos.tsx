@@ -427,7 +427,7 @@ function AdminOrdersPage() {
           <p className="text-gray-500 text-sm mt-1">Acompanhe e gerencie as entregas em tempo real.</p>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex gap-3 items-center flex-wrap">
            <div className="bg-white px-6 py-3 rounded-xl border flex flex-col items-center">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hoje</span>
              <span className="text-xl font-black text-[#5850ec]">{stats.totalToday}</span>
@@ -436,6 +436,25 @@ function AdminOrdersPage() {
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pendentes</span>
              <span className="text-xl font-black text-yellow-500">{stats.pendingCount}</span>
            </div>
+           {/* Toggle de impressão automática */}
+           <button
+             onClick={() => {
+               const next = !autoPrint;
+               setAutoPrint(next);
+               localStorage.setItem("admin.autoPrint", String(next));
+               toast.success(next ? "Impressão automática ativada!" : "Impressão automática desativada.");
+             }}
+             title="Impressão automática ao receber novo pedido"
+             className={cn(
+               "flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition-all",
+               autoPrint
+                 ? "bg-green-500 text-white border-green-500"
+                 : "bg-white text-gray-500 border-gray-200 hover:border-green-300"
+             )}
+           >
+             <Printer size={16} />
+             {autoPrint ? "Auto-imprimir ON" : "Auto-imprimir OFF"}
+           </button>
         </div>
       </div>
 
