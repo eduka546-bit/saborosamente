@@ -292,7 +292,7 @@ export function SiteFooter() {
             © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
           </p>
           <a
-            href="https://instagram.com/emf.digital"
+            href={`https://instagram.com/${credit.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] font-semibold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-80"
