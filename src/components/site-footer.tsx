@@ -218,30 +218,6 @@ export function SiteFooter() {
             <div className="mx-auto mt-3 h-px w-16 bg-white/20" />
           </div>
 
-          {/* Mercado Pago */}
-          {mercadoPago && (
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-35">
-                Link de Pagamento
-              </p>
-              <div className="inline-flex items-center gap-3 rounded-2xl bg-white/10 px-6 py-3 ring-1 ring-white/10 backdrop-blur-sm">
-                {(mercadoPago.icon || (mercadoPago as any).logo) && (
-                  <img
-                    src={mercadoPago.icon || (mercadoPago as any).logo}
-                    alt="Mercado Pago"
-                    className="h-7 w-auto object-contain"
-                  />
-                )}
-                <div className="text-left">
-                  <p className="text-xs font-bold">Mercado Pago</p>
-                  <p className="text-[10px] opacity-60 flex items-center gap-1">
-                    <WhatsAppIcon className="size-3" /> Enviado via WhatsApp
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* dois módulos lado a lado em desktop */}
           <div className="grid gap-10 md:grid-cols-2">
 
