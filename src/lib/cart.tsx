@@ -92,6 +92,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
+  const [exitIntentCoupon, setExitIntentCoupon] = useState<string | null>(null);
+  const [exitModalOpen, setExitModalOpen] = useState(false);
 
   // Efeito para carregar o carrinho logo no início
   useEffect(() => {
