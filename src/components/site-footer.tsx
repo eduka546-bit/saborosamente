@@ -2,13 +2,19 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Clock, Leaf, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import logoAsset from "@/assets/saborosamente-logo.png.asset.json";
 import {
   defaultCardFlags,
   defaultMealFlags,
   defaultPaymentMethods,
   enabledOrDefault,
 } from "@/lib/payment-options";
+
+// URL pública do CDN da Lovable para a logo
+const LOGO_URL =
+  "https://assets.lovable.dev/a/v1/2243a82c-49d6-4af9-887d-485d4661259d/fd470ffb-641c-4979-acb2-e05ec52a30be/saborosamente-logo.png";
+
+// Link real do Google Maps
+const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=Rua+Augusto+Wunderwald,+7,+Progresso,+São+Bento+do+Sul,+SC";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
