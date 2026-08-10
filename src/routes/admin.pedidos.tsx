@@ -64,7 +64,7 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                 printReceipt({
                   ...order,
                   itens: (order.itens ?? []).map((i: any) => ({
-                    nome: i.produtos?.nome ?? "Produto",
+                    nome: i.produtos?.nome ?? i.nome ?? "Produto",
                     quantidade: i.quantidade,
                     preco_unitario: i.preco_unitario,
                     observacao: i.observacao,
@@ -313,13 +313,21 @@ function AdminOrdersPage() {
             try {
               const { data: itens } = await supabase
                 .from("pedido_itens")
-                .select("*, produtos(nome)")
+                .select("*")
                 .eq("pedido_id", newOrder.id);
+
+              // Busca nomes dos produtos
+              const ids = (itens ?? []).map((i: any) => i.produto_id).filter(Boolean);
+              let nomesMap: Record<string, string> = {};
+              if (ids.length > 0) {
+                const { data: prods } = await supabase.from("produtos").select("id, nome").in("id", ids);
+                (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
+              }
 
               printReceipt({
                 ...newOrder,
                 itens: (itens ?? []).map((i: any) => ({
-                  nome: i.produtos?.nome ?? "Produto",
+                  nome: nomesMap[i.produto_id] ?? "Produto",
                   quantidade: i.quantidade,
                   preco_unitario: i.preco_unitario,
                   observacao: i.observacao,
@@ -343,17 +351,33 @@ function AdminOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select(`
-          *,
-          itens:pedido_itens(
-            *,
-            produtos(nome)
-          )
-        `)
+        .select("*,itens:pedido_itens(*)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Busca os nomes dos produtos separadamente
+      const produtoIds = [...new Set(
+        (data ?? []).flatMap((p: any) => (p.itens ?? []).map((i: any) => i.produto_id).filter(Boolean))
+      )];
+
+      let produtosMap: Record<string, string> = {};
+      if (produtoIds.length > 0) {
+        const { data: prods } = await supabase
+          .from("produtos")
+          .select("id, nome")
+          .in("id", produtoIds);
+        (prods ?? []).forEach((p: any) => { produtosMap[p.id] = p.nome; });
+      }
+
+      // Injeta o nome do produto em cada item
+      return (data ?? []).map((pedido: any) => ({
+        ...pedido,
+        itens: (pedido.itens ?? []).map((item: any) => ({
+          ...item,
+          produtos: { nome: produtosMap[item.produto_id] ?? "Produto" }
+        }))
+      }));
     },
   });
 
