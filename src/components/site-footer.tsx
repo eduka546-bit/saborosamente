@@ -10,7 +10,6 @@ import {
   enabledOrDefault,
 } from "@/lib/payment-options";
 
-// ícone WhatsApp inline
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -30,18 +29,11 @@ function InstagramIcon({ className }: { className?: string }) {
 }
 
 function LogoCard({ logo, name }: { logo?: string; name: string }) {
-    <div
-      title={name}
-      className="group flex flex-col items-center gap-1.5"
-    >
+  return (
+    <div title={name} className="group flex flex-col items-center gap-1.5">
       <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
         {logo ? (
-          <img
-            src={logo}
-            alt={name}
-            loading="lazy"
-            className="h-full w-full object-contain"
-          />
+          <img src={logo} alt={name} loading="lazy" className="h-full w-full object-contain" />
         ) : (
           <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">
             {name}
@@ -77,10 +69,7 @@ export function SiteFooter() {
   );
 
   return (
-    <footer
-      style={{ backgroundColor: bg, color: text }}
-      className="relative mt-24 overflow-hidden"
-    >
+    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-24 overflow-hidden">
       {/* faixa decorativa no topo */}
       <div className="h-1 w-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
@@ -101,7 +90,6 @@ export function SiteFooter() {
             <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">
               Comida de verdade, congelada no ponto certo e entregue na sua porta.
             </p>
-            {/* selos */}
             <div className="flex flex-col gap-2 pt-1">
               <div className="flex items-center gap-2 text-xs opacity-70">
                 <Leaf size={13} className="shrink-0" />
@@ -120,9 +108,7 @@ export function SiteFooter() {
 
           {/* coluna 2 — navegação */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
-              Navegação
-            </h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Navegação</h3>
             <nav>
               <ul className="space-y-3 text-sm">
                 {[
@@ -149,9 +135,7 @@ export function SiteFooter() {
 
           {/* coluna 3 — atendimento */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
-              Atendimento
-            </h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Atendimento</h3>
             <ul className="space-y-4 text-sm">
               <li>
                 <a
@@ -174,7 +158,7 @@ export function SiteFooter() {
                   className="group flex items-center gap-3 opacity-80 transition-all hover:opacity-100 hover:translate-x-1"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
-                  <InstagramIcon className="size-4" />
+                    <InstagramIcon className="size-4" />
                   </span>
                   <span>@saborosamente.sbs</span>
                 </a>
@@ -196,9 +180,7 @@ export function SiteFooter() {
 
           {/* coluna 4 — localização */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
-              Localização
-            </h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Localização</h3>
             <a
               href="https://maps.app.goo.gl/YourActualGoogleMapsLink"
               target="_blank"
