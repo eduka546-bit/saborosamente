@@ -128,6 +128,22 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        For the code present, I get the error below.
+
+Please think step-by-step in order to resolve it.
+```
+The app returned 500 while handling GET /. The error was handled by a route or error boundary, so no stack was captured — check the failing loader/route code and the dev server output.
+
+{
+  "timestamp": 1786370279343,
+  "error_type": "RUNTIME_ERROR",
+  "filename": "Unknown file",
+  "lineno": 0,
+  "colno": 0,
+  "stack": "Unavailable",
+  "has_blank_screen": true
+}
+```
         {children}
         <Scripts />
       </body>
