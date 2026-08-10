@@ -52,7 +52,11 @@ function AdminDashboard() {
           .from("pedidos")
           .select("*")
           .order("created_at", { ascending: false })
-          .limit(5)
+          .limit(5),
+        supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", firstDayOfMonth)
       ]);
 
       const monthlyRevenue = monthlyOrdersRes.data?.reduce((acc, o) => acc + (o.valor_total || 0), 0) || 0;
