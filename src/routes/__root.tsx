@@ -128,7 +128,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        Precisa alterar algo?
         {children}
         <Scripts />
       </body>
