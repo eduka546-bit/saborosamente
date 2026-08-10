@@ -188,7 +188,7 @@ export function SiteFooter() {
           <div className="space-y-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Localização</h3>
             <a
-              href="https://maps.app.goo.gl/YourActualGoogleMapsLink"
+              href={MAPS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-start gap-3 text-xs leading-relaxed opacity-80 transition-opacity hover:opacity-100"
@@ -200,7 +200,7 @@ export function SiteFooter() {
                 CEP 89281-060
               </address>
             </a>
-            <div className="w-full h-36 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-lg grayscale opacity-60 transition-all duration-500 hover:grayscale-0 hover:opacity-100">
+            <div className="w-full h-36 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-lg">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3587.234674720619!2d-49.389274!3d-26.221568!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94de1d1b3b3b3b3b%3A0x3b3b3b3b3b3b3b3b!2sRua%20Augusto%20Wunderwald%2C%207%20-%20Progresso%2C%20S%C3%A3o%20Bento%20do%20Sul%20-%20SC!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr"
                 width="100%"
