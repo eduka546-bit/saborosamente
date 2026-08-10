@@ -54,12 +54,14 @@ interface CartContextValue {
   selectedCity: string;
   selectedBairro: string;
   taxas: any[];
+  exitIntentCoupon: string | null;
   setSelectedCity: (city: string) => void;
   setSelectedBairro: (bairro: string) => void;
   add: (productId: string, quantity?: number, weight?: string) => void;
   setQuantity: (productId: string, quantity: number, weight?: string) => void;
   remove: (productId: string, weight?: string) => void;
   clear: () => void;
+  markConverted: () => Promise<void>;
 }
 
 
