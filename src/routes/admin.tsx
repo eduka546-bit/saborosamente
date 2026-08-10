@@ -12,12 +12,18 @@ export const Route = createFileRoute("/admin")({
     if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") return;
 
     try {
-      // Adicionando um timeout de segurança para o getSession
+      // Tenta restaurar a sessão do storage primeiro
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase timeout")), 8000));
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase timeout")), 15000));
       
-      const { data: { session }, error: sessionError } = await (Promise.race([sessionPromise, timeoutPromise]) as Promise<any>);
+      let { data: { session }, error: sessionError } = await (Promise.race([sessionPromise, timeoutPromise]) as Promise<any>);
       
+      // Se não tem sessão, tenta um refresh antes de redirecionar
+      if (!session && !sessionError) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+
       if (sessionError) {
         console.error("Session error:", sessionError);
         return redirect({ to: "/admin/login" });
