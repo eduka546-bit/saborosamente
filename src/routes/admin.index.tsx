@@ -66,7 +66,8 @@ function AdminDashboard() {
         ordersToday: ordersTodayRes.count || 0,
         activeProducts: activeProductsRes.count || 0,
         monthlyRevenue,
-        recentOrders: recentOrdersRes.data || []
+        recentOrders: recentOrdersRes.data || [],
+        newClients: newClientsRes.count || 0,
       };
     }
   });
