@@ -21,8 +21,8 @@ export function generateAbandonCoupon(): string {
 interface UseAbandonedCartOptions {
   lines: Array<{ productId: string; quantity: number; weight?: string; product?: any; subtotal?: number }>;
   total: number;
-  /** Chamar quando o exit intent for disparado — passa o cupom gerado */
-  onExitIntent: (coupon: string) => void;
+  /** Chamar quando o exit intent for disparado — passa o cupom gerado e o percentual */
+  onExitIntent: (coupon: string, discountPercent: number) => void;
 }
 
 export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCartOptions) {
