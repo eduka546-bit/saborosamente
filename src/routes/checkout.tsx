@@ -122,7 +122,7 @@ function Checkout() {
     try {
       const { data, error } = await supabase
         .from("cupons")
-        .select("codigo, tipo, valor, ativo, validade, regra")
+        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso")
         .eq("codigo", c)
         .eq("ativo", true)
         .maybeSingle();
@@ -133,6 +133,12 @@ function Checkout() {
       }
       if (data.validade && new Date(data.validade) < new Date()) {
         setCouponError("Este cupom expirou.");
+        setAppliedCoupon(null);
+        return;
+      }
+      // verifica limite de usos (max_uso null = sem limite)
+      if (data.max_uso !== null && data.max_uso !== undefined && data.uso >= data.max_uso) {
+        setCouponError("Este cupom já atingiu o limite de usos.");
         setAppliedCoupon(null);
         return;
       }
