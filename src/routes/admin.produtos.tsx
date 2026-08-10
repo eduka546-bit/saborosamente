@@ -916,7 +916,10 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
             >
               Editar
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-xs font-medium uppercase tracking-wider">
+            <DropdownMenuItem
+              className="text-xs font-medium uppercase tracking-wider"
+              onClick={() => onDuplicate(product)}
+            >
               Duplicar
             </DropdownMenuItem>
             <DropdownMenuItem 
