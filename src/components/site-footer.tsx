@@ -199,7 +199,7 @@ export function SiteFooter() {
           <div className="space-y-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Localização</h3>
             <a
-              href={MAPS_URL}
+              href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-start gap-3 text-xs leading-relaxed opacity-80 transition-opacity hover:opacity-100"
