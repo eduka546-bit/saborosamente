@@ -34,7 +34,8 @@ function AdminDashboard() {
         ordersTodayRes,
         activeProductsRes,
         monthlyOrdersRes,
-        recentOrdersRes
+        recentOrdersRes,
+        newClientsRes
       ] = await Promise.all([
         supabase
           .from("pedidos")
