@@ -11,6 +11,8 @@ import { formatBRL, type Product } from "@/lib/products";
 import { getPublicProducts } from "./products.functions";
 import { getTaxas } from "./taxas.functions";
 import { useQuery } from "@tanstack/react-query";
+import { useAbandonedCart } from "@/hooks/useAbandonedCart";
+import { ExitIntentModal } from "@/components/exit-intent-modal";
 
 
 // Variável global para cache de produtos no lado do cliente
