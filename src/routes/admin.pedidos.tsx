@@ -226,6 +226,8 @@ function AdminOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("Todos");
+  const [filterDate, setFilterDate] = useState<"hoje" | "semana" | "mes" | "todos">("todos");
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["admin-orders"],
