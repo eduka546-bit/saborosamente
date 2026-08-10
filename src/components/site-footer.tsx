@@ -65,7 +65,17 @@ export function SiteFooter() {
 
   const bg = settings?.announcement_bg_color || "#086e45";
   const text = settings?.announcement_text_color || "#ffffff";
-  const logoUrl = (settings as any)?.profile_image_url || LOGO_URL;
+  const logoUrl = (settings as any)?.footer_logo_url
+    || (settings as any)?.profile_image_url
+    || LOGO_URL;
+  const whatsapp = (settings as any)?.footer_whatsapp || "5547991507757";
+  const instagram = (settings as any)?.footer_instagram || "saborosamente.sbs";
+  const addressLine1 = (settings as any)?.footer_address_line1 || "Rua Augusto Wunderwald, 7";
+  const addressLine2 = (settings as any)?.footer_address_line2 || "Progresso — São Bento do Sul/SC";
+  const addressCep = (settings as any)?.footer_address_cep || "CEP 89281-060";
+  const mapsUrl = (settings as any)?.footer_maps_url || MAPS_URL;
+  const description = (settings as any)?.footer_description || "Comida de verdade, congelada no ponto certo e entregue na sua porta.";
+  const credit = (settings as any)?.footer_credit || "@emf.digital";
 
   const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault((settings as any)?.card_flags, defaultCardFlags);
