@@ -157,22 +157,23 @@ export function SiteFooter() {
 
         <div className="md:col-span-4 pt-10 border-t border-white/5">
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-6 text-center">Formas de Pagamento</h2>
-          <div className="flex flex-wrap justify-center gap-2.5">
+          <div className="flex flex-wrap justify-center gap-3">
             {allLogos.map((item) => (
-              <div key={item.name} className="flex w-16 flex-col items-center gap-1">
+              <div key={item.name} className="flex w-20 flex-col items-center gap-1.5">
                 <div
                   title={item.name}
-                  className="flex h-10 w-16 items-center justify-center rounded-lg border border-white/10 bg-white px-2 shadow-sm transition-transform hover:scale-105"
+                  className="flex h-12 w-20 items-center justify-center rounded-xl border border-white/10 bg-white p-2 shadow-sm transition-transform hover:scale-105"
                 >
                   {item.logo ? (
                     <img
                       src={item.logo}
                       alt={item.name}
                       loading="lazy"
-                      className="max-h-6 max-w-full object-contain"
+                      className="h-full w-full object-contain"
+                      style={{ imageRendering: "auto" }}
                     />
                   ) : (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700">{item.name}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-700 text-center leading-tight">{item.name}</span>
                   )}
                 </div>
                 <span className="w-full text-center text-[9px] font-semibold uppercase leading-tight tracking-wide opacity-60">
