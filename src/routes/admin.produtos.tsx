@@ -816,7 +816,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 }
 
 
-function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit }: any) {
+function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit, onDuplicate }: any) {
   const {
     attributes,
     listeners,
