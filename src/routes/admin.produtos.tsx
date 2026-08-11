@@ -58,6 +58,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   const [formData, setFormData] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [isUploadingSize, setIsUploadingSize] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -166,6 +167,33 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     }
   };
 
+  const handleSizeImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    sizeField: "imagem_200g" | "imagem_300g" | "imagem_400g"
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingSize(prev => ({ ...prev, [sizeField]: true }));
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `size_${sizeField}_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+      setFormData({ ...formData, [sizeField]: publicUrl });
+      toast.success("Imagem enviada!");
+    } catch (error: any) {
+      toast.error("Erro ao enviar: " + (error.message || "Tente novamente"));
+    } finally {
+      setIsUploadingSize(prev => ({ ...prev, [sizeField]: false }));
+      event.target.value = "";
+    }
+  };
+
   const handleSave = () => {
     const { 
       preco_formatado, 
@@ -253,9 +281,62 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   </div>
                   <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">Resolução recomendada: 800x800px</p>
 
+                  {/* Imagens por tamanho */}
+                  {(formData.preco_300g || formData.preco_400g) && (
+                    <div className="space-y-2 mt-4">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider flex items-center gap-1">
+                        Imagens por Tamanho <span className="text-[8px] text-blue-400 normal-case">(opcional)</span>
+                      </label>
+                      <p className="text-[9px] text-gray-400">Se não definida, usa a imagem principal para todos os tamanhos.</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { field: "imagem_200g", label: "P (200g)" },
+                          { field: "imagem_300g", label: "M (300g)" },
+                          { field: "imagem_400g", label: "G (400g)" },
+                        ] as const).map(({ field, label }) => (
+                          <div key={field} className="space-y-1">
+                            <p className="text-[9px] font-bold text-gray-500 text-center">{label}</p>
+                            <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden group">
+                              {formData[field] ? (
+                                <img src={formData[field]} className="w-full h-full object-cover" alt={label} />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <ImageIcon size={20} />
+                                </div>
+                              )}
+                              <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity gap-1">
+                                {isUploadingSize[field] ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <>
+                                    <Upload size={14} />
+                                    <span className="text-[9px] font-bold">Trocar</span>
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleSizeImageUpload(e, field)}
+                                />
+                              </label>
+                              {formData[field] && (
+                                <button
+                                  onClick={() => setFormData({ ...formData, [field]: "" })}
+                                  className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                >
+                                  <X size={10} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2 mt-4">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Outras Imagens (Galeria)</label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Outras Imagens (Galeria)</label>                    <div className="grid grid-cols-4 gap-2">
                       {formData.imagens?.map((img: string, idx: number) => (
                         <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-gray-200 group">
                           <img src={img} className="w-full h-full object-cover" />

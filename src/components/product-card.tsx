@@ -71,6 +71,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       ? product.preco_400g
       : product.preco);
 
+  // Imagem por tamanho — usa a específica se cadastrada, senão a principal
+  const currentImage = (() => {
+    if (selectedWeight === "200g" && (product as any).imagem_200g) return (product as any).imagem_200g;
+    if (selectedWeight === "300g" && (product as any).imagem_300g) return (product as any).imagem_300g;
+    if (selectedWeight === "400g" && (product as any).imagem_400g) return (product as any).imagem_400g;
+    return product.imagem;
+  })();
+
   const currentNutritional = selectedWeight === "300g" && product.tabela_nutricional_300g
     ? product.tabela_nutricional_300g
     : selectedWeight === "400g" && product.tabela_nutricional_400g
@@ -158,7 +166,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         >
           <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
             <img
-              src={product.imagem}
+              src={currentImage}
               alt={`Marmita de ${product.nome}`}
               loading="lazy"
               width={800}
@@ -250,11 +258,11 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 min-h-[300px] md:min-h-[500px] bg-muted overflow-hidden">
             {product.imagens && product.imagens.length > 0 ? (
               <div className="relative size-full group/carousel">
-                <ProductCarousel images={[product.imagem, ...product.imagens]} />
+                <ProductCarousel images={[currentImage, ...product.imagens]} />
               </div>
             ) : (
               <img
-                src={product.imagem}
+                src={currentImage}
                 alt={product.nome}
                 className="size-full object-cover"
               />
