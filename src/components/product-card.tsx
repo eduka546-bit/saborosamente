@@ -70,12 +70,70 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     });
   };
 
+  // ── Card de combo: sem Dialog, abre direto o ComboBuilderModal ─────────────
+  if (combo) {
+    return (
+      <>
+        <article
+          onClick={() => setComboOpen(true)}
+          className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift"
+        >
+          <div className="relative aspect-4/3 overflow-hidden bg-muted">
+            <img
+              src={product.imagem}
+              alt={`Combo ${product.nome}`}
+              loading="lazy"
+              width={800}
+              height={600}
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-xs font-semibold text-sun-foreground">
+              {product.categoria}
+            </span>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="rounded-full bg-white/90 p-3 text-primary shadow-lg">
+                <ShoppingCart className="size-6" />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-1 flex-col gap-2 p-5">
+            <div>
+              <h3 className="text-lg font-bold leading-tight text-primary-dark">{product.nome}</h3>
+              {product.descricao && (
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.descricao}</p>
+              )}
+            </div>
+            <div className="mt-auto flex items-center justify-between pt-3">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-foreground">A PARTIR DE</span>
+                <span className="text-2xl font-black text-primary">{formatBRL(product.preco)}</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setComboOpen(true); }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-transform hover:scale-105 active:scale-95 shadow-soft"
+              >
+                <ShoppingCart className="size-4" /> Montar
+              </button>
+            </div>
+          </div>
+        </article>
+        <ComboBuilderModal
+          isOpen={comboOpen}
+          onClose={() => setComboOpen(false)}
+          combo={{ id: product.id, nome: product.nome, descricao: product.descricao }}
+          products={allProducts}
+        />
+      </>
+    );
+  }
+
+  // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
     <Dialog>
       <DialogTrigger asChild>
         <article
-          onClick={combo ? (e) => { e.preventDefault(); setComboOpen(true); } : undefined}
           className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift"
         >
           <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
@@ -282,16 +340,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         </div>
       </DialogContent>
     </Dialog>
-
-    {/* Modal de combo — só renderiza para produtos combo */}
-    {combo && (
-      <ComboBuilderModal
-        isOpen={comboOpen}
-        onClose={() => setComboOpen(false)}
-        combo={{ id: product.id, nome: product.nome, descricao: product.descricao }}
-        products={allProducts}
-      />
-    )}
     </>
   );
 }

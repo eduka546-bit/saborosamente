@@ -103,6 +103,7 @@ export function AdminHeader() {
               icon={Utensils} 
               items={[
                 { label: "Cardápio", href: "/admin/produtos" },
+                { label: "Combos Monte Você Mesmo", href: "/admin/combos" },
                 { label: "Categorias", href: "/admin/categorias" },
                 { label: "Itens de complementos", href: "/admin/complementos" },
                 { label: "Acompanhamentos", href: "/admin/acompanhamentos" },
