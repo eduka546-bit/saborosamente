@@ -70,21 +70,37 @@ function PerfilPage() {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: pedidos, error } = await supabase
         .from("pedidos")
-        .select(`
-          *,
-          itens:pedido_itens(
-            *,
-            produtos(nome)
-          ),
-          historico:pedido_status_historico(*)
-        `)
+        .select("*, itens:pedido_itens(*)")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+
+      // Busca nomes dos produtos separadamente (sem FK direta)
+      const produtoIds = [...new Set(
+        (pedidos ?? []).flatMap((p: any) => (p.itens ?? []).map((i: any) => i.produto_id).filter(Boolean))
+      )];
+      let nomesMap: Record<string, string> = {};
+      if (produtoIds.length > 0) {
+        const { data: prods } = await supabase
+          .from("produtos")
+          .select("id, nome")
+          .in("id", produtoIds);
+        (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
+      }
+
+      const ordersWithNames = (pedidos ?? []).map((pedido: any) => ({
+        ...pedido,
+        itens: (pedido.itens ?? []).map((item: any) => ({
+          ...item,
+          produtos: { nome: nomesMap[item.produto_id] ?? "Produto" }
+        })),
+        historico: []
+      }));
+
+      setOrders(ordersWithNames);
     } catch (err: any) {
       console.error("Erro ao buscar pedidos:", err.message);
     } finally {
@@ -398,24 +414,17 @@ function PerfilPage() {
                         </div>
                       </div>
                       
-                      {order.historico?.length > 0 && (
-                        <div className="mt-6 pt-6 border-t space-y-3">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                            <Clock size={12} /> Acompanhamento
-                          </p>
-                          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                            {order.historico.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((h: any, idx: number) => (
-                              <div key={h.id} className="flex items-center shrink-0">
-                                <div className="flex flex-col items-center">
-                                  <div className={`h-2 w-2 rounded-full ${idx === order.historico.length - 1 ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30'}`}></div>
-                                  <span className="text-[8px] mt-1 font-bold whitespace-nowrap">{h.status_novo}</span>
-                                </div>
-                                {idx < order.historico.length - 1 && (
-                                  <div className="w-8 h-px bg-muted mx-2 -mt-3"></div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                      {order.status && (
+                        <div className="mt-4 pt-4 border-t">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Status</p>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
+                            order.status === 'entregue' ? 'bg-green-50 text-green-600 border-green-200' :
+                            order.status === 'cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
+                            order.status === 'preparando' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                            'bg-yellow-50 text-yellow-600 border-yellow-200'
+                          }`}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </span>
                         </div>
                       )}
                     </CardContent>
