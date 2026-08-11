@@ -11,6 +11,21 @@ import { useState, useMemo } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { COMBO_RULES } from "@/lib/combo-rules";
 
+// Apenas "Combos Escolha Você Mesmo" são excluídos do catálogo e filtros
+// "Combos Prontos" aparecem normalmente
+function isComboEscolhaVoceMesmo(nome: string, cat?: string): boolean {
+  const n = (nome || "").toLowerCase();
+  const c = (cat || "").toLowerCase();
+  return (
+    n.includes("monte você mesmo") ||
+    n.includes("monte voce mesmo") ||
+    n.includes("escolha você mesmo") ||
+    n.includes("escolha voce mesmo") ||
+    c.includes("escolha você mesmo") ||
+    c.includes("escolha voce mesmo")
+  );
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -96,7 +111,8 @@ function Index() {
         .order("ordem_filtro", { ascending: true })
         .order("ordem", { ascending: true });
       if (error) return [];
-      return (data ?? []).filter((c: any) => !c.nome?.toLowerCase().includes("combo"));
+      // Só exclui "escolha você mesmo" — Combos Prontos aparece normalmente
+      return (data ?? []).filter((c: any) => !isComboEscolhaVoceMesmo(c.nome));
     },
     staleTime: 1000 * 60,
   });
@@ -129,11 +145,11 @@ function Index() {
         p.categorias?.nome?.toLowerCase().includes(search)
       );
     }
-    // Remove combos do grid normal — eles ficam no banner dedicado
+    // Remove apenas "Combos Escolha Você Mesmo" do grid — Combos Prontos ficam
     return result.filter((p: any) => {
-      const cat = (p.categorias?.nome || "").toLowerCase();
-      const nome = (p.nome || "").toLowerCase();
-      return !cat.includes("combo") && !nome.includes("monte você mesmo") && !nome.includes("monte voce mesmo");
+      const cat = p.categorias?.nome || "";
+      const nome = p.nome || "";
+      return !isComboEscolhaVoceMesmo(nome, cat);
     });
   }, [products, selectedCategory, searchTerm]);
 
@@ -145,12 +161,12 @@ function Index() {
         .filter((nome: string) => products.some((p: any) => p.categorias?.nome === nome));
       return ["Todas", ...withProducts];
     }
-    // Fallback: ordem alfabética sem combos
+    // Fallback: ordem alfabética sem "Combos Escolha Você Mesmo"
     const set = new Set<string>();
     products.forEach((p: any) => {
       if (p.categorias?.nome) {
         const cat = p.categorias.nome;
-        if (!cat.toLowerCase().includes("combo")) set.add(cat);
+        if (!isComboEscolhaVoceMesmo("", cat)) set.add(cat);
       }
     });
     return ["Todas", ...Array.from(set).sort()];
@@ -387,11 +403,9 @@ function Index() {
                   combo={{ id: "combo-global", nome: "Monte seu Combo" }}
                   products={products
                     .filter((p: any) => {
-                      const cat = (p.categorias?.nome || "").toLowerCase();
-                      const nome = (p.nome || "").toLowerCase();
-                      return !cat.includes("combo") &&
-                             !nome.includes("monte você mesmo") &&
-                             !nome.includes("monte voce mesmo");
+                      const cat = p.categorias?.nome || "";
+                      const nome = p.nome || "";
+                      return !isComboEscolhaVoceMesmo(nome, cat);
                     })
                     .map((p: any) => ({
                       ...p,
