@@ -335,6 +335,7 @@ function Checkout() {
           desconto: discount + couponDiscount,
           cupom: appliedCoupon?.codigo,
           troco: data.troco,
+          userId: session?.user?.id,
           items: lines.map((l) => ({
             productId: l.product.id,
             quantity: l.quantity,

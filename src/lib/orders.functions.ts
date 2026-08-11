@@ -24,6 +24,7 @@ const createOrderSchema = z.object({
   observacoes: z.string().optional(),
   valorTotal: z.number(),
   taxaEntrega: z.number(),
+  userId: z.string().uuid().optional(),
   desconto: z.number(),
   cupom: z.string().optional(),
   items: z.array(orderItemSchema),
@@ -34,12 +35,9 @@ const createOrderSchema = z.object({
 export const createOrder = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
-    // Pegar o usuário logado (opcional, para vincular o pedido)
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // 1. Criar o pedido na tabela 'pedidos' com campos seguros
+    // Usa o userId passado pelo cliente (o getUser() no servidor não acessa o cookie do browser)
     const insertData: any = {
-      user_id: user?.id,
+      user_id: data.userId ?? null,
       nome_cliente: data.nome,
       telefone_cliente: data.telefone,
       email_cliente: data.email,
