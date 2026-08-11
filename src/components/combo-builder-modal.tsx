@@ -52,8 +52,6 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
 
-  if (!isOpen) return null;
-
   // ── Categorias disponíveis ────────────────────────────────────────────────
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -77,22 +75,19 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   // ── Totais ─────────────────────────────────────────────────────────────────
   const { totalQty, subtotal, discountPct, discount, total } = useMemo(() => {
     const totalQty = items.reduce((s, i) => s + i.quantity, 0);
-
-    // Subtotal bruto
     const subtotal = items.reduce((s, i) => s + i.preco * i.quantity, 0);
-
-    // Desconto só sobre marmitas (não sopas/complementos)
     const marmitaSubtotal = items
       .filter(i => !isNoDiscountLocal(i.categoria))
       .reduce((s, i) => s + i.preco * i.quantity, 0);
-
     const rule = COMBO_RULES.find(r => totalQty >= r.min);
     const discountPct = rule?.discount ?? 0;
     const discount = marmitaSubtotal * discountPct;
     const total = subtotal - discount;
-
     return { totalQty, subtotal, discountPct, discount, total };
   }, [items]);
+
+  // Early return APÓS todos os hooks
+  if (!isOpen) return null;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getPrice(product: any, weight: string) {
