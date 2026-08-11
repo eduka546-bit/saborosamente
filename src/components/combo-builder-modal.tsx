@@ -57,7 +57,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     const cats = new Set<string>();
     products.forEach((p: any) => {
       const cat = p.categorias?.nome || p.categoria || "";
-      if (cat) cats.add(cat);
+      // exclui categorias de combo dos filtros
+      if (cat && !cat.toLowerCase().includes("combo")) cats.add(cat);
     });
     return ["Todas", ...Array.from(cats).sort()];
   }, [products]);

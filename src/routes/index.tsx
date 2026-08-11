@@ -361,11 +361,19 @@ function Index() {
                   isOpen={comboModalOpen}
                   onClose={() => setComboModalOpen(false)}
                   combo={{ id: "combo-global", nome: "Monte seu Combo" }}
-                  products={products.map((p: any) => ({
-                    ...p,
-                    categoria: p.categorias?.nome || "Marmita",
-                    imagem: p.imagem_url
-                  }))}
+                  products={products
+                    .filter((p: any) => {
+                      const cat = (p.categorias?.nome || "").toLowerCase();
+                      const nome = (p.nome || "").toLowerCase();
+                      return !cat.includes("combo") &&
+                             !nome.includes("monte você mesmo") &&
+                             !nome.includes("monte voce mesmo");
+                    })
+                    .map((p: any) => ({
+                      ...p,
+                      categoria: p.categorias?.nome || "Marmita",
+                      imagem: p.imagem_url
+                    }))}
                 />
               </>
             )}
