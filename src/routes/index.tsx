@@ -282,7 +282,12 @@ function Index() {
                       ...product,
                       categoria: product.categorias?.nome || "Marmita",
                       imagem: product.imagem_url
-                    }} 
+                    }}
+                    allProducts={products.map((p: any) => ({
+                      ...p,
+                      categoria: p.categorias?.nome || "Marmita",
+                      imagem: p.imagem_url
+                    }))}
                   />
                 ))}
               </div>

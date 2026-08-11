@@ -25,13 +25,21 @@ export const SHIPPING_FEE = 14.9;
 export const RULES = {
   MIN_ORDER_AMOUNT: 70,
   MIN_ORDER_QUANTITY: 5,
-  SBS_DISCOUNTED_SHIPPING: 8.9, // Valor padrão de SBS conforme SiteHeader
+  SBS_DISCOUNTED_SHIPPING: 8.9,
+  // Desconto progressivo — sopas e complementos CONTAM na qtd mas NÃO recebem desconto
   PROGRESSIVE_DISCOUNT: [
-    { min: 5, discount: 0.03 },
+    { min: 5,  discount: 0.03 },
     { min: 10, discount: 0.05 },
-    { min: 15, discount: 0.07 }
+    { min: 20, discount: 0.07 },
   ],
 };
+
+// Categorias com preço fixo (não recebem desconto progressivo)
+export const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
+
+export function isNoDiscount(categoria: string) {
+  return NO_DISCOUNT_CATEGORIES.some(c => categoria?.toLowerCase().includes(c));
+}
 
 export interface CartLine {
   productId: string;
@@ -305,13 +313,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Lógica de Desconto Progressivo
+    // - Quantidade total (incl. sopas/complementos) determina o tier
+    // - Desconto aplicado APENAS sobre subtotal das marmitas
     let discount = 0;
     const applicableRule = [...RULES.PROGRESSIVE_DISCOUNT]
       .sort((a, b) => b.min - a.min)
       .find(rule => count >= rule.min);
 
     if (applicableRule) {
-      discount = subtotal * applicableRule.discount;
+      const marmitaSubtotal = detailed
+        .filter(l => !isNoDiscount(l.product.categoria ?? ""))
+        .reduce((acc, l) => acc + l.subtotal, 0);
+      discount = marmitaSubtotal * applicableRule.discount;
     }
 
 

@@ -3,6 +3,20 @@ import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
+import { ComboBuilderModal } from "@/components/combo-builder-modal";
+
+// Slugs/nomes de categoria que identificam um combo "Monte Você Mesmo"
+function isComboProduct(product: Product | any): boolean {
+  const cat = (product.categorias?.nome || product.categoria || "").toLowerCase();
+  const nome = (product.nome || "").toLowerCase();
+  return (
+    cat.includes("combo") ||
+    nome.includes("monte você mesmo") ||
+    nome.includes("monte voce mesmo") ||
+    nome.includes("combo a escolha") ||
+    nome.includes("combo à escolha")
+  );
+}
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -16,10 +30,13 @@ import { Badge } from "@/components/ui/badge";
 
 export interface ProductCardProps {
   product: Product;
+  allProducts?: any[]; // lista completa do catálogo, necessária para abrir o combo builder
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add } = useCart();
+  const [comboOpen, setComboOpen] = useState(false);
+  const combo = isComboProduct(product);
   const weights = product.peso?.includes("-") 
     ? product.peso.split("-").map(w => w.trim()) 
     : product.peso?.includes(",") 
@@ -42,6 +59,10 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (combo) {
+      setComboOpen(true);
+      return;
+    }
     add(product.id, 1, selectedWeight);
     toast.success("Adicionado", { 
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
@@ -50,9 +71,13 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
+    <>
     <Dialog>
       <DialogTrigger asChild>
-        <article className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift">
+        <article
+          onClick={combo ? (e) => { e.preventDefault(); setComboOpen(true); } : undefined}
+          className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift"
+        >
           <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
             <img
               src={product.imagem}
@@ -126,9 +151,16 @@ export function ProductCard({ product }: ProductCardProps) {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="inline-flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-110 active:scale-95 shadow-soft"
+                className={cn(
+                  "inline-flex size-10 items-center justify-center rounded-full text-primary-foreground transition-transform hover:scale-110 active:scale-95 shadow-soft",
+                  combo ? "bg-[#086e45] px-3 w-auto gap-1.5 text-xs font-bold" : "bg-primary"
+                )}
               >
-                <Plus className="size-6" aria-hidden="true" />
+                {combo ? (
+                  <><ShoppingCart className="size-4" aria-hidden="true" /> Montar</>
+                ) : (
+                  <Plus className="size-6" aria-hidden="true" />
+                )}
               </button>
             </div>
           </div>
@@ -250,6 +282,17 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Modal de combo — só renderiza para produtos combo */}
+    {combo && (
+      <ComboBuilderModal
+        isOpen={comboOpen}
+        onClose={() => setComboOpen(false)}
+        combo={{ id: product.id, nome: product.nome, descricao: product.descricao }}
+        products={allProducts}
+      />
+    )}
+    </>
   );
 }
 
