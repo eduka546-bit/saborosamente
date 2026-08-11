@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2, MessageCircle, MapPin, ChevronDown } from "lucide-react";
+import { CheckCircle2, MessageCircle, MapPin, ChevronDown, LogIn, UserPlus, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -104,6 +104,56 @@ function Checkout() {
   const [session, setSession] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+
+  // Modal de login inline
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authNome, setAuthNome] = useState("");
+  const [authTelefone, setAuthTelefone] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    try {
+      if (authMode === "login") {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+        if (error) throw error;
+        setSession(data.session);
+        // prefill dados
+        if (data.session?.user) {
+          setValue("email", data.session.user.email ?? "");
+          const { data: profile } = await supabase.from("profiles").select("nome, telefone").eq("id", data.session.user.id).single();
+          if (profile?.nome) setValue("nome", profile.nome);
+          if (profile?.telefone) setValue("telefone", profile.telefone);
+        }
+        toast.success("Login realizado! Agora finalize seu pedido.");
+        setShowAuthModal(false);
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: { data: { nome: authNome, telefone: authTelefone } }
+        });
+        if (error) throw error;
+        if (data.session) {
+          setSession(data.session);
+          setValue("email", authEmail);
+          setValue("nome", authNome);
+          setValue("telefone", authTelefone);
+          await supabase.from("profiles").upsert({ id: data.session.user.id, nome: authNome, telefone: authTelefone, email: authEmail });
+        }
+        toast.success("Conta criada! Agora finalize seu pedido.");
+        setShowAuthModal(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // ── cupom de desconto ─────────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState(search.cupom ?? "");
@@ -284,6 +334,11 @@ function Checkout() {
   }
 
   const onSubmit = async (data: CheckoutForm) => {
+    // Exige login antes de finalizar
+    if (!session) {
+      setShowAuthModal(true);
+      return;
+    }
     try {
       // registra uso do cupom
       if (appliedCoupon) {
@@ -746,8 +801,19 @@ function Checkout() {
           >
             {isSubmitting
               ? "Registrando pedido..."
-              : `Confirmar pedido • ${formatBRL(finalTotal)}`}
+              : session
+              ? `Confirmar pedido • ${formatBRL(finalTotal)}`
+              : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
+
+          {!session && (
+            <p className="text-center text-xs text-muted-foreground">
+              <button type="button" onClick={() => setShowAuthModal(true)} className="text-primary font-semibold hover:underline">
+                Fazer login ou criar conta
+              </button>{" "}
+              para finalizar o pedido e acompanhar suas entregas.
+            </p>
+          )}
         </form>
 
         {/* ── resumo do pedido ──────────────────────────────────────────────── */}
@@ -787,6 +853,61 @@ function Checkout() {
           </dl>
         </aside>
       </div>
+
+      {/* ── Modal de login/cadastro inline ──────────────────────────────── */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
+          <div className="relative w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-primary px-6 py-5 text-white">
+              <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+                <X size={16} />
+              </button>
+              <h2 className="text-lg font-black">
+                {authMode === "login" ? "Entre na sua conta" : "Crie sua conta"}
+              </h2>
+              <p className="text-sm text-white/75 mt-0.5">
+                {authMode === "login"
+                  ? "Seu carrinho foi salvo. Faça login para finalizar."
+                  : "Crie uma conta para acompanhar seus pedidos."}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAuth} className="p-6 space-y-4">
+              {authMode === "register" && (
+                <>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome completo</label>
+                    <input value={authNome} onChange={e => setAuthNome(e.target.value)} required placeholder="Seu nome" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Telefone / WhatsApp</label>
+                    <input value={authTelefone} onChange={e => setAuthTelefone(e.target.value)} placeholder="(47) 99999-9999" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  </div>
+                </>
+              )}
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">E-mail</label>
+                <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required placeholder="seu@email.com" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Senha</label>
+                <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required placeholder="••••••••" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+
+              <button type="submit" disabled={authLoading} className="w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2">
+                {authLoading ? "Aguarde..." : authMode === "login" ? <><LogIn size={16} /> Entrar e finalizar pedido</> : <><UserPlus size={16} /> Criar conta e finalizar</>}
+              </button>
+
+              <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors py-1">
+                {authMode === "login" ? "Não tem conta? Criar agora" : "Já tenho conta. Fazer login"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
