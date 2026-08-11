@@ -37,13 +37,31 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add } = useCart();
   const [comboOpen, setComboOpen] = useState(false);
   const combo = isComboProduct(product);
-  const weights = product.peso?.includes("-") 
-    ? product.peso.split("-").map(w => w.trim()) 
-    : product.peso?.includes(",") 
-      ? product.peso.split(",").map(w => w.trim())
-      : product.peso ? [product.peso] : [];
+  const weights = (() => {
+    // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
+    const hasSizes = product.preco_300g || product.preco_400g;
+    if (hasSizes) {
+      const sizes: string[] = ["200g"];
+      if (product.preco_300g) sizes.push("300g");
+      if (product.preco_400g) sizes.push("400g");
+      return sizes;
+    }
+    // Fallback: lê do campo peso
+    if (product.peso?.includes("-")) return product.peso.split("-").map((w: string) => w.trim());
+    if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
+    return product.peso ? [product.peso] : [];
+  })();
   const [selectedWeight, setSelectedWeight] = useState(weights.includes("300g") ? "300g" : (weights[0] || ""));
 
+  // Para combos prontos, mostra P/M/G em vez de 200g/300g/400g
+  const isComboPronto = (product.categorias?.nome || product.categoria || "").toLowerCase().includes("combo pronto");
+  const weightLabel = (w: string) => {
+    if (!isComboPronto) return w;
+    if (w === "200g") return "P";
+    if (w === "300g") return "M";
+    if (w === "400g") return "G";
+    return w;
+  };
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
   const currentPrice = isSopa ? 18.00 : (selectedWeight === "300g" && product.preco_300g 
     ? product.preco_300g 
@@ -186,7 +204,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                           : "border-border bg-background text-muted-foreground hover:border-primary/50"
                       )}
                     >
-                      {w}
+                      {weightLabel(w)}
                     </button>
                   ))}
                 </div>
@@ -305,7 +323,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                             : "border-border bg-background text-muted-foreground hover:border-primary/30"
                         )}
                       >
-                        {w}
+                        {weightLabel(w)}
+                        {isComboPronto && (
+                          <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">
+                            {w}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>

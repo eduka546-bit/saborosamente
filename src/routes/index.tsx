@@ -125,10 +125,14 @@ function Index() {
     const set = new Set<string>();
     products.forEach((p: any) => {
       if (p.categorias?.nome) {
-        set.add(p.categorias.nome);
+        const cat = p.categorias.nome;
+        const catLower = cat.toLowerCase();
+        // Remove categorias de combo do filtro lateral
+        if (!catLower.includes("combo")) {
+          set.add(cat);
+        }
       }
     });
-    // Order matters - we can use the default order or just alphabetically
     return ["Todas", ...Array.from(set).sort()];
   }, [products]);
 
