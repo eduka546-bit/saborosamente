@@ -12,10 +12,15 @@ function getSessionId(): string {
   return id;
 }
 
-// Gera cupom único baseado na sessão
+// Gera cupom único — reutiliza se já foi gerado nessa sessão
 export function generateAbandonCoupon(): string {
+  const key = "saborosamente.abandon_coupon";
+  const existing = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+  if (existing) return existing;
   const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `VOLTA${suffix}`;
+  const coupon = `VOLTA${suffix}`;
+  if (typeof window !== "undefined") localStorage.setItem(key, coupon);
+  return coupon;
 }
 
 interface UseAbandonedCartOptions {
@@ -32,6 +37,10 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
   const exitFiredRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCart = lines.length > 0;
+
+  // Não disparar no painel admin
+  const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  if (isAdmin) return { markConverted: async () => {} };
 
   // ── Salva / atualiza o carrinho no banco ──────────────────────────────────
   const saveToDb = useCallback(
@@ -96,6 +105,10 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
         .eq("id", dbIdRef.current);
       dbIdRef.current = null;
       exitFiredRef.current = false;
+      // Limpa o cupom guardado para que próxima sessão gere um novo
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("saborosamente.abandon_coupon");
+      }
     } catch {}
   }, []);
 

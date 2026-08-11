@@ -241,13 +241,22 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 9pt;
-      line-height: 1.35;
+      font-size: 10pt;
+      font-weight: bold;
+      line-height: 1.4;
       width: 58mm;
       background: white;
       color: #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    pre { white-space: pre; font-family: inherit; font-size: inherit; }
+    pre {
+      white-space: pre;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      color: #000;
+    }
   </style>
 </head>
 <body>
