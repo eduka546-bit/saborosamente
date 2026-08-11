@@ -5,16 +5,18 @@ import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 
-// Slugs/nomes de categoria que identificam um combo "Monte Você Mesmo"
+// Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
+// Combos Prontos são produtos normais com tamanho fixo
 function isComboProduct(product: Product | any): boolean {
   const cat = (product.categorias?.nome || product.categoria || "").toLowerCase();
   const nome = (product.nome || "").toLowerCase();
   return (
-    cat.includes("combo") ||
     nome.includes("monte você mesmo") ||
     nome.includes("monte voce mesmo") ||
-    nome.includes("combo a escolha") ||
-    nome.includes("combo à escolha")
+    nome.includes("escolha você mesmo") ||
+    nome.includes("escolha voce mesmo") ||
+    cat.includes("escolha você mesmo") ||
+    cat.includes("escolha voce mesmo")
   );
 }
 import { cn } from "@/lib/utils";
