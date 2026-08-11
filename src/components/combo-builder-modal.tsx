@@ -17,19 +17,12 @@ import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { COMBO_RULES, NO_DISCOUNT_CATEGORIES, isNoDiscount, getComboDiscount } from "@/lib/combo-rules";
 
-// Regras de desconto dos combos
-export const COMBO_RULES = [
-  { min: 20, discount: 0.07, label: "20+ marmitas", badge: "7% OFF" },
-  { min: 10, discount: 0.05, label: "10+ marmitas", badge: "5% OFF" },
-  { min: 5,  discount: 0.03, label: "5+ marmitas",  badge: "3% OFF" },
-];
+export { COMBO_RULES };
 
-// Categorias que NÃO recebem desconto mas contam na quantidade
-const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
-
-function isNoDiscount(categoria: string) {
-  return NO_DISCOUNT_CATEGORIES.some(c => categoria?.toLowerCase().includes(c));
+function isNoDiscountLocal(categoria: string) {
+  return isNoDiscount(categoria);
 }
 
 interface ComboItem {
@@ -90,7 +83,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
 
     // Desconto só sobre marmitas (não sopas/complementos)
     const marmitaSubtotal = items
-      .filter(i => !isNoDiscount(i.categoria))
+      .filter(i => !isNoDiscountLocal(i.categoria))
       .reduce((s, i) => s + i.preco * i.quantity, 0);
 
     const rule = COMBO_RULES.find(r => totalQty >= r.min);
@@ -104,7 +97,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getPrice(product: any, weight: string) {
     const cat = product.categorias?.nome || product.categoria || "";
-    if (isNoDiscount(cat)) return product.preco ?? 0;
+    if (isNoDiscountLocal(cat)) return product.preco ?? 0;
     if (weight === "300g" && product.preco_300g) return product.preco_300g;
     if (weight === "400g" && product.preco_400g) return product.preco_400g;
     return product.preco ?? 0;
@@ -395,7 +388,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
               </div>
 
               {/* Info sobre sopas */}
-              {items.some(i => isNoDiscount(i.categoria)) && (
+              {items.some(i => isNoDiscountLocal(i.categoria)) && (
                 <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-2.5 text-[10px] text-blue-700">
                   <Info size={12} className="shrink-0 mt-0.5" />
                   <span>Sopas e complementos têm preço fixo e não recebem desconto, mas contam na quantidade do combo.</span>

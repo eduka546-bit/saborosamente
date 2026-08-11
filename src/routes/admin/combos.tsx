@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { COMBO_RULES } from "@/components/combo-builder-modal";
+import { COMBO_RULES } from "@/lib/combo-rules";
 
 export const Route = createFileRoute("/admin/combos")({
   component: AdminCombosPage,

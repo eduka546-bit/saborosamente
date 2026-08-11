@@ -13,6 +13,7 @@ import { getTaxas } from "./taxas.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import { ExitIntentModal } from "@/components/exit-intent-modal";
+import { isNoDiscount } from "@/lib/combo-rules";
 
 
 // Variável global para cache de produtos no lado do cliente
@@ -34,12 +35,11 @@ export const RULES = {
   ],
 };
 
-// Categorias com preço fixo (não recebem desconto progressivo)
-export const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
+// Re-exporta de combo-rules para uso no carrinho
+export { isNoDiscount } from "@/lib/combo-rules";
 
-export function isNoDiscount(categoria: string) {
-  return NO_DISCOUNT_CATEGORIES.some(c => categoria?.toLowerCase().includes(c));
-}
+// Mantém também para compatibilidade interna
+export const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
 
 export interface CartLine {
   productId: string;
