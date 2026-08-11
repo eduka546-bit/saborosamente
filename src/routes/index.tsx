@@ -85,6 +85,22 @@ function Index() {
     queryFn: () => getPublicProducts(),
   });
 
+  // Busca categorias na ordem e visibilidade definidas pelo admin
+  const { data: orderedCategories = [] } = useQuery({
+    queryKey: ["public-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categorias")
+        .select("id, nome, visivel_no_filtro, ordem_filtro")
+        .eq("visivel_no_filtro", true)
+        .order("ordem_filtro", { ascending: true })
+        .order("ordem", { ascending: true });
+      if (error) return [];
+      return (data ?? []).filter((c: any) => !c.nome?.toLowerCase().includes("combo"));
+    },
+    staleTime: 1000 * 60,
+  });
+
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
@@ -122,19 +138,23 @@ function Index() {
   }, [products, selectedCategory, searchTerm]);
 
   const categoriesWithProducts = useMemo(() => {
+    // Se temos categorias ordenadas do banco, usa essa ordem
+    if (orderedCategories.length > 0) {
+      const withProducts = orderedCategories
+        .map((c: any) => c.nome)
+        .filter((nome: string) => products.some((p: any) => p.categorias?.nome === nome));
+      return ["Todas", ...withProducts];
+    }
+    // Fallback: ordem alfabética sem combos
     const set = new Set<string>();
     products.forEach((p: any) => {
       if (p.categorias?.nome) {
         const cat = p.categorias.nome;
-        const catLower = cat.toLowerCase();
-        // Remove categorias de combo do filtro lateral
-        if (!catLower.includes("combo")) {
-          set.add(cat);
-        }
+        if (!cat.toLowerCase().includes("combo")) set.add(cat);
       }
     });
     return ["Todas", ...Array.from(set).sort()];
-  }, [products]);
+  }, [products, orderedCategories]);
 
   return (
     <>
