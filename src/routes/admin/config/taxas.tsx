@@ -28,8 +28,8 @@ function AdminConfigTaxasPage() {
       const { data, error } = await supabase
         .from("delivery_rates")
         .select("*")
-        .order("city")
-        .order("neighborhood");
+        .order("cidade")
+        .order("bairro");
       if (error) throw error;
       return data;
     },
@@ -38,10 +38,10 @@ function AdminConfigTaxasPage() {
   const addMutation = useMutation({
     mutationFn: async (values: any) => {
       const { error } = await supabase.from("delivery_rates").insert({
-        neighborhood: values.bairro,
-        city: values.cidade,
-        rate: Number(values.taxa),
-        estimated_time: values.tempo || null,
+        bairro: values.bairro,
+        cidade: values.cidade,
+        valor: Number(values.taxa),
+        ativo: true,
       });
       if (error) throw error;
     },
@@ -58,10 +58,9 @@ function AdminConfigTaxasPage() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: any }) => {
       const { error } = await supabase.from("delivery_rates").update({
-        neighborhood: values.bairro,
-        city: values.cidade,
-        rate: Number(values.taxa),
-        estimated_time: values.tempo || null,
+        bairro: values.bairro,
+        cidade: values.cidade,
+        valor: Number(values.taxa),
       }).eq("id", id);
       if (error) throw error;
     },
@@ -90,16 +89,16 @@ function AdminConfigTaxasPage() {
   const startEdit = (local: any) => {
     setEditingId(local.id);
     setEditForm({
-      bairro: local.neighborhood,
-      cidade: local.city,
-      taxa: local.rate,
-      tempo: local.estimated_time || "",
+      bairro: local.bairro,
+      cidade: local.cidade,
+      taxa: local.valor,
+      tempo: "",
     });
   };
 
   const filtered = locais.filter((l: any) =>
-    l.neighborhood?.toLowerCase().includes(search.toLowerCase()) ||
-    l.city?.toLowerCase().includes(search.toLowerCase())
+    l.bairro?.toLowerCase().includes(search.toLowerCase()) ||
+    l.cidade?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -143,7 +142,6 @@ function AdminConfigTaxasPage() {
                         <th className="px-6 py-4">Bairro</th>
                         <th className="px-6 py-4">Cidade</th>
                         <th className="px-6 py-4">Taxa (R$)</th>
-                        <th className="px-6 py-4">Tempo Est.</th>
                         <th className="px-6 py-4 text-right">Ações</th>
                       </tr>
                     </thead>
@@ -155,7 +153,6 @@ function AdminConfigTaxasPage() {
                               <td className="px-3 py-2"><Input value={editForm.bairro} onChange={e => setEditForm({ ...editForm, bairro: e.target.value })} className="h-8 text-xs" /></td>
                               <td className="px-3 py-2"><Input value={editForm.cidade} onChange={e => setEditForm({ ...editForm, cidade: e.target.value })} className="h-8 text-xs" /></td>
                               <td className="px-3 py-2"><Input type="number" value={editForm.taxa} onChange={e => setEditForm({ ...editForm, taxa: e.target.value })} className="h-8 text-xs w-20" /></td>
-                              <td className="px-3 py-2"><Input value={editForm.tempo} onChange={e => setEditForm({ ...editForm, tempo: e.target.value })} placeholder="30-45 min" className="h-8 text-xs" /></td>
                               <td className="px-3 py-2 text-right">
                                 <div className="flex gap-1 justify-end">
                                   <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => updateMutation.mutate({ id: local.id, values: editForm })}><Save size={14} /></Button>
@@ -165,12 +162,9 @@ function AdminConfigTaxasPage() {
                             </>
                           ) : (
                             <>
-                              <td className="px-6 py-4 font-bold text-gray-900">{local.neighborhood}</td>
-                              <td className="px-6 py-4 text-gray-500">{local.city}</td>
-                              <td className="px-6 py-4 text-green-600 font-bold">R$ {Number(local.rate).toFixed(2)}</td>
-                              <td className="px-6 py-4 text-gray-500 flex items-center gap-1">
-                                <Clock size={14} /> {local.estimated_time || "—"}
-                              </td>
+                              <td className="px-6 py-4 font-bold text-gray-900">{local.bairro}</td>
+                              <td className="px-6 py-4 text-gray-500">{local.cidade}</td>
+                              <td className="px-6 py-4 text-green-600 font-bold">R$ {Number(local.valor).toFixed(2)}</td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex gap-1 justify-end">
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-[#5850ec]" onClick={() => startEdit(local)}><Edit3 size={14} /></Button>
@@ -223,10 +217,6 @@ function AdminConfigTaxasPage() {
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Taxa (R$)</label>
                   <Input type="number" step="0.01" value={form.taxa} onChange={e => setForm({ ...form, taxa: e.target.value })} required placeholder="10.00" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Tempo Est.</label>
-                  <Input value={form.tempo} onChange={e => setForm({ ...form, tempo: e.target.value })} placeholder="30-45 min" />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">

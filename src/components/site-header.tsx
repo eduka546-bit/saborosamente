@@ -85,10 +85,18 @@ export function SiteHeader() {
       const { data, error } = await supabase
         .from("delivery_rates")
         .select("*")
-        .order("city", { ascending: true })
-        .order("neighborhood", { ascending: true });
+        .order("cidade", { ascending: true })
+        .order("bairro", { ascending: true });
       
-      if (!error && data && data.length > 0) return data;
+      if (!error && data && data.length > 0) {
+        // Mapeia para o formato esperado pelo componente
+        return data.map((d: any) => ({
+          ...d,
+          neighborhood: d.bairro,
+          city: d.cidade,
+          rate: d.valor,
+        }));
+      }
 
       // Prioridade 2: Lista Completa de Backup
       const backupData: any[] = [
