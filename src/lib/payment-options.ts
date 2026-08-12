@@ -19,7 +19,7 @@ export const defaultCardFlags: PaymentOption[] = [
 ];
 
 export const defaultMealFlags: PaymentOption[] = [
-  { name: "VR", logo: "https://vrsolucao.com.br/wp-content/uploads/2021/05/logo-vr.png", enabled: true },
+  { name: "VR", logo: "https://logospng.org/download/vr-beneficios/logo-vr-beneficios-1024.png", enabled: true },
   { name: "Ticket", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Ticket_Logotipo.svg/1200px-Ticket_Logotipo.svg.png", enabled: true },
   { name: "Alelo", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Alelo_logo.svg", enabled: true },
   { name: "Pluxee", logo: "https://logodownload.org/wp-content/uploads/2023/11/pluxee-logo.png", enabled: true },
