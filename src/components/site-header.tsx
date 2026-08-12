@@ -34,7 +34,7 @@ import {
 const links = [
   { to: "/", hash: "cardapio", label: "Cardápio", icon: Menu, type: "link" },
   { to: "#", label: "Áreas de entrega", icon: MapPin, type: "modal" },
-  { to: "/", label: "Cashback", icon: Sparkles, type: "link" },
+  { to: "/perfil", label: "Cashback", icon: Sparkles, type: "link" },
   { to: "/fale-conosco", label: "Fale conosco", icon: MessageSquare, type: "link" },
 ] as const;
 
