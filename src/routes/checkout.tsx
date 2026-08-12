@@ -158,7 +158,6 @@ function Checkout() {
   // ── cashback ──────────────────────────────────────────────────────────────
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
   const [cashbackConfig, setCashbackConfig] = useState<any>(null);
-  const [usarCashbackValor, setUsarCashbackValor] = useState(0);
   const [cashbackAtivado, setCashbackAtivado] = useState(false);
 
   useEffect(() => {
@@ -166,11 +165,6 @@ function Checkout() {
     getCashbackConfig().then(cfg => setCashbackConfig(cfg));
     getSaldo(session.user.id).then(s => setCashbackSaldo(s));
   }, [session]);
-
-  const cashbackDisponivel = cashbackConfig?.ativo && cashbackSaldo >= (cashbackConfig?.minimo_uso ?? 5);
-  const cashbackMaxDesc = cashbackConfig ? Math.min(cashbackSaldo, (total - couponDiscount) * cashbackConfig.limite_desconto_pct) : 0;
-  const cashbackDesconto = cashbackAtivado ? Math.min(cashbackSaldo, cashbackMaxDesc) : 0;
-  const finalTotal = Math.max(0, total - couponDiscount - cashbackDesconto);
 
   // ── cupom de desconto ─────────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState(search.cupom ?? "");
@@ -251,6 +245,13 @@ function Checkout() {
       ? shipping
       : appliedCoupon.valor
     : 0;
+
+  // calcula desconto do cashback e total final
+  const cashbackMaxDesc = cashbackConfig
+    ? Math.min(cashbackSaldo, (total - couponDiscount) * cashbackConfig.limite_desconto_pct)
+    : 0;
+  const cashbackDesconto = cashbackAtivado ? Math.min(cashbackSaldo, cashbackMaxDesc) : 0;
+  const finalTotal = Math.max(0, total - couponDiscount - cashbackDesconto);
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
