@@ -137,6 +137,19 @@ Deno.serve(async (req) => {
 
       if (!texto) return new Response("OK", { status: 200 });
 
+      // Busca/cria conversa
+      const conversa = await getOrCreateConversa(telefone, nomeContato);
+      let historico: any[] = conversa?.mensagens ?? [];
+
+      // ── Se estiver em modo humano, só salva e não responde ────────────────
+      if (conversa?.modo === "humano") {
+        await appendMensagem(conversa.id, historico, {
+          role: "user",
+          content: texto,
+        });
+        return new Response("OK", { status: 200 });
+      }
+
       // Busca configuração do agente
       const { data: config } = await supabase
         .from("agente_config")
@@ -171,8 +184,7 @@ REGRAS DE COMPORTAMENTO:
 - Se perguntar preço, consulte o cardápio acima e responda com precisão
 - Horário: encomendas 24h, entregas conforme disponibilidade`;
 
-      // Busca/cria conversa
-      const conversa = await getOrCreateConversa(telefone, nomeContato);
+      // Busca/cria conversa (já criada acima)
       let historico: any[] = conversa?.mensagens ?? [];
 
       // Adiciona mensagem do usuário
