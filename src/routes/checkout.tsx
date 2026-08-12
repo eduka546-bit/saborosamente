@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2, MessageCircle, MapPin, ChevronDown, LogIn, UserPlus, X } from "lucide-react";
+import { CheckCircle2, MessageCircle, MapPin, ChevronDown, LogIn, UserPlus, X, Gift } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { createOrder } from "@/lib/orders.functions";
+import { getCashbackConfig, getSaldo, creditarCashback, usarCashback } from "@/lib/cashback";
 import {
   defaultPaymentMethods,
   defaultCardFlags,
@@ -155,6 +156,23 @@ function Checkout() {
     }
   };
 
+  // ── cashback ──────────────────────────────────────────────────────────────
+  const [cashbackSaldo, setCashbackSaldo] = useState(0);
+  const [cashbackConfig, setCashbackConfig] = useState<any>(null);
+  const [usarCashbackValor, setUsarCashbackValor] = useState(0);
+  const [cashbackAtivado, setCashbackAtivado] = useState(false);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    getCashbackConfig().then(cfg => setCashbackConfig(cfg));
+    getSaldo(session.user.id).then(s => setCashbackSaldo(s));
+  }, [session]);
+
+  const cashbackDisponivel = cashbackConfig?.ativo && cashbackSaldo >= (cashbackConfig?.minimo_uso ?? 5);
+  const cashbackMaxDesc = cashbackConfig ? Math.min(cashbackSaldo, (total - couponDiscount) * cashbackConfig.limite_desconto_pct) : 0;
+  const cashbackDesconto = cashbackAtivado ? Math.min(cashbackSaldo, cashbackMaxDesc) : 0;
+  const finalTotal = Math.max(0, total - couponDiscount - cashbackDesconto);
+
   // ── cupom de desconto ─────────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState(search.cupom ?? "");
   const [appliedCoupon, setAppliedCoupon] = useState<{ codigo: string; tipo: string; valor: number } | null>(null);
@@ -234,8 +252,6 @@ function Checkout() {
       ? shipping
       : appliedCoupon.valor
     : 0;
-
-  const finalTotal = total - couponDiscount;
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
@@ -402,6 +418,16 @@ function Checkout() {
 
       setOrderId(order.id);
       clear();
+
+      // Credita cashback ao usuário
+      if (session?.user?.id) {
+        await creditarCashback(session.user.id, order.id, finalTotal);
+        // Debita cashback usado se aplicou
+        if (cashbackDesconto > 0) {
+          await usarCashback(session.user.id, order.id, cashbackDesconto);
+        }
+      }
+
       toast.success("Pedido registrado!", { description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}` });
     } catch (error: any) {
       console.error("[checkout] falha ao registrar pedido", error);
@@ -781,6 +807,33 @@ function Checkout() {
             )}
           </div>
 
+          {/* ── cashback ───────────────────────────────────────────────── */}
+          {session && cashbackSaldo > 0 && cashbackConfig?.ativo && (
+            <div className={cn("rounded-2xl border p-4 space-y-2 transition-all", cashbackAtivado ? "border-yellow-400 bg-yellow-50" : "border-border bg-muted/30")}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gift size={15} className="text-yellow-600" />
+                  <span className="text-sm font-semibold">
+                    Cashback disponível: <strong className="text-yellow-700">{formatBRL(cashbackSaldo)}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCashbackAtivado(!cashbackAtivado)}
+                  className={cn("text-xs font-bold px-3 py-1.5 rounded-full transition-all", cashbackAtivado ? "bg-yellow-500 text-white" : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200")}
+                >
+                  {cashbackAtivado ? "✓ Usando" : "Usar"}
+                </button>
+              </div>
+              {cashbackAtivado && cashbackDesconto > 0 && (
+                <p className="text-xs text-yellow-700">Desconto de <strong>{formatBRL(cashbackDesconto)}</strong> aplicado.</p>
+              )}
+              {cashbackSaldo < (cashbackConfig?.minimo_uso ?? 5) && (
+                <p className="text-xs text-muted-foreground">Saldo mínimo para usar: {formatBRL(cashbackConfig?.minimo_uso ?? 5)}</p>
+              )}
+            </div>
+          )}
+
           {/* ── observações ────────────────────────────────────────────────── */}
           <div>
             <label htmlFor="observacoes" className="text-sm font-medium">
@@ -844,6 +897,14 @@ function Checkout() {
                   🎟️ Cupom {appliedCoupon?.codigo}
                 </dt>
                 <dd>− {formatBRL(couponDiscount)}</dd>
+              </div>
+            )}
+            {cashbackDesconto > 0 && (
+              <div className="flex justify-between text-yellow-600">
+                <dt className="font-semibold flex items-center gap-1">
+                  <Gift size={12} /> Cashback
+                </dt>
+                <dd>− {formatBRL(cashbackDesconto)}</dd>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-2 text-base">

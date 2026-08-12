@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck } from "lucide-react";
+import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck, Gift, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSaldo } from "@/lib/cashback";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +47,8 @@ function PerfilPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [cashbackSaldo, setCashbackSaldo] = useState(0);
+  const [cashbackTransacoes, setCashbackTransacoes] = useState<any[]>([]);
   
   const [profileForm, setProfileForm] = useState({
     nome: "",
@@ -66,6 +71,14 @@ function PerfilPage() {
     fetchProfile();
     fetchAddresses();
     fetchOrders();
+    // Busca cashback
+    getSaldo(session.user.id).then(s => setCashbackSaldo(s));
+    supabase.from("cashback_transacoes")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => setCashbackTransacoes(data ?? []));
   }, []);
 
   const fetchOrders = async () => {
@@ -429,6 +442,51 @@ function PerfilPage() {
                       )}
                     </CardContent>
                   </Card>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Meu Cashback */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Gift className="h-5 w-5 text-yellow-500" />
+              Meu Cashback
+            </h2>
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-yellow-600 mb-1">Saldo disponível</p>
+                  <p className="text-3xl font-black text-yellow-700">R$ {cashbackSaldo.toFixed(2).replace(".", ",")}</p>
+                  <p className="text-xs text-yellow-600 mt-1">Use no checkout para descontar do próximo pedido</p>
+                </div>
+                <div className="h-16 w-16 rounded-full bg-yellow-200 flex items-center justify-center">
+                  <Gift size={28} className="text-yellow-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {cashbackTransacoes.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Histórico</h3>
+                {cashbackTransacoes.map((t: any) => (
+                  <div key={t.id} className="flex items-center justify-between bg-white border rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      {t.tipo === "recebido"
+                        ? <ArrowUpCircle size={16} className="text-green-500 shrink-0" />
+                        : t.tipo === "usado"
+                        ? <ArrowDownCircle size={16} className="text-blue-500 shrink-0" />
+                        : <Clock size={16} className="text-red-400 shrink-0" />
+                      }
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 capitalize">{t.tipo}</p>
+                        <p className="text-xs text-gray-400">{format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                      </div>
+                    </div>
+                    <span className={`font-bold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}>
+                      {t.tipo === "recebido" ? "+" : "−"} R$ {Math.abs(t.valor).toFixed(2)}
+                    </span>
+                  </div>
                 ))}
               </div>
             )}

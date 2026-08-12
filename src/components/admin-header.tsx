@@ -145,6 +145,8 @@ export function AdminHeader() {
               icon={Settings} 
               items={[
                 { label: "Personalizar Site", href: "/admin/config/site" },
+                { label: "Fale Conosco / FAQ", href: "/admin/config/faq" },
+                { label: "Cashback", href: "/admin/config/cashback-config" },
                 { label: "Unidades", href: "/admin/config/unidades" },
                 { label: "Horário de funcionamento", href: "/admin/config/horarios" },
                 { label: "Exceção de funcionamento", href: "/admin/config/excecoes" },
