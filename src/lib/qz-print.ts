@@ -12,7 +12,7 @@
 
 declare const qz: any;
 
-const QZ_CDN = "https://cdn.qz.io/qz-tray/qz-tray.js";
+const QZ_CDN = "/qz-tray.js"; // servido localmente via public/
 const QZ_WS  = "wss://localhost:8181";
 
 let qzLoaded = false;
