@@ -215,6 +215,45 @@ async function getArquivosContexto(): Promise<{ texto: string; arquivos: any[] }
     arquivos,
   };
 }
+
+// Busca módulos ativos do banco e monta o prompt base
+async function getModulosPrompt(): Promise<string> {
+  const { data: modulos } = await supabase
+    .from("agente_modulos")
+    .select("nome, categoria, conteudo")
+    .eq("ativo", true)
+    .order("ordem");
+
+  if (!modulos?.length) return "";
+
+  // Agrupa por categoria na ordem lógica
+  const ordemCategorias = ["identidade", "cardapio", "pedidos", "entregas", "comportamento"];
+  const porCategoria: Record<string, any[]> = {};
+  for (const mod of modulos) {
+    if (!porCategoria[mod.categoria]) porCategoria[mod.categoria] = [];
+    porCategoria[mod.categoria].push(mod);
+  }
+
+  const secoes: string[] = [];
+  for (const cat of ordemCategorias) {
+    const mods = porCategoria[cat];
+    if (!mods?.length) continue;
+    for (const mod of mods) {
+      secoes.push(`## ${mod.nome}\n${mod.conteudo}`);
+    }
+  }
+
+  // Categorias extras não previstas na ordem
+  for (const [cat, mods] of Object.entries(porCategoria)) {
+    if (!ordemCategorias.includes(cat)) {
+      for (const mod of mods) {
+        secoes.push(`## ${mod.nome}\n${mod.conteudo}`);
+      }
+    }
+  }
+
+  return secoes.join("\n\n");
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
@@ -462,34 +501,36 @@ Deno.serve(async (req) => {
       }
 
       // ── Busca contexto dinâmico em paralelo ──────────────────────────────
-      const [{ texto: cardapioContexto, produtos }, entregasContexto, settingsContexto, { texto: arquivosContexto, arquivos }] =
-        await Promise.all([getProdutosContexto(), getEntregasContexto(), getSiteSettings(), getArquivosContexto()]);
+      const [
+        { texto: cardapioContexto, produtos },
+        entregasContexto,
+        settingsContexto,
+        { texto: arquivosContexto, arquivos },
+        modulosPrompt,
+      ] = await Promise.all([
+        getProdutosContexto(),
+        getEntregasContexto(),
+        getSiteSettings(),
+        getArquivosContexto(),
+        getModulosPrompt(),
+      ]);
 
       // ── Monta system prompt completo ─────────────────────────────────────
-      const systemPrompt = `${config.system_prompt}
+      // Usa módulos do banco se existirem, senão cai no system_prompt da agente_config
+      const basePrompt = modulosPrompt || config.system_prompt;
+
+      const systemPrompt = `${basePrompt}
 ${cardapioContexto}
 ${entregasContexto}
 ${settingsContexto}
 ${arquivosContexto}
 
-REGRAS CRÍTICAS:
-- NUNCA invente preços. Consulte sempre o CARDÁPIO COMPLETO acima antes de informar qualquer valor.
-- NUNCA confirme entrega em bairro/cidade que não esteja na lista ÁREAS DE ENTREGA.
-- Para pedidos: colete as informações passo a passo (não pergunte tudo de uma vez):
-  1. O que deseja pedir (produto, quantidade, peso se aplicável)
-  2. Entrega ou retirada?
-  3. Se entrega: cidade, bairro, rua e número
-  4. Forma de pagamento
-  5. Nome completo do cliente
-  6. Confirmar resumo do pedido e aguardar confirmação do cliente
-  7. Só então use a função criar_pedido
-- Se cliente pedir para ver o cardápio visualmente ou receber o PDF, use a função enviar_arquivo com o arquivo correto da lista de ARQUIVOS DISPONÍVEIS
-- Validade das marmitas: 6 meses no freezer
-- Preparo: até 7 minutos no micro-ondas
-- Site para pedidos online: saborosamente.vercel.app
-- Seja simpático, use emojis moderadamente 🍱
-- Respostas curtas e objetivas (máximo 3 parágrafos por mensagem)
-- Se o cliente ficar insatisfeito ou pedir falar com humano: informe que vai transferir para nossa equipe`;
+REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
+- NUNCA invente preços — consulte o CARDÁPIO COMPLETO acima.
+- NUNCA confirme entrega em bairro/cidade fora da lista ÁREAS DE ENTREGA.
+- Para criar pedidos: colete dados passo a passo (produto → entrega/retirada → endereço → pagamento → nome → resumo → confirmação → usar função criar_pedido).
+- Para enviar arquivos: use a função enviar_arquivo com a URL exata da lista ARQUIVOS DISPONÍVEIS.
+- Site para pedidos: saborosamente.vercel.app`;
 
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
       historico = await appendMensagem(conversa.id, historico, { role: "user", content: texto });

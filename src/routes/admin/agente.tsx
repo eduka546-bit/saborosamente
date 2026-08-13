@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, Save, Bot, MessageCircle, Clock, User, Zap, Send,
   Settings, AlertTriangle, Info, Upload, Trash2, FileText,
-  Image, File, Eye, EyeOff, Search, Sun, Moon, MoreVertical,
-  ChevronLeft, Check, CheckCheck, Paperclip, Smile
+  Image, File, Eye, EyeOff, Search, Sun, Moon,
+  ChevronLeft, CheckCheck, Paperclip, Smile, Plus, ToggleLeft, ToggleRight, GripVertical, Pencil, X
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -108,12 +108,317 @@ const LIGHT = {
   divider: "border-[#e9edef]",
 };
 
+// ── Aba de Módulos do Prompt ─────────────────────────────────────────────────
+const CATEGORIAS: Record<string, { label: string; cor: string }> = {
+  identidade:   { label: "Identidade",    cor: "bg-purple-100 text-purple-700 border-purple-200" },
+  cardapio:     { label: "Cardápio",      cor: "bg-green-100 text-green-700 border-green-200" },
+  pedidos:      { label: "Pedidos",       cor: "bg-blue-100 text-blue-700 border-blue-200" },
+  entregas:     { label: "Entregas",      cor: "bg-orange-100 text-orange-700 border-orange-200" },
+  comportamento:{ label: "Comportamento", cor: "bg-gray-100 text-gray-700 border-gray-200" },
+};
+
+function AbaModulos({ dark }: { dark: boolean }) {
+  const t = dark ? DARK : LIGHT;
+  const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ nome: "", categoria: "comportamento", conteudo: "" });
+  const [criando, setCriando] = useState(false);
+  const [novoForm, setNovoForm] = useState({ nome: "", categoria: "comportamento", conteudo: "" });
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos");
+
+  const { data: modulos = [], isLoading } = useQuery({
+    queryKey: ["agente-modulos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agente_modulos")
+        .select("*")
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: string; values: any }) => {
+      const { error } = await supabase.from("agente_modulos")
+        .update({ ...values, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      setEditingId(null);
+      toast.success("Módulo salvo!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("agente_modulos").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agente-modulos"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("agente_modulos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      toast.success("Módulo removido.");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const criarMutation = useMutation({
+    mutationFn: async (values: any) => {
+      const maxOrdem = (modulos as any[]).reduce((m: number, mod: any) => Math.max(m, mod.ordem ?? 0), 0);
+      const { error } = await supabase.from("agente_modulos").insert({
+        ...values, ativo: true, ordem: maxOrdem + 1,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      setCriando(false);
+      setNovoForm({ nome: "", categoria: "comportamento", conteudo: "" });
+      toast.success("Módulo criado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const modulosFiltrados = filtroCategoria === "todos"
+    ? (modulos as any[])
+    : (modulos as any[]).filter((m: any) => m.categoria === filtroCategoria);
+
+  const ativosCount = (modulos as any[]).filter((m: any) => m.ativo).length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className={`rounded-xl border p-4 flex items-center justify-between ${t.settingsCard}`}>
+        <div>
+          <p className={`text-sm font-semibold ${t.text}`}>Módulos do Prompt</p>
+          <p className={`text-xs ${t.textSub}`}>{ativosCount} de {(modulos as any[]).length} ativos · A IA usa apenas os módulos ativados</p>
+        </div>
+        <button
+          onClick={() => setCriando(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00a884] text-white text-xs font-semibold hover:bg-[#008f72] transition-all"
+        >
+          <Plus size={13} /> Novo módulo
+        </button>
+      </div>
+
+      {/* Filtros de categoria */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFiltroCategoria("todos")}
+          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+            filtroCategoria === "todos"
+              ? "bg-[#00a884] text-white border-[#00a884]"
+              : `${t.settingsCard} ${t.textSub}`
+          }`}
+        >
+          Todos ({(modulos as any[]).length})
+        </button>
+        {Object.entries(CATEGORIAS).map(([key, cat]) => {
+          const count = (modulos as any[]).filter((m: any) => m.categoria === key).length;
+          return (
+            <button
+              key={key}
+              onClick={() => setFiltroCategoria(key)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                filtroCategoria === key ? cat.cor + " font-bold" : `${t.settingsCard} ${t.textSub}`
+              }`}
+            >
+              {cat.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Formulário novo módulo */}
+      {criando && (
+        <div className={`rounded-xl border p-4 space-y-3 ${t.settingsCard}`}>
+          <p className={`text-sm font-bold ${t.text}`}>Novo módulo</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Nome</label>
+              <input
+                value={novoForm.nome}
+                onChange={e => setNovoForm(p => ({ ...p, nome: e.target.value }))}
+                placeholder="Ex: Promoções especiais"
+                className={`mt-1 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] ${t.settingsInput}`}
+              />
+            </div>
+            <div>
+              <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Categoria</label>
+              <select
+                value={novoForm.categoria}
+                onChange={e => setNovoForm(p => ({ ...p, categoria: e.target.value }))}
+                className={`mt-1 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] ${t.settingsInput}`}
+              >
+                {Object.entries(CATEGORIAS).map(([key, cat]) => (
+                  <option key={key} value={key}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Conteúdo</label>
+            <textarea
+              value={novoForm.conteudo}
+              onChange={e => setNovoForm(p => ({ ...p, conteudo: e.target.value }))}
+              placeholder="Escreva as instruções deste módulo..."
+              rows={5}
+              className={`mt-1 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] resize-none leading-relaxed ${t.settingsInput}`}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => criarMutation.mutate(novoForm)}
+              disabled={!novoForm.nome.trim() || !novoForm.conteudo.trim() || criarMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00a884] text-white text-xs font-semibold disabled:opacity-50"
+            >
+              {criarMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Criar
+            </button>
+            <button
+              onClick={() => { setCriando(false); setNovoForm({ nome: "", categoria: "comportamento", conteudo: "" }); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${t.textSub}`}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de módulos */}
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="animate-spin text-[#00a884]" size={20} /></div>
+      ) : (
+        <div className="space-y-2">
+          {modulosFiltrados.map((mod: any) => {
+            const cat = CATEGORIAS[mod.categoria] ?? CATEGORIAS.comportamento;
+            const isEditing = editingId === mod.id;
+
+            return (
+              <div
+                key={mod.id}
+                className={`rounded-xl border transition-all ${t.settingsCard} ${!mod.ativo ? "opacity-50" : ""}`}
+              >
+                {isEditing ? (
+                  /* ── Modo edição ── */
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Nome</label>
+                        <input
+                          value={editForm.nome}
+                          onChange={e => setEditForm(p => ({ ...p, nome: e.target.value }))}
+                          className={`mt-1 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] ${t.settingsInput}`}
+                        />
+                      </div>
+                      <div>
+                        <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Categoria</label>
+                        <select
+                          value={editForm.categoria}
+                          onChange={e => setEditForm(p => ({ ...p, categoria: e.target.value }))}
+                          className={`mt-1 w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] ${t.settingsInput}`}
+                        >
+                          {Object.entries(CATEGORIAS).map(([key, c]) => (
+                            <option key={key} value={key}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Conteúdo</label>
+                        <span className={`text-[10px] ${t.textSub}`}>{editForm.conteudo.length} chars</span>
+                      </div>
+                      <textarea
+                        value={editForm.conteudo}
+                        onChange={e => setEditForm(p => ({ ...p, conteudo: e.target.value }))}
+                        rows={8}
+                        className={`w-full rounded-lg border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#00a884] resize-none leading-relaxed font-mono ${t.settingsInput}`}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateMutation.mutate({ id: mod.id, values: editForm })}
+                        disabled={updateMutation.isPending}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00a884] text-white text-xs font-semibold"
+                      >
+                        {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Salvar
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${t.textSub}`}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Modo visualização ── */
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${cat.cor}`}>
+                          {cat.label}
+                        </span>
+                        <span className={`text-sm font-semibold ${t.text}`}>{mod.nome}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Toggle ativo */}
+                        <button
+                          onClick={() => toggleMutation.mutate({ id: mod.id, ativo: !mod.ativo })}
+                          title={mod.ativo ? "Desativar" : "Ativar"}
+                          className={`p-1.5 rounded-lg transition-all ${mod.ativo ? "text-[#00a884]" : t.textSub}`}
+                        >
+                          {mod.ativo ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                        </button>
+                        {/* Editar */}
+                        <button
+                          onClick={() => { setEditingId(mod.id); setEditForm({ nome: mod.nome, categoria: mod.categoria, conteudo: mod.conteudo }); }}
+                          className={`p-1.5 rounded-lg hover:text-[#00a884] transition-all ${t.textSub}`}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {/* Excluir */}
+                        <button
+                          onClick={() => confirm(`Remover o módulo "${mod.nome}"?`) && deleteMutation.mutate(mod.id)}
+                          className="p-1.5 rounded-lg text-red-400 hover:text-red-600 transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    {/* Preview do conteúdo */}
+                    <p className={`text-[11px] mt-2 leading-relaxed line-clamp-2 ${t.textSub}`}>
+                      {mod.conteudo}
+                    </p>
+                    <p className={`text-[10px] mt-1 ${t.textSub} opacity-60`}>{mod.conteudo.length} chars</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Painel de Configurações ───────────────────────────────────────────────────
 function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"instrucoes" | "arquivos" | "webhook">("instrucoes");
+  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook">("instrucoes");
   const [uploading, setUploading] = useState(false);
   const [novoArquivo, setNovoArquivo] = useState({ nome: "", descricao: "", tipo: "imagem" });
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
@@ -180,6 +485,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
 
   const tabs = [
     { id: "instrucoes", label: "Instruções" },
+    { id: "modulos", label: "🧩 Módulos" },
     { id: "arquivos", label: "📎 Arquivos" },
     { id: "webhook", label: "Técnico" },
   ] as const;
@@ -263,6 +569,11 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
               </button>
             </div>
           </>
+        )}
+
+        {/* ── Módulos ── */}
+        {tab === "modulos" && (
+          <AbaModulos dark={dark} />
         )}
 
         {/* ── Arquivos ── */}
