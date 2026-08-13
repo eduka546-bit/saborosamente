@@ -1,102 +1,109 @@
-import { createFileRoute, redirect, Outlet, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouter, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Store, LogOut } from "lucide-react";
+import { Store, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
-  beforeLoad: async ({ location }): Promise<any> => {
-    console.log("Admin route beforeLoad started", location.pathname);
-    
-    // Se for a rota de login, não redirecionamos
+  // beforeLoad roda no servidor (SSR) onde localStorage não existe,
+  // por isso não verificamos sessão aqui — fazemos isso no componente (client-side).
+  beforeLoad: async ({ location }) => {
+    // Só deixa passar — a guarda real está no AdminLayout abaixo
     if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") return;
-
-    try {
-      // Tenta restaurar a sessão do storage primeiro
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase timeout")), 15000));
-      
-      let { data: { session }, error: sessionError } = await (Promise.race([sessionPromise, timeoutPromise]) as Promise<any>);
-      
-      // Se não tem sessão, tenta um refresh antes de redirecionar
-      if (!session && !sessionError) {
-        const { data: refreshData } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-      }
-
-      if (sessionError) {
-        console.error("Session error:", sessionError);
-        return redirect({ to: "/admin/login" });
-      }
-
-      const user = session?.user;
-      
-      if (!user) {
-        console.log("No user found, redirecting to login");
-        return redirect({
-          to: "/admin/login",
-        });
-      }
-
-      // Verificação rápida para o admin principal
-      if (user.email === "anabolic.foodsbs@gmail.com") {
-        console.log("Admin authenticated by email");
-        return { user, role: "admin" };
-      }
-
-      // Verificação de permissão admin no banco
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (roleError) {
-        console.error("Role check error:", roleError);
-      }
-
-      if (!roleData) {
-        console.log("User is not admin, redirecting to login");
-        await supabase.auth.signOut();
-        return redirect({
-          to: "/admin/login",
-        });
-      }
-
-      console.log("Admin authenticated by role");
-      return { user, role: "admin" };
-    } catch (err: any) {
-      if (err && typeof err === 'object' && 'to' in err) return err;
-      console.error("Critical error in admin beforeLoad:", err);
-      return redirect({ to: "/admin/login" });
-    }
   },
   component: function AdminLayoutWrapper() {
     return <AdminLayout />;
   },
 });
 
+const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
+
 function AdminLayout() {
   const router = useRouter();
-  const isLoginPage = router.state.location.pathname === "/admin/login" || router.state.location.pathname === "/admin/login/";
-  const { role } = (Route.useRouteContext() as any) || {};
-  
-  if (isLoginPage) {
-    return <Outlet />;
-  }
+  const navigate = useNavigate();
+  const isLoginPage =
+    router.state.location.pathname === "/admin/login" ||
+    router.state.location.pathname === "/admin/login/";
 
-  if (role !== "admin") {
+  const [checking, setChecking] = useState(!isLoginPage);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+
+    let isMounted = true;
+
+    async function checkAuth() {
+      try {
+        // Lê sessão do localStorage (client-side, funciona no browser)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          if (isMounted) navigate({ to: "/admin/login" as any });
+          return;
+        }
+
+        const user = session.user;
+
+        // Shortcut para o admin principal
+        if (user.email === ADMIN_EMAIL) {
+          if (isMounted) { setIsAdmin(true); setChecking(false); }
+          return;
+        }
+
+        // Verifica role no banco
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (!roleData) {
+          await supabase.auth.signOut();
+          if (isMounted) navigate({ to: "/admin/login" as any });
+          return;
+        }
+
+        if (isMounted) { setIsAdmin(true); setChecking(false); }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        if (isMounted) navigate({ to: "/admin/login" as any });
+      }
+    }
+
+    checkAuth();
+
+    // Escuta mudanças de estado de autenticação (logout, token expirado, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        if (isMounted) navigate({ to: "/admin/login" as any });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [isLoginPage]);
+
+  // Página de login — sem guarda
+  if (isLoginPage) return <Outlet />;
+
+  // Verificando sessão — spinner enquanto lê o localStorage
+  if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-red-600">Acesso Restrito</h1>
-          <p className="text-gray-600">Você não tem permissão para acessar esta área.</p>
-          <Link to="/admin/login" className="text-primary hover:underline font-medium">Voltar para o login</Link>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-primary" size={32} />
+          <p className="text-sm text-gray-500">Verificando acesso...</p>
         </div>
       </div>
     );
   }
+
+  // Sem permissão (não deve chegar aqui normalmente, o navigate já redireciona)
+  if (!isAdmin) return null;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -109,15 +116,15 @@ function AdminLayout() {
             <span className="font-bold text-sm uppercase tracking-wider">Voltar para a Loja</span>
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="text-gray-500 hover:text-red-600 gap-2"
             onClick={async () => {
               await supabase.auth.signOut();
-              router.navigate({ to: "/admin/login" });
+              navigate({ to: "/admin/login" as any });
             }}
           >
             <LogOut size={18} />
@@ -131,10 +138,3 @@ function AdminLayout() {
     </div>
   );
 }
-
-
-
-
-
-
-
