@@ -255,6 +255,94 @@ async function getModulosPrompt(): Promise<string> {
   return secoes.join("\n\n");
 }
 // ─────────────────────────────────────────────────────────────────────────────
+// Reconhecimento de cliente — telefone primeiro, depois CPF
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function montarContextoCliente(profile: any): Promise<string> {
+  const { data: pedidos } = await supabase
+    .from("pedidos")
+    .select("id, created_at, valor_total, status, endereco_bairro, endereco_cidade, metodo_pagamento")
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  const { data: enderecos } = await supabase
+    .from("user_addresses")
+    .select("label, cidade, bairro, rua, numero, complemento")
+    .eq("user_id", profile.id)
+    .order("principal", { ascending: false })
+    .limit(3);
+
+  const linhas = [`\n\nCLIENTE RECONHECIDO — personalize o atendimento com essas informações:`];
+  linhas.push(`- Nome: ${profile.nome}`);
+
+  if (enderecos?.length) {
+    linhas.push(`- Endereços salvos:`);
+    enderecos.forEach((e: any) => {
+      linhas.push(`  • ${e.label ?? "Endereço"}: ${e.rua}, ${e.numero} — ${e.bairro}, ${e.cidade}${e.complemento ? ` (${e.complemento})` : ""}`);
+    });
+  }
+
+  if (pedidos?.length) {
+    linhas.push(`- Últimos pedidos:`);
+    pedidos.forEach((p: any) => {
+      const data = new Date(p.created_at).toLocaleDateString("pt-BR");
+      linhas.push(`  • ${data}: R$ ${Number(p.valor_total).toFixed(2)} — ${p.status} — ${p.endereco_bairro ?? "retirada"}`);
+    });
+    const pagMaisUsado = pedidos[0]?.metodo_pagamento;
+    if (pagMaisUsado) linhas.push(`- Forma de pagamento preferida: ${pagMaisUsado}`);
+  }
+
+  linhas.push(`\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido.`);
+  return linhas.join("\n");
+}
+
+async function buscarClientePorTelefone(telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
+  const tel = telefone.replace(/\D/g, "");
+  const telSemCodigo = tel.slice(-11);
+  const telSemCodigo9 = tel.slice(-10);
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, nome, telefone, cpf")
+    .or(`telefone.ilike.%${telSemCodigo},telefone.ilike.%${telSemCodigo9}`)
+    .limit(1);
+
+  const profile = profiles?.[0] ?? null;
+  if (!profile) return { encontrado: false, contexto: "", profile: null };
+
+  const contexto = await montarContextoCliente(profile);
+  return { encontrado: true, contexto, profile };
+}
+
+async function buscarClientePorCpf(cpf: string, telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
+  // Remove tudo que não é número
+  const cpfNum = cpf.replace(/\D/g, "");
+  if (cpfNum.length < 11) return { encontrado: false, contexto: "", profile: null };
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, nome, telefone, cpf")
+    .ilike("cpf", `%${cpfNum}%`)
+    .limit(1);
+
+  const profile = profiles?.[0] ?? null;
+  if (!profile) return { encontrado: false, contexto: "", profile: null };
+
+  // Vincula o telefone ao perfil para próximas vezes
+  if (telefone && (!profile.telefone || profile.telefone !== telefone)) {
+    await supabase
+      .from("profiles")
+      .update({ telefone })
+      .eq("id", profile.id);
+    console.log(`Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF`);
+  }
+
+  const contexto = await montarContextoCliente(profile);
+  return { encontrado: true, contexto, profile };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
   try {
@@ -372,6 +460,17 @@ const FUNCTIONS_SCHEMA = [
       required: ["url", "tipo", "mensagem"],
     },
   },
+  {
+    name: "buscar_cliente_cpf",
+    description: "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
+    parameters: {
+      type: "object",
+      properties: {
+        cpf: { type: "string", description: "CPF informado pelo cliente (apenas números)" },
+      },
+      required: ["cpf"],
+    },
+  },
 ];
 
 async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAndamento: any) {
@@ -469,6 +568,7 @@ Deno.serve(async (req) => {
       const conversa = await getOrCreateConversa(telefone, nomeContato);
       let historico: any[] = conversa?.mensagens ?? [];
       const pedidoEmAndamento = conversa?.pedido_em_andamento ?? null;
+      const primeiraMsg = historico.length === 0;
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
@@ -498,13 +598,28 @@ Deno.serve(async (req) => {
         settingsContexto,
         { texto: arquivosContexto, arquivos },
         modulosPrompt,
+        clienteResult,
       ] = await Promise.all([
         getProdutosContexto(),
         getEntregasContexto(),
         getSiteSettings(),
         getArquivosContexto(),
         getModulosPrompt(),
+        buscarClientePorTelefone(telefone),
       ]);
+
+      // Contexto do cliente reconhecido (se encontrado)
+      const clienteCtx = clienteResult.encontrado ? clienteResult.contexto : 
+        `\n\nCLIENTE NÃO CADASTRADO: telefone ${telefone}${nomeContato ? `, nome do WhatsApp: ${nomeContato}` : ""}.
+Se for a primeira mensagem, cumprimente e atenda normalmente.
+Se o cliente disser o CPF, use a função buscar_cliente_cpf para verificar o cadastro.`;
+
+      // Instrução de saudação na primeira mensagem
+      const saudacaoCtx = primeiraMsg
+        ? clienteResult.encontrado
+          ? `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: É a primeira mensagem desta conversa. Cumprimente o cliente pelo nome (${clienteResult.profile?.nome?.split(" ")[0] ?? ""}), de forma calorosa e natural. Ex: "Oii, ${clienteResult.profile?.nome?.split(" ")[0] ?? ""}! 🫶🏼 Como posso te ajudar hoje?"`
+          : `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: É a primeira mensagem desta conversa e o cliente não está cadastrado. Cumprimente normalmente. Se fizer sentido, pergunte o nome para personalizar o atendimento.`
+        : "";
 
       // ── Monta system prompt completo ─────────────────────────────────────
       // Usa módulos do banco se existirem, senão cai no system_prompt da agente_config
@@ -515,12 +630,15 @@ ${cardapioContexto}
 ${entregasContexto}
 ${settingsContexto}
 ${arquivosContexto}
+${clienteCtx}
+${saudacaoCtx}
 
 REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
 - NUNCA invente preços — consulte o CARDÁPIO COMPLETO acima.
 - NUNCA confirme entrega em bairro/cidade fora da lista ÁREAS DE ENTREGA.
 - Para criar pedidos: colete dados passo a passo (produto → entrega/retirada → endereço → pagamento → nome → resumo → confirmação → usar função criar_pedido).
 - Para enviar arquivos: use a função enviar_arquivo com a URL exata da lista ARQUIVOS DISPONÍVEIS.
+- Para buscar cliente por CPF: use a função buscar_cliente_cpf quando o cliente informar o CPF.
 - Site para pedidos: saborosamente.vercel.app`;
 
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
@@ -592,6 +710,28 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+        }
+
+        // ── Buscar cliente por CPF ────────────────────────────────────────
+        else if (resultado.nome === "buscar_cliente_cpf") {
+          const { cpf } = resultado.args;
+          const cpfResult = await buscarClientePorCpf(cpf, telefone);
+
+          let resposta: string;
+          if (cpfResult.encontrado) {
+            const nomeCliente = cpfResult.profile?.nome?.split(" ")[0] ?? "cliente";
+            resposta = `Ótimo! Encontrei seu cadastro 😊 Seja bem-vindo de volta, *${nomeCliente}*! Já vinculamos seu número para as próximas vezes. Posso te ajudar?`;
+            // Injeta contexto do cliente no próximo prompt via histórico
+            await appendMensagem(conversa.id, historico, {
+              role: "system",
+              content: cpfResult.contexto,
+            });
+          } else {
+            resposta = "Não encontrei nenhum cadastro com esse CPF. Sem problema! Pode continuar normalmente que vou te ajudar 😊";
+          }
+
+          await sendWhatsAppMessage(telefone, resposta);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
         }
 
       } else {
