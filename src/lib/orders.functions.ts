@@ -55,7 +55,7 @@ export const createOrder = createServerFn({ method: "POST" })
       cupom_codigo: data.cupom || null,
       troco: data.troco || null,
       tipo_cartao: data.tipoCartao || null,
-      status: "pendente",
+      status: "preparando",
     };
 
     // Só adiciona os campos de endereço se houver valor, para evitar erros em 'retirada'

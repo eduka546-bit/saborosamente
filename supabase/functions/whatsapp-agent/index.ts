@@ -357,7 +357,7 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
       valor_total: pedidoDados.valorTotal,
       taxa_entrega: pedidoDados.taxaEntrega ?? 0,
       desconto_aplicado: 0,
-      status: "pendente",
+      status: "preparando",
       origem: "whatsapp",
       horario_recebimento: "",
     };

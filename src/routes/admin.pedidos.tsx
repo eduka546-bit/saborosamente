@@ -240,23 +240,32 @@ function AdminOrdersPage() {
     return localStorage.getItem("admin.autoPrint") === "true";
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
 
   // ── Pede permissão de notificação ao montar ───────────────────────────────
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    setNotifPermission(Notification.permission);
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then(p => setNotifPermission(p));
     }
   }, []);
 
   // ── Impressão automática via Realtime ─────────────────────────────────────
   useEffect(() => {
+    // Nome único por tab para evitar conflito se duas abas estiverem abertas
+    const channelName = `pedidos-realtime-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("pedidos-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "pedidos" },
         async (payload) => {
           const newOrder = payload.new as any;
+
+          // Evita duplicatas (Realtime pode entregar mais de uma vez)
+          if (knownIdsRef.current.has(newOrder.id)) return;
+          knownIdsRef.current.add(newOrder.id);
 
           // Atualiza a lista
           queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
@@ -264,41 +273,49 @@ function AdminOrdersPage() {
           // ── Beep sonoro ───────────────────────────────────────────────────
           try {
             const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            // Resume context se estiver suspenso (política de autoplay do browser)
+            if (ctx.state === "suspended") await ctx.resume();
             const play = (freq: number, delay: number) => {
               const osc = ctx.createOscillator();
               const gain = ctx.createGain();
               osc.connect(gain);
               gain.connect(ctx.destination);
               osc.frequency.value = freq;
-              gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
-              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+              gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
               osc.start(ctx.currentTime + delay);
-              osc.stop(ctx.currentTime + delay + 0.25);
+              osc.stop(ctx.currentTime + delay + 0.3);
             };
             play(880, 0);
-            play(1100, 0.28);
-            play(1320, 0.56);
-          } catch {}
+            play(1100, 0.3);
+            play(1320, 0.6);
+          } catch (e) {
+            console.warn("Beep falhou:", e);
+          }
 
           // ── Notificação do sistema (funciona com aba minimizada) ──────────
           if ("Notification" in window && Notification.permission === "granted") {
-            const n = new Notification("🛒 Novo pedido!", {
-              body: `${newOrder.nome_cliente ?? "Cliente"} — R$ ${Number(newOrder.valor_total ?? 0).toFixed(2)}`,
-              icon: "/favicon.png",
-              tag: `pedido-${newOrder.id}`,
-              requireInteraction: true, // não fecha sozinha até clicar
-            });
-            n.onclick = () => {
-              window.focus();
-              setSelectedOrder(newOrder);
-              setIsDetailsModalOpen(true);
-              n.close();
-            };
+            try {
+              const n = new Notification("🛒 Novo pedido!", {
+                body: `${newOrder.nome_cliente ?? "Cliente"} — R$ ${Number(newOrder.valor_total ?? 0).toFixed(2)}`,
+                icon: "/favicon.png",
+                tag: `pedido-${newOrder.id}`,
+                requireInteraction: true,
+              });
+              n.onclick = () => {
+                window.focus();
+                setSelectedOrder(newOrder);
+                setIsDetailsModalOpen(true);
+                n.close();
+              };
+            } catch (e) {
+              console.warn("Notificação falhou:", e);
+            }
           }
 
           // ── Toast na interface ────────────────────────────────────────────
           toast.info(`🛒 Novo pedido de ${newOrder.nome_cliente ?? "cliente"}!`, {
-            duration: 10000,
+            duration: 15000,
             action: {
               label: "Ver",
               onClick: () => {
@@ -311,13 +328,15 @@ function AdminOrdersPage() {
           // ── Impressão automática ──────────────────────────────────────────
           if (autoPrint) {
             try {
+              // Aguarda um segundo para os itens serem inseridos
+              await new Promise(r => setTimeout(r, 1200));
               const { data: itens } = await supabase
                 .from("pedido_itens")
                 .select("*")
                 .eq("pedido_id", newOrder.id);
 
-              // Busca nomes dos produtos
               const ids = (itens ?? []).map((i: any) => i.produto_id).filter(Boolean);
+
               let nomesMap: Record<string, string> = {};
               if (ids.length > 0) {
                 const { data: prods } = await supabase.from("produtos").select("id, nome").in("id", ids);
@@ -451,6 +470,33 @@ function AdminOrdersPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
+
+      {/* Banner de permissão de notificação */}
+      {notifPermission === "denied" && (
+        <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <span className="text-lg">🔔</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-red-700">Notificações bloqueadas no navegador</p>
+            <p className="text-xs text-red-600">Novos pedidos não vão gerar alertas. Para habilitar: clique no cadeado na barra de endereço → Notificações → Permitir.</p>
+          </div>
+        </div>
+      )}
+      {notifPermission === "default" && (
+        <div className="mb-4 flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+          <span className="text-lg">🔔</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-yellow-700">Permissão de notificação pendente</p>
+            <p className="text-xs text-yellow-600">Permita notificações para receber alertas de novos pedidos mesmo com a aba minimizada.</p>
+          </div>
+          <button
+            onClick={() => Notification.requestPermission().then(p => setNotifPermission(p as NotificationPermission))}
+            className="px-3 py-1.5 bg-yellow-500 text-white text-xs font-bold rounded-lg hover:bg-yellow-600 shrink-0"
+          >
+            Permitir
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Gestão de Pedidos</h1>
