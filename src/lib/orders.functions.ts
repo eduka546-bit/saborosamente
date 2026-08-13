@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { createServerClient } from "@/integrations/supabase/server";
 
 const orderItemSchema = z.object({
   productId: z.string(),
@@ -35,7 +35,7 @@ const createOrderSchema = z.object({
 export const createOrder = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
-    // Usa o userId passado pelo cliente (o getUser() no servidor não acessa o cookie do browser)
+    const supabase = createServerClient();
     const insertData: any = {
       user_id: data.userId ?? null,
       nome_cliente: data.nome,
