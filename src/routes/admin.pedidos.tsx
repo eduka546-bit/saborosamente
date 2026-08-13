@@ -365,6 +365,85 @@ function AdminOrdersPage() {
     };
   }, [autoPrint, queryClient]);
 
+  // ── Alerta sonoro quando cliente pede atendente humano ────────────────────
+  useEffect(() => {
+    const knownHandoffIds = new Set<string>();
+
+    const playHandoffSound = async () => {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (ctx.state === "suspended") await ctx.resume();
+
+        // Som urgente — descendo (diferente do pedido que sobe)
+        const play = (freq: number, delay: number, dur = 0.25) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.5, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + dur);
+        };
+        // Padrão descendente — "ding dong dong" — distinguível do pedido
+        play(1400, 0.00);
+        play(1100, 0.28);
+        play(880,  0.56);
+        play(1400, 1.00);
+        play(1100, 1.28);
+        play(880,  1.56);
+      } catch (e) {
+        console.warn("Handoff beep falhou:", e);
+      }
+    };
+
+    const channelHandoff = supabase
+      .channel(`handoff-realtime-${Math.random().toString(36).slice(2, 8)}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "whatsapp_conversas", filter: "modo=eq.humano" },
+        async (payload) => {
+          const conversa = payload.new as any;
+
+          // Evita duplicatas
+          if (knownHandoffIds.has(conversa.id)) return;
+          knownHandoffIds.add(conversa.id);
+          // Limpa após 30s para permitir re-alerta se cliente voltar a pedir atendente
+          setTimeout(() => knownHandoffIds.delete(conversa.id), 30_000);
+
+          await playHandoffSound();
+
+          // Notificação do sistema
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("👤 Cliente aguardando atendente!", {
+                body: `${conversa.nome ?? conversa.telefone ?? "Cliente"} quer falar com você`,
+                icon: "/favicon.png",
+                tag: `handoff-${conversa.id}`,
+                requireInteraction: true,
+              });
+            } catch (_) {}
+          }
+
+          // Toast
+          toast.warning(`👤 ${conversa.nome ?? conversa.telefone ?? "Cliente"} pediu atendente!`, {
+            duration: 20000,
+            action: {
+              label: "Assumir",
+              onClick: () => window.location.href = "/admin/agente",
+            },
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channelHandoff);
+    };
+  }, []);
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
