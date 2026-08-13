@@ -21,19 +21,23 @@ export const Route = createFileRoute("/admin/agente")({
 
 // ── Envio manual via Edge Function ────────────────────────────────────────────
 async function sendManualMessage(to: string, text: string) {
-  const { data: { session } } = await supabase.auth.getSession();
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-send`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({ to, text }),
     }
   );
-  return response.ok;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    console.error("whatsapp-send error:", err);
+    return false;
+  }
+  return true;
 }
 
 // ── Card de conversa com handoff ──────────────────────────────────────────────
