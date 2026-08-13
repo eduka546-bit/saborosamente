@@ -25,8 +25,8 @@ export const SHIPPING_FEE = 14.9;
 
 export const RULES = {
   MIN_ORDER_AMOUNT: 70,
-  MIN_ORDER_QUANTITY: 5,
-  SBS_DISCOUNTED_SHIPPING: 8.9,
+  MIN_ORDER_QUANTITY: 5,         // 5+ unidades → frete promocional em SBS
+  SBS_DISCOUNTED_SHIPPING: 5.0,  // R$ 5,00 para São Bento do Sul com 5+ unidades
   // Desconto progressivo — sopas e complementos CONTAM na qtd mas NÃO recebem desconto
   PROGRESSIVE_DISCOUNT: [
     { min: 5,  discount: 0.03 },
@@ -305,9 +305,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Se tiver cidade selecionada, podemos aplicar regras específicas
     if (selectedCity) {
       const isSBS = selectedCity.toLowerCase().includes("são bento do sul");
-      const meetsMinRules = subtotal >= RULES.MIN_ORDER_AMOUNT || count >= RULES.MIN_ORDER_QUANTITY;
 
-      if (isSBS && meetsMinRules) {
+      // Frete promocional R$ 5,00 para SBS com 5+ unidades (combos contam)
+      if (isSBS && count >= RULES.MIN_ORDER_QUANTITY) {
         shipping = RULES.SBS_DISCOUNTED_SHIPPING;
       }
     }
