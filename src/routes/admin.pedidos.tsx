@@ -565,6 +565,11 @@ function AdminOrdersPage() {
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-gray-900">{order.nome_cliente || "Cliente Final"}</span>
+                        {order.origem === "whatsapp" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 mt-1 w-fit">
+                            📱 WhatsApp
+                          </span>
+                        )}
                         <span className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                           <MapPin size={10} /> {order.endereco_bairro || "Retirada"}
                         </span>
