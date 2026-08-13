@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Loader2, Save, Bot, MessageCircle, Clock, Phone,
+  Loader2, Save, Bot, MessageCircle, Clock,
   User, Zap, Send, ChevronDown, ChevronUp,
-  Settings, Shield, ShoppingBag, Truck, CreditCard,
-  AlertTriangle, Info
+  Settings, AlertTriangle, Info, Upload, Trash2,
+  FileText, Image, File, Eye, EyeOff, GripVertical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -154,6 +154,280 @@ function ConversaCard({ c, onToggleModo }: { c: any; onToggleModo: (id: string, 
   );
 }
 
+// ── Aba de Arquivos do Agente ────────────────────────────────────────────────
+function AbaArquivos() {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [novoArquivo, setNovoArquivo] = useState({ nome: "", descricao: "", tipo: "imagem" });
+  const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
+
+  const { data: arquivos = [], isLoading } = useQuery({
+    queryKey: ["agente-arquivos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agente_arquivos")
+        .select("*")
+        .order("ordem")
+        .order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("agente_arquivos").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agente-arquivos"] }),
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
+      if (storagePath) {
+        await supabase.storage.from("agente-arquivos").remove([storagePath]);
+      }
+      const { error } = await supabase.from("agente_arquivos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agente-arquivos"] });
+      toast.success("Arquivo removido!");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setArquivoSelecionado(file);
+    // Auto-preenche nome se estiver vazio
+    if (!novoArquivo.nome) {
+      setNovoArquivo(prev => ({ ...prev, nome: file.name.replace(/\.[^/.]+$/, "") }));
+    }
+    // Auto-detecta tipo
+    if (file.type.startsWith("image/")) setNovoArquivo(prev => ({ ...prev, tipo: "imagem" }));
+    else if (file.type === "application/pdf") setNovoArquivo(prev => ({ ...prev, tipo: "pdf" }));
+    else setNovoArquivo(prev => ({ ...prev, tipo: "documento" }));
+  };
+
+  const handleUpload = async () => {
+    if (!arquivoSelecionado) { toast.error("Selecione um arquivo"); return; }
+    if (!novoArquivo.nome.trim()) { toast.error("Informe um nome"); return; }
+    if (!novoArquivo.descricao.trim()) { toast.error("Informe uma descrição (a IA usa isso para saber quando enviar)"); return; }
+
+    setUploading(true);
+    try {
+      const ext = arquivoSelecionado.name.split(".").pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("agente-arquivos")
+        .upload(path, arquivoSelecionado, { upsert: false });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("agente-arquivos")
+        .getPublicUrl(path);
+
+      const { error: insertError } = await supabase.from("agente_arquivos").insert({
+        nome: novoArquivo.nome.trim(),
+        descricao: novoArquivo.descricao.trim(),
+        tipo: novoArquivo.tipo,
+        url: publicUrl,
+        storage_path: path,
+        ativo: true,
+        ordem: arquivos.length,
+      });
+
+      if (insertError) throw new Error(insertError.message);
+
+      toast.success("Arquivo enviado! A Saborosa já pode usá-lo.");
+      setNovoArquivo({ nome: "", descricao: "", tipo: "imagem" });
+      setArquivoSelecionado(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      queryClient.invalidateQueries({ queryKey: ["agente-arquivos"] });
+    } catch (e: any) {
+      toast.error("Erro no upload: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const tipoIcon = (tipo: string) => {
+    if (tipo === "imagem") return <Image size={14} className="text-blue-500" />;
+    if (tipo === "pdf") return <FileText size={14} className="text-red-500" />;
+    return <File size={14} className="text-gray-500" />;
+  };
+
+  const tipoBadgeColor = (tipo: string) => {
+    if (tipo === "imagem") return "bg-blue-50 text-blue-700 border-blue-100";
+    if (tipo === "pdf") return "bg-red-50 text-red-700 border-red-100";
+    return "bg-gray-50 text-gray-700 border-gray-100";
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Upload */}
+      <div className="bg-white rounded-2xl border p-5 space-y-4">
+        <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+          <Upload size={16} className="text-[#5850ec]" /> Adicionar arquivo
+        </h4>
+
+        <div className="bg-[#5850ec]/5 border border-[#5850ec]/10 rounded-xl px-3 py-2.5 flex items-start gap-2 text-[11px] text-[#5850ec]">
+          <Info size={13} className="shrink-0 mt-0.5" />
+          A <strong>descrição</strong> é o que a IA usa para decidir quando enviar o arquivo. Seja específico: ex. "Cardápio completo em PDF com todos os pratos e preços".
+        </div>
+
+        {/* Área de drop / seleção */}
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#5850ec]/40 hover:bg-[#5850ec]/5 transition-all"
+        >
+          {arquivoSelecionado ? (
+            <div className="flex items-center justify-center gap-2">
+              {tipoIcon(novoArquivo.tipo)}
+              <span className="text-sm font-medium text-gray-700">{arquivoSelecionado.name}</span>
+              <span className="text-xs text-gray-400">({(arquivoSelecionado.size / 1024).toFixed(0)} KB)</span>
+            </div>
+          ) : (
+            <>
+              <Upload size={24} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm text-gray-500">Clique para selecionar</p>
+              <p className="text-xs text-gray-400 mt-1">Imagens (JPG, PNG, WebP) • PDF • Documentos</p>
+            </>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx"
+          onChange={handleFileChange}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-gray-400">Nome do arquivo</label>
+            <input
+              value={novoArquivo.nome}
+              onChange={e => setNovoArquivo(p => ({ ...p, nome: e.target.value }))}
+              placeholder="Ex: Cardápio Janeiro 2026"
+              className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-gray-400">Tipo</label>
+            <select
+              value={novoArquivo.tipo}
+              onChange={e => setNovoArquivo(p => ({ ...p, tipo: e.target.value }))}
+              className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30 bg-white"
+            >
+              <option value="imagem">🖼️ Imagem</option>
+              <option value="pdf">📄 PDF</option>
+              <option value="documento">📎 Documento</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold uppercase text-gray-400">
+            Descrição para a IA <span className="text-red-400">*</span>
+          </label>
+          <textarea
+            value={novoArquivo.descricao}
+            onChange={e => setNovoArquivo(p => ({ ...p, descricao: e.target.value }))}
+            placeholder="Ex: Cardápio completo em PDF com todos os pratos, preços e informações nutricionais. Envie quando o cliente pedir o cardápio completo."
+            rows={3}
+            className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30 resize-none"
+          />
+        </div>
+
+        <Button
+          onClick={handleUpload}
+          disabled={uploading || !arquivoSelecionado}
+          className="w-full bg-[#5850ec] text-white"
+        >
+          {uploading ? <><Loader2 size={15} className="animate-spin mr-2" /> Enviando...</> : <><Upload size={15} className="mr-2" /> Enviar arquivo</>}
+        </Button>
+      </div>
+
+      {/* Lista de arquivos */}
+      <div className="bg-white rounded-2xl border overflow-hidden">
+        <div className="px-5 py-4 border-b flex items-center justify-between">
+          <h4 className="font-bold text-gray-800 text-sm">Arquivos disponíveis para a Saborosa</h4>
+          <span className="text-xs text-gray-400">{arquivos.filter((a: any) => a.ativo).length} ativos</span>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#5850ec]" size={24} /></div>
+        ) : arquivos.length === 0 ? (
+          <div className="py-12 text-center">
+            <File size={32} className="mx-auto text-gray-200 mb-3" />
+            <p className="text-gray-400 text-sm">Nenhum arquivo ainda.</p>
+            <p className="text-xs text-gray-300 mt-1">Faça upload do cardápio em PDF, fotos dos pratos, etc.</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {arquivos.map((arq: any) => (
+              <div key={arq.id} className={`px-5 py-4 flex items-start gap-4 transition-all ${!arq.ativo ? "opacity-50" : ""}`}>
+                {/* Preview */}
+                <div className="h-12 w-12 rounded-xl border bg-gray-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {arq.tipo === "imagem" ? (
+                    <img src={arq.url} alt={arq.nome} className="h-full w-full object-cover rounded-xl" />
+                  ) : arq.tipo === "pdf" ? (
+                    <FileText size={22} className="text-red-400" />
+                  ) : (
+                    <File size={22} className="text-gray-400" />
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-gray-900 text-sm truncate">{arq.nome}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${tipoBadgeColor(arq.tipo)}`}>
+                      {arq.tipo}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{arq.descricao}</p>
+                  <a href={arq.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#5850ec] hover:underline mt-1 inline-block">
+                    Ver arquivo ↗
+                  </a>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => toggleAtivoMutation.mutate({ id: arq.id, ativo: !arq.ativo })}
+                    title={arq.ativo ? "Desativar" : "Ativar"}
+                    className={`p-2 rounded-xl transition-all ${arq.ativo ? "bg-green-50 text-green-600 hover:bg-green-100" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}
+                  >
+                    {arq.ativo ? <Eye size={14} /> : <EyeOff size={14} />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Remover "${arq.nome}"?`)) {
+                        deleteMutation.mutate({ id: arq.id, storagePath: arq.storage_path });
+                      }
+                    }}
+                    className="p-2 rounded-xl bg-red-50 text-red-400 hover:bg-red-100 transition-all"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Painel principal ──────────────────────────────────────────────────────────
 function AdminAgentePage() {
   const queryClient = useQueryClient();
@@ -261,8 +535,9 @@ function AdminAgentePage() {
         {/* Configurações */}
         <div className="space-y-4">
           <Tabs defaultValue="instrucoes">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="instrucoes">Instruções</TabsTrigger>
+              <TabsTrigger value="arquivos">📎 Arquivos</TabsTrigger>
               <TabsTrigger value="tecnico">Técnico</TabsTrigger>
             </TabsList>
 
@@ -303,8 +578,11 @@ function AdminAgentePage() {
               ) : null}
             </TabsContent>
 
+            <TabsContent value="arquivos" className="mt-4">
+              <AbaArquivos />
+            </TabsContent>
+
             <TabsContent value="tecnico" className="mt-4 space-y-4">
-              {/* Webhook */}
               <div className="bg-white rounded-2xl border p-5 space-y-3">
                 <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2"><Settings size={16} className="text-[#5850ec]" /> Webhook Meta</h4>
                 <div className="space-y-2">

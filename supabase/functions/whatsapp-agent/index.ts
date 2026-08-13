@@ -199,8 +199,22 @@ async function getSiteSettings(): Promise<string> {
   return linhas.join("\n");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Criação de pedido no banco (igual ao site)
+async function getArquivosContexto(): Promise<{ texto: string; arquivos: any[] }> {
+  const { data: arquivos } = await supabase
+    .from("agente_arquivos")
+    .select("id, nome, descricao, tipo, url")
+    .eq("ativo", true)
+    .order("ordem");
+
+  if (!arquivos?.length) return { texto: "", arquivos: [] };
+
+  const linhas = arquivos.map((a: any) => `- [${a.tipo.toUpperCase()}] "${a.nome}": ${a.descricao} → URL: ${a.url}`);
+
+  return {
+    texto: `\n\nARQUIVOS DISPONÍVEIS PARA ENVIAR AO CLIENTE:\n${linhas.join("\n")}\nQuando o cliente pedir algo relacionado a esses arquivos, use a função enviar_arquivo com a URL correspondente.`,
+    arquivos,
+  };
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
@@ -306,7 +320,19 @@ const FUNCTIONS_SCHEMA = [
     },
   },
   {
-    name: "enviar_cardapio_imagem",
+    name: "enviar_arquivo",
+    description: "Envia um arquivo (imagem ou PDF) ao cliente pelo WhatsApp quando ele solicitar ou quando for relevante (ex: cliente quer ver o cardápio em PDF, quer ver fotos dos pratos).",
+    parameters: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "URL do arquivo a enviar (use exatamente a URL da lista de arquivos disponíveis)" },
+        tipo: { type: "string", enum: ["imagem", "pdf", "documento"], description: "Tipo do arquivo" },
+        nome: { type: "string", description: "Nome do arquivo (para PDFs/documentos)" },
+        mensagem: { type: "string", description: "Mensagem de texto para acompanhar o arquivo" },
+      },
+      required: ["url", "tipo", "mensagem"],
+    },
+  },
     description: "Envia uma imagem do cardápio quando o cliente pede para ver o cardápio visualmente",
     parameters: {
       type: "object",
@@ -436,14 +462,15 @@ Deno.serve(async (req) => {
       }
 
       // ── Busca contexto dinâmico em paralelo ──────────────────────────────
-      const [{ texto: cardapioContexto, produtos }, entregasContexto, settingsContexto] =
-        await Promise.all([getProdutosContexto(), getEntregasContexto(), getSiteSettings()]);
+      const [{ texto: cardapioContexto, produtos }, entregasContexto, settingsContexto, { texto: arquivosContexto, arquivos }] =
+        await Promise.all([getProdutosContexto(), getEntregasContexto(), getSiteSettings(), getArquivosContexto()]);
 
       // ── Monta system prompt completo ─────────────────────────────────────
       const systemPrompt = `${config.system_prompt}
 ${cardapioContexto}
 ${entregasContexto}
 ${settingsContexto}
+${arquivosContexto}
 
 REGRAS CRÍTICAS:
 - NUNCA invente preços. Consulte sempre o CARDÁPIO COMPLETO acima antes de informar qualquer valor.
@@ -456,7 +483,7 @@ REGRAS CRÍTICAS:
   5. Nome completo do cliente
   6. Confirmar resumo do pedido e aguardar confirmação do cliente
   7. Só então use a função criar_pedido
-- Se cliente pedir para ver o cardápio visualmente, use a função enviar_cardapio_imagem
+- Se cliente pedir para ver o cardápio visualmente ou receber o PDF, use a função enviar_arquivo com o arquivo correto da lista de ARQUIVOS DISPONÍVEIS
 - Validade das marmitas: 6 meses no freezer
 - Preparo: até 7 minutos no micro-ondas
 - Site para pedidos online: saborosamente.vercel.app
@@ -516,8 +543,26 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           }
         }
 
-        // ── Enviar imagem do cardápio ────────────────────────────────────
-        else if (resultado.nome === "enviar_cardapio_imagem") {
+        // ── Enviar arquivo (imagem, PDF, documento) ──────────────────────
+        else if (resultado.nome === "enviar_arquivo") {
+          const { url, tipo, nome, mensagem } = resultado.args;
+
+          await sendWhatsAppMessage(telefone, mensagem);
+
+          if (tipo === "imagem") {
+            await sendWhatsAppImage(telefone, url);
+          } else {
+            const filename = nome ?? url.split("/").pop() ?? "arquivo";
+            await sendWhatsAppDocument(telefone, url, filename);
+          }
+
+          await appendMensagem(conversa.id, historico, {
+            role: "assistant",
+            content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
+          });
+        }
+
+        // ── Enviar imagem do cardápio (fallback de produtos em destaque) ──
           const { mensagem } = resultado.args;
 
           // Busca imagens dos produtos em destaque
