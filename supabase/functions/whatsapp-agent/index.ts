@@ -34,6 +34,91 @@ async function sendWhatsAppMessage(to: string, text: string) {
   }
 }
 
+// Envia lista interativa (menu com seções e opções clicáveis)
+async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]) {
+  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "list",
+        header: { type: "text", text: headerText },
+        body: { text: bodyText },
+        action: {
+          button: buttonLabel,
+          sections,
+        },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error("sendWhatsAppList error:", JSON.stringify(err));
+  }
+}
+
+// Envia botões de resposta rápida (máximo 3 botões)
+async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: string; title: string }[]) {
+  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: { text: bodyText },
+        action: {
+          buttons: buttons.map(b => ({
+            type: "reply",
+            reply: { id: b.id, title: b.title },
+          })),
+        },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error("sendWhatsAppButtons error:", JSON.stringify(err));
+  }
+}
+
+// Envia o menu principal da Saborosa
+async function sendMenuPrincipal(to: string, nomeCliente?: string) {
+  const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
+  await sendWhatsAppList(
+    to,
+    "SaborosaMente 🍱",
+    `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
+    "Ver opções",
+    [
+      {
+        title: "O que você precisa?",
+        rows: [
+          { id: "menu_cardapio",   title: "🍽️ Cardápio",          description: "Ver os pratos disponíveis e preços" },
+          { id: "menu_pedido",     title: "🛒 Fazer um pedido",     description: "Montar e confirmar meu pedido" },
+          { id: "menu_recomenda",  title: "⭐ Recomendações",       description: "Me ajude a escolher o melhor prato" },
+          { id: "menu_duvidas",    title: "❓ Dúvidas",             description: "Entrega, pagamento, preparo..." },
+          { id: "menu_site",       title: "🌐 Acessar o site",      description: "saborosamente.vercel.app" },
+          { id: "menu_atendente",  title: "👤 Falar com atendente", description: "Transferir para nossa equipe" },
+        ],
+      },
+    ]
+  );
+}
+
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
@@ -461,6 +546,17 @@ const FUNCTIONS_SCHEMA = [
     },
   },
   {
+    name: "enviar_menu",
+    description: "Envia o menu principal interativo com as opções da SaborosaMente. Use na primeira mensagem do cliente, quando ele pedir um menu/opções, ou quando a conversa ficar confusa e precisar de um ponto de partida claro.",
+    parameters: {
+      type: "object",
+      properties: {
+        motivo: { type: "string", description: "Motivo de enviar o menu (ex: primeira mensagem, cliente pediu menu, reorientar conversa)" },
+      },
+      required: ["motivo"],
+    },
+  },
+  {
     name: "buscar_cliente_cpf",
     description: "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
     parameters: {
@@ -555,6 +651,12 @@ Deno.serve(async (req) => {
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
 
+      // Captura ID da opção selecionada (lista interativa ou botão)
+      const menuId =
+        msg.interactive?.list_reply?.id ??
+        msg.interactive?.button_reply?.id ??
+        null;
+
       // Suporte a texto, botão interativo e lista interativa
       const texto =
         msg.text?.body ??
@@ -562,7 +664,7 @@ Deno.serve(async (req) => {
         msg.interactive?.list_reply?.title ??
         "";
 
-      if (!texto) return new Response("OK", { status: 200 });
+      if (!texto && !menuId) return new Response("OK", { status: 200 });
 
       // ── Busca/cria conversa ──────────────────────────────────────────────
       const conversa = await getOrCreateConversa(telefone, nomeContato);
@@ -572,8 +674,84 @@ Deno.serve(async (req) => {
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
-        await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+        await appendMensagem(conversa.id, historico, { role: "user", content: texto || menuId || "" });
         return new Response("OK", { status: 200 });
+      }
+
+      // ── Intercepta seleções do menu principal (sem precisar da OpenAI) ──
+      if (menuId) {
+        const nomeCliente = clienteResult?.profile?.nome ?? nomeContato ?? null;
+        const primeiroNome = nomeCliente?.split(" ")[0];
+
+        switch (menuId) {
+          case "menu_atendente": {
+            // Transfere para humano
+            await supabase.from("whatsapp_conversas").update({ modo: "humano" }).eq("id", conversa.id);
+            const msg = primeiroNome
+              ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
+              : "Tudo bem! 😊 Vou te conectar com nossa equipe agora. Um momento!";
+            await sendWhatsAppMessage(telefone, msg);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            return new Response("OK", { status: 200 });
+          }
+          case "menu_site": {
+            await sendWhatsAppButtons(telefone,
+              "🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\nsaborosamente.vercel.app",
+              [{ id: "btn_cardapio", title: "🍽️ Ver cardápio" }, { id: "btn_pedido", title: "🛒 Fazer pedido" }]
+            );
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Site enviado]" });
+            return new Response("OK", { status: 200 });
+          }
+          case "menu_cardapio":
+          case "btn_cardapio": {
+            // Deixa a IA mostrar o cardápio — injeta o texto como se o cliente tivesse digitado
+            await appendMensagem(conversa.id, historico, { role: "user", content: "Quero ver o cardápio completo" });
+            break; // continua para o fluxo normal da IA
+          }
+          case "menu_pedido":
+          case "btn_pedido": {
+            await appendMensagem(conversa.id, historico, { role: "user", content: "Quero fazer um pedido" });
+            break;
+          }
+          case "menu_recomenda": {
+            await appendMensagem(conversa.id, historico, { role: "user", content: "Me dê uma recomendação de prato" });
+            break;
+          }
+          case "menu_duvidas": {
+            await sendWhatsAppList(
+              telefone,
+              "❓ Dúvidas Frequentes",
+              "Escolha o assunto da sua dúvida 👇",
+              "Ver assuntos",
+              [{
+                title: "Sobre nós",
+                rows: [
+                  { id: "duvida_entrega",    title: "🚚 Entrega e frete",      description: "Cidades, taxas e prazos" },
+                  { id: "duvida_pagamento",  title: "💳 Formas de pagamento",  description: "Pix, cartão, alimentação..." },
+                  { id: "duvida_preparo",    title: "🍲 Como preparar",        description: "Tempo e modo de preparo" },
+                  { id: "duvida_validade",   title: "❄️ Validade e armazenamento", description: "Quanto tempo dura" },
+                  { id: "duvida_minimo",     title: "📦 Pedido mínimo",        description: "Quantidade mínima" },
+                ],
+              }]
+            );
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu dúvidas enviado]" });
+            return new Response("OK", { status: 200 });
+          }
+          case "duvida_entrega":    { await appendMensagem(conversa.id, historico, { role: "user", content: "Como funciona a entrega e qual o frete?" }); break; }
+          case "duvida_pagamento":  { await appendMensagem(conversa.id, historico, { role: "user", content: "Quais as formas de pagamento aceitas?" }); break; }
+          case "duvida_preparo":    { await appendMensagem(conversa.id, historico, { role: "user", content: "Como preparo as marmitas congeladas?" }); break; }
+          case "duvida_validade":   { await appendMensagem(conversa.id, historico, { role: "user", content: "Qual a validade e como armazenar as marmitas?" }); break; }
+          case "duvida_minimo":     { await appendMensagem(conversa.id, historico, { role: "user", content: "Tem pedido mínimo?" }); break; }
+          default: {
+            // Opção não reconhecida — trata como texto normal
+            await appendMensagem(conversa.id, historico, { role: "user", content: texto || menuId });
+            break;
+          }
+        }
+        // Recarga historico após append
+        const { data: conversaAtualizada } = await supabase
+          .from("whatsapp_conversas").select("mensagens").eq("id", conversa.id).single();
+        historico = conversaAtualizada?.mensagens ?? historico;
       }
 
       // ── Busca config do agente ───────────────────────────────────────────
@@ -591,6 +769,9 @@ Deno.serve(async (req) => {
         return new Response("OK", { status: 200 });
       }
 
+      // ── Busca cliente por telefone (necessário antes do switch do menu) ──
+      const clienteResult = await buscarClientePorTelefone(telefone);
+
       // ── Busca contexto dinâmico em paralelo ──────────────────────────────
       const [
         { texto: cardapioContexto, produtos },
@@ -598,14 +779,12 @@ Deno.serve(async (req) => {
         settingsContexto,
         { texto: arquivosContexto, arquivos },
         modulosPrompt,
-        clienteResult,
       ] = await Promise.all([
         getProdutosContexto(),
         getEntregasContexto(),
         getSiteSettings(),
         getArquivosContexto(),
         getModulosPrompt(),
-        buscarClientePorTelefone(telefone),
       ]);
 
       // Contexto do cliente reconhecido (se encontrado)
@@ -617,8 +796,8 @@ Se o cliente disser o CPF, use a função buscar_cliente_cpf para verificar o ca
       // Instrução de saudação na primeira mensagem
       const saudacaoCtx = primeiraMsg
         ? clienteResult.encontrado
-          ? `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: É a primeira mensagem desta conversa. Cumprimente o cliente pelo nome (${clienteResult.profile?.nome?.split(" ")[0] ?? ""}), de forma calorosa e natural. Ex: "Oii, ${clienteResult.profile?.nome?.split(" ")[0] ?? ""}! 🫶🏼 Como posso te ajudar hoje?"`
-          : `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: É a primeira mensagem desta conversa e o cliente não está cadastrado. Cumprimente normalmente. Se fizer sentido, pergunte o nome para personalizar o atendimento.`
+          ? `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: Use a função enviar_menu para mostrar as opções. Antes do menu, mande uma mensagem calorosa chamando pelo nome: "Oii, ${clienteResult.profile?.nome?.split(" ")[0] ?? ""}! Que bom ter você aqui 🫶🏼"`
+          : `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: Use a função enviar_menu para mostrar as opções ao cliente. Antes do menu, mande uma saudação calorosa curta.`
         : "";
 
       // ── Monta system prompt completo ─────────────────────────────────────
@@ -710,6 +889,13 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+        }
+
+        // ── Enviar menu principal ─────────────────────────────────────────
+        else if (resultado.nome === "enviar_menu") {
+          const nomeCliente = clienteResult.encontrado ? clienteResult.profile?.nome : nomeContato ?? null;
+          await sendMenuPrincipal(telefone, nomeCliente ?? undefined);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
         }
 
         // ── Buscar cliente por CPF ────────────────────────────────────────
