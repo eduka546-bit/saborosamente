@@ -20,24 +20,30 @@ export const Route = createFileRoute("/admin/agente")({
 });
 
 // ── Envio manual via Edge Function ────────────────────────────────────────────
-async function sendManualMessage(to: string, text: string) {
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-send`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ to, text }),
+async function sendManualMessage(to: string, text: string): Promise<{ ok: boolean; errorMsg?: string }> {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-send`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ to, text }),
+      }
+    );
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = body?.error?.error?.message ?? body?.error ?? JSON.stringify(body);
+      console.error("whatsapp-send error:", body);
+      return { ok: false, errorMsg: String(detail) };
     }
-  );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    console.error("whatsapp-send error:", err);
-    return false;
+    return { ok: true };
+  } catch (e: any) {
+    console.error("whatsapp-send fetch failed:", e);
+    return { ok: false, errorMsg: e.message };
   }
-  return true;
 }
 
 // ── Card de conversa com handoff ──────────────────────────────────────────────
@@ -58,9 +64,9 @@ function ConversaCard({ c, onToggleModo }: { c: any; onToggleModo: (id: string, 
       await supabase.from("whatsapp_conversas").update({
         mensagens: novas, ultima_msg: new Date().toISOString(),
       }).eq("id", c.id);
-      const ok = await sendManualMessage(c.telefone, msgText);
+      const { ok, errorMsg } = await sendManualMessage(c.telefone, msgText);
       if (ok) { toast.success("Enviado!"); setMsgText(""); queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] }); }
-      else toast.error("Erro ao enviar. Verifique os logs da Edge Function.");
+      else toast.error(errorMsg ? `Erro: ${errorMsg}` : "Erro ao enviar. Verifique o console.");
     } catch (e: any) { toast.error("Erro: " + e.message); }
     finally { setSending(false); }
   };
