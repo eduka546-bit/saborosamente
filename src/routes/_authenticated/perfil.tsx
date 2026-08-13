@@ -145,12 +145,13 @@ function PerfilPage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: session.user.id,
           nome: profileForm.nome,
           telefone: profileForm.telefone,
-          cpf: profileForm.cpf
-        })
-        .eq("id", session.user.id);
+          cpf: profileForm.cpf,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" });
 
       if (error) throw error;
       
