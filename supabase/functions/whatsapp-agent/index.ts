@@ -360,25 +360,16 @@ const FUNCTIONS_SCHEMA = [
   },
   {
     name: "enviar_arquivo",
-    description: "Envia um arquivo (imagem ou PDF) ao cliente pelo WhatsApp quando ele solicitar ou quando for relevante (ex: cliente quer ver o cardápio em PDF, quer ver fotos dos pratos).",
+    description: "Envia um arquivo (imagem ou PDF) ao cliente pelo WhatsApp quando ele solicitar ou quando for relevante.",
     parameters: {
       type: "object",
       properties: {
-        url: { type: "string", description: "URL do arquivo a enviar (use exatamente a URL da lista de arquivos disponíveis)" },
+        url: { type: "string", description: "URL do arquivo a enviar" },
         tipo: { type: "string", enum: ["imagem", "pdf", "documento"], description: "Tipo do arquivo" },
-        nome: { type: "string", description: "Nome do arquivo (para PDFs/documentos)" },
+        nome: { type: "string", description: "Nome do arquivo" },
         mensagem: { type: "string", description: "Mensagem de texto para acompanhar o arquivo" },
       },
       required: ["url", "tipo", "mensagem"],
-    },
-  },
-    description: "Envia uma imagem do cardápio quando o cliente pede para ver o cardápio visualmente",
-    parameters: {
-      type: "object",
-      properties: {
-        mensagem: { type: "string", description: "Mensagem de texto para acompanhar a imagem" },
-      },
-      required: ["mensagem"],
     },
   },
 ];
@@ -600,38 +591,6 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           await appendMensagem(conversa.id, historico, {
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
-          });
-        }
-
-        // ── Enviar imagem do cardápio (fallback de produtos em destaque) ──
-          const { mensagem } = resultado.args;
-
-          // Busca imagens dos produtos em destaque
-          const { data: destaques } = await supabase
-            .from("produtos")
-            .select("imagem_url, nome")
-            .eq("ativo", true)
-            .eq("destaque", true)
-            .not("imagem_url", "is", null)
-            .limit(6);
-
-          if (destaques?.length) {
-            await sendWhatsAppMessage(telefone, mensagem);
-            // Envia até 3 imagens de destaque
-            for (const prod of destaques.slice(0, 3)) {
-              if (prod.imagem_url) {
-                await sendWhatsAppImage(telefone, prod.imagem_url, prod.nome);
-              }
-            }
-          } else {
-            // Fallback: manda link do site
-            const resposta = `${mensagem}\n\n🌐 Veja nosso cardápio completo em: saborosamente.vercel.app`;
-            await sendWhatsAppMessage(telefone, resposta);
-          }
-
-          await appendMensagem(conversa.id, historico, {
-            role: "assistant",
-            content: `[Cardápio enviado] ${mensagem}`,
           });
         }
 
