@@ -55,7 +55,7 @@ export async function conectarQZ(): Promise<boolean> {
       return true;
     }
 
-    await qz.websocket.connect({ host: "localhost", port: { secure: [8181] } });
+    await qz.websocket.connect({ host: "localhost", port: { secure: [8181], insecure: [8182] } });
     qzConnected = true;
     return true;
   } catch (e: any) {
