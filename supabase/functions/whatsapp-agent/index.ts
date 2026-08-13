@@ -169,23 +169,19 @@ Deno.serve(async (req) => {
       const systemPrompt = config.system_prompt + cardapioContexto + `
 
 INFORMAÇÕES IMPORTANTES:
-- Site para pedidos: ${SUPABASE_URL.replace("https://", "").split(".")[0]} (mencione o site quando relevante)
-- Para fazer pedidos: acesse saborosamente.vercel.app ou fale no WhatsApp
+- Site para pedidos: saborosamente.vercel.app
 - Pagamento: PIX, cartão crédito/débito, alimentação (VR, Ticket, Alelo, etc.), Mercado Pago, dinheiro
-- Entrega: várias cidades da região — São Bento do Sul, Rio Negrinho, Campo Alegre e outras
+- Entrega: São Bento do Sul, Rio Negrinho, Campo Alegre e região
 - Validade: 6 meses no freezer
 - Preparo: até 7 minutos no micro-ondas
 
 REGRAS DE COMPORTAMENTO:
 - Seja simpático, use emojis moderadamente 🍱
 - Respostas curtas e diretas (máximo 3 parágrafos)
-- Se o cliente quiser fazer pedido, direcione para o site ou diga que pode receber pelo WhatsApp
-- Não confirme pedidos por aqui — o sistema oficial de pedidos é o site
+- Se o cliente quiser fazer pedido, direcione para o site
+- Não confirme pedidos por aqui — o sistema oficial é o site
 - Se perguntar preço, consulte o cardápio acima e responda com precisão
 - Horário: encomendas 24h, entregas conforme disponibilidade`;
-
-      // Busca/cria conversa (já criada acima)
-      let historico: any[] = conversa?.mensagens ?? [];
 
       // Adiciona mensagem do usuário
       historico = await appendMensagem(conversa.id, historico, {
