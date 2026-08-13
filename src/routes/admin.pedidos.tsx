@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
+import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
@@ -242,6 +243,16 @@ function AdminOrdersPage() {
   const knownIdsRef = useRef<Set<string>>(new Set());
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
 
+  // ── Lê config de impressão do banco ──────────────────────────────────────
+  const { data: configImpressaoData } = useQuery({
+    queryKey: ["config-impressao"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("config_impressao").maybeSingle();
+      return (data?.config_impressao as any) ?? null;
+    },
+    staleTime: 60_000,
+  });
+
   // ── Pede permissão de notificação ao montar ───────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -326,9 +337,10 @@ function AdminOrdersPage() {
           });
 
           // ── Impressão automática ──────────────────────────────────────────
-          if (autoPrint) {
+          const deveImprimir = autoPrint || configImpressaoData?.impressao_automatica;
+          if (deveImprimir && configImpressaoData?.imprimir_ao_confirmar !== false) {
             try {
-              // Aguarda um segundo para os itens serem inseridos
+              // Aguarda itens serem inseridos
               await new Promise(r => setTimeout(r, 1200));
               const { data: itens } = await supabase
                 .from("pedido_itens")
@@ -336,14 +348,13 @@ function AdminOrdersPage() {
                 .eq("pedido_id", newOrder.id);
 
               const ids = (itens ?? []).map((i: any) => i.produto_id).filter(Boolean);
-
               let nomesMap: Record<string, string> = {};
               if (ids.length > 0) {
                 const { data: prods } = await supabase.from("produtos").select("id, nome").in("id", ids);
                 (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
               }
 
-              printReceipt({
+              const orderComItens = {
                 ...newOrder,
                 itens: (itens ?? []).map((i: any) => ({
                   nome: nomesMap[i.produto_id] ?? "Produto",
@@ -351,7 +362,24 @@ function AdminOrdersPage() {
                   preco_unitario: i.preco_unitario,
                   observacao: i.observacao,
                 })),
-              });
+              };
+
+              const ip = configImpressaoData?.impressora_ip;
+              const porta = Number(configImpressaoData?.impressora_porta ?? 9100);
+              const copias = Number(configImpressaoData?.copias ?? 1);
+              const papel = configImpressaoData?.tamanho_papel ?? "80mm";
+
+              // Tenta QZ Tray primeiro — fallback para popup se não disponível
+              if (ip) {
+                const qzOk = await imprimirTCP(orderComItens, ip, porta, copias, papel);
+                if (!qzOk) {
+                  // QZ não disponível — usa popup
+                  printReceipt(orderComItens);
+                }
+              } else {
+                // Sem IP configurado — usa popup
+                printReceipt(orderComItens);
+              }
             } catch (e) {
               console.error("Erro ao imprimir automaticamente:", e);
             }
@@ -363,7 +391,7 @@ function AdminOrdersPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [autoPrint, queryClient]);
+  }, [autoPrint, queryClient, configImpressaoData]);
 
   // ── Alerta sonoro quando cliente pede atendente humano ────────────────────
   useEffect(() => {
