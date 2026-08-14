@@ -688,6 +688,24 @@ Deno.serve(async (req) => {
         return new Response("OK", { status: 200 });
       }
 
+      // ── Busca config do agente ───────────────────────────────────────────
+      const { data: config } = await supabase
+        .from("agente_config")
+        .select("*")
+        .eq("ativo", true)
+        .maybeSingle();
+
+      if (!config) {
+        await sendWhatsAppMessage(
+          telefone,
+          "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente."
+        );
+        return new Response("OK", { status: 200 });
+      }
+
+      // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
+      const clienteResult = await buscarClientePorTelefone(telefone);
+
       // ── Intercepta seleções do menu principal (sem precisar da OpenAI) ──
       if (menuId) {
         const nomeCliente = clienteResult?.profile?.nome ?? nomeContato ?? null;
@@ -763,24 +781,6 @@ Deno.serve(async (req) => {
           .from("whatsapp_conversas").select("mensagens").eq("id", conversa.id).single();
         historico = conversaAtualizada?.mensagens ?? historico;
       }
-
-      // ── Busca config do agente ───────────────────────────────────────────
-      const { data: config } = await supabase
-        .from("agente_config")
-        .select("*")
-        .eq("ativo", true)
-        .maybeSingle();
-
-      if (!config) {
-        await sendWhatsAppMessage(
-          telefone,
-          "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente."
-        );
-        return new Response("OK", { status: 200 });
-      }
-
-      // ── Busca cliente por telefone (necessário antes do switch do menu) ──
-      const clienteResult = await buscarClientePorTelefone(telefone);
 
       // ── Busca contexto dinâmico em paralelo ──────────────────────────────
       const [

@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -28,17 +28,20 @@ function mensagemStatus(status: string, pedido: any): string | null {
   const nome = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
 
   switch (status) {
+    case "novo_pedido":
+      return `🍱 Olá, *${nome}*! Recebemos seu pedido *#${protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: saborosamente.vercel.app/pedido?p=${protocolo}`;
+
     case "preparando":
-      return `✅ Oi, *${nome}*! Seu pedido *#${protocolo}* foi recebido e já está sendo preparado com carinho pela nossa equipe 🍱\n\nAcompanhe o status em: saborosamente.vercel.app/pedido/${protocolo}`;
+      return `✅ Oi, *${nome}*! Seu pedido *#${protocolo}* foi recebido e já está sendo preparado com carinho 🍱\n\nAcompanhe em tempo real: saborosamente.vercel.app/pedido?p=${protocolo}`;
 
     case "saiu para entrega":
-      return `🚚 Boa notícia, *${nome}*! Seu pedido *#${protocolo}* saiu para entrega agora!\n\nFique de olho — está a caminho! 🏃‍♂️\n\nQualquer dúvida, estamos aqui 😊`;
+      return `🚚 *${nome}*, seu pedido *#${protocolo}* saiu para entrega agora!\n\nAcompanhe: saborosamente.vercel.app/pedido?p=${protocolo} 🏃‍♂️`;
 
     case "entregue":
-      return `🎉 Pedido *#${protocolo}* entregue, *${nome}*!\n\nEsperamos que aprecie bastante 😋 Se quiser, conta pra gente como foi: basta responder com uma nota de *1 a 5* ⭐\n\n_Sua opinião é muito importante para nós!_`;
+      return `🎉 Pedido *#${protocolo}* entregue, *${nome}*!\n\nEsperamos que aprecie bastante 😋\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼`;
 
     case "cancelado":
-      return `😔 Oi, *${nome}*. Infelizmente seu pedido *#${protocolo}* foi cancelado.\n\nEntraremos em contato para explicar o motivo. Se tiver dúvidas, responda esta mensagem 💬`;
+      return `😔 Oi, *${nome}*. Infelizmente seu pedido *#${protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬`;
 
     default:
       return null;

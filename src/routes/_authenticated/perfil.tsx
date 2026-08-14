@@ -493,6 +493,25 @@ function PerfilPage() {
             )}
           </section>
 
+          {/* Indique e Ganhe */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Gift className="h-5 w-5 text-primary" />
+              Indique e Ganhe
+            </h2>
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
+                  <p className="text-sm text-gray-500">Compartilhe seu link e ganhe cashback a cada amigo que fizer o primeiro pedido.</p>
+                </div>
+                <Link to="/indicar" className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold hover:bg-primary/90 transition-all whitespace-nowrap">
+                  Ver meu link
+                </Link>
+              </CardContent>
+            </Card>
+          </section>
+
           {/* Gerenciamento de Endereços */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">

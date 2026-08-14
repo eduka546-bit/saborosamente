@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X, LogOut, Lock } from "lucide-react";
+import { Menu, ShoppingBag, User, MapPin, Sparkles, MessageSquare, X, LogOut, Lock, Gift } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
@@ -35,6 +35,7 @@ const links = [
   { to: "/", hash: "cardapio", label: "Cardápio", icon: Menu, type: "link" },
   { to: "#", label: "Áreas de entrega", icon: MapPin, type: "modal" },
   { to: "/perfil", label: "Cashback", icon: Sparkles, type: "link" },
+  { to: "/indicar", label: "Indique e Ganhe", icon: Gift, type: "link" },
   { to: "/fale-conosco", label: "Fale conosco", icon: MessageSquare, type: "link" },
 ] as const;
 

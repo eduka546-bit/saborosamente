@@ -14,6 +14,9 @@ export const Route = createFileRoute("/pedido/")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    p: typeof search.p === "string" ? search.p : undefined,
+  }),
   component: RastrearPedidoPage,
 });
 
@@ -33,9 +36,12 @@ const STEPS = [
 ];
 
 function RastrearPedidoPage() {
-  const [protocolo, setProtocolo] = useState("");
-  const [busca, setBusca] = useState("");
+  const search = Route.useSearch();
+  const [protocolo, setProtocolo] = useState(search.p ?? "");
+  const [busca, setBusca] = useState(search.p ?? "");
 
+  // Se veio com ?p=PROTOCOLO, busca automaticamente
+  
   const { data: pedido, isLoading, error } = useQuery({
     queryKey: ["rastrear", busca],
     enabled: busca.length >= 6,

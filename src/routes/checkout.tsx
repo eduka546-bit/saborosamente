@@ -420,6 +420,15 @@ function Checkout() {
       setOrderId(order.id);
       clear();
 
+      // Notifica cliente via WhatsApp — confirmação do pedido
+      try {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({ pedido_id: order.id, status_novo: "novo_pedido" }),
+        });
+      } catch (_) {}
+
       // Credita cashback ao usuário
       if (session?.user?.id) {
         await creditarCashback(session.user.id, order.id, finalTotal);

@@ -1,0 +1,2 @@
+[functions.whatsapp-cart-recovery]
+verify_jwt = false
