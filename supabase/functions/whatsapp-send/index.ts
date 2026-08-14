@@ -30,11 +30,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // DEBUG — remover depois
-    console.log("TO recebido:", to);
-    console.log("PHONE_NUMBER_ID:", WHATSAPP_PHONE_NUMBER_ID);
-    console.log("TOKEN (primeiros 20 chars):", WHATSAPP_TOKEN?.slice(0, 20));
-
     const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
     const response = await fetch(url, {
       method: "POST",
