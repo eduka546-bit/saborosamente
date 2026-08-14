@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, TrendingUp, DollarSign, Users, Package, Loader2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { BarChart3, TrendingUp, DollarSign, Users, Package, Loader2, MapPin, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ import { subDays, startOfMonth, format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line,
+  LineChart, Line, PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 export const Route = createFileRoute("/admin/relatorios/kpi")({
@@ -21,7 +22,7 @@ function AdminRelatoriosKpiPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("valor_total, created_at, status, user_id")
+        .select("id, valor_total, taxa_entrega, created_at, status, user_id, endereco_cidade, endereco_bairro")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
@@ -34,6 +35,18 @@ function AdminRelatoriosKpiPage() {
       const { data, error } = await supabase.from("profiles").select("id, created_at");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: itens = [] } = useQuery({
+    queryKey: ["kpi-itens"],
+    queryFn: async () => {
+      const monthStart = startOfMonth(new Date()).toISOString();
+      const { data } = await supabase
+        .from("pedido_itens")
+        .select("quantidade, produto_id, preco_unitario, produtos:produto_id(nome)")
+        .gte("created_at", monthStart);
+      return data ?? [];
     },
   });
 
@@ -74,8 +87,31 @@ function AdminRelatoriosKpiPage() {
       };
     });
 
-    return { ticketMedio, ticketTrend, retencao, monthRevenue, totalOrders: notCancelled.length, salesChart };
-  }, [orders, clients]);
+    // Top produtos do mês
+    const prodMap: Record<string, { nome: string; qty: number; receita: number }> = {};
+    (itens as any[]).forEach((item: any) => {
+      const id = item.produto_id;
+      if (!id) return;
+      if (!prodMap[id]) prodMap[id] = { nome: item.produtos?.nome ?? "Produto", qty: 0, receita: 0 };
+      prodMap[id].qty += item.quantidade ?? 1;
+      prodMap[id].receita += (item.preco_unitario ?? 0) * (item.quantidade ?? 1);
+    });
+    const topProdutos = Object.values(prodMap).sort((a, b) => b.qty - a.qty).slice(0, 8);
+
+    // Receita por cidade no mês
+    const cidadeMap: Record<string, number> = {};
+    thisMonth.forEach((o: any) => {
+      if (o.endereco_cidade) {
+        cidadeMap[o.endereco_cidade] = (cidadeMap[o.endereco_cidade] || 0) + (o.valor_total || 0);
+      }
+    });
+    const receitaCidade = Object.entries(cidadeMap)
+      .map(([cidade, receita]) => ({ cidade, receita }))
+      .sort((a, b) => b.receita - a.receita)
+      .slice(0, 8);
+
+    return { ticketMedio, ticketTrend, retencao, monthRevenue, totalOrders: notCancelled.length, salesChart, topProdutos, receitaCidade };
+  }, [orders, clients, itens]);
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
@@ -165,6 +201,60 @@ function AdminRelatoriosKpiPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          </div>
+
+          {/* Top produtos do mês + Receita por cidade */}
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+
+            {/* Top produtos */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Star className="text-yellow-500" size={18} /> Top Produtos do Mês
+              </h3>
+              {stats.topProdutos.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-8">Nenhum dado ainda</p>
+              ) : (
+                <div className="space-y-3">
+                  {stats.topProdutos.map((p: any, i: number) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="text-xs font-black text-gray-300 w-4">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{p.nome}</p>
+                          <span className="text-xs font-bold text-gray-500 shrink-0 ml-2">{p.qty}x</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#5850ec] rounded-full" style={{ width: `${(p.qty / (stats.topProdutos[0]?.qty || 1)) * 100}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-green-600 shrink-0">R$ {p.receita.toFixed(0)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Receita por cidade */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <MapPin className="text-[#5850ec]" size={18} /> Receita por Cidade (mês)
+              </h3>
+              {stats.receitaCidade.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-8">Nenhum dado ainda</p>
+              ) : (
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.receitaCidade} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}`} />
+                      <YAxis type="category" dataKey="cidade" tick={{ fontSize: 10 }} width={90} />
+                      <Tooltip formatter={(v: any) => [`R$ ${Number(v).toFixed(2)}`, "Receita"]} />
+                      <Bar dataKey="receita" fill="#00a884" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
         </>

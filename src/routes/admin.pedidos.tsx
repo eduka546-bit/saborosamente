@@ -508,12 +508,23 @@ function AdminOrdersPage() {
   });
 
   const updateOrderStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: string }) => {
+    mutationFn: async ({ id, status, statusAnterior }: { id: string; status: string; statusAnterior?: string }) => {
       const { error } = await supabase
         .from("pedidos")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      // Notifica cliente via WhatsApp quando status muda
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({ pedido_id: id, status_anterior: statusAnterior, status_novo: status }),
+        });
+      } catch (e) {
+        console.warn("Notificação WhatsApp falhou:", e);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
@@ -768,7 +779,7 @@ function AdminOrdersPage() {
                            {statusOptions.map((opt) => (
                              <DropdownMenuItem 
                                key={opt.label}
-                               onClick={() => updateOrderStatus.mutate({ id: order.id, status: opt.label })}
+                              onClick={() => updateOrderStatus.mutate({ id: order.id, status: opt.label, statusAnterior: order.status })}
                                className="flex items-center gap-3 py-2 px-3 text-[10px] font-bold uppercase tracking-wider cursor-pointer"
                              >
                                <opt.icon size={16} className={opt.color} />

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Search, Filter, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Users, Search, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2, Gift, MessageCircle } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,22 @@ import { useServerFn } from "@tanstack/react-start";
 export const Route = createFileRoute("/admin/clientes")({
   component: AdminClientesPage,
 });
+
+function CashbackCliente({ userId }: { userId: string }) {
+  const { data } = useQuery({
+    queryKey: ["cashback-cliente", userId],
+    queryFn: async () => {
+      const { data } = await supabase.from("cashback_saldo").select("saldo").eq("user_id", userId).maybeSingle();
+      return Number((data as any)?.saldo ?? 0);
+    },
+  });
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl text-sm">
+      <Gift size={15} className="text-yellow-600" />
+      <span className="font-bold text-yellow-700">Cashback: R$ {(data ?? 0).toFixed(2)}</span>
+    </div>
+  );
+}
 
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -230,7 +247,7 @@ function AdminClientesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pedidos</p>
                 <p className="text-lg font-black text-gray-900">{selectedClient.totalPedidos}</p>
@@ -241,12 +258,28 @@ function AdminClientesPage() {
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ticket Médio</p>
-                <p className="text-lg font-black text-[#5850ec]">R$ {(selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2)}</p>
+                <p className="text-lg font-black text-[#5850ec]">R$ {selectedClient.totalPedidos > 0 ? (selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2) : "0,00"}</p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Último Pedido</p>
-                <p className="text-sm font-bold text-gray-700">{new Date(selectedClient.ultimoPedido).toLocaleDateString('pt-BR')}</p>
+                <p className="text-sm font-bold text-gray-700">{selectedClient.ultimoPedido ? new Date(selectedClient.ultimoPedido).toLocaleDateString('pt-BR') : 'N/A'}</p>
               </div>
+            </div>
+
+            {/* Ações rápidas */}
+            <div className="flex gap-3 mb-6">
+              {selectedClient.telefone && (
+                <a
+                  href={`https://wa.me/${selectedClient.telefone.replace(/\D/g, "")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-600 transition-all"
+                >
+                  <MessageCircle size={15} /> WhatsApp
+                </a>
+              )}
+              {selectedClient.id && (
+                <CashbackCliente userId={selectedClient.id} />
+              )}
             </div>
 
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>

@@ -173,7 +173,6 @@ async function getOrCreateConversa(telefone: string, nome?: string) {
     .maybeSingle();
 
   if (data) return data;
-
   const { data: nova } = await supabase
     .from("whatsapp_conversas")
     .insert({ telefone, nome: nome ?? null, mensagens: [], pedido_em_andamento: null })
@@ -557,6 +556,17 @@ const FUNCTIONS_SCHEMA = [
     },
   },
   {
+    name: "consultar_cashback",
+    description: "Consulta o saldo de cashback do cliente quando ele perguntar sobre cashback, saldo, desconto acumulado ou créditos.",
+    parameters: {
+      type: "object",
+      properties: {
+        motivo: { type: "string", description: "Por que o cliente quer saber o cashback" },
+      },
+      required: ["motivo"],
+    },
+  },
+  {
     name: "buscar_cliente_cpf",
     description: "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
     parameters: {
@@ -907,11 +917,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           if (cpfResult.encontrado) {
             const nomeCliente = cpfResult.profile?.nome?.split(" ")[0] ?? "cliente";
             resposta = `Ótimo! Encontrei seu cadastro 😊 Seja bem-vindo de volta, *${nomeCliente}*! Já vinculamos seu número para as próximas vezes. Posso te ajudar?`;
-            // Injeta contexto do cliente no próximo prompt via histórico
-            await appendMensagem(conversa.id, historico, {
-              role: "system",
-              content: cpfResult.contexto,
-            });
+            await appendMensagem(conversa.id, historico, { role: "system", content: cpfResult.contexto });
           } else {
             resposta = "Não encontrei nenhum cadastro com esse CPF. Sem problema! Pode continuar normalmente que vou te ajudar 😊";
           }
@@ -920,11 +926,63 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
         }
 
+        // ── Consultar cashback ────────────────────────────────────────────
+        else if (resultado.nome === "consultar_cashback") {
+          const profile = clienteResult.encontrado ? clienteResult.profile : null;
+          if (!profile?.id) {
+            const msg = "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
+            await sendWhatsAppMessage(telefone, msg);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+          } else {
+            const { data: saldoData } = await supabase
+              .from("cashback_saldo")
+              .select("saldo")
+              .eq("user_id", profile.id)
+              .maybeSingle();
+            const saldo = Number((saldoData as any)?.saldo ?? 0);
+            const nome = profile.nome?.split(" ")[0] ?? "você";
+            const msg = saldo > 0
+              ? `💰 *${nome}*, seu saldo de cashback é *R$ ${saldo.toFixed(2).replace(".", ",")}*!\n\nVocê pode usá-lo como desconto no próximo pedido pelo site: saborosamente.vercel.app 🛒`
+              : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
+            await sendWhatsAppMessage(telefone, msg);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+          }
+        }
+
       } else {
         // ── Resposta de texto normal ─────────────────────────────────────
         const resposta = resultado.conteudo;
-        await sendWhatsAppMessage(telefone, resposta);
-        await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+
+        // Processa avaliação se cliente estiver no fluxo de avaliação
+        if (conversa?.aguardando_avaliacao) {
+          const notaMatch = texto.trim().match(/^[1-5]$/);
+          if (notaMatch) {
+            const nota = parseInt(notaMatch[0]);
+            const pedidoId = conversa.aguardando_avaliacao;
+
+            await supabase.from("avaliacoes").insert({
+              pedido_id: pedidoId,
+              telefone,
+              nota,
+              comentario: null,
+            });
+
+            await supabase.from("whatsapp_conversas")
+              .update({ aguardando_avaliacao: null })
+              .eq("id", conversa.id);
+
+            const msgs = ["", "Ih, precisa melhorar 😔", "Vamos nos esforçar mais! 🙏", "Obrigado pelo feedback 😊", "Que ótimo! Ficamos felizes 😄", "Perfeito! Que alegria! 🎉"];
+            const agradecimento = `${msgs[nota]} Obrigada pela avaliação, *${nota} estrela${nota > 1 ? "s" : ""}*! ⭐\n\nSe quiser comentar algo, pode escrever agora. Se não, é só me chamar quando precisar! 🫶🏼`;
+            await sendWhatsAppMessage(telefone, agradecimento);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: agradecimento });
+          } else {
+            await sendWhatsAppMessage(telefone, resposta);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+          }
+        } else {
+          await sendWhatsAppMessage(telefone, resposta);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+        }
       }
 
     } catch (err: any) {
