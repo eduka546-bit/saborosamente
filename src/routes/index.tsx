@@ -129,6 +129,7 @@ function Index() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
+  const [comboCategoria, setComboCategoria] = useState<string | null>(null); // null = todas as categorias
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
@@ -358,89 +359,108 @@ function Index() {
               </div>
             ) : (
               <>
-                {/* ── Banner do Combo — aparece só em "Todas" e sem busca ── */}
-                {selectedCategory === "Todas" && !searchTerm && (
-                  <div
-                    onClick={() => setComboModalOpen(true)}
-                    className="cursor-pointer mb-8 rounded-[2rem] overflow-hidden relative group"
-                    style={{
-                      background: "linear-gradient(135deg, #086e45 0%, #0a9460 50%, #065a38 100%)",
-                    }}
-                  >
-                    {/* Decoração de fundo */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div className="absolute -top-8 -right-8 w-64 h-64 rounded-full bg-white blur-3xl" />
-                      <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-white blur-2xl" />
-                    </div>
+                {/* ── Modo "Todas" sem busca: um banner por categoria ── */}
+                {selectedCategory === "Todas" && !searchTerm ? (
+                  <div className="space-y-5">
+                    {categoriesWithProducts
+                      .filter(cat => cat !== "Todas")
+                      .map((cat) => {
+                        const catProducts = filteredProducts.filter(
+                          (p: any) => p.categorias?.nome === cat
+                        );
+                        if (!catProducts.length) return null;
 
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 px-8 py-8">
-                      {/* Texto */}
-                      <div className="text-white text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider mb-3">
-                          <Sparkles size={12} /> Desconto progressivo
-                        </div>
-                        <h2 className="text-3xl md:text-4xl font-black leading-tight">
-                          Monte seu Combo 🍱
-                        </h2>
-                        <p className="mt-2 text-white/80 text-sm md:text-base max-w-md">
-                          Escolha suas marmitas favoritas e ganhe desconto automático quanto mais você montar.
-                        </p>
-                        {/* Tiers de desconto */}
-                        <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
-                          {COMBO_RULES.map(rule => (
-                            <div key={rule.min} className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                              <Tag size={11} className="text-yellow-300" />
-                              <span className="text-xs font-black text-white">{rule.badge}</span>
-                              <span className="text-[10px] text-white/70">a partir de {rule.min} itens</span>
+                        return (
+                          <div
+                            key={cat}
+                            onClick={() => { setComboCategoria(cat); setComboModalOpen(true); }}
+                            className="cursor-pointer rounded-[2rem] overflow-hidden relative group"
+                            style={{
+                              background: "linear-gradient(135deg, #086e45 0%, #0a9460 50%, #065a38 100%)",
+                            }}
+                          >
+                            {/* Decoração de fundo */}
+                            <div className="absolute inset-0 opacity-10 pointer-events-none">
+                              <div className="absolute -top-8 -right-8 w-64 h-64 rounded-full bg-white blur-3xl" />
+                              <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-white blur-2xl" />
                             </div>
-                          ))}
-                        </div>
-                      </div>
 
-                      {/* CTA */}
-                      <div className="shrink-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setComboModalOpen(true); }}
-                          className="flex items-center gap-2 bg-white text-[#086e45] font-black px-8 py-4 rounded-2xl text-base shadow-xl transition-all group-hover:scale-105 group-hover:shadow-2xl active:scale-95"
-                        >
-                          <ShoppingBag size={20} />
-                          Montar agora
-                        </button>
-                        <p className="text-center text-white/50 text-xs mt-2">Sopas e complementos não recebem desconto</p>
-                      </div>
-                    </div>
+                            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 px-8 py-7">
+                              {/* Texto */}
+                              <div className="text-white text-center md:text-left">
+                                <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider mb-3">
+                                  <Sparkles size={12} /> Desconto progressivo
+                                </div>
+                                <h2 className="text-2xl md:text-3xl font-black leading-tight">
+                                  {cat} 🍱
+                                </h2>
+                                <p className="mt-1.5 text-white/80 text-sm max-w-md">
+                                  {catProducts.length} opções disponíveis — monte seu combo e ganhe desconto automático!
+                                </p>
+                                {/* Tiers */}
+                                <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
+                                  {COMBO_RULES.map(rule => (
+                                    <div key={rule.min} className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1">
+                                      <Tag size={10} className="text-yellow-300" />
+                                      <span className="text-xs font-black text-white">{rule.badge}</span>
+                                      <span className="text-[10px] text-white/70">a partir de {rule.min} itens</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* CTA */}
+                              <div className="shrink-0 text-center">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setComboCategoria(cat); setComboModalOpen(true); }}
+                                  className="flex items-center gap-2 bg-white text-[#086e45] font-black px-7 py-3.5 rounded-2xl text-sm shadow-xl transition-all group-hover:scale-105 group-hover:shadow-2xl active:scale-95"
+                                >
+                                  <ShoppingBag size={18} />
+                                  Montar agora
+                                </button>
+                                <p className="text-white/50 text-[10px] mt-1.5">Sopas e complementos não recebem desconto</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  /* ── Categoria específica ou busca: grid normal ── */
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                    {filteredProducts.map((product: any) => (
+                      <ProductCard
+                        key={product.id}
+                        product={{
+                          ...product,
+                          categoria: product.categorias?.nome || "Marmita",
+                          imagem: product.imagem_url
+                        }}
+                        allProducts={products.map((p: any) => ({
+                          ...p,
+                          categoria: p.categorias?.nome || "Marmita",
+                          imagem: p.imagem_url
+                        }))}
+                      />
+                    ))}
                   </div>
                 )}
-
-                {/* Grid de produtos normais */}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                  {filteredProducts.map((product: any) => (
-                    <ProductCard
-                      key={product.id}
-                      product={{
-                        ...product,
-                        categoria: product.categorias?.nome || "Marmita",
-                        imagem: product.imagem_url
-                      }}
-                      allProducts={products.map((p: any) => ({
-                        ...p,
-                        categoria: p.categorias?.nome || "Marmita",
-                        imagem: p.imagem_url
-                      }))}
-                    />
-                  ))}
-                </div>
-
-                {/* Modal de combo global */}
+                {/* Modal de combo — filtra por categoria quando aberto de um banner específico */}
                 <ComboBuilderModal
                   isOpen={comboModalOpen}
-                  onClose={() => setComboModalOpen(false)}
-                  combo={{ id: "combo-global", nome: "Monte seu Combo" }}
+                  onClose={() => { setComboModalOpen(false); setComboCategoria(null); }}
+                  combo={{
+                    id: comboCategoria ?? "combo-global",
+                    nome: comboCategoria ? `Monte seu Combo — ${comboCategoria}` : "Monte seu Combo"
+                  }}
                   products={products
                     .filter((p: any) => {
                       const cat = p.categorias?.nome || "";
                       const nome = p.nome || "";
-                      return !isComboEscolhaVoceMesmo(nome, cat);
+                      if (isComboEscolhaVoceMesmo(nome, cat)) return false;
+                      // Se aberto de um banner de categoria, filtra só aquela categoria
+                      if (comboCategoria) return cat === comboCategoria;
+                      return true;
                     })
                     .map((p: any) => ({
                       ...p,
