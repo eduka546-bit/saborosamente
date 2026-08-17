@@ -1,4 +1,3 @@
-import { createFileRoute, Outlet, useRouter, Link, useNavigate } from "@tanstack/react-router";
 import { Outlet, Link, useRouter, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,10 +5,7 @@ import { Store, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin")({
-  // beforeLoad roda no servidor (SSR) onde localStorage não existe,
-  // por isso não verificamos sessão aqui — fazemos isso no componente (client-side).
   beforeLoad: async ({ location }) => {
-    // Só deixa passar — a guarda real está no AdminLayout abaixo
     if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") return;
   },
   component: function AdminLayoutWrapper() {
@@ -36,7 +32,6 @@ function AdminLayout() {
 
     async function checkAuth() {
       try {
-        // Lê sessão do localStorage (client-side, funciona no browser)
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
@@ -46,13 +41,11 @@ function AdminLayout() {
 
         const user = session.user;
 
-        // Shortcut para o admin principal
         if (user.email === ADMIN_EMAIL) {
           if (isMounted) { setIsAdmin(true); setChecking(false); }
           return;
         }
 
-        // Verifica role no banco
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -75,7 +68,6 @@ function AdminLayout() {
 
     checkAuth();
 
-    // Escuta mudanças de estado de autenticação (logout, token expirado, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session) {
         if (isMounted) navigate({ to: "/admin/login" as any });
@@ -88,10 +80,8 @@ function AdminLayout() {
     };
   }, [isLoginPage]);
 
-  // Página de login — sem guarda
   if (isLoginPage) return <Outlet />;
 
-  // Verificando sessão — spinner enquanto lê o localStorage
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -103,7 +93,6 @@ function AdminLayout() {
     );
   }
 
-  // Sem permissão (não deve chegar aqui normalmente, o navigate já redireciona)
   if (!isAdmin) return null;
 
   return (
@@ -117,7 +106,6 @@ function AdminLayout() {
             <span className="font-bold text-sm uppercase tracking-wider">Voltar para a Loja</span>
           </Link>
         </div>
-
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
