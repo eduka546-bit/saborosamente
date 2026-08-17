@@ -534,6 +534,48 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
               />
             </div>
 
+            {/* Modo Treino */}
+            <div className={`rounded-xl border p-4 space-y-3 ${config.modo_treino ? (dark ? "border-yellow-600 bg-yellow-900/20" : "border-yellow-300 bg-yellow-50") : t.settingsCard}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-semibold flex items-center gap-1.5 ${config.modo_treino ? "text-yellow-500" : t.text}`}>
+                    🎓 Modo Treino
+                    {config.modo_treino && <span className="text-[10px] bg-yellow-500 text-white px-1.5 py-0.5 rounded-full font-bold animate-pulse">ATIVO</span>}
+                  </p>
+                  <p className={`text-xs ${t.textSub}`}>Ensine a IA conversando pelo WhatsApp</p>
+                </div>
+                <Switch
+                  checked={!!config.modo_treino}
+                  onCheckedChange={v => setConfig({ ...config, modo_treino: v })}
+                  className="data-[state=checked]:bg-yellow-500"
+                />
+              </div>
+
+              {config.modo_treino && (
+                <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className={`text-[11px] rounded-lg px-3 py-2.5 leading-relaxed ${dark ? "bg-yellow-900/30 text-yellow-300" : "bg-yellow-50 text-yellow-800"} border ${dark ? "border-yellow-700" : "border-yellow-200"}`}>
+                    <p className="font-bold mb-1">Como funciona:</p>
+                    <p>1. Informe seu número abaixo e salve</p>
+                    <p>2. No WhatsApp, converse normalmente com a Saborosa</p>
+                    <p>3. Envie qualquer instrução e ela salva como módulo</p>
+                    <p className="mt-1.5 font-bold">Comandos especiais:</p>
+                    <p><code className="bg-black/10 px-1 rounded">#ver</code> — ver módulos recentes</p>
+                    <p><code className="bg-black/10 px-1 rounded">#testar</code> — ela responde como cliente</p>
+                    <p><code className="bg-black/10 px-1 rounded">#sair</code> — desativa o modo treino</p>
+                  </div>
+                  <div>
+                    <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>Seu número (com DDI, sem +)</label>
+                    <input
+                      value={config.treinador_telefone ?? ""}
+                      onChange={e => setConfig({ ...config, treinador_telefone: e.target.value.replace(/\D/g, "") })}
+                      placeholder="Ex: 5547997391514"
+                      className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-yellow-500 ${t.settingsInput}`}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className={`rounded-xl border p-4 space-y-3 ${t.settingsCard}`}>
               <div>
                 <label className={`text-[10px] font-bold uppercase tracking-wider ${t.settingsLabel}`}>Nome da assistente</label>
@@ -873,7 +915,14 @@ function AdminAgentePage() {
     if (!config) return;
     setSaving(true);
     const { error } = await supabase.from("agente_config")
-      .update({ nome_agente: config.nome_agente, system_prompt: config.system_prompt, ativo: config.ativo, updated_at: new Date().toISOString() })
+      .update({
+        nome_agente: config.nome_agente,
+        system_prompt: config.system_prompt,
+        ativo: config.ativo,
+        modo_treino: config.modo_treino ?? false,
+        treinador_telefone: config.treinador_telefone ?? null,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", config.id);
     setSaving(false);
     if (error) toast.error(error.message);

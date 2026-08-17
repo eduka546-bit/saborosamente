@@ -645,6 +645,127 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MODO TREINO — processa mensagens do admin como instruções para a IA
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function processarModoTreino(
+  telefone: string,
+  texto: string,
+  conversa: any,
+  historico: any[],
+  config: any
+) {
+  const textoLower = texto.trim().toLowerCase();
+
+  // Comando #sair — desativa o modo treino
+  if (textoLower === "#sair") {
+    await supabase.from("agente_config").update({ modo_treino: false }).eq("id", config.id);
+    await sendWhatsAppMessage(telefone,
+      "✅ Modo treino *desativado*!\n\nA Saborosa voltará a responder normalmente a todos os clientes. 🍱"
+    );
+    return;
+  }
+
+  // Comando #ver — lista os últimos módulos salvos
+  if (textoLower === "#ver") {
+    const { data: modulos } = await supabase
+      .from("agente_modulos")
+      .select("nome, categoria, ativo, created_at")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (!modulos?.length) {
+      await sendWhatsAppMessage(telefone, "Nenhum módulo salvo ainda.");
+      return;
+    }
+
+    const lista = modulos.map((m: any, i: number) =>
+      `${i + 1}. *${m.nome}* [${m.categoria}] ${m.ativo ? "✅" : "❌"}`
+    ).join("\n");
+
+    await sendWhatsAppMessage(telefone, `📚 *Últimos módulos:*\n\n${lista}\n\n_Use #testar para simular uma conversa de cliente._`);
+    return;
+  }
+
+  // Comando #testar — entra em modo simulação (a IA responde como cliente)
+  if (textoLower === "#testar") {
+    await supabase.from("whatsapp_conversas")
+      .update({ mensagens: [] }) // limpa histórico para simular novo cliente
+      .eq("id", conversa.id);
+    await sendWhatsAppMessage(telefone,
+      "🧪 *Modo simulação ativado!*\n\nAgora vou responder como se fosse um cliente. Mande uma mensagem para testar.\n\n_Envie #sair para encerrar o treino._"
+    );
+    return;
+  }
+
+  // Mensagem normal no modo treino → interpreta como nova instrução
+  // Usa GPT para categorizar e nomear o módulo automaticamente
+  const promptCategorizar = `Você é um assistente que ajuda a organizar instruções de treinamento para um chatbot de delivery de marmitas.
+
+O administrador enviou esta instrução:
+"${texto}"
+
+Responda em JSON com:
+{
+  "nome": "título curto e descritivo (máximo 50 chars)",
+  "categoria": "identidade" | "cardapio" | "pedidos" | "entregas" | "comportamento",
+  "conteudo": "a instrução formatada de forma clara e direta para a IA seguir"
+}
+
+Responda APENAS o JSON, sem explicações.`;
+
+  let modulo = { nome: "Instrução de treino", categoria: "comportamento", conteudo: texto };
+
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: promptCategorizar }],
+        max_tokens: 300,
+        temperature: 0.3,
+      }),
+    });
+    const json = await resp.json();
+    const raw = json.choices?.[0]?.message?.content ?? "";
+    const parsed = JSON.parse(raw.trim());
+    if (parsed.nome && parsed.categoria && parsed.conteudo) {
+      modulo = parsed;
+    }
+  } catch (e) {
+    console.warn("Erro ao categorizar instrução:", e);
+  }
+
+  // Busca a maior ordem atual
+  const { data: maxOrdem } = await supabase
+    .from("agente_modulos")
+    .select("ordem")
+    .order("ordem", { ascending: false })
+    .limit(1);
+  const novaOrdem = ((maxOrdem?.[0] as any)?.ordem ?? 0) + 1;
+
+  // Salva o módulo
+  const { error } = await supabase.from("agente_modulos").insert({
+    nome: modulo.nome,
+    categoria: modulo.categoria,
+    conteudo: modulo.conteudo,
+    ativo: true,
+    ordem: novaOrdem,
+  });
+
+  if (error) {
+    await sendWhatsAppMessage(telefone, `❌ Erro ao salvar instrução: ${error.message}`);
+    return;
+  }
+
+  await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+  await sendWhatsAppMessage(telefone,
+    `✅ *Instrução salva!*\n\n📌 *${modulo.nome}*\n🏷️ Categoria: ${modulo.categoria}\n\n_A Saborosa já vai usar essa instrução nas próximas conversas._\n\nEnvie mais instruções, *#ver* para listar, *#testar* para simular ou *#sair* para encerrar.`
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Handler principal
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -719,6 +840,17 @@ Deno.serve(async (req) => {
           "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente."
         );
         return new Response("OK", { status: 200 });
+      }
+
+      // ── MODO TREINO: processa mensagens do treinador como instruções ──────
+      if (config.modo_treino && config.treinador_telefone) {
+        const telNorm = telefone.replace(/\D/g, "");
+        const treinadorNorm = String(config.treinador_telefone).replace(/\D/g, "");
+
+        if (telNorm === treinadorNorm || telNorm.endsWith(treinadorNorm.slice(-10))) {
+          await processarModoTreino(telefone, texto || menuId || "", conversa, historico, config);
+          return new Response("OK", { status: 200 });
+        }
       }
 
       // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
