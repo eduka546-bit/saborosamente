@@ -459,26 +459,44 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
       .single();
 
     if (pedidoError) {
-      console.error("Erro ao criar pedido:", pedidoError.message);
+      console.error("Erro ao criar pedido:", JSON.stringify(pedidoError));
       return null;
     }
 
-    // Insere itens
-    const itens = pedidoDados.itens.map((item: any) => ({
-      pedido_id: pedido.id,
-      produto_id: item.produto_id,
-      quantidade: item.quantidade,
-      preco_unitario: item.preco_unitario,
-      observacao: item.peso ? `Peso: ${item.peso}` : null,
-    }));
+    // Resolve produto_id por nome quando o UUID estiver faltando/inválido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const itensResolvidos = await Promise.all(
+      pedidoDados.itens.map(async (item: any) => {
+        let produtoId = item.produto_id;
+
+        // Se não tiver UUID válido, busca pelo nome
+        if (!produtoId || !uuidRegex.test(produtoId)) {
+          const { data: prods } = await supabase
+            .from("produtos")
+            .select("id")
+            .ilike("nome", `%${item.nome}%`)
+            .eq("ativo", true)
+            .limit(1);
+          produtoId = prods?.[0]?.id ?? null;
+          console.log(`Produto resolvido por nome "${item.nome}": ${produtoId}`);
+        }
+
+        return {
+          pedido_id: pedido.id,
+          produto_id: produtoId,
+          quantidade: item.quantidade,
+          preco_unitario: item.preco_unitario,
+          observacao: item.peso ? `Peso: ${item.peso}` : null,
+        };
+      })
+    );
 
     const { error: itensError } = await supabase
       .from("pedido_itens")
-      .insert(itens);
+      .insert(itensResolvidos);
 
     if (itensError) {
-      console.error("Erro ao criar itens:", itensError.message);
-      // Pedido criado mas sem itens — cancela
+      console.error("Erro ao criar itens:", JSON.stringify(itensError));
       await supabase.from("pedidos").delete().eq("id", pedido.id);
       return null;
     }
@@ -930,7 +948,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             await salvarPedidoEmAndamento(conversa.id, null); // limpa pedido em andamento
             await appendMensagem(conversa.id, historico, { role: "assistant", content: confirmacao });
           } else {
-            const erroMsg = "Ops! Tive um problema ao registrar seu pedido. 😔 Pode tentar novamente ou fazer o pedido pelo site: saborosamente.vercel.app";
+            const erroMsg = "Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: saborosamente.vercel.app";
             await sendWhatsAppMessage(telefone, erroMsg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
           }
