@@ -645,6 +645,226 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MOTOR DE AUTOMAÇÕES
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function verificarEExecutarAutomacoes(
+  telefone: string,
+  texto: string,
+  conversa: any,
+  historico: any[],
+  gatilhoTipo: string,
+  gatilhoContexto: any = {}
+) {
+  try {
+    // Busca automações ativas com esse gatilho
+    const { data: automacoes } = await supabase
+      .from("automacoes")
+      .select("*")
+      .eq("ativo", true)
+      .eq("gatilho_tipo", gatilhoTipo);
+
+    if (!automacoes?.length) return false;
+
+    for (const aut of automacoes) {
+      const dispara = avaliarGatilho(aut, texto, gatilhoContexto);
+      if (!dispara) continue;
+
+      // Verifica se já há execução em andamento para este contato nesta automação
+      const { data: execExistente } = await supabase
+        .from("automacao_execucoes")
+        .select("*")
+        .eq("automacao_id", aut.id)
+        .eq("telefone", telefone)
+        .eq("status", "em_andamento")
+        .maybeSingle();
+
+      if (execExistente) continue; // já está em execução
+
+      // Inicia nova execução
+      const nos: any[] = aut.nos ?? [];
+      if (!nos.length) continue;
+
+      const { data: execucao } = await supabase
+        .from("automacao_execucoes")
+        .insert({
+          automacao_id: aut.id,
+          conversa_id: conversa.id,
+          telefone,
+          no_atual_id: nos[0].id,
+          status: "em_andamento",
+          dados: {},
+        })
+        .select().single();
+
+      if (!execucao) continue;
+
+      // Executa o primeiro nó
+      await executarNo(nos[0], nos, execucao, telefone, conversa, historico);
+
+      // Incrementa contador
+      await supabase.from("automacoes")
+        .update({ execucoes_total: (aut.execucoes_total ?? 0) + 1 })
+        .eq("id", aut.id);
+
+      return true; // uma automação disparou
+    }
+  } catch (e: any) {
+    console.error("Erro nas automações:", e.message);
+  }
+  return false;
+}
+
+function avaliarGatilho(automacao: any, texto: string, ctx: any): boolean {
+  const val = automacao.gatilho_valor ?? {};
+
+  switch (automacao.gatilho_tipo) {
+    case "keyword": {
+      const palavras: string[] = val.palavras ?? [];
+      const textoLower = texto.toLowerCase();
+      if (val.modo === "all") return palavras.every(p => textoLower.includes(p.toLowerCase()));
+      return palavras.some(p => textoLower.includes(p.toLowerCase()));
+    }
+    case "primeira_msg":
+      return ctx.primeiraMsg === true;
+    case "pedido_criado":
+      return ctx.pedidoCriado === true;
+    case "status_pedido":
+      return ctx.novoStatus === val.status;
+    case "tag":
+      return ctx.tagAdicionada === val.tag;
+    case "sem_resposta":
+      return ctx.horasSemResposta >= (val.horas ?? 2);
+    default:
+      return false;
+  }
+}
+
+async function executarNo(
+  no: any,
+  todos_nos: any[],
+  execucao: any,
+  telefone: string,
+  conversa: any,
+  historico: any[]
+) {
+  switch (no.tipo) {
+    case "mensagem": {
+      const msg = no.config.texto ?? "";
+      if (msg) await sendWhatsAppMessage(telefone, msg);
+      await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
+      break;
+    }
+
+    case "menu": {
+      const opcoes: string[] = no.config.opcoes ?? [];
+      if (opcoes.length > 0) {
+        const rows = opcoes.slice(0, 10).map((op: string, i: number) => ({
+          id: `auto_${execucao.id}_${i}`,
+          title: op.slice(0, 24),
+        }));
+        await sendWhatsAppList(
+          telefone,
+          no.config.titulo ?? "Menu",
+          no.config.corpo ?? "Escolha uma opção:",
+          "Ver opções",
+          [{ title: "Opções", rows }]
+        );
+      }
+      await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
+      break;
+    }
+
+    case "aguardar": {
+      const valor = no.config.valor ?? 1;
+      const unidade = no.config.unidade ?? "horas";
+      const ms = unidade === "minutos" ? valor * 60_000
+        : unidade === "horas" ? valor * 3_600_000
+        : valor * 86_400_000;
+      const aguardandoAte = new Date(Date.now() + ms).toISOString();
+      await supabase.from("automacao_execucoes")
+        .update({ aguardando_ate: aguardandoAte, no_atual_id: no.id })
+        .eq("id", execucao.id);
+      // A retomada acontece no próximo processamento
+      break;
+    }
+
+    case "condicao": {
+      const campo = no.config.campo ?? "mensagem";
+      const valor = (no.config.valor ?? "").toLowerCase();
+      let condicaoVerdadeira = false;
+
+      if (campo === "mensagem") {
+        const ultimaMsg = (historico.at(-1)?.content ?? "").toLowerCase();
+        condicaoVerdadeira = ultimaMsg.includes(valor);
+      } else if (campo === "tag") {
+        const { data: tag } = await supabase
+          .from("contato_tags").select("id").eq("telefone", telefone).eq("tag", valor).maybeSingle();
+        condicaoVerdadeira = !!tag;
+      }
+
+      const proximoId = condicaoVerdadeira ? no.proximo_sim_id : no.proximo_nao_id;
+      const proximoNo = todos_nos.find((n: any) => n.id === proximoId);
+      if (proximoNo) {
+        await executarNo(proximoNo, todos_nos, execucao, telefone, conversa, historico);
+      } else {
+        await concluirExecucao(execucao);
+      }
+      break;
+    }
+
+    case "tag": {
+      const tag = no.config.tag ?? "";
+      if (tag) {
+        await supabase.from("contato_tags").upsert({ telefone, tag }, { onConflict: "telefone,tag" });
+      }
+      await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
+      break;
+    }
+
+    case "transferir": {
+      await supabase.from("whatsapp_conversas").update({ modo: "humano" }).eq("id", conversa.id);
+      await concluirExecucao(execucao);
+      break;
+    }
+
+    case "encerrar": {
+      if (no.config.mensagem_final) {
+        await sendWhatsAppMessage(telefone, no.config.mensagem_final);
+      }
+      await concluirExecucao(execucao);
+      break;
+    }
+  }
+}
+
+async function avancarExecucao(
+  no: any, todos_nos: any[], execucao: any,
+  telefone: string, conversa: any, historico: any[], avancou: boolean
+) {
+  const proximoId = no.proximo_id;
+  const proximoNo = todos_nos.find((n: any) => n.id === proximoId);
+
+  if (proximoNo) {
+    await supabase.from("automacao_execucoes")
+      .update({ no_atual_id: proximoNo.id })
+      .eq("id", execucao.id);
+    // Executa próximo nó imediatamente (exceto aguardar)
+    if (proximoNo.tipo !== "aguardar") {
+      await executarNo(proximoNo, todos_nos, execucao, telefone, conversa, historico);
+    }
+  } else {
+    await concluirExecucao(execucao);
+  }
+}
+
+async function concluirExecucao(execucao: any) {
+  await supabase.from("automacao_execucoes")
+    .update({ status: "concluida", updated_at: new Date().toISOString() })
+    .eq("id", execucao.id);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MODO TREINO — processa mensagens do admin como instruções para a IA
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -851,6 +1071,22 @@ Deno.serve(async (req) => {
           await processarModoTreino(telefone, texto || menuId || "", conversa, historico, config);
           return new Response("OK", { status: 200 });
         }
+      }
+
+      // ── Verifica automações de keyword ───────────────────────────────────
+      if (texto && !menuId) {
+        const autoDisparou = await verificarEExecutarAutomacoes(
+          telefone, texto, conversa, historico, "keyword", {}
+        );
+        // Se uma automação de keyword disparou, não processa a IA (evita duplicação)
+        // A automação pode ter enviado mensagem própria
+      }
+
+      // Verifica automações de primeira mensagem
+      if (primeiraMsg) {
+        await verificarEExecutarAutomacoes(
+          telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
+        );
       }
 
       // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
