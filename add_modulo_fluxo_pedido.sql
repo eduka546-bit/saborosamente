@@ -24,7 +24,9 @@ ETAPA 3 — ENTREGA OU RETIRADA:
 
 ETAPA 4 — FORMA DE PAGAMENTO:
 - Pergunte como vai pagar e liste as opções disponíveis.
-- Se dinheiro: pergunte se precisa de troco.
+- Se cartão de crédito/débito: pergunte qual bandeira (Visa, Mastercard, Elo, Hiper, Hipercard, American Express, Diners).
+- Se cartão de alimentação/refeição: pergunte qual cartão (VR, Ticket, Alelo, Pluxee, Sodexo, Caju, Flash).
+- Se dinheiro: pergunte se precisa de troco e para quanto.
 
 ETAPA 5 — RESUMO COMPLETO (obrigatório):
 Mostre TODOS os dados antes de confirmar:

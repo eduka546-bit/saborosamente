@@ -102,6 +102,7 @@ function Checkout() {
   const createOrderFn = useServerFn(createOrder);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
+  const [selectedFlag, setSelectedFlag] = useState<string>("");
   const [session, setSession] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
@@ -347,6 +348,7 @@ function Checkout() {
 
   function handlePaymentSelect(value: PaymentValue) {
     setSelectedPayment(value);
+    setSelectedFlag(""); // limpa bandeira ao trocar método
     setValue("pagamento", value, { shouldValidate: true });
   }
 
@@ -407,6 +409,7 @@ function Checkout() {
           desconto: discount + couponDiscount,
           cupom: appliedCoupon?.codigo,
           troco: data.troco,
+          tipoCartao: selectedFlag || undefined,
           userId: session?.user?.id,
           items: lines.map((l) => ({
             productId: l.product.id,
@@ -719,35 +722,65 @@ function Checkout() {
 
             {selectedPayment === "cartao" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
-                <p className="text-sm font-semibold">💳 Bandeiras aceitas</p>
-                <ul className="flex flex-wrap gap-2 items-center">
-                  {cardFlags.map((flag) => (
-                    <li key={flag.name} className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1">
-                      {flag.logo ? (
-                        <img src={flag.logo} alt={flag.name} className="h-4 object-contain" />
-                      ) : (
+                <p className="text-sm font-semibold">💳 Selecione a bandeira do cartão</p>
+                <div className="flex flex-wrap gap-2">
+                  {cardFlags.map((flag) => {
+                    const isSelected = selectedFlag === flag.name;
+                    return (
+                      <button
+                        key={flag.name}
+                        type="button"
+                        onClick={() => setSelectedFlag(flag.name ?? "")}
+                        className={cn(
+                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/10 font-semibold shadow-sm"
+                            : "border-border bg-background hover:border-primary"
+                        )}
+                      >
+                        {flag.logo ? (
+                          <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
+                        ) : null}
                         <span className="text-xs">{flag.name}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!selectedFlag && (
+                  <p className="text-xs text-muted-foreground">Selecione a bandeira para continuar</p>
+                )}
               </div>
             )}
 
             {selectedPayment === "alimentacao" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
-                <p className="text-sm font-semibold">🍴 Cartões aceitos</p>
-                <ul className="flex flex-wrap gap-2 items-center">
-                  {mealFlags.map((flag) => (
-                    <li key={flag.name} className="flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1">
-                      {flag.logo ? (
-                        <img src={flag.logo} alt={flag.name} className="h-4 object-contain" />
-                      ) : (
+                <p className="text-sm font-semibold">🍴 Selecione o cartão de benefício</p>
+                <div className="flex flex-wrap gap-2">
+                  {mealFlags.map((flag) => {
+                    const isSelected = selectedFlag === flag.name;
+                    return (
+                      <button
+                        key={flag.name}
+                        type="button"
+                        onClick={() => setSelectedFlag(flag.name ?? "")}
+                        className={cn(
+                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/10 font-semibold shadow-sm"
+                            : "border-border bg-background hover:border-primary"
+                        )}
+                      >
+                        {flag.logo ? (
+                          <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
+                        ) : null}
                         <span className="text-xs">{flag.name}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!selectedFlag && (
+                  <p className="text-xs text-muted-foreground">Selecione o cartão para continuar</p>
+                )}
               </div>
             )}
 
