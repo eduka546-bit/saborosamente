@@ -1087,6 +1087,11 @@ Deno.serve(async (req) => {
         await verificarEExecutarAutomacoes(
           telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
         );
+        // Envia o menu principal na primeira mensagem
+        const nomeCliente = clienteResult?.profile?.nome ?? nomeContato ?? null;
+        await sendMenuPrincipal(telefone, nomeCliente);
+        await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
+        return new Response("OK", { status: 200 });
       }
 
       // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
