@@ -27,10 +27,11 @@ export const getPublicProducts = createServerFn({ method: "GET" })
     try {
       const { data, error } = await supabase
         .from("produtos")
-        .select(`*, categorias (nome)`)
+        .select(`*, categorias (nome, ordem_filtro)`)
         .eq("ativo", true)
-        .order("ordem", { ascending: true })
-        .order("nome",  { ascending: true }); // desempate por nome
+        .order("categoria_id", { ascending: true })  // agrupa por categoria
+        .order("ordem",        { ascending: true })   // depois por ordem dentro da categoria
+        .order("nome",         { ascending: true });  // desempate por nome
 
       if (error) {
         console.error("Error fetching public products:", error);

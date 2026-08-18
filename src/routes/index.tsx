@@ -133,6 +133,7 @@ function Index() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: () => getPublicProducts(),
+    staleTime: 0, // sempre busca fresco do servidor
   });
 
   // Busca categorias na ordem e visibilidade definidas pelo admin
@@ -181,10 +182,19 @@ function Index() {
       );
     }
     // Remove apenas "Combos Escolha Você Mesmo" do grid — Combos Prontos ficam
-    return result.filter((p: any) => {
-      const cat = p.categorias?.nome || "";
-      const nome = p.nome || "";
-      return !isComboEscolhaVoceMesmo(nome, cat);
+    return result
+      .filter((p: any) => {
+        const cat = p.categorias?.nome || "";
+        const nome = p.nome || "";
+        return !isComboEscolhaVoceMesmo(nome, cat);
+      })
+      .sort((a: any, b: any) => {
+        // Ordena por ordem_filtro da categoria primeiro, depois pela ordem do produto
+        const catOrdemA = a.categorias?.ordem_filtro ?? 999;
+        const catOrdemB = b.categorias?.ordem_filtro ?? 999;
+        if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
+        return (a.ordem ?? 999) - (b.ordem ?? 999);
+      });
     });
   }, [products, selectedCategory, searchTerm]);
 
