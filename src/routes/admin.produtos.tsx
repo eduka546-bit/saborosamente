@@ -1426,7 +1426,6 @@ function AdminProductsPage() {
         </TabsContent>
 
         {/* ── Aba Ordenação ── */}
-        <TabsContent value="ordenacao">        {/* ── Aba Ordenação ── */}
         <TabsContent value="ordenacao">
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm text-blue-700">
