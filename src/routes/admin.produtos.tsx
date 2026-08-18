@@ -897,6 +897,43 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 }
 
 
+// ── Linha simples de ordenação (para a aba Ordenação) ────────────────────────
+function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: produto.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 0,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+      <div {...attributes} {...listeners} className="cursor-grab text-gray-300 hover:text-gray-500 p-1 shrink-0">
+        <GripVertical size={18} />
+      </div>
+      <span className="text-xs font-bold text-gray-300 w-6 text-right shrink-0">{idx + 1}</span>
+      <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+        {produto.imagem_url
+          ? <img src={produto.imagem_url} alt={produto.nome} className="h-full w-full object-cover" />
+          : <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">📦</div>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 truncate">{produto.nome}</p>
+        <p className="text-[11px] text-gray-400">{produto.categorias?.nome ?? "Sem categoria"}</p>
+      </div>
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+        produto.status === "ativo" || produto.status === "Ativo"
+          ? "bg-green-50 text-green-700"
+          : "bg-gray-100 text-gray-500"
+      }`}>
+        {produto.status ?? "—"}
+      </span>
+    </div>
+  );
+}
+
 function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit, onDuplicate }: any) {
   const {
     attributes,
@@ -1268,6 +1305,20 @@ function AdminProductsPage() {
         </div>
       </div>
 
+      {/* ── Abas: Produtos / Ordenação ─────────────────────────────────── */}
+      <Tabs defaultValue="produtos" className="w-full">
+        <TabsList className="mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+          <TabsTrigger value="produtos" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5">
+            <Utensils size={15} className="mr-1.5" /> Produtos
+          </TabsTrigger>
+          <TabsTrigger value="ordenacao" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5">
+            <GripVertical size={15} className="mr-1.5" /> Ordenação
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Aba Produtos (conteúdo original) ── */}
+        <TabsContent value="produtos">
+
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
@@ -1372,6 +1423,8 @@ function AdminProductsPage() {
           </DndContext>
         </div>
       )}
+        </TabsContent>
+
       <ProductEditModal 
         isOpen={isEditModalOpen} 
         onClose={() => {
@@ -1383,6 +1436,58 @@ function AdminProductsPage() {
         onSave={(data: any) => saveProduct.mutate(data)}
         onDelete={(id: string) => deleteProduct.mutate(id)}
       />
+        </TabsContent>
+
+        {/* ── Aba Ordenação ── */}
+        <TabsContent value="ordenacao">
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm text-blue-700">
+              <GripVertical size={16} className="shrink-0 mt-0.5" />
+              <p>Arraste os produtos para reordenar dentro de cada categoria. A ordem aqui é exatamente a que aparece no site e no cardápio.</p>
+            </div>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis]}
+            >
+              {groupedProducts.map(({ category, products: catProds }) => {
+                if (!catProds.length) return null;
+                return (
+                  <div key={category.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                    {/* Header da categoria */}
+                    <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-lg bg-[#5850ec]/10 flex items-center justify-center">
+                          <Utensils size={14} className="text-[#5850ec]" />
+                        </div>
+                        <span className="font-bold text-gray-800 text-sm">{category.nome}</span>
+                        <span className="text-[11px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-semibold">
+                          {catProds.length} {catProds.length === 1 ? "produto" : "produtos"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Lista arrastável */}
+                    <SortableContext
+                      items={catProds.map((p: any) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="divide-y">
+                        {catProds.map((produto: any, idx: number) => (
+                          <OrdemRow key={produto.id} produto={produto} idx={idx} />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </div>
+                );
+              })}
+            </DndContext>
+          </div>
+        </TabsContent>
+
+      </Tabs>
     </div>
   );
 }
