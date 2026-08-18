@@ -292,6 +292,12 @@ export function SiteFooter() {
             © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
           </p>
           <a
+            href="/privacidade"
+            className="text-[10px] font-semibold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-80"
+          >
+            Política de Privacidade
+          </a>
+          <a
             href={`https://instagram.com/${credit.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
