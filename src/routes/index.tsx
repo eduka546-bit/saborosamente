@@ -189,13 +189,11 @@ function Index() {
         return !isComboEscolhaVoceMesmo(nome, cat);
       })
       .sort((a: any, b: any) => {
-        // Ordena por ordem_filtro da categoria primeiro, depois pela ordem do produto
         const catOrdemA = a.categorias?.ordem_filtro ?? 999;
         const catOrdemB = b.categorias?.ordem_filtro ?? 999;
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
         return (a.ordem ?? 999) - (b.ordem ?? 999);
       });
-    });
   }, [products, selectedCategory, searchTerm]);
 
   const categoriesWithProducts = useMemo(() => {
