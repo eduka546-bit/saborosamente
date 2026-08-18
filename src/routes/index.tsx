@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useMemo } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { COMBO_RULES } from "@/lib/combo-rules";
+import { WelcomePopup } from "@/components/welcome-popup";
 
 // Apenas "Combos Escolha Você Mesmo" são excluídos do catálogo e filtros
 // "Combos Prontos" aparecem normalmente
@@ -217,6 +218,10 @@ function Index() {
 
   return (
     <>
+      {/* Popup de boas-vindas */}
+      {settings?.popup_boas_vindas?.ativo && (
+        <WelcomePopup config={settings.popup_boas_vindas as any} />
+      )}
       {/* Hero Info & Banners Section */}
       <section className="mx-auto max-w-5xl px-4 mt-8 md:mt-12 relative z-10 pb-12">
         <div className="flex flex-col md:flex-row gap-6 items-start">

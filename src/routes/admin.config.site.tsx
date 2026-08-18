@@ -280,12 +280,13 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 lg:w-[960px]">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 lg:w-[1120px]">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
           <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
           <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+          <TabsTrigger value="popup">🎯 Popup</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
         </TabsList>
 
@@ -998,6 +999,188 @@ function AdminSiteConfig() {
           </div>
 
         </TabsContent>
+
+        {/* ── Popup de boas-vindas ── */}
+        <TabsContent value="popup" className="mt-6 space-y-6">
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  🎯 Popup de Boas-vindas
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Modal exibido quando o cliente abre o site pela primeira vez.
+                </p>
+              </div>
+              <Switch
+                checked={!!(formData.popup_boas_vindas as any)?.ativo}
+                onCheckedChange={v => setFormData({
+                  ...formData,
+                  popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), ativo: v }
+                } as any)}
+              />
+            </div>
+
+            {/* Imagem */}
+            <div className="space-y-2">
+              <Label>Imagem do popup</Label>
+              <div className="flex items-center gap-4">
+                {(formData.popup_boas_vindas as any)?.imagem_url && (
+                  <img
+                    src={(formData.popup_boas_vindas as any).imagem_url}
+                    alt="Preview popup"
+                    className="h-20 w-32 object-cover rounded-xl border"
+                  />
+                )}
+                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 border rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                  {isUploading["popup_imagem"] ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                  Enviar imagem
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(prev => ({ ...prev, popup_imagem: true }));
+                      try {
+                        const ext = file.name.split(".").pop();
+                        const path = `popup_${Date.now()}.${ext}`;
+                        const { error } = await supabase.storage.from("product-images").upload(path, file);
+                        if (error) throw error;
+                        const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
+                        setFormData({
+                          ...formData,
+                          popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), imagem_url: publicUrl }
+                        } as any);
+                        toast.success("Imagem enviada!");
+                      } catch (err: any) {
+                        toast.error("Erro: " + err.message);
+                      } finally {
+                        setIsUploading(prev => ({ ...prev, popup_imagem: false }));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Título e texto */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Título (fundo verde)</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.titulo ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), titulo: e.target.value } } as any)}
+                  placeholder="Somos um Atacado de Marmitas..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtítulo</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.texto ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), texto: e.target.value } } as any)}
+                  placeholder="Porque comprar de uma só marca..."
+                />
+              </div>
+            </div>
+
+            {/* Itens da lista */}
+            <div className="space-y-2">
+              <Label>Itens da lista (um por linha)</Label>
+              <textarea
+                rows={5}
+                value={((formData.popup_boas_vindas as any)?.itens ?? []).join("\n")}
+                onChange={e => setFormData({
+                  ...formData,
+                  popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), itens: e.target.value.split("\n") }
+                } as any)}
+                placeholder={`Selecionamos +60 opções de 3 marcas diferentes\nEmbalagens seguras, livres de BPA\nSão entregas congeladas com 6 meses de validade`}
+                className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30 resize-none"
+              />
+            </div>
+
+            {/* Cupom */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Texto antes do cupom</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.cupom_texto ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), cupom_texto: e.target.value } } as any)}
+                  placeholder="Primeira compra? Use o cupom:"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Código do cupom</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.cupom_codigo ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), cupom_codigo: e.target.value.toUpperCase() } } as any)}
+                  placeholder="PRIMEIRACOMPRA"
+                  className="font-mono font-bold tracking-widest"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Desconto exibido</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.cupom_desconto ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), cupom_desconto: e.target.value } } as any)}
+                  placeholder="5% de desconto"
+                />
+              </div>
+            </div>
+
+            {/* WhatsApp */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Número WhatsApp (com DDI)</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.whatsapp ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), whatsapp: e.target.value } } as any)}
+                  placeholder="5547999999999"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Texto do WhatsApp</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.whatsapp_texto ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), whatsapp_texto: e.target.value } } as any)}
+                  placeholder="Marmitas personalizadas? WhatsApp:"
+                />
+              </div>
+            </div>
+
+            {/* Botão e delay */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Texto do botão</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.botao_texto ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), botao_texto: e.target.value } } as any)}
+                  placeholder="Ver cardápio"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Link do botão</Label>
+                <Input
+                  value={(formData.popup_boas_vindas as any)?.botao_link ?? ""}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), botao_link: e.target.value } } as any)}
+                  placeholder="#cardapio"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Delay de abertura (segundos)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={(formData.popup_boas_vindas as any)?.delay_segundos ?? 1}
+                  onChange={e => setFormData({ ...formData, popup_boas_vindas: { ...(formData.popup_boas_vindas as any ?? {}), delay_segundos: Number(e.target.value) } } as any)}
+                />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
       </Tabs>
     </div>
   );
