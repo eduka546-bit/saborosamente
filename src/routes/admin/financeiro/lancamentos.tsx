@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Trash2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,14 @@ export const Route = createFileRoute("/admin/financeiro/lancamentos")({
 function AdminLancamentosPage() {
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
-  const [form, setForm] = useState({ descricao: "", tipo: "receita", valor: "", categoria: "", data: new Date().toISOString().split("T")[0] });
+  const [form, setForm] = useState({ descricao: "", tipo: "receita", valor: "", categoria: "", data: "2024-01-01" }); // Valor determinístico
+  const [mounted, setMounted] = useState(false);
+
+  // Inicializa com data atual após mount (evita hydration mismatch)
+  useEffect(() => {
+    setForm(prev => ({ ...prev, data: new Date().toISOString().split("T")[0] }));
+    setMounted(true);
+  }, []);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["lancamentos"],

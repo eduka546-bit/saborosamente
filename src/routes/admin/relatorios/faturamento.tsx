@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Download } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format, eachMonthOfInterval, startOfYear, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -13,7 +13,14 @@ export const Route = createFileRoute("/admin/relatorios/faturamento")({
 });
 
 function AdminRelatoriosFaturamentoPage() {
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState(2024); // Valor determinístico para SSR
+  const [mounted, setMounted] = useState(false);
+
+  // Inicializa com ano atual após mount (evita hydration mismatch)
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+    setMounted(true);
+  }, []);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["relatorio-faturamento", year],
