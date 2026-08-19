@@ -1,0 +1,179 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    MIGRATION: ADICIONAR CAMPO RATING                       ║
+║                          Guia Rápido de Execução                           ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+🎯 OBJETIVO
+───────────────────────────────────────────────────────────────────────────
+Adicionar coluna `rating` (DECIMAL 3.1) com:
+  ✓ Valor padrão: 5.0
+  ✓ Validação: entre 3.5 e 5.0
+  ✓ Índice: para melhor performance
+  ✓ Constraint: para garantir dados válidos
+
+
+⭐ OPÇÃO RECOMENDADA: VIA SUPABASE DASHBOARD
+───────────────────────────────────────────────────────────────────────────
+
+PASSO 1: Abra o Supabase
+  → https://app.supabase.com
+
+PASSO 2: Selecione o Projeto
+  → Procure por "saborosamente"
+
+PASSO 3: Vá para SQL Editor
+  → Na barra lateral esquerda, clique em "SQL Editor"
+  → Clique em "New query"
+
+PASSO 4: Cole o SQL
+  → Copie todo o conteúdo abaixo e cole na janela
+
+      ─────────────────────────────────────────────────────────
+      ALTER TABLE produtos 
+      ADD COLUMN IF NOT EXISTS rating DECIMAL(3, 1) DEFAULT 5.0;
+
+      ALTER TABLE produtos
+      ADD CONSTRAINT check_rating CHECK (rating >= 3.5 AND rating <= 5.0);
+
+      CREATE INDEX IF NOT EXISTS idx_produtos_rating ON produtos(rating);
+      ─────────────────────────────────────────────────────────
+
+PASSO 5: Execute
+  → Clique no botão "Run" ou pressione Ctrl+Enter
+  → Você deve ver: "✓ Success" ou mensagens similares
+
+PASSO 6: Verifique
+  → Se vir mensagens sobre constraints/índice já existindo, está tudo bem!
+  → Execute esta query para verificar:
+
+      ─────────────────────────────────────────────────────────
+      SELECT id, nome, rating FROM produtos LIMIT 5;
+      ─────────────────────────────────────────────────────────
+
+
+🔧 ALTERNATIVA: VIA SCRIPT TYPESCRIPT
+───────────────────────────────────────────────────────────────────────────
+
+Se preferir automatizar via código:
+
+  1. Certifique-se que .env tem:
+     - VITE_SUPABASE_URL
+     - SB_SERVICE_ROLE_KEY
+
+  2. Execute no terminal:
+     $ bun src/migrations/execute-migration.ts
+
+  3. Para verificar depois:
+     $ bun src/migrations/verify-migration.ts
+
+
+📁 ARQUIVOS DISPONÍVEIS
+───────────────────────────────────────────────────────────────────────────
+
+  ✓ EXECUTE_MIGRATION.md
+    → Instruções passo-a-passo completas com troubleshooting
+
+  ✓ MIGRATION_CHECKLIST.md
+    → Checklist com verificações e próximos passos
+
+  ✓ MIGRATION_RATING.md
+    → 3 abordagens diferentes com exemplos
+
+  ✓ add_rating_field.sql
+    → Arquivo SQL puro (aquele que você forneceu)
+
+  ✓ src/migrations/execute-migration.ts
+    → Script TypeScript automatizado
+
+  ✓ src/migrations/verify-migration.ts
+    → Script para verificar se tudo funcionou
+
+  ✓ src/examples/use-rating-field.example.ts
+    → Exemplos de como usar o campo no código
+
+
+✅ APÓS A MIGRATION
+───────────────────────────────────────────────────────────────────────────
+
+1. Atualize seus tipos TypeScript:
+   ```typescript
+   export const produtoSchema = z.object({
+     rating: z.number().min(3.5).max(5.0).optional(),
+     // ... outros campos
+   });
+   ```
+
+2. Use rating nas queries:
+   ```typescript
+   .select('id, nome, preco, rating')
+   .order('rating', { ascending: false })
+   ```
+
+3. Exiba na UI:
+   ```tsx
+   <span>Avaliação: ⭐ {produto.rating}</span>
+   ```
+
+
+🐛 ERROS COMUNS
+───────────────────────────────────────────────────────────────────────────
+
+❌ "Table 'produtos' not found"
+   → A tabela pode estar com nome diferente
+   → Verifique se é 'produtos' ou 'producto' ou outro
+
+❌ "Constraint check_rating already exists"
+   → Isto é normal! A migration já foi executada
+   → Você pode ignorar este erro
+
+❌ "Permission denied"
+   → Use uma conta com role ADMIN
+   → Ou configure SB_SERVICE_ROLE_KEY corretamente
+
+❌ "Script não funciona"
+   → Instale tsx: bun install -g tsx
+   → Ou use: npx tsx src/migrations/execute-migration.ts
+
+
+⏱️  TEMPO ESPERADO
+───────────────────────────────────────────────────────────────────────────
+
+  Via Dashboard:        ~2-3 minutos
+  Via Script:          ~1 minuto
+  Atualizações código: ~5-10 minutos
+  ────────────────────
+  TOTAL:              ~10-15 minutos
+
+
+🎯 CHECKLIST FINAL
+───────────────────────────────────────────────────────────────────────────
+
+  ☐ Executei a migration (escolhi uma opção acima)
+  ☐ Verifiquei que tudo funcionou (sem erros críticos)
+  ☐ Atualizei os tipos Zod/TypeScript
+  ☐ Atualizei as queries que selecionam produtos
+  ☐ Testei na UI mostrando o rating
+  ☐ Fiz um commit com as mudanças
+
+
+📚 MAIS INFORMAÇÕES
+───────────────────────────────────────────────────────────────────────────
+
+  Para instruções detalhadas:
+  → Leia: EXECUTE_MIGRATION.md
+
+  Para checklist completo:
+  → Leia: MIGRATION_CHECKLIST.md
+
+  Para exemplos de código:
+  → Leia: src/examples/use-rating-field.example.ts
+
+  Para troubleshooting:
+  → Leia: MIGRATION_RATING.md ou EXECUTE_MIGRATION.md
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 Pronto para começar! Escolha a Opção 1 (Dashboard) para mais fácil.
+
+═══════════════════════════════════════════════════════════════════════════════
