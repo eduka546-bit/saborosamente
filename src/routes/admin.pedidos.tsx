@@ -326,6 +326,7 @@ function AdminOrdersPage() {
 
           // ── Beep sonoro ───────────────────────────────────────────────────
           try {
+            if (typeof window === 'undefined') return;
             const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
             // Resume context se estiver suspenso (política de autoplay do browser)
             if (ctx.state === "suspended") await ctx.resume();
@@ -442,6 +443,7 @@ function AdminOrdersPage() {
 
     const playHandoffSound = async () => {
       try {
+        if (typeof window === 'undefined') return;
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         if (ctx.state === "suspended") await ctx.resume();
 

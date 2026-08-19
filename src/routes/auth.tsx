@@ -76,10 +76,12 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Cadastro realizado com sucesso!");
       }
-      if (redirect && redirect !== "/") {
-        window.location.href = redirect;
-      } else {
-        window.location.href = "/#cardapio";
+      if (typeof window !== 'undefined') {
+        if (redirect && redirect !== "/") {
+          window.location.href = redirect;
+        } else {
+          window.location.href = "/#cardapio";
+        }
       }
 
     } catch (error: any) {

@@ -61,7 +61,9 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
 export function AdminHeader() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/admin/login";
+    if (typeof window !== 'undefined') {
+      window.location.href = "/admin/login";
+    }
   };
 
   return (
