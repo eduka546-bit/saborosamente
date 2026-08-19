@@ -225,7 +225,7 @@ export function SiteFooter() {
         </div>
 
         {/* ── formas de pagamento ─────────────────────────────────────────── */}
-        <div className="mt-16 border-t border-white/10 pt-12 space-y-10">
+        <div className="mt-16 pt-12 space-y-10">
 
           {/* dois módulos lado a lado em desktop */}
           <div className="grid gap-10 md:grid-cols-2">
