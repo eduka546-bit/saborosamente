@@ -7,8 +7,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
 
-/* Variáveis de fontes customizadas */
 @layer base {
+  /* Variáveis de fontes customizadas */
   :root {
     --font-mazzard: "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-pacifico: "Pacifico", cursive;
@@ -17,18 +17,29 @@
 
   /* Aplicar Mazzard em headings por padrão */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-mazzard;
+    font-family: var(--font-mazzard);
   }
+}
 
-  /* Logo/marca usa Pacifico */
-  .brand-font {
-    @apply font-pacifico;
-  }
+/* CSS classes para as fontes */
+.font-mazzard {
+  font-family: var(--font-mazzard);
+}
 
-  /* Detalhes decorativos usam Halimun */
-  .detail-font {
-    @apply font-halimun;
-  }
+.font-pacifico {
+  font-family: var(--font-pacifico);
+}
+
+.font-halimun {
+  font-family: var(--font-halimun);
+}
+
+.brand-font {
+  font-family: var(--font-pacifico);
+}
+
+.detail-font {
+  font-family: var(--font-halimun);
 }
 
 /*
