@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck, Gift, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck, Gift, ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSaldo } from "@/lib/cashback";
 import { format } from "date-fns";
@@ -36,6 +36,7 @@ import { useCart } from "@/lib/cart";
 
 function PerfilPage() {
   const { session } = Route.useRouteContext();
+  const { add } = useCart();
   const { taxas } = useCart();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -282,6 +283,20 @@ function PerfilPage() {
     );
   }, [newAddress.cidade, newAddress.bairro, taxas]);
 
+  const handleRepeatOrder = (order: any) => {
+    try {
+      // Adiciona cada item do pedido anterior ao carrinho
+      order.itens?.forEach((item: any) => {
+        add(item.produto_id, item.quantidade, item.peso);
+      });
+      toast.success("Pedido repetido!", {
+        description: `${order.itens?.length || 0} item(ns) adicionados ao carrinho`
+      });
+    } catch (error: any) {
+      toast.error("Erro ao repetir pedido");
+    }
+  };
+
   if (loading) return <div className="p-8 text-center">Carregando...</div>;
 
   return (
@@ -429,16 +444,27 @@ function PerfilPage() {
                       </div>
                       
                       {order.status && (
-                        <div className="mt-4 pt-4 border-t">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Status</p>
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
-                            order.status === 'entregue' ? 'bg-green-50 text-green-600 border-green-200' :
-                            order.status === 'cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
-                            order.status === 'preparando' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                            'bg-yellow-50 text-yellow-600 border-yellow-200'
-                          }`}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          </span>
+                        <div className="mt-4 pt-4 border-t space-y-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Status</p>
+                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
+                              order.status === 'entregue' ? 'bg-green-50 text-green-600 border-green-200' :
+                              order.status === 'cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
+                              order.status === 'preparando' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                              'bg-yellow-50 text-yellow-600 border-yellow-200'
+                            }`}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </span>
+                          </div>
+                          <Button
+                            onClick={() => handleRepeatOrder(order)}
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 border-primary text-primary hover:bg-primary/5"
+                          >
+                            <RotateCcw size={16} />
+                            Repetir Pedido
+                          </Button>
                         </div>
                       )}
                     </CardContent>
