@@ -13,6 +13,7 @@ import {
 
 export const Route = createFileRoute("/admin/financeiro/")({
   component: AdminFinanceiroIndex,
+  ssr: false,
 });
 
 function AdminFinanceiroIndex() {

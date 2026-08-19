@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/relatorios/faturamento")({
   component: AdminRelatoriosFaturamentoPage,
+  ssr: false,
 });
 
 function AdminRelatoriosFaturamentoPage() {

@@ -13,6 +13,7 @@ import {
 
 export const Route = createFileRoute("/admin/relatorios/kpi")({
   component: AdminRelatoriosKpiPage,
+  ssr: false,
 });
 
 function AdminRelatoriosKpiPage() {

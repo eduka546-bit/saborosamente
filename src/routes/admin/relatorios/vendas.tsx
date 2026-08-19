@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/admin/relatorios/vendas")({
   component: AdminRelatoriosVendasPage,
+  ssr: false,
 });
 
 function AdminRelatoriosVendasPage() {
