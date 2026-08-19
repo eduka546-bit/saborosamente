@@ -425,10 +425,37 @@ function Checkout() {
 
       // Notifica cliente via WhatsApp — confirmação do pedido
       try {
+        // Se pagamento é PIX, gera QR code primeiro
+        let qrCodeUrl = null;
+        if (values.pagamento === "pix") {
+          try {
+            const pixRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pix-qr`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+              body: JSON.stringify({
+                pix_dict: "chave-pix@saborosamente", // TODO: Carregar do admin settings
+                valor: finalTotal,
+                descricao: `Pedido #${order.id.slice(0, 8).toUpperCase()}`,
+                pedido_id: order.id,
+              }),
+            });
+            const pixData = await pixRes.json();
+            qrCodeUrl = pixData.qr_code_url;
+          } catch (e) {
+            console.warn("Erro ao gerar QR Code PIX:", e);
+          }
+        }
+
+        // Envia notificação via WhatsApp com QR code se PIX
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-          body: JSON.stringify({ pedido_id: order.id, status_novo: "novo_pedido" }),
+          body: JSON.stringify({ 
+            pedido_id: order.id, 
+            status_novo: values.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
+            qr_code_pix: qrCodeUrl,
+            valor_total: finalTotal,
+          }),
         });
       } catch (_) {}
 

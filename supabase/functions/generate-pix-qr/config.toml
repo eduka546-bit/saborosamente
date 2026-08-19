@@ -1,0 +1,2 @@
+[env]
+QRSERVER_URL = "https://api.qrserver.com"

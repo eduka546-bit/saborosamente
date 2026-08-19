@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Package, Truck, CheckCircle2, Clock, XCircle, MapPin, Search, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getTrackingUrl, formatOrderStatus, getOrderProgress } from "@/lib/order-tracking";
 
 export const Route = createFileRoute("/pedido/")({
   head: () => ({
@@ -118,7 +119,7 @@ function RastrearPedidoPage() {
 
         {pedido && config && (
           <div className="space-y-4">
-            {/* Status card */}
+            {/* Status card com feedback visual melhorado */}
             <div className={`rounded-2xl border p-6 ${config.bg}`}>
               <div className="flex items-center gap-4 mb-4">
                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${config.bg} border ${config.color}`}>
@@ -130,9 +131,24 @@ function RastrearPedidoPage() {
                 </div>
               </div>
 
+              {/* Barra de progresso visual */}
+              {pedido.status !== "cancelado" && (
+                <div className="mt-6">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-500" 
+                      style={{ width: `${getOrderProgress(pedido.status)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    {getOrderProgress(pedido.status)}% completo
+                  </p>
+                </div>
+              )}
+
               {/* Linha de progresso */}
               {pedido.status !== "cancelado" && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-4">
                   {STEPS.map((s, i) => {
                     const done = currentStep >= s.step;
                     const active = currentStep === s.step;
