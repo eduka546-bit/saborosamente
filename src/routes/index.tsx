@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles } from "lucide-react";
+import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles, Gift, X } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
@@ -104,27 +104,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const infoCards = [
-  {
-    icon: MapPin,
-    titulo: "Taxa de entrega",
-    subtitulo: "A partir de R$ 8,90",
-    cor: "text-[#086e45]"
-  },
-  {
-    icon: Truck,
-    titulo: "Formas de entrega",
-    subtitulo: "Delivery ou Retirada",
-    cor: "text-[#086e45]"
-  },
-  {
-    icon: Calendar,
-    titulo: "Funcionamento",
-    subtitulo: "Encomendas podem ser feitas em tempo integral!",
-    cor: "text-[#086e45]"
-  }
-];
-
 function Index() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
@@ -223,70 +202,102 @@ function Index() {
       {settings?.popup_boas_vindas?.ativo && (
         <WelcomePopup config={settings.popup_boas_vindas as any} />
       )}
-      {/* Hero Info & Banners Section */}
-      <section className="mx-auto max-w-5xl px-4 mt-8 md:mt-12 relative z-10 pb-12">
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          <div className="flex-1 w-full space-y-6">
-            {/* Info Card & Search */}
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center overflow-hidden">
-              <div className="flex-1 flex w-full">
-                {infoCards.map((card, i) => (
-                  <div key={i} className="flex-1 p-4 md:p-6 flex flex-col justify-center border-r border-gray-50 last:border-r-0">
-                    <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                      {card.titulo}
-                      {card.titulo === "Funcionamento" && <span className="size-1.5 rounded-full bg-green-500" />}
-                    </h4>
-                    <p className={cn("text-[11px] md:text-[12px] font-bold leading-tight", card.cor)}>
-                      {card.subtitulo}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="px-6 py-4 md:py-0 flex items-center border-t md:border-t-0 md:border-l border-gray-50 w-full md:w-auto min-h-[60px]">
-                 <form 
-                   onSubmit={(e) => {
-                     e.preventDefault();
-                     const formData = new FormData(e.currentTarget);
-                     const q = formData.get("q") as string;
-                     setSearchTerm(q || "");
-                     document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
-                   }}
-                   className="flex items-center gap-3 text-gray-400 w-full md:w-48 justify-end group"
-                 >
-                    <input 
-                      name="q"
-                      type="text" 
-                      placeholder="Pesquisar..." 
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="bg-transparent border-none outline-none text-[11px] font-medium w-full text-right placeholder:text-gray-300 focus:placeholder:text-gray-200"
-                    />
-                   <button type="submit" className="hover:scale-110 transition-transform">
-                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-focus-within:opacity-80">
-                       <circle cx="11" cy="11" r="8"></circle>
-                       <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                     </svg>
-                   </button>
-                 </form>
-              </div>
-            </div>
+      {/* Hero Section with Elegant Copy */}
+      <section className="relative overflow-hidden py-16 md:py-24">
+        {/* Background gradient decorativo */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-lime/5 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
+        </div>
 
-            {/* Banners Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center space-y-6 mb-12">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black leading-tight">
+              Comida de Verdade
+              <br />
+              <span className="bg-gradient-brand bg-clip-text text-transparent">
+                Zero Complicação
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Marmitas congeladas artesanais, prontas em 7 minutos. Sem conservantes, sem fidelidade — só pede, recebe e aproveita.
+            </p>
+          </div>
+
+          {/* Info Cards Grid with Border-Left */}
+          <div className="grid gap-4 md:gap-6 md:grid-cols-3 mb-8">
+            {[
+              { icon: MapPin, title: "Taxa de Entrega", desc: "A partir de R$ 8,90", color: "border-l-primary" },
+              { icon: Truck, title: "Formas de Entrega", desc: "Delivery ou Retirada", color: "border-l-accent" },
+              { icon: Calendar, title: "24/7 Disponível", desc: "Encomendas em tempo integral", color: "border-l-tangerine" }
+            ].map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={i}
+                  className={`border-l-4 ${card.color} bg-card/50 backdrop-blur-sm rounded-2xl p-6 transition-all hover:shadow-lift hover:-translate-y-1`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-primary/10">
+                      <Icon className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground text-sm">{card.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{card.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Search Bar */}
+          <div className="flex justify-center mb-12">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const q = formData.get("q") as string;
+                setSearchTerm(q || "");
+                document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="w-full max-w-md"
+            >
+              <div className="flex items-center gap-2 bg-card border border-border/30 rounded-full px-6 py-3 shadow-soft transition-all hover:shadow-lift focus-within:shadow-lift focus-within:border-primary/50">
+                <input 
+                  name="q"
+                  type="text" 
+                  placeholder="Buscar por produto, ingrediente..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+                />
+                <button type="submit" className="p-2 hover:bg-primary/10 rounded-lg transition-colors">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Promo Banners */}
+          {promoBanners.filter((b) => b?.image_url).length > 0 && (
+            <div className="grid gap-6 md:grid-cols-3">
               {promoBanners.filter((b) => b?.image_url).map((b, i) => {
                 const content = (
                   <>
                     <img
                       src={b.image_url}
-                      alt={b.alt || "Banner promocional Saborosamente"}
+                      alt={b.alt || "Banner promocional"}
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 border-[8px] border-white/0 group-hover:border-white/10 transition-all pointer-events-none rounded-2xl" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-2xl" />
                   </>
                 );
-                const cls = "rounded-2xl overflow-hidden shadow-sm border border-gray-100 aspect-[4/5] relative group bg-white block";
+                const cls = "rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] relative group bg-card block";
                 return b.link ? (
                   <a key={i} href={b.link} className={cls}>{content}</a>
                 ) : (
@@ -294,28 +305,30 @@ function Index() {
                 );
               })}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* Main Content: Filters + Products */}
       <section id="cardapio" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Menu de Categorias - Sticky */}
-          <div className="w-full md:w-72 md:sticky md:top-24 space-y-2 shrink-0">
-            <h1 className="text-sm font-black text-[#086e45] leading-tight uppercase tracking-tight mb-4">
-              SaborosaMente - Atacado de Refeições e Sopas Congeladas
-            </h1>
-            <p className="text-[10px] text-[#086e45] font-medium leading-relaxed opacity-90 mb-6">
-              Para o corpo e para a mente, SaborosaMente!
-            </p>
+          <div className="w-full lg:w-80 lg:sticky lg:top-24 space-y-4 shrink-0">
+            <div className="space-y-3">
+              <h2 className="text-2xl font-display font-black text-foreground leading-tight">
+                Nosso Cardápio
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Escolha suas marmitas favoritas e monte seu combo com desconto progressivo.
+              </p>
+            </div>
             
             <DiscountProgressWidget className="mb-6" />
             
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-3 no-scrollbar">
               {isLoading ? (
-                <div className="py-4 flex justify-center">
-                  <Loader2 className="animate-spin text-[#086e45]/20" size={20} />
+                <div className="py-8 flex justify-center">
+                  <Loader2 className="animate-spin text-primary/30" size={24} />
                 </div>
               ) : (
                 categoriesWithProducts.map((cat) => (
@@ -323,10 +336,10 @@ function Index() {
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      "w-full text-left px-5 py-3 rounded-full text-[11px] font-bold transition-all border shadow-sm",
+                      "w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200",
                       selectedCategory === cat 
-                        ? "bg-[#086e45] text-white border-[#086e45]"
-                        : "bg-gray-50 text-gray-500 border-transparent hover:bg-[#086e45]/10 hover:text-[#086e45]"
+                        ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
+                        : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5"
                     )}
                   >
                     {cat}
@@ -336,98 +349,91 @@ function Index() {
             </div>
           </div>
 
-          {/* Products List */}
+          {/* Products Grid */}
           <div className="flex-1 w-full">
-            <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-[#086e45] uppercase tracking-tight">
-                  {searchTerm ? `Resultados para "${searchTerm}"` : selectedCategory === "Todas" ? "Nosso Cardápio" : selectedCategory}
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground font-medium">
-                  {searchTerm 
-                    ? `Encontramos ${filteredProducts.length} opções.`
-                    : selectedCategory === "Todas" 
-                      ? "Escolha suas marmitas favoritas e monte seu combo."
-                      : `Mostrando todas as opções em ${selectedCategory}.`}
-                </p>
+            {/* Header com título e busca */}
+            <div className="mb-10">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-2">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
+                    {searchTerm ? `Buscando "${searchTerm}"` : selectedCategory === "Todas" ? "Todos os Produtos" : selectedCategory}
+                  </h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {searchTerm 
+                      ? `Encontramos ${filteredProducts.length} opção${filteredProducts.length !== 1 ? 's' : ''}.`
+                      : selectedCategory === "Todas" 
+                        ? `${filteredProducts.length} produtos disponíveis`
+                        : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm("")}
+                    className="text-sm font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1"
+                  >
+                    <X size={14} />
+                    Limpar
+                  </button>
+                )}
               </div>
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm("")}
-                  className="text-xs font-bold text-[#e76800] hover:underline uppercase tracking-wider"
-                >
-                  Limpar busca ×
-                </button>
-              )}
             </div>
 
             {isLoading ? (
-              <div className="flex flex-col items-center py-20 gap-3">
-                <Loader2 className="animate-spin text-[#086e45]" size={32} />
-                <p className="text-muted-foreground text-sm font-medium">Carregando o cardápio...</p>
+              <div className="flex flex-col items-center py-24 gap-4">
+                <Loader2 className="animate-spin text-primary" size={40} />
+                <p className="text-muted-foreground text-base font-medium">Carregando cardápio...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="py-20 text-center bg-gray-50 rounded-[2rem] border border-dashed">
-                <p className="text-muted-foreground text-sm">Nenhum produto encontrado nesta categoria.</p>
+              <div className="py-24 text-center">
+                <div className="text-5xl mb-3">🔍</div>
+                <p className="text-muted-foreground text-base font-medium">Nenhum produto encontrado.</p>
+                <button 
+                  onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); }}
+                  className="mt-4 text-sm font-bold text-primary hover:underline"
+                >
+                  Ver todos os produtos
+                </button>
               </div>
             ) : (
               <>
-                {/* ── Banner do Combo — aparece só em "Todas" e sem busca ── */}
+                {/* Combo Banner */}
                 {selectedCategory === "Todas" && !searchTerm && (
                   <div
                     onClick={() => setComboModalOpen(true)}
-                    className="cursor-pointer mb-8 rounded-[2rem] overflow-hidden relative group"
-                    style={{
-                      background: "linear-gradient(135deg, #086e45 0%, #0a9460 50%, #065a38 100%)",
-                    }}
+                    className="cursor-pointer mb-12 rounded-2xl overflow-hidden relative group bg-gradient-brand text-white"
                   >
-                    {/* Decoração de fundo */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div className="absolute -top-8 -right-8 w-64 h-64 rounded-full bg-white blur-3xl" />
-                      <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-white blur-2xl" />
+                    <div className="absolute inset-0 opacity-20">
+                      <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white blur-3xl" />
+                      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-white blur-2xl" />
                     </div>
 
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 px-8 py-8">
-                      {/* Texto */}
-                      <div className="text-white text-center md:text-left">
-                        <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider mb-3">
-                          <Sparkles size={12} /> Desconto progressivo
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 px-8 py-10">
+                      <div className="text-center md:text-left flex-1">
+                        <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider mb-4">
+                          <Gift size={14} />
+                          Desconto progressivo
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-black leading-tight">
-                          Monte seu Combo 🍱
+                        <h2 className="text-3xl md:text-4xl font-display font-black leading-tight">
+                          Monte seu Combo
                         </h2>
-                        <p className="mt-2 text-white/80 text-sm md:text-base max-w-md">
-                          Escolha suas marmitas favoritas e ganhe desconto automático quanto mais você montar.
+                        <p className="mt-3 text-white/80 max-w-md">
+                          Escolha suas marmitas e ganhe desconto automático. Quanto mais você montar, maior o desconto!
                         </p>
-                        {/* Tiers de desconto */}
-                        <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
-                          {COMBO_RULES.map(rule => (
-                            <div key={rule.min} className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                              <Tag size={11} className="text-yellow-300" />
-                              <span className="text-xs font-black text-white">{rule.badge}</span>
-                              <span className="text-[10px] text-white/70">a partir de {rule.min} itens</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
 
-                      {/* CTA */}
-                      <div className="shrink-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setComboModalOpen(true); }}
-                          className="flex items-center gap-2 bg-white text-[#086e45] font-black px-8 py-4 rounded-2xl text-base shadow-xl transition-all group-hover:scale-105 group-hover:shadow-2xl active:scale-95"
-                        >
-                          <ShoppingBag size={20} />
-                          Montar agora
-                        </button>
-                        <p className="text-center text-white/50 text-xs mt-2">Sopas e complementos não recebem desconto</p>
-                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setComboModalOpen(true); }}
+                        className="shrink-0 flex items-center gap-2 bg-sun text-sun-foreground font-bold px-6 py-3 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95"
+                      >
+                        <ShoppingBag size={18} />
+                        Montar
+                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* Grid de produtos normais */}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                {/* Products Grid */}
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {filteredProducts.map((product: any) => (
                     <ProductCard
                       key={product.id}
@@ -445,7 +451,7 @@ function Index() {
                   ))}
                 </div>
 
-                {/* Modal de combo global */}
+                {/* Combo Modal */}
                 <ComboBuilderModal
                   isOpen={comboModalOpen}
                   onClose={() => setComboModalOpen(false)}
@@ -468,28 +474,75 @@ function Index() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12">
-        <div className="rounded-[2.5rem] bg-gradient-brand px-8 py-14 text-center text-primary-foreground shadow-lift">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
-            🌿 Sem conservantes · Prontas em minutos · Sem fidelidade
-          </span>
-          <h2 className="mt-6 text-3xl font-bold md:text-4xl lg:text-5xl">
-            Comida de verdade, zero trabalho
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm opacity-95 md:text-base leading-relaxed">
-            Marmitas congeladas artesanais, feitas com ingredientes reais e muito sabor. 
-            Sem assinatura, sem fidelidade — só pede, recebe e aproveita seu tempo.
-          </p>
-          <a
-            href="#cardapio"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="mt-8 inline-flex items-center rounded-full bg-sun px-8 py-3 text-sm font-bold text-sun-foreground transition-transform hover:scale-[1.03]"
-          >
-            Montar meu combo
-          </a>
+      {/* Final CTA Section */}
+      <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+        <div className="relative rounded-3xl overflow-hidden">
+          {/* Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-brand opacity-95" />
+          
+          {/* Decorative Elements */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-white blur-2xl" />
+          </div>
+
+          <div className="relative z-10 px-8 py-16 md:py-20 text-center">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/90 mb-6">
+              <Sparkles size={14} />
+              Desconto progressivo ao montar combo
+            </div>
+            
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black leading-tight text-white">
+              Pronto para<br />
+              <span className="text-white/90">revolucionar seu cardápio?</span>
+            </h2>
+            
+            <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
+              Escolha suas marmitas favoritas, receba descontos progressivos e aproveite refeições saudáveis sem trabalho.
+            </p>
+
+            {/* CTA Button */}
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a
+                href="#cardapio"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="inline-flex items-center gap-2 bg-sun text-sun-foreground px-8 py-4 rounded-full font-bold text-base shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+              >
+                <ShoppingBag size={20} />
+                Ver Cardápio
+              </a>
+              <a
+                href="https://wa.me/55XXXXXXXXXX?text=Oi%20Saborosamente%2C%20gostaria%20de%20mais%20informações"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white px-8 py-4 rounded-full font-bold text-base hover:bg-white/30 transition-all hover:scale-105 active:scale-95 border border-white/30"
+              >
+                <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-5.031 1.378c-3.055 2.116-4.922 5.488-4.922 9.052 0 5.595 4.51 10.11 10.105 10.11 2.432 0 4.814-.604 6.937-1.74l.503 3.01 3.441-1.107-2.406-3.655c1.221-1.822 1.937-3.931 1.937-6.21C22 6.471 17.529 2.029 12.026 2.029zm8.854 6.36c.164 0 .324-.006.483-.018.726-.057 1.426-.186 2.089-.378.705.528 1.564 1.241 1.773 1.513.12.156.19.337.19.528 0 .528-.294 1.278-.823 1.923-.246.303-.51.592-.776.862.033.231.05.465.05.703 0 2.324-.876 4.518-2.469 6.22-.168.184-.338.365-.509.544l1.51 9.062h-1.782l-1.259-7.563c-.87.407-1.827.628-2.835.628-1.008 0-1.966-.221-2.835-.628l-1.259 7.563h-1.782l1.51-9.062c-.171-.179-.341-.36-.509-.544-1.593-1.702-2.47-3.896-2.47-6.22 0-.238.017-.472.05-.703-.266-.27-.53-.559-.776-.862-.529-.645-.823-1.395-.823-1.923 0-.191.07-.372.19-.528.209-.272 1.068-.985 1.773-1.513.663.192 1.363.321 2.089.378.159.012.319.018.483.018z"/>
+                </svg>
+                Chamar no WhatsApp
+              </a>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/70 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-white/40">✓</span>
+                <span>Sem conservantes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white/40">✓</span>
+                <span>Prontas em 7 minutos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white/40">✓</span>
+                <span>Sem fidelidade</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </>
