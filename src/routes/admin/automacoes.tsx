@@ -8,6 +8,7 @@ import {
   ArrowRight, Eye, Copy, BarChart2
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { FlowDiagram } from "@/components/flow-diagram";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/automacoes")({
@@ -294,6 +295,18 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
               />
             </div>
           </div>
+
+          {/* Preview do Fluxo */}
+          {(form.nos ?? []).length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <GitBranch size={16} className="text-[#5850ec]" /> Pré-visualização do fluxo
+              </h3>
+              <div className="max-h-96 overflow-y-auto border rounded-xl bg-white">
+                <FlowDiagram nos={form.nos ?? []} />
+              </div>
+            </div>
+          )}
 
           {/* Gatilho */}
           <div className="space-y-3">
