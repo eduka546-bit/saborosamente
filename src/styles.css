@@ -226,7 +226,7 @@
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -237,7 +237,7 @@
 @keyframes slide-in-from-top {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-15px);
   }
   to {
     opacity: 1;
@@ -245,6 +245,58 @@
   }
 }
 
+@keyframes slide-in-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--color-primary) / 25%;
+  }
+  50% {
+    box-shadow: 0 0 0 8px var(--color-primary) / 0%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Utility classes para animações */
 @utility animate-in {
   animation: fade-in-up 0.5s ease-out forwards;
 }
@@ -253,8 +305,34 @@
   animation: fade-in-up 0.5s ease-out;
 }
 
+@utility fade-in-slow {
+  animation: fade-in-up 0.7s ease-out;
+}
+
 @utility slide-in-from-top-2 {
   animation: slide-in-from-top 0.4s ease-out;
+}
+
+@utility slide-in-from-left {
+  animation: slide-in-from-left 0.5s ease-out;
+}
+
+@utility slide-in-from-right {
+  animation: slide-in-from-right 0.5s ease-out;
+}
+
+@utility scale-in {
+  animation: scale-in 0.4s ease-out;
+}
+
+@utility pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@utility shimmer-effect {
+  background: linear-gradient(90deg, var(--color-background), var(--color-muted), var(--color-background));
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
 }
 
 /* NEXUS-PRO:WATERMARK-HIDE:START */

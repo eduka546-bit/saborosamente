@@ -212,14 +212,14 @@ function Index() {
 
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center space-y-6 mb-12">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black leading-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black leading-tight animate-in" style={{ animationDelay: "0ms" }}>
               Comida de Verdade
               <br />
               <span className="bg-gradient-brand bg-clip-text text-transparent">
                 Zero Complicação
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-in" style={{ animationDelay: "150ms" }}>
               Marmitas congeladas artesanais, prontas em 7 minutos. Sem conservantes, sem fidelidade — só pede, recebe e aproveita.
             </p>
           </div>
@@ -235,7 +235,8 @@ function Index() {
               return (
                 <div
                   key={i}
-                  className={`border-l-4 ${card.color} bg-card/50 backdrop-blur-sm rounded-2xl p-6 transition-all hover:shadow-lift hover:-translate-y-1`}
+                  className={`border-l-4 ${card.color} bg-card/50 backdrop-blur-sm rounded-2xl p-6 transition-all hover:shadow-lift hover:-translate-y-1 animate-in`}
+                  style={{ animationDelay: `${300 + i * 100}ms` }}
                 >
                   <div className="flex items-start gap-4">
                     <div className="p-3 rounded-xl bg-primary/10">
@@ -252,7 +253,7 @@ function Index() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex justify-center mb-12">
+          <div className="flex justify-center mb-12 animate-in" style={{ animationDelay: "500ms" }}>
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
@@ -297,11 +298,11 @@ function Index() {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-2xl" />
                   </>
                 );
-                const cls = "rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] relative group bg-card block";
+                const cls = "rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] relative group bg-card block animate-in";
                 return b.link ? (
-                  <a key={i} href={b.link} className={cls}>{content}</a>
+                  <a key={i} href={b.link} className={cls} style={{ animationDelay: `${600 + i * 100}ms` }}>{content}</a>
                 ) : (
-                  <div key={i} className={cls}>{content}</div>
+                  <div key={i} className={cls} style={{ animationDelay: `${600 + i * 100}ms` }}>{content}</div>
                 );
               })}
             </div>
@@ -487,22 +488,22 @@ function Index() {
           </div>
 
           <div className="relative z-10 px-8 py-16 md:py-20 text-center">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/90 mb-6">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/90 mb-6 animate-in" style={{ animationDelay: "200ms" }}>
               <Sparkles size={14} />
               Desconto progressivo ao montar combo
             </div>
             
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black leading-tight text-white">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black leading-tight text-white animate-in" style={{ animationDelay: "300ms" }}>
               Pronto para<br />
               <span className="text-white/90">revolucionar seu cardápio?</span>
             </h2>
             
-            <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-6 text-lg text-white/80 max-w-2xl mx-auto leading-relaxed animate-in" style={{ animationDelay: "400ms" }}>
               Escolha suas marmitas favoritas, receba descontos progressivos e aproveite refeições saudáveis sem trabalho.
             </p>
 
             {/* CTA Button */}
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-in" style={{ animationDelay: "500ms" }}>
               <a
                 href="#cardapio"
                 onClick={(e) => {
@@ -528,7 +529,7 @@ function Index() {
             </div>
 
             {/* Trust Badges */}
-            <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/70 text-sm">
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/70 text-sm animate-in" style={{ animationDelay: "600ms" }}>
               <div className="flex items-center gap-2">
                 <span className="text-white/40">✓</span>
                 <span>Sem conservantes</span>
