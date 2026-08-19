@@ -54,8 +54,7 @@ function AdminLayout() {
           .maybeSingle();
 
         if (!roleData) {
-          await supabase.auth.signOut();
-          if (isMounted) navigate({ to: "/admin/login" as any });
+          if (isMounted) navigate({ to: "/" as any });
           return;
         }
 
@@ -93,7 +92,20 @@ function AdminLayout() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-red-500 text-5xl">🔒</div>
+          <h1 className="text-2xl font-bold text-gray-900">Acesso Negado</h1>
+          <p className="text-sm text-gray-500 max-w-sm">Você não tem permissão para acessar o painel administrativo.</p>
+          <Link to="/" className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors">
+            ← Voltar para a Loja
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
