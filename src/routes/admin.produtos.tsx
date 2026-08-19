@@ -982,7 +982,7 @@ function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
   );
 }
 
-function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit, onDuplicate }: any) {
+function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit, onDuplicate, isSelected, onSelectChange }: any) {
   const {
     attributes,
     listeners,
@@ -1005,6 +1005,13 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
       style={style}
       className="group flex items-center px-6 py-4 hover:bg-gray-50/50 transition-colors bg-white border-b border-gray-50 last:border-b-0"
     >
+      {/* Checkbox para seleção */}
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={(e) => onSelectChange(product.id, e.target.checked)}
+        className="h-5 w-5 rounded cursor-pointer mr-4"
+      />
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div 
           {...attributes} 
@@ -1030,6 +1037,11 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           {product.peso && (
             <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">
               {product.peso}
+            </p>
+          )}
+          {product.estoque !== undefined && (
+            <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+              Estoque: <span className={product.estoque < 5 ? 'text-red-600 font-bold' : ''}>{product.estoque}</span> un.
             </p>
           )}
         </div>
@@ -1076,8 +1088,6 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem 
-              className="text-xs font-medium uppercase tracking-wider"
               onClick={() => onEdit(product)}
             >
               Editar
@@ -1103,6 +1113,8 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
 
 function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const queryClient = useQueryClient();
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -1222,6 +1234,43 @@ function AdminProductsPage() {
     },
   });
 
+  // Edição em massa
+  const bulkUpdateStatus = useMutation({
+    mutationFn: async (status: string) => {
+      const ids = Array.from(selectedProducts);
+      for (const id of ids) {
+        await supabase.from("produtos").update({ status }).eq("id", id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setSelectedProducts(new Set());
+      setShowBulkActions(false);
+      toast.success(`${selectedProducts.size} produtos atualizados!`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao atualizar: " + error.message);
+    }
+  });
+
+  const bulkUpdateStock = useMutation({
+    mutationFn: async (estoque: number) => {
+      const ids = Array.from(selectedProducts);
+      for (const id of ids) {
+        await supabase.from("produtos").update({ estoque }).eq("id", id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setSelectedProducts(new Set());
+      setShowBulkActions(false);
+      toast.success(`Estoque de ${selectedProducts.size} produtos atualizado!`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao atualizar estoque: " + error.message);
+    }
+  });
+
   const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
@@ -1337,6 +1386,62 @@ function AdminProductsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
+      {/* Ações em massa */}
+      {selectedProducts.size > 0 && (
+        <div className="mb-6 bg-[#5850ec] text-white rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <input
+              type="checkbox"
+              checked={selectedProducts.size === filteredProducts.length}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setSelectedProducts(new Set(filteredProducts.map((p: any) => p.id)));
+                } else {
+                  setSelectedProducts(new Set());
+                }
+              }}
+              className="h-5 w-5 rounded cursor-pointer"
+            />
+            <span className="font-bold">{selectedProducts.size} produto(s) selecionado(s)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  bulkUpdateStatus.mutate(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              className="px-3 py-1.5 rounded bg-white text-[#5850ec] text-xs font-bold"
+            >
+              <option value="">Alterar status...</option>
+              <option value="ativo">Ativar</option>
+              <option value="pausado">Pausar</option>
+            </select>
+            <input
+              type="number"
+              placeholder="Novo estoque..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = (e.target as HTMLInputElement).value;
+                  if (val) {
+                    bulkUpdateStock.mutate(Number(val));
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }
+              }}
+              className="px-3 py-1.5 rounded bg-white text-[#5850ec] text-xs font-bold w-32"
+            />
+            <button
+              onClick={() => setSelectedProducts(new Set())}
+              className="px-3 py-1.5 rounded bg-white/20 hover:bg-white/30 text-xs font-bold"
+            >
+              Limpar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-[#5850ec]">Cardápio</h1>
@@ -1444,6 +1549,16 @@ function AdminProductsPage() {
                         onUpdatePrice={(id: string, val: string) => {
                           const price = parseFloat(val.replace(',', '.'));
                           if (!isNaN(price)) updatePrice.mutate({ id, preco: price });
+                        }}
+                        isSelected={selectedProducts.has(product.id)}
+                        onSelectChange={(id: string, checked: boolean) => {
+                          const newSelected = new Set(selectedProducts);
+                          if (checked) {
+                            newSelected.add(id);
+                          } else {
+                            newSelected.delete(id);
+                          }
+                          setSelectedProducts(newSelected);
                         }}
                       />
                     ))}

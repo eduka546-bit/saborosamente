@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ClipboardList, Utensils, TrendingUp, Users as UsersIcon,
+  ClipboardList, Utensils, TrendingUp, Users,
   Package, Clock, Plus, BarChart2, ShoppingBag,
   ArrowRight, Truck, Star, MessageCircle, AlertCircle
 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { calculateKPIs, groupSalesByPeriod, formatCurrency, formatPercent, getCategoryMetrics } from "@/lib/dashboard-analytics";
+import { createQueryConfig } from "@/lib/query-config";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -20,12 +21,13 @@ const META_MENSAL = 10000;
 function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-stats"],
-    staleTime: 30_000,
+    ...createQueryConfig("dashboard"),
     queryFn: async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString();
       const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+      const last7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const last30Days = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
       const [
@@ -36,6 +38,7 @@ function AdminDashboard() {
         newClientsRes,
         pendingOrdersRes,
         topProductsRes,
+        allOrdersLast7Res,
         allOrdersLast30Res,
         allOrdersItemsRes,
         lowStockRes,
@@ -48,6 +51,7 @@ function AdminDashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", firstDayOfMonth),
         supabase.from("pedidos").select("*", { count: "exact", head: true }).eq("status", "preparando"),
         supabase.from("pedido_itens").select("produto_id, quantidade, produtos:produto_id(nome)").limit(200),
+        supabase.from("pedidos").select("id, valor_total, created_at, status").gte("created_at", last7Days).neq("status", "cancelado"),
         supabase.from("pedidos").select("id, valor_total, created_at, status").gte("created_at", last30Days).neq("status", "cancelado"),
         supabase.from("pedido_itens").select("preco_unitario, quantidade, produtos:produto_id(categoria)").gte("created_at", last30Days),
         supabase.from("produtos").select("id, nome, estoque").lt("estoque", 5),
@@ -55,6 +59,11 @@ function AdminDashboard() {
       ]);
 
       const monthlyRevenue = (monthlyOrdersRes.data ?? []).reduce(
+        (acc, o) => acc + (Number(o.valor_total) || 0),
+        0
+      );
+
+      const last7Revenue = (allOrdersLast7Res.data ?? []).reduce(
         (acc, o) => acc + (Number(o.valor_total) || 0),
         0
       );
@@ -85,6 +94,7 @@ function AdminDashboard() {
         ordersToday: ordersTodayRes.count ?? 0,
         activeProducts: activeProductsRes.count ?? 0,
         monthlyRevenue,
+        last7Revenue,
         recentOrders: recentOrdersRes.data ?? [],
         newClients: newClientsRes.count ?? 0,
         pendingOrders: pendingOrdersRes.count ?? 0,
@@ -119,7 +129,7 @@ function AdminDashboard() {
         <p className="mt-1 text-sm text-gray-500">Bem-vindo ao centro de controle da Saborosamente.</p>
       </div>
 
-      {/* Cards de métricas */}
+      {/* Cards de métricas principais */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
@@ -150,7 +160,7 @@ function AdminDashboard() {
             label: "Novos Clientes",
             value: stats?.newClients,
             sub: "este mês",
-            icon: UsersIcon,
+            icon: Users,
             color: "bg-blue-100 text-blue-600",
             href: "/admin/clientes",
           },
@@ -172,7 +182,58 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* Linha 2 */}
+      {/* Comparativo 7 dias vs 30 dias */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            label: "Vendas 7 Dias",
+            value: stats?.last7Revenue || 0,
+            sub: "últimos 7 dias",
+            icon: BarChart2,
+            color: "bg-emerald-100 text-emerald-600",
+          },
+          {
+            label: "Vendas 30 Dias",
+            value: stats?.monthlyRevenue || 0,
+            sub: "últimos 30 dias",
+            icon: TrendingUp,
+            color: "bg-blue-100 text-blue-600",
+          },
+          {
+            label: "Ticket Médio",
+            value: stats?.kpis?.averageOrderValue || 0,
+            sub: "por pedido",
+            icon: ShoppingBag,
+            color: "bg-purple-100 text-purple-600",
+            isCurrency: true,
+          },
+          {
+            label: "Taxa Retenção",
+            value: `${Math.round(stats?.kpis?.customerRetention || 0)}%`,
+            sub: "clientes recorrentes",
+            icon: Users,
+            color: "bg-pink-100 text-pink-600",
+          },
+        ].map((card, idx) => (
+          <div key={idx} className="rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`h-11 w-11 rounded-xl ${card.color} flex items-center justify-center shrink-0`}>
+                <card.icon size={22} />
+              </div>
+            </div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">{card.label}</p>
+            {isLoading
+              ? <span className={skeleton} />
+              : <p className="text-2xl font-black text-gray-900">
+                  {typeof card.value === 'number' && card.isCurrency ? `R$ ${fmt(card.value)}` : card.value}
+                </p>
+            }
+            <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Linha 2: Últimos Pedidos + Sidebar */}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
 
         {/* Últimos Pedidos */}
@@ -305,10 +366,40 @@ function AdminDashboard() {
       </div>
 
       {/* Linha 3: Gráficos de análise */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         
+        {/* Gráfico de vendas últimos 7 dias */}
+        <div className="bg-white rounded-2xl border shadow-sm p-6 lg:col-span-1">
+          <div className="mb-6">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+              <BarChart2 className="text-emerald-600" size={18} /> Últimos 7 Dias
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">Receita diária</p>
+          </div>
+          {isLoading ? (
+            <div className="h-64 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#5850ec] border-t-transparent" />
+            </div>
+          ) : (stats?.salesData?.length ?? 0) > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={stats.salesData.slice(-7)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: '11px' }} />
+                <YAxis stroke="#9ca3af" style={{ fontSize: '11px' }} />
+                <Tooltip 
+                  formatter={(value) => formatCurrency(value as number)}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                />
+                <Bar dataKey="revenue" fill="#10b981" name="Receita (R$)" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-400">Sem dados</div>
+          )}
+        </div>
+
         {/* Gráfico de vendas nos últimos 30 dias */}
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        <div className="bg-white rounded-2xl border shadow-sm p-6 lg:col-span-2">
           <div className="mb-6">
             <h3 className="font-bold text-gray-800 flex items-center gap-2">
               <TrendingUp className="text-[#5850ec]" size={18} /> Vendas - Últimos 30 Dias
@@ -344,56 +435,58 @@ function AdminDashboard() {
             <div className="h-64 flex items-center justify-center text-gray-400">Sem dados</div>
           )}
         </div>
+      </div>
 
+      {/* Linha 4: KPIs e Alertas */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        
         {/* KPIs em cards */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border shadow-sm p-6">
-            <h3 className="font-bold text-gray-800 mb-4">KPIs Principais</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center pb-3 border-b">
-                <span className="text-sm text-gray-600">Ticket Médio</span>
-                <span className="font-bold text-lg text-[#5850ec]">
-                  {isLoading ? "..." : formatCurrency(stats?.kpis?.averageOrderValue ?? 0)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pb-3 border-b">
-                <span className="text-sm text-gray-600">Taxa de Retenção</span>
-                <span className="font-bold text-lg text-green-600">
-                  {isLoading ? "..." : formatPercent(stats?.kpis?.customerRetention ?? 0)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pb-3 border-b">
-                <span className="text-sm text-gray-600">Hora de Pico</span>
-                <span className="font-bold text-lg text-orange-600">
-                  {isLoading ? "..." : stats?.kpis?.peakHour}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Pagamento Preferido</span>
-                <span className="font-bold text-lg text-blue-600">
-                  {isLoading ? "..." : stats?.kpis?.topPaymentMethod}
-                </span>
-              </div>
+        <div className="bg-white rounded-2xl border shadow-sm p-6">
+          <h3 className="font-bold text-gray-800 mb-4">KPIs Principais</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center pb-3 border-b">
+              <span className="text-sm text-gray-600">Ticket Médio</span>
+              <span className="font-bold text-lg text-[#5850ec]">
+                {isLoading ? "..." : formatCurrency(stats?.kpis?.averageOrderValue ?? 0)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b">
+              <span className="text-sm text-gray-600">Taxa de Retenção</span>
+              <span className="font-bold text-lg text-green-600">
+                {isLoading ? "..." : formatPercent(stats?.kpis?.customerRetention ?? 0)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pb-3 border-b">
+              <span className="text-sm text-gray-600">Hora de Pico</span>
+              <span className="font-bold text-lg text-orange-600">
+                {isLoading ? "..." : stats?.kpis?.peakHour}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Pagamento Preferido</span>
+              <span className="font-bold text-lg text-blue-600">
+                {isLoading ? "..." : stats?.kpis?.topPaymentMethod}
+              </span>
             </div>
           </div>
-
-          {/* Alertas de estoque baixo */}
-          {(stats?.lowStockProducts?.length ?? 0) > 0 && (
-            <div className="bg-red-50 rounded-2xl border border-red-200 shadow-sm p-6">
-              <h3 className="font-bold text-red-900 flex items-center gap-2 mb-4">
-                <AlertCircle size={18} /> Estoque Baixo
-              </h3>
-              <div className="space-y-2">
-                {stats?.lowStockProducts.map((p: any) => (
-                  <div key={p.id} className="flex justify-between items-center text-sm">
-                    <span className="text-red-800">{p.nome}</span>
-                    <span className="font-bold text-red-600">{p.estoque} un.</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Alertas de estoque baixo */}
+        {(stats?.lowStockProducts?.length ?? 0) > 0 && (
+          <div className="bg-red-50 rounded-2xl border border-red-200 shadow-sm p-6">
+            <h3 className="font-bold text-red-900 flex items-center gap-2 mb-4">
+              <AlertCircle size={18} /> Estoque Baixo
+            </h3>
+            <div className="space-y-2">
+              {stats?.lowStockProducts.map((p: any) => (
+                <div key={p.id} className="flex justify-between items-center text-sm">
+                  <span className="text-red-800">{p.nome}</span>
+                  <span className="font-bold text-red-600">{p.estoque} un.</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

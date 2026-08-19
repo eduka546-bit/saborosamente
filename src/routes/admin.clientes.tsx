@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { importExistingCustomers } from "@/lib/customers.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { Pagination } from "@/components/pagination";
+import { createQueryConfig } from "@/lib/query-config";
 
 export const Route = createFileRoute("/admin/clientes")({
   component: AdminClientesPage,
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/admin/clientes")({
 function CashbackCliente({ userId }: { userId: string }) {
   const { data } = useQuery({
     queryKey: ["cashback-cliente", userId],
+    ...createQueryConfig("clients"),
     queryFn: async () => {
       const { data } = await supabase.from("cashback_saldo").select("saldo").eq("user_id", userId).maybeSingle();
       return Number((data as any)?.saldo ?? 0);
@@ -35,10 +38,13 @@ function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const importFn = useServerFn(importExistingCustomers);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
+    ...createQueryConfig("clients"),
     queryFn: async () => {
       // 1. Buscar perfis (clientes cadastrados)
       console.log("Iniciando busca de perfis...");
@@ -118,6 +124,12 @@ function AdminClientesPage() {
     );
   }, [clients, searchTerm]);
 
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  const paginatedClients = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredClients.slice(start, start + itemsPerPage);
+  }, [filteredClients, currentPage, itemsPerPage]);
+
   const handleImport = async () => {
     try {
       setIsImporting(true);
@@ -184,10 +196,10 @@ function AdminClientesPage() {
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
               <tr><td colSpan={5} className="p-8 text-center">Carregando clientes...</td></tr>
-            ) : filteredClients.length === 0 ? (
+            ) : paginatedClients.length === 0 ? (
               <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhum cliente encontrado.</td></tr>
             ) : (
-              filteredClients.map((client, idx) => (
+              paginatedClients.map((client, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -221,6 +233,17 @@ function AdminClientesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredClients.length}
+        />
+      )}
 
       {selectedClient && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50">

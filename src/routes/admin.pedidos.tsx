@@ -4,7 +4,7 @@ import {
   Search, Filter, Calendar, Package, Clock, 
   ChevronRight, MoreVertical, CheckCircle2, 
   Clock3, XCircle, AlertCircle, Eye, Printer,
-  Smartphone, MapPin, User, Receipt, History, Bell, FileText
+  Smartphone, MapPin, User, Receipt, History, Bell, FileText, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,6 +280,8 @@ function AdminOrdersPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [filterDate, setFilterDate] = useState<"hoje" | "semana" | "mes" | "todos">("todos");
+  const [filterMinValue, setFilterMinValue] = useState(0);
+  const [filterMaxValue, setFilterMaxValue] = useState(99999);
   const [autoPrint, setAutoPrint] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("admin.autoPrint") === "true";
@@ -592,6 +594,9 @@ function AdminOrdersPage() {
       // filtro de status
       const matchStatus = filterStatus === "Todos" || order.status === filterStatus;
 
+      // filtro de valor
+      const matchValue = order.valor_total >= filterMinValue && order.valor_total <= filterMaxValue;
+
       // filtro de data
       const oDate = new Date(order.created_at);
       let matchDate = true;
@@ -604,9 +609,9 @@ function AdminOrdersPage() {
         matchDate = oDate.getMonth() === now.getMonth() && oDate.getFullYear() === now.getFullYear();
       }
 
-      return matchText && matchStatus && matchDate;
+      return matchText && matchStatus && matchDate && matchValue;
     });
-  }, [orders, searchTerm, filterStatus, filterDate]);
+  }, [orders, searchTerm, filterStatus, filterDate, filterMinValue, filterMaxValue]);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -731,6 +736,24 @@ function AdminOrdersPage() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {/* filtro de valor */}
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                placeholder="Min"
+                value={filterMinValue || ""}
+                onChange={(e) => setFilterMinValue(Number(e.target.value) || 0)}
+                className="h-9 w-20 px-2 rounded-lg border border-gray-200 text-xs font-bold"
+              />
+              <span className="text-gray-400 text-xs">—</span>
+              <input
+                type="number"
+                placeholder="Max"
+                value={filterMaxValue || ""}
+                onChange={(e) => setFilterMaxValue(Number(e.target.value) || 99999)}
+                className="h-9 w-20 px-2 rounded-lg border border-gray-200 text-xs font-bold"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -844,9 +867,21 @@ function AdminOrdersPage() {
                            size="icon" 
                            className="h-9 w-9 rounded-full bg-gray-100 hover:bg-[#5850ec] hover:text-white transition-all"
                            onClick={() => handleOrderClick(order)}
+                           title="Ver detalhes"
                          >
                            <Eye size={18} />
                          </Button>
+                         {order.telefone_cliente && (
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             title="Enviar WhatsApp"
+                             className="h-9 w-9 rounded-full bg-green-50 hover:bg-green-500 hover:text-white transition-all"
+                             onClick={() => window.open(`https://wa.me/${order.telefone_cliente.replace(/\D/g, "")}?text=Olá! Seu pedido #${order.id.slice(0, 8)} está sendo preparado.`, '_blank')}
+                           >
+                             <Send size={16} className="text-green-600 hover:text-white" />
+                           </Button>
+                         )}
                          <Button
                            variant="ghost"
                            size="icon"
