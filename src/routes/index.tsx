@@ -4,6 +4,7 @@ import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles, Gift, X }
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
+import { PromoCarousel } from "@/components/promo-carousel";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -283,29 +284,9 @@ function Index() {
             </form>
           </div>
 
-          {/* Promo Banners */}
+          {/* Promo Carousel */}
           {promoBanners.filter((b) => b?.image_url).length > 0 && (
-            <div className="grid gap-6 md:grid-cols-3">
-              {promoBanners.filter((b) => b?.image_url).map((b, i) => {
-                const content = (
-                  <>
-                    <img
-                      src={b.image_url}
-                      alt={b.alt || "Banner promocional"}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-2xl" />
-                  </>
-                );
-                const cls = "rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] relative group bg-card block animate-in";
-                return b.link ? (
-                  <a key={i} href={b.link} className={cls} style={{ animationDelay: `${600 + i * 100}ms` }}>{content}</a>
-                ) : (
-                  <div key={i} className={cls} style={{ animationDelay: `${600 + i * 100}ms` }}>{content}</div>
-                );
-              })}
-            </div>
+            <PromoCarousel banners={promoBanners} />
           )}
         </div>
       </section>
