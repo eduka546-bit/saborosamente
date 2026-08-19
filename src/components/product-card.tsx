@@ -1,4 +1,4 @@
-import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight, Star, Flame, Gift, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useState } from "react";
@@ -39,6 +39,40 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add } = useCart();
   const [comboOpen, setComboOpen] = useState(false);
   const combo = isComboProduct(product);
+  
+  // ── Badges dinâmicas ──────────────────────────────────────────────
+  const getBadges = () => {
+    const badges: { label: string; color: string; icon: any }[] = [];
+    
+    // Simulação: produtos com "melhor" ou categoria especial
+    if (product.nome?.toLowerCase().includes("melhor") || product.nome?.toLowerCase().includes("destaque")) {
+      badges.push({ label: "Bestseller", color: "bg-tangerine", icon: TrendingUp });
+    }
+    
+    // Simulação: produtos recentes (últimos adicionados)
+    if ((product.id as any) % 7 === 0) {
+      badges.push({ label: "Novo", color: "bg-accent", icon: Gift });
+    }
+    
+    // Simulação: desconto (para produtos com preco_300g diferente)
+    if (product.preco_300g && product.preco_300g < product.preco * 0.9) {
+      badges.push({ label: "-10%", color: "bg-destructive", icon: Flame });
+    }
+    
+    return badges.slice(0, 2); // Máximo 2 badges
+  };
+
+  // ── Rating simulado (para exibição) ──────────────────────────────
+  const getRating = () => {
+    // Simulação: rating baseado no ID do produto
+    const ratingMap: { [key: number]: number } = {
+      0: 4.5, 1: 4.8, 2: 4.3, 3: 4.9, 4: 4.6, 5: 4.2, 6: 4.7
+    };
+    return ratingMap[(product.id as any) % 7] || 4.5;
+  };
+
+  const badges = getBadges();
+  const rating = getRating();
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
     const hasSizes = product.preco_300g || product.preco_400g;
@@ -104,8 +138,16 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       <>
         <article
           onClick={() => setComboOpen(true)}
-          className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift"
+          className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
         >
+          {/* Badges container */}
+          <div className="absolute top-3 left-3 z-10 flex gap-2">
+            <div className="bg-sun/90 text-white rounded-full px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 shadow-md">
+              <Gift className="size-3" />
+              Combo
+            </div>
+          </div>
+
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
             <img
               src={product.imagem}
@@ -113,33 +155,45 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               loading="lazy"
               width={800}
               height={600}
-              className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
-            <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-xs font-semibold text-sun-foreground">
-              {product.categoria}
-            </span>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="rounded-full bg-white/90 p-3 text-primary shadow-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="rounded-full bg-white/95 p-3 text-primary shadow-lg backdrop-blur-sm">
                 <ShoppingCart className="size-6" />
               </div>
             </div>
           </div>
-          <div className="flex flex-1 flex-col gap-2 p-5">
+          <div className="flex flex-1 flex-col gap-3 p-4">
+            {/* Rating */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`size-3.5 transition-colors fill-sun text-sun`}
+                  />
+                ))}
+              </div>
+              <span className="text-xs font-semibold text-foreground">5.0</span>
+            </div>
+
             <div>
-              <h3 className="text-lg font-bold leading-tight text-primary-dark">{product.nome}</h3>
+              <h3 className="text-base font-bold leading-tight text-foreground line-clamp-2 group-hover:text-primary transition-colors">{product.nome}</h3>
               {product.descricao && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.descricao}</p>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{product.descricao}</p>
               )}
             </div>
-            <div className="mt-auto flex items-center justify-between pt-3">
+            <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-foreground">A PARTIR DE</span>
-                <span className="text-2xl font-black text-primary">{formatBRL(product.preco)}</span>
+                <span className="text-[9px] font-black text-muted-foreground uppercase">A partir de</span>
+                <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
+                  {formatBRL(product.preco)}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setComboOpen(true); }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-transform hover:scale-105 active:scale-95 shadow-soft"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <ShoppingCart className="size-4" /> Montar
               </button>
@@ -162,8 +216,25 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     <Dialog>
       <DialogTrigger asChild>
         <article
-          className="group flex cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow hover:shadow-lift"
+          className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
         >
+          {/* Badges container */}
+          <div className="absolute top-3 left-3 z-10 flex gap-2 flex-wrap">
+            {badges.map((badge, idx) => {
+              const BadgeIcon = badge.icon;
+              return (
+                <div
+                  key={idx}
+                  className={`${badge.color} text-white rounded-full px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 shadow-md animate-in fade-in slide-in-from-top-2 duration-500`}
+                  style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                  <BadgeIcon className="size-3" />
+                  {badge.label}
+                </div>
+              );
+            })}
+          </div>
+
           <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
             <img
               src={currentImage}
@@ -171,7 +242,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               loading="lazy"
               width={800}
               height={800}
-              className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             {product.imagens && product.imagens.length > 0 && (
               <div className="absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-between px-2">
@@ -183,54 +254,73 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                  </div>
               </div>
             )}
-            <span className="absolute left-3 top-3 rounded-full bg-sun px-3 py-1 text-xs font-semibold text-sun-foreground">
+            <span className="absolute left-3 bottom-3 rounded-full bg-primary/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-primary border border-primary/30">
               {product.categoria}
             </span>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="rounded-full bg-white/90 p-3 text-primary shadow-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="rounded-full bg-white/95 p-3 text-primary shadow-lg backdrop-blur-sm">
                 <Info className="size-6" />
               </div>
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col gap-2 p-5">
-            <div>
-              <h3 className="text-lg font-bold leading-tight text-primary-dark">{product.nome}</h3>
-
-              {weights.length > 1 ? (
-                <div className="mt-2 flex gap-2">
-                  {weights.map((w) => (
-                    <button
-                      key={w}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedWeight(w);
-                      }}
-                      className={cn(
-                        "rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
-                        selectedWeight === w
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-muted-foreground hover:border-primary/50"
-                      )}
-                    >
-                      {weightLabel(w)}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
-                  {product.peso}
-                </p>
-              )}
+          <div className="flex flex-1 flex-col gap-3 p-4">
+            {/* Rating */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`size-3.5 transition-colors ${
+                      i < Math.floor(rating)
+                        ? "fill-sun text-sun"
+                        : i < Math.ceil(rating) && rating % 1 !== 0
+                        ? "fill-sun/50 text-sun"
+                        : "text-border"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-xs font-semibold text-foreground">{rating.toFixed(1)}</span>
             </div>
+
+            <div>
+              <h3 className="text-base font-bold leading-tight text-foreground line-clamp-2 group-hover:text-primary transition-colors">{product.nome}</h3>
+            </div>
+
+            {weights.length > 1 ? (
+              <div className="flex gap-1.5 flex-wrap">
+                {weights.map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedWeight(w);
+                    }}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all",
+                      selectedWeight === w
+                        ? "bg-gradient-brand text-white shadow-md scale-105"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105 border border-border/50"
+                    )}
+                  >
+                    {weightLabel(w)}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                {product.peso}
+              </p>
+            )}
             
-            <div className="mt-auto flex items-center justify-between pt-3">
+            <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-[10px] font-black text-foreground">
-                  {selectedWeight ? `PREÇO (${selectedWeight})` : "A PARTIR DE"}
+                <span className="text-[9px] font-black text-muted-foreground uppercase">
+                  {selectedWeight ? `${selectedWeight}` : "PREÇO"}
                 </span>
-                <span className="text-2xl font-black text-primary">
+                <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
                   {formatBRL(currentPrice)}
                 </span>
               </div>
@@ -238,15 +328,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 type="button"
                 onClick={handleAddToCart}
                 className={cn(
-                  "inline-flex size-10 items-center justify-center rounded-full text-primary-foreground transition-transform hover:scale-110 active:scale-95 shadow-soft",
-                  combo ? "bg-[#086e45] px-3 w-auto gap-1.5 text-xs font-bold" : "bg-primary"
+                  "inline-flex size-9 items-center justify-center rounded-full text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg bg-primary hover:bg-primary/90"
                 )}
               >
-                {combo ? (
-                  <><ShoppingCart className="size-4" aria-hidden="true" /> Montar</>
-                ) : (
-                  <Plus className="size-6" aria-hidden="true" />
-                )}
+                <Plus className="size-5" aria-hidden="true" />
               </button>
             </div>
           </div>

@@ -19,8 +19,8 @@
  */
 
 @theme inline {
-  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-script: "Pacifico", cursive;
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
@@ -172,11 +172,25 @@
     font-family: var(--font-sans);
   }
 
-  h1,
-  h2,
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
   h3 {
     font-family: var(--font-display);
+    font-weight: 700;
     letter-spacing: -0.01em;
+    line-height: 1.3;
   }
 }
 
@@ -206,6 +220,41 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ── Animações de entrada e hover ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-in {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+@utility fade-in {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+@utility slide-in-from-top-2 {
+  animation: slide-in-from-top 0.4s ease-out;
 }
 
 /* NEXUS-PRO:WATERMARK-HIDE:START */
