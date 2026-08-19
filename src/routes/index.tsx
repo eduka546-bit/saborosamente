@@ -134,7 +134,8 @@ function Index() {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: () => getPublicProducts(),
-    staleTime: 0, // sempre busca fresco do servidor
+    staleTime: 1000 * 60 * 30, // Cache por 30 minutos para reduzir egress
+    gcTime: 1000 * 60 * 60,
   });
 
   // Busca categorias na ordem e visibilidade definidas pelo admin

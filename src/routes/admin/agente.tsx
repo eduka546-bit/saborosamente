@@ -136,7 +136,7 @@ function AbaModulos({ dark }: { dark: boolean }) {
       if (error) throw error;
       return data ?? [];
     },
-    staleTime: 0, // Sempre considera os dados como "stale" após mutação
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos para reduzir egress
     gcTime: 5 * 60 * 1000, // Mantém cache por 5min
   });
 

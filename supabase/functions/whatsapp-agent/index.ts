@@ -121,6 +121,15 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  
+  // Otimizar URL para reduzir egress: adicionar transform parameters
+  let optimizedUrl = imageUrl;
+  if (imageUrl.includes("supabase.co")) {
+    // Adicionar parâmetros de transformação de imagem
+    const separator = imageUrl.includes("?") ? "&" : "?";
+    optimizedUrl = `${imageUrl}${separator}width=800&quality=75`;
+  }
+  
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -131,7 +140,7 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
       messaging_product: "whatsapp",
       to,
       type: "image",
-      image: { link: imageUrl, ...(caption ? { caption } : {}) },
+      image: { link: optimizedUrl, ...(caption ? { caption } : {}) },
     }),
   });
   if (!res.ok) {
