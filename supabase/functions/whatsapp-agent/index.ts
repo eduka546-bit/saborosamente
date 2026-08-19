@@ -949,12 +949,22 @@ Responda APENAS o JSON, sem explicações.`;
     });
     const json = await resp.json();
     const raw = json.choices?.[0]?.message?.content ?? "";
-    const parsed = JSON.parse(raw.trim());
+    
+    // Tenta extrair JSON de dentro de markdown code blocks
+    let jsonStr = raw.trim();
+    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    }
+    
+    const parsed = JSON.parse(jsonStr);
     if (parsed.nome && parsed.categoria && parsed.conteudo) {
       modulo = parsed;
+    } else {
+      console.warn("Resposta do GPT incompleta:", parsed);
     }
-  } catch (e) {
-    console.warn("Erro ao categorizar instrução:", e);
+  } catch (e: any) {
+    console.error("Erro ao categorizar instrução:", e.message, "Raw response:", raw);
   }
 
   // Busca a maior ordem atual
@@ -975,7 +985,8 @@ Responda APENAS o JSON, sem explicações.`;
   });
 
   if (error) {
-    await sendWhatsAppMessage(telefone, `❌ Erro ao salvar instrução: ${error.message}`);
+    console.error("Erro ao salvar módulo - Detalhes:", error);
+    await sendWhatsAppMessage(telefone, `❌ Erro ao salvar instrução: ${error.message}\n\nDados tentados: Nome="${modulo.nome}", Categoria="${modulo.categoria}"`);
     return;
   }
 
