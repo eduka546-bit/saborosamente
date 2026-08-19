@@ -122,12 +122,12 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
-          className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[16/9] md:aspect-[4/2] bg-card animate-in fade-in"
+          className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] bg-card animate-in fade-in"
         >
           {content}
         </a>
       ) : (
-        <div className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[16/9] md:aspect-[4/2] bg-card animate-in fade-in">
+        <div className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] bg-card animate-in fade-in">
           {content}
         </div>
       )}
