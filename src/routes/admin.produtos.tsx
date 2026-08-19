@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminProducts } from "@/lib/products.functions";
+import { optimizeImage, isValidImageFile, formatFileSize } from "@/lib/image-optimizer";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -102,11 +103,29 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   if (!formData) return null;
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    let file = event.target.files?.[0];
     if (!file) return;
 
     try {
       setIsUploading(true);
+      
+      // Validar se é imagem
+      if (!isValidImageFile(file)) {
+        toast.error("Arquivo deve ser uma imagem válida (JPEG, PNG, WebP, GIF)");
+        return;
+      }
+
+      // Mostrar tamanho original
+      console.log(`📸 Imagem original: ${formatFileSize(file.size)}`);
+      
+      // Otimizar imagem
+      file = await optimizeImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 80,
+        format: 'webp'
+      });
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -122,7 +141,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         .getPublicUrl(filePath);
 
       setFormData({ ...formData, imagem_url: publicUrl });
-      toast.success("Imagem enviada com sucesso!");
+      toast.success(`Imagem otimizada e enviada com sucesso!`);
     } catch (error: any) {
       console.error("Erro no upload:", error);
       toast.error("Erro ao enviar imagem: " + (error.message || "Tente novamente"));
@@ -132,11 +151,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   };
 
   const handleGalleryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    let file = event.target.files?.[0];
     if (!file) return;
 
     try {
       setIsUploadingGallery(true);
+      
+      // Validar se é imagem
+      if (!isValidImageFile(file)) {
+        toast.error("Arquivo deve ser uma imagem válida");
+        return;
+      }
+
+      // Otimizar imagem
+      file = await optimizeImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 80,
+        format: 'webp'
+      });
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `gallery/${fileName}`;
@@ -171,10 +205,23 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     event: React.ChangeEvent<HTMLInputElement>,
     sizeField: "imagem_200g" | "imagem_300g" | "imagem_400g"
   ) => {
-    const file = event.target.files?.[0];
+    let file = event.target.files?.[0];
     if (!file) return;
     setIsUploadingSize(prev => ({ ...prev, [sizeField]: true }));
     try {
+      // Validar e otimizar imagem
+      if (!isValidImageFile(file)) {
+        toast.error("Arquivo deve ser uma imagem válida");
+        return;
+      }
+
+      file = await optimizeImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 80,
+        format: 'webp'
+      });
+
       const fileExt = file.name.split(".").pop();
       const fileName = `size_${sizeField}_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
@@ -185,7 +232,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         .from("product-images")
         .getPublicUrl(fileName);
       setFormData({ ...formData, [sizeField]: publicUrl });
-      toast.success("Imagem enviada!");
+      toast.success("Imagem otimizada e enviada!");
     } catch (error: any) {
       toast.error("Erro ao enviar: " + (error.message || "Tente novamente"));
     } finally {
