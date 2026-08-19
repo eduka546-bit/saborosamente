@@ -136,6 +136,8 @@ function AbaModulos({ dark }: { dark: boolean }) {
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 0, // Sempre considera os dados como "stale" após mutação
+    gcTime: 5 * 60 * 1000, // Mantém cache por 5min
   });
 
   const updateMutation = useMutation({
@@ -146,11 +148,18 @@ function AbaModulos({ dark }: { dark: boolean }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      // Força refetch completo dos dados
+      queryClient.invalidateQueries({ 
+        queryKey: ["agente-modulos"],
+        exact: true 
+      });
       setEditingId(null);
       toast.success("Módulo salvo!");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      console.error("Erro ao salvar módulo:", e);
+      toast.error(e.message || "Erro ao salvar");
+    },
   });
 
   const toggleMutation = useMutation({
@@ -158,7 +167,10 @@ function AbaModulos({ dark }: { dark: boolean }) {
       const { error } = await supabase.from("agente_modulos").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agente-modulos"] }),
+    onSuccess: () => queryClient.invalidateQueries({ 
+      queryKey: ["agente-modulos"],
+      exact: true 
+    }),
   });
 
   const deleteMutation = useMutation({
@@ -167,10 +179,16 @@ function AbaModulos({ dark }: { dark: boolean }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["agente-modulos"],
+        exact: true 
+      });
       toast.success("Módulo removido.");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      console.error("Erro ao remover módulo:", e);
+      toast.error(e.message || "Erro ao remover");
+    },
   });
 
   const criarMutation = useMutation({
@@ -182,12 +200,18 @@ function AbaModulos({ dark }: { dark: boolean }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agente-modulos"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["agente-modulos"],
+        exact: true 
+      });
       setCriando(false);
       setNovoForm({ nome: "", categoria: "comportamento", conteudo: "" });
       toast.success("Módulo criado!");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      console.error("Erro ao criar módulo:", e);
+      toast.error(e.message || "Erro ao criar");
+    },
   });
 
   const modulosFiltrados = filtroCategoria === "todos"
