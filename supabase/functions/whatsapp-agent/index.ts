@@ -1093,6 +1093,9 @@ Deno.serve(async (req) => {
         // A automação pode ter enviado mensagem própria
       }
 
+      // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
+      const clienteResult = await buscarClientePorTelefone(telefone);
+
       // Verifica automações de primeira mensagem
       if (primeiraMsg) {
         await verificarEExecutarAutomacoes(
@@ -1104,9 +1107,6 @@ Deno.serve(async (req) => {
         await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
         return new Response("OK", { status: 200 });
       }
-
-      // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
-      const clienteResult = await buscarClientePorTelefone(telefone);
 
       // ── Intercepta seleções do menu principal (sem precisar da OpenAI) ──
       if (menuId) {
