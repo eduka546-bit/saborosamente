@@ -490,20 +490,34 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
     try {
       const ext = arquivoSelecionado.name.split(".").pop();
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("agente-arquivos").upload(path, arquivoSelecionado);
-      if (upErr) throw new Error(upErr.message);
+      console.log("Iniciando upload para:", path, "Tamanho:", arquivoSelecionado.size);
+      
+      const { error: upErr, data } = await supabase.storage.from("agente-arquivos").upload(path, arquivoSelecionado);
+      console.log("Resposta upload:", { upErr, data });
+      
+      if (upErr) {
+        console.error("Erro detalhado:", upErr);
+        throw new Error(`Erro ao fazer upload: ${upErr.message}`);
+      }
+      
       const { data: { publicUrl } } = supabase.storage.from("agente-arquivos").getPublicUrl(path);
+      console.log("URL pública:", publicUrl);
+      
       const { error: insErr } = await supabase.from("agente_arquivos").insert({
         nome: novoArquivo.nome.trim(), descricao: novoArquivo.descricao.trim(),
         tipo: novoArquivo.tipo, url: publicUrl, storage_path: path, ativo: true, ordem: arquivos.length,
       });
-      if (insErr) throw new Error(insErr.message);
+      if (insErr) throw new Error(`Erro ao salvar no banco: ${insErr.message}`);
+      
       toast.success("Arquivo adicionado!");
       setNovoArquivo({ nome: "", descricao: "", tipo: "imagem" });
       setArquivoSelecionado(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["agente-arquivos"] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { 
+      console.error("Erro completo:", e);
+      toast.error(e.message); 
+    }
     finally { setUploading(false); }
   };
 
