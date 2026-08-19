@@ -53,6 +53,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 export const Route = createFileRoute("/admin/produtos")({
   component: AdminProductsPage,
+  ssr: false,
 });
 
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {

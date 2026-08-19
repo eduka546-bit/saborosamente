@@ -103,6 +103,7 @@ export const Route = createFileRoute("/")({
     ],
   }),
   component: Index,
+  ssr: false,
 });
 
 function Index() {

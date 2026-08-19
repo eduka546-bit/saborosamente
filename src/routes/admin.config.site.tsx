@@ -32,6 +32,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/admin/config/site")({
   component: AdminSiteConfig,
+  ssr: false,
 });
 
 function AdminSiteConfig() {

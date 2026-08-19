@@ -32,6 +32,7 @@ import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
+  ssr: false,
 });
 
 function OrderDetailsModal({ isOpen, onClose, order }: any) {

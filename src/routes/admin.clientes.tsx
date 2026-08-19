@@ -12,6 +12,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/admin/clientes")({
   component: AdminClientesPage,
+  ssr: false,
 });
 
 function CashbackCliente({ userId }: { userId: string }) {

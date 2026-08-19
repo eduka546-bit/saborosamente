@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/cupons")({
   component: AdminCuponsPage,
+  ssr: false,
 });
 
 const EMPTY_FORM = { codigo: "", tipo: "Fixo", valor: 0, regra: "", validade: "", ativo: true, max_uso: "", apenas_primeira_compra: false };
