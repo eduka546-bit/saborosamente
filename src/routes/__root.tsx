@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
@@ -145,8 +145,18 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const pathname = router.state.location.pathname;
-  const isAdminPath = pathname.startsWith("/admin");
-  const isLoginPage = pathname === "/admin/login";
+  const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isLoginPage, setIsLoginPage] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Sincronizar admin/login path após mount para evitar hydration mismatch
+  useEffect(() => {
+    const admin = pathname.startsWith("/admin");
+    const login = pathname === "/admin/login";
+    setIsAdminPath(admin);
+    setIsLoginPage(login);
+    setMounted(true);
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -160,16 +170,16 @@ function RootComponent() {
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          {isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />}
+          {mounted ? (isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />) : <SiteHeader />}
           
           <main className="flex-1 relative z-10">
             <Outlet />
           </main>
           
-          {!isAdminPath && <SiteFooter />}
+          {mounted && !isAdminPath && <SiteFooter />}
         </div>
         <Toaster position="top-right" closeButton={false} offset={20} />
-        {!isAdminPath && (
+        {mounted && !isAdminPath && (
           <CartSheet>
             <FloatingDiscountWidget />
           </CartSheet>
