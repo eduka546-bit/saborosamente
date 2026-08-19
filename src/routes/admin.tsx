@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
+    // Não bloqueia login page
     if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") return;
+    
+    // Verifica se tem sessão ativa
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error("Not authenticated");
+    }
   },
   component: function AdminLayoutWrapper() {
     return <AdminLayout />;
@@ -24,15 +32,18 @@ function AdminLayout() {
     router.state.location.pathname === "/admin/login" ||
     router.state.location.pathname === "/admin/login/";
 
-  const [checking, setChecking] = useState(!isLoginPage);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoginPage) return;
+    if (isLoginPage) {
+      setLoading(false);
+      return;
+    }
 
     let isMounted = true;
 
-    async function checkAuth() {
+    async function checkAdmin() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -43,8 +54,12 @@ function AdminLayout() {
 
         const user = session.user;
 
+        // Check se é admin
         if (user.email === ADMIN_EMAIL) {
-          if (isMounted) { setIsAdmin(true); setChecking(false); }
+          if (isMounted) {
+            setIsAdmin(true);
+            setLoading(false);
+          }
           return;
         }
 
@@ -60,14 +75,17 @@ function AdminLayout() {
           return;
         }
 
-        if (isMounted) { setIsAdmin(true); setChecking(false); }
+        if (isMounted) {
+          setIsAdmin(true);
+          setLoading(false);
+        }
       } catch (err) {
         console.error("Auth check failed:", err);
         if (isMounted) navigate({ to: "/admin/login" as any });
       }
     }
 
-    checkAuth();
+    checkAdmin();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session) {
@@ -79,16 +97,16 @@ function AdminLayout() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [isLoginPage]);
+  }, [isLoginPage, navigate]);
 
   if (isLoginPage) return <Outlet />;
 
-  if (checking) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="animate-spin text-primary" size={32} />
-          <p className="text-sm text-gray-500">Verificando acesso...</p>
+          <p className="text-sm text-gray-500">Carregando painel...</p>
         </div>
       </div>
     );
