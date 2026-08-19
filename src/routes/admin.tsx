@@ -5,8 +5,38 @@ import { Store, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin")({
+  beforeLoad: async ({ location }) => {
+    // Permite acesso apenas à rota de login sem verificação
+    if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") {
+      return;
+    }
+    
+    // Para qualquer outra rota de admin, precisa estar autenticado
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Unauthorized");
+      }
+    } catch {
+      throw new Error("Unauthorized");
+    }
+  },
   component: function AdminLayoutWrapper() {
     return <AdminLayout />;
+  },
+  errorComponent: function AdminErrorComponent() {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="text-red-500 text-5xl">🔒</div>
+          <h1 className="text-2xl font-bold text-gray-900">Acesso Negado</h1>
+          <p className="text-sm text-gray-500 max-w-sm">Você precisa estar autenticado para acessar o painel.</p>
+          <Link to="/admin/login" className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors">
+            ← Ir para Login
+          </Link>
+        </div>
+      </div>
+    );
   },
   // Desabilitar SSR para admin para evitar hydration mismatch
   ssr: false,
@@ -16,19 +46,18 @@ const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
 
 function AdminLayout() {
   const navigate = useNavigate();
-
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function checkAdminAccess() {
+    async function checkAdminRole() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
-          // Não logado - redireciona para login
+          // Não logado - beforeLoad deveria ter bloqueado, mas como fallback redireciona
           if (isMounted) {
             navigate({ to: "/admin/login" as any });
           }
@@ -36,6 +65,7 @@ function AdminLayout() {
         }
 
         const user = session.user;
+        const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
 
         // Verifica se é admin principal
         if (user.email === ADMIN_EMAIL) {
@@ -75,7 +105,7 @@ function AdminLayout() {
       }
     }
 
-    checkAdminAccess();
+    checkAdminRole();
 
     // Listener para quando faz logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -92,7 +122,7 @@ function AdminLayout() {
     };
   }, [navigate]);
 
-  // Enquanto está verificando acesso
+  // Enquanto está verificando se é admin
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
