@@ -8,9 +8,14 @@ import { toast } from "sonner";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/admin/login")({
+  beforeLoad: async ({ location }) => {
+    // Sempre permite acesso à página de login
+    return;
+  },
   component: function AdminLoginWrapper() {
     return <AdminLogin />;
   },
+  ssr: false,
 });
 
 const STORAGE_KEY = "saborosamente_admin_creds";
