@@ -18,7 +18,8 @@ import {
   Calendar,
   Users,
   History,
-  CreditCard
+  CreditCard,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,12 +281,13 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 lg:w-[1120px]">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 lg:w-full gap-1">
           <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
           <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
           <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
           <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
           <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+          <TabsTrigger value="ratings">⭐ Avaliações</TabsTrigger>
           <TabsTrigger value="popup">🎯 Popup</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
         </TabsList>
@@ -1000,6 +1002,11 @@ function AdminSiteConfig() {
 
         </TabsContent>
 
+        {/* ── Ratings de Produtos ── */}
+        <TabsContent value="ratings" className="mt-6 space-y-6">
+          <ProductRatingsTab settings={settings} formData={formData} setFormData={setFormData} />
+        </TabsContent>
+
         {/* ── Popup de boas-vindas ── */}
         <TabsContent value="popup" className="mt-6 space-y-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-5">
@@ -1182,6 +1189,161 @@ function AdminSiteConfig() {
         </TabsContent>
 
       </Tabs>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Componente para editar ratings de produtos
+// ──────────────────────────────────────────────────────────────────
+function ProductRatingsTab({ settings, formData, setFormData }: any) {
+  const queryClient = useQueryClient();
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { data, error } = await supabase.from("produtos").select("*").order("nome");
+        if (error) throw error;
+        setProducts(data || []);
+      } catch (err) {
+        console.error("Error loading products:", err);
+        toast.error("Erro ao carregar produtos");
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  const handleRatingChange = async (productId: string | number, newRating: number) => {
+    try {
+      // Atualiza o rating no banco de dados
+      const { error } = await supabase
+        .from("produtos")
+        .update({ rating: newRating })
+        .eq("id", productId);
+
+      if (error) throw error;
+
+      // Atualiza a lista local
+      setProducts(
+        products.map((p) =>
+          p.id === productId ? { ...p, rating: newRating } : p
+        )
+      );
+
+      // Atualiza o cache
+      queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      toast.success("Avaliação atualizada!");
+    } catch (err: any) {
+      toast.error("Erro ao atualizar avaliação: " + err.message);
+    }
+  };
+
+  const filteredProducts = products.filter((p) =>
+    p.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoadingProducts) {
+    return (
+      <div className="flex h-[300px] flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-[#5850ec]" size={40} />
+        <p className="text-muted-foreground animate-pulse">Carregando produtos...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+      <div>
+        <h3 className="text-lg font-bold flex items-center gap-2">
+          <Star className="text-sun fill-sun" size={20} /> Avaliações de Produtos
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Customize a avaliação (rating) de cada produto. Isso aparece no card e em detalhes.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Pesquisar produto</Label>
+        <Input
+          placeholder="Digite o nome do produto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+
+      <div className="grid gap-4 max-h-[600px] overflow-y-auto">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Nenhum produto encontrado</p>
+          </div>
+        ) : (
+          filteredProducts.map((product) => (
+            <div
+              key={product.id}
+              className="flex items-center justify-between p-3 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-sm truncate">{product.nome}</h4>
+                <p className="text-xs text-muted-foreground">{product.categoria}</p>
+              </div>
+
+              <div className="flex items-center gap-2 ml-4">
+                {/* Display current rating */}
+                <div className="flex items-center gap-1">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`size-3.5 transition-colors ${
+                          i < Math.floor(product.rating || 5.0)
+                            ? "fill-sun text-sun"
+                            : i < Math.ceil(product.rating || 5.0) &&
+                              (product.rating || 5.0) % 1 !== 0
+                            ? "fill-sun/50 text-sun"
+                            : "text-border"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-semibold text-foreground w-8 text-right">
+                    {(product.rating ?? 5.0).toFixed(1)}
+                  </span>
+                </div>
+
+                {/* Rating selector */}
+                <select
+                  value={product.rating ?? 5.0}
+                  onChange={(e) =>
+                    handleRatingChange(product.id, parseFloat(e.target.value))
+                  }
+                  className="rounded px-2 py-1 text-xs border border-border bg-white text-foreground hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#5850ec]/30"
+                >
+                  <option value="3.5">3.5</option>
+                  <option value="3.8">3.8</option>
+                  <option value="4.0">4.0</option>
+                  <option value="4.2">4.2</option>
+                  <option value="4.5">4.5</option>
+                  <option value="4.7">4.7</option>
+                  <option value="4.8">4.8</option>
+                  <option value="4.9">4.9</option>
+                  <option value="5.0">5.0</option>
+                </select>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
+        <strong>Dica:</strong> As avaliações são exibidas imediatamente no site. Alterações
+        aparecem em tempo real nos cards de produtos.
+      </div>
     </div>
   );
 }

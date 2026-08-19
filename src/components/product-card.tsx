@@ -64,8 +64,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
   // ── Rating simulado (para exibição) ──────────────────────────────
   const getRating = () => {
-    // Sempre retorna 5 ou 4.9 para melhor apresentação
-    return (product.id as any) % 2 === 0 ? 5.0 : 4.9;
+    // Busca o rating do banco de dados, se não existir usa padrão
+    return product.rating ?? ((product.id as any) % 2 === 0 ? 5.0 : 4.9);
   };
 
   const badges = getBadges();
@@ -161,17 +161,22 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
           </div>
           <div className="flex flex-1 flex-col gap-3 p-4">
-            {/* Rating */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`size-3.5 transition-colors fill-sun text-sun`}
-                  />
-                ))}
+            {/* Rating + Category */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`size-3.5 transition-colors fill-sun text-sun`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-semibold text-foreground">5.0</span>
               </div>
-              <span className="text-xs font-semibold text-foreground">5.0</span>
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
+                {product.categoria}
+              </span>
             </div>
 
             <div>
@@ -251,9 +256,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                  </div>
               </div>
             )}
-            <span className="absolute left-3 bottom-3 rounded-full bg-gradient-brand/95 backdrop-blur-md px-4 py-1.5 text-[10px] font-black text-white border border-white/40 shadow-lg uppercase tracking-wider">
-              {product.categoria}
-            </span>
+
             <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
               <div className="rounded-full bg-white/95 p-3 text-primary shadow-lg backdrop-blur-sm">
                 <Info className="size-6" />
@@ -262,23 +265,28 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           <div className="flex flex-1 flex-col gap-3 p-4">
-            {/* Rating */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`size-3.5 transition-colors ${
-                      i < Math.floor(rating)
-                        ? "fill-sun text-sun"
-                        : i < Math.ceil(rating) && rating % 1 !== 0
-                        ? "fill-sun/50 text-sun"
-                        : "text-border"
-                    }`}
-                  />
-                ))}
+            {/* Rating + Category */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`size-3.5 transition-colors ${
+                        i < Math.floor(rating)
+                          ? "fill-sun text-sun"
+                          : i < Math.ceil(rating) && rating % 1 !== 0
+                          ? "fill-sun/50 text-sun"
+                          : "text-border"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-semibold text-foreground">{rating.toFixed(1)}</span>
               </div>
-              <span className="text-xs font-semibold text-foreground">{rating.toFixed(1)}</span>
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
+                {product.categoria}
+              </span>
             </div>
 
             <div>
