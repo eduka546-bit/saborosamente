@@ -4,7 +4,7 @@ import {
   Search, Filter, Calendar, Package, Clock, 
   ChevronRight, MoreVertical, CheckCircle2, 
   Clock3, XCircle, AlertCircle, Eye, Printer,
-  Smartphone, MapPin, User, Receipt, History, Bell
+  Smartphone, MapPin, User, Receipt, History, Bell, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,38 @@ export const Route = createFileRoute("/admin/pedidos")({
 function OrderDetailsModal({ isOpen, onClose, order }: any) {
   if (!order) return null;
 
+  const queryClient = useQueryClient();
+  const confirmMutation = useMutation({
+    mutationFn: async (pedidoId: string) => {
+      const { confirmarPedidoRascunho } = await import("@/lib/order-confirmation");
+      return await confirmarPedidoRascunho(pedidoId);
+    },
+    onSuccess: async (data) => {
+      toast.success(`✓ Pedido #${order.id.slice(0, 8)} confirmado!`);
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      // Notifica cliente via WhatsApp
+      try {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({ pedido_id: order.id, status_novo: "pendente" }),
+        });
+      } catch (e) {
+        console.warn("Falha ao notificar WhatsApp:", e);
+      }
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(`Erro: ${error.message}`);
+    },
+  });
+
+  const confirmarRascunho = (pedidoId: string) => {
+    confirmMutation.mutate(pedidoId);
+  };
+
   const statusColors: any = {
+    'rascunho': 'bg-gray-100 text-gray-700 border-gray-200',
     'pendente': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'preparando': 'bg-blue-100 text-blue-700 border-blue-200',
     'saiu para entrega': 'bg-purple-100 text-purple-700 border-purple-200',
@@ -56,6 +87,18 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
             </Badge>
           </div>
           <div className="flex gap-2">
+            {order.status === 'rascunho' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  confirmarRascunho(order.id);
+                }}
+              >
+                ✓ Confirmar Pedido
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -579,6 +622,7 @@ function AdminOrdersPage() {
   };
 
   const statusOptions = [
+    { label: 'rascunho', icon: FileText, color: 'text-gray-500' },
     { label: 'pendente', icon: Clock3, color: 'text-yellow-500' },
     { label: 'preparando', icon: Package, color: 'text-blue-500' },
     { label: 'saiu para entrega', icon: MapPin, color: 'text-purple-500' },
@@ -765,6 +809,7 @@ function AdminOrdersPage() {
                          <DropdownMenuTrigger asChild>
                            <button className={cn(
                              "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2 border",
+                             order.status === 'rascunho' ? "bg-gray-50 text-gray-600 border-gray-200" :
                              order.status === 'Pendente' ? "bg-yellow-50 text-yellow-600 border-yellow-200" :
                              order.status === 'Em preparo' ? "bg-blue-50 text-blue-600 border-blue-200" :
                              order.status === 'Saiu para entrega' ? "bg-purple-50 text-purple-600 border-purple-200" :
