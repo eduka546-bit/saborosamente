@@ -303,7 +303,11 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
                 <GitBranch size={16} className="text-[#5850ec]" /> Pré-visualização do fluxo
               </h3>
               <div className="max-h-96 overflow-y-auto border rounded-xl bg-white">
-                <FlowDiagram nos={form.nos ?? []} />
+                <FlowDiagram 
+                  nos={form.nos ?? []} 
+                  onUpdate={(novoNos) => setForm(f => ({ ...f, nos: novoNos }))}
+                  editavel={true}
+                />
               </div>
             </div>
           )}
