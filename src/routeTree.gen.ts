@@ -18,7 +18,7 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
-import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminLoginRouteImport } from './routes/admin-login.tsx'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'

@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
-    // Permite acesso apenas à rota de login sem verificação
-    if (location.pathname === "/admin/login" || location.pathname === "/admin/login/") {
-      return;
-    }
-    
-    // Para qualquer outra rota de admin, precisa estar autenticado
+    // Verifica autenticação para qualquer rota de admin (exceto /admin/login que é independente)
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
