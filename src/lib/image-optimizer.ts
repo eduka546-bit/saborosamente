@@ -15,6 +15,88 @@ export interface OptimizedImageProps {
 }
 
 /**
+ * Valida se arquivo é imagem válida
+ */
+export function isValidImageFile(file: File): boolean {
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+  
+  const isValidType = validTypes.includes(file.type);
+  const hasValidExtension = validExtensions.some(ext => 
+    file.name.toLowerCase().endsWith(ext)
+  );
+  
+  return isValidType && hasValidExtension;
+}
+
+/**
+ * Formata tamanho de arquivo para exibição
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
+/**
+ * Otimiza imagem (redimensiona, comprime)
+ */
+export async function optimizeImage(
+  file: File,
+  maxWidth: number = 1024,
+  quality: number = 0.8
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Redimensiona se necessário
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Could not optimize image'));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      
+      img.onerror = () => reject(new Error('Could not load image'));
+      img.src = e.target?.result as string;
+    };
+    
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * Gera URL de imagem otimizada com suporte a resize e formato
  * @param url - URL original da imagem
  * @param width - Largura desejada (opcional)
