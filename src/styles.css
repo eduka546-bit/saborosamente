@@ -222,6 +222,23 @@
   }
 }
 
+/* ── Gradient Utilities Adicionais ── */
+@utility bg-gradient-teal-to-primary {
+  background: linear-gradient(135deg, var(--color-teal), var(--color-primary));
+}
+
+@utility bg-gradient-accent-to-lime {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-lime));
+}
+
+@utility bg-gradient-warm {
+  background: linear-gradient(135deg, var(--color-tangerine), var(--color-sun));
+}
+
+@utility bg-gradient-cool {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-teal));
+}
+
 /* ── Animações de entrada e hover ── */
 @keyframes fade-in-up {
   from {

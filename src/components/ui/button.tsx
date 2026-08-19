@@ -16,7 +16,11 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 hover:shadow-md hover:scale-105 active:scale-95",
         ghost: "hover:bg-accent/10 hover:text-accent hover:scale-105 active:scale-95 text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Gradients com paleta de cores
         gradient: "bg-gradient-brand text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
+        "gradient-sun": "bg-gradient-sun text-sun-foreground shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
+        "gradient-accent": "bg-gradient-to-r from-primary via-teal to-accent text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
+        "gradient-warm": "bg-gradient-to-r from-tangerine to-sun text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
       },
       size: {
         default: "h-10 px-6 py-2",
