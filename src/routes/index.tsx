@@ -415,22 +415,64 @@ function Index() {
                 )}
 
                 {/* Products Grid */}
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                  {filteredProducts.map((product: any) => (
-                    <ProductCard
-                      key={product.id}
-                      product={{
-                        ...product,
-                        categoria: product.categorias?.nome || "Marmita",
-                        imagem: product.imagem_url
-                      }}
-                      allProducts={products.map((p: any) => ({
-                        ...p,
-                        categoria: p.categorias?.nome || "Marmita",
-                        imagem: p.imagem_url
-                      }))}
-                    />
-                  ))}
+                <div className="space-y-8">
+                  {selectedCategory === "Todas" ? (
+                    // Agrupar por categoria
+                    Array.from(new Map(
+                      filteredProducts.map((p: any) => [p.categorias?.nome || "Marmita", p])
+                    ).entries()).map(([category, _], categoryIndex) => {
+                      const categoryProducts = filteredProducts.filter(
+                        (p: any) => (p.categorias?.nome || "Marmita") === category
+                      );
+                      
+                      return (
+                        <div key={category}>
+                          {categoryIndex > 0 && (
+                            <div className="my-6 border-t border-border/30" />
+                          )}
+                          <h3 className="text-lg font-bold text-primary mb-4 uppercase tracking-wide">
+                            {category}
+                          </h3>
+                          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                            {categoryProducts.map((product: any) => (
+                              <ProductCard
+                                key={product.id}
+                                product={{
+                                  ...product,
+                                  categoria: product.categorias?.nome || "Marmita",
+                                  imagem: product.imagem_url
+                                }}
+                                allProducts={products.map((p: any) => ({
+                                  ...p,
+                                  categoria: p.categorias?.nome || "Marmita",
+                                  imagem: p.imagem_url
+                                }))}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    // Categoria selecionada - sem separador
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                      {filteredProducts.map((product: any) => (
+                        <ProductCard
+                          key={product.id}
+                          product={{
+                            ...product,
+                            categoria: product.categorias?.nome || "Marmita",
+                            imagem: product.imagem_url
+                          }}
+                          allProducts={products.map((p: any) => ({
+                            ...p,
+                            categoria: p.categorias?.nome || "Marmita",
+                            imagem: p.imagem_url
+                          }))}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Combo Modal */}
