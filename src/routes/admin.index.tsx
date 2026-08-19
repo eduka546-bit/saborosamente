@@ -11,6 +11,8 @@ import { calculateKPIs, groupSalesByPeriod, formatCurrency, formatPercent, getCa
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
+  // Desabilitar SSR para evitar hydration mismatch com gráficos
+  ssr: false,
 });
 
 const META_MENSAL = 10000;

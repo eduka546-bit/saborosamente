@@ -11,6 +11,8 @@ export const Route = createFileRoute("/admin")({
   component: function AdminLayoutWrapper() {
     return <AdminLayout />;
   },
+  // Desabilitar SSR para admin para evitar hydration mismatch
+  ssr: false,
 });
 
 const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
