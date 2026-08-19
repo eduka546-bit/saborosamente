@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Search, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2, Gift, MessageCircle } from "lucide-react";
+import { Users, Search, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2, Gift, MessageCircle, Filter } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
