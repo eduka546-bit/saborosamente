@@ -1,4 +1,4 @@
-import { Outlet, Link, useRouter, useNavigate } from "@tanstack/react-router";
+import { Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Store, LogOut, Loader2 } from "lucide-react";
@@ -15,23 +15,12 @@ export const Route = createFileRoute("/admin")({
 const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
 
 function AdminLayout() {
-  const router = useRouter();
   const navigate = useNavigate();
-  
-  // Detecta se está na página de login
-  const pathname = router.state.location.pathname;
-  const isLoginPage = pathname === "/admin/login" || pathname === "/admin/login/";
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Se está na página de login, não precisa fazer verificação
-    if (isLoginPage) {
-      setLoading(false);
-      return;
-    }
-
     let isMounted = true;
 
     async function checkAdminAccess() {
@@ -101,12 +90,7 @@ function AdminLayout() {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [pathname, navigate]);
-
-  // Se está na página de login, renderiza Outlet (que carrega o componente de login)
-  if (isLoginPage) {
-    return <Outlet />;
-  }
+  }, [navigate]);
 
   // Enquanto está verificando acesso
   if (loading) {
