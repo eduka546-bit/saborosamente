@@ -253,37 +253,6 @@ function Index() {
             })}
           </div>
 
-          {/* Search Bar */}
-          <div className="flex justify-center mb-12 animate-in" style={{ animationDelay: "500ms" }}>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const q = formData.get("q") as string;
-                setSearchTerm(q || "");
-                document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="w-full max-w-md"
-            >
-              <div className="flex items-center gap-2 bg-card border border-border/30 rounded-full px-6 py-3 shadow-soft transition-all hover:shadow-lift focus-within:shadow-lift focus-within:border-primary/50">
-                <input 
-                  name="q"
-                  type="text" 
-                  placeholder="Buscar por produto, ingrediente..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
-                />
-                <button type="submit" className="p-2 hover:bg-primary/10 rounded-lg transition-colors">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </div>
-
           {/* Promo Carousel */}
           {promoBanners.filter((b) => b?.image_url).length > 0 && (
             <PromoCarousel banners={promoBanners} />
@@ -335,8 +304,8 @@ function Index() {
           <div className="flex-1 w-full">
             {/* Header com título e busca */}
             <div className="mb-10">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-2">
-                <div>
+              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
+                <div className="flex-1">
                   <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
                     {searchTerm ? `Buscando "${searchTerm}"` : selectedCategory === "Todas" ? "Todos os Produtos" : selectedCategory}
                   </h1>
@@ -348,15 +317,42 @@ function Index() {
                         : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
-                {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm("")}
-                    className="text-sm font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1"
+                
+                {/* Busca */}
+                <div className="flex items-center gap-2 min-w-0 lg:min-w-80">
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const q = formData.get("q") as string;
+                      setSearchTerm(q || "");
+                    }}
+                    className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
                   >
-                    <X size={14} />
-                    Limpar
-                  </button>
-                )}
+                    <input
+                      autoFocus
+                      name="q"
+                      type="text" 
+                      placeholder="Buscar..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+                    />
+                    <button type="submit" className="text-primary hover:text-primary/80 transition-colors">
+                      <Tag size={18} />
+                    </button>
+                  </form>
+                  
+                  {searchTerm && (
+                    <button 
+                      onClick={() => setSearchTerm("")}
+                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+                      title="Limpar busca"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
