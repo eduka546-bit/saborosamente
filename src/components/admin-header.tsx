@@ -149,6 +149,7 @@ export function AdminHeader() {
                 { label: "Cashback", href: "/admin/config/cashback-config" },
                 { label: "Agente IA (WhatsApp)", href: "/admin/agente" },
                 { label: "Automações WhatsApp", href: "/admin/automacoes" },
+                { label: "🧹 Limpeza de Storage", href: "/admin/storage-cleanup" },
                 { label: "Unidades", href: "/admin/config/unidades" },
                 { label: "Horário de funcionamento", href: "/admin/config/horarios" },
                 { label: "Exceção de funcionamento", href: "/admin/config/excecoes" },
