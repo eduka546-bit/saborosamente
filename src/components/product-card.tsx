@@ -174,7 +174,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
 
             <div>
-              <h3 className="text-base font-bold leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
+              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
               {product.descricao && (
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{product.descricao}</p>
               )}
@@ -283,7 +283,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
 
             <div>
-              <h3 className="text-base font-bold leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
+              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
             </div>
 
             {weights.length > 1 ? (

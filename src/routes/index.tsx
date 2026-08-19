@@ -213,10 +213,10 @@ function Index() {
 
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center space-y-6 mb-12">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black leading-tight animate-in" style={{ animationDelay: "0ms" }}>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-pacifico font-black leading-tight animate-in" style={{ animationDelay: "0ms" }}>
               Comida de Verdade
               <br />
-              <span className="bg-gradient-brand bg-clip-text text-transparent">
+              <span className="bg-gradient-brand bg-clip-text text-transparent font-mazzard">
                 Zero Complicação
               </span>
             </h1>

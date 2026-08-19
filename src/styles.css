@@ -3,7 +3,33 @@
 @import "tw-animate-css";
 @import "./styles/image-optimization.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Importar fontes da identidade visual */
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+/* Variáveis de fontes customizadas */
+@layer base {
+  :root {
+    --font-mazzard: "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-pacifico: "Pacifico", cursive;
+    --font-halimun: "Indie Flower", cursive;
+  }
+
+  /* Aplicar Mazzard em headings por padrão */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-mazzard;
+  }
+
+  /* Logo/marca usa Pacifico */
+  .brand-font {
+    @apply font-pacifico;
+  }
+
+  /* Detalhes decorativos usam Halimun */
+  .detail-font {
+    @apply font-halimun;
+  }
+}
 
 /*
  * Design system definition.
