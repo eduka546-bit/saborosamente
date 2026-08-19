@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
+import { OptimizedImage } from "@/components/optimized-image";
 
 export const Route = createFileRoute("/produto/$id")({
   component: ProdutoPage,
@@ -168,9 +169,11 @@ function ProdutoPage() {
         <div className="space-y-4">
           {/* Imagem Principal */}
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted group">
-            <img
+            <OptimizedImage
               src={currentImage}
               alt={product.nome}
+              widths={[512, 1024]}
+              priority={false}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
 
@@ -228,7 +231,12 @@ function ProdutoPage() {
                       : "border-border/30 opacity-60 hover:opacity-100"
                   )}
                 >
-                  <img src={img} alt={`${product.nome} ${idx + 1}`} className="w-full h-full object-cover" />
+                  <OptimizedImage
+                    src={img}
+                    alt={`${product.nome} ${idx + 1}`}
+                    widths={[100]}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>

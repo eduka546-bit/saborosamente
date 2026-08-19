@@ -1,0 +1,53 @@
+/**
+ * Otimizações de imagem para melhor performance
+ */
+
+/* Lazy loading - evita layout shift */
+img[loading="lazy"] {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Picture elements - garante que imagens responsivas funcionem bem */
+picture {
+  display: block;
+  overflow: hidden;
+}
+
+picture img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Otimizar renderização de imagens grandes */
+img[srcSet] {
+  content-visibility: auto;
+}
+
+/* Prevent image distortion */
+img[aspect-ratio] {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Improve Core Web Vitals */
+img {
+  /* Reduz CLS (Cumulative Layout Shift) */
+  contain: layout style paint;
+}
+
+/* High DPI screens - otimizar densidade de píxel */
+@media (min-resolution: 2dppx) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}

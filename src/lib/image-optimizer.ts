@@ -1,116 +1,134 @@
 /**
- * Otimizador de imagens antes do upload
- * Reduz tamanho em ~70% mantendo qualidade
+ * Utilitário para otimizar URLs de imagens com suporte a WebP, lazy loading e srcset
+ * Trabalha com Supabase Storage e CDN
  */
 
-interface OptimizationOptions {
-  maxWidth?: number;
-  maxHeight?: number;
-  quality?: number; // 0-100
-  format?: 'webp' | 'jpeg' | 'png';
+export interface OptimizedImageProps {
+  src: string;
+  alt: string;
+  sizes?: string;
+  srcSet?: string;
+  className?: string;
+  width?: number;
+  height?: number;
+  loading?: 'lazy' | 'eager';
 }
 
 /**
- * Otimiza uma imagem comprimindo e redimensionando
- * @param file - Arquivo de imagem
- * @param options - Opções de otimização
- * @returns Promise com arquivo otimizado
+ * Gera URL de imagem otimizada com suporte a resize e formato
+ * @param url - URL original da imagem
+ * @param width - Largura desejada (opcional)
+ * @param format - Formato desejado: webp, jpeg, png (padrão: webp)
  */
-export async function optimizeImage(
-  file: File,
-  options: OptimizationOptions = {}
-): Promise<File> {
+export function getOptimizedImageUrl(
+  url: string,
+  width?: number,
+  format: 'webp' | 'jpeg' | 'png' = 'webp'
+): string {
+  if (!url) return '';
+
+  // Se já é uma URL com query params de otimização, retorna como está
+  if (url.includes('?')) return url;
+
+  // Supabase storage URLs
+  if (url.includes('supabase.co')) {
+    // Para Supabase, adicionar transformações de imagem se disponível
+    // https://supabase.com/docs/guides/storage/serving/image-transformations
+    const params = new URLSearchParams();
+    if (width) {
+      params.set('width', width.toString());
+    }
+    params.set('format', format);
+    return `${url}?${params.toString()}`;
+  }
+
+  return url;
+}
+
+/**
+ * Gera srcset responsivo para imagem
+ * @param url - URL da imagem
+ * @param sizes - Tamanhos para gerar (ex: [320, 640, 1280])
+ */
+export function generateSrcSet(
+  url: string,
+  sizes: number[] = [320, 640, 1024, 1280]
+): string {
+  return sizes
+    .map((size) => `${getOptimizedImageUrl(url, size, 'webp')} ${size}w`)
+    .join(', ');
+}
+
+/**
+ * Gera sizes attribute para imagem responsiva
+ * Padrão: mobile first com breakpoints típicos
+ */
+export function generateSizes(
+  customSizes?: string
+): string {
+  if (customSizes) return customSizes;
+
+  // Padrão responsivo
+  return '(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 1280px) 80vw, 1024px';
+}
+
+/**
+ * Gera picture element com fallback para WebP
+ * Retorna objeto com props para usar em componentes
+ */
+export function getResponsiveImageProps(
+  url: string,
+  alt: string,
+  options?: {
+    widths?: number[];
+    loading?: 'lazy' | 'eager';
+    sizes?: string;
+    width?: number;
+    height?: number;
+  }
+): OptimizedImageProps {
   const {
-    maxWidth = 1200,
-    maxHeight = 1200,
-    quality = 80,
-    format = 'webp'
-  } = options;
+    widths = [320, 640, 1024],
+    loading = 'lazy',
+    sizes: customSizes,
+    width,
+    height,
+  } = options || {};
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const img = new Image();
-
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-
-        // Calcular novas dimensões mantendo proporção
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.floor(width * ratio);
-          height = Math.floor(height * ratio);
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Não foi possível obter contexto do canvas'));
-          return;
-        }
-
-        // Desenhar imagem otimizada
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Converter para blob
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Não foi possível converter imagem'));
-              return;
-            }
-
-            // Criar novo arquivo otimizado
-            const ext = format === 'webp' ? 'webp' : format;
-            const optimizedFile = new File(
-              [blob],
-              `${file.name.split('.')[0]}.${ext}`,
-              { type: `image/${ext}` }
-            );
-
-            console.log(
-              `Imagem otimizada: ${(file.size / 1024).toFixed(2)}KB → ${(blob.size / 1024).toFixed(2)}KB (${Math.round((1 - blob.size / file.size) * 100)}% redução)`
-            );
-
-            resolve(optimizedFile);
-          },
-          `image/${format}`,
-          quality / 100
-        );
-      };
-
-      img.onerror = () => {
-        reject(new Error('Não foi possível carregar a imagem'));
-      };
-
-      img.src = event.target?.result as string;
-    };
-
-    reader.onerror = () => {
-      reject(new Error('Erro ao ler arquivo'));
-    };
-
-    reader.readAsDataURL(file);
-  });
+  return {
+    src: url,
+    alt,
+    loading,
+    sizes: generateSizes(customSizes),
+    srcSet: generateSrcSet(url, widths),
+    width,
+    height,
+  };
 }
 
 /**
- * Valida se o arquivo é uma imagem
+ * Gera URL WebP com fallback JPEG
+ * Útil para navegadores que não suportam WebP
  */
-export function isValidImageFile(file: File): boolean {
-  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
-  return validTypes.includes(file.type) && file.size > 0;
+export function getWebPUrl(url: string): {
+  webp: string;
+  fallback: string;
+} {
+  return {
+    webp: getOptimizedImageUrl(url, undefined, 'webp'),
+    fallback: getOptimizedImageUrl(url, undefined, 'jpeg'),
+  };
 }
 
 /**
- * Formata tamanho em bytes para unidade legível
+ * Hook para usar imagens otimizadas em componentes React
+ * Exemplo:
+ * const { src, srcSet, sizes } = useOptimizedImage(imageUrl, 'alt text')
  */
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)}MB`;
+export function useOptimizedImage(
+  url: string,
+  alt: string,
+  options?: Parameters<typeof getResponsiveImageProps>[2]
+): OptimizedImageProps {
+  return getResponsiveImageProps(url, alt, options);
 }
