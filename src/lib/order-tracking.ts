@@ -16,7 +16,7 @@ export interface OrderStatus {
  * URLs de rastreamento amigáveis para compartilhar
  */
 export function getTrackingUrl(protocolId: string, baseUrl?: string): string {
-  const url = baseUrl || `${window.location.origin}`;
+  const url = baseUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://saborosamente.vercel.app');
   return `${url}/pedido?p=${protocolId.toUpperCase()}`;
 }
 
