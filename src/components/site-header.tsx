@@ -45,8 +45,11 @@ export function SiteHeader() {
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true); // Marca que component foi montado no client
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
@@ -296,7 +299,7 @@ export function SiteHeader() {
                     <span className="font-semibold text-xs">Meu Perfil</span>
                   </Link>
                 </DropdownMenuItem>
-                {isAdmin && (
+                {mounted && isAdmin && (
                   <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                     <Link to="/admin" className="flex items-center gap-2 w-full">
                       <Lock className="h-4 w-4" />
