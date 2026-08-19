@@ -125,6 +125,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
+  ssr: false, // Desabilitar SSR na raiz para evitar hydration mismatches complexos
 });
 
 function RootShell({ children }: { children: ReactNode }) {
