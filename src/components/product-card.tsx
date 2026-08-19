@@ -4,6 +4,7 @@ import { useCart } from "@/lib/cart";
 import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
+import { Link } from "@tanstack/react-router";
 
 // Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
 // Combos Prontos são produtos normais com tamanho fixo
@@ -20,13 +21,6 @@ function isComboProduct(product: Product | any): boolean {
   );
 }
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -215,11 +209,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
-    <Dialog>
-      <DialogTrigger asChild>
-        <article
-          className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
-        >
+    <Link to={`/produto/${product.id}`}>
+      <article
+        className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
+      >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2 flex-wrap">
             {badges.map((badge, idx) => {
@@ -341,128 +334,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
           </div>
         </article>
-      </DialogTrigger>
-
-      <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto p-0 sm:max-w-4xl lg:max-w-5xl">
-        <div className="flex flex-col md:flex-row min-h-full">
-          <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 min-h-[300px] md:min-h-[500px] bg-muted overflow-hidden">
-            {product.imagens && product.imagens.length > 0 ? (
-              <div className="relative size-full group/carousel">
-                <ProductCarousel images={[currentImage, ...product.imagens]} />
-              </div>
-            ) : (
-              <img
-                src={currentImage}
-                alt={product.nome}
-                className="size-full object-cover"
-              />
-            )}
-            <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun z-10">
-              {product.categoria}
-            </Badge>
-          </div>
-          
-          <div className="flex flex-1 flex-col p-6">
-            <DialogHeader className="mb-4">
-              <DialogTitle className="text-2xl font-bold text-primary-dark">
-                {product.nome}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="mb-6 space-y-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">Marca:</span>
-                <Badge variant="outline" className="text-primary border-primary/20">
-                  {product.categoria === ('Marmita' as any) ? 'Amo' : 'Sabor em Casa'}
-                </Badge>
-              </div>
-
-              <div>
-                <h4 className="mb-1 font-bold text-foreground">Descrição / Ingredientes:</h4>
-                <p className="leading-relaxed">
-                  {product.descricao || "Ingredientes frescos e selecionados, preparados com o tempero especial da casa para garantir sabor e saúde na sua mesa."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Valor Nutricional</h4>
-                  <div className="text-xs mt-1 flex flex-wrap gap-x-2 text-muted-foreground">
-                    {currentNutritional?.kcal ? (
-                      <>
-                        <span className="font-bold text-primary">{currentNutritional.kcal} KCAL</span>
-                        <span>|</span>
-                        <span>{currentNutritional.carb}g CARB</span>
-                        <span>|</span>
-                        <span>{currentNutritional.prot}g PROT</span>
-                      </>
-                    ) : (
-                      <span className="italic">Consulte a embalagem para detalhes</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Restrições</h4>
-                  <p className="text-xs mt-1">{product.informacao_nutricional || "Sem Glúten | Sem Lactose"}</p>
-                </div>
-              </div>
-
-              {weights.length > 1 && (
-                <div>
-                  <h4 className="mb-2 font-bold text-foreground">Escolha o tamanho:</h4>
-                  <div className="flex gap-2">
-                    {weights.map((w) => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => setSelectedWeight(w)}
-                        className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-sm font-bold transition-all",
-                          selectedWeight === w
-                            ? "border-primary bg-primary/5 text-primary shadow-sm"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                        )}
-                      >
-                        {weightLabel(w)}
-                        {isComboPronto && (
-                          <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">
-                            {w}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-auto pt-6 border-t">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-muted-foreground">Valor</span>
-                  <span className="text-3xl font-black text-primary">
-                    {formatBRL(currentPrice)}
-                  </span>
-                </div>
-                {selectedWeight && (
-                  <Badge variant="secondary" className="font-bold">
-                    {selectedWeight}
-                  </Badge>
-                )}
-              </div>
-              
-              <Button 
-                onClick={() => handleAddToCart()} 
-                className="w-full h-14 rounded-2xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02]"
-              >
-                <ShoppingCart className="size-5" />
-                Adicionar ao Carrinho
-              </Button>
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </Link>
     </>
   );
 }
