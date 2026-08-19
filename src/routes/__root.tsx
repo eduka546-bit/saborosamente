@@ -151,10 +151,18 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-screen flex-col bg-gradient-to-b from-primary/5 via-background to-background">
+          {/* Decoração de fundo - gradiente nas laterais */}
+          <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+            <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-accent/10 blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-teal/5 blur-3xl" />
+            <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+          </div>
+
           {isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />}
           
-          <main className="flex-1">
+          <main className="flex-1 relative z-10">
             <Outlet />
           </main>
           
