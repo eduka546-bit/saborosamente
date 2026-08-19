@@ -64,11 +64,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
   // ── Rating simulado (para exibição) ──────────────────────────────
   const getRating = () => {
-    // Simulação: rating baseado no ID do produto
-    const ratingMap: { [key: number]: number } = {
-      0: 4.5, 1: 4.8, 2: 4.3, 3: 4.9, 4: 4.6, 5: 4.2, 6: 4.7
-    };
-    return ratingMap[(product.id as any) % 7] || 4.5;
+    // Sempre retorna 5 ou 4.9 para melhor apresentação
+    return (product.id as any) % 2 === 0 ? 5.0 : 4.9;
   };
 
   const badges = getBadges();
@@ -142,8 +139,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2">
-            <div className="bg-sun/90 text-white rounded-full px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 shadow-md">
-              <Gift className="size-3" />
+            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-[10px] font-black flex items-center gap-1.5 shadow-lg border border-white/40 uppercase tracking-wider">
+              <Gift className="size-3.5" />
               Combo
             </div>
           </div>
@@ -225,11 +222,11 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               return (
                 <div
                   key={idx}
-                  className={`${badge.color} text-white rounded-full px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 shadow-md animate-in fade-in slide-in-from-top-2 duration-500`}
+                  className={`${badge.color} text-white rounded-full px-3 py-1.5 text-[10px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-sm border border-white/30 animate-in fade-in slide-in-from-top-2 duration-500`}
                   style={{ animationDelay: `${idx * 100}ms` }}
                 >
-                  <BadgeIcon className="size-3" />
-                  {badge.label}
+                  <BadgeIcon className="size-3.5" />
+                  <span className="uppercase tracking-wide">{badge.label}</span>
                 </div>
               );
             })}
@@ -254,7 +251,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                  </div>
               </div>
             )}
-            <span className="absolute left-3 bottom-3 rounded-full bg-primary/20 backdrop-blur-sm px-3 py-1 text-xs font-semibold text-primary border border-primary/30">
+            <span className="absolute left-3 bottom-3 rounded-full bg-gradient-brand/95 backdrop-blur-md px-4 py-1.5 text-[10px] font-black text-white border border-white/40 shadow-lg uppercase tracking-wider">
               {product.categoria}
             </span>
             <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
