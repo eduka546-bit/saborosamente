@@ -87,8 +87,6 @@ export function SiteFooter() {
 
   return (
     <footer style={{ backgroundColor: bg, color: text }} className="relative mt-24 overflow-hidden">
-      {/* faixa decorativa no topo */}
-      <div className="h-1 w-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
       {/* ── corpo principal ─────────────────────────────────────────────── */}
       <div className="mx-auto max-w-6xl px-6 py-16">
