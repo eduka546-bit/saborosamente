@@ -35,15 +35,24 @@ const ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
 
 function AdminLayout() {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Listener para quando faz logout
+    // Verificar sessão atual
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        if (!session) {
+          navigate({ to: "/admin/login" as any });
+        }
+        setLoading(false);
+      }
+    });
+
+    // Listener para mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
+      if (event === "SIGNED_OUT") {
         if (isMounted) {
           navigate({ to: "/admin/login" as any });
         }
@@ -55,6 +64,17 @@ function AdminLayout() {
       subscription?.unsubscribe();
     };
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto" />
+          <p className="mt-3 text-sm text-gray-500">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // É admin - renderiza layout
   return (
