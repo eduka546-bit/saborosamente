@@ -12,7 +12,12 @@ import { createQueryConfig } from "@/lib/query-config";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
-  // Desabilitar SSR para evitar hydration mismatch com gráficos
+  errorComponent: () => (
+    <div className="p-8 text-center">
+      <p className="text-gray-500">Erro ao carregar dashboard. Recarregue a página.</p>
+      <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-primary text-white rounded-lg">Recarregar</button>
+    </div>
+  ),
   ssr: false,
 });
 
