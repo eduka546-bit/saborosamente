@@ -51,12 +51,12 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   const currentBanner = filteredBanners[currentIndex];
 
   const content = (
-    <div className="relative w-full h-full overflow-hidden rounded-2xl group">
+    <div className="relative w-full h-full overflow-hidden rounded-xl group">
       <img
         src={currentBanner.image_url}
         alt={currentBanner.alt || "Banner promocional"}
-        loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        loading="eager"
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
 
       {/* Overlay gradient no hover */}
@@ -118,16 +118,16 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto">
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
-          className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[21/9] bg-card"
+          className="block rounded-xl overflow-hidden shadow-soft border border-border/30 bg-card h-[180px] md:h-[220px]"
         >
           {content}
         </a>
       ) : (
-        <div className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[21/9] bg-card">
+        <div className="block rounded-xl overflow-hidden shadow-soft border border-border/30 bg-card h-[180px] md:h-[220px]">
           {content}
         </div>
       )}
