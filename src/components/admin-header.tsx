@@ -84,10 +84,7 @@ export function AdminHeader() {
               icon={ClipboardList} 
               items={[
                 { label: "Ver pedidos", href: "/admin/pedidos" },
-                { label: "Pedidos por item", href: "/admin/pedidos/itens" },
-                { label: "Pedidos por complemento", href: "/admin/pedidos/complementos" },
-                { label: "Acompanhamentos solicitados", href: "/admin/pedidos/acompanhamentos" },
-                { label: "Avaliações - Média Mensal", href: "/admin/avaliacoes" },
+                { label: "Avaliações", href: "/admin/avaliacoes" },
                 { label: "Carrinho abandonado", href: "/admin/pedidos/carrinhos-abandonados" }
               ]} 
             />
