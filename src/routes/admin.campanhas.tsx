@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -28,6 +28,8 @@ function AdminCampaignPage() {
   const [filtroGastoMin, setFiltroGastoMin] = useState<number>(0);
   const [filtroGastoMax, setFiltroGastoMax] = useState<number>(99999);
   const [clientesSelecionadosManual, setClientesSelecionadosManual] = useState<Set<string>>(new Set());
+  const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
+  const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -35,19 +37,16 @@ function AdminCampaignPage() {
   const { data: clientes = [], isLoading: carregandoClientes } = useQuery({
     queryKey: ["clientes-para-campanha"],
     queryFn: async () => {
-      // Buscar perfis
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome, telefone, email, bairro, created_at")
         .order("nome");
 
-      // Buscar pedidos para calcular gasto total
       const { data: orders } = await supabase
         .from("pedidos")
         .select("user_id, valor_total")
         .eq("status", "entregue");
 
-      // Mapear gastos por cliente
       const gastosPorCliente: Record<string, number> = {};
       (orders || []).forEach((order: any) => {
         if (order.user_id) {
@@ -56,7 +55,6 @@ function AdminCampaignPage() {
         }
       });
 
-      // Enriquecer perfis com dados
       return (profiles || []).map((p: any) => ({
         ...p,
         valorGasto: gastosPorCliente[p.id] || 0,
@@ -68,10 +66,8 @@ function AdminCampaignPage() {
 
   // Filtrar clientes baseado nos critérios
   const clientesFiltrados = clientes.filter((c: any) => {
-    // Filtro de telefone (obrigatório)
     if (!c.telefone) return false;
 
-    // Filtros adicionais
     if (filtroTipo === "bairro" && filtroBairro) {
       return c.bairro?.toLowerCase().includes(filtroBairro.toLowerCase());
     }
@@ -81,7 +77,6 @@ function AdminCampaignPage() {
     }
 
     if (filtroTipo === "ativo") {
-      // Clientes que compraram nos últimos 30 dias
       const diasSemCompra = Math.floor(
         (new Date().getTime() - new Date(c.created_at).getTime()) /
           (1000 * 60 * 60 * 24)
@@ -89,18 +84,20 @@ function AdminCampaignPage() {
       return diasSemCompra <= 30;
     }
 
-    return true; // "todos"
+    return true;
   });
 
-  // Bairros únicos para dropdown
   const bairrosUnicos = Array.from(
     new Set(clientes.map((c: any) => c.bairro).filter(Boolean))
   ).sort() as string[];
 
-  // Contatos selecionados (considerando seleção manual)
-  const contatosSelecionados = clientesSelecionadosManual.size > 0
-    ? Array.from(clientesSelecionadosManual)
-    : clientesFiltrados.map((c: any) => c.telefone).filter(Boolean);
+  // Sincronizar contatos editáveis quando filtro muda
+  useEffect(() => {
+    const contatosSelecionados = clientesSelecionadosManual.size > 0
+      ? Array.from(clientesSelecionadosManual)
+      : clientesFiltrados.map((c: any) => c.telefone).filter(Boolean);
+    setContatosEditaveis(contatosSelecionados);
+  }, [clientesFiltrados, clientesSelecionadosManual]);
 
   // Query para histórico de campanhas
   const { data: campanhas = [], isLoading: carregandoCampanhas } = useQuery({
@@ -119,13 +116,11 @@ function AdminCampaignPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, selecione uma imagem válida");
       return;
     }
 
-    // Validar tamanho (máx 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Imagem muito grande (máximo 5MB)");
       return;
@@ -133,7 +128,6 @@ function AdminCampaignPage() {
 
     setImagemFile(file);
 
-    // Preview
     const reader = new FileReader();
     reader.onload = (event) => {
       setImagemPreview(event.target?.result as string);
@@ -159,7 +153,6 @@ function AdminCampaignPage() {
         throw new Error("Digite uma mensagem");
       }
 
-      // Upload da imagem se existir
       let imagemUrl = null;
       if (imagem) {
         const nomearquivo = `campanha-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
@@ -175,7 +168,6 @@ function AdminCampaignPage() {
         imagemUrl = publicUrl;
       }
 
-      // Salvar campanha no banco
       const { data: campanha, error: saveError } = await supabase
         .from("campanhas_whatsapp")
         .insert([
@@ -194,7 +186,6 @@ function AdminCampaignPage() {
 
       if (saveError) throw saveError;
 
-      // Chamar função para enviar mensagens
       const { error: fnError } = await supabase.functions.invoke(
         "whatsapp-campanha-enviar",
         {
@@ -215,14 +206,11 @@ function AdminCampaignPage() {
       toast.success(
         `✓ Campanha iniciada! Enviando para ${campanha.contatos_total} contatos...`
       );
-      // Reset form
       setMensagem("");
       setNomesCampanha("");
       setImagemFile(null);
       setImagemPreview(null);
-      // Refresh histórico
       queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
-      // Volta pro histórico
       setTabAtivo("historico");
     },
     onError: (error: any) => {
@@ -375,7 +363,7 @@ function AdminCampaignPage() {
             {/* Seleção de Clientes */}
             <div className="bg-white rounded-xl border p-6">
               <label className="block text-sm font-bold text-gray-700 mb-4">
-                Filtrar Clientes ({contatosSelecionados.length})
+                Filtrar Clientes ({contatosEditaveis.length})
               </label>
 
               {/* Tabs de Filtro */}
@@ -390,7 +378,7 @@ function AdminCampaignPage() {
                     key={tab.id}
                     onClick={() => {
                       setFiltroTipo(tab.id as any);
-                      setClientesSelecionadosManual(new Set()); // Reset seleção manual
+                      setClientesSelecionadosManual(new Set());
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
                       filtroTipo === tab.id
@@ -467,13 +455,10 @@ function AdminCampaignPage() {
                           clientesSelecionadosManual.has(cliente.telefone)
                         }
                         onChange={() => {
-                          // Quando clica em um checkbox, ativa seleção manual
                           if (clientesSelecionadosManual.size === 0) {
-                            // Se era "todos", copia todos os selecionados
                             const todosSelecionados = new Set(
                               clientesFiltrados.map((c: any) => c.telefone)
                             );
-                            // Remove o atual clicado
                             todosSelecionados.delete(cliente.telefone);
                             setClientesSelecionadosManual(todosSelecionados);
                           } else {
@@ -504,12 +489,116 @@ function AdminCampaignPage() {
                 </div>
               )}
 
-              <div className="space-y-3">
+              {/* Lista Completa de Clientes - Expansível */}
+              <div className="border-t border-gray-200 pt-4">
+                <button
+                  onClick={() => setMostrarListaCompleta(!mostrarListaCompleta)}
+                  className="w-full px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 font-bold text-sm text-gray-700 transition-all flex items-center justify-between"
+                >
+                  <span>📋 Ver/Editar Lista Completa ({contatosEditaveis.length})</span>
+                  <span className={`transform transition-transform ${mostrarListaCompleta ? "rotate-180" : ""}`}>
+                    ▼
+                  </span>
+                </button>
+
+                {mostrarListaCompleta && (
+                  <div className="mt-4 space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    {contatosEditaveis.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Nenhum contato selecionado
+                      </p>
+                    ) : (
+                      <>
+                        {contatosEditaveis.map((tel, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200 hover:border-gray-300"
+                          >
+                            <span className="text-xs font-bold text-gray-500 w-6">
+                              {idx + 1}.
+                            </span>
+                            <input
+                              type="text"
+                              value={tel}
+                              onChange={(e) => {
+                                const novo = [...contatosEditaveis];
+                                novo[idx] = e.target.value;
+                                setContatosEditaveis(novo);
+                              }}
+                              className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                              placeholder="Telefone com DDD"
+                            />
+                            <button
+                              onClick={() => {
+                                setContatosEditaveis(
+                                  contatosEditaveis.filter((_, i) => i !== idx)
+                                );
+                              }}
+                              className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+
+                        {/* Botão para adicionar novo */}
+                        <button
+                          onClick={() =>
+                            setContatosEditaveis([...contatosEditaveis, ""])
+                          }
+                          className="w-full mt-3 px-3 py-2 text-xs font-bold text-[#5850ec] border border-dashed border-[#5850ec] rounded-lg hover:bg-[#5850ec]/5 transition-colors"
+                        >
+                          + Adicionar Contato
+                        </button>
+
+                        {/* Copiar/Colar */}
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <p className="text-xs font-bold text-gray-600 mb-2">
+                            Importar/Exportar:
+                          </p>
+                          <textarea
+                            value={contatosEditaveis.join("\n")}
+                            onChange={(e) =>
+                              setContatosEditaveis(
+                                e.target.value
+                                  .split("\n")
+                                  .map((t) => t.trim())
+                                  .filter(Boolean)
+                              )
+                            }
+                            placeholder="Cole um telefone por linha..."
+                            className="w-full px-2 py-2 text-xs border border-gray-200 rounded font-mono focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                            rows={4}
+                          />
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                contatosEditaveis.join("\n")
+                              );
+                              toast.success("Copiado para clipboard!");
+                            }}
+                            className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                          >
+                            📋 Copiar Lista
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Botão de Enviar */}
+              <div className="space-y-3 pt-4">
                 <Button
-                  onClick={() => handleEnviar(contatosSelecionados)}
+                  onClick={() => 
+                    handleEnviar(
+                      contatosEditaveis.filter(t => t.trim())
+                    )
+                  }
                   disabled={
                     enviando ||
-                    contatosSelecionados.length === 0 ||
+                    contatosEditaveis.filter((t) => t.trim()).length === 0 ||
                     !mensagem.trim()
                   }
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2"
@@ -522,14 +611,15 @@ function AdminCampaignPage() {
                   ) : (
                     <>
                       <Send size={18} />
-                      Enviar para {contatosSelecionados.length} cliente(s)
+                      Enviar para {contatosEditaveis.filter((t) => t.trim()).length} cliente(s)
                     </>
                   )}
                 </Button>
                 <p className="text-xs text-gray-500 text-center">
                   {clientesSelecionadosManual.size === 0
-                    ? `Enviará para todos os ${contatosSelecionados.length} clientes do filtro`
-                    : `Seleção manual: ${contatosSelecionados.length} cliente(s)`}
+                    ? `Filtro: ${filtroTipo}`
+                    : "Seleção manual"}
+                  {mostrarListaCompleta && " • Lista expandida"}
                 </p>
               </div>
             </div>
@@ -570,7 +660,7 @@ function AdminCampaignPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Users size={14} />
                   <span>
-                    {contatosSelecionados.length} clientes selecionados
+                    {contatosEditaveis.filter((t) => t.trim()).length} clientes
                   </span>
                 </div>
               </div>
