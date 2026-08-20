@@ -44,12 +44,12 @@ function AdminCampaignPage() {
     queryFn: async () => {
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome, telefone, email, bairro, created_at")
+        .select("id,nome,telefone,email,bairro,created_at")
         .order("nome");
 
       const { data: orders } = await supabase
         .from("pedidos")
-        .select("user_id, valor_total")
+        .select("user_id,valor_total")
         .eq("status", "entregue");
 
       const gastosPorCliente: Record<string, number> = {};
