@@ -88,7 +88,7 @@ export function AdminHeader() {
                 { label: "Pedidos por complemento", href: "/admin/pedidos/complementos" },
                 { label: "Acompanhamentos solicitados", href: "/admin/pedidos/acompanhamentos" },
                 { label: "Avaliações - Média Mensal", href: "/admin/avaliacoes" },
-                { label: "Carrinho abandonado", href: "/admin/carrinhos-abandonados" }
+                { label: "Carrinho abandonado", href: "/admin/pedidos/carrinhos-abandonados" }
               ]} 
             />
             <NavItem 
@@ -117,17 +117,14 @@ export function AdminHeader() {
               label="Cupons" 
               icon={Ticket} 
               items={[
-                { label: "Ver cupons", href: "/admin/cupons" },
-                { label: "Novo cupom", href: "/admin/cupons/novo" }
+                { label: "Ver cupons", href: "/admin/cupons" }
               ]} 
             />
             <NavItem 
               label="Campanhas" 
               icon={MessageSquare} 
               items={[
-                { label: "WhatsApp em Massa", href: "/admin/campanhas" },
-                { label: "Email Marketing", href: "/admin/email-campaigns" },
-                { label: "SMS", href: "/admin/sms-campaigns" }
+                { label: "WhatsApp em Massa", href: "/admin/campanhas" }
               ]} 
             />
             <NavItem 
@@ -161,19 +158,12 @@ export function AdminHeader() {
                 { label: "Cashback", href: "/admin/config/cashback-config" },
                 { label: "Agente IA (WhatsApp)", href: "/admin/agente" },
                 { label: "Automações WhatsApp", href: "/admin/automacoes" },
-                { label: "🧹 Limpeza de Storage", href: "/admin/storage-cleanup" },
                 { label: "Unidades", href: "/admin/config/unidades" },
-                { label: "Horário de funcionamento", href: "/admin/config/horarios" },
-                { label: "Exceção de funcionamento", href: "/admin/config/excecoes" },
-                { label: "Bairros", href: "/admin/config/bairros" },
-                { label: "Taxa e tempo de entrega", href: "/admin/config/taxas" },
-                { label: "Área de entrega", href: "/admin/config/area" },
-                { label: "Cashback", href: "/admin/config/cashback" },
+                { label: "Horários e Exceções", href: "/admin/config/horarios" },
+                { label: "Entrega (Bairros / Taxas / Área)", href: "/admin/config/taxas" },
                 { label: "Informativo", href: "/admin/config/informativo" },
                 { label: "Entregador", href: "/admin/config/entregador" },
-                { label: "Mesas", href: "/admin/config/mesas" },
                 { label: "Parâmetros", href: "/admin/config/parametros" },
-                { label: "Como nos conheceu", href: "/admin/config/origem" },
                 { label: "Impressão automática", href: "/admin/config/impressao" }
               ]} 
             />
