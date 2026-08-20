@@ -83,6 +83,18 @@ async function enviarMensagem(
 }
 
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+      },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -186,7 +198,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true, enviados, falhados, total: contatos.length, tempoTotal }),
-      { headers: { "Content-Type": "application/json" }, status: 200 }
+      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }, status: 200 }
     );
 
   } catch (e: unknown) {
@@ -203,7 +215,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ error: msg }),
-      { headers: { "Content-Type": "application/json" }, status: 500 }
+      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }, status: 500 }
     );
   }
 });
