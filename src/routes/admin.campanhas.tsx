@@ -136,6 +136,7 @@ function AdminCampaignPage() {
   const [listaEditando, setListaEditando] = useState<any>(null);
   const [contatosLista, setContatosLista] = useState<any[]>([]);
   const listaInputRef = useRef<HTMLInputElement>(null);
+  const [listaCarregada, setListaCarregada] = useState<string | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -301,20 +302,22 @@ function AdminCampaignPage() {
 
       if (error) throw error;
 
+      // Recarregar e atualizar quantidade
       await carregarContatosLista(listaId);
       
-      // Atualizar quantidade
-      const { data: lista } = await supabase
-        .from("listas_contatos")
-        .select("*")
-        .eq("id", listaId)
-        .single();
+      // Atualizar quantidade na lista
+      const { count } = await supabase
+        .from("contatos_lista")
+        .select("*", { count: "exact", head: true })
+        .eq("lista_id", listaId);
 
-      if (lista) {
+      if (count !== null) {
         await supabase
           .from("listas_contatos")
-          .update({ quantidade_contatos: contatosLista.length + 1 })
+          .update({ quantidade_contatos: count })
           .eq("id", listaId);
+        
+        refetchListas();
       }
 
       toast.success("Contato adicionado!");
@@ -333,9 +336,44 @@ function AdminCampaignPage() {
       if (error) throw error;
 
       await carregarContatosLista(listaId);
+      
+      // Atualizar quantidade
+      const { count } = await supabase
+        .from("contatos_lista")
+        .select("*", { count: "exact", head: true })
+        .eq("lista_id", listaId);
+
+      if (count !== null) {
+        await supabase
+          .from("listas_contatos")
+          .update({ quantidade_contatos: count })
+          .eq("id", listaId);
+        
+        refetchListas();
+      }
+
       toast.success("Contato removido!");
     } catch (err) {
       toast.error("Erro ao remover contato");
+    }
+  };
+
+  const editarContatoDaLista = async (contatoId: string, novoTelefone: string, novoNome: string) => {
+    try {
+      const { error } = await supabase
+        .from("contatos_lista")
+        .update({
+          telefone: novoTelefone.replace(/\D/g, ''),
+          nome: novoNome || null,
+        })
+        .eq("id", contatoId);
+
+      if (error) throw error;
+
+      await carregarContatosLista(listaEditando!);
+      toast.success("Contato atualizado!");
+    } catch (err) {
+      toast.error("Erro ao atualizar contato");
     }
   };
 
@@ -729,7 +767,43 @@ function AdminCampaignPage() {
               </div>
             </div>
 
-            {/* Seleção de Clientes */}
+            {/* Seleção de Lista Salva */}
+            <div className="bg-white rounded-xl border p-6">
+              <label className="block text-sm font-bold text-gray-700 mb-4">
+                Ou carregar uma Lista Salva
+              </label>
+              <select
+                value={listaCarregada || ""}
+                onChange={async (e) => {
+                  if (!e.target.value) {
+                    setListaCarregada(null);
+                    return;
+                  }
+                  
+                  setListaCarregada(e.target.value);
+                  const { data } = await supabase
+                    .from("contatos_lista")
+                    .select("telefone")
+                    .eq("lista_id", e.target.value);
+                  
+                  if (data) {
+                    const telefones = data.map((c: any) => c.telefone);
+                    setContatosEditaveis(telefones);
+                    toast.success(`${telefones.length} contatos carregados!`);
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+              >
+                <option value="">Selecione uma lista...</option>
+                {listas.map((lista: any) => (
+                  <option key={lista.id} value={lista.id}>
+                    {lista.nome} ({lista.quantidade_contatos} contatos)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Seleção de Clientes do Banco */}
             <div className="bg-white rounded-xl border p-6">
               <label className="block text-sm font-bold text-gray-700 mb-4">
                 Filtrar Clientes ({contatosEditaveis.length})
@@ -1239,15 +1313,45 @@ function AdminCampaignPage() {
                       contatosLista.map((contato: any, idx: number) => (
                         <div
                           key={contato.id}
-                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
                         >
                           <span className="text-xs font-bold text-gray-500 w-6">{idx + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{contato.telefone}</p>
-                            {contato.nome && (
-                              <p className="text-xs text-gray-500">{contato.nome}</p>
-                            )}
-                          </div>
+                          <input
+                            type="text"
+                            defaultValue={contato.telefone}
+                            onChange={(e) => {
+                              const updated = contatosLista.map(c => 
+                                c.id === contato.id ? { ...c, telefone: e.target.value } : c
+                              );
+                              setContatosLista(updated);
+                            }}
+                            placeholder="Telefone"
+                            className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                          />
+                          <input
+                            type="text"
+                            defaultValue={contato.nome || ''}
+                            onChange={(e) => {
+                              const updated = contatosLista.map(c => 
+                                c.id === contato.id ? { ...c, nome: e.target.value } : c
+                              );
+                              setContatosLista(updated);
+                            }}
+                            placeholder="Nome"
+                            className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                          />
+                          <button
+                            onClick={() => {
+                              const tel = (document.querySelectorAll('input[placeholder="Telefone"]')[idx] as HTMLInputElement)?.value;
+                              const nome = (document.querySelectorAll('input[placeholder="Nome"]')[idx] as HTMLInputElement)?.value;
+                              if (tel) {
+                                editarContatoDaLista(contato.id, tel, nome);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            ✓
+                          </button>
                           <button
                             onClick={() => removerContatoDaLista(contato.id, listaEditando)}
                             className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded"
