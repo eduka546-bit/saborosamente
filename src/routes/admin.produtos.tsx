@@ -1088,6 +1088,8 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem
+              className="text-xs font-medium uppercase tracking-wider"
               onClick={() => onEdit(product)}
             >
               Editar
