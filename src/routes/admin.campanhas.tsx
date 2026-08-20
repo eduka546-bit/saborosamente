@@ -1268,7 +1268,7 @@ function AdminCampaignPage() {
                   <div className="flex gap-4 mt-2 text-xs text-gray-500">
                     <span>
                       📅{" "}
-                      {new Date(campanha.created_at).toLocaleDateString(
+                      {new Date(campanha.created_at).toLocaleString(
                         "pt-BR",
                         { dateStyle: "short", timeStyle: "short" }
                       )}
