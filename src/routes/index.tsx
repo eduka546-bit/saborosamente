@@ -208,62 +208,53 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           HERO SECTION — Premium Design
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden pt-6 pb-8 md:pt-10 md:pb-12">
+      <section className="relative overflow-hidden pt-4 pb-4 md:pt-6 md:pb-6">
         {/* Background orbs */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-gradient-to-br from-primary/6 via-lime/4 to-transparent blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-4xl px-4">
-          {/* Badge */}
-          <div className="flex justify-center mb-4">
-            <div className="animate-in inline-flex items-center gap-1.5 rounded-full bg-primary/8 border border-primary/15 px-3.5 py-1.5 text-[10px] font-bold text-primary uppercase tracking-wider" style={{ animationDelay: "0ms" }}>
-              <Sparkles size={11} />
-              <span>Artesanal • Natural • Sem Conservantes</span>
-            </div>
-          </div>
-
           {/* Heading */}
-          <div className="text-center space-y-4 mb-8">
-            <h1 className="animate-reveal" style={{ animationDelay: "100ms" }}>
-              <span className="block text-2xl md:text-3xl lg:text-4xl font-pacifico leading-[1.2] text-foreground">
+          <div className="text-center space-y-3 mb-5">
+            <h1>
+              <span className="block text-2xl md:text-3xl font-pacifico leading-[1.2] text-foreground">
                 Comida de Verdade,
               </span>
-              <span className="block mt-1 text-xl md:text-2xl lg:text-3xl font-mazzard font-black bg-gradient-brand bg-clip-text text-transparent leading-[1.2]">
+              <span className="block mt-0.5 text-lg md:text-2xl font-mazzard font-black bg-gradient-brand bg-clip-text text-transparent leading-[1.2]">
                 Pronta Quando Você Quiser
               </span>
             </h1>
             
-            <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed animate-in" style={{ animationDelay: "300ms" }}>
-              Marmitas congeladas artesanais, prontas em 7 minutos, com 6 meses de validade no freezer.
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Marmitas congeladas artesanais, prontas em 7 minutos, com 6 meses de validade.
             </p>
 
             {/* CTA buttons */}
-            <div className="flex flex-row items-center justify-center gap-2.5 animate-in" style={{ animationDelay: "450ms" }}>
+            <div className="flex flex-row items-center justify-center gap-2.5 pt-1">
               <a
                 href="#cardapio"
                 onClick={(e) => {
                   e.preventDefault();
                   document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="group inline-flex items-center gap-2 bg-gradient-brand text-white px-5 py-2.5 rounded-full font-bold text-xs shadow-soft hover:shadow-lift transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 bg-gradient-brand text-white px-5 py-2 rounded-full font-bold text-xs shadow-soft hover:shadow-lift transition-all duration-300 hover:scale-[1.03]"
               >
-                <ShoppingBag size={14} />
-                Ver Cardápio
-                <span className="inline-block transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+                <ShoppingBag size={13} />
+                Ver Cardápio →
               </a>
               <button
                 onClick={() => setComboModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-white border border-primary/20 text-primary px-5 py-2.5 rounded-full font-bold text-xs hover:border-primary/40 hover:bg-primary/5 transition-all duration-300"
+                className="inline-flex items-center gap-2 bg-white border border-primary/20 text-primary px-5 py-2 rounded-full font-bold text-xs hover:border-primary/40 hover:bg-primary/5 transition-all duration-300"
               >
-                <Gift size={14} />
+                <Gift size={13} />
                 Montar Combo
               </button>
             </div>
           </div>
 
-          {/* INFO CARDS — compactos inline */}
-          <div className="grid gap-2.5 grid-cols-3 mb-6">
+          {/* INFO CARDS — faixa compacta */}
+          <div className="grid gap-2 grid-cols-3 mb-4">
             {[
               { icon: MapPin, title: "Entrega Regional", desc: "SBS e região" },
               { icon: Truck, title: "Delivery ou Retirada", desc: "Na porta ou na loja" },
@@ -271,13 +262,9 @@ function Index() {
             ].map((card, i) => {
               const Icon = card.icon;
               return (
-                <div
-                  key={i}
-                  className="animate-in glass-card rounded-xl p-3 text-center hover-lift cursor-default"
-                  style={{ animationDelay: `${550 + i * 80}ms` }}
-                >
-                  <div className="inline-flex p-2 rounded-lg bg-primary/8 mb-1.5">
-                    <Icon className="size-3.5 text-primary" />
+                <div key={i} className="glass-card rounded-lg p-2.5 text-center">
+                  <div className="inline-flex p-1.5 rounded-md bg-primary/8 mb-1">
+                    <Icon className="size-3 text-primary" />
                   </div>
                   <h3 className="font-bold text-foreground text-[10px] leading-tight">{card.title}</h3>
                   <p className="text-[9px] text-muted-foreground mt-0.5">{card.desc}</p>
@@ -296,16 +283,13 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           COMO FUNCIONA — Steps Premium
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative py-8 md:py-10">
-        <div className="mx-auto max-w-4xl px-4">
-          <div className="text-center mb-6">
-            <h2 className="text-lg md:text-xl font-display font-black text-foreground">
-              Como Funciona
-            </h2>
-            <div className="mt-2 mx-auto w-10 h-0.5 rounded-full bg-gradient-brand" />
-          </div>
+      <section className="py-4 md:py-6">
+        <div className="mx-auto max-w-3xl px-4">
+          <h2 className="text-center text-sm md:text-base font-display font-black text-foreground mb-4">
+            Como Funciona
+          </h2>
 
-          <div className="flex items-start justify-center gap-4 md:gap-8">
+          <div className="flex items-start justify-center gap-6 md:gap-10">
             {[
               { step: "1", title: "Escolha", desc: "Monte seu pedido", icon: ShoppingBag },
               { step: "2", title: "Receba", desc: "Na porta ou retire", icon: Truck },
@@ -313,17 +297,17 @@ function Index() {
             ].map((item, i) => {
               const Icon = item.icon;
               return (
-                <div key={i} className="flex flex-col items-center text-center flex-1 max-w-[120px]">
-                  <div className="relative mb-2">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-brand flex items-center justify-center">
-                      <Icon className="size-4 text-white" />
+                <div key={i} className="flex flex-col items-center text-center">
+                  <div className="relative mb-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center">
+                      <Icon className="size-3.5 text-white" />
                     </div>
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sun text-sun-foreground text-[8px] font-black flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-sun text-sun-foreground text-[7px] font-black flex items-center justify-center">
                       {item.step}
                     </span>
                   </div>
-                  <h3 className="text-xs font-bold text-foreground">{item.title}</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                  <h3 className="text-[11px] font-bold text-foreground">{item.title}</h3>
+                  <p className="text-[9px] text-muted-foreground">{item.desc}</p>
                 </div>
               );
             })}
@@ -332,8 +316,8 @@ function Index() {
       </section>
 
       {/* Main Content: Filters + Products */}
-      <section id="cardapio" className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <section id="cardapio" className="mx-auto max-w-7xl px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:sticky lg:top-24 space-y-4 shrink-0">
             <div className="space-y-3">
@@ -374,7 +358,7 @@ function Index() {
           {/* Products Grid */}
           <div className="flex-1 w-full">
             {/* Header com título e busca */}
-            <div className="mb-10">
+            <div className="mb-5">
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
                 <div className="flex-1">
                   <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
@@ -583,7 +567,7 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           FINAL CTA — Premium with Social Proof
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="mx-auto max-w-4xl px-4 py-10 md:py-12">
+      <section className="mx-auto max-w-4xl px-4 py-6 md:py-8">
         <div className="relative rounded-2xl overflow-hidden">
           <div className="absolute inset-0 bg-gradient-brand opacity-[0.97]" />
           <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-3xl" />

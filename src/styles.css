@@ -412,8 +412,7 @@
 
 /* Utility classes para animações */
 @utility animate-in {
-  animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  opacity: 0;
+  animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @utility fade-in {
@@ -464,8 +463,7 @@
 }
 
 @utility animate-reveal {
-  animation: reveal-text 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  opacity: 0;
+  animation: reveal-text 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @utility animate-draw-line {
