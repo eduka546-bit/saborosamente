@@ -30,12 +30,14 @@ ALTER TABLE public.listas_contatos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contatos_lista ENABLE ROW LEVEL SECURITY;
 
 -- Apenas admin pode gerenciar listas
-CREATE POLICY IF NOT EXISTS "admin_can_crud_listas" ON public.listas_contatos
+DROP POLICY IF EXISTS "admin_can_crud_listas" ON public.listas_contatos;
+CREATE POLICY "admin_can_crud_listas" ON public.listas_contatos
   USING (auth.uid() IN (
     SELECT user_id FROM public.user_roles WHERE role = 'admin'
   ));
 
-CREATE POLICY IF NOT EXISTS "admin_can_crud_contatos" ON public.contatos_lista
+DROP POLICY IF EXISTS "admin_can_crud_contatos" ON public.contatos_lista;
+CREATE POLICY "admin_can_crud_contatos" ON public.contatos_lista
   USING (TRUE); -- Via function
 
 -- Tabela para armazenar campanhas de WhatsApp
@@ -77,12 +79,14 @@ ALTER TABLE public.campanhas_whatsapp ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campanhas_whatsapp_envios ENABLE ROW LEVEL SECURITY;
 
 -- Apenas admin pode criar/ler campanhas
-CREATE POLICY IF NOT EXISTS "admin_can_crud_campanhas" ON public.campanhas_whatsapp
+DROP POLICY IF EXISTS "admin_can_crud_campanhas" ON public.campanhas_whatsapp;
+CREATE POLICY "admin_can_crud_campanhas" ON public.campanhas_whatsapp
   USING (auth.uid() IN (
     SELECT user_id FROM public.user_roles WHERE role = 'admin'
   ));
 
-CREATE POLICY IF NOT EXISTS "admin_can_crud_envios" ON public.campanhas_whatsapp_envios
+DROP POLICY IF EXISTS "admin_can_crud_envios" ON public.campanhas_whatsapp_envios;
+CREATE POLICY "admin_can_crud_envios" ON public.campanhas_whatsapp_envios
   USING (TRUE); -- Service role only via Supabase functions
 
 -- Storage bucket para imagens e vídeos de campanhas
