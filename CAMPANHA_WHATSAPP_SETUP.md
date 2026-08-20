@@ -2,45 +2,47 @@
 
 ## Status: PRONTO PARA USO ✅
 
-Seu sistema de envio em massa de mensagens WhatsApp com arte está 100% implementado e funcional!
+Seu sistema de envio em massa de mensagens WhatsApp com **IMAGENS, VÍDEOS E TEXTO** está 100% implementado e funcional!
 
 ---
 
 ## 📋 O que foi implementado
 
 ### 1. **Página de Campanhas** (`/admin/campanhas`)
-   - **Upload de Imagem**: Drag & drop com validação (máx 5MB, formatos: PNG, JPG, WebP)
+   - **Upload de Mídia**: Escolha entre Imagem, Vídeo ou Só Texto
+     - 📷 **Imagem**: PNG, JPG, WebP até 5MB
+     - 🎥 **Vídeo**: MP4 até 16MB (WhatsApp Business)
+     - 📝 **Só Texto**: Apenas a mensagem
    - **Editor de Mensagem**: TextArea com contador de caracteres
-   - **Pré-visualização**: Celular em tempo real mostrando como a mensagem vai aparecer
+   - **Pré-visualização**: Celular em tempo real (com vídeo/imagem)
    - **Filtros de Clientes**:
      - ✅ Todos (com telefone)
      - ✅ Por Bairro (dropdown)
      - ✅ Por Gasto (range R$ min-max)
      - ✅ Ativos 30 dias (compra recente)
-   - **Lista Completa Expansível**: 
+   - **Lista Completa Editável**: 
      - Edição individual de telefones
      - Adicionar/remover contatos
-     - Import/Export via textarea (copiar/colar)
-     - Botão copy para clipboard
+     - Import/Export via textarea
 
 ### 2. **Menu Admin**
-   - Link "Campanhas" adicionado em `Campanhas > WhatsApp em Massa`
+   - Link "Campanhas → WhatsApp em Massa"
    - Acesso em: `/admin/campanhas`
 
 ### 3. **Supabase Function** (`whatsapp-campanha-enviar`)
    - Envio **sequencial** com delay de 50ms entre mensagens
-   - Suporta **imagem + texto** (image link primeiro, depois mensagem)
+   - Suporta **vídeo + texto**, **imagem + texto**, ou **só texto**
+   - Vídeo/imagem é enviado PRIMEIRO, depois o texto
    - Detecta erros: rate limit, telefone inválido, número bloqueado
-   - Rastreamento completo em `campanhas_whatsapp_envios`
+   - Rastreamento completo
 
 ### 4. **Histórico de Campanhas**
-   - Aba "Histórico" com status em tempo real
-   - Badges: ✅ Enviada | ⏳ Enviando | ❌ Erro
-   - Estatísticas: total contatos, enviados, falhados
+   - Status em tempo real: Enviando / Enviada / Erro
+   - Estatísticas: enviados, falhados, total
 
 ---
 
-## 🔧 SETUP NECESSÁRIO (Execute uma única vez)
+## 🔧 SETUP NECESSÁRIO
 
 ### Passo 1: Criar Tabelas no Supabase
 
@@ -48,176 +50,94 @@ Seu sistema de envio em massa de mensagens WhatsApp com arte está 100% implemen
 2. Copie todo o conteúdo de `criar_tabela_campanhas.sql`
 3. Execute (Ctrl+Enter)
 
-**Tabelas criadas:**
-- `campanhas_whatsapp`: Dados da campanha
-- `campanhas_whatsapp_envios`: Rastreamento individual
-- Storage bucket `campanhas`: Para armazenar imagens
+**O que é criado:**
+- `campanhas_whatsapp`: armazena campanha com `video_url` e `midia_tipo`
+- `campanhas_whatsapp_envios`: rastreamento individual
+- Storage bucket `campanhas`: para imagens E vídeos (16MB)
 
-### Passo 2: Configurar Variáveis de Ambiente
+### Passo 2: Configurar Variáveis
 
-No Supabase Console → Settings → Edge Functions → Secrets adicione:
+Supabase → Settings → Edge Functions → Secrets:
 
 ```
-WHATSAPP_TOKEN=seu_token_aqui
-WHATSAPP_PHONE_NUMBER_ID=seu_phone_number_id_aqui
+WHATSAPP_TOKEN=seu_token
+WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 ```
 
-**Como conseguir:**
-1. Meta Business Suite → WhatsApp → Settings → API Token
-2. WhatsApp Business Account → Phone Numbers → ID
-
-### Passo 3: Testar Acesso
+### Passo 3: Testar
 
 1. Acesse `/admin/campanhas`
-2. Selecione alguns clientes
-3. Digite uma mensagem
-4. Clique "Enviar"
-5. Acompanhe status na aba "Histórico"
+2. Selecione clientes
+3. Escolha mídia (Imagem/Vídeo/Só Texto)
+4. Digite mensagem
+5. Clique "Enviar"
 
 ---
 
-## 📱 Como Usar (Fluxo do Usuário)
+## 📱 Como Usar
 
-### Criar Campanha:
-1. **Aba "Criar Campanha"**
-2. _(Opcional)_ Digite nome da campanha
-3. **Upload**: Clique/arraste imagem da promoção
-4. **Mensagem**: Digite o texto que vai junto
-5. **Filtros**: Escolha qual lista de clientes
-   - Ou use a lista completa para revisar/editar
-6. **Enviar**: Clique "Enviar para X cliente(s)"
-7. **Histórico**: Acompanhe na aba "Histórico"
+### Com Vídeo:
+1. Tipo de Mídia: "🎥 Vídeo"
+2. Upload: MP4 (máx 16MB)
+3. Mensagem: texto que vai junto
+4. Enviar
 
-### Usar Lista Manual:
-- Clique **"Ver/Editar Lista Completa"**
-- Cole telefones (um por linha)
-- Edite/adicione/remova conforme precisar
-- Clique "Enviar"
+### Com Imagem:
+1. Tipo de Mídia: "📷 Imagem"
+2. Upload: PNG/JPG/WebP (máx 5MB)
+3. Mensagem: texto
+4. Enviar
 
----
-
-## 🎯 Features Principais
-
-### Filtro "Por Gasto"
-Filtra clientes que gastaram entre R$ mín e R$ máx (calculado a partir de pedidos entregues)
-
-### Filtro "Ativos 30d"
-Clientes que compraram nos últimos 30 dias
-
-### Pré-visualização em Tempo Real
-Veja exatamente como a mensagem + imagem vai aparecer no celular do cliente
-
-### Envio Inteligente
-- 🖼️ Imagem é enviada primeiro (link)
-- 💬 Depois vem o texto
-- ⏱️ 50ms entre mensagens (anti-rate limit)
-- ✅ Rastreamento completo
-
-### Histórico Completo
-- Status: Enviando / Enviada / Erro
-- Estatísticas por campanha
-- Detalhes de cada envio em `campanhas_whatsapp_envios`
+### Só Texto:
+1. Tipo de Mídia: "📝 Só Texto"
+2. Digite mensagem
+3. Enviar
 
 ---
 
-## 📊 Dados Salvos
+## 🎯 Características
 
-### Tabela: `campanhas_whatsapp`
-```
-- id (UUID)
-- nome (TEXT)
-- mensagem (TEXT)
-- imagem_url (TEXT)
-- status (enviando/enviada/erro/cancelada)
-- contatos_total
-- contatos_enviados
-- contatos_falhados
-- created_at / updated_at
-- created_by (seu admin ID)
-```
-
-### Tabela: `campanhas_whatsapp_envios`
-```
-- id (UUID)
-- campanha_id
-- telefone
-- status (pendente/enviado/falhou/bloqueado)
-- erro_mensagem
-- enviado_em
-- created_at
-```
+✅ Suporte a vídeos MP4 (até 16MB)
+✅ Suporte a imagens (até 5MB)
+✅ Pré-visualização em tempo real
+✅ Filtros por bairro, gasto, atividade
+✅ Lista editável (copiar/colar)
+✅ Envio inteligente (mídia primeiro, depois texto)
+✅ Rate limit proteção (50ms entre mensagens)
+✅ Histórico completo com estatísticas
 
 ---
 
-## 🔐 Segurança
+## 📊 Banco de Dados
 
-- RLS policies: Apenas admins podem criar/ler campanhas
-- Storage bucket: Público (mas só imagens de campanha)
-- Telefones: Salvos apenas para rastreamento
-- Tokens WhatsApp: Protegidos em Supabase Secrets
+### campanhas_whatsapp
+- `id, nome, mensagem`
+- `imagem_url` (NULL se vídeo/texto)
+- `video_url` (NULL se imagem/texto)
+- `midia_tipo` ('imagem'/'video'/'nenhuma')
+- `status, contatos_total, contatos_enviados, contatos_falhados`
+
+### campanhas_whatsapp_envios
+- `campanha_id, telefone, status`
+- `erro_mensagem, enviado_em`
 
 ---
 
 ## 🚨 Troubleshooting
 
-### "Erro ao enviar campanha"
-1. Verifique se as tabelas foram criadas em Supabase
-2. Verifique se `WHATSAPP_TOKEN` está configurado
-3. Verifique se o telefone está no formato correto (com DDD)
+**Vídeo não envia?**
+- Formato: MP4 recomendado
+- Tamanho: máx 16MB
+- Verifique se bucket permite vídeos
 
-### "Contatos não carregam"
-1. Confirme que existem clientes com `telefone` em `profiles`
-2. Verifique se tem `bairro` preenchido para filtro "Por Bairro"
+**Imagem não envia?**
+- Tamanho: máx 5MB
+- Formatos: PNG, JPG, WebP
 
-### "Imagem não envia"
-1. Verifique tamanho (máx 5MB)
-2. Formatos suportados: PNG, JPG, WebP
-3. Bucket `campanhas` deve estar público
-
-### "Rate limit ao enviar muitos"
-- Sistema já tem proteção (50ms entre mensagens)
-- Se continuar, aumentar delay em `whatsapp-campanha-enviar/index.ts`
+**Contatos não carregam?**
+- Verifique `telefone` em `profiles`
+- Verifique `bairro` para filtro
 
 ---
 
-## 📁 Arquivos Envolvidos
-
-```
-src/
-├── routes/
-│   └── admin.campanhas.tsx          ← Página principal
-├── components/
-│   └── admin-header.tsx             ← Menu com link
-supabase/
-└── functions/
-    └── whatsapp-campanha-enviar/
-        └── index.ts                 ← Função de envio
-
-criar_tabela_campanhas.sql           ← Setup DB
-```
-
----
-
-## ✨ Próximas Melhorias (Opcionais)
-
-- [ ] Agendar campanha para hora específica
-- [ ] Templates de mensagem predefinidas
-- [ ] A/B testing de mensagens
-- [ ] Análise de taxa de abertura
-- [ ] Integração com WhatsApp Business API (templates aprovados)
-
----
-
-## 📞 Suporte
-
-Se algo não funcionar:
-1. Verifique se executou o SQL em `criar_tabela_campanhas.sql`
-2. Confirme variáveis de ambiente no Supabase
-3. Teste com um cliente único primeiro
-4. Veja logs em Supabase → Functions → `whatsapp-campanha-enviar`
-
----
-
-**Pronto para usar! 🎉**
-
-Acesse `/admin/campanhas` e comece a enviar suas campanhas!
+**Tudo pronto! Acesse `/admin/campanhas` e comece a enviar! 🎉**

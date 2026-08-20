@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS public.campanhas_whatsapp (
   nome TEXT NOT NULL,
   mensagem TEXT NOT NULL,
   imagem_url TEXT,
+  video_url TEXT,
+  midia_tipo TEXT CHECK (midia_tipo IN ('imagem', 'video', 'nenhuma')) DEFAULT 'nenhuma',
   status TEXT DEFAULT 'enviando' CHECK (status IN ('enviando', 'enviada', 'erro', 'cancelada')),
   contatos_total INTEGER DEFAULT 0,
   contatos_enviados INTEGER DEFAULT 0,
@@ -43,13 +45,13 @@ CREATE POLICY "admin_can_crud_campanhas" ON public.campanhas_whatsapp
 CREATE POLICY "admin_can_crud_envios" ON public.campanhas_whatsapp_envios
   USING (TRUE); -- Service role only via Supabase functions
 
--- Storage bucket para imagens de campanhas
+-- Storage bucket para imagens e vídeos de campanhas
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'campanhas',
   'campanhas',
   true,
-  5242880, -- 5MB
-  ARRAY['image/jpeg', 'image/png', 'image/webp']
+  16777216, -- 16MB (suporta vídeos MP4)
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'video/mp4']
 )
 ON CONFLICT DO NOTHING;

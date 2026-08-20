@@ -22,6 +22,9 @@ function AdminCampaignPage() {
   const [mensagem, setMensagem] = useState("");
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">("nenhuma");
   const [enviando, setEnviando] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "bairro" | "gasto" | "ativo">("todos");
   const [filtroBairro, setFiltroBairro] = useState<string>("");
@@ -31,6 +34,7 @@ function AdminCampaignPage() {
   const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Query para buscar clientes com dados completos
@@ -127,10 +131,39 @@ function AdminCampaignPage() {
     }
 
     setImagemFile(file);
+    setMidiaTipo("imagem");
+    setVideoFile(null);
+    setVideoPreview(null);
 
     const reader = new FileReader();
     reader.onload = (event) => {
       setImagemPreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      toast.error("Por favor, selecione um vídeo válido");
+      return;
+    }
+
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error("Vídeo muito grande (máximo 16MB)");
+      return;
+    }
+
+    setVideoFile(file);
+    setMidiaTipo("video");
+    setImagemFile(null);
+    setImagemPreview(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setVideoPreview(event.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -140,10 +173,14 @@ function AdminCampaignPage() {
       contatosSelecionados,
       mensagem: msg,
       imagem,
+      video,
+      tipo_midia,
     }: {
       contatosSelecionados: string[];
       mensagem: string;
       imagem: File | null;
+      video: File | null;
+      tipo_midia: "imagem" | "video" | "nenhuma";
     }) => {
       if (contatosSelecionados.length === 0) {
         throw new Error("Selecione pelo menos um contato");
@@ -154,8 +191,11 @@ function AdminCampaignPage() {
       }
 
       let imagemUrl = null;
+      let videoUrl = null;
+
+      // Upload de imagem
       if (imagem) {
-        const nomearquivo = `campanha-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const nomearquivo = `campanha-img-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
         const { error: uploadError, data } = await supabase.storage
           .from("campanhas")
           .upload(nomearquivo, imagem);
@@ -168,6 +208,21 @@ function AdminCampaignPage() {
         imagemUrl = publicUrl;
       }
 
+      // Upload de vídeo
+      if (video) {
+        const nomearquivo = `campanha-vid-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+        const { error: uploadError, data } = await supabase.storage
+          .from("campanhas")
+          .upload(nomearquivo, video);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("campanhas").getPublicUrl(nomearquivo);
+        videoUrl = publicUrl;
+      }
+
       const { data: campanha, error: saveError } = await supabase
         .from("campanhas_whatsapp")
         .insert([
@@ -175,6 +230,8 @@ function AdminCampaignPage() {
             nome: nomesCampanha || `Campanha ${new Date().toLocaleDateString("pt-BR")}`,
             mensagem: msg,
             imagem_url: imagemUrl,
+            video_url: videoUrl,
+            midia_tipo: tipo_midia,
             status: "enviando",
             contatos_total: contatosSelecionados.length,
             contatos_enviados: 0,
@@ -194,6 +251,8 @@ function AdminCampaignPage() {
             contatos: contatosSelecionados,
             mensagem: msg,
             imagem_url: imagemUrl,
+            video_url: videoUrl,
+            midia_tipo: tipo_midia,
           },
         }
       );
@@ -210,6 +269,9 @@ function AdminCampaignPage() {
       setNomesCampanha("");
       setImagemFile(null);
       setImagemPreview(null);
+      setVideoFile(null);
+      setVideoPreview(null);
+      setMidiaTipo("nenhuma");
       queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
       setTabAtivo("historico");
     },
@@ -225,6 +287,8 @@ function AdminCampaignPage() {
         contatosSelecionados: telefones,
         mensagem,
         imagem: imagemFile,
+        video: videoFile,
+        tipo_midia: midiaTipo,
       });
     } finally {
       setEnviando(false);
@@ -294,54 +358,157 @@ function AdminCampaignPage() {
               />
             </div>
 
-            {/* Upload de Imagem */}
+            {/* Upload de Imagem ou Vídeo */}
             <div className="bg-white rounded-xl border p-6">
               <label className="block text-sm font-bold text-gray-700 mb-4">
-                Upload de Imagem
+                Upload de Mídia
               </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#5850ec] hover:bg-[#5850ec]/5 transition-all"
-              >
-                {imagemPreview ? (
-                  <div className="space-y-3">
-                    <ImageIcon className="mx-auto text-green-500" size={40} />
-                    <p className="text-sm font-bold text-gray-700">
-                      Imagem selecionada!
-                    </p>
-                    <p className="text-xs text-gray-500">{imagemFile?.name}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImagemPreview(null);
-                        setImagemFile(null);
-                      }}
-                      className="text-xs text-red-600 hover:underline"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Upload className="mx-auto text-gray-400" size={40} />
-                    <div>
-                      <p className="text-sm font-bold text-gray-700">
-                        Clique para upload ou arraste
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG até 5MB
-                      </p>
-                    </div>
-                  </div>
-                )}
+
+              {/* Tabs para Imagem/Vídeo */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => {
+                    setMidiaTipo("imagem");
+                    setVideoFile(null);
+                    setVideoPreview(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+                    midiaTipo === "imagem"
+                      ? "bg-[#5850ec] text-white border-[#5850ec]"
+                      : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                  }`}
+                >
+                  📷 Imagem
+                </button>
+                <button
+                  onClick={() => {
+                    setMidiaTipo("video");
+                    setImagemFile(null);
+                    setImagemPreview(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+                    midiaTipo === "video"
+                      ? "bg-[#5850ec] text-white border-[#5850ec]"
+                      : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                  }`}
+                >
+                  🎥 Vídeo
+                </button>
+                <button
+                  onClick={() => {
+                    setMidiaTipo("nenhuma");
+                    setImagemFile(null);
+                    setImagemPreview(null);
+                    setVideoFile(null);
+                    setVideoPreview(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+                    midiaTipo === "nenhuma"
+                      ? "bg-[#5850ec] text-white border-[#5850ec]"
+                      : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                  }`}
+                >
+                  📝 Só Texto
+                </button>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
+
+              {/* Upload Imagem */}
+              {midiaTipo === "imagem" && (
+                <div>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#5850ec] hover:bg-[#5850ec]/5 transition-all"
+                  >
+                    {imagemPreview ? (
+                      <div className="space-y-3">
+                        <ImageIcon className="mx-auto text-green-500" size={40} />
+                        <p className="text-sm font-bold text-gray-700">
+                          Imagem selecionada!
+                        </p>
+                        <p className="text-xs text-gray-500">{imagemFile?.name}</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImagemPreview(null);
+                            setImagemFile(null);
+                          }}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Upload className="mx-auto text-gray-400" size={40} />
+                        <div>
+                          <p className="text-sm font-bold text-gray-700">
+                            Clique para upload ou arraste
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            PNG, JPG até 5MB
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              {/* Upload Vídeo */}
+              {midiaTipo === "video" && (
+                <div>
+                  <div
+                    onClick={() => videoInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#5850ec] hover:bg-[#5850ec]/5 transition-all"
+                  >
+                    {videoPreview ? (
+                      <div className="space-y-3">
+                        <ImageIcon className="mx-auto text-green-500" size={40} />
+                        <p className="text-sm font-bold text-gray-700">
+                          Vídeo selecionado!
+                        </p>
+                        <p className="text-xs text-gray-500">{videoFile?.name}</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVideoPreview(null);
+                            setVideoFile(null);
+                          }}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Upload className="mx-auto text-gray-400" size={40} />
+                        <div>
+                          <p className="text-sm font-bold text-gray-700">
+                            Clique para upload ou arraste
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            MP4 até 16MB
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/mp4,video/*"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Mensagem */}
@@ -650,6 +817,17 @@ function AdminCampaignPage() {
                         src={imagemPreview}
                         alt="Preview"
                         className="w-full h-auto max-h-24 object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Vídeo */}
+                  {videoPreview && (
+                    <div className="rounded-xl overflow-hidden mb-2 max-w-[80%]">
+                      <video
+                        src={videoPreview}
+                        className="w-full h-auto max-h-24 object-cover bg-black"
+                        controls
                       />
                     </div>
                   )}

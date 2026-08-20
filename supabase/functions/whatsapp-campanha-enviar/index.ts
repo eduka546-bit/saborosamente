@@ -8,12 +8,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 /**
- * Envia mensagem de campanha com imagem via WhatsApp
- * Suporta envio de texto simples ou com imagem
+ * Envia mensagem de campanha com imagem/vídeo via WhatsApp
+ * Suporta envio de texto simples, com imagem ou com vídeo
  */
 async function enviarMensagemCampanha(
   to: string,
   imagemUrl: string | null,
+  videoUrl: string | null,
   mensagem: string
 ): Promise<{ sucesso: boolean; erro?: string }> {
   try {
@@ -21,9 +22,32 @@ async function enviarMensagemCampanha(
     
     let body: any;
 
-    if (imagemUrl) {
-      // Envia como texto + imagem (método simples)
-      // Primeiro envia a imagem
+    // Envia vídeo primeiro se existir
+    if (videoUrl) {
+      const resVid = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "video",
+          video: {
+            link: videoUrl,
+          },
+        }),
+      });
+
+      if (!resVid.ok) {
+        const err = await resVid.json().catch(() => ({}));
+        console.error(`Erro ao enviar vídeo para ${to}:`, err);
+        return { sucesso: false, erro: "Erro ao enviar vídeo" };
+      }
+    }
+    // Envia imagem se não houver vídeo
+    else if (imagemUrl) {
       const resImg = await fetch(url, {
         method: "POST",
         headers: {
@@ -45,23 +69,15 @@ async function enviarMensagemCampanha(
         console.error(`Erro ao enviar imagem para ${to}:`, err);
         return { sucesso: false, erro: "Erro ao enviar imagem" };
       }
-
-      // Depois envia a mensagem de texto
-      body = {
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body: mensagem },
-      };
-    } else {
-      // Apenas texto
-      body = {
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body: mensagem },
-      };
     }
+
+    // Depois envia a mensagem de texto
+    body = {
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body: mensagem },
+    };
 
     const res = await fetch(url, {
       method: "POST",
@@ -105,13 +121,13 @@ export default async (req: Request) => {
   }
 
   try {
-    const { campanha_id, contatos, mensagem, imagem_url } = await req.json();
+    const { campanha_id, contatos, mensagem, imagem_url, video_url, midia_tipo } = await req.json();
 
     if (!campanha_id || !contatos || !mensagem) {
       return new Response("Missing required fields", { status: 400 });
     }
 
-    console.log(`Iniciando envio de campanha ${campanha_id} para ${contatos.length} contatos`);
+    console.log(`Iniciando envio de campanha ${campanha_id} para ${contatos.length} contatos (tipo: ${midia_tipo})`);
 
     // Atualizar status inicial
     await supabase
@@ -147,6 +163,7 @@ export default async (req: Request) => {
         const resultado = await enviarMensagemCampanha(
           telefone,
           imagem_url,
+          video_url,
           mensagem
         );
 
