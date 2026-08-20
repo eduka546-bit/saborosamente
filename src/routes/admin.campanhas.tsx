@@ -457,16 +457,6 @@ function AdminCampaignPage() {
     }
   };
 
-  const toggleClienteSelecionado = (telefone: string) => {
-    const novo = new Set(clientesSelecionadosManual);
-    if (novo.has(telefone)) {
-      novo.delete(telefone);
-    } else {
-      novo.add(telefone);
-    }
-    setClientesSelecionadosManual(novo);
-  };
-
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
       <div className="mb-8">
@@ -763,7 +753,6 @@ function AdminCampaignPage() {
                       onClick={() => {
                         setListaCarregada(null);
                         setContatosEditaveis([]);
-                        setClientesSelecionadosManual(new Set());
                       }}
                       className="mt-2 text-xs text-gray-500 hover:text-red-600"
                     >
@@ -946,12 +935,6 @@ function AdminCampaignPage() {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-gray-500 text-center">
-                {clientesSelecionadosManual.size === 0
-                  ? `Filtro: ${filtroTipo}`
-                  : "Seleção manual"}
-                {mostrarListaCompleta && " • Lista expandida"}
-              </p>
             </div>
           </div>
 
