@@ -118,16 +118,16 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-4xl mx-auto">
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
-          className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] bg-card animate-in fade-in"
+          className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[21/9] bg-card"
         >
           {content}
         </a>
       ) : (
-        <div className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[4/5] bg-card animate-in fade-in">
+        <div className="block rounded-2xl overflow-hidden shadow-soft border border-border/30 aspect-[21/9] bg-card">
           {content}
         </div>
       )}
