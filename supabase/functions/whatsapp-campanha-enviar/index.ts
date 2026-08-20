@@ -76,10 +76,10 @@ async function enviarMensagem(
     text: { body: mensagem },
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+  const resJson = await res.json().catch(() => ({})) as { error?: { message?: string }; messages?: { id: string }[] };
+  console.log(`Resposta WhatsApp para ${to}:`, JSON.stringify(resJson));
   if (res.ok) return { sucesso: true };
-
-  const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-  return { sucesso: false, erro: err.error?.message || "Erro ao enviar texto" };
+  return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar texto" };
 }
 
 Deno.serve(async (req: Request) => {
