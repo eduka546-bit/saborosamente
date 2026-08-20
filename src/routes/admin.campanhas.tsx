@@ -772,7 +772,7 @@ function AdminCampaignPage() {
                       <option value="">Selecione um template...</option>
                       {templates.map((t: any) => (
                         <option key={t.name} value={t.name}>
-                          {t.name} ({t.language}) — {t.category}
+                          {t.name} ({t.language}) — {t.status}
                         </option>
                       ))}
                     </select>

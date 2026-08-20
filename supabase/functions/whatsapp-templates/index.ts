@@ -14,7 +14,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const url = `https://graph.facebook.com/v20.0/${WHATSAPP_WABA_ID}/message_templates?status=APPROVED&limit=100&fields=name,status,language,components,category`;
+    const url = `https://graph.facebook.com/v20.0/${WHATSAPP_WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
       }[];
     };
 
-    // Filtrar só aprovados e formatar para o frontend
+    // Formatar para o frontend (todos os templates, mostrando status)
     const templates = (data.data || []).map((t) => {
       const body = t.components.find((c) => c.type === "BODY");
       const header = t.components.find((c) => c.type === "HEADER");
@@ -59,6 +59,7 @@ Deno.serve(async (req: Request) => {
 
       return {
         name: t.name,
+        status: t.status,
         language: t.language,
         category: t.category,
         header: header?.text || null,
