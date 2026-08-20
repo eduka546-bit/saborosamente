@@ -299,7 +299,7 @@ async function enviarComRetry(
 /**
  * Handler principal - com proteções contra restrição de conta
  */
-export default async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -498,4 +498,4 @@ export default async (req: Request) => {
       }
     );
   }
-};
+});
