@@ -1006,156 +1006,157 @@ function AdminCampaignPage() {
               </div>
             )}
 
-              {/* Lista Completa de Clientes - Expansível */}
-              <div className="border-t border-gray-200 pt-4">
-                <button
-                  onClick={() => setMostrarListaCompleta(!mostrarListaCompleta)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 font-bold text-sm text-gray-700 transition-all flex items-center justify-between"
-                >
-                  <span>📋 Ver/Editar Lista Completa ({contatosEditaveis.length})</span>
-                  <span className={`transform transition-transform ${mostrarListaCompleta ? "rotate-180" : ""}`}>
-                    ▼
-                  </span>
-                </button>
+            {/* Lista Completa de Clientes - Expansível */}
+            <div className="border-t border-gray-200 pt-4">
+            {/* Lista Completa de Clientes - Expansível */}
+            <div className="border-t border-gray-200 pt-4">
+              <button
+                onClick={() => setMostrarListaCompleta(!mostrarListaCompleta)}
+                className="w-full px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 font-bold text-sm text-gray-700 transition-all flex items-center justify-between"
+              >
+                <span>📋 Ver/Editar Lista Completa ({contatosEditaveis.length})</span>
+                <span className={`transform transition-transform ${mostrarListaCompleta ? "rotate-180" : ""}`}>
+                  ▼
+                </span>
+              </button>
 
-                {mostrarListaCompleta && (
-                  <div className="mt-4 space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    {contatosEditaveis.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Nenhum contato selecionado
-                      </p>
-                    ) : (
-                      <>
-                        {contatosEditaveis.map((tel, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200 hover:border-gray-300"
-                          >
-                            <span className="text-xs font-bold text-gray-500 w-6">
-                              {idx + 1}.
-                            </span>
-                            <input
-                              type="text"
-                              value={tel}
-                              onChange={(e) => {
-                                const novo = [...contatosEditaveis];
-                                novo[idx] = e.target.value;
-                                setContatosEditaveis(novo);
-                              }}
-                              className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
-                              placeholder="Telefone com DDD"
-                            />
-                            <button
-                              onClick={() => {
-                                setContatosEditaveis(
-                                  contatosEditaveis.filter((_, i) => i !== idx)
-                                );
-                              }}
-                              className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded transition-colors"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-
-                        {/* Botão para adicionar novo */}
-                        <button
-                          onClick={() =>
-                            setContatosEditaveis([...contatosEditaveis, ""])
-                          }
-                          className="w-full mt-3 px-3 py-2 text-xs font-bold text-[#5850ec] border border-dashed border-[#5850ec] rounded-lg hover:bg-[#5850ec]/5 transition-colors"
+              {mostrarListaCompleta && (
+                <div className="mt-4 space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  {contatosEditaveis.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      Nenhum contato selecionado
+                    </p>
+                  ) : (
+                    <>
+                      {contatosEditaveis.map((tel, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200 hover:border-gray-300"
                         >
-                          + Adicionar Contato
-                        </button>
-
-                        {/* Copiar/Colar/Importar CSV */}
-                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                          <p className="text-xs font-bold text-gray-600 mb-2">
-                            Importar/Exportar:
-                          </p>
-                          
-                          {/* Botão Importar CSV */}
-                          <button
-                            onClick={() => csvInputRef.current?.click()}
-                            className="w-full px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
-                          >
-                            📥 Importar CSV
-                          </button>
+                          <span className="text-xs font-bold text-gray-500 w-6">
+                            {idx + 1}.
+                          </span>
                           <input
-                            ref={csvInputRef}
-                            type="file"
-                            accept=".csv"
-                            onChange={handleImportarCSV}
-                            className="hidden"
-                          />
-
-                          {/* TextArea Copiar/Colar */}
-                          <textarea
-                            value={contatosEditaveis.join("\n")}
-                            onChange={(e) =>
-                              setContatosEditaveis(
-                                e.target.value
-                                  .split("\n")
-                                  .map((t) => t.trim())
-                                  .filter(Boolean)
-                              )
-                            }
-                            placeholder="Cole um telefone por linha..."
-                            className="w-full px-2 py-2 text-xs border border-gray-200 rounded font-mono focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
-                            rows={4}
+                            type="text"
+                            value={tel}
+                            onChange={(e) => {
+                              const novo = [...contatosEditaveis];
+                              novo[idx] = e.target.value;
+                              setContatosEditaveis(novo);
+                            }}
+                            className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                            placeholder="Telefone com DDD"
                           />
                           <button
                             onClick={() => {
-                              navigator.clipboard.writeText(
-                                contatosEditaveis.join("\n")
+                              setContatosEditaveis(
+                                contatosEditaveis.filter((_, i) => i !== idx)
                               );
-                              toast.success("Copiado para clipboard!");
                             }}
-                            className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded transition-colors"
                           >
-                            📋 Copiar Lista
+                            ✕
                           </button>
                         </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                      ))}
 
-              {/* Botão de Enviar */}
-              <div className="space-y-3 pt-4">
-                <Button
-                  onClick={() => 
-                    handleEnviar(
-                      contatosEditaveis.filter(t => t.trim())
-                    )
-                  }
-                  disabled={
-                    enviando ||
-                    contatosEditaveis.filter((t) => t.trim()).length === 0 ||
-                    !mensagem.trim()
-                  }
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2"
-                >
-                  {enviando ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={18} />
-                      Enviar para {contatosEditaveis.filter((t) => t.trim()).length} cliente(s)
+                      {/* Botão para adicionar novo */}
+                      <button
+                        onClick={() =>
+                          setContatosEditaveis([...contatosEditaveis, ""])
+                        }
+                        className="w-full mt-3 px-3 py-2 text-xs font-bold text-[#5850ec] border border-dashed border-[#5850ec] rounded-lg hover:bg-[#5850ec]/5 transition-colors"
+                      >
+                        + Adicionar Contato
+                      </button>
+
+                      {/* Copiar/Colar/Importar CSV */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                        <p className="text-xs font-bold text-gray-600 mb-2">
+                          Importar/Exportar:
+                        </p>
+                        
+                        {/* Botão Importar CSV */}
+                        <button
+                          onClick={() => csvInputRef.current?.click()}
+                          className="w-full px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                        >
+                          📥 Importar CSV
+                        </button>
+                        <input
+                          ref={csvInputRef}
+                          type="file"
+                          accept=".csv"
+                          onChange={handleImportarCSV}
+                          className="hidden"
+                        />
+
+                        {/* TextArea Copiar/Colar */}
+                        <textarea
+                          value={contatosEditaveis.join("\n")}
+                          onChange={(e) =>
+                            setContatosEditaveis(
+                              e.target.value
+                                .split("\n")
+                                .map((t) => t.trim())
+                                .filter(Boolean)
+                            )
+                          }
+                          placeholder="Cole um telefone por linha..."
+                          className="w-full px-2 py-2 text-xs border border-gray-200 rounded font-mono focus:outline-none focus:ring-1 focus:ring-[#5850ec]"
+                          rows={4}
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              contatosEditaveis.join("\n")
+                            );
+                            toast.success("Copiado para clipboard!");
+                          }}
+                          className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                        >
+                          📋 Copiar Lista
+                        </button>
+                      </div>
                     </>
                   )}
-                </Button>
-                <p className="text-xs text-gray-500 text-center">
-                  {clientesSelecionadosManual.size === 0
-                    ? `Filtro: ${filtroTipo}`
-                    : "Seleção manual"}
-                  {mostrarListaCompleta && " • Lista expandida"}
-                </p>
-              </div>
+                </div>
+              )}
+            </div>
+
+            {/* Botão de Enviar */}
+            <div className="space-y-3 pt-4">
+              <Button
+                onClick={() => 
+                  handleEnviar(
+                    contatosEditaveis.filter(t => t.trim())
+                  )
+                }
+                disabled={
+                  enviando ||
+                  contatosEditaveis.filter((t) => t.trim()).length === 0 ||
+                  !mensagem.trim()
+                }
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2"
+              >
+                {enviando ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Enviar para {contatosEditaveis.filter((t) => t.trim()).length} cliente(s)
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-500 text-center">
+                {clientesSelecionadosManual.size === 0
+                  ? `Filtro: ${filtroTipo}`
+                  : "Seleção manual"}
+                {mostrarListaCompleta && " • Lista expandida"}
+              </p>
             </div>
           </div>
 
