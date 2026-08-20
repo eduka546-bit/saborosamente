@@ -103,10 +103,7 @@ export function AdminHeader() {
               items={[
                 { label: "Cardápio", href: "/admin/produtos" },
                 { label: "Combos Monte Você Mesmo", href: "/admin/combos" },
-                { label: "Categorias", href: "/admin/categorias" },
-                { label: "Itens de complementos", href: "/admin/complementos" },
-                { label: "Acompanhamentos", href: "/admin/acompanhamentos" },
-                { label: "Embalagens", href: "/admin/embalagens" }
+                { label: "Categorias", href: "/admin/categorias" }
               ]} 
             />
             <NavItem 
