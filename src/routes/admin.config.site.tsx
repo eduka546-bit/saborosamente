@@ -282,15 +282,15 @@ function AdminSiteConfig() {
       </div>
 
       <Tabs defaultValue="header" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 lg:w-full gap-1">
-          <TabsTrigger value="header">Topo / Anúncio</TabsTrigger>
-          <TabsTrigger value="hero">Capa e Banners</TabsTrigger>
-          <TabsTrigger value="info">Info Banners (Home)</TabsTrigger>
-          <TabsTrigger value="promos">Carrossel (3 Banners)</TabsTrigger>
-          <TabsTrigger value="payments">Pagamentos</TabsTrigger>
-          <TabsTrigger value="ratings">⭐ Avaliações</TabsTrigger>
-          <TabsTrigger value="popup">🎯 Popup</TabsTrigger>
-          <TabsTrigger value="footer">Footer</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50 rounded-lg">
+          <TabsTrigger value="header" className="text-xs whitespace-nowrap">Topo / Anúncio</TabsTrigger>
+          <TabsTrigger value="hero" className="text-xs whitespace-nowrap">Capa e Banners</TabsTrigger>
+          <TabsTrigger value="info" className="text-xs whitespace-nowrap">Info Banners</TabsTrigger>
+          <TabsTrigger value="promos" className="text-xs whitespace-nowrap">Carrossel</TabsTrigger>
+          <TabsTrigger value="payments" className="text-xs whitespace-nowrap">Pagamentos</TabsTrigger>
+          <TabsTrigger value="ratings" className="text-xs whitespace-nowrap">Avaliações</TabsTrigger>
+          <TabsTrigger value="popup" className="text-xs whitespace-nowrap">Popup</TabsTrigger>
+          <TabsTrigger value="footer" className="text-xs whitespace-nowrap">Footer</TabsTrigger>
         </TabsList>
 
 
