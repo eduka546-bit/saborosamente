@@ -1,5 +1,5 @@
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
-const WHATSAPP_WABA_ID = Deno.env.get("WHATSAPP_WABA_ID")!;
+const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -7,14 +7,43 @@ Deno.serve(async (req: Request) => {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       },
     });
   }
 
   try {
-    const url = `https://graph.facebook.com/v20.0/${WHATSAPP_WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
+    // Descobrir o WABA ID a partir do Phone Number ID
+    const phoneRes = await fetch(
+      `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}?fields=whatsapp_business_account`,
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } }
+    );
+
+    if (!phoneRes.ok) {
+      const err = await phoneRes.json().catch(() => ({}));
+      console.error("Erro ao buscar WABA ID:", JSON.stringify(err));
+      return new Response(JSON.stringify({ error: "Erro ao buscar WABA ID", details: err }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    const phoneData = await phoneRes.json() as { whatsapp_business_account?: { id: string } };
+    const wabaId = phoneData.whatsapp_business_account?.id;
+
+    if (!wabaId) {
+      console.error("WABA ID não encontrado. Resposta:", JSON.stringify(phoneData));
+      return new Response(JSON.stringify({ error: "WABA ID não encontrado", phone_data: phoneData }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    console.log("WABA ID encontrado:", wabaId);
+
+    // Buscar templates usando o WABA ID correto
+    const url = `https://graph.facebook.com/v20.0/${wabaId}/message_templates?limit=100&fields=name,status,language,components,category`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
@@ -46,20 +75,13 @@ Deno.serve(async (req: Request) => {
     };
 
     console.log("Total templates recebidos:", data.data?.length || 0);
-    if (data.data?.length > 0) {
-      console.log("Primeiro template:", JSON.stringify(data.data[0]));
-    } else {
-      console.log("Resposta completa da Meta:", JSON.stringify(data));
-    }
 
-    // Formatar para o frontend (todos os templates, mostrando status)
     const templates = (data.data || []).map((t) => {
       const body = t.components.find((c) => c.type === "BODY");
       const header = t.components.find((c) => c.type === "HEADER");
       const footer = t.components.find((c) => c.type === "FOOTER");
       const buttons = t.components.find((c) => c.type === "BUTTONS");
 
-      // Contar variáveis no body ({{1}}, {{2}}, etc)
       const bodyText = body?.text || "";
       const varMatches = bodyText.match(/\{\{\d+\}\}/g) || [];
       const numVars = varMatches.length;
@@ -79,7 +101,7 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    return new Response(JSON.stringify({ templates, total: templates.length, raw: data.data?.length }), {
+    return new Response(JSON.stringify({ templates, wabaId }), {
       status: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
