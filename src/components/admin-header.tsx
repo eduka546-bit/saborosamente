@@ -84,7 +84,6 @@ export function AdminHeader() {
               icon={ClipboardList} 
               items={[
                 { label: "Ver pedidos", href: "/admin/pedidos" },
-                { label: "Avaliações", href: "/admin/avaliacoes" },
                 { label: "Carrinho abandonado", href: "/admin/pedidos/carrinhos-abandonados" }
               ]} 
             />
@@ -94,8 +93,8 @@ export function AdminHeader() {
               items={[
                 { label: "Ver clientes", href: "/admin/clientes" },
                 { label: "Cashback", href: "/admin/cashback" },
-                { label: "Pontuação", href: "/admin/pontuacao" },
-                { label: "Ouvidoria", href: "/admin/ouvidoria" }
+                { label: "Feedbacks", href: "/admin/avaliacoes" },
+                { label: "Pontuação", href: "/admin/pontuacao" }
               ]} 
             />
             <NavItem 
