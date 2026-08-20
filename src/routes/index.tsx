@@ -261,34 +261,31 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           COMO FUNCIONA — Steps Premium
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="py-6 md:py-8">
+      <section className="py-5 md:py-6">
         <div className="mx-auto max-w-4xl px-4">
-          <h2 className="text-center text-base md:text-lg font-display font-black text-foreground mb-5">
-            Como Funciona
-          </h2>
-
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
             {[
-              { step: "1", title: "Escolha", desc: "Monte seu pedido", icon: ShoppingBag },
-              { step: "2", title: "Receba", desc: "Na porta ou retire", icon: Truck },
-              { step: "3", title: "Aproveite", desc: "Pronto em 7 min", icon: Sparkles }
-            ].map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <div key={i} className="bg-card border border-border/40 rounded-xl p-4 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
-                  <div className="relative mb-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-brand flex items-center justify-center shadow-soft">
-                      <Icon className="size-5 text-white" />
-                    </div>
-                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-sun text-sun-foreground text-[9px] font-black flex items-center justify-center shadow-sm border-2 border-white">
-                      {item.step}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-bold text-foreground">{item.title}</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{item.desc}</p>
+              { icon: "⏱️", line1: "PRONTO", line2: "EM ATÉ", line3: "7 MINUTOS" },
+              { icon: "6", line1: "MESES DE", line2: "VALIDADE", line3: "", isNumber: true },
+              { icon: "🌿", line1: "TEMPEROS", line2: "100%", line3: "NATURAIS" },
+              { icon: "🚫", line1: "OPÇÕES", line2: "SEM GLÚTEN", line3: "SEM LACTOSE" },
+              { icon: "👨‍🍳", line1: "CRIADAS POR", line2: "CHEFS E", line3: "NUTRIS" },
+            ].map((card, i) => (
+              <div key={i} className="bg-white border border-border/50 rounded-xl p-3 md:p-4 flex flex-col items-center justify-center text-center shadow-sm min-h-[100px]">
+                <div className="text-2xl md:text-3xl mb-1.5 text-primary">
+                  {card.isNumber ? (
+                    <span className="font-black text-3xl md:text-4xl text-primary">{card.icon}</span>
+                  ) : (
+                    <span>{card.icon}</span>
+                  )}
                 </div>
-              );
-            })}
+                <div className="text-[9px] md:text-[10px] font-black text-primary uppercase leading-tight tracking-wide">
+                  <div>{card.line1}</div>
+                  <div>{card.line2}</div>
+                  {card.line3 && <div>{card.line3}</div>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
