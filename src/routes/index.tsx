@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles, Gift, X } from "lucide-react";
+import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles, Gift, X, Timer, Leaf, WheatOff, ChefHat, ShieldCheck } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
@@ -263,26 +263,23 @@ function Index() {
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="py-5 md:py-6">
         <div className="mx-auto max-w-4xl px-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {[
-              { icon: "⏱️", line1: "PRONTO", line2: "EM ATÉ", line3: "7 MINUTOS" },
-              { icon: "6", line1: "MESES DE", line2: "VALIDADE", line3: "", isNumber: true },
-              { icon: "🌿", line1: "TEMPEROS", line2: "100%", line3: "NATURAIS" },
-              { icon: "🚫", line1: "OPÇÕES", line2: "SEM GLÚTEN", line3: "SEM LACTOSE" },
-              { icon: "👨‍🍳", line1: "CRIADAS POR", line2: "CHEFS E", line3: "NUTRIS" },
+              { Icon: Timer, line1: "PRONTO EM ATÉ", line2: "7 MINUTOS", highlight: false },
+              { Icon: ShieldCheck, line1: "6 MESES DE", line2: "VALIDADE", highlight: true, number: "6" },
+              { Icon: Leaf, line1: "TEMPEROS 100%", line2: "NATURAIS", highlight: false },
+              { Icon: WheatOff, line1: "OPÇÕES SEM", line2: "GLÚTEN E LACTOSE", highlight: false },
+              { Icon: ChefHat, line1: "CRIADAS POR", line2: "CHEFS E NUTRIS", highlight: false },
             ].map((card, i) => (
-              <div key={i} className="bg-white border border-border/50 rounded-xl p-3 md:p-4 flex flex-col items-center justify-center text-center shadow-sm min-h-[100px]">
-                <div className="text-2xl md:text-3xl mb-1.5 text-primary">
-                  {card.isNumber ? (
-                    <span className="font-black text-3xl md:text-4xl text-primary">{card.icon}</span>
-                  ) : (
-                    <span>{card.icon}</span>
-                  )}
-                </div>
-                <div className="text-[9px] md:text-[10px] font-black text-primary uppercase leading-tight tracking-wide">
+              <div key={i} className="bg-white rounded-xl border border-border/40 p-3 md:p-4 flex flex-col items-center justify-center text-center gap-2 shadow-[0_2px_8px_rgba(0,0,0,0.04)] min-h-[90px] md:min-h-[110px]">
+                {card.number ? (
+                  <span className="text-3xl md:text-4xl font-black text-primary leading-none">{card.number}</span>
+                ) : (
+                  <card.Icon className="size-7 md:size-8 text-primary" strokeWidth={1.5} />
+                )}
+                <div className="text-[8px] md:text-[9px] font-extrabold text-primary/90 uppercase leading-tight tracking-wide">
                   <div>{card.line1}</div>
                   <div>{card.line2}</div>
-                  {card.line3 && <div>{card.line3}</div>}
                 </div>
               </div>
             ))}
