@@ -125,9 +125,13 @@ function AdminCampaignPage() {
         .from("listas_contatos")
         .select("*")
         .order("created_at", { ascending: false });
+      
+      console.log("Listas carregadas:", data); // Debug
       return data || [];
     },
-    staleTime: 10_000,
+    staleTime: 5000, // Reduzir para sempre carregar fresco
+    refetchOnWindowFocus: true, // Refetch quando voltar à janela
+    refetchOnMount: true, // Refetch ao montar
   });
 
   // Estado para gerenciar listas
@@ -769,38 +773,59 @@ function AdminCampaignPage() {
 
             {/* Seleção de Lista Salva */}
             <div className="bg-white rounded-xl border p-6">
-              <label className="block text-sm font-bold text-gray-700 mb-4">
-                Ou carregar uma Lista Salva
-              </label>
-              <select
-                value={listaCarregada || ""}
-                onChange={async (e) => {
-                  if (!e.target.value) {
-                    setListaCarregada(null);
-                    return;
-                  }
-                  
-                  setListaCarregada(e.target.value);
-                  const { data } = await supabase
-                    .from("contatos_lista")
-                    .select("telefone")
-                    .eq("lista_id", e.target.value);
-                  
-                  if (data) {
-                    const telefones = data.map((c: any) => c.telefone);
-                    setContatosEditaveis(telefones);
-                    toast.success(`${telefones.length} contatos carregados!`);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
-              >
-                <option value="">Selecione uma lista...</option>
-                {listas.map((lista: any) => (
-                  <option key={lista.id} value={lista.id}>
-                    {lista.nome} ({lista.quantidade_contatos} contatos)
-                  </option>
-                ))}
-              </select>
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-sm font-bold text-gray-700">
+                  Ou carregar uma Lista Salva
+                </label>
+                <button
+                  onClick={() => refetchListas()}
+                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+                  title="Atualizar listas"
+                >
+                  🔄 Atualizar
+                </button>
+              </div>
+              
+              {carregandoListas ? (
+                <div className="text-center text-gray-500 text-sm py-3">
+                  Carregando listas...
+                </div>
+              ) : listas.length === 0 ? (
+                <div className="text-center text-gray-400 text-sm py-3">
+                  Nenhuma lista criada
+                </div>
+              ) : (
+                <select
+                  value={listaCarregada || ""}
+                  onChange={async (e) => {
+                    if (!e.target.value) {
+                      setListaCarregada(null);
+                      setContatosEditaveis([]);
+                      return;
+                    }
+                    
+                    setListaCarregada(e.target.value);
+                    const { data } = await supabase
+                      .from("contatos_lista")
+                      .select("telefone")
+                      .eq("lista_id", e.target.value);
+                    
+                    if (data) {
+                      const telefones = data.map((c: any) => c.telefone);
+                      setContatosEditaveis(telefones);
+                      toast.success(`✓ ${telefones.length} contatos carregados!`);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+                >
+                  <option value="">Selecione uma lista...</option>
+                  {listas.map((lista: any) => (
+                    <option key={lista.id} value={lista.id}>
+                      {lista.nome} ({lista.quantidade_contatos} contatos)
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Seleção de Clientes do Banco */}
