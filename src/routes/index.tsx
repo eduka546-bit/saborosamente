@@ -261,13 +261,13 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           COMO FUNCIONA — Steps Premium
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="py-4 md:py-6">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 className="text-center text-sm md:text-base font-display font-black text-foreground mb-4">
+      <section className="py-6 md:py-8">
+        <div className="mx-auto max-w-4xl px-4">
+          <h2 className="text-center text-base md:text-lg font-display font-black text-foreground mb-5">
             Como Funciona
           </h2>
 
-          <div className="flex items-start justify-center gap-6 md:gap-10">
+          <div className="grid grid-cols-3 gap-3">
             {[
               { step: "1", title: "Escolha", desc: "Monte seu pedido", icon: ShoppingBag },
               { step: "2", title: "Receba", desc: "Na porta ou retire", icon: Truck },
@@ -275,17 +275,17 @@ function Index() {
             ].map((item, i) => {
               const Icon = item.icon;
               return (
-                <div key={i} className="flex flex-col items-center text-center">
-                  <div className="relative mb-1.5">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center">
-                      <Icon className="size-3.5 text-white" />
+                <div key={i} className="bg-card border border-border/40 rounded-xl p-4 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
+                  <div className="relative mb-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-brand flex items-center justify-center shadow-soft">
+                      <Icon className="size-5 text-white" />
                     </div>
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-sun text-sun-foreground text-[7px] font-black flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-sun text-sun-foreground text-[9px] font-black flex items-center justify-center shadow-sm border-2 border-white">
                       {item.step}
                     </span>
                   </div>
-                  <h3 className="text-[11px] font-bold text-foreground">{item.title}</h3>
-                  <p className="text-[9px] text-muted-foreground">{item.desc}</p>
+                  <h3 className="text-sm font-bold text-foreground">{item.title}</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{item.desc}</p>
                 </div>
               );
             })}
