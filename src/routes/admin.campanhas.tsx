@@ -17,7 +17,7 @@ export const Route = createFileRoute("/admin/campanhas")({
 });
 
 function AdminCampaignPage() {
-  const [tabAtivo, setTabAtivo] = useState<"criar" | "historico">("criar");
+  const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico">("criar");
   const [nomesCampanha, setNomesCampanha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
@@ -117,6 +117,26 @@ function AdminCampaignPage() {
     staleTime: 30_000,
   });
 
+  // Query para listas de contatos
+  const { data: listas = [], isLoading: carregandoListas, refetch: refetchListas } = useQuery({
+    queryKey: ["listas-contatos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("listas_contatos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    staleTime: 10_000,
+  });
+
+  // Estado para gerenciar listas
+  const [novaListaNome, setNovaListaNome] = useState("");
+  const [novaListaDescricao, setNovaListaDescricao] = useState("");
+  const [listaEditando, setListaEditando] = useState<any>(null);
+  const [contatosLista, setContatosLista] = useState<any[]>([]);
+  const listaInputRef = useRef<HTMLInputElement>(null);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -214,6 +234,129 @@ function AdminCampaignPage() {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Funções para gerenciar listas
+  const criarNovaLista = async () => {
+    if (!novaListaNome.trim()) {
+      toast.error("Digite o nome da lista");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("listas_contatos")
+        .insert([
+          {
+            nome: novaListaNome,
+            descricao: novaListaDescricao,
+            quantidade_contatos: 0,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNovaListaNome("");
+      setNovaListaDescricao("");
+      toast.success("Lista criada com sucesso!");
+      refetchListas();
+    } catch (err) {
+      toast.error("Erro ao criar lista");
+    }
+  };
+
+  const carregarContatosLista = async (listaId: string) => {
+    try {
+      const { data } = await supabase
+        .from("contatos_lista")
+        .select("*")
+        .eq("lista_id", listaId)
+        .order("created_at");
+      
+      setContatosLista(data || []);
+      setListaEditando(listaId);
+    } catch (err) {
+      toast.error("Erro ao carregar contatos");
+    }
+  };
+
+  const adicionarContatoALista = async (listaId: string, telefone: string, nome?: string) => {
+    if (!telefone.trim()) {
+      toast.error("Digite um telefone");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("contatos_lista")
+        .insert([
+          {
+            lista_id: listaId,
+            telefone: telefone.replace(/\D/g, ''),
+            nome: nome || null,
+          },
+        ]);
+
+      if (error) throw error;
+
+      await carregarContatosLista(listaId);
+      
+      // Atualizar quantidade
+      const { data: lista } = await supabase
+        .from("listas_contatos")
+        .select("*")
+        .eq("id", listaId)
+        .single();
+
+      if (lista) {
+        await supabase
+          .from("listas_contatos")
+          .update({ quantidade_contatos: contatosLista.length + 1 })
+          .eq("id", listaId);
+      }
+
+      toast.success("Contato adicionado!");
+    } catch (err) {
+      toast.error("Erro ao adicionar contato");
+    }
+  };
+
+  const removerContatoDaLista = async (contatoId: string, listaId: string) => {
+    try {
+      const { error } = await supabase
+        .from("contatos_lista")
+        .delete()
+        .eq("id", contatoId);
+
+      if (error) throw error;
+
+      await carregarContatosLista(listaId);
+      toast.success("Contato removido!");
+    } catch (err) {
+      toast.error("Erro ao remover contato");
+    }
+  };
+
+  const deletarLista = async (listaId: string) => {
+    if (!window.confirm("Tem certeza que deseja deletar esta lista?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("listas_contatos")
+        .delete()
+        .eq("id", listaId);
+
+      if (error) throw error;
+
+      setListaEditando(null);
+      setContatosLista([]);
+      toast.success("Lista deletada!");
+      refetchListas();
+    } catch (err) {
+      toast.error("Erro ao deletar lista");
+    }
   };
 
   const sendMutation = useMutation({
@@ -374,6 +517,17 @@ function AdminCampaignPage() {
         >
           <Zap className="inline mr-2" size={18} />
           Criar Campanha
+        </button>
+        <button
+          onClick={() => setTabAtivo("contatos")}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-all border-b-2 ${
+            tabAtivo === "contatos"
+              ? "border-[#5850ec] text-[#5850ec]"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Users className="inline mr-2" size={18} />
+          Contatos
         </button>
         <button
           onClick={() => setTabAtivo("historico")}
@@ -908,6 +1062,225 @@ function AdminCampaignPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: Contatos */}
+      {tabAtivo === "contatos" && (
+        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+          {/* Lista de Listas */}
+          <div className="bg-white rounded-xl border p-6 h-fit sticky top-6">
+            <h3 className="font-bold text-gray-800 mb-4">Minhas Listas</h3>
+
+            {/* Criar Nova Lista */}
+            <div className="mb-4 pb-4 border-b">
+              <Input
+                placeholder="Nome da lista..."
+                value={novaListaNome}
+                onChange={(e) => setNovaListaNome(e.target.value)}
+                className="mb-2"
+              />
+              <Input
+                placeholder="Descrição..."
+                value={novaListaDescricao}
+                onChange={(e) => setNovaListaDescricao(e.target.value)}
+                className="mb-2"
+              />
+              <Button
+                onClick={criarNovaLista}
+                className="w-full bg-[#5850ec] hover:bg-[#5850ec]/90"
+              >
+                + Nova Lista
+              </Button>
+            </div>
+
+            {/* Listas Existentes */}
+            {carregandoListas ? (
+              <div className="text-center text-gray-500 text-sm">Carregando...</div>
+            ) : listas.length === 0 ? (
+              <div className="text-center text-gray-400 text-sm py-8">
+                Nenhuma lista criada
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {listas.map((lista: any) => (
+                  <button
+                    key={lista.id}
+                    onClick={() => carregarContatosLista(lista.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-all border ${
+                      listaEditando === lista.id
+                        ? "bg-[#5850ec] text-white border-[#5850ec]"
+                        : "border-gray-200 hover:border-[#5850ec] hover:bg-gray-50"
+                    }`}
+                  >
+                    <p className="font-bold text-sm">{lista.nome}</p>
+                    <p className="text-xs opacity-70">{lista.quantidade_contatos} contatos</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Gerenciar Contatos da Lista */}
+          <div>
+            {listaEditando ? (
+              <div className="bg-white rounded-xl border p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-800">
+                    {listas.find((l: any) => l.id === listaEditando)?.nome}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      deletarLista(listaEditando);
+                    }}
+                    className="px-3 py-1 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50"
+                  >
+                    Deletar Lista
+                  </button>
+                </div>
+
+                {/* Adicionar Contato */}
+                <div className="mb-6 pb-6 border-b space-y-2">
+                  <label className="block text-sm font-bold text-gray-600">Adicionar Contato:</label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Telefone (11987654321)"
+                      className="flex-1"
+                      id="novoTelefone"
+                    />
+                    <Input
+                      placeholder="Nome (opcional)"
+                      className="flex-1"
+                      id="novoNome"
+                    />
+                    <Button
+                      onClick={() => {
+                        const tel = (document.getElementById("novoTelefone") as HTMLInputElement)?.value;
+                        const nome = (document.getElementById("novoNome") as HTMLInputElement)?.value;
+                        if (tel) {
+                          adicionarContatoALista(listaEditando, tel, nome);
+                          (document.getElementById("novoTelefone") as HTMLInputElement).value = "";
+                          (document.getElementById("novoNome") as HTMLInputElement).value = "";
+                        }
+                      }}
+                      className="bg-blue-500 hover:bg-blue-600"
+                    >
+                      Adicionar
+                    </Button>
+                  </div>
+
+                  {/* Importar CSV */}
+                  <Button
+                    onClick={() => listaInputRef.current?.click()}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    📥 Importar CSV
+                  </Button>
+                  <input
+                    ref={listaInputRef}
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        try {
+                          const csv = event.target?.result as string;
+                          const linhas = csv.split('\n').filter(l => l.trim());
+                          
+                          let contatos = linhas;
+                          if (linhas.length > 0 && (linhas[0].toLowerCase().includes('telefone') || linhas[0].toLowerCase().includes('phone'))) {
+                            contatos = linhas.slice(1);
+                          }
+
+                          const telefonesParsed = contatos
+                            .map(l => {
+                              const match = l.match(/\d+/g);
+                              return match ? match.join('') : '';
+                            })
+                            .filter(t => t.length >= 10 && t.length <= 15);
+
+                          if (telefonesParsed.length === 0) {
+                            toast.error("Nenhum telefone encontrado");
+                            return;
+                          }
+
+                          let importados = 0;
+                          telefonesParsed.forEach(async (tel) => {
+                            await adicionarContatoALista(listaEditando, tel).then(() => {
+                              importados++;
+                            });
+                          });
+
+                          toast.success(`${importados} contatos adicionados!`);
+                        } catch (err) {
+                          toast.error("Erro ao processar CSV");
+                        }
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                </div>
+
+                {/* Lista de Contatos */}
+                <div>
+                  <h4 className="font-bold text-gray-700 mb-3">
+                    Contatos ({contatosLista.length})
+                  </h4>
+                  <div className="max-h-96 overflow-y-auto space-y-2">
+                    {contatosLista.length === 0 ? (
+                      <p className="text-center text-gray-400 text-sm py-8">Nenhum contato nesta lista</p>
+                    ) : (
+                      contatosLista.map((contato: any, idx: number) => (
+                        <div
+                          key={contato.id}
+                          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <span className="text-xs font-bold text-gray-500 w-6">{idx + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{contato.telefone}</p>
+                            {contato.nome && (
+                              <p className="text-xs text-gray-500">{contato.nome}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => removerContatoDaLista(contato.id, listaEditando)}
+                            className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Usar Esta Lista em Campanha */}
+                  {contatosLista.length > 0 && (
+                    <Button
+                      onClick={() => {
+                        const telefones = contatosLista.map(c => c.telefone);
+                        setContatosEditaveis(telefones);
+                        setTabAtivo("criar");
+                        toast.success(`${telefones.length} contatos carregados!`);
+                      }}
+                      className="w-full mt-4 bg-green-600 hover:bg-green-700"
+                    >
+                      Usar Esta Lista em Campanha
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border p-12 text-center">
+                <Users className="mx-auto text-gray-300 mb-4" size={48} />
+                <p className="text-gray-500">Selecione uma lista para gerenciar contatos</p>
+              </div>
+            )}
           </div>
         </div>
       )}

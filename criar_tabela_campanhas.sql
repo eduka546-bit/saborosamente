@@ -1,3 +1,43 @@
+-- Tabela para armazenar listas de contatos (para reutilização)
+CREATE TABLE IF NOT EXISTS public.listas_contatos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
+  descricao TEXT,
+  quantidade_contatos INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+-- Tabela para armazenar contatos individuais dentro de listas
+CREATE TABLE IF NOT EXISTS public.contatos_lista (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lista_id UUID NOT NULL REFERENCES public.listas_contatos(id) ON DELETE CASCADE,
+  telefone TEXT NOT NULL,
+  nome TEXT,
+  email TEXT,
+  custom_fields JSONB, -- Para guardar dados customizados
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Índices para performance
+CREATE INDEX idx_listas_created_by ON public.listas_contatos(created_by);
+CREATE INDEX idx_contatos_lista ON public.contatos_lista(lista_id);
+CREATE INDEX idx_contatos_telefone ON public.contatos_lista(telefone);
+
+-- RLS policies
+ALTER TABLE public.listas_contatos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contatos_lista ENABLE ROW LEVEL SECURITY;
+
+-- Apenas admin pode gerenciar listas
+CREATE POLICY "admin_can_crud_listas" ON public.listas_contatos
+  USING (auth.uid() IN (
+    SELECT user_id FROM public.user_roles WHERE role = 'admin'
+  ));
+
+CREATE POLICY "admin_can_crud_contatos" ON public.contatos_lista
+  USING (TRUE); -- Via function
+
 -- Tabela para armazenar campanhas de WhatsApp
 CREATE TABLE IF NOT EXISTS public.campanhas_whatsapp (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
