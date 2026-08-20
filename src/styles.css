@@ -351,9 +351,69 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes reveal-text {
+  from {
+    opacity: 0;
+    transform: translateY(30px) skewY(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) skewY(0deg);
+  }
+}
+
+@keyframes draw-line {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes count-up-glow {
+  0% {
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    text-shadow: 0 0 20px var(--color-primary);
+  }
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
 /* Utility classes para animações */
 @utility animate-in {
-  animation: fade-in-up 0.5s ease-out forwards;
+  animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
 }
 
 @utility fade-in {
@@ -388,6 +448,56 @@
   background: linear-gradient(90deg, var(--color-background), var(--color-muted), var(--color-background));
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
+}
+
+@utility animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@utility animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+@utility animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+@utility animate-reveal {
+  animation: reveal-text 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+@utility animate-draw-line {
+  animation: draw-line 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Premium glass card effect */
+@utility glass-card {
+  background: oklch(1 0 0 / 60%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid oklch(1 0 0 / 30%);
+}
+
+@utility glass-card-dark {
+  background: oklch(0.2 0.02 153.3 / 60%);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid oklch(1 0 0 / 10%);
+}
+
+/* Premium hover lift */
+@utility hover-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -15px oklch(0.4 0.09 158.6 / 0.2);
+  }
+}
+
+/* Premium number counter styling */
+@utility premium-stat {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }
 
 /* NEXUS-PRO:WATERMARK-HIDE:START */
