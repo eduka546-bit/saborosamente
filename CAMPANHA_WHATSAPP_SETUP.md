@@ -32,9 +32,15 @@ Seu sistema de envio em massa de mensagens WhatsApp com **IMAGENS, VÍDEOS E TEX
    - Acesso em: `/admin/campanhas`
 
 ### 3. **Supabase Function** (`whatsapp-campanha-enviar`)
-   - Envio **sequencial** com delay de 50ms entre mensagens
+   - Envio **sequencial** com rate limiting inteligente
    - Suporta **vídeo + texto**, **imagem + texto**, ou **só texto**
    - Vídeo/imagem é enviado PRIMEIRO, depois o texto
+   - **🛡️ Proteções contra restrição:**
+     - Rate limit: 30 msgs/min (conservador)
+     - Delay mínimo: 2 segundos entre mensagens
+     - Backoff exponencial em case de error 429
+     - Retry automático (até 3 tentativas)
+     - Monitoramento em tempo real
    - Detecta erros: rate limit, telefone inválido, número bloqueado
    - Rastreamento completo
 
@@ -117,8 +123,15 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 ✅ Pré-visualização em tempo real
 ✅ Filtros por bairro, gasto, atividade
 ✅ Lista editável (copiar/colar)
+✅ **Importar CSV de contatos**
+✅ **Adicionar contatos manualmente**
 ✅ Envio inteligente (mídia primeiro, depois texto)
-✅ Rate limit proteção (50ms entre mensagens)
+✅ **🛡️ Proteções contra restrição WhatsApp:**
+   - Rate limiting (30 msgs/min)
+   - Delay 2s entre mensagens
+   - Backoff exponencial
+   - Retry automático
+   - Monitoramento em tempo real
 ✅ Histórico completo com estatísticas
 
 ---
