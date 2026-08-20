@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS public.contatos_lista (
 );
 
 -- Índices para performance
-CREATE INDEX idx_listas_created_by ON public.listas_contatos(created_by);
-CREATE INDEX idx_contatos_lista ON public.contatos_lista(lista_id);
-CREATE INDEX idx_contatos_telefone ON public.contatos_lista(telefone);
+CREATE INDEX IF NOT EXISTS idx_listas_created_by ON public.listas_contatos(created_by);
+CREATE INDEX IF NOT EXISTS idx_contatos_lista ON public.contatos_lista(lista_id);
+CREATE INDEX IF NOT EXISTS idx_contatos_telefone ON public.contatos_lista(telefone);
 
 -- RLS policies
 ALTER TABLE public.listas_contatos ENABLE ROW LEVEL SECURITY;
@@ -67,10 +67,10 @@ CREATE TABLE IF NOT EXISTS public.campanhas_whatsapp_envios (
 );
 
 -- Índices para performance
-CREATE INDEX idx_campanhas_status ON public.campanhas_whatsapp(status);
-CREATE INDEX idx_campanhas_created_at ON public.campanhas_whatsapp(created_at DESC);
-CREATE INDEX idx_envios_campanha ON public.campanhas_whatsapp_envios(campanha_id);
-CREATE INDEX idx_envios_status ON public.campanhas_whatsapp_envios(status);
+CREATE INDEX IF NOT EXISTS idx_campanhas_status ON public.campanhas_whatsapp(status);
+CREATE INDEX IF NOT EXISTS idx_campanhas_created_at ON public.campanhas_whatsapp(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_envios_campanha ON public.campanhas_whatsapp_envios(campanha_id);
+CREATE INDEX IF NOT EXISTS idx_envios_status ON public.campanhas_whatsapp_envios(status);
 
 -- RLS policies
 ALTER TABLE public.campanhas_whatsapp ENABLE ROW LEVEL SECURITY;
