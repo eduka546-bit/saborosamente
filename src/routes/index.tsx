@@ -216,7 +216,7 @@ function Index() {
 
         <div className="mx-auto max-w-4xl px-4">
           {/* Heading */}
-          <div className="text-center space-y-3 mb-5">
+          <div className="text-center mb-5">
             <h1>
               <span className="block text-2xl md:text-3xl font-pacifico leading-[1.2] text-foreground">
                 Comida de Verdade,
@@ -225,10 +225,6 @@ function Index() {
                 Pronta Quando Você Quiser
               </span>
             </h1>
-            
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Marmitas congeladas artesanais, prontas em 7 minutos, com 6 meses de validade.
-            </p>
           </div>
 
           {/* Promo Carousel */}
