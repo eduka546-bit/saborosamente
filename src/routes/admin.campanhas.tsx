@@ -795,36 +795,53 @@ function AdminCampaignPage() {
                   Nenhuma lista criada
                 </div>
               ) : (
-                <select
-                  value={listaCarregada || ""}
-                  onChange={async (e) => {
-                    if (!e.target.value) {
-                      setListaCarregada(null);
-                      setContatosEditaveis([]);
-                      return;
-                    }
-                    
-                    setListaCarregada(e.target.value);
-                    const { data } = await supabase
-                      .from("contatos_lista")
-                      .select("telefone")
-                      .eq("lista_id", e.target.value);
-                    
-                    if (data) {
-                      const telefones = data.map((c: any) => c.telefone);
-                      setContatosEditaveis(telefones);
-                      toast.success(`✓ ${telefones.length} contatos carregados!`);
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
-                >
-                  <option value="">Selecione uma lista...</option>
-                  {listas.map((lista: any) => (
-                    <option key={lista.id} value={lista.id}>
-                      {lista.nome} ({lista.quantidade_contatos} contatos)
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={listaCarregada || ""}
+                    onChange={async (e) => {
+                      if (!e.target.value) {
+                        setListaCarregada(null);
+                        setContatosEditaveis([]);
+                        setClientesSelecionadosManual(new Set()); // Reset manual selection
+                        return;
+                      }
+                      
+                      setListaCarregada(e.target.value);
+                      const { data } = await supabase
+                        .from("contatos_lista")
+                        .select("telefone")
+                        .eq("lista_id", e.target.value);
+                      
+                      if (data) {
+                        const telefones = data.map((c: any) => c.telefone);
+                        setContatosEditaveis(telefones);
+                        setClientesSelecionadosManual(new Set()); // Reset para usar a lista
+                        setFiltroTipo("todos"); // Reset filtro
+                        toast.success(`✓ ${telefones.length} contatos carregados!`);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+                  >
+                    <option value="">Selecione uma lista...</option>
+                    {listas.map((lista: any) => (
+                      <option key={lista.id} value={lista.id}>
+                        {lista.nome} ({lista.quantidade_contatos} contatos)
+                      </option>
+                    ))}
+                  </select>
+                  {listaCarregada && (
+                    <button
+                      onClick={() => {
+                        setListaCarregada(null);
+                        setContatosEditaveis([]);
+                        setClientesSelecionadosManual(new Set());
+                      }}
+                      className="mt-2 text-xs text-gray-500 hover:text-red-600"
+                    >
+                      ✕ Limpar seleção
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
@@ -833,6 +850,17 @@ function AdminCampaignPage() {
               <label className="block text-sm font-bold text-gray-700 mb-4">
                 Filtrar Clientes ({contatosEditaveis.length})
               </label>
+
+              {listaCarregada && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-bold text-blue-700">
+                    ℹ️ Usando lista: {listas.find((l: any) => l.id === listaCarregada)?.nome}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    ({contatosEditaveis.length} contatos prontos para enviar)
+                  </p>
+                </div>
+              )}
 
               {/* Tabs de Filtro */}
               <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
