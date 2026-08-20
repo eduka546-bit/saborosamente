@@ -145,27 +145,51 @@ async function enviarComRetry(
             type: "video",
             video: {
               link: videoUrl,
+              caption: mensagem,
             },
           }),
         });
 
         if (!resVid.ok) {
           const err = await resVid.json().catch(() => ({}));
+          console.error("Erro vídeo:", JSON.stringify(err));
           
-          // Detectar rate limit
-          if (resVid.status === 429 || err.error?.code === 429) {
-            delayMs = RATE_LIMITS.BACKOFF_INICIAL_MS;
-            console.warn(`🚫 Rate limit (vídeo) - retry em ${delayMs}ms`);
-            continue;
-          }
+          // Se vídeo falhar, tentar enviar como documento
+          const resDoc = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to,
+              type: "document",
+              document: {
+                link: videoUrl,
+                caption: mensagem,
+                filename: "video.mp4",
+              },
+            }),
+          });
 
-          return { sucesso: false, erro: "Erro ao enviar vídeo", tentativas };
+          if (!resDoc.ok) {
+            const errDoc = await resDoc.json().catch(() => ({}));
+            if (resDoc.status === 429 || errDoc.error?.code === 429) {
+              delayMs = RATE_LIMITS.BACKOFF_INICIAL_MS;
+              continue;
+            }
+            return { sucesso: false, erro: `Erro ao enviar vídeo: ${errDoc.error?.message || "formato não suportado"}`, tentativas };
+          }
+          
+          // Documento enviado com sucesso (já tem caption com texto)
+          return { sucesso: true, tentativas };
         }
 
-        // Pequeno delay entre vídeo e texto
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Vídeo enviado com caption — não precisa enviar texto separado
+        return { sucesso: true, tentativas };
       } else if (imagemUrl) {
-        // Enviar imagem se não houver vídeo
+        // Enviar imagem com caption (texto junto)
         const resImg = await fetch(url, {
           method: "POST",
           headers: {
@@ -178,6 +202,7 @@ async function enviarComRetry(
             type: "image",
             image: {
               link: imagemUrl,
+              caption: mensagem,
             },
           }),
         });
@@ -194,8 +219,8 @@ async function enviarComRetry(
           return { sucesso: false, erro: "Erro ao enviar imagem", tentativas };
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+        // Imagem enviada com caption — não precisa texto separado
+        return { sucesso: true, tentativas };
 
       // Enviar texto
       const resText = await fetch(url, {
