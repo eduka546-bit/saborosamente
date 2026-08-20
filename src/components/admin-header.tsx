@@ -10,7 +10,8 @@ import {
   Settings, 
   LogOut,
   ChevronDown,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,6 +119,15 @@ export function AdminHeader() {
               items={[
                 { label: "Ver cupons", href: "/admin/cupons" },
                 { label: "Novo cupom", href: "/admin/cupons/novo" }
+              ]} 
+            />
+            <NavItem 
+              label="Campanhas" 
+              icon={MessageSquare} 
+              items={[
+                { label: "WhatsApp em Massa", href: "/admin/campanhas" },
+                { label: "Email Marketing", href: "/admin/email-campaigns" },
+                { label: "SMS", href: "/admin/sms-campaigns" }
               ]} 
             />
             <NavItem 
