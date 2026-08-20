@@ -208,7 +208,7 @@ function Index() {
       {/* ═══════════════════════════════════════════════════════════════════
           HERO SECTION — Premium Design
       ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden pt-4 pb-4 md:pt-6 md:pb-6">
+      <section className="relative overflow-hidden pt-16 pb-4 md:pt-20 md:pb-6">
         {/* Background orbs */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-gradient-to-br from-primary/6 via-lime/4 to-transparent blur-3xl" />
@@ -229,28 +229,6 @@ function Index() {
             <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
               Marmitas congeladas artesanais, prontas em 7 minutos, com 6 meses de validade.
             </p>
-
-            {/* CTA buttons */}
-            <div className="flex flex-row items-center justify-center gap-2.5 pt-1">
-              <a
-                href="#cardapio"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="group inline-flex items-center gap-2 bg-gradient-brand text-white px-5 py-2 rounded-full font-bold text-xs shadow-soft hover:shadow-lift transition-all duration-300 hover:scale-[1.03]"
-              >
-                <ShoppingBag size={13} />
-                Ver Cardápio →
-              </a>
-              <button
-                onClick={() => setComboModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-white border border-primary/20 text-primary px-5 py-2 rounded-full font-bold text-xs hover:border-primary/40 hover:bg-primary/5 transition-all duration-300"
-              >
-                <Gift size={13} />
-                Montar Combo
-              </button>
-            </div>
           </div>
 
           {/* INFO CARDS — faixa compacta */}
