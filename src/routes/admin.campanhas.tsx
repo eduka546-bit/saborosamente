@@ -1008,8 +1008,6 @@ function AdminCampaignPage() {
 
             {/* Lista Completa de Clientes - Expansível */}
             <div className="border-t border-gray-200 pt-4">
-            {/* Lista Completa de Clientes - Expansível */}
-            <div className="border-t border-gray-200 pt-4">
               <button
                 onClick={() => setMostrarListaCompleta(!mostrarListaCompleta)}
                 className="w-full px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 font-bold text-sm text-gray-700 transition-all flex items-center justify-between"
