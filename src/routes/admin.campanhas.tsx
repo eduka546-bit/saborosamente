@@ -812,6 +812,8 @@ function AdminCampaignPage() {
                         .select("telefone")
                         .eq("lista_id", e.target.value);
                       
+                      console.log("Contatos carregados:", data);
+                      
                       if (data) {
                         const telefones = data.map((c: any) => c.telefone);
                         setContatosEditaveis(telefones);
