@@ -848,7 +848,7 @@ function AdminCampaignPage() {
             {/* Seleção de Clientes do Banco */}
             <div className="bg-white rounded-xl border p-6">
               <label className="block text-sm font-bold text-gray-700 mb-4">
-                Filtrar Clientes ({contatosEditaveis.length})
+                Filtrar Clientes ({listaCarregada ? listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length : contatosEditaveis.length})
               </label>
 
               {listaCarregada && (
@@ -857,7 +857,7 @@ function AdminCampaignPage() {
                     ℹ️ Usando lista: {listas.find((l: any) => l.id === listaCarregada)?.nome}
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
-                    ({contatosEditaveis.length} contatos prontos para enviar)
+                    ({listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length} contatos prontos para enviar)
                   </p>
                 </div>
               )}
