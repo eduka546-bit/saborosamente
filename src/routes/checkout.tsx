@@ -101,6 +101,9 @@ function Checkout() {
   const search = useSearch({ from: "/checkout" });
   const createOrderFn = useServerFn(createOrder);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [feedbackNota, setFeedbackNota] = useState(0);
+  const [feedbackComentario, setFeedbackComentario] = useState("");
+  const [feedbackEnviado, setFeedbackEnviado] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [selectedFlag, setSelectedFlag] = useState<string>("");
   const [session, setSession] = useState<any>(null);
@@ -485,6 +488,74 @@ function Checkout() {
           Protocolo <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em breve entraremos em
           contato para confirmar.
         </p>
+
+        {/* Modal de Feedback */}
+        {!feedbackEnviado && (
+          <div className="mt-8 bg-white border rounded-2xl p-6 text-left shadow-sm">
+            <h3 className="text-lg font-bold text-center mb-1">Como foi sua experiência?</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">Sua opinião nos ajuda a melhorar!</p>
+            
+            {/* Estrelas de nota */}
+            <div className="flex justify-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setFeedbackNota(n)}
+                  className={`text-2xl transition-transform hover:scale-125 ${
+                    n <= feedbackNota ? "text-yellow-400" : "text-gray-300"
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+
+            {/* Comentário */}
+            <textarea
+              placeholder="Deixe um comentário (opcional)..."
+              value={feedbackComentario}
+              onChange={(e) => setFeedbackComentario(e.target.value)}
+              className="w-full border rounded-xl p-3 text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await supabase.from("avaliacoes").insert([{
+                      pedido_id: orderId,
+                      user_id: session?.user?.id || null,
+                      nota: feedbackNota,
+                      comentario: feedbackComentario || null,
+                    }]);
+                    setFeedbackEnviado(true);
+                    toast.success("Obrigado pelo feedback!");
+                  } catch (e) {
+                    setFeedbackEnviado(true);
+                  }
+                }}
+                disabled={feedbackNota === 0}
+                className="flex-1 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Enviar Feedback
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeedbackEnviado(true)}
+                className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Pular
+              </button>
+            </div>
+          </div>
+        )}
+
+        {feedbackEnviado && (
+          <p className="mt-4 text-sm text-green-600 font-medium">Obrigado pelo seu feedback!</p>
+        )}
+
         <Link
           to="/"
           className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"

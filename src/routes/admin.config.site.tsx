@@ -288,7 +288,6 @@ function AdminSiteConfig() {
           <TabsTrigger value="info" className="text-xs whitespace-nowrap">Info Banners</TabsTrigger>
           <TabsTrigger value="promos" className="text-xs whitespace-nowrap">Carrossel</TabsTrigger>
           <TabsTrigger value="payments" className="text-xs whitespace-nowrap">Pagamentos</TabsTrigger>
-          <TabsTrigger value="ratings" className="text-xs whitespace-nowrap">Avaliações</TabsTrigger>
           <TabsTrigger value="popup" className="text-xs whitespace-nowrap">Popup</TabsTrigger>
           <TabsTrigger value="footer" className="text-xs whitespace-nowrap">Footer</TabsTrigger>
         </TabsList>
@@ -1004,10 +1003,6 @@ function AdminSiteConfig() {
         </TabsContent>
 
         {/* ── Ratings de Produtos ── */}
-        <TabsContent value="ratings" className="mt-6 space-y-6">
-          <ProductRatingsTab settings={settings} formData={formData} setFormData={setFormData} />
-        </TabsContent>
-
         {/* ── Popup de boas-vindas ── */}
         <TabsContent value="popup" className="mt-6 space-y-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-5">

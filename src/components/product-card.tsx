@@ -1,4 +1,4 @@
-import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight, Star, Flame, Gift, TrendingUp } from "lucide-react";
+import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight, Flame, Gift, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useState } from "react";
@@ -56,14 +56,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     return badges.slice(0, 2); // Máximo 2 badges
   };
 
-  // ── Rating simulado (para exibição) ──────────────────────────────
-  const getRating = () => {
-    // Busca o rating do banco de dados, se não existir usa padrão
-    return product.rating ?? ((product.id as any) % 2 === 0 ? 5.0 : 4.9);
-  };
-
   const badges = getBadges();
-  const rating = getRating();
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
     const hasSizes = product.preco_300g || product.preco_400g;
@@ -155,19 +148,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
           </div>
           <div className="flex flex-1 flex-col gap-3 p-4">
-            {/* Rating + Category */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-3.5 transition-colors fill-sun text-sun`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold text-foreground">5.0</span>
-              </div>
+            {/* Category */}
+            <div className="flex items-center justify-end">
               <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
                 {product.categoria}
               </span>
@@ -258,25 +240,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           <div className="flex flex-1 flex-col gap-3 p-4">
-            {/* Rating + Category */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-3.5 transition-colors ${
-                        i < Math.floor(rating)
-                          ? "fill-sun text-sun"
-                          : i < Math.ceil(rating) && rating % 1 !== 0
-                          ? "fill-sun/50 text-sun"
-                          : "text-border"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold text-foreground">{rating.toFixed(1)}</span>
-              </div>
+            {/* Category */}
+            <div className="flex items-center justify-end">
               <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
                 {product.categoria}
               </span>
