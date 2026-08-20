@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -26,83 +26,12 @@ function AdminCampaignPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">("nenhuma");
   const [enviando, setEnviando] = useState(false);
-  const [filtroTipo, setFiltroTipo] = useState<"todos" | "bairro" | "gasto" | "ativo">("todos");
-  const [filtroBairro, setFiltroBairro] = useState<string>("");
-  const [filtroGastoMin, setFiltroGastoMin] = useState<number>(0);
-  const [filtroGastoMax, setFiltroGastoMax] = useState<number>(99999);
-  const [clientesSelecionadosManual, setClientesSelecionadosManual] = useState<Set<string>>(new Set());
   const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-
-  // Query para buscar clientes com dados completos
-  const { data: clientes = [], isLoading: carregandoClientes } = useQuery({
-    queryKey: ["clientes-para-campanha"],
-    queryFn: async () => {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id,nome,telefone,email,bairro,created_at")
-        .order("nome");
-
-      const { data: orders } = await supabase
-        .from("pedidos")
-        .select("user_id,valor_total")
-        .eq("status", "entregue");
-
-      const gastosPorCliente: Record<string, number> = {};
-      (orders || []).forEach((order: any) => {
-        if (order.user_id) {
-          gastosPorCliente[order.user_id] =
-            (gastosPorCliente[order.user_id] || 0) + (order.valor_total || 0);
-        }
-      });
-
-      return (profiles || []).map((p: any) => ({
-        ...p,
-        valorGasto: gastosPorCliente[p.id] || 0,
-        ativo: true,
-      }));
-    },
-    staleTime: 5 * 60_000,
-  });
-
-  // Filtrar clientes baseado nos critérios
-  const clientesFiltrados = clientes.filter((c: any) => {
-    if (!c.telefone) return false;
-
-    if (filtroTipo === "bairro" && filtroBairro) {
-      return c.bairro?.toLowerCase().includes(filtroBairro.toLowerCase());
-    }
-
-    if (filtroTipo === "gasto") {
-      return c.valorGasto >= filtroGastoMin && c.valorGasto <= filtroGastoMax;
-    }
-
-    if (filtroTipo === "ativo") {
-      const diasSemCompra = Math.floor(
-        (new Date().getTime() - new Date(c.created_at).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      return diasSemCompra <= 30;
-    }
-
-    return true;
-  });
-
-  const bairrosUnicos = Array.from(
-    new Set(clientes.map((c: any) => c.bairro).filter(Boolean))
-  ).sort() as string[];
-
-  // Sincronizar contatos editáveis quando filtro muda
-  useEffect(() => {
-    const contatosSelecionados = clientesSelecionadosManual.size > 0
-      ? Array.from(clientesSelecionadosManual)
-      : clientesFiltrados.map((c: any) => c.telefone).filter(Boolean);
-    setContatosEditaveis(contatosSelecionados);
-  }, [clientesFiltrados, clientesSelecionadosManual]);
 
   // Query para histórico de campanhas
   const { data: campanhas = [], isLoading: carregandoCampanhas } = useQuery({
@@ -802,7 +731,6 @@ function AdminCampaignPage() {
                       if (!e.target.value) {
                         setListaCarregada(null);
                         setContatosEditaveis([]);
-                        setClientesSelecionadosManual(new Set()); // Reset manual selection
                         return;
                       }
                       
@@ -812,14 +740,13 @@ function AdminCampaignPage() {
                         .select("telefone")
                         .eq("lista_id", e.target.value);
                       
-                      console.log("Contatos carregados:", data);
-                      
-                      if (data) {
-                        const telefones = data.map((c: any) => c.telefone);
+                      if (data && data.length > 0) {
+                        const telefones = data.map((c: any) => c.telefone).filter(Boolean);
                         setContatosEditaveis(telefones);
-                        setClientesSelecionadosManual(new Set()); // Reset para usar a lista
-                        setFiltroTipo("todos"); // Reset filtro
                         toast.success(`✓ ${telefones.length} contatos carregados!`);
+                      } else {
+                        setContatosEditaveis([]);
+                        toast.error("Nenhum contato encontrado nessa lista");
                       }
                     }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
@@ -866,7 +793,6 @@ function AdminCampaignPage() {
                     onClick={() => {
                       setListaCarregada(null);
                       setContatosEditaveis([]);
-                      setClientesSelecionadosManual(new Set());
                     }}
                     className="px-3 py-1 text-xs font-bold text-blue-700 border border-blue-300 rounded hover:bg-blue-100"
                   >
@@ -877,137 +803,6 @@ function AdminCampaignPage() {
             )}
 
             {/* Seleção de Clientes - Apenas se nenhuma lista carregada */}
-            {!listaCarregada && (
-              <div className="bg-white rounded-xl border p-6">
-                <label className="block text-sm font-bold text-gray-700 mb-4">
-                  Filtrar Clientes ({contatosEditaveis.length})
-                </label>
-
-                {/* Tabs de Filtro */}
-                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                  {[
-                    { id: "todos", label: "Todos" },
-                    { id: "bairro", label: "Por Bairro" },
-                    { id: "gasto", label: "Por Gasto" },
-                    { id: "ativo", label: "Ativos 30d" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setFiltroTipo(tab.id as any);
-                        setClientesSelecionadosManual(new Set());
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                        filtroTipo === tab.id
-                          ? "bg-[#5850ec] text-white border-[#5850ec]"
-                          : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Opções de Filtro */}
-                {filtroTipo === "bairro" && (
-                  <div className="mb-4">
-                    <select
-                      value={filtroBairro}
-                      onChange={(e) => setFiltroBairro(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
-                    >
-                      <option value="">Selecione um bairro...</option>
-                      {bairrosUnicos.map((bairro) => (
-                        <option key={bairro} value={bairro}>
-                          {bairro}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {filtroTipo === "gasto" && (
-                  <div className="mb-4 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-gray-600 block mb-1">
-                        Gasto Mínimo (R$)
-                      </label>
-                      <input
-                        type="number"
-                        value={filtroGastoMin}
-                        onChange={(e) => setFiltroGastoMin(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-600 block mb-1">
-                        Gasto Máximo (R$)
-                      </label>
-                      <input
-                        type="number"
-                        value={filtroGastoMax}
-                        onChange={(e) => setFiltroGastoMax(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Prévia dos Clientes */}
-                {carregandoClientes ? (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    Carregando clientes...
-                  </div>
-                ) : clientesFiltrados.length > 0 ? (
-                  <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                    {clientesFiltrados.slice(0, 10).map((cliente: any) => (
-                      <label
-                        key={cliente.id}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={
-                            clientesSelecionadosManual.size === 0 ||
-                            clientesSelecionadosManual.has(cliente.telefone)
-                          }
-                          onChange={() => {
-                            if (clientesSelecionadosManual.size === 0) {
-                              const todosSelecionados = new Set(
-                                clientesFiltrados.map((c: any) => c.telefone)
-                              );
-                              todosSelecionados.delete(cliente.telefone);
-                              setClientesSelecionadosManual(todosSelecionados);
-                            } else {
-                              toggleClienteSelecionado(cliente.telefone);
-                            }
-                          }}
-                          className="h-4 w-4 rounded cursor-pointer"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            {cliente.nome}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {cliente.bairro} • R${cliente.valorGasto.toFixed(2)}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                    {clientesFiltrados.length > 10 && (
-                      <div className="text-xs text-gray-500 text-center py-2 border-t">
-                        +{clientesFiltrados.length - 10} clientes não exibidos
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-gray-400 text-sm">
-                    Nenhum cliente encontrado com esses filtros
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Lista Completa de Clientes - Expansível */}
             <div className="border-t border-gray-200 pt-4">
               <button
