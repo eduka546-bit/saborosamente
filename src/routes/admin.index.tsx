@@ -107,6 +107,17 @@ function AdminDashboard() {
     },
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto" />
+          <p className="mt-3 text-sm text-gray-500">Carregando painel...</p>
+        </div>
+      </div>
+    );
+  }
+
   const pct = Math.min(100, Math.round(((stats?.monthlyRevenue ?? 0) / META_MENSAL) * 100));
 
   const statusColors: Record<string, string> = {
