@@ -46,15 +46,15 @@ function AdminDashboard() {
       ] = await Promise.all([
         supabase.from("pedidos").select("*", { count: "exact", head: true }).gte("created_at", todayStr),
         supabase.from("produtos").select("*", { count: "exact", head: true }).eq("ativo", true),
-        supabase.from("pedidos").select("valor_total, taxa_entrega, desconto_aplicado").gte("created_at", firstDayOfMonth).neq("status", "cancelado"),
-        supabase.from("pedidos").select("id, nome_cliente, valor_total, status, created_at, endereco_bairro, metodo_entrega, origem").order("created_at", { ascending: false }).limit(8),
+        supabase.from("pedidos").select("valor_total,taxa_entrega,desconto_aplicado").gte("created_at", firstDayOfMonth).neq("status", "cancelado"),
+        supabase.from("pedidos").select("id,nome_cliente,valor_total,status,created_at,endereco_bairro,metodo_entrega,origem").order("created_at", { ascending: false }).limit(8),
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", firstDayOfMonth),
         supabase.from("pedidos").select("*", { count: "exact", head: true }).eq("status", "preparando"),
-        supabase.from("pedido_itens").select("produto_id, quantidade, produtos:produto_id(nome)").limit(200),
-        supabase.from("pedidos").select("id, valor_total, created_at, status").gte("created_at", last7Days).neq("status", "cancelado"),
-        supabase.from("pedidos").select("id, valor_total, created_at, status").gte("created_at", last30Days).neq("status", "cancelado"),
-        supabase.from("pedido_itens").select("preco_unitario, quantidade, produtos:produto_id(categoria)").gte("created_at", last30Days),
-        supabase.from("produtos").select("id, nome, estoque").lt("estoque", 5),
+        supabase.from("pedido_itens").select("produto_id,quantidade").limit(200),
+        supabase.from("pedidos").select("id,valor_total,created_at,status").gte("created_at", last7Days).neq("status", "cancelado"),
+        supabase.from("pedidos").select("id,valor_total,created_at,status").gte("created_at", last30Days).neq("status", "cancelado"),
+        supabase.from("pedido_itens").select("preco_unitario,quantidade").gte("created_at", last30Days),
+        supabase.from("produtos").select("id,nome,estoque").lt("estoque", 5),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
@@ -73,7 +73,7 @@ function AdminDashboard() {
       (topProductsRes.data ?? []).forEach((i: any) => {
         const id = i.produto_id;
         if (!id) return;
-        if (!countMap[id]) countMap[id] = { nome: i.produtos?.nome ?? "Produto", qty: 0 };
+        if (!countMap[id]) countMap[id] = { nome: `Produto ${id.slice(0, 6)}`, qty: 0 };
         countMap[id].qty += i.quantidade ?? 1;
       });
       const topProdutos = Object.values(countMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
