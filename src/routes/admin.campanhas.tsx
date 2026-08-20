@@ -71,6 +71,23 @@ function AdminCampaignPage() {
   const listaInputRef = useRef<HTMLInputElement>(null);
   const [listaCarregada, setListaCarregada] = useState<string | null>(null);
 
+  // Estado para templates
+  const [templateSelecionado, setTemplateSelecionado] = useState<any>(null);
+  const [templateVariaveis, setTemplateVariaveis] = useState<string[]>([]);
+  const [usarTemplate, setUsarTemplate] = useState(false);
+
+  // Query para buscar templates aprovados da Meta
+  const { data: templates = [], isLoading: carregandoTemplates, refetch: refetchTemplates } = useQuery({
+    queryKey: ["whatsapp-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-templates");
+      if (error) throw error;
+      return data?.templates || [];
+    },
+    staleTime: 5 * 60_000,
+    enabled: false, // Só busca quando o usuário quiser
+  });
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -415,6 +432,11 @@ function AdminCampaignPage() {
             imagem_url: imagemUrl,
             video_url: videoUrl,
             midia_tipo: tipo_midia,
+            template: usarTemplate && templateSelecionado ? {
+              name: templateSelecionado.name,
+              language: templateSelecionado.language,
+              variaveis: templateVariaveis,
+            } : null,
           },
         }
       );
@@ -434,6 +456,9 @@ function AdminCampaignPage() {
       setVideoFile(null);
       setVideoPreview(null);
       setMidiaTipo("nenhuma");
+      setTemplateSelecionado(null);
+      setTemplateVariaveis([]);
+      setUsarTemplate(false);
       queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
       setTabAtivo("historico");
     },
@@ -688,6 +713,123 @@ function AdminCampaignPage() {
               <div className="mt-2 text-xs text-gray-500">
                 {mensagem.length} caracteres
               </div>
+            </div>
+
+            {/* Templates WhatsApp */}
+            <div className="bg-white rounded-xl border p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700">
+                    Template WhatsApp
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Use templates para alcançar clientes que nunca conversaram com você
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setUsarTemplate(!usarTemplate);
+                    if (!usarTemplate && templates.length === 0) refetchTemplates();
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    usarTemplate
+                      ? "bg-[#5850ec] text-white border-[#5850ec]"
+                      : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                  }`}
+                >
+                  {usarTemplate ? "✓ Ativado" : "Usar Template"}
+                </button>
+              </div>
+
+              {usarTemplate && (
+                <div className="space-y-4">
+                  {/* Botão buscar templates */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => refetchTemplates()}
+                      disabled={carregandoTemplates}
+                      className="px-3 py-1.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {carregandoTemplates ? "Buscando..." : "🔄 Buscar Templates"}
+                    </button>
+                    <span className="text-xs text-gray-500 self-center">
+                      {templates.length > 0 ? `${templates.length} templates aprovados` : "Clique para carregar"}
+                    </span>
+                  </div>
+
+                  {/* Dropdown de templates */}
+                  {templates.length > 0 && (
+                    <select
+                      value={templateSelecionado?.name || ""}
+                      onChange={(e) => {
+                        const t = templates.find((t: any) => t.name === e.target.value);
+                        setTemplateSelecionado(t || null);
+                        setTemplateVariaveis(t ? Array(t.numVars).fill("") : []);
+                        if (t) setMensagem(t.body);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+                    >
+                      <option value="">Selecione um template...</option>
+                      {templates.map((t: any) => (
+                        <option key={t.name} value={t.name}>
+                          {t.name} ({t.language}) — {t.category}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Preview e variáveis do template */}
+                  {templateSelecionado && (
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      {templateSelecionado.header && (
+                        <p className="text-xs font-bold text-gray-500 uppercase">Header: {templateSelecionado.header}</p>
+                      )}
+                      <div className="bg-white rounded-lg p-3 border text-sm text-gray-800 whitespace-pre-wrap">
+                        {templateSelecionado.body}
+                      </div>
+                      {templateSelecionado.footer && (
+                        <p className="text-xs text-gray-400">{templateSelecionado.footer}</p>
+                      )}
+
+                      {/* Campos para variáveis */}
+                      {templateSelecionado.numVars > 0 && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <p className="text-xs font-bold text-gray-600">
+                            Preencha as variáveis ({templateSelecionado.numVars} no total):
+                          </p>
+                          {Array.from({ length: templateSelecionado.numVars }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-[#5850ec] w-8">{`{{${i + 1}}}`}</span>
+                              <Input
+                                placeholder={templateSelecionado.varExamples?.[i] || `Valor ${i + 1}`}
+                                value={templateVariaveis[i] || ""}
+                                onChange={(e) => {
+                                  const novo = [...templateVariaveis];
+                                  novo[i] = e.target.value;
+                                  setTemplateVariaveis(novo);
+                                }}
+                                className="text-sm"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!templateSelecionado && templates.length > 0 && (
+                    <p className="text-xs text-amber-600 bg-amber-50 rounded p-2">
+                      ⚠️ Selecione um template para enviar para clientes sem histórico de conversa
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {!usarTemplate && (
+                <p className="text-xs text-gray-400">
+                  Sem template: só envia para clientes que conversaram nas últimas 24h
+                </p>
+              )}
             </div>
 
             {/* Seleção de Lista Salva */}

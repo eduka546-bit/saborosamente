@@ -10,6 +10,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const DELAY_MS = 2000;
 const MAX_POR_MINUTO = 30;
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -18,13 +24,44 @@ async function enviarMensagem(
   to: string,
   mensagem: string,
   imagemUrl: string | null,
-  videoUrl: string | null
+  videoUrl: string | null,
+  template?: { name: string; language: string; variaveis: string[] } | null
 ): Promise<{ sucesso: boolean; erro?: string }> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
     Authorization: `Bearer ${WHATSAPP_TOKEN}`,
     "Content-Type": "application/json",
   };
+
+  // Envio por template (alcança qualquer número)
+  if (template) {
+    const components = [];
+
+    if (template.variaveis.length > 0) {
+      components.push({
+        type: "body",
+        parameters: template.variaveis.map((v) => ({ type: "text", text: v })),
+      });
+    }
+
+    const body = {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: template.name,
+        language: { code: template.language },
+        components: components.length > 0 ? components : undefined,
+      },
+    };
+
+    const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    const resJson = await res.json().catch(() => ({})) as { error?: { message?: string }; messages?: { id: string }[] };
+    console.log(`Template para ${to}:`, JSON.stringify(resJson));
+
+    if (res.ok) return { sucesso: true };
+    return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar template" };
+  }
 
   // Enviar vídeo com caption
   if (videoUrl) {
@@ -37,9 +74,7 @@ async function enviarMensagem(
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     if (res.ok) return { sucesso: true };
 
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
-
-    // Fallback para documento se vídeo não for aceito
+    // Fallback para documento
     const bodyDoc = {
       messaging_product: "whatsapp",
       to,
@@ -68,7 +103,7 @@ async function enviarMensagem(
     return { sucesso: false, erro: err.error?.message || "Erro ao enviar imagem" };
   }
 
-  // Só texto
+  // Só texto (janela 24h)
   const body = {
     messaging_product: "whatsapp",
     to,
@@ -76,23 +111,15 @@ async function enviarMensagem(
     text: { body: mensagem },
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-  const resJson = await res.json().catch(() => ({})) as { error?: { message?: string }; messages?: { id: string }[] };
-  console.log(`Resposta WhatsApp para ${to}:`, JSON.stringify(resJson));
+  const resJson = await res.json().catch(() => ({})) as { error?: { message?: string } };
+  console.log(`Texto para ${to}:`, JSON.stringify(resJson));
   if (res.ok) return { sucesso: true };
   return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar texto" };
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
   if (req.method !== "POST") {
@@ -109,24 +136,23 @@ Deno.serve(async (req: Request) => {
       imagem_url: string | null;
       video_url: string | null;
       midia_tipo: string;
+      template?: { name: string; language: string; variaveis: string[] } | null;
     };
 
     campanha_id = body.campanha_id;
-    const { contatos, mensagem, imagem_url, video_url } = body;
+    const { contatos, mensagem, imagem_url, video_url, template } = body;
 
     if (!campanha_id || !contatos || !mensagem) {
-      return new Response("Missing required fields", { status: 400 });
+      return new Response("Missing required fields", { status: 400, headers: CORS_HEADERS });
     }
 
-    console.log(`Iniciando campanha ${campanha_id} para ${contatos.length} contatos`);
+    console.log(`Iniciando campanha ${campanha_id} para ${contatos.length} contatos${template ? ` (template: ${template.name})` : ""}`);
 
-    // Atualizar status
     await supabase
       .from("campanhas_whatsapp")
       .update({ status: "enviando" })
       .eq("id", campanha_id);
 
-    // Criar registros pendentes
     await supabase.from("campanhas_whatsapp_envios").insert(
       contatos.map((tel: string) => ({ campanha_id, telefone: tel, status: "pendente" }))
     );
@@ -140,13 +166,11 @@ Deno.serve(async (req: Request) => {
     for (let i = 0; i < contatos.length; i++) {
       const telefone = contatos[i];
 
-      // Reset contador por minuto
       if (Date.now() - inicioMinuto > 60000) {
         msgsEsteMinuto = 0;
         inicioMinuto = Date.now();
       }
 
-      // Rate limiting
       if (msgsEsteMinuto >= MAX_POR_MINUTO) {
         const espera = 60000 - (Date.now() - inicioMinuto);
         console.log(`Rate limit: aguardando ${espera}ms`);
@@ -155,10 +179,9 @@ Deno.serve(async (req: Request) => {
         inicioMinuto = Date.now();
       }
 
-      // Delay entre mensagens
       if (i > 0) await sleep(DELAY_MS);
 
-      const resultado = await enviarMensagem(telefone, mensagem, imagem_url, video_url);
+      const resultado = await enviarMensagem(telefone, mensagem, imagem_url, video_url, template);
       msgsEsteMinuto++;
 
       if (resultado.sucesso) {
@@ -175,10 +198,7 @@ Deno.serve(async (req: Request) => {
           .update({ status: "falhou", erro_mensagem: resultado.erro })
           .eq("campanha_id", campanha_id)
           .eq("telefone", telefone);
-      }
-
-      if ((i + 1) % 10 === 0) {
-        console.log(`Progresso: ${i + 1}/${contatos.length}`);
+        console.warn(`Falha para ${telefone}: ${resultado.erro}`);
       }
     }
 
@@ -198,7 +218,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true, enviados, falhados, total: contatos.length, tempoTotal }),
-      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }, status: 200 }
+      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 }
     );
 
   } catch (e: unknown) {
@@ -215,7 +235,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ error: msg }),
-      { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }, status: 500 }
+      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 500 }
     );
   }
 });
