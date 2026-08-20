@@ -231,26 +231,6 @@ function Index() {
             </p>
           </div>
 
-          {/* INFO CARDS — faixa compacta */}
-          <div className="grid gap-2 grid-cols-3 mb-4">
-            {[
-              { icon: MapPin, title: "Entrega Regional", desc: "SBS e região" },
-              { icon: Truck, title: "Delivery ou Retirada", desc: "Na porta ou na loja" },
-              { icon: Calendar, title: "Pedidos 24h", desc: "Qualquer hora" }
-            ].map((card, i) => {
-              const Icon = card.icon;
-              return (
-                <div key={i} className="glass-card rounded-lg p-2.5 text-center">
-                  <div className="inline-flex p-1.5 rounded-md bg-primary/8 mb-1">
-                    <Icon className="size-3 text-primary" />
-                  </div>
-                  <h3 className="font-bold text-foreground text-[10px] leading-tight">{card.title}</h3>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">{card.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-
           {/* Promo Carousel */}
           {promoBanners.filter((b) => b?.image_url).length > 0 && (
             <PromoCarousel banners={promoBanners} />
@@ -262,22 +242,25 @@ function Index() {
           COMO FUNCIONA — Steps Premium
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="py-5 md:py-6">
-        <div className="mx-auto max-w-4xl px-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
             {[
-              { Icon: Timer, line1: "PRONTO EM ATÉ", line2: "7 MINUTOS", highlight: false },
-              { Icon: ShieldCheck, line1: "6 MESES DE", line2: "VALIDADE", highlight: true, number: "6" },
-              { Icon: Leaf, line1: "TEMPEROS 100%", line2: "NATURAIS", highlight: false },
-              { Icon: WheatOff, line1: "OPÇÕES SEM", line2: "GLÚTEN E LACTOSE", highlight: false },
-              { Icon: ChefHat, line1: "CRIADAS POR", line2: "CHEFS E NUTRIS", highlight: false },
+              { Icon: Timer, line1: "PRONTO EM ATÉ", line2: "7 MINUTOS" },
+              { Icon: ShieldCheck, line1: "6 MESES DE", line2: "VALIDADE", number: "6" },
+              { Icon: Leaf, line1: "TEMPEROS 100%", line2: "NATURAIS" },
+              { Icon: WheatOff, line1: "OPÇÕES SEM", line2: "GLÚTEN E LACTOSE" },
+              { Icon: ChefHat, line1: "CRIADAS POR", line2: "CHEFS E NUTRIS" },
+              { Icon: MapPin, line1: "ENTREGA", line2: "REGIONAL" },
+              { Icon: Truck, line1: "DELIVERY OU", line2: "RETIRADA" },
+              { Icon: Calendar, line1: "PEDIDOS", line2: "24H" },
             ].map((card, i) => (
-              <div key={i} className="bg-white rounded-xl border border-border/40 p-3 md:p-4 flex flex-col items-center justify-center text-center gap-2 shadow-[0_2px_8px_rgba(0,0,0,0.04)] min-h-[90px] md:min-h-[110px]">
+              <div key={i} className="bg-primary rounded-xl p-3 flex flex-col items-center justify-center text-center gap-1.5 shadow-sm min-h-[90px]">
                 {card.number ? (
-                  <span className="text-3xl md:text-4xl font-black text-primary leading-none">{card.number}</span>
+                  <span className="text-3xl font-black text-white leading-none">{card.number}</span>
                 ) : (
-                  <card.Icon className="size-7 md:size-8 text-primary" strokeWidth={1.5} />
+                  <card.Icon className="size-6 text-white" strokeWidth={1.5} />
                 )}
-                <div className="text-[8px] md:text-[9px] font-extrabold text-primary/90 uppercase leading-tight tracking-wide">
+                <div className="text-[8px] md:text-[9px] font-extrabold text-white/90 uppercase leading-tight tracking-wide">
                   <div>{card.line1}</div>
                   <div>{card.line2}</div>
                 </div>
