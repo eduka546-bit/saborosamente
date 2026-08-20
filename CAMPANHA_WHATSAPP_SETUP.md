@@ -20,10 +20,12 @@ Seu sistema de envio em massa de mensagens WhatsApp com **IMAGENS, VÍDEOS E TEX
      - ✅ Por Bairro (dropdown)
      - ✅ Por Gasto (range R$ min-max)
      - ✅ Ativos 30 dias (compra recente)
-   - **Lista Completa Editável**: 
-     - Edição individual de telefones
-     - Adicionar/remover contatos
-     - Import/Export via textarea
+   - **Gerenciar Contatos**: 
+     - 📥 **Importar CSV**: Carregue lista de telefones
+     - ➕ **Adicionar Contato**: Um por um
+     - 📋 **Copiar/Colar**: Bloco inteiro
+     - ✏️ **Editar**: Cada contato individualmente
+     - 🗑️ **Remover**: Limpar contatos
 
 ### 2. **Menu Admin**
    - Link "Campanhas → WhatsApp em Massa"
@@ -92,6 +94,19 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 1. Tipo de Mídia: "📝 Só Texto"
 2. Digite mensagem
 3. Enviar
+
+### Importar CSV de Contatos:
+1. Clique em **"Ver/Editar Lista Completa"**
+2. Clique em **"📥 Importar CSV"**
+3. Selecione arquivo `.csv` com telefones
+4. Contatos são adicionados automaticamente
+5. Edite/confirme antes de enviar
+
+**Formatos de CSV aceitos:**
+- Apenas telefones (um por linha)
+- Com header "Telefone" ou "Phone"
+- Múltiplas colunas (extrai telefone automaticamente)
+- Telefones com `( ) - +` (remove automaticamente)
 
 ---
 

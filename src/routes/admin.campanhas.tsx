@@ -35,6 +35,7 @@ function AdminCampaignPage() {
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Query para buscar clientes com dados completos
@@ -166,6 +167,53 @@ function AdminCampaignPage() {
       setVideoPreview(event.target?.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleImportarCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error("Por favor, selecione um arquivo CSV");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const csv = event.target?.result as string;
+        const linhas = csv.split('\n').filter(l => l.trim());
+        
+        // Remove header se houver
+        let contatos = linhas;
+        if (linhas.length > 0 && (linhas[0].toLowerCase().includes('telefone') || linhas[0].toLowerCase().includes('phone'))) {
+          contatos = linhas.slice(1);
+        }
+
+        // Parse telefones (remove tudo que não é número)
+        const telefonesParsed = contatos
+          .map(l => {
+            const match = l.match(/\d+/g);
+            return match ? match.join('') : '';
+          })
+          .filter(t => t.length >= 10 && t.length <= 15);
+
+        if (telefonesParsed.length === 0) {
+          toast.error("Nenhum telefone válido encontrado no CSV");
+          return;
+        }
+
+        // Adicionar aos contatos existentes (evitar duplicatas)
+        const contatosAtualizado = Array.from(
+          new Set([...contatosEditaveis, ...telefonesParsed])
+        );
+        setContatosEditaveis(contatosAtualizado);
+        toast.success(`✓ Importados ${telefonesParsed.length} contatos`);
+      } catch (err) {
+        toast.error("Erro ao processar CSV");
+      }
+    };
+    reader.readAsText(file);
   };
 
   const sendMutation = useMutation({
@@ -718,11 +766,28 @@ function AdminCampaignPage() {
                           + Adicionar Contato
                         </button>
 
-                        {/* Copiar/Colar */}
-                        <div className="mt-3 pt-3 border-t border-gray-200">
+                        {/* Copiar/Colar/Importar CSV */}
+                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                           <p className="text-xs font-bold text-gray-600 mb-2">
                             Importar/Exportar:
                           </p>
+                          
+                          {/* Botão Importar CSV */}
+                          <button
+                            onClick={() => csvInputRef.current?.click()}
+                            className="w-full px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                          >
+                            📥 Importar CSV
+                          </button>
+                          <input
+                            ref={csvInputRef}
+                            type="file"
+                            accept=".csv"
+                            onChange={handleImportarCSV}
+                            className="hidden"
+                          />
+
+                          {/* TextArea Copiar/Colar */}
                           <textarea
                             value={contatosEditaveis.join("\n")}
                             onChange={(e) =>
@@ -744,7 +809,7 @@ function AdminCampaignPage() {
                               );
                               toast.success("Copiado para clipboard!");
                             }}
-                            className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                            className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
                           >
                             📋 Copiar Lista
                           </button>
