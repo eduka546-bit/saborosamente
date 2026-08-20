@@ -845,145 +845,166 @@ function AdminCampaignPage() {
               )}
             </div>
 
-            {/* Seleção de Clientes do Banco */}
-            <div className="bg-white rounded-xl border p-6">
-              <label className="block text-sm font-bold text-gray-700 mb-4">
-                Filtrar Clientes ({listaCarregada ? listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length : contatosEditaveis.length})
-              </label>
-
-              {listaCarregada && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <p className="text-xs font-bold text-blue-700">
-                    ℹ️ Usando lista: {listas.find((l: any) => l.id === listaCarregada)?.nome}
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    ({listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length} contatos prontos para enviar)
-                  </p>
-                </div>
-              )}
-
-              {/* Tabs de Filtro */}
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                {[
-                  { id: "todos", label: "Todos" },
-                  { id: "bairro", label: "Por Bairro" },
-                  { id: "gasto", label: "Por Gasto" },
-                  { id: "ativo", label: "Ativos 30d" },
-                ].map((tab) => (
+            {/* Info Box - Lista Carregada */}
+            {listaCarregada && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs font-bold text-blue-700 mb-1">
+                      ✓ LISTA CARREGADA
+                    </p>
+                    <p className="text-lg font-bold text-blue-900">
+                      {listas.find((l: any) => l.id === listaCarregada)?.nome}
+                    </p>
+                    <p className="text-sm text-blue-700 mt-2">
+                      {listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length} contatos prontos para enviar
+                    </p>
+                  </div>
                   <button
-                    key={tab.id}
                     onClick={() => {
-                      setFiltroTipo(tab.id as any);
+                      setListaCarregada(null);
+                      setContatosEditaveis([]);
                       setClientesSelecionadosManual(new Set());
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                      filtroTipo === tab.id
-                        ? "bg-[#5850ec] text-white border-[#5850ec]"
-                        : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
-                    }`}
+                    className="px-3 py-1 text-xs font-bold text-blue-700 border border-blue-300 rounded hover:bg-blue-100"
                   >
-                    {tab.label}
+                    Trocar Lista
                   </button>
-                ))}
+                </div>
               </div>
+            )}
 
-              {/* Opções de Filtro */}
-              {filtroTipo === "bairro" && (
-                <div className="mb-4">
-                  <select
-                    value={filtroBairro}
-                    onChange={(e) => setFiltroBairro(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
-                  >
-                    <option value="">Selecione um bairro...</option>
-                    {bairrosUnicos.map((bairro) => (
-                      <option key={bairro} value={bairro}>
-                        {bairro}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            {/* Seleção de Clientes - Apenas se nenhuma lista carregada */}
+            {!listaCarregada && (
+              <div className="bg-white rounded-xl border p-6">
+                <label className="block text-sm font-bold text-gray-700 mb-4">
+                  Filtrar Clientes ({contatosEditaveis.length})
+                </label>
 
-              {filtroTipo === "gasto" && (
-                <div className="mb-4 grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-gray-600 block mb-1">
-                      Gasto Mínimo (R$)
-                    </label>
-                    <input
-                      type="number"
-                      value={filtroGastoMin}
-                      onChange={(e) => setFiltroGastoMin(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-600 block mb-1">
-                      Gasto Máximo (R$)
-                    </label>
-                    <input
-                      type="number"
-                      value={filtroGastoMax}
-                      onChange={(e) => setFiltroGastoMax(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Prévia dos Clientes */}
-              {carregandoClientes ? (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  Carregando clientes...
-                </div>
-              ) : clientesFiltrados.length > 0 ? (
-                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                  {clientesFiltrados.slice(0, 10).map((cliente: any) => (
-                    <label
-                      key={cliente.id}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                {/* Tabs de Filtro */}
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  {[
+                    { id: "todos", label: "Todos" },
+                    { id: "bairro", label: "Por Bairro" },
+                    { id: "gasto", label: "Por Gasto" },
+                    { id: "ativo", label: "Ativos 30d" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setFiltroTipo(tab.id as any);
+                        setClientesSelecionadosManual(new Set());
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
+                        filtroTipo === tab.id
+                          ? "bg-[#5850ec] text-white border-[#5850ec]"
+                          : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                      }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={
-                          clientesSelecionadosManual.size === 0 ||
-                          clientesSelecionadosManual.has(cliente.telefone)
-                        }
-                        onChange={() => {
-                          if (clientesSelecionadosManual.size === 0) {
-                            const todosSelecionados = new Set(
-                              clientesFiltrados.map((c: any) => c.telefone)
-                            );
-                            todosSelecionados.delete(cliente.telefone);
-                            setClientesSelecionadosManual(todosSelecionados);
-                          } else {
-                            toggleClienteSelecionado(cliente.telefone);
-                          }
-                        }}
-                        className="h-4 w-4 rounded cursor-pointer"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {cliente.nome}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {cliente.bairro} • R${cliente.valorGasto.toFixed(2)}
-                        </p>
-                      </div>
-                    </label>
+                      {tab.label}
+                    </button>
                   ))}
-                  {clientesFiltrados.length > 10 && (
-                    <div className="text-xs text-gray-500 text-center py-2 border-t">
-                      +{clientesFiltrados.length - 10} clientes não exibidos
+                </div>
+
+                {/* Opções de Filtro */}
+                {filtroTipo === "bairro" && (
+                  <div className="mb-4">
+                    <select
+                      value={filtroBairro}
+                      onChange={(e) => setFiltroBairro(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+                    >
+                      <option value="">Selecione um bairro...</option>
+                      {bairrosUnicos.map((bairro) => (
+                        <option key={bairro} value={bairro}>
+                          {bairro}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {filtroTipo === "gasto" && (
+                  <div className="mb-4 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-600 block mb-1">
+                        Gasto Mínimo (R$)
+                      </label>
+                      <input
+                        type="number"
+                        value={filtroGastoMin}
+                        onChange={(e) => setFiltroGastoMin(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                      />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400 text-sm">
-                  Nenhum cliente encontrado com esses filtros
-                </div>
-              )}
+                    <div>
+                      <label className="text-xs font-bold text-gray-600 block mb-1">
+                        Gasto Máximo (R$)
+                      </label>
+                      <input
+                        type="number"
+                        value={filtroGastoMax}
+                        onChange={(e) => setFiltroGastoMax(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Prévia dos Clientes */}
+                {carregandoClientes ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Carregando clientes...
+                  </div>
+                ) : clientesFiltrados.length > 0 ? (
+                  <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    {clientesFiltrados.slice(0, 10).map((cliente: any) => (
+                      <label
+                        key={cliente.id}
+                        className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            clientesSelecionadosManual.size === 0 ||
+                            clientesSelecionadosManual.has(cliente.telefone)
+                          }
+                          onChange={() => {
+                            if (clientesSelecionadosManual.size === 0) {
+                              const todosSelecionados = new Set(
+                                clientesFiltrados.map((c: any) => c.telefone)
+                              );
+                              todosSelecionados.delete(cliente.telefone);
+                              setClientesSelecionadosManual(todosSelecionados);
+                            } else {
+                              toggleClienteSelecionado(cliente.telefone);
+                            }
+                          }}
+                          className="h-4 w-4 rounded cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {cliente.nome}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {cliente.bairro} • R${cliente.valorGasto.toFixed(2)}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                    {clientesFiltrados.length > 10 && (
+                      <div className="text-xs text-gray-500 text-center py-2 border-t">
+                        +{clientesFiltrados.length - 10} clientes não exibidos
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-400 text-sm">
+                    Nenhum cliente encontrado com esses filtros
+                  </div>
+                )}
+              </div>
+            )}
 
               {/* Lista Completa de Clientes - Expansível */}
               <div className="border-t border-gray-200 pt-4">
