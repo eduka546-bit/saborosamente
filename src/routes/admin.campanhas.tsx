@@ -28,6 +28,7 @@ function AdminCampaignPage() {
   const [enviando, setEnviando] = useState(false);
   const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
+  const [campanhaDetalhes, setCampanhaDetalhes] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +87,22 @@ function AdminCampaignPage() {
     },
     staleTime: 5 * 60_000,
     enabled: false, // Só busca quando o usuário quiser
+  });
+
+  // Query para envios da campanha selecionada (tempo real)
+  const { data: enviosCampanha = [], refetch: refetchEnvios } = useQuery({
+    queryKey: ["envios-campanha", campanhaDetalhes],
+    queryFn: async () => {
+      if (!campanhaDetalhes) return [];
+      const { data } = await supabase
+        .from("campanhas_whatsapp_envios")
+        .select("*")
+        .eq("campanha_id", campanhaDetalhes)
+        .order("created_at");
+      return data || [];
+    },
+    enabled: !!campanhaDetalhes,
+    refetchInterval: campanhaDetalhes ? 3000 : false, // Atualiza a cada 3s
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1397,61 +1414,149 @@ function AdminCampaignPage() {
               <p className="text-gray-500">Nenhuma campanha enviada ainda</p>
             </div>
           ) : (
-            campanhas.map((campanha: any) => (
-              <div
-                key={campanha.id}
-                className="bg-white rounded-xl border p-4 flex items-center justify-between hover:shadow-md transition-all"
-              >
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900">{campanha.nome}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">
-                    {campanha.mensagem}
-                  </p>
-                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                    <span>
-                      📅{" "}
-                      {new Date(campanha.created_at).toLocaleString(
-                        "pt-BR",
-                        { dateStyle: "short", timeStyle: "short" }
-                      )}
-                    </span>
-                    <span>
-                      📨 {campanha.contatos_total} contatos
-                    </span>
-                    <span>
-                      ✓ {campanha.contatos_enviados} enviados
-                    </span>
-                    {campanha.contatos_falhados > 0 && (
-                      <span className="text-red-600">
-                        ✗ {campanha.contatos_falhados} falhados
+            <>
+              {/* Painel de detalhes em tempo real */}
+              {campanhaDetalhes && (
+                <div className="bg-white rounded-xl border p-6 mb-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-gray-800">
+                      Envios em Tempo Real
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {enviosCampanha.filter((e: any) => e.status === "enviado").length}/{enviosCampanha.length} enviados
                       </span>
-                    )}
+                      <button
+                        onClick={() => setCampanhaDetalhes(null)}
+                        className="text-xs px-2 py-1 text-gray-500 hover:text-red-600 border rounded"
+                      >
+                        ✕ Fechar
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 ml-4">
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                      campanha.status === "enviada"
-                        ? "bg-green-100 text-green-700"
-                        : campanha.status === "enviando"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {campanha.status === "enviada" && (
-                      <CheckCircle2 size={14} />
-                    )}
-                    {campanha.status === "enviando" && (
-                      <Clock size={14} className="animate-spin" />
-                    )}
-                    {campanha.status === "erro" && <AlertCircle size={14} />}
-                    {campanha.status.charAt(0).toUpperCase() +
-                      campanha.status.slice(1)}
+                  {/* Barra de progresso */}
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width: enviosCampanha.length > 0
+                          ? `${(enviosCampanha.filter((e: any) => e.status === "enviado").length / enviosCampanha.length) * 100}%`
+                          : "0%",
+                      }}
+                    />
+                  </div>
+
+                  {/* Lista de envios */}
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {enviosCampanha.map((envio: any, idx: number) => (
+                      <div
+                        key={envio.id || idx}
+                        className={`flex items-center justify-between px-3 py-2 rounded text-sm ${
+                          envio.status === "enviado"
+                            ? "bg-green-50"
+                            : envio.status === "falhou"
+                              ? "bg-red-50"
+                              : envio.status === "pendente"
+                                ? "bg-yellow-50"
+                                : "bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-gray-600">{envio.telefone}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {envio.status === "enviado" && (
+                            <span className="text-xs font-bold text-green-700">✓ Enviado</span>
+                          )}
+                          {envio.status === "falhou" && (
+                            <span className="text-xs font-bold text-red-600" title={envio.erro_mensagem}>
+                              ✗ {envio.erro_mensagem?.slice(0, 30) || "Falhou"}
+                            </span>
+                          )}
+                          {envio.status === "pendente" && (
+                            <span className="text-xs font-bold text-yellow-600">⏳ Pendente</span>
+                          )}
+                          {envio.enviado_em && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(envio.enviado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))
+              )}
+
+              {/* Lista de campanhas */}
+              {campanhas.map((campanha: any) => (
+                <div
+                  key={campanha.id}
+                  className="bg-white rounded-xl border p-4 flex items-center justify-between hover:shadow-md transition-all"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900">{campanha.nome}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">
+                      {campanha.mensagem}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                      <span>
+                        📅{" "}
+                        {new Date(campanha.created_at).toLocaleString(
+                          "pt-BR",
+                          { dateStyle: "short", timeStyle: "short" }
+                        )}
+                      </span>
+                      <span>
+                        📨 {campanha.contatos_total} contatos
+                      </span>
+                      <span>
+                        ✓ {campanha.contatos_enviados} enviados
+                      </span>
+                      {campanha.contatos_falhados > 0 && (
+                        <span className="text-red-600">
+                          ✗ {campanha.contatos_falhados} falhados
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 ml-4">
+                    <button
+                      onClick={() => setCampanhaDetalhes(campanhaDetalhes === campanha.id ? null : campanha.id)}
+                      className={`px-3 py-1 rounded text-xs font-bold border transition-all ${
+                        campanhaDetalhes === campanha.id
+                          ? "bg-[#5850ec] text-white border-[#5850ec]"
+                          : "border-gray-200 text-gray-600 hover:border-[#5850ec]"
+                      }`}
+                    >
+                      <Eye size={12} className="inline mr-1" />
+                      {campanhaDetalhes === campanha.id ? "Fechar" : "Ver"}
+                    </button>
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                        campanha.status === "enviada"
+                          ? "bg-green-100 text-green-700"
+                          : campanha.status === "enviando"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {campanha.status === "enviada" && (
+                        <CheckCircle2 size={14} />
+                      )}
+                      {campanha.status === "enviando" && (
+                        <Clock size={14} className="animate-spin" />
+                      )}
+                      {campanha.status === "erro" && <AlertCircle size={14} />}
+                      {campanha.status.charAt(0).toUpperCase() +
+                        campanha.status.slice(1)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
       )}
