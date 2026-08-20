@@ -45,6 +45,13 @@ Deno.serve(async (req: Request) => {
       }[];
     };
 
+    console.log("Total templates recebidos:", data.data?.length || 0);
+    if (data.data?.length > 0) {
+      console.log("Primeiro template:", JSON.stringify(data.data[0]));
+    } else {
+      console.log("Resposta completa da Meta:", JSON.stringify(data));
+    }
+
     // Formatar para o frontend (todos os templates, mostrando status)
     const templates = (data.data || []).map((t) => {
       const body = t.components.find((c) => c.type === "BODY");
@@ -72,7 +79,7 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    return new Response(JSON.stringify({ templates }), {
+    return new Response(JSON.stringify({ templates, total: templates.length, raw: data.data?.length }), {
       status: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
