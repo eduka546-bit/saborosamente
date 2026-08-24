@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import {
   MessageCircle, GitBranch, Clock, Tag,
-  ArrowRight, X, ChevronDown, ChevronRight, ArrowUp, GripVertical
+  ArrowRight, X, ChevronDown, ChevronRight, GripVertical,
+  ZoomIn, ZoomOut, Maximize2
 } from "lucide-react";
 import {
   DndContext, DragEndEvent, closestCenter,
@@ -131,7 +132,11 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
 // ── Componente principal ──
 export function FlowDiagram({ nos, onUpdate, editavel = false }: FlowDiagramProps) {
   const [expandido, setExpandido] = useState<Set<string>>(new Set(nos.slice(0, 1).map(n => n.id)));
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [arrastandoCanvas, setArrastandoCanvas] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const panInicio = useRef({ x: 0, y: 0 });
 
   // Sensores para drag-and-drop
   const sensors = useSensors(
@@ -155,57 +160,94 @@ export function FlowDiagram({ nos, onUpdate, editavel = false }: FlowDiagramProp
     }
   };
 
+  const alterarZoom = (delta: number) => {
+    setZoom(prev => Math.min(1.6, Math.max(0.55, Number((prev + delta).toFixed(2)))));
+  };
+
+  const iniciarPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    setArrastandoCanvas(true);
+    panInicio.current = { x: event.clientX - pan.x, y: event.clientY - pan.y };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moverPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!arrastandoCanvas) return;
+    setPan({ x: event.clientX - panInicio.current.x, y: event.clientY - panInicio.current.y });
+  };
+
+  const pararPan = () => setArrastandoCanvas(false);
+
+  const indicePorId = new Map(nos.map((no, indice) => [no.id, indice]));
+  const conexoes = nos.flatMap((no, indice) => {
+    const destinos = [no.proximo_id, no.proximo_sim_id, no.proximo_nao_id].filter(Boolean) as string[];
+    return destinos.map((destino, ramo) => ({
+      de: indice,
+      para: indicePorId.get(destino),
+      ramo: no.tipo === "condicao" ? (ramo === 0 ? "sim" : "nao") : "",
+    })).filter(conexao => conexao.para !== undefined);
+  });
+
   return (
-    <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-6 overflow-auto">
+    <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 border-b bg-white/80 px-3 py-2">
+        <div>
+          <p className="text-xs font-bold text-gray-700">Área de trabalho do fluxo</p>
+          <p className="text-[10px] text-gray-400">Arraste o espaço para navegar e organize os nós abaixo</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => alterarZoom(-0.1)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" title="Diminuir zoom"><ZoomOut size={16} /></button>
+          <span className="w-12 text-center text-xs font-semibold text-gray-500">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => alterarZoom(0.1)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" title="Aumentar zoom"><ZoomIn size={16} /></button>
+          <button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" title="Centralizar fluxo"><Maximize2 size={16} /></button>
+        </div>
+      </div>
       {nos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-gray-400">
           <GitBranch size={32} className="mb-2 opacity-30" />
           <p className="text-sm">Nenhum nó no fluxo</p>
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+        <div
+          ref={canvasRef}
+          className={`relative h-[520px] overflow-hidden ${arrastandoCanvas ? "cursor-grabbing" : "cursor-grab"}`}
+          onPointerDown={iniciarPan}
+          onPointerMove={moverPan}
+          onPointerUp={pararPan}
+          onPointerCancel={pararPan}
+          onWheel={event => { event.preventDefault(); alterarZoom(event.deltaY > 0 ? -0.05 : 0.05); }}
         >
-          <SortableContext items={nos.map(n => n.id)} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col items-center gap-2">
-              {nos.map((no, idx) => (
-                <div key={no.id} className="w-full flex flex-col items-center">
-                  <NoDraggable
-                    no={no}
-                    onToggleExpand={(id) => {
-                      setExpandido(prev => {
-                        const novo = new Set(prev);
-                        if (novo.has(id)) {
-                          novo.delete(id);
-                        } else {
-                          novo.add(id);
-                        }
-                        return novo;
-                      });
-                    }}
-                    isExpanded={expandido.has(no.id)}
-                  />
-                  {idx < nos.length - 1 && (
-                    <div className="flex justify-center my-1">
-                      <ArrowUp size={16} className="text-gray-300 rotate-180" />
-                    </div>
-                  )}
+          <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]" />
+          <div className="absolute left-1/2 top-8 w-[300px] -translate-x-1/2 origin-top" style={{ transform: `translateX(calc(-50% + ${pan.x / zoom}px)) translateY(${pan.y / zoom}px) scale(${zoom})` }}>
+            <svg className="pointer-events-none absolute left-0 top-0 h-full w-full overflow-visible" style={{ height: Math.max(160, nos.length * 120) }}>
+              {conexoes.map((conexao, indice) => {
+                const inicioY = conexao.de * 120 + 76;
+                const fimY = (conexao.para ?? 0) * 120 + 4;
+                return <g key={`${conexao.de}-${conexao.para}-${indice}`}><line x1="150" y1={inicioY} x2="150" y2={fimY} stroke="#94a3b8" strokeWidth="2" strokeDasharray={conexao.ramo ? "5 4" : undefined} /><text x="158" y={(inicioY + fimY) / 2} fill="#64748b" fontSize="10">{conexao.ramo}</text></g>;
+              })}
+            </svg>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={nos.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                <div className="relative flex flex-col items-center gap-8">
+                  {nos.map(no => (
+                    <NoDraggable key={no.id} no={no} onToggleExpand={(id) => setExpandido(prev => {
+                      const novo = new Set(prev);
+                      if (novo.has(id)) novo.delete(id); else novo.add(id);
+                      return novo;
+                    })} isExpanded={expandido.has(no.id)} />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+              </SortableContext>
+            </DndContext>
+          </div>
+        </div>
       )}
 
-      <div className="mt-4 pt-4 border-t text-xs text-gray-500">
+      <div className="border-t px-3 py-2 text-xs text-gray-500">
         <p className="text-center">
-          🎯 Arraste os nós pelas laterais para reordenar · Clique para expandir
+          🎯 Arraste os nós pela alça para reordenar · Use o zoom para revisar o fluxo completo
         </p>
       </div>
-
-      <svg ref={svgRef} className="hidden" style={{ position: "absolute", top: 0, left: 0 }} />
     </div>
   );
 }

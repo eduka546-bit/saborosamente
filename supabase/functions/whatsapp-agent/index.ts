@@ -105,10 +105,14 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 // Envia o menu principal da Saborosa
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
+  await sendMenuInterativo(to, saudacao);
+}
+
+async function sendMenuInterativo(to: string, saudacao?: string) {
   const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
-    `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
+    `${saudacao ? `${saudacao} ` : ""}Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
     "Ver opções",
     [{
       title: "O que você precisa?",
@@ -126,7 +130,7 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   if (!menuEnviado) {
     await sendWhatsAppMessage(
       to,
-      `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
+      `${saudacao ? `${saudacao} ` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
     );
   }
 }
@@ -1183,6 +1187,7 @@ Deno.serve(async (req: Request) => {
               [{ id: "btn_cardapio", title: "🍽️ Ver cardápio" }, { id: "btn_pedido", title: "🛒 Fazer pedido" }]
             );
             await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Site enviado]" });
+            await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
           }
           case "menu_cardapio":
@@ -1218,6 +1223,7 @@ Deno.serve(async (req: Request) => {
               }]
             );
             await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu dúvidas enviado]" });
+            await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
           }
           case "duvida_entrega":    { await appendMensagem(conversa.id, historico, { role: "user", content: "Como funciona a entrega e qual o frete?" }); break; }
@@ -1384,10 +1390,12 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             await sendWhatsAppMessage(telefone, confirmacao);
             await salvarPedidoEmAndamento(conversa.id, null); // limpa pedido em andamento
             await appendMensagem(conversa.id, historico, { role: "assistant", content: confirmacao });
+            await sendMenuInterativo(telefone);
           } else {
             const erroMsg = "Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: saborosamente.vercel.app";
             await sendWhatsAppMessage(telefone, erroMsg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
+            await sendMenuInterativo(telefone);
           }
         }
 
@@ -1408,6 +1416,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+          await sendMenuInterativo(telefone);
         }
 
         // ── Enviar menu principal ─────────────────────────────────────────
@@ -1433,6 +1442,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
 
           await sendWhatsAppMessage(telefone, resposta);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+          await sendMenuInterativo(telefone);
         }
 
         // ── Consultar cashback ────────────────────────────────────────────
@@ -1442,6 +1452,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             const msg = "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            await sendMenuInterativo(telefone);
           } else {
             const { data: saldoData } = await supabase
               .from("cashback_saldo")
@@ -1455,6 +1466,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            await sendMenuInterativo(telefone);
           }
         }
 
@@ -1487,10 +1499,12 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           } else {
             await sendWhatsAppMessage(telefone, resposta);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+            await sendMenuInterativo(telefone);
           }
         } else {
           await sendWhatsAppMessage(telefone, resposta);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+          await sendMenuInterativo(telefone);
         }
       }
 
