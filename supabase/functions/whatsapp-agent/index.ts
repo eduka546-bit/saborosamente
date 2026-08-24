@@ -183,7 +183,7 @@ function identificarOpcaoMenu(texto: string): string | null {
   return opcoes[texto.trim()] ?? null;
 }
 
-async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
+async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string): Promise<boolean> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   
   // Otimizar URL para reduzir egress: adicionar transform parameters
@@ -194,44 +194,54 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
     optimizedUrl = `${imageUrl}${separator}width=800&quality=75`;
   }
   
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "image",
-      image: { link: optimizedUrl, ...(caption ? { caption } : {}) },
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsAppImage error:", JSON.stringify(err));
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "image",
+        image: { link: optimizedUrl, ...(caption ? { caption } : {}) },
+      }),
+    }).catch((error) => {
+      console.error(`sendWhatsAppImage network error (tentativa ${tentativa}):`, error);
+      return null;
+    });
+    if (res?.ok) return true;
+    const err = await res?.json().catch(() => ({}));
+    console.error(`sendWhatsAppImage error (tentativa ${tentativa}):`, JSON.stringify(err));
   }
+  return false;
 }
 
-async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string) {
+async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string): Promise<boolean> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "document",
-      document: { link: docUrl, filename, ...(caption ? { caption } : {}) },
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsAppDocument error:", JSON.stringify(err));
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "document",
+        document: { link: docUrl, filename, ...(caption ? { caption } : {}) },
+      }),
+    }).catch((error) => {
+      console.error(`sendWhatsAppDocument network error (tentativa ${tentativa}):`, error);
+      return null;
+    });
+    if (res?.ok) return true;
+    const err = await res?.json().catch(() => ({}));
+    console.error(`sendWhatsAppDocument error (tentativa ${tentativa}):`, JSON.stringify(err));
   }
+  return false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1437,19 +1447,24 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
 
           await sendWhatsAppMessage(telefone, mensagem);
 
+          let midiaEnviada = true;
           if (tipo === "imagem") {
-            await sendWhatsAppImage(telefone, url);
+            midiaEnviada = await sendWhatsAppImage(telefone, url);
           } else {
             const filename = /card[aá]pio/i.test(nome ?? "")
               ? "Cardápio Saborosamente.pdf"
               : nome ?? url.split("/").pop() ?? "arquivo";
-            await sendWhatsAppDocument(telefone, url, filename);
+            midiaEnviada = await sendWhatsAppDocument(telefone, url, filename);
           }
 
           await appendMensagem(conversa.id, historico, {
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+          if (!midiaEnviada) {
+            await sendWhatsAppMessage(telefone, "Não consegui entregar o arquivo agora. Vou tentar novamente quando você solicitar. 🙏");
+            return new Response("OK", { status: 200 });
+          }
           await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
           await sendMenuInterativo(telefone);
         }
