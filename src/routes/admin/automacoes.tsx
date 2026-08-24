@@ -267,8 +267,6 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
     finally { setSaving(false); }
   };
 
-  const gatilhoCfg = GATILHO_CONFIG[form.gatilho_tipo!];
-
   return (
     <div className="fixed inset-0 z-50 flex h-screen w-screen overflow-hidden bg-black/60">
       <div className="flex h-full w-full flex-col bg-white shadow-2xl">
@@ -319,100 +317,14 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
                   nos={form.nos ?? []} 
                   onUpdate={(novoNos) => setForm(f => ({ ...f, nos: novoNos }))}
                   onInsert={(indice, tipo) => addNo(tipo as NoTipo, indice)}
+                  gatilhoTipo={form.gatilho_tipo}
+                  gatilhoValor={form.gatilho_valor}
+                  onGatilhoChange={(tipo, valor) => setForm(f => ({ ...f, gatilho_tipo: tipo as GatilhoTipo, gatilho_valor: valor }))}
                   editavel={true}
                 />
               </div>
             </div>
           </>
-
-          {/* Gatilho */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-              <Zap size={16} className="text-[#5850ec]" /> Gatilho — quando executar?
-            </h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {(Object.entries(GATILHO_CONFIG) as [GatilhoTipo, any][]).map(([tipo, cfg]) => (
-                <button
-                  key={tipo}
-                  onClick={() => setForm(f => ({ ...f, gatilho_tipo: tipo, gatilho_valor: {} }))}
-                  className={`p-3 rounded-xl border text-left transition-all ${form.gatilho_tipo === tipo
-                    ? "border-[#5850ec] bg-[#5850ec]/10"
-                    : "border-gray-100 hover:border-[#5850ec]/30"
-                  }`}
-                >
-                  <cfg.icon size={16} className="mb-1.5 text-[#5850ec]" />
-                  <p className="text-xs font-bold text-gray-800">{cfg.label}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{cfg.descricao}</p>
-                </button>
-              ))}
-            </div>
-
-            {/* Config do gatilho */}
-            <div className="bg-gray-50 rounded-xl border p-4 space-y-2">
-              <p className="text-xs font-bold text-gray-500 uppercase">{gatilhoCfg.label} — configuração</p>
-
-              {form.gatilho_tipo === "keyword" && (
-                <div>
-                  <label className="text-[10px] text-gray-400">Palavras ou frases (uma por linha)</label>
-                  <textarea
-                    value={(form.gatilho_valor?.palavras ?? []).join("\n")}
-                    onChange={e => setForm(f => ({ ...f, gatilho_valor: { ...f.gatilho_valor, palavras: e.target.value.split("\n").filter(Boolean) } }))}
-                    placeholder="promoção&#10;desconto&#10;quero pedir&#10;cardápio"
-                    rows={4}
-                    className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm font-mono outline-none focus:ring-1 focus:ring-[#5850ec] resize-none"
-                  />
-                  <div className="flex gap-3 mt-2">
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                      <input type="radio" checked={form.gatilho_valor?.modo !== "all"} onChange={() => setForm(f => ({ ...f, gatilho_valor: { ...f.gatilho_valor, modo: "any" } }))} />
-                      Qualquer uma das palavras
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                      <input type="radio" checked={form.gatilho_valor?.modo === "all"} onChange={() => setForm(f => ({ ...f, gatilho_valor: { ...f.gatilho_valor, modo: "all" } }))} />
-                      Todas as palavras
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {form.gatilho_tipo === "status_pedido" && (
-                <select
-                  value={form.gatilho_valor?.status ?? "entregue"}
-                  onChange={e => setForm(f => ({ ...f, gatilho_valor: { status: e.target.value } }))}
-                  className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
-                >
-                  <option value="preparando">Preparando</option>
-                  <option value="saiu para entrega">Saiu para entrega</option>
-                  <option value="entregue">Entregue</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
-              )}
-
-              {form.gatilho_tipo === "sem_resposta" && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number" min="1"
-                    value={form.gatilho_valor?.horas ?? 2}
-                    onChange={e => setForm(f => ({ ...f, gatilho_valor: { horas: Number(e.target.value) } }))}
-                    className="w-20 rounded-lg border bg-white px-3 py-2 text-sm outline-none"
-                  />
-                  <span className="text-sm text-gray-600">horas sem resposta</span>
-                </div>
-              )}
-
-              {form.gatilho_tipo === "tag" && (
-                <input
-                  value={form.gatilho_valor?.tag ?? ""}
-                  onChange={e => setForm(f => ({ ...f, gatilho_valor: { tag: e.target.value } }))}
-                  placeholder="Nome da tag que dispara a automação"
-                  className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
-                />
-              )}
-
-              {(form.gatilho_tipo === "primeira_msg" || form.gatilho_tipo === "pedido_criado") && (
-                <p className="text-xs text-gray-500 italic">Nenhuma configuração necessária — dispara automaticamente.</p>
-              )}
-            </div>
-          </div>
 
           {/* Botão salvar */}
           <button

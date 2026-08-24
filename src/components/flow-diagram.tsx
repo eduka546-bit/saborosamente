@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import {
   MessageCircle, GitBranch, Clock, Tag,
   ArrowRight, X, ChevronDown, ChevronRight, GripVertical,
-  ZoomIn, ZoomOut, Maximize2, Trash2
+  ZoomIn, ZoomOut, Maximize2, Trash2, Zap
 } from "lucide-react";
 import {
   DndContext, DragEndEvent, closestCenter,
@@ -30,6 +30,9 @@ interface FlowDiagramProps {
   nos: No[];
   onUpdate?: (nos: No[]) => void;
   onInsert?: (index: number, tipo: string) => void;
+  gatilhoTipo?: string;
+  gatilhoValor?: any;
+  onGatilhoChange?: (tipo: string, valor: any) => void;
   editavel?: boolean;
 }
 
@@ -146,7 +149,7 @@ function NoDraggable({ no, onToggleExpand, isExpanded, onChange, onRemove }: {
 }
 
 // ── Componente principal ──
-export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowDiagramProps) {
+export function FlowDiagram({ nos, onUpdate, onInsert, gatilhoTipo = "keyword", gatilhoValor = {}, onGatilhoChange, editavel = false }: FlowDiagramProps) {
   const [expandido, setExpandido] = useState<Set<string>>(new Set(nos.slice(0, 1).map(n => n.id)));
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -219,6 +222,7 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
           <button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" title="Centralizar fluxo"><Maximize2 size={16} /></button>
         </div>
       </div>
+      {onGatilhoChange && <div className="border-b bg-white p-3"><div className="mx-auto max-w-[520px] rounded-xl border-2 border-emerald-200 bg-emerald-50 p-3"><div className="mb-2 flex items-center gap-2 text-xs font-bold text-emerald-700"><Zap size={14} /> Gatilho inicial</div><select value={gatilhoTipo} onChange={event => onGatilhoChange(event.target.value, gatilhoValor)} className="mb-2 w-full rounded-lg border bg-white px-2 py-1.5 text-xs outline-none"><option value="keyword">Palavra-chave</option><option value="primeira_msg">1ª mensagem</option><option value="pedido_criado">Pedido criado</option><option value="status_pedido">Status do pedido</option><option value="sem_resposta">Sem resposta</option><option value="tag">Tag adicionada</option></select>{gatilhoTipo === "keyword" && <textarea value={(gatilhoValor.palavras ?? []).join("\n")} onChange={event => onGatilhoChange(gatilhoTipo, { ...gatilhoValor, palavras: event.target.value.split("\n").filter(Boolean) })} placeholder="Palavras-chave, uma por linha" rows={3} className="w-full rounded-lg border bg-white px-2 py-1.5 text-xs outline-none" />}</div><div className="mx-auto h-8 w-0.5 bg-slate-300" /></div>}
       {nos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-gray-400">
           <GitBranch size={32} className="mb-2 opacity-30" />
