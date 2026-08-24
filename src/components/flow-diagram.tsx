@@ -64,7 +64,7 @@ const NO_CORES: Record<string, string> = {
 };
 
 // ── Componente para cada nó draggable ──
-function NoDraggable({ no, onToggleExpand, isExpanded }: {
+function NoDraggable({ no, onToggleExpand, isExpanded, onChange, onRemove }: {
   no: No;
   onToggleExpand: (id: string) => void;
   isExpanded: boolean;

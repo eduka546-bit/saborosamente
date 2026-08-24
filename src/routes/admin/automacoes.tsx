@@ -270,8 +270,8 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
   const gatilhoCfg = GATILHO_CONFIG[form.gatilho_tipo!];
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-end p-4 overflow-auto">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[95vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex h-screen w-screen overflow-hidden bg-black/60">
+      <div className="flex h-full w-full flex-col bg-white shadow-2xl">
 
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
@@ -285,7 +285,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
           {/* Nome e descrição */}
           <div className="space-y-3">
             <div>
