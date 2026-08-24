@@ -225,14 +225,19 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
   });
   const [saving, setSaving] = useState(false);
 
-  const addNo = (tipo: NoTipo) => {
+  const addNo = (tipo: NoTipo, indice?: number) => {
     const novo: No = {
       id: `no_${Date.now()}`,
       tipo,
       titulo: NO_CONFIG[tipo].label,
       config: {},
     };
-    setForm(f => ({ ...f, nos: [...(f.nos ?? []), novo] }));
+    setForm(f => {
+      const nos = [...(f.nos ?? [])];
+      if (indice === undefined) nos.push(novo);
+      else nos.splice(indice, 0, novo);
+      return { ...f, nos };
+    });
   };
 
   const updateNo = (idx: number, no: No) => {
@@ -306,6 +311,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
                 <FlowDiagram 
                   nos={form.nos ?? []} 
                   onUpdate={(novoNos) => setForm(f => ({ ...f, nos: novoNos }))}
+                  onInsert={(indice, tipo) => addNo(tipo as NoTipo, indice)}
                   editavel={true}
                 />
               </div>

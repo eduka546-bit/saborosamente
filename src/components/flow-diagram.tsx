@@ -29,8 +29,19 @@ interface No {
 interface FlowDiagramProps {
   nos: No[];
   onUpdate?: (nos: No[]) => void;
+  onInsert?: (index: number, tipo: string) => void;
   editavel?: boolean;
 }
+
+const TIPOS_INSERCAO = [
+  ["mensagem", "Mensagem", MessageCircle],
+  ["menu", "Menu", GitBranch],
+  ["condicao", "Condição", GitBranch],
+  ["aguardar", "Aguardar", Clock],
+  ["tag", "Tag", Tag],
+  ["transferir", "Atendente", ArrowRight],
+  ["encerrar", "Encerrar", X],
+] as const;
 
 const NO_ICONS: Record<string, any> = {
   mensagem: MessageCircle,
@@ -130,11 +141,12 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
 }
 
 // ── Componente principal ──
-export function FlowDiagram({ nos, onUpdate, editavel = false }: FlowDiagramProps) {
+export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowDiagramProps) {
   const [expandido, setExpandido] = useState<Set<string>>(new Set(nos.slice(0, 1).map(n => n.id)));
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [arrastandoCanvas, setArrastandoCanvas] = useState(false);
+  const [inserindoEntre, setInserindoEntre] = useState<number | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const panInicio = useRef({ x: 0, y: 0 });
 
@@ -228,13 +240,26 @@ export function FlowDiagram({ nos, onUpdate, editavel = false }: FlowDiagramProp
             </svg>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={nos.map(n => n.id)} strategy={verticalListSortingStrategy}>
-                <div className="relative flex flex-col items-center gap-8">
-                  {nos.map(no => (
-                    <NoDraggable key={no.id} no={no} onToggleExpand={(id) => setExpandido(prev => {
+                <div className="relative flex flex-col items-center">
+                  {nos.map((no, indice) => (
+                    <div key={no.id} className="flex flex-col items-center">
+                      <NoDraggable no={no} onToggleExpand={(id) => setExpandido(prev => {
                       const novo = new Set(prev);
                       if (novo.has(id)) novo.delete(id); else novo.add(id);
                       return novo;
-                    })} isExpanded={expandido.has(no.id)} />
+                      })} isExpanded={expandido.has(no.id)} />
+                      {indice < nos.length - 1 && (
+                        <div className="relative flex h-12 items-center justify-center">
+                          <div className="absolute h-12 w-0.5 bg-slate-300" />
+                          {onInsert && <button type="button" onClick={() => setInserindoEntre(inserindoEntre === indice ? null : indice)} className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-lg font-semibold text-slate-500 shadow-sm hover:border-[#5850ec] hover:text-[#5850ec]" title="Adicionar etapa">+</button>}
+                          {inserindoEntre === indice && onInsert && (
+                            <div className="absolute left-1/2 top-10 z-20 grid w-48 -translate-x-1/2 grid-cols-2 gap-1 rounded-xl border bg-white p-2 shadow-xl">
+                              {TIPOS_INSERCAO.map(([tipo, label, Icon]) => <button key={tipo} type="button" onClick={() => { onInsert(indice + 1, tipo); setInserindoEntre(null); }} className="flex items-center gap-1 rounded-lg p-2 text-left text-[10px] font-semibold text-gray-600 hover:bg-indigo-50 hover:text-[#5850ec]"><Icon size={13} />{label}</button>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </SortableContext>
