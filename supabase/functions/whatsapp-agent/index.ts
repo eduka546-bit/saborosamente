@@ -36,7 +36,7 @@ async function sendWhatsAppMessage(to: string, text: string) {
 }
 
 // Envia lista interativa (menu com seções e opções clicáveis)
-async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]) {
+async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]): Promise<boolean> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
@@ -62,7 +62,9 @@ async function sendWhatsAppList(to: string, headerText: string, bodyText: string
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     console.error("sendWhatsAppList error:", JSON.stringify(err));
+    return false;
   }
+  return true;
 }
 
 // Envia botões de resposta rápida (máximo 3 botões)
@@ -100,7 +102,7 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
   await sendWhatsAppMessage(to, saudacao);
-  await sendWhatsAppList(
+  const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
     "Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇",
@@ -119,6 +121,13 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
       },
     ]
   );
+
+  if (!menuEnviado) {
+    await sendWhatsAppMessage(
+      to,
+      "MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa."
+    );
+  }
 }
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
