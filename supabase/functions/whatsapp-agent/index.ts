@@ -293,6 +293,27 @@ function removerLinksDeArquivos(texto: string): string {
   return texto.replace(/https?:\/\/[^\s]+supabase\.co\/storage\/[^\s]+/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 }
 
+async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
+  const { data: arquivos } = await supabase
+    .from("agente_arquivos")
+    .select("nome, descricao, tipo, url")
+    .eq("ativo", true)
+    .or("nome.ilike.%card%,descricao.ilike.%card%")
+    .limit(10);
+
+  const arquivo = arquivos?.find((item: any) => {
+    const texto = `${item.nome ?? ""} ${item.descricao ?? ""}`.toLowerCase();
+    return item.tipo?.toLowerCase() === "pdf" || texto.includes("cardápio") || texto.includes("cardapio");
+  });
+
+  if (!arquivo?.url) return false;
+
+  const legenda = "Aqui está nosso cardápio completo! 📎 Escolha o que você quer 😊";
+  const enviado = await sendWhatsAppDocument(telefone, arquivo.url, "Cardápio Saborosamente.pdf", legenda);
+  if (enviado) await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
+  return enviado;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Conversa helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1283,9 +1304,14 @@ Deno.serve(async (req: Request) => {
           }
           case "menu_cardapio":
           case "btn_cardapio": {
-            // Deixa a IA mostrar o cardápio — injeta o texto como se o cliente tivesse digitado
             await appendMensagem(conversa.id, historico, { role: "user", content: "Quero ver o cardápio completo" });
-            break; // continua para o fluxo normal da IA
+            const cardapioEnviado = await enviarCardapioPrincipal(telefone);
+            if (cardapioEnviado) {
+              await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Cardápio enviado]" });
+              await sendMenuInterativo(telefone);
+              return new Response("OK", { status: 200 });
+            }
+            break;
           }
           case "menu_pedido":
           case "btn_pedido": {
