@@ -219,12 +219,42 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
 }
 
 async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string): Promise<boolean> {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const mediaUrl = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/media`;
+  const messageUrl = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  const arquivo = await fetch(docUrl).catch((error) => {
+    console.error("Download do documento falhou:", error);
+    return null;
+  });
+  if (!arquivo?.ok) {
+    console.error("Download do documento retornou status:", arquivo?.status);
+    return false;
+  }
+
+  const formData = new FormData();
+  formData.append("messaging_product", "whatsapp");
+  formData.append("type", "application/pdf");
+  formData.append("file", new File([await arquivo.arrayBuffer()], filename, { type: "application/pdf" }));
+
+  const upload = await fetch(mediaUrl, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+    body: formData,
+  }).catch((error) => {
+    console.error("Upload do documento para o WhatsApp falhou:", error);
+    return null;
+  });
+  const uploadData = await upload?.json().catch(() => ({})) as { id?: string; error?: unknown };
+  if (!upload?.ok || !uploadData.id) {
+    console.error("Upload do documento recusado:", JSON.stringify(uploadData));
+    return false;
+  }
+
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
     if (tentativa > 1) {
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
-    const res = await fetch(url, {
+    const res = await fetch(messageUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${WHATSAPP_TOKEN}`,
@@ -234,7 +264,7 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
         messaging_product: "whatsapp",
         to,
         type: "document",
-        document: { link: docUrl, filename, ...(caption ? { caption } : {}) },
+        document: { id: uploadData.id, filename, ...(caption ? { caption } : {}) },
       }),
     }).catch((error) => {
       console.error(`sendWhatsAppDocument network error (tentativa ${tentativa}):`, error);
