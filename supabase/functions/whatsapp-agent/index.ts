@@ -17,6 +17,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function sendWhatsAppMessage(to: string, text: string) {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const textoSemUrls = removerLinksDeArquivos(text);
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -27,7 +28,7 @@ async function sendWhatsAppMessage(to: string, text: string) {
       messaging_product: "whatsapp",
       to,
       type: "text",
-      text: { body: text },
+      text: { body: textoSemUrls },
     }),
   });
   if (!res.ok) {
@@ -288,8 +289,8 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
   return false;
 }
 
-function removerUrls(texto: string): string {
-  return texto.replace(/https?:\/\/\S+/gi, "").replace(/[ \t]{2,}/g, " ").trim();
+function removerLinksDeArquivos(texto: string): string {
+  return texto.replace(/https?:\/\/[^\s]+supabase\.co\/storage\/[^\s]+/gi, "").replace(/[ \t]{2,}/g, " ").trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1493,7 +1494,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
         else if (resultado.nome === "enviar_arquivo") {
           const { url, tipo, nome, mensagem } = resultado.args;
 
-          const legenda = removerUrls(mensagem ?? "Aqui está o arquivo solicitado.");
+          const legenda = removerLinksDeArquivos(mensagem ?? "Aqui está o arquivo solicitado.");
 
           let midiaEnviada = true;
           if (tipo === "imagem") {
