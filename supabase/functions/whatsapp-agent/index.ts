@@ -7,6 +7,7 @@ const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "saborosa
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
+const MEDIA_DELIVERY_BUFFER_MS = 5000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -1439,7 +1440,9 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           if (tipo === "imagem") {
             await sendWhatsAppImage(telefone, url);
           } else {
-            const filename = nome ?? url.split("/").pop() ?? "arquivo";
+            const filename = /card[aá]pio/i.test(nome ?? "")
+              ? "Cardápio Saborosamente.pdf"
+              : nome ?? url.split("/").pop() ?? "arquivo";
             await sendWhatsAppDocument(telefone, url, filename);
           }
 
@@ -1447,6 +1450,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+          await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
           await sendMenuInterativo(telefone);
         }
 
