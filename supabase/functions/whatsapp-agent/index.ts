@@ -109,7 +109,8 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
 
 function solicitouMenuPrincipal(texto: string): boolean {
   const normalizado = texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return ["menu", "opcao", "opcoes", "oi", "ola", "bom dia", "boa tarde", "boa noite"].includes(normalizado);
+  return /(^|\s)(menu|opcao|opcoes)(\s|$)/.test(normalizado)
+    || ["oi", "ola", "bom dia", "boa tarde", "boa noite"].includes(normalizado);
 }
 
 function identificarOpcaoMenu(texto: string): string | null {
@@ -404,16 +405,19 @@ async function montarContextoCliente(profile: any): Promise<string> {
 
 async function buscarClientePorTelefone(telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
   const tel = telefone.replace(/\D/g, "");
-  const telSemCodigo = tel.slice(-11);
-  const telSemCodigo9 = tel.slice(-10);
 
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, nome, telefone, cpf")
-    .or(`telefone.ilike.%${telSemCodigo},telefone.ilike.%${telSemCodigo9}`)
-    .limit(1);
+    .not("telefone", "is", null)
+    .limit(1000);
 
-  const profile = profiles?.[0] ?? null;
+  const profile = profiles?.find((candidate: any) => {
+    const telefoneCadastrado = String(candidate.telefone ?? "").replace(/\D/g, "");
+    return telefoneCadastrado === tel
+      || telefoneCadastrado.slice(-11) === tel.slice(-11)
+      || telefoneCadastrado.slice(-10) === tel.slice(-10);
+  }) ?? null;
   if (!profile) return { encontrado: false, contexto: "", profile: null };
 
   const contexto = await montarContextoCliente(profile);
