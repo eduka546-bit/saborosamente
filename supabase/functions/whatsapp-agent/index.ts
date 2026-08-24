@@ -247,6 +247,10 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
   return false;
 }
 
+function removerUrls(texto: string): string {
+  return texto.replace(/https?:\/\/\S+/gi, "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Conversa helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1447,20 +1451,19 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
         // ── Enviar arquivo (imagem, PDF, documento) ──────────────────────
         else if (resultado.nome === "enviar_arquivo") {
           const { url, tipo, nome, mensagem } = resultado.args;
-
-          await sendWhatsAppMessage(telefone, mensagem);
+          const legenda = removerUrls(mensagem ?? "Aqui está o arquivo solicitado.");
 
           let midiaEnviada = true;
           if (tipo === "imagem") {
-            midiaEnviada = await sendWhatsAppImage(telefone, url);
+            midiaEnviada = await sendWhatsAppImage(telefone, url, legenda);
           } else {
             const filename = "Cardápio Saborosamente.pdf";
-            midiaEnviada = await sendWhatsAppDocument(telefone, url, filename);
+            midiaEnviada = await sendWhatsAppDocument(telefone, url, filename, legenda);
           }
 
           await appendMensagem(conversa.id, historico, {
             role: "assistant",
-            content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
+            content: `[Arquivo enviado: ${nome ?? url}] ${legenda}`,
           });
           if (!midiaEnviada) {
             await sendWhatsAppMessage(telefone, "Não consegui entregar o arquivo agora. Vou tentar novamente quando você solicitar. 🙏");
