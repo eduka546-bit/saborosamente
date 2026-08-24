@@ -112,7 +112,9 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
-    `${saudacao ? `${saudacao} ` : ""}Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
+    saudacao
+      ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`
+      : "Escolha uma opção abaixo 👇",
     "Ver opções",
     [{
       title: "O que você precisa?",
@@ -130,7 +132,7 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   if (!menuEnviado) {
     await sendWhatsAppMessage(
       to,
-      `${saudacao ? `${saudacao} ` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
+      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
     );
   }
 }
