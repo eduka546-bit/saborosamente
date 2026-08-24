@@ -225,9 +225,11 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
           <p className="text-sm">Nenhum nó no fluxo</p>
         </div>
       ) : (
-        <div
+        <div className="flex h-[520px] overflow-hidden">
+          {onInsert && <aside className="z-10 hidden w-44 shrink-0 border-r bg-white/90 p-3 md:block"><p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-gray-500">Ações</p><div className="space-y-1">{TIPOS_INSERCAO.map(([tipo, label, Icon]) => <button key={tipo} type="button" onClick={() => onInsert(nos.length, tipo)} className="flex w-full items-center gap-2 rounded-lg border border-gray-100 px-2 py-2 text-left text-[11px] font-semibold text-gray-600 hover:border-[#5850ec] hover:bg-indigo-50 hover:text-[#5850ec]"><Icon size={14} />{label}</button>)}</div></aside>}
+          <div
           ref={canvasRef}
-          className={`relative h-[520px] overflow-hidden ${arrastandoCanvas ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`relative min-w-0 flex-1 overflow-hidden ${arrastandoCanvas ? "cursor-grabbing" : "cursor-grab"}`}
           onPointerDown={iniciarPan}
           onPointerMove={moverPan}
           onPointerUp={pararPan}
@@ -270,6 +272,7 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
               </SortableContext>
             </DndContext>
           </div>
+          </div>
         </div>
       )}
 
@@ -284,6 +287,11 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
           🎯 Arraste os nós pela alça para reordenar · Use o zoom para revisar o fluxo completo
         </p>
       </div>
+      {onInsert && nos.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 border-t bg-white p-3 md:hidden">
+          {TIPOS_INSERCAO.map(([tipo, label, Icon]) => <button key={tipo} type="button" onClick={() => onInsert(nos.length, tipo)} className="flex items-center justify-center gap-1 rounded-lg border border-dashed p-2 text-[10px] font-semibold text-gray-600 hover:border-[#5850ec] hover:text-[#5850ec]"><Icon size={13} />Adicionar {label}</button>)}
+        </div>
+      )}
     </div>
   );
 }
