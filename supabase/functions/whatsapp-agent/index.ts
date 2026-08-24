@@ -101,11 +101,15 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 // Envia o menu principal da Saborosa
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
-  await sendWhatsAppMessage(to, saudacao);
   await sendWhatsAppMessage(
     to,
-    "Bem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa."
+    `${saudacao}\n\nBem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
   );
+}
+
+function solicitouMenuPrincipal(texto: string): boolean {
+  const normalizado = texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return ["menu", "opcao", "opcoes", "oi", "ola", "bom dia", "boa tarde", "boa noite"].includes(normalizado);
 }
 
 function identificarOpcaoMenu(texto: string): string | null {
@@ -1114,13 +1118,15 @@ Deno.serve(async (req: Request) => {
 
       // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
       const clienteResult = await buscarClientePorTelefone(telefone);
+      const pediuMenu = solicitouMenuPrincipal(texto);
 
       // Verifica automações de primeira mensagem
-      if (primeiraMsg) {
-        await verificarEExecutarAutomacoes(
-          telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
-        );
-        // Envia o menu principal na primeira mensagem
+      if (primeiraMsg || pediuMenu) {
+        if (primeiraMsg) {
+          await verificarEExecutarAutomacoes(
+            telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
+          );
+        }
         const nomeCliente = clienteResult?.profile?.nome ?? nomeConhecido;
         await sendMenuPrincipal(telefone, nomeCliente);
         await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
