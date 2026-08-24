@@ -386,6 +386,14 @@ function AdminCampaignPage() {
         throw new Error("Digite uma mensagem");
       }
 
+      if (!usarTemplate || !templateSelecionado) {
+        throw new Error("Selecione um template aprovado da Meta para enviar a contatos que ainda não falaram com você");
+      }
+
+      if (templateVariaveis.some((variavel) => !variavel.trim())) {
+        throw new Error("Preencha todas as variáveis do template antes de enviar");
+      }
+
       let imagemUrl = null;
       let videoUrl = null;
 
@@ -770,7 +778,9 @@ function AdminCampaignPage() {
                       {carregandoTemplates ? "Buscando..." : "🔄 Buscar Templates"}
                     </button>
                     <span className="text-xs text-gray-500 self-center">
-                      {templates.length > 0 ? `${templates.length} templates aprovados` : "Clique para carregar"}
+                      {templates.filter((t: any) => t.status === "APPROVED").length > 0
+                        ? `${templates.filter((t: any) => t.status === "APPROVED").length} templates aprovados`
+                        : "Nenhum template aprovado encontrado"}
                     </span>
                   </div>
 
@@ -787,7 +797,7 @@ function AdminCampaignPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
                     >
                       <option value="">Selecione um template...</option>
-                      {templates.map((t: any) => (
+                      {templates.filter((t: any) => t.status === "APPROVED").map((t: any) => (
                         <option key={t.name} value={t.name}>
                           {t.name} ({t.language}) — {t.status}
                         </option>
