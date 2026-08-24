@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import {
   MessageCircle, GitBranch, Clock, Tag,
   ArrowRight, X, ChevronDown, ChevronRight, GripVertical,
-  ZoomIn, ZoomOut, Maximize2
+  ZoomIn, ZoomOut, Maximize2, Trash2
 } from "lucide-react";
 import {
   DndContext, DragEndEvent, closestCenter,
@@ -68,6 +68,8 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
   no: No;
   onToggleExpand: (id: string) => void;
   isExpanded: boolean;
+  onChange?: (no: No) => void;
+  onRemove?: () => void;
 }) {
   const {
     attributes,
@@ -105,7 +107,10 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
           <GripVertical size={14} className="opacity-50" />
         </button>
         <IconComponent size={16} className="flex-shrink-0" />
-        <span className="font-bold text-sm flex-1 truncate">{no.titulo}</span>
+        {onChange ? (
+          <input value={no.titulo} onChange={event => onChange({ ...no, titulo: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none" />
+        ) : <span className="font-bold text-sm flex-1 truncate">{no.titulo}</span>}
+        {onRemove && <button type="button" onClick={onRemove} className="rounded p-1 text-red-400 hover:bg-red-100 hover:text-red-600" title="Remover etapa"><Trash2 size={14} /></button>}
         {(no.tipo === "condicao" || (no.tipo === "mensagem" && no.config.texto)) && (
           <button
             onClick={() => onToggleExpand(no.id)}
@@ -120,7 +125,7 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
       {isExpanded && (
         <div className="text-xs mt-2 pt-2 border-t opacity-75">
           {no.tipo === "mensagem" && (
-            <p className="line-clamp-2">{no.config.texto || "(mensagem vazia)"}</p>
+            onChange ? <textarea value={no.config.texto ?? ""} onChange={event => onChange({ ...no, config: { ...no.config, texto: event.target.value } })} placeholder="Mensagem enviada ao cliente" rows={3} className="w-full rounded border bg-white/70 p-2 text-xs outline-none" /> : <p className="line-clamp-2">{no.config.texto || "(mensagem vazia)"}</p>
           )}
           {no.tipo === "aguardar" && (
             <p>{no.config.valor || 1} {no.config.unidade || "horas"}</p>
@@ -129,10 +134,10 @@ function NoDraggable({ no, onToggleExpand, isExpanded }: {
             <p>Tag: <strong>{no.config.tag || "(vazia)"}</strong></p>
           )}
           {no.tipo === "condicao" && (
-            <p>Se {no.config.campo} = {no.config.valor}</p>
+            onChange ? <div className="space-y-1"><select value={no.config.campo ?? "mensagem"} onChange={event => onChange({ ...no, config: { ...no.config, campo: event.target.value } })} className="w-full rounded border bg-white/70 p-1 text-xs"><option value="mensagem">Mensagem contém</option><option value="tag">Cliente tem tag</option><option value="cidade">Cidade do cliente</option></select><input value={no.config.valor ?? ""} onChange={event => onChange({ ...no, config: { ...no.config, valor: event.target.value } })} placeholder="Valor da condição" className="w-full rounded border bg-white/70 p-1 text-xs outline-none" /></div> : <p>Se {no.config.campo} = {no.config.valor}</p>
           )}
           {no.tipo === "menu" && (
-            <p>{no.config.opcoes?.length || 0} opções</p>
+            onChange ? <textarea value={(no.config.opcoes ?? []).join("\n")} onChange={event => onChange({ ...no, config: { ...no.config, opcoes: event.target.value.split("\n").filter(Boolean) } })} placeholder="Uma opção por linha" rows={3} className="w-full rounded border bg-white/70 p-2 text-xs outline-none" /> : <p>{no.config.opcoes?.length || 0} opções</p>
           )}
         </div>
       )}
@@ -243,7 +248,7 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
                 <div className="relative flex flex-col items-center">
                   {nos.map((no, indice) => (
                     <div key={no.id} className="flex flex-col items-center">
-                      <NoDraggable no={no} onToggleExpand={(id) => setExpandido(prev => {
+                      <NoDraggable no={no} onChange={(alterado) => onUpdate?.(nos.map(item => item.id === alterado.id ? alterado : item))} onRemove={() => onUpdate?.(nos.filter(item => item.id !== no.id))} onToggleExpand={(id) => setExpandido(prev => {
                       const novo = new Set(prev);
                       if (novo.has(id)) novo.delete(id); else novo.add(id);
                       return novo;
@@ -265,6 +270,12 @@ export function FlowDiagram({ nos, onUpdate, onInsert, editavel = false }: FlowD
               </SortableContext>
             </DndContext>
           </div>
+        </div>
+      )}
+
+      {onInsert && nos.length === 0 && (
+        <div className="border-t bg-white/70 p-3 text-center">
+          <button type="button" onClick={() => onInsert(0, "mensagem")} className="rounded-lg border border-dashed border-[#5850ec] px-4 py-2 text-xs font-bold text-[#5850ec] hover:bg-indigo-50">+ Adicionar primeira etapa</button>
         </div>
       )}
 

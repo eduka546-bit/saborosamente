@@ -234,8 +234,13 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
     };
     setForm(f => {
       const nos = [...(f.nos ?? [])];
+      const posicao = indice === undefined ? nos.length : indice;
+      const anterior = nos[posicao - 1];
+      const proximo = nos[posicao];
+      if (anterior && anterior.tipo !== "condicao") anterior.proximo_id = novo.id;
+      novo.proximo_id = proximo?.id;
       if (indice === undefined) nos.push(novo);
-      else nos.splice(indice, 0, novo);
+      else nos.splice(posicao, 0, novo);
       return { ...f, nos };
     });
   };
@@ -249,6 +254,8 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
   const removeNo = (idx: number) => {
     const nos = [...(form.nos ?? [])];
     nos.splice(idx, 1);
+    const anterior = nos[idx - 1];
+    if (anterior && anterior.tipo !== "condicao") anterior.proximo_id = nos[idx]?.id;
     setForm(f => ({ ...f, nos }));
   };
 
@@ -302,7 +309,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
           </div>
 
           {/* Preview do Fluxo */}
-          {(form.nos ?? []).length > 0 && (
+          <>
             <div className="space-y-2">
               <h3 className="font-bold text-gray-800 flex items-center gap-2">
                 <GitBranch size={16} className="text-[#5850ec]" /> Pré-visualização do fluxo
@@ -316,7 +323,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
                 />
               </div>
             </div>
-          )}
+          </>
 
           {/* Gatilho */}
           <div className="space-y-3">
@@ -404,51 +411,6 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
               {(form.gatilho_tipo === "primeira_msg" || form.gatilho_tipo === "pedido_criado") && (
                 <p className="text-xs text-gray-500 italic">Nenhuma configuração necessária — dispara automaticamente.</p>
               )}
-            </div>
-          </div>
-
-          {/* Fluxo de nós */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-              <GitBranch size={16} className="text-[#5850ec]" /> Fluxo — o que fazer?
-            </h3>
-
-            {(form.nos ?? []).length === 0 && (
-              <div className="py-8 text-center border-2 border-dashed rounded-xl text-gray-400">
-                <GitBranch size={28} className="mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Adicione nós abaixo para montar o fluxo</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {(form.nos ?? []).map((no, idx) => (
-                <div key={no.id}>
-                  <EditorNo
-                    no={no}
-                    onChange={n => updateNo(idx, n)}
-                    onRemove={() => removeNo(idx)}
-                  />
-                  {idx < (form.nos ?? []).length - 1 && (
-                    <div className="flex justify-center my-1">
-                      <div className="h-6 w-0.5 bg-gray-200" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Botões para adicionar nós */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-              {(Object.entries(NO_CONFIG) as [NoTipo, any][]).map(([tipo, cfg]) => (
-                <button
-                  key={tipo}
-                  onClick={() => addNo(tipo)}
-                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl border border-dashed hover:border-[#5850ec] hover:bg-[#5850ec]/5 transition-all text-gray-500 hover:text-[#5850ec]"
-                >
-                  <cfg.icon size={16} />
-                  <span className="text-[10px] font-semibold text-center leading-tight">{cfg.label}</span>
-                </button>
-              ))}
             </div>
           </div>
 
