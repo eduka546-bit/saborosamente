@@ -1451,6 +1451,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
         // ── Enviar arquivo (imagem, PDF, documento) ──────────────────────
         else if (resultado.nome === "enviar_arquivo") {
           const { url, tipo, nome, mensagem } = resultado.args;
+
           const legenda = removerUrls(mensagem ?? "Aqui está o arquivo solicitado.");
 
           let midiaEnviada = true;
