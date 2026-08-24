@@ -102,32 +102,22 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
   await sendWhatsAppMessage(to, saudacao);
-  const menuEnviado = await sendWhatsAppList(
+  await sendWhatsAppMessage(
     to,
-    "SaborosaMente 🍱",
-    "Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇",
-    "Ver opções",
-    [
-      {
-        title: "O que você precisa?",
-        rows: [
-          { id: "menu_cardapio",   title: "🍽️ Cardápio",          description: "Ver os pratos disponíveis e preços" },
-          { id: "menu_pedido",     title: "🛒 Fazer um pedido",     description: "Montar e confirmar meu pedido" },
-          { id: "menu_recomenda",  title: "⭐ Recomendações",       description: "Me ajude a escolher o melhor prato" },
-          { id: "menu_duvidas",    title: "❓ Dúvidas",             description: "Entrega, pagamento, preparo..." },
-          { id: "menu_site",       title: "🌐 Acessar o site",      description: "saborosamente.vercel.app" },
-          { id: "menu_atendente",  title: "👤 Falar com atendente", description: "Transferir para nossa equipe" },
-        ],
-      },
-    ]
+    "Bem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa."
   );
+}
 
-  if (!menuEnviado) {
-    await sendWhatsAppMessage(
-      to,
-      "MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa."
-    );
-  }
+function identificarOpcaoMenu(texto: string): string | null {
+  const opcoes: Record<string, string> = {
+    "1": "menu_cardapio",
+    "2": "menu_pedido",
+    "3": "menu_recomenda",
+    "4": "menu_duvidas",
+    "5": "menu_site",
+    "6": "menu_atendente",
+  };
+  return opcoes[texto.trim()] ?? null;
 }
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
@@ -1063,7 +1053,7 @@ Deno.serve(async (req: Request) => {
       const menuId =
         msg.interactive?.list_reply?.id ??
         msg.interactive?.button_reply?.id ??
-        null;
+        identificarOpcaoMenu(msg.text?.body ?? "");
 
       // Suporte a texto, botão interativo e lista interativa
       const texto =
