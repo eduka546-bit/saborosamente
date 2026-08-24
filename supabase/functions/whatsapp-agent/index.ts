@@ -962,6 +962,7 @@ Responda em JSON com:
 Responda APENAS o JSON, sem explicações.`;
 
   let modulo = { nome: "Instrução de treino", categoria: "comportamento", conteudo: texto };
+  let raw = "";
 
   try {
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -975,7 +976,7 @@ Responda APENAS o JSON, sem explicações.`;
       }),
     });
     const json = await resp.json();
-    const raw = json.choices?.[0]?.message?.content ?? "";
+    raw = json.choices?.[0]?.message?.content ?? "";
     
     // Tenta extrair JSON de dentro de markdown code blocks
     let jsonStr = raw.trim();
@@ -1027,7 +1028,7 @@ Responda APENAS o JSON, sem explicações.`;
 // Handler principal
 // ─────────────────────────────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
 
   // ── Verificação do webhook (GET) ─────────────────────────────────────────
