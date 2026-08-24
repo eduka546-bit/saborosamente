@@ -6,6 +6,7 @@ const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "saborosamente-webhook-2026";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -98,10 +99,11 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 // Envia o menu principal da Saborosa
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
+  await sendWhatsAppMessage(to, saudacao);
   await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
-    `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
+    "Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇",
     "Ver opções",
     [
       {
@@ -189,6 +191,13 @@ async function getOrCreateConversa(telefone: string, nome?: string) {
     .single();
 
   return nova;
+}
+
+function conversaComecouNovamente(conversa: any, historico: any[]): boolean {
+  if (!historico.length) return true;
+
+  const ultimaMensagem = conversa?.ultima_msg ? new Date(conversa.ultima_msg).getTime() : 0;
+  return !Number.isFinite(ultimaMensagem) || !ultimaMensagem || Date.now() - ultimaMensagem > JANELA_DE_CONVERSA_MS;
 }
 
 async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
@@ -1059,7 +1068,8 @@ Deno.serve(async (req) => {
       const conversa = await getOrCreateConversa(telefone, nomeContato);
       let historico: any[] = conversa?.mensagens ?? [];
       const pedidoEmAndamento = conversa?.pedido_em_andamento ?? null;
-      const primeiraMsg = historico.length === 0;
+      const primeiraMsg = conversaComecouNovamente(conversa, historico);
+      const nomeConhecido = nomeContato ?? conversa?.nome ?? null;
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
@@ -1111,7 +1121,7 @@ Deno.serve(async (req) => {
           telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
         );
         // Envia o menu principal na primeira mensagem
-        const nomeCliente = clienteResult?.profile?.nome ?? nomeContato ?? null;
+        const nomeCliente = clienteResult?.profile?.nome ?? nomeConhecido;
         await sendMenuPrincipal(telefone, nomeCliente);
         await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
         return new Response("OK", { status: 200 });
