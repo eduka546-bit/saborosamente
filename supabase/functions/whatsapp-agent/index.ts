@@ -231,22 +231,33 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
     return false;
   }
 
-  const formData = new FormData();
-  formData.append("messaging_product", "whatsapp");
-  formData.append("type", "application/pdf");
-  formData.append("file", new File([await arquivo.arrayBuffer()], filename, { type: "application/pdf" }));
+  const arquivoBytes = await arquivo.arrayBuffer();
+  let uploadData: { id?: string; error?: unknown } = {};
+  let uploadOk = false;
 
-  const upload = await fetch(mediaUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
-    body: formData,
-  }).catch((error) => {
-    console.error("Upload do documento para o WhatsApp falhou:", error);
-    return null;
-  });
-  const uploadData = await upload?.json().catch(() => ({})) as { id?: string; error?: unknown };
-  if (!upload?.ok || !uploadData.id) {
-    console.error("Upload do documento recusado:", JSON.stringify(uploadData));
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const formData = new FormData();
+    formData.append("messaging_product", "whatsapp");
+    formData.append("type", "application/pdf");
+    formData.append("file", new Blob([arquivoBytes], { type: "application/pdf" }), filename);
+
+    const upload = await fetch(mediaUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      body: formData,
+    }).catch((error) => {
+      console.error(`Upload do documento para o WhatsApp falhou (tentativa ${tentativa}):`, error);
+      return null;
+    });
+    uploadData = await upload?.json().catch(() => ({})) as { id?: string; error?: unknown };
+    console.log(`Upload do documento resposta (tentativa ${tentativa}):`, JSON.stringify(uploadData));
+    uploadOk = !!upload?.ok && !!uploadData.id;
+    if (uploadOk) break;
+    if (tentativa === 1) await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+
+  if (!uploadOk) {
+    console.error("Upload do documento recusado após tentativas:", JSON.stringify(uploadData));
     return false;
   }
 
