@@ -1423,8 +1423,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
 
         // ── Enviar menu principal ─────────────────────────────────────────
         else if (resultado.nome === "enviar_menu") {
-          const nomeCliente = clienteResult.encontrado ? clienteResult.profile?.nome : nomeContato ?? null;
-          await sendMenuPrincipal(telefone, nomeCliente ?? undefined);
+          await sendMenuInterativo(telefone);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
         }
 
