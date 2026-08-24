@@ -35,6 +35,33 @@ async function sendWhatsAppMessage(to: string, text: string) {
   }
 }
 
+async function sendTypingIndicator(to: string, messageId?: string) {
+  if (!messageId) return;
+
+  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      status: "read",
+      message_id: messageId,
+      typing_indicator: { type: "text" },
+    }),
+  }).catch((error) => {
+    console.error("sendTypingIndicator network error:", error);
+    return null;
+  });
+
+  if (res && !res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error("sendTypingIndicator error:", JSON.stringify(err));
+  }
+}
+
 // Envia lista interativa (menu com seções e opções clicáveis)
 async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]): Promise<boolean> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
@@ -1086,6 +1113,8 @@ Deno.serve(async (req: Request) => {
       const msg = messages[0];
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
+
+      await sendTypingIndicator(telefone, msg.id);
 
       // Captura ID da opção selecionada (lista interativa ou botão)
       const menuId =
