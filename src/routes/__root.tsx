@@ -170,7 +170,7 @@ function RootComponent() {
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          {mounted ? (isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />) : <SiteHeader />}
+          {isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />}
           
           <main className="flex-1 relative z-10">
             <Outlet />
