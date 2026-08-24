@@ -58,7 +58,11 @@ async function sendWhatsAppList(to: string, headerText: string, bodyText: string
         },
       },
     }),
+  }).catch((error) => {
+    console.error("sendWhatsAppList network error:", error);
+    return null;
   });
+  if (!res) return false;
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     console.error("sendWhatsAppList error:", JSON.stringify(err));
@@ -101,10 +105,30 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
 // Envia o menu principal da Saborosa
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
-  await sendWhatsAppMessage(
+  const menuEnviado = await sendWhatsAppList(
     to,
-    `${saudacao}\n\nBem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
+    "SaborosaMente 🍱",
+    `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`,
+    "Ver opções",
+    [{
+      title: "O que você precisa?",
+      rows: [
+        { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
+        { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Montar meu pedido" },
+        { id: "menu_recomenda", title: "⭐ Recomendações", description: "Escolher um prato" },
+        { id: "menu_duvidas", title: "❓ Dúvidas", description: "Entrega, pagamento e preparo" },
+        { id: "menu_site", title: "🌐 Acessar o site", description: "saborosamente.vercel.app" },
+        { id: "menu_atendente", title: "👤 Falar com atendente", description: "Falar com nossa equipe" },
+      ],
+    }]
   );
+
+  if (!menuEnviado) {
+    await sendWhatsAppMessage(
+      to,
+      `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nMENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
+    );
+  }
 }
 
 function solicitouMenuPrincipal(texto: string): boolean {
