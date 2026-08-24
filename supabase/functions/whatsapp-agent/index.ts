@@ -1447,6 +1447,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             role: "assistant",
             content: `[Arquivo enviado: ${nome ?? url}] ${mensagem}`,
           });
+          await sendMenuInterativo(telefone);
         }
 
         // ── Enviar menu principal ─────────────────────────────────────────
