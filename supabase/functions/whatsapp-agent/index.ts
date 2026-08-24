@@ -1451,9 +1451,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           if (tipo === "imagem") {
             midiaEnviada = await sendWhatsAppImage(telefone, url);
           } else {
-            const filename = /card[aá]pio/i.test(nome ?? "")
-              ? "Cardápio Saborosamente.pdf"
-              : nome ?? url.split("/").pop() ?? "arquivo";
+            const filename = "Cardápio Saborosamente.pdf";
             midiaEnviada = await sendWhatsAppDocument(telefone, url, filename);
           }
 
