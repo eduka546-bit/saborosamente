@@ -221,6 +221,9 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
 async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string): Promise<boolean> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    if (tentativa > 1) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -237,9 +240,9 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
       console.error(`sendWhatsAppDocument network error (tentativa ${tentativa}):`, error);
       return null;
     });
-    if (res?.ok) return true;
     const err = await res?.json().catch(() => ({}));
-    console.error(`sendWhatsAppDocument error (tentativa ${tentativa}):`, JSON.stringify(err));
+    console.log(`sendWhatsAppDocument resposta (tentativa ${tentativa}):`, JSON.stringify(err));
+    if (res?.ok) return true;
   }
   return false;
 }
