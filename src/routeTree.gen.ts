@@ -11,23 +11,68 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as FaleConoscoRouteImport } from './routes/fale-conosco'
+import { Route as IndicarRouteImport } from './routes/indicar'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAcompanhamentosRouteImport } from './routes/admin/acompanhamentos'
+import { Route as AdminAgenteRouteImport } from './routes/admin/agente'
+import { Route as AdminAutomacoesRouteImport } from './routes/admin/automacoes'
+import { Route as AdminAvaliacoesRouteImport } from './routes/admin/avaliacoes'
+import { Route as AdminCampanhasRouteImport } from './routes/admin.campanhas'
+import { Route as AdminCashbackRouteImport } from './routes/admin/cashback'
+import { Route as AdminCategoriasRouteImport } from './routes/admin/categorias'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
+import { Route as AdminCombosRouteImport } from './routes/admin/combos'
+import { Route as AdminComplementosRouteImport } from './routes/admin/complementos'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
-import { Route as AdminLoginRouteImport } from './routes/admin-login.tsx'
+import { Route as AdminEmbalagensRouteImport } from './routes/admin/embalagens'
+import { Route as AdminOuvidoriaRouteImport } from './routes/admin/ouvidoria'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPontuacaoRouteImport } from './routes/admin/pontuacao'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminStorageCleanupRouteImport } from './routes/admin/storage-cleanup'
+import { Route as PedidoIndexRouteImport } from './routes/pedido/index'
+import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'
+import { Route as AdminConfigAreaRouteImport } from './routes/admin/config/area'
+import { Route as AdminConfigBairrosRouteImport } from './routes/admin/config/bairros'
+import { Route as AdminConfigCashbackRouteImport } from './routes/admin/config/cashback'
+import { Route as AdminConfigCashbackConfigRouteImport } from './routes/admin/config/cashback-config'
+import { Route as AdminConfigEntregadorRouteImport } from './routes/admin/config/entregador'
+import { Route as AdminConfigExcecoesRouteImport } from './routes/admin/config/excecoes'
+import { Route as AdminConfigFaqRouteImport } from './routes/admin/config/faq'
+import { Route as AdminConfigHorariosRouteImport } from './routes/admin/config/horarios'
+import { Route as AdminConfigImpressaoRouteImport } from './routes/admin/config/impressao'
+import { Route as AdminConfigInformativoRouteImport } from './routes/admin/config/informativo'
+import { Route as AdminConfigMesasRouteImport } from './routes/admin/config/mesas'
+import { Route as AdminConfigOrigemRouteImport } from './routes/admin/config/origem'
+import { Route as AdminConfigParametrosRouteImport } from './routes/admin/config/parametros'
 import { Route as AdminConfigSiteRouteImport } from './routes/admin.config.site'
 import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
+import { Route as AdminConfigUnidadesRouteImport } from './routes/admin/config/unidades'
+import { Route as AdminCuponsNovoRouteImport } from './routes/admin/cupons/novo'
 import { Route as AdminFinanceiroIndexRouteImport } from './routes/admin/financeiro/index'
+import { Route as AdminFinanceiroLancamentosRouteImport } from './routes/admin/financeiro/lancamentos'
+import { Route as AdminFinanceiroTransacoesRouteImport } from './routes/admin/financeiro/transacoes'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
+import { Route as AdminPedidosAcompanhamentosRouteImport } from './routes/admin/pedidos/acompanhamentos'
+import { Route as AdminPedidosCarrinhosAbandonadosRouteImport } from './routes/admin/pedidos/carrinhos-abandonados'
+import { Route as AdminPedidosComplementosRouteImport } from './routes/admin/pedidos/complementos'
+import { Route as AdminPedidosItensRouteImport } from './routes/admin/pedidos/itens'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
+import { Route as AdminRelatoriosClientesRouteImport } from './routes/admin/relatorios/clientes'
+import { Route as AdminRelatoriosComunicacaoRouteImport } from './routes/admin/relatorios/comunicacao'
+import { Route as AdminRelatoriosEstoqueRouteImport } from './routes/admin/relatorios/estoque'
+import { Route as AdminRelatoriosFaturamentoRouteImport } from './routes/admin/relatorios/faturamento'
+import { Route as AdminRelatoriosInteligenciaRouteImport } from './routes/admin/relatorios/inteligencia'
 import { Route as AdminRelatoriosKpiRouteImport } from './routes/admin/relatorios/kpi'
+import { Route as AdminRelatoriosVendasRouteImport } from './routes/admin/relatorios/vendas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +82,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -54,6 +104,21 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaleConoscoRoute = FaleConoscoRouteImport.update({
+  id: '/fale-conosco',
+  path: '/fale-conosco',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndicarRoute = IndicarRouteImport.update({
+  id: '/indicar',
+  path: '/indicar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/_authenticated/perfil',
   path: '/perfil',
@@ -64,9 +129,54 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAcompanhamentosRoute = AdminAcompanhamentosRouteImport.update({
+  id: '/acompanhamentos',
+  path: '/acompanhamentos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAgenteRoute = AdminAgenteRouteImport.update({
+  id: '/agente',
+  path: '/agente',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomacoesRoute = AdminAutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
+  id: '/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCampanhasRoute = AdminCampanhasRouteImport.update({
+  id: '/campanhas',
+  path: '/campanhas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCashbackRoute = AdminCashbackRouteImport.update({
+  id: '/cashback',
+  path: '/cashback',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminClientesRoute = AdminClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCombosRoute = AdminCombosRouteImport.update({
+  id: '/combos',
+  path: '/combos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminComplementosRoute = AdminComplementosRouteImport.update({
+  id: '/complementos',
+  path: '/complementos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCuponsRoute = AdminCuponsRouteImport.update({
@@ -74,9 +184,14 @@ const AdminCuponsRoute = AdminCuponsRouteImport.update({
   path: '/cupons',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AdminEmbalagensRoute = AdminEmbalagensRouteImport.update({
+  id: '/embalagens',
+  path: '/embalagens',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOuvidoriaRoute = AdminOuvidoriaRouteImport.update({
+  id: '/ouvidoria',
+  path: '/ouvidoria',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
@@ -84,14 +199,100 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPontuacaoRoute = AdminPontuacaoRouteImport.update({
+  id: '/pontuacao',
+  path: '/pontuacao',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStorageCleanupRoute = AdminStorageCleanupRouteImport.update({
+  id: '/storage-cleanup',
+  path: '/storage-cleanup',
+  getParentRoute: () => AdminRoute,
+} as any)
+const PedidoIndexRoute = PedidoIndexRouteImport.update({
+  id: '/pedido/',
+  path: '/pedido/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutoIdRoute = ProdutoIdRouteImport.update({
+  id: '/produto/$id',
+  path: '/produto/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminConfigIndexRoute = AdminConfigIndexRouteImport.update({
   id: '/config/',
   path: '/config/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigAreaRoute = AdminConfigAreaRouteImport.update({
+  id: '/config/area',
+  path: '/config/area',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigBairrosRoute = AdminConfigBairrosRouteImport.update({
+  id: '/config/bairros',
+  path: '/config/bairros',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigCashbackRoute = AdminConfigCashbackRouteImport.update({
+  id: '/config/cashback',
+  path: '/config/cashback',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigCashbackConfigRoute =
+  AdminConfigCashbackConfigRouteImport.update({
+    id: '/config/cashback-config',
+    path: '/config/cashback-config',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminConfigEntregadorRoute = AdminConfigEntregadorRouteImport.update({
+  id: '/config/entregador',
+  path: '/config/entregador',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigExcecoesRoute = AdminConfigExcecoesRouteImport.update({
+  id: '/config/excecoes',
+  path: '/config/excecoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigFaqRoute = AdminConfigFaqRouteImport.update({
+  id: '/config/faq',
+  path: '/config/faq',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigHorariosRoute = AdminConfigHorariosRouteImport.update({
+  id: '/config/horarios',
+  path: '/config/horarios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigImpressaoRoute = AdminConfigImpressaoRouteImport.update({
+  id: '/config/impressao',
+  path: '/config/impressao',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigInformativoRoute = AdminConfigInformativoRouteImport.update({
+  id: '/config/informativo',
+  path: '/config/informativo',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigMesasRoute = AdminConfigMesasRouteImport.update({
+  id: '/config/mesas',
+  path: '/config/mesas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigOrigemRoute = AdminConfigOrigemRouteImport.update({
+  id: '/config/origem',
+  path: '/config/origem',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfigParametrosRoute = AdminConfigParametrosRouteImport.update({
+  id: '/config/parametros',
+  path: '/config/parametros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfigSiteRoute = AdminConfigSiteRouteImport.update({
@@ -104,14 +305,59 @@ const AdminConfigTaxasRoute = AdminConfigTaxasRouteImport.update({
   path: '/config/taxas',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigUnidadesRoute = AdminConfigUnidadesRouteImport.update({
+  id: '/config/unidades',
+  path: '/config/unidades',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCuponsNovoRoute = AdminCuponsNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => AdminCuponsRoute,
+} as any)
 const AdminFinanceiroIndexRoute = AdminFinanceiroIndexRouteImport.update({
   id: '/financeiro/',
   path: '/financeiro/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFinanceiroLancamentosRoute =
+  AdminFinanceiroLancamentosRouteImport.update({
+    id: '/financeiro/lancamentos',
+    path: '/financeiro/lancamentos',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminFinanceiroTransacoesRoute =
+  AdminFinanceiroTransacoesRouteImport.update({
+    id: '/financeiro/transacoes',
+    path: '/financeiro/transacoes',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminPedidosRoute,
+} as any)
+const AdminPedidosAcompanhamentosRoute =
+  AdminPedidosAcompanhamentosRouteImport.update({
+    id: '/acompanhamentos',
+    path: '/acompanhamentos',
+    getParentRoute: () => AdminPedidosRoute,
+  } as any)
+const AdminPedidosCarrinhosAbandonadosRoute =
+  AdminPedidosCarrinhosAbandonadosRouteImport.update({
+    id: '/carrinhos-abandonados',
+    path: '/carrinhos-abandonados',
+    getParentRoute: () => AdminPedidosRoute,
+  } as any)
+const AdminPedidosComplementosRoute =
+  AdminPedidosComplementosRouteImport.update({
+    id: '/complementos',
+    path: '/complementos',
+    getParentRoute: () => AdminPedidosRoute,
+  } as any)
+const AdminPedidosItensRoute = AdminPedidosItensRouteImport.update({
+  id: '/itens',
+  path: '/itens',
   getParentRoute: () => AdminPedidosRoute,
 } as any)
 const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
@@ -119,28 +365,106 @@ const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
   path: '/relatorios/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRelatoriosClientesRoute = AdminRelatoriosClientesRouteImport.update({
+  id: '/relatorios/clientes',
+  path: '/relatorios/clientes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRelatoriosComunicacaoRoute =
+  AdminRelatoriosComunicacaoRouteImport.update({
+    id: '/relatorios/comunicacao',
+    path: '/relatorios/comunicacao',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminRelatoriosEstoqueRoute = AdminRelatoriosEstoqueRouteImport.update({
+  id: '/relatorios/estoque',
+  path: '/relatorios/estoque',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRelatoriosFaturamentoRoute =
+  AdminRelatoriosFaturamentoRouteImport.update({
+    id: '/relatorios/faturamento',
+    path: '/relatorios/faturamento',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminRelatoriosInteligenciaRoute =
+  AdminRelatoriosInteligenciaRouteImport.update({
+    id: '/relatorios/inteligencia',
+    path: '/relatorios/inteligencia',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminRelatoriosKpiRoute = AdminRelatoriosKpiRouteImport.update({
   id: '/relatorios/kpi',
   path: '/relatorios/kpi',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRelatoriosVendasRoute = AdminRelatoriosVendasRouteImport.update({
+  id: '/relatorios/vendas',
+  path: '/relatorios/vendas',
   getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/indicar': typeof IndicarRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
+  '/admin/agente': typeof AdminAgenteRoute
+  '/admin/automacoes': typeof AdminAutomacoesRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/campanhas': typeof AdminCampanhasRoute
+  '/admin/cashback': typeof AdminCashbackRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
-  '/admin/cupons': typeof AdminCuponsRoute
-  '/admin/login': typeof AdminLoginRoute
+  '/admin/combos': typeof AdminCombosRoute
+  '/admin/complementos': typeof AdminComplementosRoute
+  '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/ouvidoria': typeof AdminOuvidoriaRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
+  '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/pedido/': typeof PedidoIndexRoute
+  '/admin/config/area': typeof AdminConfigAreaRoute
+  '/admin/config/bairros': typeof AdminConfigBairrosRoute
+  '/admin/config/cashback': typeof AdminConfigCashbackRoute
+  '/admin/config/cashback-config': typeof AdminConfigCashbackConfigRoute
+  '/admin/config/entregador': typeof AdminConfigEntregadorRoute
+  '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
+  '/admin/config/faq': typeof AdminConfigFaqRoute
+  '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/impressao': typeof AdminConfigImpressaoRoute
+  '/admin/config/informativo': typeof AdminConfigInformativoRoute
+  '/admin/config/mesas': typeof AdminConfigMesasRoute
+  '/admin/config/origem': typeof AdminConfigOrigemRoute
+  '/admin/config/parametros': typeof AdminConfigParametrosRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/cupons/novo': typeof AdminCuponsNovoRoute
+  '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
+  '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
+  '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
+  '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
+  '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
+  '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
+  '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
+  '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -148,18 +472,63 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/indicar': typeof IndicarRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
+  '/admin/agente': typeof AdminAgenteRoute
+  '/admin/automacoes': typeof AdminAutomacoesRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/campanhas': typeof AdminCampanhasRoute
+  '/admin/cashback': typeof AdminCashbackRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
-  '/admin/cupons': typeof AdminCuponsRoute
-  '/admin/login': typeof AdminLoginRoute
+  '/admin/combos': typeof AdminCombosRoute
+  '/admin/complementos': typeof AdminComplementosRoute
+  '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/ouvidoria': typeof AdminOuvidoriaRoute
+  '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/produto/$id': typeof ProdutoIdRoute
   '/admin': typeof AdminIndexRoute
+  '/pedido': typeof PedidoIndexRoute
+  '/admin/config/area': typeof AdminConfigAreaRoute
+  '/admin/config/bairros': typeof AdminConfigBairrosRoute
+  '/admin/config/cashback': typeof AdminConfigCashbackRoute
+  '/admin/config/cashback-config': typeof AdminConfigCashbackConfigRoute
+  '/admin/config/entregador': typeof AdminConfigEntregadorRoute
+  '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
+  '/admin/config/faq': typeof AdminConfigFaqRoute
+  '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/impressao': typeof AdminConfigImpressaoRoute
+  '/admin/config/informativo': typeof AdminConfigInformativoRoute
+  '/admin/config/mesas': typeof AdminConfigMesasRoute
+  '/admin/config/origem': typeof AdminConfigOrigemRoute
+  '/admin/config/parametros': typeof AdminConfigParametrosRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/cupons/novo': typeof AdminCuponsNovoRoute
+  '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
+  '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
+  '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
+  '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
+  '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
+  '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
+  '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
+  '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config': typeof AdminConfigIndexRoute
   '/admin/financeiro': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -169,19 +538,64 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/fale-conosco': typeof FaleConoscoRoute
+  '/indicar': typeof IndicarRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
+  '/admin/agente': typeof AdminAgenteRoute
+  '/admin/automacoes': typeof AdminAutomacoesRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/campanhas': typeof AdminCampanhasRoute
+  '/admin/cashback': typeof AdminCashbackRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
-  '/admin/cupons': typeof AdminCuponsRoute
-  '/admin/login': typeof AdminLoginRoute
+  '/admin/combos': typeof AdminCombosRoute
+  '/admin/complementos': typeof AdminComplementosRoute
+  '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/ouvidoria': typeof AdminOuvidoriaRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
+  '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/pedido/': typeof PedidoIndexRoute
+  '/admin/config/area': typeof AdminConfigAreaRoute
+  '/admin/config/bairros': typeof AdminConfigBairrosRoute
+  '/admin/config/cashback': typeof AdminConfigCashbackRoute
+  '/admin/config/cashback-config': typeof AdminConfigCashbackConfigRoute
+  '/admin/config/entregador': typeof AdminConfigEntregadorRoute
+  '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
+  '/admin/config/faq': typeof AdminConfigFaqRoute
+  '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/impressao': typeof AdminConfigImpressaoRoute
+  '/admin/config/informativo': typeof AdminConfigInformativoRoute
+  '/admin/config/mesas': typeof AdminConfigMesasRoute
+  '/admin/config/origem': typeof AdminConfigOrigemRoute
+  '/admin/config/parametros': typeof AdminConfigParametrosRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
+  '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/cupons/novo': typeof AdminCuponsNovoRoute
+  '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
+  '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
+  '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
+  '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
+  '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
+  '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
+  '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
+  '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -192,19 +606,64 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/fale-conosco'
+    | '/indicar'
+    | '/privacidade'
     | '/perfil'
+    | '/admin/acompanhamentos'
+    | '/admin/agente'
+    | '/admin/automacoes'
+    | '/admin/avaliacoes'
+    | '/admin/campanhas'
+    | '/admin/cashback'
+    | '/admin/categorias'
     | '/admin/clientes'
+    | '/admin/combos'
+    | '/admin/complementos'
     | '/admin/cupons'
-    | '/admin/login'
+    | '/admin/embalagens'
+    | '/admin/ouvidoria'
     | '/admin/pedidos'
+    | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/storage-cleanup'
+    | '/produto/$id'
     | '/admin/'
+    | '/pedido/'
+    | '/admin/config/area'
+    | '/admin/config/bairros'
+    | '/admin/config/cashback'
+    | '/admin/config/cashback-config'
+    | '/admin/config/entregador'
+    | '/admin/config/excecoes'
+    | '/admin/config/faq'
+    | '/admin/config/horarios'
+    | '/admin/config/impressao'
+    | '/admin/config/informativo'
+    | '/admin/config/mesas'
+    | '/admin/config/origem'
+    | '/admin/config/parametros'
     | '/admin/config/site'
     | '/admin/config/taxas'
+    | '/admin/config/unidades'
+    | '/admin/cupons/novo'
+    | '/admin/financeiro/lancamentos'
+    | '/admin/financeiro/transacoes'
+    | '/admin/pedidos/acompanhamentos'
+    | '/admin/pedidos/carrinhos-abandonados'
+    | '/admin/pedidos/complementos'
+    | '/admin/pedidos/itens'
+    | '/admin/relatorios/clientes'
+    | '/admin/relatorios/comunicacao'
+    | '/admin/relatorios/estoque'
+    | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/vendas'
     | '/admin/config/'
     | '/admin/financeiro/'
     | '/admin/pedidos/'
@@ -212,18 +671,63 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin-login'
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/fale-conosco'
+    | '/indicar'
+    | '/privacidade'
     | '/perfil'
+    | '/admin/acompanhamentos'
+    | '/admin/agente'
+    | '/admin/automacoes'
+    | '/admin/avaliacoes'
+    | '/admin/campanhas'
+    | '/admin/cashback'
+    | '/admin/categorias'
     | '/admin/clientes'
+    | '/admin/combos'
+    | '/admin/complementos'
     | '/admin/cupons'
-    | '/admin/login'
+    | '/admin/embalagens'
+    | '/admin/ouvidoria'
+    | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/storage-cleanup'
+    | '/produto/$id'
     | '/admin'
+    | '/pedido'
+    | '/admin/config/area'
+    | '/admin/config/bairros'
+    | '/admin/config/cashback'
+    | '/admin/config/cashback-config'
+    | '/admin/config/entregador'
+    | '/admin/config/excecoes'
+    | '/admin/config/faq'
+    | '/admin/config/horarios'
+    | '/admin/config/impressao'
+    | '/admin/config/informativo'
+    | '/admin/config/mesas'
+    | '/admin/config/origem'
+    | '/admin/config/parametros'
     | '/admin/config/site'
     | '/admin/config/taxas'
+    | '/admin/config/unidades'
+    | '/admin/cupons/novo'
+    | '/admin/financeiro/lancamentos'
+    | '/admin/financeiro/transacoes'
+    | '/admin/pedidos/acompanhamentos'
+    | '/admin/pedidos/carrinhos-abandonados'
+    | '/admin/pedidos/complementos'
+    | '/admin/pedidos/itens'
+    | '/admin/relatorios/clientes'
+    | '/admin/relatorios/comunicacao'
+    | '/admin/relatorios/estoque'
+    | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/vendas'
     | '/admin/config'
     | '/admin/financeiro'
     | '/admin/pedidos'
@@ -232,19 +736,64 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/fale-conosco'
+    | '/indicar'
+    | '/privacidade'
     | '/_authenticated/perfil'
+    | '/admin/acompanhamentos'
+    | '/admin/agente'
+    | '/admin/automacoes'
+    | '/admin/avaliacoes'
+    | '/admin/campanhas'
+    | '/admin/cashback'
+    | '/admin/categorias'
     | '/admin/clientes'
+    | '/admin/combos'
+    | '/admin/complementos'
     | '/admin/cupons'
-    | '/admin/login'
+    | '/admin/embalagens'
+    | '/admin/ouvidoria'
     | '/admin/pedidos'
+    | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/storage-cleanup'
+    | '/produto/$id'
     | '/admin/'
+    | '/pedido/'
+    | '/admin/config/area'
+    | '/admin/config/bairros'
+    | '/admin/config/cashback'
+    | '/admin/config/cashback-config'
+    | '/admin/config/entregador'
+    | '/admin/config/excecoes'
+    | '/admin/config/faq'
+    | '/admin/config/horarios'
+    | '/admin/config/impressao'
+    | '/admin/config/informativo'
+    | '/admin/config/mesas'
+    | '/admin/config/origem'
+    | '/admin/config/parametros'
     | '/admin/config/site'
     | '/admin/config/taxas'
+    | '/admin/config/unidades'
+    | '/admin/cupons/novo'
+    | '/admin/financeiro/lancamentos'
+    | '/admin/financeiro/transacoes'
+    | '/admin/pedidos/acompanhamentos'
+    | '/admin/pedidos/carrinhos-abandonados'
+    | '/admin/pedidos/complementos'
+    | '/admin/pedidos/itens'
+    | '/admin/relatorios/clientes'
+    | '/admin/relatorios/comunicacao'
+    | '/admin/relatorios/estoque'
+    | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/vendas'
     | '/admin/config/'
     | '/admin/financeiro/'
     | '/admin/pedidos/'
@@ -254,10 +803,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
+  FaleConoscoRoute: typeof FaleConoscoRoute
+  IndicarRoute: typeof IndicarRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  ProdutoIdRoute: typeof ProdutoIdRoute
+  PedidoIndexRoute: typeof PedidoIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -274,6 +829,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -297,6 +859,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fale-conosco': {
+      id: '/fale-conosco'
+      path: '/fale-conosco'
+      fullPath: '/fale-conosco'
+      preLoaderRoute: typeof FaleConoscoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/indicar': {
+      id: '/indicar'
+      path: '/indicar'
+      fullPath: '/indicar'
+      preLoaderRoute: typeof IndicarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
       path: '/perfil'
@@ -311,11 +894,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/acompanhamentos': {
+      id: '/admin/acompanhamentos'
+      path: '/acompanhamentos'
+      fullPath: '/admin/acompanhamentos'
+      preLoaderRoute: typeof AdminAcompanhamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/agente': {
+      id: '/admin/agente'
+      path: '/agente'
+      fullPath: '/admin/agente'
+      preLoaderRoute: typeof AdminAgenteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automacoes': {
+      id: '/admin/automacoes'
+      path: '/automacoes'
+      fullPath: '/admin/automacoes'
+      preLoaderRoute: typeof AdminAutomacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/avaliacoes': {
+      id: '/admin/avaliacoes'
+      path: '/avaliacoes'
+      fullPath: '/admin/avaliacoes'
+      preLoaderRoute: typeof AdminAvaliacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/campanhas': {
+      id: '/admin/campanhas'
+      path: '/campanhas'
+      fullPath: '/admin/campanhas'
+      preLoaderRoute: typeof AdminCampanhasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cashback': {
+      id: '/admin/cashback'
+      path: '/cashback'
+      fullPath: '/admin/cashback'
+      preLoaderRoute: typeof AdminCashbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/categorias': {
+      id: '/admin/categorias'
+      path: '/categorias'
+      fullPath: '/admin/categorias'
+      preLoaderRoute: typeof AdminCategoriasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/clientes': {
       id: '/admin/clientes'
       path: '/clientes'
       fullPath: '/admin/clientes'
       preLoaderRoute: typeof AdminClientesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/combos': {
+      id: '/admin/combos'
+      path: '/combos'
+      fullPath: '/admin/combos'
+      preLoaderRoute: typeof AdminCombosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/complementos': {
+      id: '/admin/complementos'
+      path: '/complementos'
+      fullPath: '/admin/complementos'
+      preLoaderRoute: typeof AdminComplementosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/cupons': {
@@ -325,11 +971,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCuponsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
+    '/admin/embalagens': {
+      id: '/admin/embalagens'
+      path: '/embalagens'
+      fullPath: '/admin/embalagens'
+      preLoaderRoute: typeof AdminEmbalagensRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ouvidoria': {
+      id: '/admin/ouvidoria'
+      path: '/ouvidoria'
+      fullPath: '/admin/ouvidoria'
+      preLoaderRoute: typeof AdminOuvidoriaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pedidos': {
@@ -339,6 +992,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pontuacao': {
+      id: '/admin/pontuacao'
+      path: '/pontuacao'
+      fullPath: '/admin/pontuacao'
+      preLoaderRoute: typeof AdminPontuacaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/produtos': {
       id: '/admin/produtos'
       path: '/produtos'
@@ -346,11 +1006,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProdutosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/storage-cleanup': {
+      id: '/admin/storage-cleanup'
+      path: '/storage-cleanup'
+      fullPath: '/admin/storage-cleanup'
+      preLoaderRoute: typeof AdminStorageCleanupRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/pedido/': {
+      id: '/pedido/'
+      path: '/pedido'
+      fullPath: '/pedido/'
+      preLoaderRoute: typeof PedidoIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produto/$id': {
+      id: '/produto/$id'
+      path: '/produto/$id'
+      fullPath: '/produto/$id'
+      preLoaderRoute: typeof ProdutoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/config/': {
       id: '/admin/config/'
       path: '/config'
       fullPath: '/admin/config/'
       preLoaderRoute: typeof AdminConfigIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/area': {
+      id: '/admin/config/area'
+      path: '/config/area'
+      fullPath: '/admin/config/area'
+      preLoaderRoute: typeof AdminConfigAreaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/bairros': {
+      id: '/admin/config/bairros'
+      path: '/config/bairros'
+      fullPath: '/admin/config/bairros'
+      preLoaderRoute: typeof AdminConfigBairrosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/cashback': {
+      id: '/admin/config/cashback'
+      path: '/config/cashback'
+      fullPath: '/admin/config/cashback'
+      preLoaderRoute: typeof AdminConfigCashbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/cashback-config': {
+      id: '/admin/config/cashback-config'
+      path: '/config/cashback-config'
+      fullPath: '/admin/config/cashback-config'
+      preLoaderRoute: typeof AdminConfigCashbackConfigRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/entregador': {
+      id: '/admin/config/entregador'
+      path: '/config/entregador'
+      fullPath: '/admin/config/entregador'
+      preLoaderRoute: typeof AdminConfigEntregadorRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/excecoes': {
+      id: '/admin/config/excecoes'
+      path: '/config/excecoes'
+      fullPath: '/admin/config/excecoes'
+      preLoaderRoute: typeof AdminConfigExcecoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/faq': {
+      id: '/admin/config/faq'
+      path: '/config/faq'
+      fullPath: '/admin/config/faq'
+      preLoaderRoute: typeof AdminConfigFaqRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/horarios': {
+      id: '/admin/config/horarios'
+      path: '/config/horarios'
+      fullPath: '/admin/config/horarios'
+      preLoaderRoute: typeof AdminConfigHorariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/impressao': {
+      id: '/admin/config/impressao'
+      path: '/config/impressao'
+      fullPath: '/admin/config/impressao'
+      preLoaderRoute: typeof AdminConfigImpressaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/informativo': {
+      id: '/admin/config/informativo'
+      path: '/config/informativo'
+      fullPath: '/admin/config/informativo'
+      preLoaderRoute: typeof AdminConfigInformativoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/mesas': {
+      id: '/admin/config/mesas'
+      path: '/config/mesas'
+      fullPath: '/admin/config/mesas'
+      preLoaderRoute: typeof AdminConfigMesasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/origem': {
+      id: '/admin/config/origem'
+      path: '/config/origem'
+      fullPath: '/admin/config/origem'
+      preLoaderRoute: typeof AdminConfigOrigemRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/parametros': {
+      id: '/admin/config/parametros'
+      path: '/config/parametros'
+      fullPath: '/admin/config/parametros'
+      preLoaderRoute: typeof AdminConfigParametrosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/config/site': {
@@ -367,11 +1139,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigTaxasRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/unidades': {
+      id: '/admin/config/unidades'
+      path: '/config/unidades'
+      fullPath: '/admin/config/unidades'
+      preLoaderRoute: typeof AdminConfigUnidadesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cupons/novo': {
+      id: '/admin/cupons/novo'
+      path: '/novo'
+      fullPath: '/admin/cupons/novo'
+      preLoaderRoute: typeof AdminCuponsNovoRouteImport
+      parentRoute: typeof AdminCuponsRoute
+    }
     '/admin/financeiro/': {
       id: '/admin/financeiro/'
       path: '/financeiro'
       fullPath: '/admin/financeiro/'
       preLoaderRoute: typeof AdminFinanceiroIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/financeiro/lancamentos': {
+      id: '/admin/financeiro/lancamentos'
+      path: '/financeiro/lancamentos'
+      fullPath: '/admin/financeiro/lancamentos'
+      preLoaderRoute: typeof AdminFinanceiroLancamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/financeiro/transacoes': {
+      id: '/admin/financeiro/transacoes'
+      path: '/financeiro/transacoes'
+      fullPath: '/admin/financeiro/transacoes'
+      preLoaderRoute: typeof AdminFinanceiroTransacoesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pedidos/': {
@@ -381,11 +1181,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosIndexRouteImport
       parentRoute: typeof AdminPedidosRoute
     }
+    '/admin/pedidos/acompanhamentos': {
+      id: '/admin/pedidos/acompanhamentos'
+      path: '/acompanhamentos'
+      fullPath: '/admin/pedidos/acompanhamentos'
+      preLoaderRoute: typeof AdminPedidosAcompanhamentosRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/carrinhos-abandonados': {
+      id: '/admin/pedidos/carrinhos-abandonados'
+      path: '/carrinhos-abandonados'
+      fullPath: '/admin/pedidos/carrinhos-abandonados'
+      preLoaderRoute: typeof AdminPedidosCarrinhosAbandonadosRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/complementos': {
+      id: '/admin/pedidos/complementos'
+      path: '/complementos'
+      fullPath: '/admin/pedidos/complementos'
+      preLoaderRoute: typeof AdminPedidosComplementosRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/itens': {
+      id: '/admin/pedidos/itens'
+      path: '/itens'
+      fullPath: '/admin/pedidos/itens'
+      preLoaderRoute: typeof AdminPedidosItensRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
     '/admin/relatorios/': {
       id: '/admin/relatorios/'
       path: '/relatorios'
       fullPath: '/admin/relatorios/'
       preLoaderRoute: typeof AdminRelatoriosIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/clientes': {
+      id: '/admin/relatorios/clientes'
+      path: '/relatorios/clientes'
+      fullPath: '/admin/relatorios/clientes'
+      preLoaderRoute: typeof AdminRelatoriosClientesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/comunicacao': {
+      id: '/admin/relatorios/comunicacao'
+      path: '/relatorios/comunicacao'
+      fullPath: '/admin/relatorios/comunicacao'
+      preLoaderRoute: typeof AdminRelatoriosComunicacaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/estoque': {
+      id: '/admin/relatorios/estoque'
+      path: '/relatorios/estoque'
+      fullPath: '/admin/relatorios/estoque'
+      preLoaderRoute: typeof AdminRelatoriosEstoqueRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/faturamento': {
+      id: '/admin/relatorios/faturamento'
+      path: '/relatorios/faturamento'
+      fullPath: '/admin/relatorios/faturamento'
+      preLoaderRoute: typeof AdminRelatoriosFaturamentoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/relatorios/inteligencia': {
+      id: '/admin/relatorios/inteligencia'
+      path: '/relatorios/inteligencia'
+      fullPath: '/admin/relatorios/inteligencia'
+      preLoaderRoute: typeof AdminRelatoriosInteligenciaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/relatorios/kpi': {
@@ -395,14 +1258,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosKpiRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/relatorios/vendas': {
+      id: '/admin/relatorios/vendas'
+      path: '/relatorios/vendas'
+      fullPath: '/admin/relatorios/vendas'
+      preLoaderRoute: typeof AdminRelatoriosVendasRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminCuponsRouteChildren {
+  AdminCuponsNovoRoute: typeof AdminCuponsNovoRoute
+}
+
+const AdminCuponsRouteChildren: AdminCuponsRouteChildren = {
+  AdminCuponsNovoRoute: AdminCuponsNovoRoute,
+}
+
+const AdminCuponsRouteWithChildren = AdminCuponsRoute._addFileChildren(
+  AdminCuponsRouteChildren,
+)
+
 interface AdminPedidosRouteChildren {
+  AdminPedidosAcompanhamentosRoute: typeof AdminPedidosAcompanhamentosRoute
+  AdminPedidosCarrinhosAbandonadosRoute: typeof AdminPedidosCarrinhosAbandonadosRoute
+  AdminPedidosComplementosRoute: typeof AdminPedidosComplementosRoute
+  AdminPedidosItensRoute: typeof AdminPedidosItensRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
 
 const AdminPedidosRouteChildren: AdminPedidosRouteChildren = {
+  AdminPedidosAcompanhamentosRoute: AdminPedidosAcompanhamentosRoute,
+  AdminPedidosCarrinhosAbandonadosRoute: AdminPedidosCarrinhosAbandonadosRoute,
+  AdminPedidosComplementosRoute: AdminPedidosComplementosRoute,
+  AdminPedidosItensRoute: AdminPedidosItensRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
 }
 
@@ -411,30 +1301,98 @@ const AdminPedidosRouteWithChildren = AdminPedidosRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAcompanhamentosRoute: typeof AdminAcompanhamentosRoute
+  AdminAgenteRoute: typeof AdminAgenteRoute
+  AdminAutomacoesRoute: typeof AdminAutomacoesRoute
+  AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
+  AdminCampanhasRoute: typeof AdminCampanhasRoute
+  AdminCashbackRoute: typeof AdminCashbackRoute
+  AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminClientesRoute: typeof AdminClientesRoute
-  AdminCuponsRoute: typeof AdminCuponsRoute
-  AdminLoginRoute: typeof AdminLoginRoute
+  AdminCombosRoute: typeof AdminCombosRoute
+  AdminComplementosRoute: typeof AdminComplementosRoute
+  AdminCuponsRoute: typeof AdminCuponsRouteWithChildren
+  AdminEmbalagensRoute: typeof AdminEmbalagensRoute
+  AdminOuvidoriaRoute: typeof AdminOuvidoriaRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
+  AdminPontuacaoRoute: typeof AdminPontuacaoRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
+  AdminStorageCleanupRoute: typeof AdminStorageCleanupRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminConfigAreaRoute: typeof AdminConfigAreaRoute
+  AdminConfigBairrosRoute: typeof AdminConfigBairrosRoute
+  AdminConfigCashbackRoute: typeof AdminConfigCashbackRoute
+  AdminConfigCashbackConfigRoute: typeof AdminConfigCashbackConfigRoute
+  AdminConfigEntregadorRoute: typeof AdminConfigEntregadorRoute
+  AdminConfigExcecoesRoute: typeof AdminConfigExcecoesRoute
+  AdminConfigFaqRoute: typeof AdminConfigFaqRoute
+  AdminConfigHorariosRoute: typeof AdminConfigHorariosRoute
+  AdminConfigImpressaoRoute: typeof AdminConfigImpressaoRoute
+  AdminConfigInformativoRoute: typeof AdminConfigInformativoRoute
+  AdminConfigMesasRoute: typeof AdminConfigMesasRoute
+  AdminConfigOrigemRoute: typeof AdminConfigOrigemRoute
+  AdminConfigParametrosRoute: typeof AdminConfigParametrosRoute
   AdminConfigSiteRoute: typeof AdminConfigSiteRoute
   AdminConfigTaxasRoute: typeof AdminConfigTaxasRoute
+  AdminConfigUnidadesRoute: typeof AdminConfigUnidadesRoute
+  AdminFinanceiroLancamentosRoute: typeof AdminFinanceiroLancamentosRoute
+  AdminFinanceiroTransacoesRoute: typeof AdminFinanceiroTransacoesRoute
+  AdminRelatoriosClientesRoute: typeof AdminRelatoriosClientesRoute
+  AdminRelatoriosComunicacaoRoute: typeof AdminRelatoriosComunicacaoRoute
+  AdminRelatoriosEstoqueRoute: typeof AdminRelatoriosEstoqueRoute
+  AdminRelatoriosFaturamentoRoute: typeof AdminRelatoriosFaturamentoRoute
+  AdminRelatoriosInteligenciaRoute: typeof AdminRelatoriosInteligenciaRoute
   AdminRelatoriosKpiRoute: typeof AdminRelatoriosKpiRoute
+  AdminRelatoriosVendasRoute: typeof AdminRelatoriosVendasRoute
   AdminConfigIndexRoute: typeof AdminConfigIndexRoute
   AdminFinanceiroIndexRoute: typeof AdminFinanceiroIndexRoute
   AdminRelatoriosIndexRoute: typeof AdminRelatoriosIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAcompanhamentosRoute: AdminAcompanhamentosRoute,
+  AdminAgenteRoute: AdminAgenteRoute,
+  AdminAutomacoesRoute: AdminAutomacoesRoute,
+  AdminAvaliacoesRoute: AdminAvaliacoesRoute,
+  AdminCampanhasRoute: AdminCampanhasRoute,
+  AdminCashbackRoute: AdminCashbackRoute,
+  AdminCategoriasRoute: AdminCategoriasRoute,
   AdminClientesRoute: AdminClientesRoute,
-  AdminCuponsRoute: AdminCuponsRoute,
-  AdminLoginRoute: AdminLoginRoute,
+  AdminCombosRoute: AdminCombosRoute,
+  AdminComplementosRoute: AdminComplementosRoute,
+  AdminCuponsRoute: AdminCuponsRouteWithChildren,
+  AdminEmbalagensRoute: AdminEmbalagensRoute,
+  AdminOuvidoriaRoute: AdminOuvidoriaRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
+  AdminPontuacaoRoute: AdminPontuacaoRoute,
   AdminProdutosRoute: AdminProdutosRoute,
+  AdminStorageCleanupRoute: AdminStorageCleanupRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminConfigAreaRoute: AdminConfigAreaRoute,
+  AdminConfigBairrosRoute: AdminConfigBairrosRoute,
+  AdminConfigCashbackRoute: AdminConfigCashbackRoute,
+  AdminConfigCashbackConfigRoute: AdminConfigCashbackConfigRoute,
+  AdminConfigEntregadorRoute: AdminConfigEntregadorRoute,
+  AdminConfigExcecoesRoute: AdminConfigExcecoesRoute,
+  AdminConfigFaqRoute: AdminConfigFaqRoute,
+  AdminConfigHorariosRoute: AdminConfigHorariosRoute,
+  AdminConfigImpressaoRoute: AdminConfigImpressaoRoute,
+  AdminConfigInformativoRoute: AdminConfigInformativoRoute,
+  AdminConfigMesasRoute: AdminConfigMesasRoute,
+  AdminConfigOrigemRoute: AdminConfigOrigemRoute,
+  AdminConfigParametrosRoute: AdminConfigParametrosRoute,
   AdminConfigSiteRoute: AdminConfigSiteRoute,
   AdminConfigTaxasRoute: AdminConfigTaxasRoute,
+  AdminConfigUnidadesRoute: AdminConfigUnidadesRoute,
+  AdminFinanceiroLancamentosRoute: AdminFinanceiroLancamentosRoute,
+  AdminFinanceiroTransacoesRoute: AdminFinanceiroTransacoesRoute,
+  AdminRelatoriosClientesRoute: AdminRelatoriosClientesRoute,
+  AdminRelatoriosComunicacaoRoute: AdminRelatoriosComunicacaoRoute,
+  AdminRelatoriosEstoqueRoute: AdminRelatoriosEstoqueRoute,
+  AdminRelatoriosFaturamentoRoute: AdminRelatoriosFaturamentoRoute,
+  AdminRelatoriosInteligenciaRoute: AdminRelatoriosInteligenciaRoute,
   AdminRelatoriosKpiRoute: AdminRelatoriosKpiRoute,
+  AdminRelatoriosVendasRoute: AdminRelatoriosVendasRoute,
   AdminConfigIndexRoute: AdminConfigIndexRoute,
   AdminFinanceiroIndexRoute: AdminFinanceiroIndexRoute,
   AdminRelatoriosIndexRoute: AdminRelatoriosIndexRoute,
@@ -445,10 +1403,16 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
+  FaleConoscoRoute: FaleConoscoRoute,
+  IndicarRoute: IndicarRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  ProdutoIdRoute: ProdutoIdRoute,
+  PedidoIndexRoute: PedidoIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

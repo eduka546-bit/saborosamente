@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 
-export const Route = createFileRoute("/admin/login")({
+export const Route = createFileRoute("/admin-login")({
   beforeLoad: async ({ location }) => {
     // Sempre permite acesso à página de login
     return;
