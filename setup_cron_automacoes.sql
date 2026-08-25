@@ -31,10 +31,10 @@ SELECT cron.schedule(
   '*/4 * * * *',
   $$
   SELECT net.http_post(
-    url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/whatsapp-automacoes-tick',
+    url     := 'https://lxcgbrovdmpjatywweiv.supabase.co/functions/v1/whatsapp-automacoes-tick',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'x-cron-secret', '<CRON_SECRET>'
+      'x-cron-secret', 'ShlGfXVdQmUMo8RaWCyTFzv31J0NIZirHu46OA7n'
     ),
     body    := '{}'::jsonb
   );
