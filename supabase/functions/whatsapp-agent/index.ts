@@ -1,13 +1,51 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
-const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
-const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
+// ─────────────────────────────────────────────────────────────────────────────
+// Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
+// ─────────────────────────────────────────────────────────────────────────────
+
+function requireEnv(nome: string): string {
+  const valor = Deno.env.get(nome);
+  if (!valor) {
+    throw new Error(
+      `Variável de ambiente obrigatória ausente: ${nome}. ` +
+      `Configure os secrets da função (supabase secrets set ${nome}=...) antes de fazer o deploy.`
+    );
+  }
+  return valor;
+}
+
+const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
+const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
+const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "saborosamente-webhook-2026";
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = requireEnv("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
 const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
+const OPENAI_TIMEOUT_MS = 25_000;
+const WHATSAPP_API_VERSION = "v20.0";
+
+// Desconto progressivo — deve espelhar src/lib/cart.tsx (PROGRESSIVE_DISCOUNT).
+// O desconto incide APENAS sobre marmitas; sopas e complementos contam na
+// quantidade total mas não recebem desconto.
+const FAIXAS_DESCONTO_PROGRESSIVO = [
+  { min: 20, desconto: 0.07 },
+  { min: 10, desconto: 0.05 },
+  { min: 5, desconto: 0.03 },
+];
+const CATEGORIAS_SEM_DESCONTO = ["sopa", "complemento"];
+
+function categoriaSemDesconto(categoria: string | null | undefined): boolean {
+  const c = String(categoria ?? "").toLowerCase();
+  return CATEGORIAS_SEM_DESCONTO.some(termo => c.includes(termo));
+}
+
+// Retorna a porcentagem de desconto (0, 0.03, 0.05 ou 0.07) para uma quantidade total.
+function descontoProgressivoPorQuantidade(totalUnidades: number): number {
+  return FAIXAS_DESCONTO_PROGRESSIVO.find(f => totalUnidades >= f.min)?.desconto ?? 0;
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -16,7 +54,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function sendWhatsAppMessage(to: string, text: string) {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const textoSemUrls = removerLinksDeArquivos(text);
   const res = await fetch(url, {
     method: "POST",
@@ -40,7 +78,7 @@ async function sendWhatsAppMessage(to: string, text: string) {
 async function sendTypingIndicator(to: string, messageId?: string) {
   if (!messageId) return;
 
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -66,7 +104,7 @@ async function sendTypingIndicator(to: string, messageId?: string) {
 
 // Envia lista interativa (menu com seções e opções clicáveis)
 async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]): Promise<boolean> {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -102,7 +140,7 @@ async function sendWhatsAppList(to: string, headerText: string, bodyText: string
 
 // Envia botões de resposta rápida (máximo 3 botões)
 async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: string; title: string }[]) {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -185,7 +223,7 @@ function identificarOpcaoMenu(texto: string): string | null {
 }
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string): Promise<boolean> {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   
   // Otimizar URL para reduzir egress: adicionar transform parameters
   let optimizedUrl = imageUrl;
@@ -220,8 +258,8 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
 }
 
 async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string): Promise<boolean> {
-  const mediaUrl = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/media`;
-  const messageUrl = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const mediaUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/media`;
+  const messageUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
   const arquivo = await fetch(docUrl).catch((error) => {
     console.error("Download do documento falhou:", error);
@@ -319,19 +357,22 @@ async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getOrCreateConversa(telefone: string, nome?: string) {
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from("whatsapp_conversas")
     .select("*")
     .eq("telefone", telefone)
     .maybeSingle();
 
+  if (selectError) console.error("getOrCreateConversa (select) erro:", JSON.stringify(selectError));
   if (data) return data;
-  const { data: nova } = await supabase
+
+  const { data: nova, error: insertError } = await supabase
     .from("whatsapp_conversas")
     .insert({ telefone, nome: nome ?? null, mensagens: [], pedido_em_andamento: null })
     .select()
     .single();
 
+  if (insertError) console.error("getOrCreateConversa (insert) erro:", JSON.stringify(insertError));
   return nova;
 }
 
@@ -363,13 +404,14 @@ async function salvarPedidoEmAndamento(conversaId: string, pedido: any) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }> {
-  const { data: produtos } = await supabase
+  const { data: produtos, error } = await supabase
     .from("produtos")
     .select("id, nome, preco, preco_300g, preco_400g, descricao, imagem_url, categorias(nome)")
     .eq("ativo", true)
     .order("nome")
     .limit(80);
 
+  if (error) console.error("getProdutosContexto erro:", JSON.stringify(error));
   if (!produtos?.length) return { texto: "", produtos: [] };
 
   const linhas = produtos.map((p: any) => {
@@ -462,12 +504,13 @@ async function getArquivosContexto(): Promise<{ texto: string; arquivos: any[] }
 
 // Busca módulos ativos do banco e monta o prompt base
 async function getModulosPrompt(): Promise<string> {
-  const { data: modulos } = await supabase
+  const { data: modulos, error } = await supabase
     .from("agente_modulos")
     .select("nome, categoria, conteudo")
     .eq("ativo", true)
     .order("ordem");
 
+  if (error) console.error("getModulosPrompt erro:", JSON.stringify(error));
   if (!modulos?.length) return "";
 
   // Agrupa por categoria na ordem lógica
@@ -541,21 +584,34 @@ async function montarContextoCliente(profile: any): Promise<string> {
   return linhas.join("\n");
 }
 
+// Confere se dois telefones representam o mesmo número, ignorando formatação
+// e diferenças de DDI/9º dígito (compara pelos últimos 10/11 dígitos).
+function telefonesBatem(a: string, b: string): boolean {
+  const da = a.replace(/\D/g, "");
+  const db = b.replace(/\D/g, "");
+  if (!da || !db) return false;
+  return da === db
+    || da.slice(-11) === db.slice(-11)
+    || da.slice(-10) === db.slice(-10);
+}
+
 async function buscarClientePorTelefone(telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
   const tel = telefone.replace(/\D/g, "");
+  if (!tel) return { encontrado: false, contexto: "", profile: null };
 
-  const { data: profiles } = await supabase
+  // 1) Filtra no próprio banco pelos últimos 8 dígitos (sobrevive à formatação
+  //    e ao 9º dígito/DDI). Isso evita carregar milhares de perfis em memória.
+  const sufixo = tel.slice(-8);
+  const { data: candidatos, error } = await supabase
     .from("profiles")
     .select("id, nome, telefone, cpf")
     .not("telefone", "is", null)
-    .limit(1000);
+    .ilike("telefone", `%${sufixo}%`)
+    .limit(50);
 
-  const profile = profiles?.find((candidate: any) => {
-    const telefoneCadastrado = String(candidate.telefone ?? "").replace(/\D/g, "");
-    return telefoneCadastrado === tel
-      || telefoneCadastrado.slice(-11) === tel.slice(-11)
-      || telefoneCadastrado.slice(-10) === tel.slice(-10);
-  }) ?? null;
+  if (error) console.error("buscarClientePorTelefone erro:", JSON.stringify(error));
+
+  const profile = candidatos?.find((c: any) => telefonesBatem(String(c.telefone ?? ""), tel)) ?? null;
   if (!profile) return { encontrado: false, contexto: "", profile: null };
 
   const contexto = await montarContextoCliente(profile);
@@ -603,7 +659,7 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
       observacao: pedidoDados.observacoes ?? null,
       valor_total: pedidoDados.valorTotal,
       taxa_entrega: pedidoDados.taxaEntrega ?? 0,
-      desconto_aplicado: 0,
+      desconto_aplicado: pedidoDados.descontoAplicado ?? 0,
       status: "preparando",
       origem: "whatsapp",
       horario_recebimento: "",
@@ -770,32 +826,60 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
     ? `\n\nPEDIDO EM ANDAMENTO (estado atual da coleta):\n${JSON.stringify(pedidoEmAndamento, null, 2)}`
     : "";
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt + pedidoCtx },
-        ...mensagensFiltradas,
-      ],
-      functions: FUNCTIONS_SCHEMA,
-      function_call: "auto",
-      max_tokens: 600,
-      temperature: 0.65,
-    }),
+  const payload = JSON.stringify({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt + pedidoCtx },
+      ...mensagensFiltradas,
+    ],
+    functions: FUNCTIONS_SCHEMA,
+    function_call: "auto",
+    max_tokens: 600,
+    temperature: 0.65,
   });
 
-  const data = await response.json();
-  if (!response.ok) {
-    console.error("OpenAI error:", JSON.stringify(data));
-    return { tipo: "texto", conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏" };
+  // Faz a chamada com timeout; tenta novamente uma vez em caso de erro de rede,
+  // timeout ou erro transitório da OpenAI (429/5xx).
+  let data: any = null;
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: payload,
+        signal: controller.signal,
+      });
+
+      data = await response.json().catch(() => null);
+
+      if (response.ok) break;
+
+      const transitorio = response.status === 429 || response.status >= 500;
+      console.error(`OpenAI error (tentativa ${tentativa}, status ${response.status}):`, JSON.stringify(data));
+      if (!transitorio || tentativa === 2) {
+        return { tipo: "texto", conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏" };
+      }
+    } catch (e: any) {
+      const motivo = e?.name === "AbortError" ? "timeout" : (e?.message ?? "erro de rede");
+      console.error(`OpenAI falhou (tentativa ${tentativa}): ${motivo}`);
+      if (tentativa === 2) {
+        return { tipo: "texto", conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏" };
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    // Pequeno backoff antes da segunda tentativa
+    await new Promise(resolve => setTimeout(resolve, 800));
   }
 
-  const choice = data.choices?.[0];
+  const choice = data?.choices?.[0];
   const msg = choice?.message;
 
   if (msg?.function_call) {
@@ -1256,16 +1340,23 @@ Deno.serve(async (req: Request) => {
         const autoDisparou = await verificarEExecutarAutomacoes(
           telefone, texto, conversa, historico, "keyword", {}
         );
-        // Se uma automação de keyword disparou, não processa a IA (evita duplicação)
-        // A automação pode ter enviado mensagem própria
+        // Se uma automação de keyword disparou, ela já enviou a própria resposta.
+        // Encerramos aqui para não gerar resposta duplicada da IA.
+        if (autoDisparou) {
+          await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+          return new Response("OK", { status: 200 });
+        }
       }
 
       // ── Busca cliente por telefone — ANTES do switch do menu ─────────────
       const clienteResult = await buscarClientePorTelefone(telefone);
       const pediuMenu = solicitouMenuPrincipal(texto);
 
-      // Verifica automações de primeira mensagem
-      if (primeiraMsg || pediuMenu) {
+      // Verifica automações de primeira mensagem.
+      // Só reenviamos o menu automaticamente quando NÃO houver um clique de menu
+      // pendente — caso contrário o clique do cliente seria perdido e o switch
+      // abaixo não seria executado.
+      if ((primeiraMsg || pediuMenu) && !menuId) {
         if (primeiraMsg) {
           await verificarEExecutarAutomacoes(
             telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
@@ -1408,6 +1499,16 @@ REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
 4. Para buscar cliente por CPF: use a função buscar_cliente_cpf quando o cliente informar o CPF.
 5. Site para pedidos online: saborosamente.vercel.app
 
+PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
+- Ao informar o valor de uma marmita, apresente como "a partir de R$ X,XX", porque o preço final cai conforme a quantidade (desconto progressivo).
+- Explique de forma curta e simpática o desconto progressivo nas MARMITAS:
+  • 5 ou mais marmitas: 3% de desconto
+  • 10 ou mais marmitas: 5% de desconto
+  • 20 ou mais marmitas: 7% de desconto
+- A quantidade que define a faixa é o TOTAL de itens do pedido. Sopas e complementos CONTAM nessa quantidade, mas eles NÃO recebem desconto (o desconto incide só sobre as marmitas).
+- Não prometa um valor final fechado com desconto sem saber a quantidade. Se o cliente ainda não disse quantas, diga o "a partir de" e convide a montar o combo: "Quanto mais marmitas, maior o desconto 😉".
+- Nunca invente outras porcentagens além dessas. Se o cliente pedir algo fora dessas faixas, explique as faixas reais.
+
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
 ETAPA 1 — IDENTIFICAR O CLIENTE (obrigatória, antes de qualquer coisa):
@@ -1429,7 +1530,7 @@ ETAPA 2 — COLETAR ITENS (uma pergunta por vez):
 ETAPA 3 — ENTREGA OU RETIRADA:
 - "Vai ser entrega ou retirada na loja?"
 - Se entrega: "Qual a cidade e bairro?" → verifique na lista ÁREAS DE ENTREGA e informe a taxa.
-- Se entrega em São Bento do Sul com 5+ itens: "Boa notícia! Com ${conversa?.mensagens?.length || 0} ou mais itens o frete fica só R$ 5,00 para São Bento! 🎉"
+- Se entrega em São Bento do Sul e o pedido tiver 5 ou mais unidades (somando as quantidades de todos os itens): informe "Boa notícia! Como seu pedido tem 5 itens ou mais, o frete para São Bento do Sul fica só R$ 5,00! 🎉" e use taxaEntrega = 5.00.
 - Se entrega: pergunte rua e número.
 
 ETAPA 4 — FORMA DE PAGAMENTO:
@@ -1475,13 +1576,51 @@ REGRA DE SEGURANÇA:
         if (resultado.nome === "criar_pedido") {
           const args = resultado.args;
           args.telefone = telefone; // garante o número correto
+          args.itens = Array.isArray(args.itens) ? args.itens : [];
 
-          // Calcula valor total real
+          // Calcula valor total real no servidor (ignora o total que o modelo mandou)
           const subtotal = args.itens.reduce(
-            (acc: number, item: any) => acc + item.preco_unitario * item.quantidade,
+            (acc: number, item: any) =>
+              acc + (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0),
             0
           );
           args.valorTotal = subtotal;
+
+          // Regra determinística do frete promocional de São Bento do Sul:
+          // entrega + cidade São Bento do Sul + 5 ou mais unidades no total → R$ 5,00.
+          const totalUnidades = args.itens.reduce(
+            (acc: number, item: any) => acc + (Number(item.quantidade) || 0),
+            0
+          );
+          const cidadeNorm = String(args.cidade ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+          const ehSaoBento = cidadeNorm.includes("sao bento");
+          if (args.metodoEntrega === "entrega" && ehSaoBento && totalUnidades >= 5) {
+            args.taxaEntrega = 5.0;
+          }
+
+          // Desconto progressivo determinístico: incide só sobre marmitas.
+          // A faixa é definida pelo total de unidades (sopas/complementos contam
+          // na quantidade, mas não recebem desconto).
+          const pctDesconto = descontoProgressivoPorQuantidade(totalUnidades);
+          let descontoValor = 0;
+          if (pctDesconto > 0) {
+            const subtotalComDesconto = args.itens.reduce((acc: number, item: any) => {
+              // Resolve a categoria do item pelo contexto de produtos (por id ou nome)
+              const prod = produtos.find((p: any) =>
+                (item.produto_id && p.id === item.produto_id) ||
+                (item.nome && String(p.nome).toLowerCase() === String(item.nome).toLowerCase())
+              );
+              const categoria = prod?.categorias?.nome ?? "";
+              const valorItem = (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0);
+              return categoriaSemDesconto(categoria) ? acc : acc + valorItem;
+            }, 0);
+            descontoValor = Number((subtotalComDesconto * pctDesconto).toFixed(2));
+          }
+          args.descontoAplicado = descontoValor;
 
           const pedidoId = await criarPedidoNoBanco(args);
 
@@ -1490,7 +1629,8 @@ REGRA DE SEGURANÇA:
             const itensTexto = args.itens
               .map((i: any) => `${i.quantidade}x ${i.nome}${i.peso ? ` (${i.peso})` : ""} — R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}`)
               .join("\n");
-            const total = (subtotal + (args.taxaEntrega ?? 0)).toFixed(2);
+            const desconto = Number(args.descontoAplicado ?? 0);
+            const total = (subtotal - desconto + (args.taxaEntrega ?? 0)).toFixed(2);
 
             const confirmacao = `✅ *Pedido confirmado!*
 
@@ -1499,7 +1639,7 @@ REGRA DE SEGURANÇA:
 📦 *Itens:*
 ${itensTexto}
 
-${args.metodoEntrega === "entrega" ? `📍 Entrega em: ${args.bairro}, ${args.cidade}\n💰 Taxa de entrega: R$ ${(args.taxaEntrega ?? 0).toFixed(2)}\n` : "🏪 Retirada na loja\n"}💳 Pagamento: ${args.pagamento}
+${desconto > 0 ? `🎉 Desconto progressivo: -R$ ${desconto.toFixed(2)}\n` : ""}${args.metodoEntrega === "entrega" ? `📍 Entrega em: ${args.bairro}, ${args.cidade}\n💰 Taxa de entrega: R$ ${(args.taxaEntrega ?? 0).toFixed(2)}\n` : "🏪 Retirada na loja\n"}💳 Pagamento: ${args.pagamento}
 💵 *Total: R$ ${total}*
 
 Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a SaborosaMente! 🍱❤️`;
@@ -1569,7 +1709,13 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
 
         // ── Consultar cashback ────────────────────────────────────────────
         else if (resultado.nome === "consultar_cashback") {
-          const profile = clienteResult.encontrado ? clienteResult.profile : null;
+          // Usa o cliente reconhecido; se não houver, tenta reconsultar por
+          // telefone (o vínculo pode ter sido feito por CPF nesta mesma conversa).
+          let profile = clienteResult.encontrado ? clienteResult.profile : null;
+          if (!profile?.id) {
+            const recheck = await buscarClientePorTelefone(telefone);
+            if (recheck.encontrado) profile = recheck.profile;
+          }
           if (!profile?.id) {
             const msg = "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
             await sendWhatsAppMessage(telefone, msg);
