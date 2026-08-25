@@ -36,6 +36,52 @@ export const createOrder = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
     const supabase = createServerClient();
+
+    // ── Validação de cupom no servidor (confiável; não dá para burlar pelo cliente) ──
+    if (data.cupom) {
+      const { data: cupom, error: cupomError } = await supabase
+        .from("cupons")
+        .select("codigo, ativo, validade, uso, max_uso, apenas_primeira_compra")
+        .eq("codigo", data.cupom)
+        .maybeSingle();
+
+      if (cupomError) throw new Error("Erro ao validar o cupom.");
+      if (!cupom || cupom.ativo === false) {
+        throw new Error("Cupom inválido ou inativo.");
+      }
+      if (cupom.validade && new Date(cupom.validade) < new Date()) {
+        throw new Error("Este cupom expirou.");
+      }
+      if (
+        cupom.max_uso !== null &&
+        cupom.max_uso !== undefined &&
+        (cupom.uso ?? 0) >= cupom.max_uso
+      ) {
+        throw new Error("Este cupom já atingiu o limite de usos.");
+      }
+
+      // Regra "somente primeira compra": checa por user_id, e-mail e telefone.
+      if (cupom.apenas_primeira_compra) {
+        let query = supabase
+          .from("pedidos")
+          .select("id", { count: "exact", head: true })
+          .neq("status", "Cancelado");
+
+        // Monta o filtro: qualquer pedido anterior do mesmo user, e-mail ou telefone
+        const ors: string[] = [];
+        if (data.userId) ors.push(`user_id.eq.${data.userId}`);
+        if (data.email) ors.push(`email_cliente.eq.${data.email}`);
+        if (data.telefone) ors.push(`telefone_cliente.eq.${data.telefone}`);
+
+        if (ors.length > 0) {
+          const { count } = await query.or(ors.join(","));
+          if ((count ?? 0) > 0) {
+            throw new Error("Este cupom é exclusivo para a primeira compra.");
+          }
+        }
+      }
+    }
+
     const insertData: any = {
       user_id: data.userId ?? null,
       nome_cliente: data.nome,
@@ -90,6 +136,18 @@ export const createOrder = createServerFn({ method: "POST" })
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
 
     if (itemsError) throw new Error(itemsError.message);
+
+    // 3. Incrementa o uso do cupom no servidor (após o pedido ser criado com sucesso),
+    //    garantindo que o contador só sobe quando o pedido realmente existe.
+    if (data.cupom) {
+      const { error: cupomUsoError } = await supabase.rpc("incrementar_uso_cupom", {
+        p_codigo: data.cupom,
+      });
+      if (cupomUsoError) {
+        // Não falha o pedido por causa do contador; apenas registra.
+        console.error("Falha ao incrementar uso do cupom:", cupomUsoError.message);
+      }
+    }
 
     return order;
   });

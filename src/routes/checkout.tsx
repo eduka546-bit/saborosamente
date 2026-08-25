@@ -389,35 +389,9 @@ function Checkout() {
       return;
     }
     try {
-      // registra uso do cupom
-      if (appliedCoupon) {
-        // Verificação extra de primeira compra para visitantes não logados
-        const { data: cupomData } = await supabase
-          .from("cupons")
-          .select("apenas_primeira_compra")
-          .eq("codigo", appliedCoupon.codigo)
-          .maybeSingle();
-
-        if (cupomData?.apenas_primeira_compra && !session) {
-          // Verifica pelo e-mail ou telefone se já comprou antes
-          const { count: emailCount } = await supabase
-            .from("pedidos")
-            .select("id", { count: "exact", head: true })
-            .eq("email_cliente", data.email)
-            .neq("status", "Cancelado");
-          const { count: phoneCount } = await supabase
-            .from("pedidos")
-            .select("id", { count: "exact", head: true })
-            .eq("telefone_cliente", data.telefone)
-            .neq("status", "Cancelado");
-          if ((emailCount ?? 0) > 0 || (phoneCount ?? 0) > 0) {
-            toast.error("Este cupom é exclusivo para a primeira compra.");
-            return;
-          }
-        }
-
-        await supabase.rpc("incrementar_uso_cupom", { p_codigo: appliedCoupon.codigo });
-      }
+      // A validação do cupom (validade, limite de usos, primeira compra) e o
+      // incremento de uso agora são feitos no servidor, dentro de createOrder —
+      // de forma confiável e à prova de manipulação pelo cliente.
 
       // cria o pedido real no banco
       const order = await createOrderFn({
