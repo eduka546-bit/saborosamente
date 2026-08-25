@@ -17,12 +17,7 @@ import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import {
-  COMBO_RULES,
-  NO_DISCOUNT_CATEGORIES,
-  isNoDiscount,
-  getComboDiscount,
-} from "@/lib/combo-rules";
+import { COMBO_RULES, isNoDiscount, calcularTotaisCombo } from "@/lib/combo-rules";
 
 export { COMBO_RULES };
 
@@ -79,18 +74,17 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   }, [products, selectedCategory, search]);
 
   // ── Totais ─────────────────────────────────────────────────────────────────
-  const { totalQty, subtotal, discountPct, discount, total } = useMemo(() => {
-    const totalQty = items.reduce((s, i) => s + i.quantity, 0);
-    const subtotal = items.reduce((s, i) => s + i.preco * i.quantity, 0);
-    const marmitaSubtotal = items
-      .filter((i) => !isNoDiscountLocal(i.categoria))
-      .reduce((s, i) => s + i.preco * i.quantity, 0);
-    const rule = COMBO_RULES.find((r) => totalQty >= r.min);
-    const discountPct = rule?.discount ?? 0;
-    const discount = marmitaSubtotal * discountPct;
-    const total = subtotal - discount;
-    return { totalQty, subtotal, discountPct, discount, total };
-  }, [items]);
+  const { totalQty, subtotal, discountPct, discount, total } = useMemo(
+    () =>
+      calcularTotaisCombo(
+        items.map((i) => ({
+          categoria: i.categoria,
+          subtotal: i.preco * i.quantity,
+          quantidade: i.quantity,
+        })),
+      ),
+    [items],
+  );
 
   // Early return APÓS todos os hooks
   if (!isOpen) return null;

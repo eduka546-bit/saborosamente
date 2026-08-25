@@ -76,3 +76,49 @@ export async function usarCashback(userId: string, pedidoId: string, valorUsado:
     updated_at: new Date().toISOString(),
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Funções puras de cálculo (testáveis, sem dependência de banco)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CashbackConfigCalc {
+  ativo: boolean;
+  /** Fração (ex: 0.01 para 1%). */
+  percentual: number;
+  /** Saldo mínimo necessário para poder usar cashback. */
+  minimo_uso: number;
+  /** Fração máxima do pedido que pode ser paga com cashback (ex: 0.10 para 10%). */
+  limite_desconto_pct: number;
+}
+
+/**
+ * Quanto de cashback é creditado por um pedido.
+ * Retorna 0 se o programa estiver inativo ou o valor for não positivo.
+ */
+export function calcularCashbackCreditado(
+  valorPedido: number,
+  config: Pick<CashbackConfigCalc, "ativo" | "percentual">,
+): number {
+  if (!config.ativo) return 0;
+  const valor = valorPedido * config.percentual;
+  return valor > 0 ? valor : 0;
+}
+
+/**
+ * Quanto de cashback pode ser usado como desconto num pedido.
+ * Limitado por: saldo disponível, teto percentual do pedido e saldo mínimo de uso.
+ * @param totalLiquido total do pedido já sem outros descontos (ex.: cupom)
+ */
+export function calcularCashbackUtilizavel(
+  saldo: number,
+  totalLiquido: number,
+  config: Pick<CashbackConfigCalc, "ativo" | "minimo_uso" | "limite_desconto_pct">,
+): number {
+  if (!config.ativo) return 0;
+  if (saldo <= 0 || totalLiquido <= 0) return 0;
+  if (saldo < config.minimo_uso) return 0;
+
+  const tetoPorPercentual = totalLiquido * config.limite_desconto_pct;
+  const utilizavel = Math.min(saldo, tetoPorPercentual);
+  return utilizavel > 0 ? utilizavel : 0;
+}

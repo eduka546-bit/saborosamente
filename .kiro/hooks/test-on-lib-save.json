@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Rodar testes ao salvar libs",
+      "trigger": "PostFileSave",
+      "description": "Executa a suíte de testes (Vitest) sempre que um arquivo em src/lib é salvo, para pegar regressões na lógica de negócio (frete, desconto, cashback) imediatamente.",
+      "matcher": "src[\\\\/]lib[\\\\/].*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "bun run test"
+      }
+    }
+  ]
+}

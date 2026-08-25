@@ -32,6 +32,31 @@ const createOrderSchema = z.object({
   tipoCartao: z.string().optional(),
 });
 
+// Campos gravados na tabela `pedidos` ao criar um pedido.
+// Os de endereço são opcionais (só preenchidos em entrega).
+interface PedidoInsert {
+  user_id: string | null;
+  nome_cliente: string;
+  telefone_cliente: string;
+  email_cliente: string;
+  metodo_entrega: string;
+  horario_recebimento: string;
+  metodo_pagamento: string;
+  observacao: string;
+  valor_total: number;
+  taxa_entrega: number;
+  desconto_aplicado: number;
+  cupom_codigo: string | null;
+  troco: string | null;
+  tipo_cartao: string | null;
+  status: string;
+  endereco_cidade?: string;
+  endereco_bairro?: string;
+  endereco_rua?: string;
+  endereco_complemento?: string;
+  endereco_cep?: string;
+}
+
 export const createOrder = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
@@ -62,7 +87,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
       // Regra "somente primeira compra": checa por user_id, e-mail e telefone.
       if (cupom.apenas_primeira_compra) {
-        let query = supabase
+        const query = supabase
           .from("pedidos")
           .select("id", { count: "exact", head: true })
           .neq("status", "Cancelado");
@@ -82,7 +107,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
-    const insertData: any = {
+    const insertData: PedidoInsert = {
       user_id: data.userId ?? null,
       nome_cliente: data.nome,
       telefone_cliente: data.telefone,

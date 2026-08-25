@@ -1117,6 +1117,16 @@ async function executarNo(
           [{ title: "Opções", rows }],
         );
       }
+      // Se o nó pede para aguardar a resposta do cliente, pausa a execução aqui.
+      // A próxima mensagem do cliente retoma o fluxo (ver retomarPorResposta).
+      // Nós antigos sem esse flag mantêm o comportamento anterior (avançam direto).
+      if (no.config.aguardar_resposta) {
+        await supabase
+          .from("automacao_execucoes")
+          .update({ aguardando_resposta: true, no_atual_id: no.id })
+          .eq("id", execucao.id);
+        break;
+      }
       await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
       break;
     }
@@ -1225,6 +1235,64 @@ async function concluirExecucao(execucao: any) {
     .from("automacao_execucoes")
     .update({ status: "concluida", updated_at: new Date().toISOString() })
     .eq("id", execucao.id);
+}
+
+// Retoma uma automação que estava pausada num nó de menu aguardando a resposta
+// do cliente. Retorna true se retomou (e portanto a IA não deve processar a
+// mensagem), false se não havia execução aguardando resposta.
+async function retomarPorResposta(
+  telefone: string,
+  texto: string,
+  conversa: any,
+  historico: any[],
+): Promise<boolean> {
+  try {
+    const { data: execucao } = await supabase
+      .from("automacao_execucoes")
+      .select("*")
+      .eq("telefone", telefone)
+      .eq("status", "em_andamento")
+      .eq("aguardando_resposta", true)
+      .maybeSingle();
+
+    if (!execucao) return false;
+
+    const { data: automacao } = await supabase
+      .from("automacoes")
+      .select("id, ativo, nos")
+      .eq("id", execucao.automacao_id)
+      .maybeSingle();
+
+    // Automação removida/desativada: encerra a execução pendente.
+    if (!automacao || automacao.ativo === false) {
+      await concluirExecucao(execucao);
+      return false;
+    }
+
+    const nos: any[] = automacao.nos ?? [];
+    const noAtual = nos.find((n: any) => n.id === execucao.no_atual_id);
+    if (!noAtual) {
+      await concluirExecucao(execucao);
+      return false;
+    }
+
+    // Guarda a resposta do cliente e limpa o flag de espera.
+    const dados = { ...(execucao.dados ?? {}), ultima_resposta: texto };
+    await supabase
+      .from("automacao_execucoes")
+      .update({ aguardando_resposta: false, dados })
+      .eq("id", execucao.id);
+
+    const execAtualizada = { ...execucao, dados, aguardando_resposta: false };
+
+    // Avança a partir do nó de menu. A condição seguinte (se houver) usa a
+    // última mensagem do histórico, que já contém a resposta do cliente.
+    await avancarExecucao(noAtual, nos, execAtualizada, telefone, conversa, historico, true);
+    return true;
+  } catch (e: any) {
+    console.error("retomarPorResposta erro:", e?.message ?? e);
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1460,6 +1528,33 @@ Deno.serve(async (req: Request) => {
 
         if (telNorm === treinadorNorm || telNorm.endsWith(treinadorNorm.slice(-10))) {
           await processarModoTreino(telefone, texto || menuId || "", conversa, historico, config);
+          return new Response("OK", { status: 200 });
+        }
+      }
+
+      // ── Retoma automação pausada aguardando resposta do cliente ───────────
+      // Se um nó de menu ficou esperando a resposta, a mensagem atual retoma o
+      // fluxo (e não deve ser processada pela IA nem reiniciar outra automação).
+      {
+        const respostaCliente = texto || menuId || "";
+        // Passa um histórico com a resposta em memória (sem persistir ainda) para
+        // que a condição por "mensagem" enxergue a resposta do cliente.
+        const historicoComResposta = [
+          ...historico,
+          { role: "user", content: respostaCliente },
+        ];
+        const retomou = await retomarPorResposta(
+          telefone,
+          respostaCliente,
+          conversa,
+          historicoComResposta,
+        );
+        if (retomou) {
+          // Só agora persiste a mensagem do cliente (a retomada assumiu o turno).
+          await appendMensagem(conversa.id, historico, {
+            role: "user",
+            content: respostaCliente,
+          });
           return new Response("OK", { status: 200 });
         }
       }

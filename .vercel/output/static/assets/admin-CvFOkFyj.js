@@ -1,1 +1,0 @@
-import{t as e}from"./jsx-runtime-DUAcabCT.js";import{St as t}from"./index-CqYAhwEe.js";var n=e();function r(){return(0,n.jsx)(`div`,{className:`flex min-h-screen flex-col bg-gray-50`,children:(0,n.jsx)(`main`,{className:`flex-1 overflow-x-hidden`,children:(0,n.jsx)(t,{})})})}var i=function(){return(0,n.jsx)(r,{})};export{i as component};

@@ -5,6 +5,7 @@ import {
   tierDescontoProgressivo,
   calcularDescontoProgressivo,
   calcularFrete,
+  calcularTotaisCombo,
   type CartItemForCalc,
 } from "./combo-rules";
 
@@ -69,16 +70,12 @@ describe("faixas de desconto progressivo", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("calcularDescontoProgressivo", () => {
   it("não aplica desconto abaixo de 5 unidades", () => {
-    const itens: CartItemForCalc[] = [
-      { categoria: "Fitness", subtotal: 100, quantidade: 4 },
-    ];
+    const itens: CartItemForCalc[] = [{ categoria: "Fitness", subtotal: 100, quantidade: 4 }];
     expect(calcularDescontoProgressivo(itens)).toBe(0);
   });
 
   it("aplica 3% sobre o subtotal das marmitas com 5 unidades", () => {
-    const itens: CartItemForCalc[] = [
-      { categoria: "Fitness", subtotal: 100, quantidade: 5 },
-    ];
+    const itens: CartItemForCalc[] = [{ categoria: "Fitness", subtotal: 100, quantidade: 5 }];
     expect(calcularDescontoProgressivo(itens)).toBeCloseTo(3, 5);
   });
 
@@ -93,16 +90,12 @@ describe("calcularDescontoProgressivo", () => {
   });
 
   it("aplica 7% quando chega a 20 unidades", () => {
-    const itens: CartItemForCalc[] = [
-      { categoria: "Fitness", subtotal: 400, quantidade: 20 },
-    ];
+    const itens: CartItemForCalc[] = [{ categoria: "Fitness", subtotal: 400, quantidade: 20 }];
     expect(calcularDescontoProgressivo(itens)).toBeCloseTo(28, 5);
   });
 
   it("pedido só de sopas não recebe desconto mesmo com 10+ unidades", () => {
-    const itens: CartItemForCalc[] = [
-      { categoria: "Sopa", subtotal: 180, quantidade: 10 },
-    ];
+    const itens: CartItemForCalc[] = [{ categoria: "Sopa", subtotal: 180, quantidade: 10 }];
     expect(calcularDescontoProgressivo(itens)).toBe(0);
   });
 });
@@ -158,5 +151,42 @@ describe("calcularFrete", () => {
         freteGratisAPartirDe: 150,
       }),
     ).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// calcularTotaisCombo — total do "Monte Você Mesmo"
+// ─────────────────────────────────────────────────────────────────────────────
+describe("calcularTotaisCombo", () => {
+  it("sem desconto abaixo de 5 marmitas", () => {
+    const r = calcularTotaisCombo([{ categoria: "Fitness", subtotal: 80, quantidade: 4 }]);
+    expect(r.discountPct).toBe(0);
+    expect(r.discount).toBe(0);
+    expect(r.total).toBeCloseTo(80, 5);
+  });
+
+  it("aplica 3% com 5 marmitas", () => {
+    const r = calcularTotaisCombo([{ categoria: "Fitness", subtotal: 100, quantidade: 5 }]);
+    expect(r.discountPct).toBe(0.03);
+    expect(r.total).toBeCloseTo(97, 5);
+  });
+
+  it("usa a MAIOR faixa: 20 marmitas dão 7% (não 3%)", () => {
+    // Regressão: a versão antiga com COMBO_RULES.find() retornava 3% para 20 itens.
+    const r = calcularTotaisCombo([{ categoria: "Fitness", subtotal: 400, quantidade: 20 }]);
+    expect(r.discountPct).toBe(0.07);
+    expect(r.discount).toBeCloseTo(28, 5);
+    expect(r.total).toBeCloseTo(372, 5);
+  });
+
+  it("sopas contam na quantidade mas não recebem desconto", () => {
+    const r = calcularTotaisCombo([
+      { categoria: "Tradicional", subtotal: 90, quantidade: 3 },
+      { categoria: "Sopa", subtotal: 36, quantidade: 2 },
+    ]);
+    expect(r.totalQty).toBe(5);
+    expect(r.discountPct).toBe(0.03);
+    expect(r.discount).toBeCloseTo(2.7, 5); // 3% só sobre as marmitas (90)
+    expect(r.total).toBeCloseTo(123.3, 5); // 126 - 2.70
   });
 });

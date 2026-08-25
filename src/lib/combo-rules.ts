@@ -105,3 +105,31 @@ export function calcularFrete({
 
   return taxaBase;
 }
+
+/**
+ * Calcula os totais de um combo "Monte Você Mesmo".
+ * O desconto usa a MAIOR faixa aplicável (getComboDiscount) e incide apenas
+ * sobre o subtotal das marmitas (sopas/complementos entram no total sem desconto).
+ */
+export function calcularTotaisCombo(itens: CartItemForCalc[]): {
+  totalQty: number;
+  subtotal: number;
+  discountPct: number;
+  discount: number;
+  total: number;
+} {
+  const totalQty = itens.reduce((s, i) => s + i.quantidade, 0);
+  const subtotal = itens.reduce((s, i) => s + i.subtotal, 0);
+  const marmitaSubtotal = itens
+    .filter((i) => !isNoDiscount(i.categoria))
+    .reduce((s, i) => s + i.subtotal, 0);
+  const discountPct = getComboDiscount(totalQty)?.discount ?? 0;
+  const discount = marmitaSubtotal * discountPct;
+  return {
+    totalQty,
+    subtotal,
+    discountPct,
+    discount,
+    total: subtotal - discount,
+  };
+}

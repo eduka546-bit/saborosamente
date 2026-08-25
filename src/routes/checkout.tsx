@@ -21,7 +21,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { createOrder } from "@/lib/orders.functions";
-import { getCashbackConfig, getSaldo, creditarCashback, usarCashback } from "@/lib/cashback";
+import {
+  getCashbackConfig,
+  getSaldo,
+  creditarCashback,
+  usarCashback,
+  calcularCashbackUtilizavel,
+} from "@/lib/cashback";
 import {
   defaultPaymentMethods,
   defaultCardFlags,
@@ -279,10 +285,12 @@ function Checkout() {
     : 0;
 
   // calcula desconto do cashback e total final
+  // Máximo de cashback utilizável, calculado por função pura testada (cashback.ts):
+  // respeita saldo, teto percentual do pedido e saldo mínimo de uso.
   const cashbackMaxDesc = cashbackConfig
-    ? Math.min(cashbackSaldo, (total - couponDiscount) * cashbackConfig.limite_desconto_pct)
+    ? calcularCashbackUtilizavel(cashbackSaldo, total - couponDiscount, cashbackConfig)
     : 0;
-  const cashbackDesconto = cashbackAtivado ? Math.min(cashbackSaldo, cashbackMaxDesc) : 0;
+  const cashbackDesconto = cashbackAtivado ? cashbackMaxDesc : 0;
   const finalTotal = Math.max(0, total - couponDiscount - cashbackDesconto);
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
