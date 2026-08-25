@@ -24,6 +24,11 @@ describe("isNoDiscount", () => {
     expect(isNoDiscount("complementos")).toBe(true);
   });
 
+  it("marca combos prontos como sem desconto (já têm desconto no preço)", () => {
+    expect(isNoDiscount("Combo Pronto")).toBe(true);
+    expect(isNoDiscount("Combos Prontos")).toBe(true);
+  });
+
   it("não marca marmitas como sem desconto", () => {
     expect(isNoDiscount("Fitness")).toBe(false);
     expect(isNoDiscount("Tradicional")).toBe(false);
@@ -96,6 +101,23 @@ describe("calcularDescontoProgressivo", () => {
 
   it("pedido só de sopas não recebe desconto mesmo com 10+ unidades", () => {
     const itens: CartItemForCalc[] = [{ categoria: "Sopa", subtotal: 180, quantidade: 10 }];
+    expect(calcularDescontoProgressivo(itens)).toBe(0);
+  });
+
+  it("combo pronto conta na faixa mas não recebe desconto; só marmitas avulsas recebem", () => {
+    // combo pronto (5un, R$200, já com desconto) + 2 marmitas avulsas (R$60)
+    // total 7un → faixa 3%; desconto só sobre as marmitas: 60 * 0.03 = 1.80
+    const itens: CartItemForCalc[] = [
+      { categoria: "Combo Pronto", subtotal: 200, quantidade: 5 },
+      { categoria: "Fitness", subtotal: 60, quantidade: 2 },
+    ];
+    expect(calcularDescontoProgressivo(itens)).toBeCloseTo(1.8, 5);
+  });
+
+  it("pedido só de combo pronto não recebe desconto progressivo adicional", () => {
+    const itens: CartItemForCalc[] = [
+      { categoria: "Combo Pronto", subtotal: 400, quantidade: 20 },
+    ];
     expect(calcularDescontoProgressivo(itens)).toBe(0);
   });
 });

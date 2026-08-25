@@ -35,7 +35,9 @@ const FAIXAS_DESCONTO_PROGRESSIVO = [
   { min: 10, desconto: 0.05 },
   { min: 5, desconto: 0.03 },
 ];
-const CATEGORIAS_SEM_DESCONTO = ["sopa", "complemento"];
+// "combo" cobre os Combos Prontos (já têm desconto no preço): contam na
+// quantidade mas não recebem desconto progressivo adicional.
+const CATEGORIAS_SEM_DESCONTO = ["sopa", "complemento", "combo"];
 
 function categoriaSemDesconto(categoria: string | null | undefined): boolean {
   const c = String(categoria ?? "").toLowerCase();
@@ -1537,26 +1539,18 @@ Deno.serve(async (req: Request) => {
       // fluxo (e não deve ser processada pela IA nem reiniciar outra automação).
       {
         const respostaCliente = texto || menuId || "";
-        // Passa um histórico com a resposta em memória (sem persistir ainda) para
-        // que a condição por "mensagem" enxergue a resposta do cliente.
-        const historicoComResposta = [
-          ...historico,
-          { role: "user", content: respostaCliente },
-        ];
-        const retomou = await retomarPorResposta(
-          telefone,
-          respostaCliente,
-          conversa,
-          historicoComResposta,
-        );
-        if (retomou) {
-          // Só agora persiste a mensagem do cliente (a retomada assumiu o turno).
-          await appendMensagem(conversa.id, historico, {
-            role: "user",
-            content: respostaCliente,
-          });
-          return new Response("OK", { status: 200 });
-        }
+        // Persiste a mensagem do cliente ANTES de retomar (para a condição por
+        // "mensagem" enxergar a resposta). Se retomar, encerramos aqui — por isso
+        // o fluxo normal abaixo não chega a persistir de novo.
+        historico = await appendMensagem(conversa.id, historico, {
+          role: "user",
+          content: respostaCliente,
+        });
+        const retomou = await retomarPorResposta(telefone, respostaCliente, conversa, historico);
+        if (retomou) return new Response("OK", { status: 200 });
+        // Não retomou: remove a mensagem recém-adicionada para evitar duplicá-la,
+        // já que os fluxos seguintes (keyword/IA) persistem a mensagem novamente.
+        historico = historico.slice(0, -1);
       }
 
       // ── Verifica automações de keyword ───────────────────────────────────

@@ -9,8 +9,16 @@ export const COMBO_RULES = [
   { min: 20, discount: 0.07, label: "20+ marmitas", badge: "7% OFF" },
 ];
 
-// Categorias com preço fixo (não recebem desconto progressivo)
-export const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
+// Categorias com preço fixo (não recebem desconto progressivo).
+// "combo" cobre os Combos Prontos, que já têm desconto embutido no preço:
+// eles CONTAM na quantidade total, mas não ganham desconto progressivo adicional.
+export const NO_DISCOUNT_CATEGORIES = [
+  "sopa",
+  "sopas",
+  "complemento",
+  "complementos",
+  "combo",
+];
 
 export function isNoDiscount(categoria: string) {
   return NO_DISCOUNT_CATEGORIES.some((c) => categoria?.toLowerCase().includes(c));
