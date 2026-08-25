@@ -13,7 +13,7 @@ import { getTaxas } from "./taxas.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import { ExitIntentModal } from "@/components/exit-intent-modal";
-import { isNoDiscount } from "@/lib/combo-rules";
+import { calcularDescontoProgressivo, calcularFrete } from "@/lib/combo-rules";
 
 // Variável global para cache de produtos no lado do cliente
 let cachedProducts: any[] = [];
@@ -458,45 +458,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const subtotal = detailed.reduce((acc, l) => acc + l.subtotal, 0);
     const count = detailed.reduce((acc, l) => acc + l.quantity, 0);
 
-    // Lógica de Frete e Regras de Negócio
-    let shipping = SHIPPING_FEE;
-
-    // Se tiver bairro selecionado, pegar a taxa específica
+    // Taxa base do frete: taxa específica do bairro selecionado, ou a padrão.
+    let taxaBase = SHIPPING_FEE;
     if (selectedBairro) {
       const taxaItem = taxas.find((t) => t.bairro === selectedBairro && t.cidade === selectedCity);
       if (taxaItem) {
-        shipping = taxaItem.taxa;
+        taxaBase = taxaItem.taxa;
       }
     }
 
-    if (subtotal === 0 || subtotal >= FREE_SHIPPING_FROM) {
-      shipping = 0;
-    }
+    // Frete e desconto calculados por funções puras testadas (ver combo-rules.ts).
+    const shipping = calcularFrete({
+      subtotal,
+      totalUnidades: count,
+      taxaBase,
+      cidade: selectedCity,
+      freteGratisAPartirDe: FREE_SHIPPING_FROM,
+      minQuantidadeSBS: RULES.MIN_ORDER_QUANTITY,
+      fretePromoSBS: RULES.SBS_DISCOUNTED_SHIPPING,
+    });
 
-    // Se tiver cidade selecionada, podemos aplicar regras específicas
-    if (selectedCity) {
-      const isSBS = selectedCity.toLowerCase().includes("são bento do sul");
-
-      // Frete promocional R$ 5,00 para SBS com 5+ unidades (combos contam)
-      if (isSBS && count >= RULES.MIN_ORDER_QUANTITY) {
-        shipping = RULES.SBS_DISCOUNTED_SHIPPING;
-      }
-    }
-
-    // Lógica de Desconto Progressivo
-    // - Quantidade total (incl. sopas/complementos) determina o tier
-    // - Desconto aplicado APENAS sobre subtotal das marmitas
-    let discount = 0;
-    const applicableRule = [...RULES.PROGRESSIVE_DISCOUNT]
-      .sort((a, b) => b.min - a.min)
-      .find((rule) => count >= rule.min);
-
-    if (applicableRule) {
-      const marmitaSubtotal = detailed
-        .filter((l) => !isNoDiscount(l.product.categoria ?? ""))
-        .reduce((acc, l) => acc + l.subtotal, 0);
-      discount = marmitaSubtotal * applicableRule.discount;
-    }
+    const discount = calcularDescontoProgressivo(
+      detailed.map((l) => ({
+        categoria: l.product.categoria ?? "",
+        subtotal: l.subtotal,
+        quantidade: l.quantity,
+      })),
+    );
 
     return {
       lines: detailed,
