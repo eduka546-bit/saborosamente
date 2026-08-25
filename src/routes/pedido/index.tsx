@@ -93,16 +93,12 @@ function RastrearPedidoPage() {
     queryKey: ["rastrear", busca],
     enabled: busca.length >= 6,
     queryFn: async () => {
-      // Busca por ID parcial (últimos 8 chars) ou protocolo completo
-      const termo = busca.trim().toUpperCase().replace("#", "");
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select(
-          "id, nome_cliente, status, created_at, metodo_entrega, endereco_bairro, endereco_cidade, metodo_pagamento, valor_total, taxa_entrega, desconto_aplicado, itens:pedido_itens(quantidade, preco_unitario, produto_id, produtos:produto_id(nome))",
-        )
-        .ilike("id", `%${termo}`)
-        .order("created_at", { ascending: false })
-        .limit(1);
+      // Rastreamento público via RPC segura (não expõe a tabela pedidos inteira).
+      // Busca pelo protocolo (início do ID do pedido).
+      const termo = busca.trim().replace("#", "");
+      const { data, error } = await supabase.rpc("rastrear_pedido", {
+        p_protocolo: termo,
+      });
       if (error) throw error;
       return data?.[0] ?? null;
     },
