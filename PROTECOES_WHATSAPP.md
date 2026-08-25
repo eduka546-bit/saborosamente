@@ -3,6 +3,7 @@
 ## O Problema
 
 WhatsApp pode restringir ou banir sua conta se:
+
 - ❌ Enviar muitas mensagens muito rapidamente (rate limit)
 - ❌ Ter muitos erros/rejeições de mensagens
 - ❌ Usar a mesma mensagem para muitos contatos (spam)
@@ -22,6 +23,7 @@ Por Hora: 500 mensagens (WhatsApp permite 1000, usamos menos)
 ```
 
 **Por quê?**
+
 - WhatsApp não anuncia limites exatos
 - Melhor ser conservador que arriscar ban
 - Proteção contra throttling progressivo
@@ -33,6 +35,7 @@ Por Hora: 500 mensagens (WhatsApp permite 1000, usamos menos)
 ```
 
 **Por quê?**
+
 - Evita "rajada" de envios
 - Simula padrão de usuário humano
 - Distribuído ao longo do tempo = menos suspeito
@@ -48,6 +51,7 @@ Tentativa 3: aguarde 11.25 segundos
 ```
 
 **Por quê?**
+
 - Detecta quando WhatsApp está throttling
 - Para automaticamente e aguarda
 - Tenta novamente quando permitido
@@ -63,6 +67,7 @@ Erro 3ª vez? → Marque como falhou e continue
 ```
 
 **Por quê?**
+
 - Rede/API podem falhar ocasionalmente
 - Retry automático recupera falhas temporárias
 - Limite de 3 evita loops infinitos
@@ -80,6 +85,7 @@ A cada mensagem enviada:
 ```
 
 **Por quê?**
+
 - Parausa automaticamente se atingir limite
 - Evita "rajada" que quebraria limite
 - Mantém conta segura
@@ -97,6 +103,7 @@ Durante o envio, você vê:
 ```
 
 **Por quê?**
+
 - Você vê o progresso em tempo real
 - Detecta problemas cedo
 - Sabe quando vai terminar
@@ -114,20 +121,21 @@ Aguarde antes da próxima campanha.
 
 ## 📊 Configurações Padrão
 
-| Parâmetro | Valor | Motivo |
-|-----------|-------|--------|
-| Por Minuto | 30 msgs | Conservador (80 permitido) |
-| Por Hora | 500 msgs | Conservador (1000 permitido) |
-| Delay Mínimo | 2 segundos | Realista para envio em massa |
-| Backoff Inicial | 5 segundos | Tempo de espera inicial |
-| Backoff Fator | 1.5x | Crescimento exponencial |
-| Max Retries | 3 | Limite de tentativas |
+| Parâmetro       | Valor      | Motivo                       |
+| --------------- | ---------- | ---------------------------- |
+| Por Minuto      | 30 msgs    | Conservador (80 permitido)   |
+| Por Hora        | 500 msgs   | Conservador (1000 permitido) |
+| Delay Mínimo    | 2 segundos | Realista para envio em massa |
+| Backoff Inicial | 5 segundos | Tempo de espera inicial      |
+| Backoff Fator   | 1.5x       | Crescimento exponencial      |
+| Max Retries     | 3          | Limite de tentativas         |
 
 ---
 
 ## 🎯 Boas Práticas
 
 ### ✅ Faça:
+
 - Envie campanhas em **horários de pico** (10h-20h)
 - Divida contatos em **várias campanhas pequenas** (100-200 por vez)
 - Aguarde **10-15 minutos** entre campanhas
@@ -135,6 +143,7 @@ Aguarde antes da próxima campanha.
 - Use **vídeos/imagens** para menos suspeita
 
 ### ❌ Evite:
+
 - Enviar **1000+ contatos** em 1 campanha
 - Fazer **múltiplas campanhas** seguidas (sem pause)
 - Mensagens **idênticas** (parece spam)
@@ -166,11 +175,13 @@ Total: 1 hora (seguro!)
 ## 🚨 Se Acontecer Restrição
 
 ### Sinais de Restrição:
+
 - ❌ Erro 429 (Too Many Requests) = rate limited
 - ❌ Erro 131026 = account blocked
 - ❌ Mensagens não chegam (silently failing)
 
 ### O que fazer:
+
 1. **PARE imediatamente** - não envie mais
 2. **Aguarde 24-48 horas** - deixe a conta "respirar"
 3. **Entre em contato com WhatsApp** - pode ser reversível
@@ -185,9 +196,9 @@ Se quiser aumentar/diminuir limites, edite em:
 
 ```typescript
 const RATE_LIMITS = {
-  POR_MINUTO: 30,        // Aumente se confiante
-  POR_HORA: 500,         // Aumente gradualmente
-  DELAY_MIN_MS: 2000,    // Diminua se quiser mais rápido
+  POR_MINUTO: 30, // Aumente se confiante
+  POR_HORA: 500, // Aumente gradualmente
+  DELAY_MIN_MS: 2000, // Diminua se quiser mais rápido
   BACKOFF_INICIAL_MS: 5000,
   BACKOFF_FATOR: 1.5,
 };
@@ -200,6 +211,7 @@ const RATE_LIMITS = {
 ## 📞 Suporte
 
 Se receber erros:
+
 1. Verifique logs em Supabase → Functions → `whatsapp-campanha-enviar`
 2. Procure por padrões de erro
 3. Reduza limites se necessário

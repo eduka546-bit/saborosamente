@@ -1,14 +1,14 @@
 /**
  * Gera QR Code de PIX estático via QR Server
  * POST /functions/v1/generate-pix-qr
- * 
+ *
  * Body:
  * {
  *   "pix_dict": "sua-chave-pix@saborosamente",
  *   "valor": 123.45,
  *   "descricao": "Marmita - Pedido #ABC123"
  * }
- * 
+ *
  * Response:
  * {
  *   "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=...",
@@ -29,12 +29,13 @@ function generatePixCopiaCola(chavePix: string, valor: number, descricao: string
   // Formato simplificado para PIX cópia e cola
   // Nota: Para PIX dinâmico real, seria necessário integrar com Banco Central
   // Este é um exemplo com dados estáticos
-  
-  const pixData = `00020126580014br.gov.bcb.pix` +
+
+  const pixData =
+    `00020126580014br.gov.bcb.pix` +
     `0136${chavePix}` +
     `5204000053039865802BR5913SABOROSAMENTE6009SAO BENTO` +
     `62410503***63041B5E`;
-  
+
   return pixData;
 }
 
@@ -54,13 +55,10 @@ Deno.serve(async (req) => {
     const { pix_dict, valor, descricao, pedido_id } = await req.json();
 
     if (!pix_dict || !valor) {
-      return new Response(
-        JSON.stringify({ error: "pix_dict e valor são obrigatórios" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+      return new Response(JSON.stringify({ error: "pix_dict e valor são obrigatórios" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     // Gera dados PIX (formato estático)
@@ -90,7 +88,7 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      },
     );
   } catch (e: any) {
     console.error("generate-pix-qr error:", e.message);

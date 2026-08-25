@@ -1,9 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
-import { 
-  Plus, Search, MoreVertical, GripVertical, Loader2, Utensils, 
-  Filter, X, Save, Copy, Trash2, Edit3, Image as ImageIcon, 
-  Calendar, Package, Star, Tag, Info, Check, Clock, Upload, ArrowRight
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  GripVertical,
+  Loader2,
+  Utensils,
+  Filter,
+  X,
+  Save,
+  Copy,
+  Trash2,
+  Edit3,
+  Image as ImageIcon,
+  Calendar,
+  Package,
+  Star,
+  Tag,
+  Info,
+  Check,
+  Clock,
+  Upload,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,29 +43,24 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { 
-  DndContext, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
-  useSensors 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable
+  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
@@ -68,12 +82,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
     if (product) {
       setFormData({
         ...product,
-        preco_formatado: product.preco?.toFixed(2).replace('.', ',') || "0,00",
-        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace('.', ',') || "",
-        preco_custo_formatado: product.preco_custo?.toFixed(2).replace('.', ',') || "",
-        preco_300g_formatado: product.preco_300g?.toFixed(2).replace('.', ',') || "",
-        preco_400g_formatado: product.preco_400g?.toFixed(2).replace('.', ',') || "",
-        status: (product.status || 'ativo').toLowerCase()
+        preco_formatado: product.preco?.toFixed(2).replace(".", ",") || "0,00",
+        preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace(".", ",") || "",
+        preco_custo_formatado: product.preco_custo?.toFixed(2).replace(".", ",") || "",
+        preco_300g_formatado: product.preco_300g?.toFixed(2).replace(".", ",") || "",
+        preco_400g_formatado: product.preco_400g?.toFixed(2).replace(".", ",") || "",
+        status: (product.status || "ativo").toLowerCase(),
       });
     } else {
       // Default data for new product
@@ -86,17 +100,17 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         preco_400g: null,
         preco_400g_formatado: "",
         categoria_id: categories[0]?.id || "",
-        status: 'ativo',
+        status: "ativo",
         imagem_url: "",
         descricao: "",
         informacao_nutricional: "",
         tabela_nutricional: { kcal: "", carb: "", prot: "" },
         tabela_nutricional_300g: { kcal: "", carb: "", prot: "" },
-        tabela_nutricional_400g: { kcal: "", carb: "" , prot: "" },
+        tabela_nutricional_400g: { kcal: "", carb: "", prot: "" },
         controle_estoque: false,
         estoque_atual: 0,
         estoque_minimo: 5,
-        imagens: []
+        imagens: [],
       });
     }
   }, [product, categories]);
@@ -109,7 +123,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     try {
       setIsUploading(true);
-      
+
       // Validar se é imagem
       if (!isValidImageFile(file)) {
         toast.error("Arquivo deve ser uma imagem válida (JPEG, PNG, WebP, GIF)");
@@ -118,28 +132,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
       // Mostrar tamanho original
       console.log(`📸 Imagem original: ${formatFileSize(file.size)}`);
-      
+
       // Otimizar imagem
       file = await optimizeImage(file, {
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 80,
-        format: 'webp'
+        format: "webp",
       });
 
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
+      const { data, error } = await supabase.storage.from("product-images").upload(filePath, file);
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
       setFormData({ ...formData, imagem_url: publicUrl });
       toast.success(`Imagem otimizada e enviada com sucesso!`);
@@ -157,7 +169,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
     try {
       setIsUploadingGallery(true);
-      
+
       // Validar se é imagem
       if (!isValidImageFile(file)) {
         toast.error("Arquivo deve ser uma imagem válida");
@@ -169,26 +181,24 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 80,
-        format: 'webp'
+        format: "webp",
       });
 
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `gallery/${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
+      const { data, error } = await supabase.storage.from("product-images").upload(filePath, file);
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
-      setFormData({ 
-        ...formData, 
-        imagens: [...(formData.imagens || []), publicUrl] 
+      setFormData({
+        ...formData,
+        imagens: [...(formData.imagens || []), publicUrl],
       });
       toast.success("Imagem adicionada à galeria!");
     } catch (error: any) {
@@ -204,11 +214,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
   const handleSizeImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    sizeField: "imagem_200g" | "imagem_300g" | "imagem_400g"
+    sizeField: "imagem_200g" | "imagem_300g" | "imagem_400g",
   ) => {
     let file = event.target.files?.[0];
     if (!file) return;
-    setIsUploadingSize(prev => ({ ...prev, [sizeField]: true }));
+    setIsUploadingSize((prev) => ({ ...prev, [sizeField]: true }));
     try {
       // Validar e otimizar imagem
       if (!isValidImageFile(file)) {
@@ -220,7 +230,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 80,
-        format: 'webp'
+        format: "webp",
       });
 
       const fileExt = file.name.split(".").pop();
@@ -229,49 +239,57 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         .from("product-images")
         .upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(fileName);
       setFormData({ ...formData, [sizeField]: publicUrl });
       toast.success("Imagem otimizada e enviada!");
     } catch (error: any) {
       toast.error("Erro ao enviar: " + (error.message || "Tente novamente"));
     } finally {
-      setIsUploadingSize(prev => ({ ...prev, [sizeField]: false }));
+      setIsUploadingSize((prev) => ({ ...prev, [sizeField]: false }));
       event.target.value = "";
     }
   };
 
   const handleSave = () => {
-    const { 
-      preco_formatado, 
-      preco_promocional_formatado, 
+    const {
+      preco_formatado,
+      preco_promocional_formatado,
       preco_custo_formatado,
       preco_300g_formatado,
       preco_400g_formatado,
-      categorias, 
-      ...rest 
+      categorias,
+      ...rest
     } = formData;
-    
+
     // Ensure we have a name and category
     if (!formData.nome || !formData.categoria_id) {
       toast.error("Nome e categoria são obrigatórios");
       return;
     }
 
-    const preco = parseFloat(preco_formatado.replace(',', '.'));
-    const preco_promocional = preco_promocional_formatado ? parseFloat(preco_promocional_formatado.replace(',', '.')) : null;
-    const preco_custo = preco_custo_formatado ? parseFloat(preco_custo_formatado.replace(',', '.')) : null;
-    const preco_300g = preco_300g_formatado ? parseFloat(preco_300g_formatado.replace(',', '.')) : null;
-    const preco_400g = preco_400g_formatado ? parseFloat(preco_400g_formatado.replace(',', '.')) : null;
-    
+    const preco = parseFloat(preco_formatado.replace(",", "."));
+    const preco_promocional = preco_promocional_formatado
+      ? parseFloat(preco_promocional_formatado.replace(",", "."))
+      : null;
+    const preco_custo = preco_custo_formatado
+      ? parseFloat(preco_custo_formatado.replace(",", "."))
+      : null;
+    const preco_300g = preco_300g_formatado
+      ? parseFloat(preco_300g_formatado.replace(",", "."))
+      : null;
+    const preco_400g = preco_400g_formatado
+      ? parseFloat(preco_400g_formatado.replace(",", "."))
+      : null;
+
     if (isNaN(preco)) {
       toast.error("Por favor, insira um preço válido");
       return;
     }
 
     // Normalize status to lowercase as the check constraint likely expects 'ativo' or 'pausado'
-    const status = (formData.status || 'ativo').toLowerCase();
+    const status = (formData.status || "ativo").toLowerCase();
     onSave({ ...rest, preco, preco_promocional, preco_custo, preco_300g, preco_400g, status });
   };
 
@@ -280,21 +298,65 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
       <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white rounded-xl">
         <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-500">R$ {formData.preco?.toFixed(2).replace('.', ',') || "0,00"}</span>
+            <span className="text-sm font-medium text-gray-500">
+              R$ {formData.preco?.toFixed(2).replace(".", ",") || "0,00"}
+            </span>
           </div>
-          <DialogTitle className="hidden">{product ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+          <DialogTitle className="hidden">
+            {product ? "Editar Produto" : "Novo Produto"}
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="detalhes" className="w-full">
           <TabsList className="w-full justify-start px-6 border-b rounded-none bg-transparent h-12 gap-6">
-            <TabsTrigger value="detalhes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Detalhes</TabsTrigger>
-            <TabsTrigger value="complementos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Complementos</TabsTrigger>
-            <TabsTrigger value="disponibilidade" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none">Disponibilidade</TabsTrigger>
-            <TabsTrigger value="estoque" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Estoque</TabsTrigger>
-            <TabsTrigger value="destaque" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Destaque</TabsTrigger>
-            <TabsTrigger value="promocao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Promoção</TabsTrigger>
-            <TabsTrigger value="integracao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Integração</TabsTrigger>
-            <TabsTrigger value="contabilidade" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400">Contabilidade</TabsTrigger>
+            <TabsTrigger
+              value="detalhes"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
+            >
+              Detalhes
+            </TabsTrigger>
+            <TabsTrigger
+              value="complementos"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
+            >
+              Complementos
+            </TabsTrigger>
+            <TabsTrigger
+              value="disponibilidade"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
+            >
+              Disponibilidade
+            </TabsTrigger>
+            <TabsTrigger
+              value="estoque"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400"
+            >
+              Estoque
+            </TabsTrigger>
+            <TabsTrigger
+              value="destaque"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400"
+            >
+              Destaque
+            </TabsTrigger>
+            <TabsTrigger
+              value="promocao"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400"
+            >
+              Promoção
+            </TabsTrigger>
+            <TabsTrigger
+              value="integracao"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400"
+            >
+              Integração
+            </TabsTrigger>
+            <TabsTrigger
+              value="contabilidade"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none text-gray-400"
+            >
+              Contabilidade
+            </TabsTrigger>
           </TabsList>
 
           <div className="p-6 max-h-[60vh] overflow-y-auto">
@@ -303,14 +365,18 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="space-y-4">
                   <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center relative overflow-hidden group">
                     {formData.imagem_url ? (
-                      <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={formData.imagem_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <ImageIcon className="text-gray-300" size={48} />
                     )}
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         className="text-xs font-bold uppercase"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
@@ -318,35 +384,48 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         {isUploading ? <Loader2 className="animate-spin mr-2" size={14} /> : null}
                         Trocar Imagem Principal
                       </Button>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
                         onChange={handleImageUpload}
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">Resolução recomendada: 800x800px</p>
+                  <p className="text-[10px] text-gray-400 text-center uppercase font-bold tracking-widest">
+                    Resolução recomendada: 800x800px
+                  </p>
 
                   {/* Imagens por tamanho */}
                   {(formData.preco_300g || formData.preco_400g) && (
                     <div className="space-y-2 mt-4">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider flex items-center gap-1">
-                        Imagens por Tamanho <span className="text-[8px] text-blue-400 normal-case">(opcional)</span>
+                        Imagens por Tamanho{" "}
+                        <span className="text-[8px] text-blue-400 normal-case">(opcional)</span>
                       </label>
-                      <p className="text-[9px] text-gray-400">Se não definida, usa a imagem principal para todos os tamanhos.</p>
+                      <p className="text-[9px] text-gray-400">
+                        Se não definida, usa a imagem principal para todos os tamanhos.
+                      </p>
                       <div className="grid grid-cols-3 gap-2">
-                        {([
-                          { field: "imagem_200g", label: "P (200g)" },
-                          { field: "imagem_300g", label: "M (300g)" },
-                          { field: "imagem_400g", label: "G (400g)" },
-                        ] as const).map(({ field, label }) => (
+                        {(
+                          [
+                            { field: "imagem_200g", label: "P (200g)" },
+                            { field: "imagem_300g", label: "M (300g)" },
+                            { field: "imagem_400g", label: "G (400g)" },
+                          ] as const
+                        ).map(({ field, label }) => (
                           <div key={field} className="space-y-1">
-                            <p className="text-[9px] font-bold text-gray-500 text-center">{label}</p>
+                            <p className="text-[9px] font-bold text-gray-500 text-center">
+                              {label}
+                            </p>
                             <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 overflow-hidden group">
                               {formData[field] ? (
-                                <img src={formData[field]} className="w-full h-full object-cover" alt={label} />
+                                <img
+                                  src={formData[field]}
+                                  className="w-full h-full object-cover"
+                                  alt={label}
+                                />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-300">
                                   <ImageIcon size={20} />
@@ -384,15 +463,21 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   )}
 
                   <div className="space-y-2 mt-4">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Outras Imagens (Galeria)</label>                    <div className="grid grid-cols-4 gap-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                      Outras Imagens (Galeria)
+                    </label>{" "}
+                    <div className="grid grid-cols-4 gap-2">
                       {formData.imagens?.map((img: string, idx: number) => (
-                        <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-gray-200 group">
+                        <div
+                          key={idx}
+                          className="relative aspect-square rounded-md overflow-hidden border border-gray-200 group"
+                        >
                           <img src={img} className="w-full h-full object-cover" />
-                          <button 
+                          <button
                             onClick={() => {
                               const newImgs = [...formData.imagens];
                               newImgs.splice(idx, 1);
-                              setFormData({...formData, imagens: newImgs});
+                              setFormData({ ...formData, imagens: newImgs });
                             }}
                             className="absolute top-1 right-1 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                           >
@@ -400,7 +485,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                           </button>
                         </div>
                       ))}
-                      <button 
+                      <button
                         onClick={() => galleryFileInputRef.current?.click()}
                         disabled={isUploadingGallery}
                         className="aspect-square rounded-md border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors relative"
@@ -411,11 +496,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                           <Plus size={20} />
                         )}
                       </button>
-                      <input 
-                        type="file" 
-                        ref={galleryFileInputRef} 
-                        className="hidden" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        ref={galleryFileInputRef}
+                        className="hidden"
+                        accept="image/*"
                         onChange={handleGalleryImageUpload}
                       />
                     </div>
@@ -425,9 +510,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Nome *</label>
-                      <Input 
-                        value={formData.nome} 
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Nome *
+                      </label>
+                      <Input
+                        value={formData.nome}
                         onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                         className="h-10 border-gray-200"
                       />
@@ -436,34 +523,52 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (200g) *</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Valor (200g) *
+                      </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                        <Input 
-                          value={formData.preco_formatado} 
-                          onChange={(e) => setFormData({ ...formData, preco_formatado: e.target.value })}
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                          R$
+                        </span>
+                        <Input
+                          value={formData.preco_formatado}
+                          onChange={(e) =>
+                            setFormData({ ...formData, preco_formatado: e.target.value })
+                          }
                           className="h-10 pl-9 border-gray-200"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (300g)</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Valor (300g)
+                      </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                        <Input 
-                          value={formData.preco_300g_formatado} 
-                          onChange={(e) => setFormData({ ...formData, preco_300g_formatado: e.target.value })}
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                          R$
+                        </span>
+                        <Input
+                          value={formData.preco_300g_formatado}
+                          onChange={(e) =>
+                            setFormData({ ...formData, preco_300g_formatado: e.target.value })
+                          }
                           className="h-10 pl-9 border-gray-200"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor (400g)</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Valor (400g)
+                      </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                        <Input 
-                          value={formData.preco_400g_formatado} 
-                          onChange={(e) => setFormData({ ...formData, preco_400g_formatado: e.target.value })}
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                          R$
+                        </span>
+                        <Input
+                          value={formData.preco_400g_formatado}
+                          onChange={(e) =>
+                            setFormData({ ...formData, preco_400g_formatado: e.target.value })
+                          }
                           className="h-10 pl-9 border-gray-200"
                         />
                       </div>
@@ -472,14 +577,18 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
                   <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Categoria</label>
-                      <select 
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Categoria
+                      </label>
+                      <select
                         className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20"
                         value={formData.categoria_id}
                         onChange={(e) => setFormData({ ...formData, categoria_id: e.target.value })}
                       >
                         {categories.map((cat: any) => (
-                          <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                          <option key={cat.id} value={cat.id}>
+                            {cat.nome}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -487,12 +596,27 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
                   <Tabs defaultValue="descricao" className="w-full">
                     <TabsList className="bg-transparent h-auto p-0 gap-4 border-b rounded-none mb-4">
-                      <TabsTrigger value="descricao" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Descrição / Ingredientes</TabsTrigger>
-                      <TabsTrigger value="nutricional" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Tabela Nutricional</TabsTrigger>
-                      <TabsTrigger value="restricoes" className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none">Restrições</TabsTrigger>
+                      <TabsTrigger
+                        value="descricao"
+                        className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none"
+                      >
+                        Descrição / Ingredientes
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="nutricional"
+                        className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none"
+                      >
+                        Tabela Nutricional
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="restricoes"
+                        className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none"
+                      >
+                        Restrições
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="descricao">
-                      <textarea 
+                      <textarea
                         className="w-full min-h-[150px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20 resize-none"
                         value={formData.descricao || ""}
                         onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
@@ -502,31 +626,63 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     <TabsContent value="nutricional">
                       <div className="space-y-6">
                         <div className="rounded-lg border border-gray-100 p-4 space-y-4">
-                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho Padrão (200g)</h4>
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">
+                            Tamanho Padrão (200g)
+                          </h4>
                           <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
-                              <Input 
-                                value={formData.tabela_nutricional?.kcal || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, kcal: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Kcal
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional?.kcal || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional: {
+                                      ...formData.tabela_nutricional,
+                                      kcal: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                                 placeholder="ex: 350"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carboidratos (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional?.carb || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, carb: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Carboidratos (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional?.carb || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional: {
+                                      ...formData.tabela_nutricional,
+                                      carb: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                                 placeholder="ex: 45"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Proteínas (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional?.prot || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional: { ...formData.tabela_nutricional, prot: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Proteínas (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional?.prot || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional: {
+                                      ...formData.tabela_nutricional,
+                                      prot: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                                 placeholder="ex: 25"
                               />
@@ -535,29 +691,61 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         </div>
 
                         <div className="rounded-lg border border-gray-100 p-4 space-y-4">
-                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho 300g</h4>
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">
+                            Tamanho 300g
+                          </h4>
                           <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
-                              <Input 
-                                value={formData.tabela_nutricional_300g?.kcal || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, kcal: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Kcal
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_300g?.kcal || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_300g: {
+                                      ...formData.tabela_nutricional_300g,
+                                      kcal: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carb (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional_300g?.carb || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, carb: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Carb (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_300g?.carb || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_300g: {
+                                      ...formData.tabela_nutricional_300g,
+                                      carb: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Prot (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional_300g?.prot || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_300g: { ...formData.tabela_nutricional_300g, prot: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Prot (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_300g?.prot || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_300g: {
+                                      ...formData.tabela_nutricional_300g,
+                                      prot: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
@@ -565,29 +753,61 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         </div>
 
                         <div className="rounded-lg border border-gray-100 p-4 space-y-4">
-                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">Tamanho 400g</h4>
+                          <h4 className="text-[10px] font-bold uppercase text-primary tracking-wider">
+                            Tamanho 400g
+                          </h4>
                           <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Kcal</label>
-                              <Input 
-                                value={formData.tabela_nutricional_400g?.kcal || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, kcal: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Kcal
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_400g?.kcal || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_400g: {
+                                      ...formData.tabela_nutricional_400g,
+                                      kcal: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Carb (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional_400g?.carb || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, carb: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Carb (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_400g?.carb || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_400g: {
+                                      ...formData.tabela_nutricional_400g,
+                                      carb: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Prot (g)</label>
-                              <Input 
-                                value={formData.tabela_nutricional_400g?.prot || ""} 
-                                onChange={(e) => setFormData({ ...formData, tabela_nutricional_400g: { ...formData.tabela_nutricional_400g, prot: e.target.value } })}
+                              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                                Prot (g)
+                              </label>
+                              <Input
+                                value={formData.tabela_nutricional_400g?.prot || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    tabela_nutricional_400g: {
+                                      ...formData.tabela_nutricional_400g,
+                                      prot: e.target.value,
+                                    },
+                                  })
+                                }
                                 className="h-8 border-gray-200 text-xs"
                               />
                             </div>
@@ -597,10 +817,14 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     </TabsContent>
                     <TabsContent value="restricoes">
                       <div className="space-y-4">
-                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Restrições (ex: Sem Glúten | Sem Lactose)</label>
-                        <Input 
-                          value={formData.informacao_nutricional || ""} 
-                          onChange={(e) => setFormData({ ...formData, informacao_nutricional: e.target.value })}
+                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                          Restrições (ex: Sem Glúten | Sem Lactose)
+                        </label>
+                        <Input
+                          value={formData.informacao_nutricional || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, informacao_nutricional: e.target.value })
+                          }
                           className="h-10 border-gray-200"
                           placeholder="ex: Sem Glúten | Sem Lactose"
                         />
@@ -614,7 +838,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             <TabsContent value="complementos" className="m-0 space-y-6">
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider">Grupos de Complementos</h3>
+                  <h3 className="text-sm font-bold uppercase text-gray-400 tracking-wider">
+                    Grupos de Complementos
+                  </h3>
                   <Button className="bg-[#5850ec] hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider h-8 px-4 rounded-full flex items-center gap-2">
                     <Plus size={14} />
                     Vincular Grupo
@@ -626,23 +852,33 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     <Package size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-600">Nenhum complemento vinculado</p>
+                    <p className="text-sm font-semibold text-gray-600">
+                      Nenhum complemento vinculado
+                    </p>
                     <p className="text-xs text-gray-400 max-w-[280px] mt-1">
-                      Adicione grupos de complementos (como "Escolha sua bebida" ou "Adicionais") para oferecer mais opções aos seus clientes.
+                      Adicione grupos de complementos (como "Escolha sua bebida" ou "Adicionais")
+                      para oferecer mais opções aos seus clientes.
                     </p>
                   </div>
-                  <Button variant="outline" className="text-xs font-bold uppercase tracking-wider h-9 px-5 rounded-full mt-2">
+                  <Button
+                    variant="outline"
+                    className="text-xs font-bold uppercase tracking-wider h-9 px-5 rounded-full mt-2"
+                  >
                     Ver todos os complementos
                   </Button>
                 </div>
 
-                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
-                    <Info className="text-blue-500 shrink-0" size={18} />
-                    <p className="text-xs text-blue-700 leading-relaxed">
-                      <strong>Dica:</strong> Você pode gerenciar todos os seus complementos globalmente na seção 
-                      <Link to="/admin" className="font-bold underline ml-1">Configurações {" > "} Complementos</Link>.
-                    </p>
-                  </div>
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
+                  <Info className="text-blue-500 shrink-0" size={18} />
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    <strong>Dica:</strong> Você pode gerenciar todos os seus complementos
+                    globalmente na seção
+                    <Link to="/admin" className="font-bold underline ml-1">
+                      Configurações {" > "} Complementos
+                    </Link>
+                    .
+                  </p>
+                </div>
               </div>
             </TabsContent>
 
@@ -650,40 +886,56 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Status</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">
+                      Status
+                    </label>
                     <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-                      <button 
-                        onClick={() => setFormData({ ...formData, status: 'pausado' })}
-                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === 'pausado' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                      >Pausado</button>
-                      <button 
-                        onClick={() => setFormData({ ...formData, status: 'ativo' })}
-                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === 'ativo' ? 'bg-green-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                      >Ativo</button>
+                      <button
+                        onClick={() => setFormData({ ...formData, status: "pausado" })}
+                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === "pausado" ? "bg-red-500 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                      >
+                        Pausado
+                      </button>
+                      <button
+                        onClick={() => setFormData({ ...formData, status: "ativo" })}
+                        className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${formData.status === "ativo" ? "bg-green-500 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
+                      >
+                        Ativo
+                      </button>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Exibir no cardápio</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">
+                      Exibir no cardápio
+                    </label>
                     <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-gray-400">Não</button>
-                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-green-500 text-white shadow-sm">Sim</button>
+                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-gray-400">
+                        Não
+                      </button>
+                      <button className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-green-500 text-white shadow-sm">
+                        Sim
+                      </button>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 max-w-[200px]">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Qtd. máxima por pedido</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Qtd. máxima por pedido
+                      </label>
                       <Input className="h-10 border-gray-200" placeholder="" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Qtd. mínima por pedido</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Qtd. mínima por pedido
+                      </label>
                       <Input className="h-10 border-gray-200" placeholder="" />
                     </div>
                   </div>
 
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="text-red-500 hover:text-red-600 hover:bg-red-50 p-0 h-auto text-xs font-bold uppercase tracking-wider flex items-center gap-2"
                     onClick={() => {
                       if (confirm("Tem certeza que deseja excluir este produto?")) {
@@ -702,11 +954,21 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Disponibilidade por dia</label>
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Disponibilidade por dia
+                      </label>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                      {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, idx) => {
-                        const dias = formData.dias_disponiveis ?? [true, true, true, true, true, true, true];
+                      {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day, idx) => {
+                        const dias = formData.dias_disponiveis ?? [
+                          true,
+                          true,
+                          true,
+                          true,
+                          true,
+                          true,
+                          true,
+                        ];
                         const isChecked = dias[idx] !== false;
                         return (
                           <div key={day} className="flex items-center gap-2">
@@ -714,13 +976,28 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                               id={`day-${day}`}
                               checked={isChecked}
                               onCheckedChange={(checked) => {
-                                const next = [...(formData.dias_disponiveis ?? [true, true, true, true, true, true, true])];
+                                const next = [
+                                  ...(formData.dias_disponiveis ?? [
+                                    true,
+                                    true,
+                                    true,
+                                    true,
+                                    true,
+                                    true,
+                                    true,
+                                  ]),
+                                ];
                                 next[idx] = !!checked;
                                 setFormData({ ...formData, dias_disponiveis: next });
                               }}
                               className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]"
                             />
-                            <label htmlFor={`day-${day}`} className="text-xs font-medium text-gray-700 cursor-pointer">{day}</label>
+                            <label
+                              htmlFor={`day-${day}`}
+                              className="text-xs font-medium text-gray-700 cursor-pointer"
+                            >
+                              {day}
+                            </label>
                           </div>
                         );
                       })}
@@ -728,20 +1005,37 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Disponibilidade por unidade</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">
+                      Disponibilidade por unidade
+                    </label>
                     <div className="flex items-center gap-2">
-                      <Checkbox checked id="unidade-main" className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]" />
-                      <label htmlFor="unidade-main" className="text-xs font-medium text-gray-700">SaborosaMente Atacado de Refeições e Sopas Congeladas</label>
+                      <Checkbox
+                        checked
+                        id="unidade-main"
+                        className="h-4 w-4 rounded border-gray-300 text-[#5850ec] focus:ring-[#5850ec]"
+                      />
+                      <label htmlFor="unidade-main" className="text-xs font-medium text-gray-700">
+                        SaborosaMente Atacado de Refeições e Sopas Congeladas
+                      </label>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t flex flex-col gap-2">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">Link de compartilhamento:</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider block">
+                      Link de compartilhamento:
+                    </label>
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] text-gray-400 truncate flex-1">
-                        {product?.id ? `https://prefirodelivery.com/saborosamente/produto/${product.id}` : 'Disponível após salvar'}
+                        {product?.id
+                          ? `https://prefirodelivery.com/saborosamente/produto/${product.id}`
+                          : "Disponível após salvar"}
                       </p>
-                      <Button variant="outline" className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-4 rounded-full border-none">Copiar Link</Button>
+                      <Button
+                        variant="outline"
+                        className="h-8 bg-[#5850ec] text-white hover:bg-[#5850ec]/90 text-[10px] font-bold uppercase tracking-wider px-4 rounded-full border-none"
+                      >
+                        Copiar Link
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -753,12 +1047,18 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="space-y-6">
                   <div className="flex items-center justify-between p-4 border rounded-xl">
                     <div className="space-y-0.5">
-                      <label className="text-sm font-semibold text-gray-700">Destaque na Home</label>
-                      <p className="text-xs text-gray-500">Exibir este produto na seção "Mais Pedidos"</p>
+                      <label className="text-sm font-semibold text-gray-700">
+                        Destaque na Home
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        Exibir este produto na seção "Mais Pedidos"
+                      </p>
                     </div>
-                    <Switch 
-                      checked={!!formData.is_destaque} 
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_destaque: checked })}
+                    <Switch
+                      checked={!!formData.is_destaque}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, is_destaque: checked })
+                      }
                     />
                   </div>
 
@@ -767,9 +1067,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       <label className="text-sm font-semibold text-gray-700">Novidade</label>
                       <p className="text-xs text-gray-500">Sinalizar como novo item no cardápio</p>
                     </div>
-                    <Switch 
-                      checked={!!formData.is_novidade} 
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_novidade: checked })}
+                    <Switch
+                      checked={!!formData.is_novidade}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, is_novidade: checked })
+                      }
                     />
                   </div>
                 </div>
@@ -777,10 +1079,20 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="bg-purple-50 p-6 rounded-2xl space-y-4">
                   <div className="flex items-center gap-2 text-purple-600">
                     <Star size={20} />
-                    <span className="text-sm font-bold uppercase tracking-wider">Sugestões de Venda</span>
+                    <span className="text-sm font-bold uppercase tracking-wider">
+                      Sugestões de Venda
+                    </span>
                   </div>
-                  <p className="text-xs text-purple-800/70">Este produto será sugerido no carrinho quando o cliente estiver finalizando o pedido.</p>
-                  <Button variant="outline" className="w-full border-purple-200 text-purple-700 hover:bg-purple-100 text-xs font-bold uppercase py-6">Configurar Gatilhos</Button>
+                  <p className="text-xs text-purple-800/70">
+                    Este produto será sugerido no carrinho quando o cliente estiver finalizando o
+                    pedido.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full border-purple-200 text-purple-700 hover:bg-purple-100 text-xs font-bold uppercase py-6"
+                  >
+                    Configurar Gatilhos
+                  </Button>
                 </div>
               </div>
             </TabsContent>
@@ -790,39 +1102,54 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-blue-900">Gerenciamento de Estoque</p>
-                  <p className="text-xs text-blue-700">Ative o controle de estoque para este produto. Quando o saldo chegar a zero, o produto será pausado automaticamente.</p>
+                  <p className="text-xs text-blue-700">
+                    Ative o controle de estoque para este produto. Quando o saldo chegar a zero, o
+                    produto será pausado automaticamente.
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-6 max-w-md">
                 <div className="flex items-center justify-between p-4 border rounded-xl">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-semibold text-gray-700">Ativar Controle de Estoque</label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      Ativar Controle de Estoque
+                    </label>
                     <p className="text-xs text-gray-500">Deduzir do saldo a cada venda</p>
                   </div>
-                  <Switch 
-                    checked={formData.controle_estoque} 
-                    onCheckedChange={(checked) => setFormData({ ...formData, controle_estoque: checked })}
+                  <Switch
+                    checked={formData.controle_estoque}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, controle_estoque: checked })
+                    }
                   />
                 </div>
 
                 {formData.controle_estoque && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Quantidade em Estoque</label>
-                      <Input 
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Quantidade em Estoque
+                      </label>
+                      <Input
                         type="number"
                         value={formData.estoque_atual || 0}
-                        onChange={(e) => setFormData({ ...formData, estoque_atual: parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, estoque_atual: parseInt(e.target.value) })
+                        }
                         className="h-10 border-gray-200"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Aviso de Estoque Baixo</label>
-                      <Input 
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Aviso de Estoque Baixo
+                      </label>
+                      <Input
                         type="number"
                         value={formData.estoque_minimo || 5}
-                        onChange={(e) => setFormData({ ...formData, estoque_minimo: parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, estoque_minimo: parseInt(e.target.value) })
+                        }
                         className="h-10 border-gray-200"
                       />
                     </div>
@@ -835,39 +1162,57 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Valor Promocional (Opcional)</label>
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                      Valor Promocional (Opcional)
+                    </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                      <Input 
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                        R$
+                      </span>
+                      <Input
                         placeholder="0,00"
                         value={formData.preco_promocional_formatado || ""}
-                        onChange={(e) => setFormData({ ...formData, preco_promocional_formatado: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, preco_promocional_formatado: e.target.value })
+                        }
                         className="h-10 pl-9 border-gray-200"
                       />
                     </div>
-                    <p className="text-[10px] text-gray-400">Se preenchido, este valor substituirá o valor original com uma tag de oferta.</p>
+                    <p className="text-[10px] text-gray-400">
+                      Se preenchido, este valor substituirá o valor original com uma tag de oferta.
+                    </p>
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <label className="text-sm font-semibold text-gray-700">Frete Grátis</label>
-                        <p className="text-xs text-gray-500">Aplicar frete grátis apenas para este produto</p>
+                        <p className="text-xs text-gray-500">
+                          Aplicar frete grátis apenas para este produto
+                        </p>
                       </div>
-                      <Switch 
-                        checked={!!formData.frete_gratis} 
-                        onCheckedChange={(checked) => setFormData({ ...formData, frete_gratis: checked })}
+                      <Switch
+                        checked={!!formData.frete_gratis}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, frete_gratis: checked })
+                        }
                       />
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <label className="text-sm font-semibold text-gray-700">Bloquear Cupom</label>
-                        <p className="text-xs text-gray-500">Não permitir uso de cupons neste item</p>
+                        <label className="text-sm font-semibold text-gray-700">
+                          Bloquear Cupom
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          Não permitir uso de cupons neste item
+                        </p>
                       </div>
-                      <Switch 
-                        checked={!!formData.bloquear_cupom} 
-                        onCheckedChange={(checked) => setFormData({ ...formData, bloquear_cupom: checked })}
+                      <Switch
+                        checked={!!formData.bloquear_cupom}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, bloquear_cupom: checked })
+                        }
                       />
                     </div>
                   </div>
@@ -876,16 +1221,25 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="bg-orange-50 p-6 rounded-2xl space-y-4">
                   <div className="flex items-center gap-2 text-orange-600">
                     <Tag size={20} />
-                    <span className="text-sm font-bold uppercase tracking-wider">Agendar Promoção</span>
+                    <span className="text-sm font-bold uppercase tracking-wider">
+                      Agendar Promoção
+                    </span>
                   </div>
-                  <p className="text-xs text-orange-800/70">Defina um período específico para que esta promoção fique ativa automaticamente no site.</p>
+                  <p className="text-xs text-orange-800/70">
+                    Defina um período específico para que esta promoção fique ativa automaticamente
+                    no site.
+                  </p>
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Início</label>
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">
+                        Data de Início
+                      </label>
                       <Input type="date" className="h-9 border-orange-200 bg-white" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase text-orange-800/50">Data de Término</label>
+                      <label className="text-[9px] font-bold uppercase text-orange-800/50">
+                        Data de Término
+                      </label>
                       <Input type="date" className="h-9 border-orange-200 bg-white" />
                     </div>
                   </div>
@@ -896,14 +1250,20 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             <TabsContent value="integracao" className="m-0 space-y-6">
               <div className="max-w-md space-y-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Código PDV / Integração</label>
-                  <Input 
-                    placeholder="Ex: IFD-123" 
-                    className="h-10 border-gray-200" 
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                    Código PDV / Integração
+                  </label>
+                  <Input
+                    placeholder="Ex: IFD-123"
+                    className="h-10 border-gray-200"
                     value={formData.codigo_integracao || ""}
-                    onChange={(e) => setFormData({ ...formData, codigo_integracao: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, codigo_integracao: e.target.value })
+                    }
                   />
-                  <p className="text-[10px] text-gray-400">Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.</p>
+                  <p className="text-[10px] text-gray-400">
+                    Código usado para sincronizar com sistemas externos como iFood, 99Food ou ERP.
+                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -911,17 +1271,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             <TabsContent value="contabilidade" className="m-0 space-y-6">
               <div className="max-w-md space-y-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Preço de Custo</label>
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                    Preço de Custo
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                    <Input 
-                      placeholder="0,00" 
-                      className="h-10 pl-9 border-gray-200" 
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      R$
+                    </span>
+                    <Input
+                      placeholder="0,00"
+                      className="h-10 pl-9 border-gray-200"
                       value={formData.preco_custo_formatado || ""}
-                      onChange={(e) => setFormData({ ...formData, preco_custo_formatado: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, preco_custo_formatado: e.target.value })
+                      }
                     />
                   </div>
-                  <p className="text-[10px] text-gray-400">Este valor não é exibido para o cliente. Usado apenas para relatórios de lucratividade.</p>
+                  <p className="text-[10px] text-gray-400">
+                    Este valor não é exibido para o cliente. Usado apenas para relatórios de
+                    lucratividade.
+                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -929,13 +1298,26 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         </Tabs>
 
         <DialogFooter className="px-6 py-4 border-t bg-gray-50/50 flex flex-row items-center justify-between sm:justify-between gap-4">
-          <Button variant="outline" onClick={onClose} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider text-gray-500 border-none bg-gray-200/50 hover:bg-gray-200">Cancelar</Button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider text-gray-500 border-none bg-gray-200/50 hover:bg-gray-200"
+          >
+            Cancelar
+          </Button>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleSave} className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider border-[#5850ec] text-[#5850ec] hover:bg-[#5850ec] hover:text-white transition-all flex items-center gap-2">
-              <Check size={16} /> Salvar {product ? 'e Fechar' : 'e Criar'}
+            <Button
+              variant="outline"
+              onClick={handleSave}
+              className="rounded-full px-6 h-10 text-xs font-bold uppercase tracking-wider border-[#5850ec] text-[#5850ec] hover:bg-[#5850ec] hover:text-white transition-all flex items-center gap-2"
+            >
+              <Check size={16} /> Salvar {product ? "e Fechar" : "e Criar"}
             </Button>
-            <Button onClick={handleSave} className="rounded-full px-8 h-10 text-xs font-bold uppercase tracking-wider bg-[#5850ec] hover:bg-[#5850ec]/90 text-white shadow-lg flex items-center gap-2">
-              <Check size={16} /> {product ? 'Salvar Alterações' : 'Adicionar Produto'}
+            <Button
+              onClick={handleSave}
+              className="rounded-full px-8 h-10 text-xs font-bold uppercase tracking-wider bg-[#5850ec] hover:bg-[#5850ec]/90 text-white shadow-lg flex items-center gap-2"
+            >
+              <Check size={16} /> {product ? "Salvar Alterações" : "Adicionar Produto"}
             </Button>
           </div>
         </DialogFooter>
@@ -944,10 +1326,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   );
 }
 
-
 // ── Linha simples de ordenação (para a aba Ordenação) ────────────────────────
 function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: produto.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: produto.id,
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -956,41 +1339,58 @@ function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-      <div {...attributes} {...listeners} className="cursor-grab text-gray-300 hover:text-gray-500 p-1 shrink-0">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab text-gray-300 hover:text-gray-500 p-1 shrink-0"
+      >
         <GripVertical size={18} />
       </div>
       <span className="text-xs font-bold text-gray-300 w-6 text-right shrink-0">{idx + 1}</span>
       <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-        {produto.imagem_url
-          ? <img src={produto.imagem_url} alt={produto.nome} className="h-full w-full object-cover" />
-          : <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">📦</div>
-        }
+        {produto.imagem_url ? (
+          <img src={produto.imagem_url} alt={produto.nome} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">
+            📦
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900 truncate">{produto.nome}</p>
         <p className="text-[11px] text-gray-400">{produto.categorias?.nome ?? "Sem categoria"}</p>
       </div>
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-        produto.status === "ativo" || produto.status === "Ativo"
-          ? "bg-green-50 text-green-700"
-          : "bg-gray-100 text-gray-500"
-      }`}>
+      <span
+        className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+          produto.status === "ativo" || produto.status === "Ativo"
+            ? "bg-green-50 text-green-700"
+            : "bg-gray-100 text-gray-500"
+        }`}
+      >
         {produto.status ?? "—"}
       </span>
     </div>
   );
 }
 
-function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, onEdit, onDuplicate, isSelected, onSelectChange }: any) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: product.id });
+function SortableProductRow({
+  product,
+  onUpdateStatus,
+  onDelete,
+  onUpdatePrice,
+  onEdit,
+  onDuplicate,
+  isSelected,
+  onSelectChange,
+}: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: product.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -1000,8 +1400,8 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
   };
 
   return (
-    <div 
-      ref={setNodeRef} 
+    <div
+      ref={setNodeRef}
       style={style}
       className="group flex items-center px-6 py-4 hover:bg-gray-50/50 transition-colors bg-white border-b border-gray-50 last:border-b-0"
     >
@@ -1013,22 +1413,22 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
         className="h-5 w-5 rounded cursor-pointer mr-4"
       />
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div 
-          {...attributes} 
+        <div
+          {...attributes}
           {...listeners}
           className="cursor-grab text-gray-300 hover:text-gray-400 transition-colors p-1"
         >
           <GripVertical size={20} />
         </div>
         <div className="h-12 w-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0">
-          <img 
-            src={product.imagem_url} 
-            alt={product.nome} 
+          <img
+            src={product.imagem_url}
+            alt={product.nome}
             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 
+          <h3
             className="text-sm font-semibold text-gray-900 truncate cursor-pointer hover:text-[#5850ec] transition-colors"
             onClick={() => onEdit(product)}
           >
@@ -1041,7 +1441,11 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
           )}
           {product.estoque !== undefined && (
             <p className="text-[10px] text-gray-500 font-medium mt-0.5">
-              Estoque: <span className={product.estoque < 5 ? 'text-red-600 font-bold' : ''}>{product.estoque}</span> un.
+              Estoque:{" "}
+              <span className={product.estoque < 5 ? "text-red-600 font-bold" : ""}>
+                {product.estoque}
+              </span>{" "}
+              un.
             </p>
           )}
         </div>
@@ -1050,31 +1454,31 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 bg-white shadow-inner focus-within:ring-1 focus-within:ring-primary/20">
           <span className="text-xs font-medium text-gray-400">R$</span>
-          <input 
-            type="text" 
-            defaultValue={product.preco.toFixed(2).replace('.', ',')}
+          <input
+            type="text"
+            defaultValue={product.preco.toFixed(2).replace(".", ",")}
             onBlur={(e) => onUpdatePrice(product.id, e.target.value)}
             className="w-16 text-sm font-bold text-gray-700 outline-none text-right bg-transparent"
           />
         </div>
 
         <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg">
-          <button 
-            onClick={() => onUpdateStatus(product.id, 'pausado')}
+          <button
+            onClick={() => onUpdateStatus(product.id, "pausado")}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              (product.status || '').toLowerCase() === 'pausado'
-                ? 'bg-red-500 text-white shadow-sm' 
-                : 'text-gray-400 hover:text-gray-600'
+              (product.status || "").toLowerCase() === "pausado"
+                ? "bg-red-500 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-600"
             }`}
           >
             Pausado
           </button>
-          <button 
-            onClick={() => onUpdateStatus(product.id, 'ativo')}
+          <button
+            onClick={() => onUpdateStatus(product.id, "ativo")}
             className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 rounded-md ${
-              (product.status || '').toLowerCase() === 'ativo'
-                ? 'bg-green-500 text-white shadow-sm' 
-                : 'text-gray-400 hover:text-gray-600'
+              (product.status || "").toLowerCase() === "ativo"
+                ? "bg-green-500 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-600"
             }`}
           >
             Ativo
@@ -1083,7 +1487,11 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-primary rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-gray-400 hover:text-primary rounded-full"
+            >
               <MoreVertical size={18} />
             </Button>
           </DropdownMenuTrigger>
@@ -1100,7 +1508,7 @@ function SortableProductRow({ product, onUpdateStatus, onDelete, onUpdatePrice, 
             >
               Duplicar
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-xs font-medium uppercase tracking-wider text-red-600 focus:text-red-600"
               onClick={() => onDelete(product.id)}
             >
@@ -1118,14 +1526,14 @@ function AdminProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
   const queryClient = useQueryClient();
-  
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const { data: products = [], isLoading } = useQuery({
@@ -1142,24 +1550,20 @@ function AdminProductsPage() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
       // Normalização rigorosa baseada no erro de constraint 23514
       // Vamos tentar garantir que o valor enviado seja exatamente o que o banco espera.
-      
+
       const tryUpdate = async (val: string) => {
         console.log(`Tentando atualizar status para: ${val}`);
-        return await supabase
-          .from("produtos")
-          .update({ status: val })
-          .eq("id", id)
-          .select();
+        return await supabase.from("produtos").update({ status: val }).eq("id", id).select();
       };
 
       // Ordem de tentativa: Capitalizado, Minúsculo, Maiúsculo
       const attempts = [
         status.charAt(0).toUpperCase() + status.slice(1).toLowerCase(), // Ativo / Pausado
         status.toLowerCase(), // ativo / pausado
-        status.toUpperCase() // ATIVO / PAUSADO
+        status.toUpperCase(), // ATIVO / PAUSADO
       ];
 
       let lastError = null;
@@ -1169,7 +1573,7 @@ function AdminProductsPage() {
           console.log(`Sucesso com valor: ${val}`);
           return data[0];
         }
-        if (error && error.code !== '23514') {
+        if (error && error.code !== "23514") {
           throw error;
         }
         lastError = error;
@@ -1177,27 +1581,29 @@ function AdminProductsPage() {
 
       throw lastError || new Error("Falha ao atualizar status após múltiplas tentativas.");
     },
-    onMutate: async ({ id, status }: { id: string, status: string }) => {
+    onMutate: async ({ id, status }: { id: string; status: string }) => {
       await queryClient.cancelQueries({ queryKey: ["admin-products"] });
       const previousProducts = queryClient.getQueryData(["admin-products"]);
-      
-      queryClient.setQueryData(["admin-products"], (old: any) => 
-        old?.map((p: any) => p.id === id ? { ...p, status } : p)
+
+      queryClient.setQueryData(["admin-products"], (old: any) =>
+        old?.map((p: any) => (p.id === id ? { ...p, status } : p)),
       );
-      
+
       return { previousProducts };
     },
     onError: (err: any, variables, context: any) => {
-      console.error('Falha na mutação de status:', err);
+      console.error("Falha na mutação de status:", err);
       if (context?.previousProducts) {
         queryClient.setQueryData(["admin-products"], context.previousProducts);
       }
-      
+
       const errorMsg = err.message || "Tente novamente";
       const detail = err.details || (err.code ? `Erro: ${err.code}` : "");
-      
-      if (err.code === '23514') {
-        toast.error("Erro de restrição no banco. Por favor, execute o SQL de correção de status enviado no chat.");
+
+      if (err.code === "23514") {
+        toast.error(
+          "Erro de restrição no banco. Por favor, execute o SQL de correção de status enviado no chat.",
+        );
       } else {
         toast.error(`Erro ao atualizar status: ${errorMsg} ${detail}`);
       }
@@ -1210,10 +1616,7 @@ function AdminProductsPage() {
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("produtos")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("produtos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1223,11 +1626,8 @@ function AdminProductsPage() {
   });
 
   const updatePrice = useMutation({
-    mutationFn: async ({ id, preco }: { id: string, preco: number }) => {
-      const { error } = await supabase
-        .from("produtos")
-        .update({ preco })
-        .eq("id", id);
+    mutationFn: async ({ id, preco }: { id: string; preco: number }) => {
+      const { error } = await supabase.from("produtos").update({ preco }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1252,7 +1652,7 @@ function AdminProductsPage() {
     },
     onError: (error: any) => {
       toast.error("Erro ao atualizar: " + error.message);
-    }
+    },
   });
 
   const bulkUpdateStock = useMutation({
@@ -1270,22 +1670,17 @@ function AdminProductsPage() {
     },
     onError: (error: any) => {
       toast.error("Erro ao atualizar estoque: " + error.message);
-    }
+    },
   });
 
   const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
       if (id) {
-        const { error } = await supabase
-          .from("produtos")
-          .update(data)
-          .eq("id", id);
+        const { error } = await supabase.from("produtos").update(data).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("produtos")
-          .insert([data]);
+        const { error } = await supabase.from("produtos").insert([data]);
         if (error) throw error;
       }
     },
@@ -1297,7 +1692,7 @@ function AdminProductsPage() {
     },
     onError: (error: any) => {
       toast.error("Erro ao salvar produto: " + error.message);
-    }
+    },
   });
 
   const handleEdit = (product: any) => {
@@ -1308,9 +1703,14 @@ function AdminProductsPage() {
   const duplicateProduct = useMutation({
     mutationFn: async (product: any) => {
       const { id, created_at, updated_at, categorias, ...rest } = product;
-      const { error } = await supabase
-        .from("produtos")
-        .insert([{ ...rest, nome: `${rest.nome} (Cópia)`, status: "pausado", ordem: (rest.ordem ?? 0) + 1 }]);
+      const { error } = await supabase.from("produtos").insert([
+        {
+          ...rest,
+          nome: `${rest.nome} (Cópia)`,
+          status: "pausado",
+          ordem: (rest.ordem ?? 0) + 1,
+        },
+      ]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1349,14 +1749,11 @@ function AdminProductsPage() {
         try {
           const updates = newOrder.map((p, idx) => ({
             id: p.id,
-            ordem: idx
+            ordem: idx,
           }));
 
           for (const update of updates) {
-            await supabase
-              .from("produtos")
-              .update({ ordem: update.ordem })
-              .eq("id", update.id);
+            await supabase.from("produtos").update({ ordem: update.ordem }).eq("id", update.id);
           }
           toast.success("Ordem atualizada!");
         } catch (error) {
@@ -1368,22 +1765,25 @@ function AdminProductsPage() {
     }
   };
 
-  const filteredProducts = useMemo(() => 
-    products.filter((p: any) =>
-      p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.categorias?.nome || "").toLowerCase().includes(searchTerm.toLowerCase())
-    ),
-    [products, searchTerm]
+  const filteredProducts = useMemo(
+    () =>
+      products.filter(
+        (p: any) =>
+          p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.categorias?.nome || "").toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [products, searchTerm],
   );
 
-  const groupedProducts = useMemo(() => 
-    categories.map((cat: any) => ({
-      category: cat,
-      products: filteredProducts
-        .filter((p: any) => p.categoria_id === cat.id)
-        .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0))
-    })),
-    [categories, filteredProducts]
+  const groupedProducts = useMemo(
+    () =>
+      categories.map((cat: any) => ({
+        category: cat,
+        products: filteredProducts
+          .filter((p: any) => p.categoria_id === cat.id)
+          .sort((a: any, b: any) => (a.ordem || 0) - (b.ordem || 0)),
+      })),
+    [categories, filteredProducts],
   );
 
   return (
@@ -1424,7 +1824,7 @@ function AdminProductsPage() {
               type="number"
               placeholder="Novo estoque..."
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   const val = (e.target as HTMLInputElement).value;
                   if (val) {
                     bulkUpdateStock.mutate(Number(val));
@@ -1449,7 +1849,11 @@ function AdminProductsPage() {
           <h1 className="text-2xl font-semibold text-[#5850ec]">Cardápio</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:text-primary/80 flex items-center gap-2"
+          >
             <span className="text-lg">↻</span>
             ORDENAR CATEGORIAS
           </Button>
@@ -1463,131 +1867,152 @@ function AdminProductsPage() {
       {/* ── Abas: Produtos / Ordenação ─────────────────────────────────── */}
       <Tabs defaultValue="produtos" className="w-full">
         <TabsList className="mb-6 bg-gray-100 rounded-xl p-1 w-fit">
-          <TabsTrigger value="produtos" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5">
+          <TabsTrigger
+            value="produtos"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5"
+          >
             <Utensils size={15} className="mr-1.5" /> Produtos
           </TabsTrigger>
-          <TabsTrigger value="ordenacao" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5">
+          <TabsTrigger
+            value="ordenacao"
+            className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm px-5"
+          >
             <GripVertical size={15} className="mr-1.5" /> Ordenação
           </TabsTrigger>
         </TabsList>
 
         {/* ── Aba Produtos (conteúdo original) ── */}
         <TabsContent value="produtos">
-
-      <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input 
-              placeholder="Buscar por nome ou categoria..." 
-              className="pl-10 rounded-lg border-gray-200"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <Button variant="outline" className="flex items-center gap-2 flex-1 md:flex-initial rounded-lg border-gray-200">
-              <Filter size={18} />
-              Filtros
-            </Button>
-            <div className="text-sm font-medium text-muted-foreground whitespace-nowrap bg-gray-100 px-3 py-1.5 rounded-md">
-              {filteredProducts.length} produtos
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <Loader2 className="animate-spin text-primary" size={40} />
-          <span className="text-muted-foreground font-medium">Carregando seu cardápio...</span>
-        </div>
-      ) : groupedProducts.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-20 text-center">
-          <Utensils className="mx-auto text-gray-300 mb-4" size={48} />
-          <p className="text-muted-foreground font-medium">Nenhum produto encontrado para sua busca.</p>
-        </div>
-      ) : (
-        <div className="space-y-10 pb-20">
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            {groupedProducts.map(({ category, products: catProducts }: any) => (
-              <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-4 md:px-6 py-3 border-b border-gray-200 flex justify-between items-center">
-                  <h2 className="text-sm font-semibold text-[#5850ec] uppercase tracking-wide">
-                    {category.nome}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                          <MoreVertical size={16} className="text-gray-400" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="text-xs font-bold uppercase tracking-tighter">Editar Categoria</DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs font-bold uppercase tracking-tighter text-red-600">Excluir Categoria</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                
-                <div className="divide-y divide-gray-50">
-                  <SortableContext 
-                    items={catProducts.map((p: any) => p.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {catProducts.map((product: any) => (
-                      <SortableProductRow 
-                        key={product.id} 
-                        product={product} 
-                        onUpdateStatus={(id: string, status: string) => updateStatus.mutate({ id, status })}
-                        onEdit={handleEdit}
-                        onDuplicate={(p: any) => duplicateProduct.mutate(p)}
-                        onUpdatePrice={(id: string, val: string) => {
-                          const price = parseFloat(val.replace(',', '.'));
-                          if (!isNaN(price)) updatePrice.mutate({ id, preco: price });
-                        }}
-                        isSelected={selectedProducts.has(product.id)}
-                        onSelectChange={(id: string, checked: boolean) => {
-                          const newSelected = new Set(selectedProducts);
-                          if (checked) {
-                            newSelected.add(id);
-                          } else {
-                            newSelected.delete(id);
-                          }
-                          setSelectedProducts(newSelected);
-                        }}
-                      />
-                    ))}
-                  </SortableContext>
-                </div>
-
-                <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
-                  <button 
-                    onClick={() => {
-                      setEditingProduct(null);
-                      setIsEditModalOpen(true);
-                      // Pre-set category for new item
-                      // The modal handles initial data for new items automatically
-                      // when editingProduct is null
-
-                    }}
-                    className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
-                  >
-                    <Plus size={14} strokeWidth={3} />
-                    Adicionar novo item
-                  </button>
+          <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={18}
+                />
+                <Input
+                  placeholder="Buscar por nome ou categoria..."
+                  className="pl-10 rounded-lg border-gray-200"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 flex-1 md:flex-initial rounded-lg border-gray-200"
+                >
+                  <Filter size={18} />
+                  Filtros
+                </Button>
+                <div className="text-sm font-medium text-muted-foreground whitespace-nowrap bg-gray-100 px-3 py-1.5 rounded-md">
+                  {filteredProducts.length} produtos
                 </div>
               </div>
-            ))}
-          </DndContext>
-        </div>
-      )}
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <Loader2 className="animate-spin text-primary" size={40} />
+              <span className="text-muted-foreground font-medium">Carregando seu cardápio...</span>
+            </div>
+          ) : groupedProducts.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-20 text-center">
+              <Utensils className="mx-auto text-gray-300 mb-4" size={48} />
+              <p className="text-muted-foreground font-medium">
+                Nenhum produto encontrado para sua busca.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-10 pb-20">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
+              >
+                {groupedProducts.map(({ category, products: catProducts }: any) => (
+                  <div
+                    key={category.id}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                  >
+                    <div className="bg-gray-50 px-4 md:px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                      <h2 className="text-sm font-semibold text-[#5850ec] uppercase tracking-wide">
+                        {category.nome}
+                      </h2>
+                      <div className="flex items-center gap-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                              <MoreVertical size={16} className="text-gray-400" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem className="text-xs font-bold uppercase tracking-tighter">
+                              Editar Categoria
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-xs font-bold uppercase tracking-tighter text-red-600">
+                              Excluir Categoria
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-gray-50">
+                      <SortableContext
+                        items={catProducts.map((p: any) => p.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {catProducts.map((product: any) => (
+                          <SortableProductRow
+                            key={product.id}
+                            product={product}
+                            onUpdateStatus={(id: string, status: string) =>
+                              updateStatus.mutate({ id, status })
+                            }
+                            onEdit={handleEdit}
+                            onDuplicate={(p: any) => duplicateProduct.mutate(p)}
+                            onUpdatePrice={(id: string, val: string) => {
+                              const price = parseFloat(val.replace(",", "."));
+                              if (!isNaN(price)) updatePrice.mutate({ id, preco: price });
+                            }}
+                            isSelected={selectedProducts.has(product.id)}
+                            onSelectChange={(id: string, checked: boolean) => {
+                              const newSelected = new Set(selectedProducts);
+                              if (checked) {
+                                newSelected.add(id);
+                              } else {
+                                newSelected.delete(id);
+                              }
+                              setSelectedProducts(newSelected);
+                            }}
+                          />
+                        ))}
+                      </SortableContext>
+                    </div>
+
+                    <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100">
+                      <button
+                        onClick={() => {
+                          setEditingProduct(null);
+                          setIsEditModalOpen(true);
+                          // Pre-set category for new item
+                          // The modal handles initial data for new items automatically
+                          // when editingProduct is null
+                        }}
+                        className="flex items-center gap-2 text-xs font-semibold text-[#0891b2] hover:text-[#0891b2]/80 transition-colors uppercase tracking-wider"
+                      >
+                        <Plus size={14} strokeWidth={3} />
+                        Adicionar novo item
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </DndContext>
+            </div>
+          )}
         </TabsContent>
 
         {/* ── Aba Ordenação ── */}
@@ -1595,7 +2020,10 @@ function AdminProductsPage() {
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-2.5 text-sm text-blue-700">
               <GripVertical size={16} className="shrink-0 mt-0.5" />
-              <p>Arraste os produtos para reordenar dentro de cada categoria. A ordem aqui é exatamente a que aparece no site e no cardápio.</p>
+              <p>
+                Arraste os produtos para reordenar dentro de cada categoria. A ordem aqui é
+                exatamente a que aparece no site e no cardápio.
+              </p>
             </div>
 
             <DndContext
@@ -1607,7 +2035,10 @@ function AdminProductsPage() {
               {groupedProducts.map(({ category, products: catProds }) => {
                 if (!catProds.length) return null;
                 return (
-                  <div key={category.id} className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                  <div
+                    key={category.id}
+                    className="bg-white rounded-2xl border shadow-sm overflow-hidden"
+                  >
                     {/* Header da categoria */}
                     <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b">
                       <div className="flex items-center gap-2.5">
@@ -1638,11 +2069,10 @@ function AdminProductsPage() {
             </DndContext>
           </div>
         </TabsContent>
-
       </Tabs>
 
-      <ProductEditModal 
-        isOpen={isEditModalOpen} 
+      <ProductEditModal
+        isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingProduct(null);

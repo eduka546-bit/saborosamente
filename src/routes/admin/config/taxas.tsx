@@ -54,7 +54,7 @@ function AdminConfigTaxasPage() {
     if (!cidadeSelecionada) return [];
     const lista = cidades[cidadeSelecionada] ?? [];
     if (!search) return lista;
-    return lista.filter(b => b.bairro.toLowerCase().includes(search.toLowerCase()));
+    return lista.filter((b) => b.bairro.toLowerCase().includes(search.toLowerCase()));
   }, [cidadeSelecionada, cidades, search]);
 
   const addMutation = useMutation({
@@ -79,10 +79,13 @@ function AdminConfigTaxasPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: any }) => {
-      const { error } = await supabase.from("delivery_rates").update({
-        bairro: values.bairro,
-        valor: Number(values.taxa),
-      }).eq("id", id);
+      const { error } = await supabase
+        .from("delivery_rates")
+        .update({
+          bairro: values.bairro,
+          valor: Number(values.taxa),
+        })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -145,16 +148,20 @@ function AdminConfigTaxasPage() {
         </div>
       ) : (
         <div className="flex gap-4 h-[calc(100vh-180px)]">
-
           {/* ── Coluna esquerda: cidades ── */}
           <div className="w-64 shrink-0 flex flex-col gap-2 overflow-y-auto pr-1">
-            {cidadesList.map(cidade => {
+            {cidadesList.map((cidade) => {
               const count = cidades[cidade]?.length ?? 0;
               const ativa = cidadeSelecionada === cidade;
               return (
                 <button
                   key={cidade}
-                  onClick={() => { setCidadeSelecionada(cidade); setSearch(""); setIsAdding(false); setEditingId(null); }}
+                  onClick={() => {
+                    setCidadeSelecionada(cidade);
+                    setSearch("");
+                    setIsAdding(false);
+                    setEditingId(null);
+                  }}
                   className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center justify-between group ${
                     ativa
                       ? "bg-[#5850ec] text-white border-[#5850ec] shadow-md"
@@ -162,10 +169,21 @@ function AdminConfigTaxasPage() {
                   }`}
                 >
                   <div>
-                    <p className={`font-semibold text-sm ${ativa ? "text-white" : "text-gray-800"}`}>{cidade}</p>
-                    <p className={`text-[11px] mt-0.5 ${ativa ? "text-white/70" : "text-gray-400"}`}>{count} bairros</p>
+                    <p
+                      className={`font-semibold text-sm ${ativa ? "text-white" : "text-gray-800"}`}
+                    >
+                      {cidade}
+                    </p>
+                    <p
+                      className={`text-[11px] mt-0.5 ${ativa ? "text-white/70" : "text-gray-400"}`}
+                    >
+                      {count} bairros
+                    </p>
                   </div>
-                  <ChevronRight size={16} className={ativa ? "text-white/70" : "text-gray-300 group-hover:text-[#5850ec]"} />
+                  <ChevronRight
+                    size={16}
+                    className={ativa ? "text-white/70" : "text-gray-300 group-hover:text-[#5850ec]"}
+                  />
                 </button>
               );
             })}
@@ -199,19 +217,26 @@ function AdminConfigTaxasPage() {
                     <Input
                       placeholder="Buscar bairro..."
                       value={search}
-                      onChange={e => setSearch(e.target.value)}
+                      onChange={(e) => setSearch(e.target.value)}
                       className="h-8 text-sm w-48"
                     />
                     <Button
                       size="sm"
-                      onClick={() => { setIsAdding(true); setAddForm(EMPTY_BAIRRO); }}
+                      onClick={() => {
+                        setIsAdding(true);
+                        setAddForm(EMPTY_BAIRRO);
+                      }}
                       className="bg-[#5850ec] text-white h-8 gap-1"
                     >
                       <Plus size={14} /> Bairro
                     </Button>
                     <button
                       onClick={() => {
-                        if (confirm(`Remover a cidade "${cidadeSelecionada}" e todos os seus bairros?`)) {
+                        if (
+                          confirm(
+                            `Remover a cidade "${cidadeSelecionada}" e todos os seus bairros?`,
+                          )
+                        ) {
                           deleteCidadeMutation.mutate(cidadeSelecionada);
                         }
                       }}
@@ -230,9 +255,9 @@ function AdminConfigTaxasPage() {
                       autoFocus
                       placeholder="Nome do bairro"
                       value={addForm.bairro}
-                      onChange={e => setAddForm(p => ({ ...p, bairro: e.target.value }))}
+                      onChange={(e) => setAddForm((p) => ({ ...p, bairro: e.target.value }))}
                       className="flex-1 h-8 text-sm"
-                      onKeyDown={e => e.key === "Escape" && setIsAdding(false)}
+                      onKeyDown={(e) => e.key === "Escape" && setIsAdding(false)}
                     />
                     <div className="flex items-center gap-1">
                       <span className="text-sm text-gray-400">R$</span>
@@ -241,7 +266,7 @@ function AdminConfigTaxasPage() {
                         step="0.01"
                         placeholder="10.00"
                         value={addForm.taxa}
-                        onChange={e => setAddForm(p => ({ ...p, taxa: e.target.value }))}
+                        onChange={(e) => setAddForm((p) => ({ ...p, taxa: e.target.value }))}
                         className="w-24 h-8 text-sm"
                       />
                     </div>
@@ -251,9 +276,16 @@ function AdminConfigTaxasPage() {
                       disabled={addMutation.isPending || !addForm.bairro || !addForm.taxa}
                       onClick={() => addMutation.mutate({ ...addForm, cidade: cidadeSelecionada })}
                     >
-                      {addMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                      {addMutation.isPending ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Save size={13} />
+                      )}
                     </Button>
-                    <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600">
+                    <button
+                      onClick={() => setIsAdding(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
                       <X size={16} />
                     </button>
                   </div>
@@ -277,7 +309,9 @@ function AdminConfigTaxasPage() {
                               <td className="px-4 py-2">
                                 <Input
                                   value={editForm.bairro}
-                                  onChange={e => setEditForm(p => ({ ...p, bairro: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditForm((p) => ({ ...p, bairro: e.target.value }))
+                                  }
                                   className="h-8 text-xs"
                                   autoFocus
                                 />
@@ -289,7 +323,9 @@ function AdminConfigTaxasPage() {
                                     type="number"
                                     step="0.01"
                                     value={editForm.taxa}
-                                    onChange={e => setEditForm(p => ({ ...p, taxa: e.target.value }))}
+                                    onChange={(e) =>
+                                      setEditForm((p) => ({ ...p, taxa: e.target.value }))
+                                    }
                                     className="h-8 text-xs w-24"
                                   />
                                 </div>
@@ -300,7 +336,9 @@ function AdminConfigTaxasPage() {
                                     size="icon"
                                     variant="ghost"
                                     className="h-7 w-7 text-green-600 hover:bg-green-50"
-                                    onClick={() => updateMutation.mutate({ id: b.id, values: editForm })}
+                                    onClick={() =>
+                                      updateMutation.mutate({ id: b.id, values: editForm })
+                                    }
                                   >
                                     <Save size={13} />
                                   </Button>
@@ -326,13 +364,19 @@ function AdminConfigTaxasPage() {
                               <td className="px-6 py-3.5 text-right">
                                 <div className="flex gap-1 justify-end">
                                   <button
-                                    onClick={() => { setEditingId(b.id); setEditForm({ bairro: b.bairro, taxa: b.valor }); }}
+                                    onClick={() => {
+                                      setEditingId(b.id);
+                                      setEditForm({ bairro: b.bairro, taxa: b.valor });
+                                    }}
                                     className="p-1.5 text-gray-400 hover:text-[#5850ec] hover:bg-[#5850ec]/10 rounded-lg transition-all"
                                   >
                                     <Edit3 size={14} />
                                   </button>
                                   <button
-                                    onClick={() => confirm(`Remover "${b.bairro}"?`) && deleteMutation.mutate(b.id)}
+                                    onClick={() =>
+                                      confirm(`Remover "${b.bairro}"?`) &&
+                                      deleteMutation.mutate(b.id)
+                                    }
                                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                   >
                                     <Trash2 size={14} />
@@ -347,7 +391,9 @@ function AdminConfigTaxasPage() {
                       {bairrosFiltrados.length === 0 && (
                         <tr>
                           <td colSpan={3} className="px-6 py-12 text-center text-gray-400 text-sm">
-                            {search ? `Nenhum bairro encontrado para "${search}"` : "Nenhum bairro cadastrado."}
+                            {search
+                              ? `Nenhum bairro encontrado para "${search}"`
+                              : "Nenhum bairro cadastrado."}
                           </td>
                         </tr>
                       )}
@@ -369,8 +415,8 @@ function AdminConfigTaxasPage() {
               autoFocus
               placeholder="Nome da cidade"
               value={novaCidade}
-              onChange={e => setNovaCidade(e.target.value)}
-              onKeyDown={e => {
+              onChange={(e) => setNovaCidade(e.target.value)}
+              onKeyDown={(e) => {
                 if (e.key === "Enter" && novaCidade.trim()) {
                   setCidadeSelecionada(novaCidade.trim());
                   setNovaCidade("");
@@ -380,9 +426,18 @@ function AdminConfigTaxasPage() {
                 }
               }}
             />
-            <p className="text-xs text-gray-400">A cidade será criada quando você adicionar o primeiro bairro.</p>
+            <p className="text-xs text-gray-400">
+              A cidade será criada quando você adicionar o primeiro bairro.
+            </p>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowNovaCidade(false); setNovaCidade(""); }}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowNovaCidade(false);
+                  setNovaCidade("");
+                }}
+              >
                 Cancelar
               </Button>
               <Button

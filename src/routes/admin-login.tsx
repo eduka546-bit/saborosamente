@@ -38,7 +38,9 @@ function AdminLogin() {
         if (p) setPassword(p);
         setRemember(true);
       }
-    } catch (_) {/* ignora */}
+    } catch (_) {
+      /* ignora */
+    }
   }, []);
 
   // Se já tem sessão ativa, vai direto pro painel
@@ -161,7 +163,10 @@ function AdminLogin() {
               onChange={(e) => setRemember(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-primary accent-primary cursor-pointer"
             />
-            <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer select-none">
+            <label
+              htmlFor="remember"
+              className="text-sm text-muted-foreground cursor-pointer select-none"
+            >
               Lembrar minhas credenciais
             </label>
           </div>

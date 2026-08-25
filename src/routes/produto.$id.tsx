@@ -29,7 +29,11 @@ function ProdutoPage() {
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { data: product, isLoading, error } = useQuery({
+  const {
+    data: product,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["produto", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -208,7 +212,7 @@ function ProdutoPage() {
                         "transition-all duration-300 rounded-full",
                         currentImageIndex === idx
                           ? "w-6 h-2 bg-white shadow-lg"
-                          : "w-2 h-2 bg-white/40 hover:bg-white/60"
+                          : "w-2 h-2 bg-white/40 hover:bg-white/60",
                       )}
                     />
                   ))}
@@ -228,7 +232,7 @@ function ProdutoPage() {
                     "aspect-square rounded-lg overflow-hidden border-2 transition-all",
                     currentImageIndex === idx
                       ? "border-primary shadow-md scale-105"
-                      : "border-border/30 opacity-60 hover:opacity-100"
+                      : "border-border/30 opacity-60 hover:opacity-100",
                   )}
                 >
                   <OptimizedImage
@@ -248,7 +252,7 @@ function ProdutoPage() {
           {/* Cabeçalho */}
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">{product.nome}</h1>
-            
+
             {/* Rating + Categoria */}
             <div className="flex items-center gap-4 mb-4">
               <div className="flex items-center gap-2">
@@ -275,9 +279,7 @@ function ProdutoPage() {
 
             {/* Descrição */}
             {product.descricao && (
-              <p className="text-muted-foreground leading-relaxed">
-                {product.descricao}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{product.descricao}</p>
             )}
           </div>
 
@@ -296,7 +298,7 @@ function ProdutoPage() {
                       "rounded-xl border-2 py-4 text-sm font-bold transition-all",
                       selectedWeight === w
                         ? "border-primary bg-primary/5 text-primary shadow-md"
-                        : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/30",
                     )}
                   >
                     {weightLabel(w)}
@@ -308,7 +310,9 @@ function ProdutoPage() {
 
           {/* Tabela Nutricional */}
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">Valor Nutricional</h3>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">
+              Valor Nutricional
+            </h3>
             <div className="grid grid-cols-2 gap-4 rounded-xl bg-muted/50 p-4">
               <div>
                 {currentNutritional?.kcal ? (
@@ -327,7 +331,9 @@ function ProdutoPage() {
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground italic">Consulte a embalagem para detalhes</span>
+                  <span className="text-xs text-muted-foreground italic">
+                    Consulte a embalagem para detalhes
+                  </span>
                 )}
               </div>
               <div>
@@ -342,7 +348,9 @@ function ProdutoPage() {
           {/* Preço e CTA */}
           <div className="space-y-4 border-t border-border/30 pt-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-xs font-bold text-muted-foreground uppercase">Valor por {selectedWeight || "porção"}</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase">
+                Valor por {selectedWeight || "porção"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-4xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">

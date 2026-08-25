@@ -2,7 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { Loader2, Plus, Trash2, Edit3, Save, X, ShoppingBag, Tag, ToggleLeft, ToggleRight } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Edit3,
+  Save,
+  X,
+  ShoppingBag,
+  Tag,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -97,7 +108,8 @@ function AdminCombosPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Combos "Monte Você Mesmo"</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Gerencie os combos do cardápio. Para criar um novo combo, adicione um produto na categoria "Combos" pelo Cardápio.
+          Gerencie os combos do cardápio. Para criar um novo combo, adicione um produto na categoria
+          "Combos" pelo Cardápio.
         </p>
       </div>
 
@@ -111,28 +123,39 @@ function AdminCombosPage() {
           Sopas e complementos <strong>contam na quantidade</strong> mas não recebem desconto.
         </p>
         <div className="grid grid-cols-3 gap-4">
-          {REGRAS.map(rule => (
-            <div key={rule.min} className="flex flex-col items-center p-4 rounded-xl bg-[#5850ec]/5 border border-[#5850ec]/10">
-              <span className="text-2xl font-black text-[#5850ec]">{(rule.discount * 100).toFixed(0)}%</span>
+          {REGRAS.map((rule) => (
+            <div
+              key={rule.min}
+              className="flex flex-col items-center p-4 rounded-xl bg-[#5850ec]/5 border border-[#5850ec]/10"
+            >
+              <span className="text-2xl font-black text-[#5850ec]">
+                {(rule.discount * 100).toFixed(0)}%
+              </span>
               <span className="text-xs text-gray-500 mt-1">a partir de {rule.min} itens</span>
-              <Badge className="mt-2 bg-[#5850ec]/10 text-[#5850ec] hover:bg-[#5850ec]/10">{rule.label}</Badge>
+              <Badge className="mt-2 bg-[#5850ec]/10 text-[#5850ec] hover:bg-[#5850ec]/10">
+                {rule.label}
+              </Badge>
             </div>
           ))}
         </div>
         <p className="text-[11px] text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mt-4 border border-amber-100">
-          Para alterar os percentuais de desconto, entre em contato com o desenvolvedor — está definido no código em <code>src/components/combo-builder-modal.tsx</code>.
+          Para alterar os percentuais de desconto, entre em contato com o desenvolvedor — está
+          definido no código em <code>src/components/combo-builder-modal.tsx</code>.
         </p>
       </div>
 
       {/* Lista de combos */}
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : combos.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed p-16 text-center">
           <ShoppingBag size={48} className="mx-auto text-gray-200 mb-4" />
           <p className="text-gray-400 font-medium">Nenhum combo encontrado.</p>
           <p className="text-xs text-gray-400 mt-2">
-            Adicione um produto com categoria "Combos" ou nome contendo "Monte Você Mesmo" pelo Cardápio.
+            Adicione um produto com categoria "Combos" ou nome contendo "Monte Você Mesmo" pelo
+            Cardápio.
           </p>
         </div>
       ) : (
@@ -145,17 +168,21 @@ function AdminCombosPage() {
                   <div className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome</label>
+                        <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                          Nome
+                        </label>
                         <Input
                           value={editForm.nome}
-                          onChange={e => setEditForm({ ...editForm, nome: e.target.value })}
+                          onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Descrição</label>
+                        <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                          Descrição
+                        </label>
                         <Input
                           value={editForm.descricao}
-                          onChange={e => setEditForm({ ...editForm, descricao: e.target.value })}
+                          onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })}
                           placeholder="Descreva o combo..."
                         />
                       </div>
@@ -164,17 +191,23 @@ function AdminCombosPage() {
                       <Button
                         size="sm"
                         className="bg-[#5850ec] text-white"
-                        onClick={() => updateMutation.mutate({
-                          id: combo.id,
-                          values: {
-                            nome: editForm.nome,
-                            descricao: editForm.descricao,
-                            status: editForm.ativo ? "ativo" : "pausado",
-                          }
-                        })}
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: combo.id,
+                            values: {
+                              nome: editForm.nome,
+                              descricao: editForm.descricao,
+                              status: editForm.ativo ? "ativo" : "pausado",
+                            },
+                          })
+                        }
                         disabled={updateMutation.isPending}
                       >
-                        {updateMutation.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Save size={14} className="mr-1" />}
+                        {updateMutation.isPending ? (
+                          <Loader2 size={14} className="animate-spin mr-1" />
+                        ) : (
+                          <Save size={14} className="mr-1" />
+                        )}
                         Salvar
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
@@ -186,13 +219,21 @@ function AdminCombosPage() {
                   <div className="flex items-center gap-4">
                     {/* Imagem */}
                     {combo.imagem_url && (
-                      <img src={combo.imagem_url} className="h-16 w-16 rounded-xl object-cover border shrink-0" alt="" />
+                      <img
+                        src={combo.imagem_url}
+                        className="h-16 w-16 rounded-xl object-cover border shrink-0"
+                        alt=""
+                      />
                     )}
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-gray-900">{combo.nome}</p>
-                        <Badge className={isAtivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                        <Badge
+                          className={
+                            isAtivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }
+                        >
                           {isAtivo ? "Ativo" : "Pausado"}
                         </Badge>
                         <Badge variant="outline" className="text-[#5850ec]">
@@ -203,13 +244,18 @@ function AdminCombosPage() {
                         <p className="text-sm text-gray-500 mt-1 truncate">{combo.descricao}</p>
                       )}
                       <p className="text-xs text-gray-400 mt-1">
-                        A partir de <strong className="text-[#086e45]">R$ {Number(combo.preco).toFixed(2)}</strong>
+                        A partir de{" "}
+                        <strong className="text-[#086e45]">
+                          R$ {Number(combo.preco).toFixed(2)}
+                        </strong>
                       </p>
                     </div>
                     {/* Ações */}
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{isAtivo ? "Ativo" : "Pausado"}</span>
+                        <span className="text-xs text-gray-500">
+                          {isAtivo ? "Ativo" : "Pausado"}
+                        </span>
                         <Switch
                           checked={isAtivo}
                           onCheckedChange={(v) => toggleMutation.mutate({ id: combo.id, ativo: v })}

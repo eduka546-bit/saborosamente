@@ -1,5 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Users, Search, Mail, Phone, ShoppingBag, MapPin, Eye, X, Calendar, DollarSign, Upload, Loader2, Gift, MessageCircle, Filter } from "lucide-react";
+import {
+  Users,
+  Search,
+  Mail,
+  Phone,
+  ShoppingBag,
+  MapPin,
+  Eye,
+  X,
+  Calendar,
+  DollarSign,
+  Upload,
+  Loader2,
+  Gift,
+  MessageCircle,
+  Filter,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +38,11 @@ function CashbackCliente({ userId }: { userId: string }) {
     queryKey: ["cashback-cliente", userId],
     ...createQueryConfig("clients"),
     queryFn: async () => {
-      const { data } = await supabase.from("cashback_saldo").select("saldo").eq("user_id", userId).maybeSingle();
+      const { data } = await supabase
+        .from("cashback_saldo")
+        .select("saldo")
+        .eq("user_id", userId)
+        .maybeSingle();
       return Number((data as any)?.saldo ?? 0);
     },
   });
@@ -58,7 +78,7 @@ function AdminClientesPage() {
         toast.error("Erro ao carregar perfis: " + profileError.message);
         throw profileError;
       }
-      
+
       console.log("Perfis encontrados no banco:", profiles?.length);
 
       // 2. Buscar pedidos para histórico
@@ -68,11 +88,11 @@ function AdminClientesPage() {
         .order("created_at", { ascending: false });
 
       if (orderError) throw orderError;
-      
+
       const clientMap = new Map();
 
       // Mapear perfis primeiro
-      profiles?.forEach(profile => {
+      profiles?.forEach((profile) => {
         clientMap.set(profile.id, {
           id: profile.id,
           nome: profile.nome,
@@ -83,12 +103,12 @@ function AdminClientesPage() {
           totalPedidos: 0,
           valorGasto: 0,
           ultimoPedido: null,
-          pedidos: []
+          pedidos: [],
         });
       });
 
       // Vincular pedidos aos perfis ou criar clientes convidados
-      orders?.forEach(order => {
+      orders?.forEach((order) => {
         const userId = order.user_id;
         const key = userId || order.email_cliente || order.telefone_cliente;
 
@@ -100,14 +120,17 @@ function AdminClientesPage() {
             totalPedidos: 1,
             valorGasto: order.valor_total || 0,
             ultimoPedido: order.created_at,
-            pedidos: [order]
+            pedidos: [order],
           });
         } else {
           const existing = clientMap.get(key);
           existing.totalPedidos += 1;
-          existing.valorGasto += (order.valor_total || 0);
+          existing.valorGasto += order.valor_total || 0;
           existing.pedidos.push(order);
-          if (!existing.ultimoPedido || new Date(order.created_at) > new Date(existing.ultimoPedido)) {
+          if (
+            !existing.ultimoPedido ||
+            new Date(order.created_at) > new Date(existing.ultimoPedido)
+          ) {
             existing.ultimoPedido = order.created_at;
           }
         }
@@ -118,9 +141,10 @@ function AdminClientesPage() {
   });
 
   const filteredClients = useMemo(() => {
-    return clients.filter(c => 
-      c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.telefone?.includes(searchTerm)
+    return clients.filter(
+      (c) =>
+        c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.telefone?.includes(searchTerm),
     );
   }, [clients, searchTerm]);
 
@@ -134,11 +158,14 @@ function AdminClientesPage() {
     try {
       setIsImporting(true);
       const result = await importFn();
-      
+
       if (result && (result.success || result.errors)) {
-        toast.success(`Importação concluída: ${result.success} sucessos, ${result.errors} erros/pulados.`, {
-          duration: 5000
-        });
+        toast.success(
+          `Importação concluída: ${result.success} sucessos, ${result.errors} erros/pulados.`,
+          {
+            duration: 5000,
+          },
+        );
       }
     } catch (error: any) {
       toast.error("Falha ao iniciar importação: " + error.message);
@@ -152,11 +179,13 @@ function AdminClientesPage() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Clientes</h1>
-          <p className="text-gray-500 text-sm mt-1">Gerencie sua base de clientes e histórico de compras.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Gerencie sua base de clientes e histórico de compras.
+          </p>
         </div>
-        
-        <Button 
-          onClick={handleImport} 
+
+        <Button
+          onClick={handleImport}
           disabled={isImporting}
           className="bg-[#086e45] hover:bg-[#065a38] text-white flex items-center gap-2"
         >
@@ -168,9 +197,12 @@ function AdminClientesPage() {
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input 
-              placeholder="Buscar por nome ou telefone..." 
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              size={18}
+            />
+            <Input
+              placeholder="Buscar por nome ou telefone..."
               className="pl-10 rounded-lg border-gray-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -195,9 +227,17 @@ function AdminClientesPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
-              <tr><td colSpan={5} className="p-8 text-center">Carregando clientes...</td></tr>
+              <tr>
+                <td colSpan={5} className="p-8 text-center">
+                  Carregando clientes...
+                </td>
+              </tr>
             ) : paginatedClients.length === 0 ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhum cliente encontrado.</td></tr>
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-gray-400">
+                  Nenhum cliente encontrado.
+                </td>
+              </tr>
             ) : (
               paginatedClients.map((client, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
@@ -207,20 +247,26 @@ function AdminClientesPage() {
                         <Users className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900">{client.nome || "Cliente Final"}</p>
+                        <p className="text-sm font-bold text-gray-900">
+                          {client.nome || "Cliente Final"}
+                        </p>
                         <p className="text-[10px] text-gray-400 font-medium">{client.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">{client.totalPedidos} pedidos</td>
-                  <td className="px-6 py-4 text-sm font-bold text-green-600">R$ {client.valorGasto.toFixed(2).replace('.', ',')}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-green-600">
+                    R$ {client.valorGasto.toFixed(2).replace(".", ",")}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {client.ultimoPedido ? new Date(client.ultimoPedido).toLocaleDateString('pt-BR') : 'N/A'}
+                    {client.ultimoPedido
+                      ? new Date(client.ultimoPedido).toLocaleDateString("pt-BR")
+                      : "N/A"}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 rounded-full"
                       onClick={() => setSelectedClient(client)}
                     >
@@ -262,30 +308,62 @@ function AdminClientesPage() {
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome}</h3>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
-                  <span className="flex items-center gap-1"><Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}</span>
-                  <span className="flex items-center gap-1"><Mail size={14} className="text-[#5850ec]" /> {selectedClient.email}</span>
-                  {selectedClient.cpf && <span className="flex items-center gap-1"><DollarSign size={14} className="text-[#5850ec]" /> CPF: {selectedClient.cpf}</span>}
-                  {selectedClient.bairro && <span className="flex items-center gap-1 w-full md:w-auto"><MapPin size={14} className="text-[#5850ec]" /> Bairro: {selectedClient.bairro}</span>}
+                  <span className="flex items-center gap-1">
+                    <Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Mail size={14} className="text-[#5850ec]" /> {selectedClient.email}
+                  </span>
+                  {selectedClient.cpf && (
+                    <span className="flex items-center gap-1">
+                      <DollarSign size={14} className="text-[#5850ec]" /> CPF: {selectedClient.cpf}
+                    </span>
+                  )}
+                  {selectedClient.bairro && (
+                    <span className="flex items-center gap-1 w-full md:w-auto">
+                      <MapPin size={14} className="text-[#5850ec]" /> Bairro:{" "}
+                      {selectedClient.bairro}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pedidos</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Total Pedidos
+                </p>
                 <p className="text-lg font-black text-gray-900">{selectedClient.totalPedidos}</p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Gasto</p>
-                <p className="text-lg font-black text-green-600">R$ {selectedClient.valorGasto.toFixed(2)}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Total Gasto
+                </p>
+                <p className="text-lg font-black text-green-600">
+                  R$ {selectedClient.valorGasto.toFixed(2)}
+                </p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ticket Médio</p>
-                <p className="text-lg font-black text-[#5850ec]">R$ {selectedClient.totalPedidos > 0 ? (selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2) : "0,00"}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Ticket Médio
+                </p>
+                <p className="text-lg font-black text-[#5850ec]">
+                  R${" "}
+                  {selectedClient.totalPedidos > 0
+                    ? (selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2)
+                    : "0,00"}
+                </p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Último Pedido</p>
-                <p className="text-sm font-bold text-gray-700">{selectedClient.ultimoPedido ? new Date(selectedClient.ultimoPedido).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Último Pedido
+                </p>
+                <p className="text-sm font-bold text-gray-700">
+                  {selectedClient.ultimoPedido
+                    ? new Date(selectedClient.ultimoPedido).toLocaleDateString("pt-BR")
+                    : "N/A"}
+                </p>
               </div>
             </div>
 
@@ -294,21 +372,23 @@ function AdminClientesPage() {
               {selectedClient.telefone && (
                 <a
                   href={`https://wa.me/${selectedClient.telefone.replace(/\D/g, "")}`}
-                  target="_blank" rel="noopener noreferrer"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-600 transition-all"
                 >
                   <MessageCircle size={15} /> WhatsApp
                 </a>
               )}
-              {selectedClient.id && (
-                <CashbackCliente userId={selectedClient.id} />
-              )}
+              {selectedClient.id && <CashbackCliente userId={selectedClient.id} />}
             </div>
 
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
             <div className="space-y-4">
               {selectedClient.pedidos.map((pedido: any) => (
-                <div key={pedido.id} className="border rounded-xl p-4 hover:border-[#5850ec]/30 transition-colors">
+                <div
+                  key={pedido.id}
+                  className="border rounded-xl p-4 hover:border-[#5850ec]/30 transition-colors"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -318,7 +398,7 @@ function AdminClientesPage() {
                         </Badge>
                       </p>
                       <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                        <Calendar size={12} /> {new Date(pedido.created_at).toLocaleString('pt-BR')}
+                        <Calendar size={12} /> {new Date(pedido.created_at).toLocaleString("pt-BR")}
                       </p>
                     </div>
                     <p className="font-bold text-[#5850ec]">R$ {pedido.valor_total.toFixed(2)}</p>
@@ -332,4 +412,3 @@ function AdminClientesPage() {
     </div>
   );
 }
-

@@ -25,7 +25,7 @@ async function enviarMensagem(
   mensagem: string,
   imagemUrl: string | null,
   videoUrl: string | null,
-  template?: { name: string; language: string; variaveis: string[] } | null
+  template?: { name: string; language: string; variaveis: string[] } | null,
 ): Promise<{ sucesso: boolean; erro?: string }> {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
@@ -56,7 +56,10 @@ async function enviarMensagem(
     };
 
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-    const resJson = await res.json().catch(() => ({})) as { error?: { message?: string }; messages?: { id: string }[] };
+    const resJson = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string };
+      messages?: { id: string }[];
+    };
     console.log(`Template para ${to}:`, JSON.stringify(resJson));
 
     if (res.ok) return { sucesso: true };
@@ -84,7 +87,7 @@ async function enviarMensagem(
     const resDoc = await fetch(url, { method: "POST", headers, body: JSON.stringify(bodyDoc) });
     if (resDoc.ok) return { sucesso: true };
 
-    const errDoc = await resDoc.json().catch(() => ({})) as { error?: { message?: string } };
+    const errDoc = (await resDoc.json().catch(() => ({}))) as { error?: { message?: string } };
     return { sucesso: false, erro: errDoc.error?.message || "Erro ao enviar vídeo" };
   }
 
@@ -99,7 +102,7 @@ async function enviarMensagem(
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     if (res.ok) return { sucesso: true };
 
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
     return { sucesso: false, erro: err.error?.message || "Erro ao enviar imagem" };
   }
 
@@ -111,7 +114,7 @@ async function enviarMensagem(
     text: { body: mensagem },
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-  const resJson = await res.json().catch(() => ({})) as { error?: { message?: string } };
+  const resJson = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
   console.log(`Texto para ${to}:`, JSON.stringify(resJson));
   if (res.ok) return { sucesso: true };
   return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar texto" };
@@ -129,7 +132,7 @@ Deno.serve(async (req: Request) => {
   let campanha_id = "";
 
   try {
-    const body = await req.json() as {
+    const body = (await req.json()) as {
       campanha_id: string;
       contatos: string[];
       mensagem: string;
@@ -146,16 +149,15 @@ Deno.serve(async (req: Request) => {
       return new Response("Missing required fields", { status: 400, headers: CORS_HEADERS });
     }
 
-    console.log(`Iniciando campanha ${campanha_id} para ${contatos.length} contatos${template ? ` (template: ${template.name})` : ""}`);
+    console.log(
+      `Iniciando campanha ${campanha_id} para ${contatos.length} contatos${template ? ` (template: ${template.name})` : ""}`,
+    );
+
+    await supabase.from("campanhas_whatsapp").update({ status: "enviando" }).eq("id", campanha_id);
 
     await supabase
-      .from("campanhas_whatsapp")
-      .update({ status: "enviando" })
-      .eq("id", campanha_id);
-
-    await supabase.from("campanhas_whatsapp_envios").insert(
-      contatos.map((tel: string) => ({ campanha_id, telefone: tel, status: "pendente" }))
-    );
+      .from("campanhas_whatsapp_envios")
+      .insert(contatos.map((tel: string) => ({ campanha_id, telefone: tel, status: "pendente" })));
 
     let enviados = 0;
     let falhados = 0;
@@ -218,9 +220,8 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ success: true, enviados, falhados, total: contatos.length, tempoTotal }),
-      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 }
+      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
     );
-
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     console.error("Erro na campanha:", msg);
@@ -233,9 +234,9 @@ Deno.serve(async (req: Request) => {
         .catch(() => {});
     }
 
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 500 }
-    );
+    return new Response(JSON.stringify({ error: msg }), {
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      status: 500,
+    });
   }
 });

@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import { MessageCircle, Instagram, Mail, ChevronDown, ChevronUp, Phone, HelpCircle } from "lucide-react";
+import {
+  MessageCircle,
+  Instagram,
+  Mail,
+  ChevronDown,
+  ChevronUp,
+  Phone,
+  HelpCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/fale-conosco")({
@@ -39,8 +47,12 @@ function FaleConoscoPage() {
     },
   });
 
-  const whatsapp = (settings as any)?.contato_whatsapp || (settings as any)?.footer_whatsapp || "5547991507757";
-  const instagram = (settings as any)?.contato_instagram || (settings as any)?.footer_instagram || "saborosamente.sbs";
+  const whatsapp =
+    (settings as any)?.contato_whatsapp || (settings as any)?.footer_whatsapp || "5547991507757";
+  const instagram =
+    (settings as any)?.contato_instagram ||
+    (settings as any)?.footer_instagram ||
+    "saborosamente.sbs";
   const email = (settings as any)?.contato_email || "";
 
   const waUrl = `https://wa.me/${whatsapp.replace(/\D/g, "")}?text=Olá! Gostaria de tirar uma dúvida.`;
@@ -81,7 +93,15 @@ function FaleConoscoPage() {
           className="flex flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 hover:opacity-90 p-6 text-white transition-all hover:scale-[1.02] shadow-lg"
         >
           <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-6"
+            >
               <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
               <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
               <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -138,10 +158,11 @@ function FaleConoscoPage() {
                   className="w-full flex items-center justify-between px-6 py-4 text-left font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
                 >
                   <span>{faq.pergunta}</span>
-                  {openFaq === faq.id
-                    ? <ChevronUp size={18} className="text-[#086e45] shrink-0" />
-                    : <ChevronDown size={18} className="text-gray-400 shrink-0" />
-                  }
+                  {openFaq === faq.id ? (
+                    <ChevronUp size={18} className="text-[#086e45] shrink-0" />
+                  ) : (
+                    <ChevronDown size={18} className="text-gray-400 shrink-0" />
+                  )}
                 </button>
                 {openFaq === faq.id && (
                   <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">
@@ -157,7 +178,9 @@ function FaleConoscoPage() {
       {/* CTA final */}
       <div className="rounded-3xl bg-[#086e45] p-8 text-white text-center space-y-4">
         <p className="font-bold text-lg">Não encontrou o que procurava?</p>
-        <p className="text-white/80 text-sm">Fale diretamente com a gente no WhatsApp. Respondemos rápido!</p>
+        <p className="text-white/80 text-sm">
+          Fale diretamente com a gente no WhatsApp. Respondemos rápido!
+        </p>
         <a
           href={waUrl}
           target="_blank"

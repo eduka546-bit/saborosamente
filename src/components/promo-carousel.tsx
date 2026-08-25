@@ -30,9 +30,7 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   }, [autoPlay, filteredBanners.length]);
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) =>
-      prev === 0 ? filteredBanners.length - 1 : prev - 1
-    );
+    setCurrentIndex((prev) => (prev === 0 ? filteredBanners.length - 1 : prev - 1));
     setAutoPlay(false);
   };
 
@@ -100,7 +98,7 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
                 "transition-all duration-300 rounded-full",
                 currentIndex === index
                   ? "w-6 h-2 bg-white shadow-lg"
-                  : "w-2 h-2 bg-white/40 hover:bg-white/60"
+                  : "w-2 h-2 bg-white/40 hover:bg-white/60",
               )}
               aria-label={`Ir para banner ${index + 1}`}
             />

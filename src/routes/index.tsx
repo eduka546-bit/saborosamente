@@ -1,6 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { Loader2, Truck, MapPin, Calendar, ShoppingBag, Tag, Sparkles, Gift, X, Timer, Leaf, WheatOff, ChefHat, ShieldCheck } from "lucide-react";
+import {
+  Loader2,
+  Truck,
+  MapPin,
+  Calendar,
+  ShoppingBag,
+  Tag,
+  Sparkles,
+  Gift,
+  X,
+  Timer,
+  Leaf,
+  WheatOff,
+  ChefHat,
+  ShieldCheck,
+} from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
@@ -37,11 +52,16 @@ export const Route = createFileRoute("/")({
         content:
           "Marmitas congeladas artesanais feitas com ingredientes naturais. Prontas em 7 minutos, validade de 6 meses no freezer. Entrega em São Bento do Sul, Rio Negrinho, Campo Alegre e região.",
       },
-      { name: "keywords", content: "marmitas congeladas, marmitas artesanais, São Bento do Sul, Rio Negrinho, Campo Alegre, refeições prontas, comida congelada, delivery marmitas" },
+      {
+        name: "keywords",
+        content:
+          "marmitas congeladas, marmitas artesanais, São Bento do Sul, Rio Negrinho, Campo Alegre, refeições prontas, comida congelada, delivery marmitas",
+      },
       { property: "og:title", content: "Saborosamente | Marmitas Congeladas Artesanais" },
       {
         property: "og:description",
-        content: "Marmitas congeladas artesanais feitas com ingredientes naturais. Prontas em 7 minutos. Entrega em São Bento do Sul e região.",
+        content:
+          "Marmitas congeladas artesanais feitas com ingredientes naturais. Prontas em 7 minutos. Entrega em São Bento do Sul e região.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://saborosamente.vercel.app/" },
@@ -50,7 +70,11 @@ export const Route = createFileRoute("/")({
       { property: "og:site_name", content: "Saborosamente" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Saborosamente | Marmitas Congeladas Artesanais" },
-      { name: "twitter:description", content: "Marmitas congeladas artesanais. Prontas em 7 minutos, validade 6 meses. Entrega em São Bento do Sul e região." },
+      {
+        name: "twitter:description",
+        content:
+          "Marmitas congeladas artesanais. Prontas em 7 minutos, validade 6 meses. Entrega em São Bento do Sul e região.",
+      },
       { name: "twitter:image", content: "https://saborosamente.vercel.app/favicon.png" },
       { name: "robots", content: "index, follow" },
       { name: "author", content: "SaborosaMente" },
@@ -88,7 +112,15 @@ export const Route = createFileRoute("/")({
           ],
           openingHoursSpecification: {
             "@type": "OpeningHoursSpecification",
-            dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+            dayOfWeek: [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday",
+            ],
             opens: "00:00",
             closes: "23:59",
             description: "Encomendas recebidas 24h",
@@ -111,7 +143,7 @@ function Index() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
-  
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: () => getPublicProducts(),
@@ -150,7 +182,6 @@ function Index() {
       ? (settings as any).promo_banners
       : [];
 
-
   const filteredProducts = useMemo(() => {
     let result = products;
     if (selectedCategory !== "Todas") {
@@ -158,10 +189,11 @@ function Index() {
     }
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      result = result.filter((p: any) => 
-        p.nome?.toLowerCase().includes(search) || 
-        p.descricao?.toLowerCase().includes(search) ||
-        p.categorias?.nome?.toLowerCase().includes(search)
+      result = result.filter(
+        (p: any) =>
+          p.nome?.toLowerCase().includes(search) ||
+          p.descricao?.toLowerCase().includes(search) ||
+          p.categorias?.nome?.toLowerCase().includes(search),
       );
     }
     // Remove apenas "Combos Escolha Você Mesmo" do grid — Combos Prontos ficam
@@ -250,7 +282,10 @@ function Index() {
               { Icon: Truck, line1: "DELIVERY OU", line2: "RETIRADA" },
               { Icon: Calendar, line1: "PEDIDOS", line2: "24H" },
             ].map((card, i) => (
-              <div key={i} className="bg-primary rounded-xl p-3 flex flex-col items-center justify-center text-center gap-1.5 shadow-sm min-h-[90px]">
+              <div
+                key={i}
+                className="bg-primary rounded-xl p-3 flex flex-col items-center justify-center text-center gap-1.5 shadow-sm min-h-[90px]"
+              >
                 {card.number ? (
                   <span className="text-3xl font-black text-white leading-none">{card.number}</span>
                 ) : (
@@ -279,9 +314,9 @@ function Index() {
                 Escolha suas marmitas favoritas e monte seu combo com desconto progressivo.
               </p>
             </div>
-            
+
             <DiscountProgressWidget className="mb-6" />
-            
+
             <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-3 no-scrollbar">
               {isLoading ? (
                 <div className="py-8 flex justify-center">
@@ -289,14 +324,14 @@ function Index() {
                 </div>
               ) : (
                 categoriesWithProducts.map((cat) => (
-                  <button 
+                  <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
                       "w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200",
-                      selectedCategory === cat 
+                      selectedCategory === cat
                         ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
-                        : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5"
+                        : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
                     )}
                   >
                     {cat}
@@ -313,20 +348,24 @@ function Index() {
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
                 <div className="flex-1">
                   <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
-                    {searchTerm ? `Buscando "${searchTerm}"` : selectedCategory === "Todas" ? "Todos os Produtos" : selectedCategory}
+                    {searchTerm
+                      ? `Buscando "${searchTerm}"`
+                      : selectedCategory === "Todas"
+                        ? "Todos os Produtos"
+                        : selectedCategory}
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {searchTerm 
-                      ? `Encontramos ${filteredProducts.length} opção${filteredProducts.length !== 1 ? 's' : ''}.`
-                      : selectedCategory === "Todas" 
+                    {searchTerm
+                      ? `Encontramos ${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}.`
+                      : selectedCategory === "Todas"
                         ? `${filteredProducts.length} produtos disponíveis`
-                        : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? 's' : ''}`}
+                        : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}`}
                   </p>
                 </div>
-                
+
                 {/* Busca */}
                 <div className="flex items-center gap-2 min-w-0 lg:min-w-80">
-                  <form 
+                  <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       const formData = new FormData(e.currentTarget);
@@ -338,19 +377,22 @@ function Index() {
                     <input
                       autoFocus
                       name="q"
-                      type="text" 
-                      placeholder="Buscar..." 
+                      type="text"
+                      placeholder="Buscar..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
                     />
-                    <button type="submit" className="text-primary hover:text-primary/80 transition-colors">
+                    <button
+                      type="submit"
+                      className="text-primary hover:text-primary/80 transition-colors"
+                    >
                       <Tag size={18} />
                     </button>
                   </form>
-                  
+
                   {searchTerm && (
-                    <button 
+                    <button
                       onClick={() => setSearchTerm("")}
                       className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
                       title="Limpar busca"
@@ -365,14 +407,21 @@ function Index() {
             {isLoading ? (
               <div className="flex flex-col items-center py-24 gap-4">
                 <Loader2 className="animate-spin text-primary" size={40} />
-                <p className="text-muted-foreground text-base font-medium">Carregando cardápio...</p>
+                <p className="text-muted-foreground text-base font-medium">
+                  Carregando cardápio...
+                </p>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="py-24 text-center">
                 <div className="text-5xl mb-3">🔍</div>
-                <p className="text-muted-foreground text-base font-medium">Nenhum produto encontrado.</p>
-                <button 
-                  onClick={() => { setSearchTerm(""); setSelectedCategory("Todas"); }}
+                <p className="text-muted-foreground text-base font-medium">
+                  Nenhum produto encontrado.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedCategory("Todas");
+                  }}
                   className="mt-4 text-sm font-bold text-primary hover:underline"
                 >
                   Ver todos os produtos
@@ -405,7 +454,7 @@ function Index() {
                         <p className="mt-2 text-white/70 max-w-sm text-xs leading-relaxed">
                           Quanto mais marmitas, maior o desconto. Automático e sem código.
                         </p>
-                        
+
                         {/* Mini discount tiers */}
                         <div className="flex flex-wrap gap-2 mt-3">
                           {[
@@ -413,7 +462,10 @@ function Index() {
                             { qty: "10+", pct: "8%" },
                             { qty: "15+", pct: "12%" },
                           ].map((tier) => (
-                            <span key={tier.qty} className="inline-flex items-center gap-1 bg-white/10 border border-white/15 rounded-md px-2 py-1 text-[10px] font-bold">
+                            <span
+                              key={tier.qty}
+                              className="inline-flex items-center gap-1 bg-white/10 border border-white/15 rounded-md px-2 py-1 text-[10px] font-bold"
+                            >
                               {tier.qty} → {tier.pct} off
                             </span>
                           ))}
@@ -421,7 +473,10 @@ function Index() {
                       </div>
 
                       <button
-                        onClick={(e) => { e.stopPropagation(); setComboModalOpen(true); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setComboModalOpen(true);
+                        }}
                         className="shrink-0 flex items-center gap-2 bg-sun text-sun-foreground font-bold px-6 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 text-sm"
                       >
                         <ShoppingBag size={16} />
@@ -435,18 +490,18 @@ function Index() {
                 <div className="space-y-8">
                   {selectedCategory === "Todas" ? (
                     // Agrupar por categoria
-                    Array.from(new Map(
-                      filteredProducts.map((p: any) => [p.categorias?.nome || "Marmita", p])
-                    ).entries()).map(([category, _], categoryIndex) => {
+                    Array.from(
+                      new Map(
+                        filteredProducts.map((p: any) => [p.categorias?.nome || "Marmita", p]),
+                      ).entries(),
+                    ).map(([category, _], categoryIndex) => {
                       const categoryProducts = filteredProducts.filter(
-                        (p: any) => (p.categorias?.nome || "Marmita") === category
+                        (p: any) => (p.categorias?.nome || "Marmita") === category,
                       );
-                      
+
                       return (
                         <div key={category}>
-                          {categoryIndex > 0 && (
-                            <div className="my-6 border-t border-border/30" />
-                          )}
+                          {categoryIndex > 0 && <div className="my-6 border-t border-border/30" />}
                           <h3 className="text-lg font-bold text-primary mb-4 uppercase tracking-wide">
                             {category}
                           </h3>
@@ -457,12 +512,12 @@ function Index() {
                                 product={{
                                   ...product,
                                   categoria: product.categorias?.nome || "Marmita",
-                                  imagem: product.imagem_url
+                                  imagem: product.imagem_url,
                                 }}
                                 allProducts={products.map((p: any) => ({
                                   ...p,
                                   categoria: p.categorias?.nome || "Marmita",
-                                  imagem: p.imagem_url
+                                  imagem: p.imagem_url,
                                 }))}
                               />
                             ))}
@@ -479,12 +534,12 @@ function Index() {
                           product={{
                             ...product,
                             categoria: product.categorias?.nome || "Marmita",
-                            imagem: product.imagem_url
+                            imagem: product.imagem_url,
                           }}
                           allProducts={products.map((p: any) => ({
                             ...p,
                             categoria: p.categorias?.nome || "Marmita",
-                            imagem: p.imagem_url
+                            imagem: p.imagem_url,
                           }))}
                         />
                       ))}
@@ -506,7 +561,7 @@ function Index() {
                     .map((p: any) => ({
                       ...p,
                       categoria: p.categorias?.nome || "Marmita",
-                      imagem: p.imagem_url
+                      imagem: p.imagem_url,
                     }))}
                 />
               </>
@@ -534,7 +589,9 @@ function Index() {
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   <div className="text-lg md:text-xl font-black premium-stat">{stat.value}</div>
-                  <div className="text-[9px] text-white/55 uppercase tracking-wider font-medium">{stat.label}</div>
+                  <div className="text-[9px] text-white/55 uppercase tracking-wider font-medium">
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -542,7 +599,7 @@ function Index() {
             <h2 className="text-xl md:text-2xl font-display font-black text-white leading-tight">
               Facilite sua rotina alimentar
             </h2>
-            
+
             <p className="mt-2 text-xs text-white/65 max-w-sm mx-auto">
               Escolha, receba e tenha refeições saudáveis todos os dias.
             </p>
@@ -566,7 +623,7 @@ function Index() {
                 className="inline-flex items-center gap-2 bg-white/15 border border-white/20 text-white px-5 py-2.5 rounded-full font-bold text-xs hover:bg-white/25 transition-all duration-300"
               >
                 <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 WhatsApp
               </a>

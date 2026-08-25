@@ -32,7 +32,7 @@ serve(async (req) => {
     // Calcular total
     let totalRecords = 0;
     const stats = data as any[];
-    
+
     stats.forEach((row: any) => {
       console.log(`  • ${row.task}: ${row.records_deleted} registros`);
       totalRecords += row.records_deleted || 0;
@@ -54,7 +54,7 @@ serve(async (req) => {
       }),
       {
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error: any) {
     console.error("❌ Erro na limpeza:", error.message);
@@ -66,7 +66,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

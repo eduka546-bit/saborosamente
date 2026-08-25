@@ -20,7 +20,8 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Entrar ou criar conta | Saborosamente" },
       {
         property: "og:description",
-        content: "Entre na sua conta Saborosamente e finalize seu pedido de marmitas congeladas em poucos cliques.",
+        content:
+          "Entre na sua conta Saborosamente e finalize seu pedido de marmitas congeladas em poucos cliques.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -35,10 +36,8 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-
 function AuthPage() {
   const { redirect } = Route.useSearch();
-
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -76,14 +75,13 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Cadastro realizado com sucesso!");
       }
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         if (redirect && redirect !== "/") {
           window.location.href = redirect;
         } else {
           window.location.href = "/#cardapio";
         }
       }
-
     } catch (error: any) {
       toast.error(error.message || "Erro na autenticação");
     } finally {
@@ -102,8 +100,8 @@ function AuthPage() {
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isLogin 
-              ? "O login é seu e-mail e a senha o seu CPF cadastrado" 
+            {isLogin
+              ? "O login é seu e-mail e a senha o seu CPF cadastrado"
               : "Cadastre-se para acompanhar seus pedidos"}
           </p>
         </div>
@@ -180,7 +178,9 @@ function AuthPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="password">{isLogin ? "Senha (Seu CPF)" : "Senha (Crie sua senha)"}</Label>
+            <Label htmlFor="password">
+              {isLogin ? "Senha (Seu CPF)" : "Senha (Crie sua senha)"}
+            </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -210,9 +210,8 @@ function AuthPage() {
             </div>
           </div>
 
-
           <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
-            {loading ? "Processando..." : (isLogin ? "Entrar" : "Cadastrar")}
+            {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
         </form>
 

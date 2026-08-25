@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export interface LazyImageProps
-  extends React.ImgHTMLAttributes<HTMLImageElement> {
+export interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
   fallback?: string;
@@ -37,7 +36,7 @@ export function LazyImage({
       },
       {
         rootMargin: "50px", // Começa a carregar 50px antes de ficar visível
-      }
+      },
     );
 
     observer.observe(imageRef);
@@ -63,7 +62,7 @@ export function LazyImage({
       className={cn(
         "transition-opacity duration-300",
         isLoaded ? "opacity-100" : "opacity-75",
-        className
+        className,
       )}
       {...props}
     />

@@ -9,14 +9,14 @@ export async function isAdmin(userId: string | undefined): Promise<boolean> {
   if (!userId) return false;
 
   const { data, error } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('role', 'admin')
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
     .maybeSingle();
 
   if (error) {
-    console.error('Erro ao verificar permissão de admin:', error);
+    console.error("Erro ao verificar permissão de admin:", error);
     return false;
   }
 
@@ -27,9 +27,11 @@ export const auth = {
   async signOut() {
     return await supabase.auth.signOut();
   },
-  
+
   async getUser(): Promise<User | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     return user;
-  }
+  },
 };

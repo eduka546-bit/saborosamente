@@ -3,9 +3,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import {
-  Plus, Trash2, Play, Pause, Loader2, Save, X, ChevronRight,
-  Zap, MessageCircle, GitBranch, Clock, Tag, ShoppingBag,
-  ArrowRight, Eye, Copy, BarChart2
+  Plus,
+  Trash2,
+  Play,
+  Pause,
+  Loader2,
+  Save,
+  X,
+  ChevronRight,
+  Zap,
+  MessageCircle,
+  GitBranch,
+  Clock,
+  Tag,
+  ShoppingBag,
+  ArrowRight,
+  Eye,
+  Copy,
+  BarChart2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FlowDiagram } from "@/components/flow-diagram";
@@ -17,25 +32,26 @@ export const Route = createFileRoute("/admin/automacoes")({
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type GatilhoTipo = "keyword" | "primeira_msg" | "pedido_criado" | "status_pedido" | "sem_resposta" | "tag";
+type GatilhoTipo =
+  "keyword" | "primeira_msg" | "pedido_criado" | "status_pedido" | "sem_resposta" | "tag";
 
 type NoTipo =
-  | "mensagem"      // Enviar mensagem de texto
-  | "menu"          // Enviar menu interativo
-  | "condicao"      // Bifurcar baseado em condição
-  | "aguardar"      // Aguardar X horas/minutos
-  | "tag"           // Adicionar tag ao contato
-  | "transferir"    // Transferir para atendente
-  | "encerrar";     // Encerrar o fluxo
+  | "mensagem" // Enviar mensagem de texto
+  | "menu" // Enviar menu interativo
+  | "condicao" // Bifurcar baseado em condição
+  | "aguardar" // Aguardar X horas/minutos
+  | "tag" // Adicionar tag ao contato
+  | "transferir" // Transferir para atendente
+  | "encerrar"; // Encerrar o fluxo
 
 interface No {
   id: string;
   tipo: NoTipo;
   titulo: string;
   config: any;
-  proximo_id?: string;       // próximo nó (geral)
-  proximo_sim_id?: string;   // se condição = verdadeira
-  proximo_nao_id?: string;   // se condição = falsa
+  proximo_id?: string; // próximo nó (geral)
+  proximo_sim_id?: string; // se condição = verdadeira
+  proximo_nao_id?: string; // se condição = falsa
 }
 
 interface Automacao {
@@ -52,28 +68,85 @@ interface Automacao {
 
 // ── Configurações dos tipos ───────────────────────────────────────────────────
 
-const GATILHO_CONFIG: Record<GatilhoTipo, { label: string; icon: any; cor: string; descricao: string }> = {
-  keyword:       { label: "Palavra-chave",      icon: MessageCircle, cor: "bg-blue-100 text-blue-700",   descricao: "Quando o cliente enviar uma palavra/frase específica" },
-  primeira_msg:  { label: "1ª Mensagem",         icon: Zap,           cor: "bg-green-100 text-green-700", descricao: "Quando um novo contato enviar a primeira mensagem" },
-  pedido_criado: { label: "Pedido criado",       icon: ShoppingBag,   cor: "bg-purple-100 text-purple-700",descricao: "Quando um pedido for registrado (site ou WhatsApp)" },
-  status_pedido: { label: "Status do pedido",   icon: ShoppingBag,   cor: "bg-orange-100 text-orange-700",descricao: "Quando o status do pedido mudar" },
-  sem_resposta:  { label: "Sem resposta",        icon: Clock,         cor: "bg-yellow-100 text-yellow-700",descricao: "Quando o cliente não responder em X horas" },
-  tag:           { label: "Tag adicionada",      icon: Tag,           cor: "bg-pink-100 text-pink-700",   descricao: "Quando uma tag específica for adicionada ao contato" },
+const GATILHO_CONFIG: Record<
+  GatilhoTipo,
+  { label: string; icon: any; cor: string; descricao: string }
+> = {
+  keyword: {
+    label: "Palavra-chave",
+    icon: MessageCircle,
+    cor: "bg-blue-100 text-blue-700",
+    descricao: "Quando o cliente enviar uma palavra/frase específica",
+  },
+  primeira_msg: {
+    label: "1ª Mensagem",
+    icon: Zap,
+    cor: "bg-green-100 text-green-700",
+    descricao: "Quando um novo contato enviar a primeira mensagem",
+  },
+  pedido_criado: {
+    label: "Pedido criado",
+    icon: ShoppingBag,
+    cor: "bg-purple-100 text-purple-700",
+    descricao: "Quando um pedido for registrado (site ou WhatsApp)",
+  },
+  status_pedido: {
+    label: "Status do pedido",
+    icon: ShoppingBag,
+    cor: "bg-orange-100 text-orange-700",
+    descricao: "Quando o status do pedido mudar",
+  },
+  sem_resposta: {
+    label: "Sem resposta",
+    icon: Clock,
+    cor: "bg-yellow-100 text-yellow-700",
+    descricao: "Quando o cliente não responder em X horas",
+  },
+  tag: {
+    label: "Tag adicionada",
+    icon: Tag,
+    cor: "bg-pink-100 text-pink-700",
+    descricao: "Quando uma tag específica for adicionada ao contato",
+  },
 };
 
 const NO_CONFIG: Record<NoTipo, { label: string; icon: any; cor: string }> = {
-  mensagem:   { label: "Enviar mensagem",    icon: MessageCircle, cor: "bg-blue-50 border-blue-200 text-blue-700" },
-  menu:       { label: "Enviar menu",        icon: GitBranch,     cor: "bg-indigo-50 border-indigo-200 text-indigo-700" },
-  condicao:   { label: "Condição",           icon: GitBranch,     cor: "bg-yellow-50 border-yellow-200 text-yellow-700" },
-  aguardar:   { label: "Aguardar",           icon: Clock,         cor: "bg-gray-50 border-gray-200 text-gray-700" },
-  tag:        { label: "Adicionar tag",      icon: Tag,           cor: "bg-pink-50 border-pink-200 text-pink-700" },
-  transferir: { label: "Transferir atendente", icon: ArrowRight,  cor: "bg-orange-50 border-orange-200 text-orange-700" },
-  encerrar:   { label: "Encerrar fluxo",     icon: X,             cor: "bg-red-50 border-red-200 text-red-700" },
+  mensagem: {
+    label: "Enviar mensagem",
+    icon: MessageCircle,
+    cor: "bg-blue-50 border-blue-200 text-blue-700",
+  },
+  menu: {
+    label: "Enviar menu",
+    icon: GitBranch,
+    cor: "bg-indigo-50 border-indigo-200 text-indigo-700",
+  },
+  condicao: {
+    label: "Condição",
+    icon: GitBranch,
+    cor: "bg-yellow-50 border-yellow-200 text-yellow-700",
+  },
+  aguardar: { label: "Aguardar", icon: Clock, cor: "bg-gray-50 border-gray-200 text-gray-700" },
+  tag: { label: "Adicionar tag", icon: Tag, cor: "bg-pink-50 border-pink-200 text-pink-700" },
+  transferir: {
+    label: "Transferir atendente",
+    icon: ArrowRight,
+    cor: "bg-orange-50 border-orange-200 text-orange-700",
+  },
+  encerrar: { label: "Encerrar fluxo", icon: X, cor: "bg-red-50 border-red-200 text-red-700" },
 };
 
 // ── Editor de Nó ─────────────────────────────────────────────────────────────
 
-function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => void; onRemove: () => void }) {
+function EditorNo({
+  no,
+  onChange,
+  onRemove,
+}: {
+  no: No;
+  onChange: (n: No) => void;
+  onRemove: () => void;
+}) {
   const cfg = NO_CONFIG[no.tipo];
 
   return (
@@ -91,7 +164,7 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
       {no.tipo === "mensagem" && (
         <textarea
           value={no.config.texto ?? ""}
-          onChange={e => onChange({ ...no, config: { ...no.config, texto: e.target.value } })}
+          onChange={(e) => onChange({ ...no, config: { ...no.config, texto: e.target.value } })}
           placeholder="Digite a mensagem que será enviada..."
           rows={3}
           className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-400 resize-none"
@@ -102,22 +175,29 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
         <div className="space-y-2">
           <input
             value={no.config.titulo ?? ""}
-            onChange={e => onChange({ ...no, config: { ...no.config, titulo: e.target.value } })}
+            onChange={(e) => onChange({ ...no, config: { ...no.config, titulo: e.target.value } })}
             placeholder="Título do menu"
             className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
           />
           <textarea
             value={no.config.corpo ?? ""}
-            onChange={e => onChange({ ...no, config: { ...no.config, corpo: e.target.value } })}
+            onChange={(e) => onChange({ ...no, config: { ...no.config, corpo: e.target.value } })}
             placeholder="Texto do menu (aparece acima das opções)"
             rows={2}
             className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none resize-none"
           />
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase text-gray-500">Opções (uma por linha)</label>
+            <label className="text-[10px] font-bold uppercase text-gray-500">
+              Opções (uma por linha)
+            </label>
             <textarea
               value={(no.config.opcoes ?? []).join("\n")}
-              onChange={e => onChange({ ...no, config: { ...no.config, opcoes: e.target.value.split("\n").filter(Boolean) } })}
+              onChange={(e) =>
+                onChange({
+                  ...no,
+                  config: { ...no.config, opcoes: e.target.value.split("\n").filter(Boolean) },
+                })
+              }
               placeholder="Ex: Ver cardápio&#10;Fazer pedido&#10;Falar com atendente"
               rows={4}
               className="w-full rounded-lg border bg-white px-3 py-2 text-xs font-mono outline-none resize-none"
@@ -130,7 +210,7 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
         <div className="space-y-2">
           <select
             value={no.config.campo ?? "mensagem"}
-            onChange={e => onChange({ ...no, config: { ...no.config, campo: e.target.value } })}
+            onChange={(e) => onChange({ ...no, config: { ...no.config, campo: e.target.value } })}
             className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="mensagem">Mensagem contém</option>
@@ -141,7 +221,7 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
           </select>
           <input
             value={no.config.valor ?? ""}
-            onChange={e => onChange({ ...no, config: { ...no.config, valor: e.target.value } })}
+            onChange={(e) => onChange({ ...no, config: { ...no.config, valor: e.target.value } })}
             placeholder="Valor para comparar"
             className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
           />
@@ -164,12 +244,14 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
             type="number"
             min="1"
             value={no.config.valor ?? 1}
-            onChange={e => onChange({ ...no, config: { ...no.config, valor: Number(e.target.value) } })}
+            onChange={(e) =>
+              onChange({ ...no, config: { ...no.config, valor: Number(e.target.value) } })
+            }
             className="w-20 rounded-lg border bg-white px-3 py-2 text-sm outline-none"
           />
           <select
             value={no.config.unidade ?? "horas"}
-            onChange={e => onChange({ ...no, config: { ...no.config, unidade: e.target.value } })}
+            onChange={(e) => onChange({ ...no, config: { ...no.config, unidade: e.target.value } })}
             className="rounded-lg border bg-white px-3 py-2 text-sm outline-none"
           >
             <option value="minutos">minutos</option>
@@ -183,7 +265,7 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
       {no.tipo === "tag" && (
         <input
           value={no.config.tag ?? ""}
-          onChange={e => onChange({ ...no, config: { ...no.config, tag: e.target.value } })}
+          onChange={(e) => onChange({ ...no, config: { ...no.config, tag: e.target.value } })}
           placeholder="Nome da tag (ex: interessado, vip, fidelizado)"
           className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
         />
@@ -198,7 +280,9 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
       {no.tipo === "encerrar" && (
         <input
           value={no.config.mensagem_final ?? ""}
-          onChange={e => onChange({ ...no, config: { ...no.config, mensagem_final: e.target.value } })}
+          onChange={(e) =>
+            onChange({ ...no, config: { ...no.config, mensagem_final: e.target.value } })
+          }
           placeholder="Mensagem de encerramento (opcional)"
           className="w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none"
         />
@@ -209,7 +293,11 @@ function EditorNo({ no, onChange, onRemove }: { no: No; onChange: (n: No) => voi
 
 // ── Editor de Automação ───────────────────────────────────────────────────────
 
-function EditorAutomacao({ automacao, onSave, onClose }: {
+function EditorAutomacao({
+  automacao,
+  onSave,
+  onClose,
+}: {
   automacao: Partial<Automacao>;
   onSave: (a: Partial<Automacao>) => Promise<void>;
   onClose: () => void;
@@ -232,7 +320,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
       titulo: NO_CONFIG[tipo].label,
       config: {},
     };
-    setForm(f => {
+    setForm((f) => {
       const nos = [...(f.nos ?? [])];
       const posicao = indice === undefined ? nos.length : indice;
       const anterior = nos[posicao - 1];
@@ -248,7 +336,7 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
   const updateNo = (idx: number, no: No) => {
     const nos = [...(form.nos ?? [])];
     nos[idx] = no;
-    setForm(f => ({ ...f, nos }));
+    setForm((f) => ({ ...f, nos }));
   };
 
   const removeNo = (idx: number) => {
@@ -256,21 +344,29 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
     nos.splice(idx, 1);
     const anterior = nos[idx - 1];
     if (anterior && anterior.tipo !== "condicao") anterior.proximo_id = nos[idx]?.id;
-    setForm(f => ({ ...f, nos }));
+    setForm((f) => ({ ...f, nos }));
   };
 
   const handleSave = async () => {
-    if (!form.nome?.trim()) { toast.error("Informe um nome"); return; }
-    if (!form.nos?.length) { toast.error("Adicione pelo menos um nó"); return; }
+    if (!form.nome?.trim()) {
+      toast.error("Informe um nome");
+      return;
+    }
+    if (!form.nos?.length) {
+      toast.error("Adicione pelo menos um nó");
+      return;
+    }
     setSaving(true);
-    try { await onSave(form); }
-    finally { setSaving(false); }
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex h-screen w-screen overflow-hidden bg-black/60">
       <div className="flex h-full w-full flex-col bg-white shadow-2xl">
-
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-lg font-bold text-[#5850ec]">
@@ -290,16 +386,18 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
               <label className="text-xs font-bold uppercase text-gray-400">Nome da automação</label>
               <input
                 value={form.nome ?? ""}
-                onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
                 placeholder="Ex: Boas-vindas novos contatos"
                 className="mt-1 w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30"
               />
             </div>
             <div>
-              <label className="text-xs font-bold uppercase text-gray-400">Descrição (opcional)</label>
+              <label className="text-xs font-bold uppercase text-gray-400">
+                Descrição (opcional)
+              </label>
               <input
                 value={form.descricao ?? ""}
-                onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
                 placeholder="Para que serve esta automação?"
                 className="mt-1 w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#5850ec]/30"
               />
@@ -313,13 +411,19 @@ function EditorAutomacao({ automacao, onSave, onClose }: {
                 <GitBranch size={16} className="text-[#5850ec]" /> Pré-visualização do fluxo
               </h3>
               <div className="max-h-96 overflow-y-auto border rounded-xl bg-white">
-                <FlowDiagram 
-                  nos={form.nos ?? []} 
-                  onUpdate={(novoNos) => setForm(f => ({ ...f, nos: novoNos }))}
+                <FlowDiagram
+                  nos={form.nos ?? []}
+                  onUpdate={(novoNos) => setForm((f) => ({ ...f, nos: novoNos }))}
                   onInsert={(indice, tipo) => addNo(tipo as NoTipo, indice)}
                   gatilhoTipo={form.gatilho_tipo}
                   gatilhoValor={form.gatilho_valor}
-                  onGatilhoChange={(tipo, valor) => setForm(f => ({ ...f, gatilho_tipo: tipo as GatilhoTipo, gatilho_valor: valor }))}
+                  onGatilhoChange={(tipo, valor) =>
+                    setForm((f) => ({
+                      ...f,
+                      gatilho_tipo: tipo as GatilhoTipo,
+                      gatilho_valor: valor,
+                    }))
+                  }
                   editavel={true}
                 />
               </div>
@@ -362,7 +466,8 @@ function AutomacoesPage() {
   const saveMutation = useMutation({
     mutationFn: async (form: Partial<Automacao>) => {
       if (form.id) {
-        const { error } = await supabase.from("automacoes")
+        const { error } = await supabase
+          .from("automacoes")
           .update({ ...form, updated_at: new Date().toISOString() })
           .eq("id", form.id);
         if (error) throw error;
@@ -398,7 +503,7 @@ function AutomacoesPage() {
     },
   });
 
-  const ativasCount = automacoes.filter(a => a.ativo).length;
+  const ativasCount = automacoes.filter((a) => a.ativo).length;
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
@@ -427,15 +532,23 @@ function AutomacoesPage() {
           <div className="grid sm:grid-cols-3 gap-4 text-sm text-gray-600">
             <div className="flex gap-3">
               <span className="text-2xl">⚡</span>
-              <div><strong>Gatilho</strong> — define quando a automação dispara (palavra-chave, novo contato, pedido criado...)</div>
+              <div>
+                <strong>Gatilho</strong> — define quando a automação dispara (palavra-chave, novo
+                contato, pedido criado...)
+              </div>
             </div>
             <div className="flex gap-3">
               <span className="text-2xl">🔀</span>
-              <div><strong>Fluxo</strong> — sequência de ações: enviar mensagem, aguardar, condicionar, transferir...</div>
+              <div>
+                <strong>Fluxo</strong> — sequência de ações: enviar mensagem, aguardar, condicionar,
+                transferir...
+              </div>
             </div>
             <div className="flex gap-3">
               <span className="text-2xl">📊</span>
-              <div><strong>Resultado</strong> — acompanhe quantas vezes cada automação foi executada</div>
+              <div>
+                <strong>Resultado</strong> — acompanhe quantas vezes cada automação foi executada
+              </div>
             </div>
           </div>
         </div>
@@ -448,10 +561,13 @@ function AutomacoesPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {automacoes.map(aut => {
+          {automacoes.map((aut) => {
             const gatilho = GATILHO_CONFIG[aut.gatilho_tipo];
             return (
-              <div key={aut.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${!aut.ativo ? "opacity-60" : ""}`}>
+              <div
+                key={aut.id}
+                className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${!aut.ativo ? "opacity-60" : ""}`}
+              >
                 {/* Topo colorido */}
                 <div className={`h-1.5 ${aut.ativo ? "bg-[#5850ec]" : "bg-gray-200"}`} />
 
@@ -460,21 +576,28 @@ function AutomacoesPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 truncate">{aut.nome}</p>
-                      {aut.descricao && <p className="text-xs text-gray-400 truncate">{aut.descricao}</p>}
+                      {aut.descricao && (
+                        <p className="text-xs text-gray-400 truncate">{aut.descricao}</p>
+                      )}
                     </div>
                     <Switch
                       checked={aut.ativo}
-                      onCheckedChange={v => toggleMutation.mutate({ id: aut.id, ativo: v })}
+                      onCheckedChange={(v) => toggleMutation.mutate({ id: aut.id, ativo: v })}
                       className="data-[state=checked]:bg-[#5850ec] shrink-0"
                     />
                   </div>
 
                   {/* Badge gatilho */}
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${gatilho.cor}`}>
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${gatilho.cor}`}
+                  >
                     <gatilho.icon size={12} />
                     {gatilho.label}
                     {aut.gatilho_tipo === "keyword" && aut.gatilho_valor?.palavras?.length > 0 && (
-                      <span className="opacity-70">· {aut.gatilho_valor.palavras.slice(0, 2).join(", ")}{aut.gatilho_valor.palavras.length > 2 ? "..." : ""}</span>
+                      <span className="opacity-70">
+                        · {aut.gatilho_valor.palavras.slice(0, 2).join(", ")}
+                        {aut.gatilho_valor.palavras.length > 2 ? "..." : ""}
+                      </span>
                     )}
                   </div>
 
@@ -485,7 +608,9 @@ function AutomacoesPage() {
                       return (
                         <div key={i} className="flex items-center gap-1">
                           {i > 0 && <ChevronRight size={10} className="text-gray-300" />}
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${noCfg?.cor ?? "bg-gray-50 border-gray-200 text-gray-600"}`}>
+                          <span
+                            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${noCfg?.cor ?? "bg-gray-50 border-gray-200 text-gray-600"}`}
+                          >
                             {noCfg?.label ?? no.tipo}
                           </span>
                         </div>
@@ -511,14 +636,18 @@ function AutomacoesPage() {
                         <Eye size={14} />
                       </button>
                       <button
-                        onClick={() => setEditando({ ...aut, id: undefined, nome: aut.nome + " (cópia)" })}
+                        onClick={() =>
+                          setEditando({ ...aut, id: undefined, nome: aut.nome + " (cópia)" })
+                        }
                         className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
                         title="Duplicar"
                       >
                         <Copy size={14} />
                       </button>
                       <button
-                        onClick={() => confirm(`Remover "${aut.nome}"?`) && deleteMutation.mutate(aut.id)}
+                        onClick={() =>
+                          confirm(`Remover "${aut.nome}"?`) && deleteMutation.mutate(aut.id)
+                        }
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                         title="Remover"
                       >

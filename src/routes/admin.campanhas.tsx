@@ -3,8 +3,18 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Upload, Image as ImageIcon, Send, Zap, CheckCircle2, AlertCircle,
-  X, Eye, Edit, Trash2, Clock, Users
+  Upload,
+  Image as ImageIcon,
+  Send,
+  Zap,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Eye,
+  Edit,
+  Trash2,
+  Clock,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,14 +58,18 @@ function AdminCampaignPage() {
   });
 
   // Query para listas de contatos
-  const { data: listas = [], isLoading: carregandoListas, refetch: refetchListas } = useQuery({
+  const {
+    data: listas = [],
+    isLoading: carregandoListas,
+    refetch: refetchListas,
+  } = useQuery({
     queryKey: ["listas-contatos"],
     queryFn: async () => {
       const { data } = await supabase
         .from("listas_contatos")
         .select("*")
         .order("created_at", { ascending: false });
-      
+
       console.log("Listas carregadas:", data); // Debug
       return data || [];
     },
@@ -78,7 +92,11 @@ function AdminCampaignPage() {
   const [usarTemplate, setUsarTemplate] = useState(false);
 
   // Query para buscar templates aprovados da Meta
-  const { data: templates = [], isLoading: carregandoTemplates, refetch: refetchTemplates } = useQuery({
+  const {
+    data: templates = [],
+    isLoading: carregandoTemplates,
+    refetch: refetchTemplates,
+  } = useQuery({
     queryKey: ["whatsapp-templates"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("whatsapp-templates");
@@ -161,7 +179,7 @@ function AdminCampaignPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
+    if (!file.name.endsWith(".csv")) {
       toast.error("Por favor, selecione um arquivo CSV");
       return;
     }
@@ -170,21 +188,25 @@ function AdminCampaignPage() {
     reader.onload = (event) => {
       try {
         const csv = event.target?.result as string;
-        const linhas = csv.split('\n').filter(l => l.trim());
-        
+        const linhas = csv.split("\n").filter((l) => l.trim());
+
         // Remove header se houver
         let contatos = linhas;
-        if (linhas.length > 0 && (linhas[0].toLowerCase().includes('telefone') || linhas[0].toLowerCase().includes('phone'))) {
+        if (
+          linhas.length > 0 &&
+          (linhas[0].toLowerCase().includes("telefone") ||
+            linhas[0].toLowerCase().includes("phone"))
+        ) {
           contatos = linhas.slice(1);
         }
 
         // Parse telefones (remove tudo que não é número)
         const telefonesParsed = contatos
-          .map(l => {
+          .map((l) => {
             const match = l.match(/\d+/g);
-            return match ? match.join('') : '';
+            return match ? match.join("") : "";
           })
-          .filter(t => t.length >= 10 && t.length <= 15);
+          .filter((t) => t.length >= 10 && t.length <= 15);
 
         if (telefonesParsed.length === 0) {
           toast.error("Nenhum telefone válido encontrado no CSV");
@@ -192,9 +214,7 @@ function AdminCampaignPage() {
         }
 
         // Adicionar aos contatos existentes (evitar duplicatas)
-        const contatosAtualizado = Array.from(
-          new Set([...contatosEditaveis, ...telefonesParsed])
-        );
+        const contatosAtualizado = Array.from(new Set([...contatosEditaveis, ...telefonesParsed]));
         setContatosEditaveis(contatosAtualizado);
         toast.success(`✓ Importados ${telefonesParsed.length} contatos`);
       } catch (err) {
@@ -242,7 +262,7 @@ function AdminCampaignPage() {
         .select("*")
         .eq("lista_id", listaId)
         .order("created_at");
-      
+
       setContatosLista(data || []);
       setListaEditando(listaId);
     } catch (err) {
@@ -257,21 +277,19 @@ function AdminCampaignPage() {
     }
 
     try {
-      const { error } = await supabase
-        .from("contatos_lista")
-        .insert([
-          {
-            lista_id: listaId,
-            telefone: telefone.replace(/\D/g, ''),
-            nome: nome || null,
-          },
-        ]);
+      const { error } = await supabase.from("contatos_lista").insert([
+        {
+          lista_id: listaId,
+          telefone: telefone.replace(/\D/g, ""),
+          nome: nome || null,
+        },
+      ]);
 
       if (error) throw error;
 
       // Recarregar e atualizar quantidade
       await carregarContatosLista(listaId);
-      
+
       // Atualizar quantidade na lista
       const { count } = await supabase
         .from("contatos_lista")
@@ -283,7 +301,7 @@ function AdminCampaignPage() {
           .from("listas_contatos")
           .update({ quantidade_contatos: count })
           .eq("id", listaId);
-        
+
         refetchListas();
       }
 
@@ -295,15 +313,12 @@ function AdminCampaignPage() {
 
   const removerContatoDaLista = async (contatoId: string, listaId: string) => {
     try {
-      const { error } = await supabase
-        .from("contatos_lista")
-        .delete()
-        .eq("id", contatoId);
+      const { error } = await supabase.from("contatos_lista").delete().eq("id", contatoId);
 
       if (error) throw error;
 
       await carregarContatosLista(listaId);
-      
+
       // Atualizar quantidade
       const { count } = await supabase
         .from("contatos_lista")
@@ -315,7 +330,7 @@ function AdminCampaignPage() {
           .from("listas_contatos")
           .update({ quantidade_contatos: count })
           .eq("id", listaId);
-        
+
         refetchListas();
       }
 
@@ -325,12 +340,16 @@ function AdminCampaignPage() {
     }
   };
 
-  const editarContatoDaLista = async (contatoId: string, novoTelefone: string, novoNome: string) => {
+  const editarContatoDaLista = async (
+    contatoId: string,
+    novoTelefone: string,
+    novoNome: string,
+  ) => {
     try {
       const { error } = await supabase
         .from("contatos_lista")
         .update({
-          telefone: novoTelefone.replace(/\D/g, ''),
+          telefone: novoTelefone.replace(/\D/g, ""),
           nome: novoNome || null,
         })
         .eq("id", contatoId);
@@ -348,10 +367,7 @@ function AdminCampaignPage() {
     if (!window.confirm("Tem certeza que deseja deletar esta lista?")) return;
 
     try {
-      const { error } = await supabase
-        .from("listas_contatos")
-        .delete()
-        .eq("id", listaId);
+      const { error } = await supabase.from("listas_contatos").delete().eq("id", listaId);
 
       if (error) throw error;
 
@@ -387,7 +403,9 @@ function AdminCampaignPage() {
       }
 
       if (!usarTemplate || !templateSelecionado) {
-        throw new Error("Selecione um template aprovado da Meta para enviar a contatos que ainda não falaram com você");
+        throw new Error(
+          "Selecione um template aprovado da Meta para enviar a contatos que ainda não falaram com você",
+        );
       }
 
       if (templateVariaveis.some((variavel) => !variavel.trim())) {
@@ -447,33 +465,31 @@ function AdminCampaignPage() {
 
       if (saveError) throw saveError;
 
-      const { error: fnError } = await supabase.functions.invoke(
-        "whatsapp-campanha-enviar",
-        {
-          body: {
-            campanha_id: campanha.id,
-            contatos: contatosSelecionados,
-            mensagem: msg,
-            imagem_url: imagemUrl,
-            video_url: videoUrl,
-            midia_tipo: tipo_midia,
-            template: usarTemplate && templateSelecionado ? {
-              name: templateSelecionado.name,
-              language: templateSelecionado.language,
-              variaveis: templateVariaveis,
-            } : null,
-          },
-        }
-      );
+      const { error: fnError } = await supabase.functions.invoke("whatsapp-campanha-enviar", {
+        body: {
+          campanha_id: campanha.id,
+          contatos: contatosSelecionados,
+          mensagem: msg,
+          imagem_url: imagemUrl,
+          video_url: videoUrl,
+          midia_tipo: tipo_midia,
+          template:
+            usarTemplate && templateSelecionado
+              ? {
+                  name: templateSelecionado.name,
+                  language: templateSelecionado.language,
+                  variaveis: templateVariaveis,
+                }
+              : null,
+        },
+      });
 
       if (fnError) throw fnError;
 
       return campanha;
     },
     onSuccess: (campanha) => {
-      toast.success(
-        `✓ Campanha iniciada! Enviando para ${campanha.contatos_total} contatos...`
-      );
+      toast.success(`✓ Campanha iniciada! Enviando para ${campanha.contatos_total} contatos...`);
       setMensagem("");
       setNomesCampanha("");
       setImagemFile(null);
@@ -573,9 +589,7 @@ function AdminCampaignPage() {
 
             {/* Upload de Imagem ou Vídeo */}
             <div className="bg-white rounded-xl border p-6">
-              <label className="block text-sm font-bold text-gray-700 mb-4">
-                Upload de Mídia
-              </label>
+              <label className="block text-sm font-bold text-gray-700 mb-4">Upload de Mídia</label>
 
               {/* Tabs para Imagem/Vídeo */}
               <div className="flex gap-2 mb-4">
@@ -635,9 +649,7 @@ function AdminCampaignPage() {
                     {imagemPreview ? (
                       <div className="space-y-3">
                         <ImageIcon className="mx-auto text-green-500" size={40} />
-                        <p className="text-sm font-bold text-gray-700">
-                          Imagem selecionada!
-                        </p>
+                        <p className="text-sm font-bold text-gray-700">Imagem selecionada!</p>
                         <p className="text-xs text-gray-500">{imagemFile?.name}</p>
                         <button
                           onClick={(e) => {
@@ -657,9 +669,7 @@ function AdminCampaignPage() {
                           <p className="text-sm font-bold text-gray-700">
                             Clique para upload ou arraste
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            PNG, JPG até 5MB
-                          </p>
+                          <p className="text-xs text-gray-500 mt-1">PNG, JPG até 5MB</p>
                         </div>
                       </div>
                     )}
@@ -684,9 +694,7 @@ function AdminCampaignPage() {
                     {videoPreview ? (
                       <div className="space-y-3">
                         <ImageIcon className="mx-auto text-green-500" size={40} />
-                        <p className="text-sm font-bold text-gray-700">
-                          Vídeo selecionado!
-                        </p>
+                        <p className="text-sm font-bold text-gray-700">Vídeo selecionado!</p>
                         <p className="text-xs text-gray-500">{videoFile?.name}</p>
                         <button
                           onClick={(e) => {
@@ -706,9 +714,7 @@ function AdminCampaignPage() {
                           <p className="text-sm font-bold text-gray-700">
                             Clique para upload ou arraste
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            MP4 até 16MB
-                          </p>
+                          <p className="text-xs text-gray-500 mt-1">MP4 até 16MB</p>
                         </div>
                       </div>
                     )}
@@ -726,27 +732,21 @@ function AdminCampaignPage() {
 
             {/* Mensagem */}
             <div className="bg-white rounded-xl border p-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Mensagem
-              </label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Mensagem</label>
               <Textarea
                 placeholder="Digite a mensagem que será enviada..."
                 value={mensagem}
                 onChange={(e) => setMensagem(e.target.value)}
                 className="rounded-lg border-gray-200 min-h-[150px] resize-none"
               />
-              <div className="mt-2 text-xs text-gray-500">
-                {mensagem.length} caracteres
-              </div>
+              <div className="mt-2 text-xs text-gray-500">{mensagem.length} caracteres</div>
             </div>
 
             {/* Templates WhatsApp */}
             <div className="bg-white rounded-xl border p-6">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700">
-                    Template WhatsApp
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700">Template WhatsApp</label>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Use templates para alcançar clientes que nunca conversaram com você
                   </p>
@@ -797,11 +797,13 @@ function AdminCampaignPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
                     >
                       <option value="">Selecione um template...</option>
-                      {templates.filter((t: any) => t.status === "APPROVED").map((t: any) => (
-                        <option key={t.name} value={t.name}>
-                          {t.name} ({t.language}) — {t.status}
-                        </option>
-                      ))}
+                      {templates
+                        .filter((t: any) => t.status === "APPROVED")
+                        .map((t: any) => (
+                          <option key={t.name} value={t.name}>
+                            {t.name} ({t.language}) — {t.status}
+                          </option>
+                        ))}
                     </select>
                   )}
 
@@ -809,7 +811,9 @@ function AdminCampaignPage() {
                   {templateSelecionado && (
                     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                       {templateSelecionado.header && (
-                        <p className="text-xs font-bold text-gray-500 uppercase">Header: {templateSelecionado.header}</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase">
+                          Header: {templateSelecionado.header}
+                        </p>
                       )}
                       <div className="bg-white rounded-lg p-3 border text-sm text-gray-800 whitespace-pre-wrap">
                         {templateSelecionado.body}
@@ -828,7 +832,9 @@ function AdminCampaignPage() {
                             <div key={i} className="flex items-center gap-2">
                               <span className="text-xs font-bold text-[#5850ec] w-8">{`{{${i + 1}}}`}</span>
                               <Input
-                                placeholder={templateSelecionado.varExamples?.[i] || `Valor ${i + 1}`}
+                                placeholder={
+                                  templateSelecionado.varExamples?.[i] || `Valor ${i + 1}`
+                                }
                                 value={templateVariaveis[i] || ""}
                                 onChange={(e) => {
                                   const novo = [...templateVariaveis];
@@ -873,15 +879,11 @@ function AdminCampaignPage() {
                   🔄 Atualizar
                 </button>
               </div>
-              
+
               {carregandoListas ? (
-                <div className="text-center text-gray-500 text-sm py-3">
-                  Carregando listas...
-                </div>
+                <div className="text-center text-gray-500 text-sm py-3">Carregando listas...</div>
               ) : listas.length === 0 ? (
-                <div className="text-center text-gray-400 text-sm py-3">
-                  Nenhuma lista criada
-                </div>
+                <div className="text-center text-gray-400 text-sm py-3">Nenhuma lista criada</div>
               ) : (
                 <>
                   <select
@@ -892,13 +894,13 @@ function AdminCampaignPage() {
                         setContatosEditaveis([]);
                         return;
                       }
-                      
+
                       setListaCarregada(e.target.value);
                       const { data } = await supabase
                         .from("contatos_lista")
                         .select("telefone")
                         .eq("lista_id", e.target.value);
-                      
+
                       if (data && data.length > 0) {
                         const telefones = data.map((c: any) => c.telefone).filter(Boolean);
                         setContatosEditaveis(telefones);
@@ -937,14 +939,14 @@ function AdminCampaignPage() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs font-bold text-blue-700 mb-1">
-                      ✓ LISTA CARREGADA
-                    </p>
+                    <p className="text-xs font-bold text-blue-700 mb-1">✓ LISTA CARREGADA</p>
                     <p className="text-lg font-bold text-blue-900">
                       {listas.find((l: any) => l.id === listaCarregada)?.nome}
                     </p>
                     <p className="text-sm text-blue-700 mt-2">
-                      {listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos || contatosEditaveis.length} contatos prontos para enviar
+                      {listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos ||
+                        contatosEditaveis.length}{" "}
+                      contatos prontos para enviar
                     </p>
                   </div>
                   <button
@@ -968,7 +970,9 @@ function AdminCampaignPage() {
                 className="w-full px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 font-bold text-sm text-gray-700 transition-all flex items-center justify-between"
               >
                 <span>📋 Ver/Editar Lista Completa ({contatosEditaveis.length})</span>
-                <span className={`transform transition-transform ${mostrarListaCompleta ? "rotate-180" : ""}`}>
+                <span
+                  className={`transform transition-transform ${mostrarListaCompleta ? "rotate-180" : ""}`}
+                >
                   ▼
                 </span>
               </button>
@@ -986,9 +990,7 @@ function AdminCampaignPage() {
                           key={idx}
                           className="flex items-center gap-2 bg-white p-2 rounded border border-gray-200 hover:border-gray-300"
                         >
-                          <span className="text-xs font-bold text-gray-500 w-6">
-                            {idx + 1}.
-                          </span>
+                          <span className="text-xs font-bold text-gray-500 w-6">{idx + 1}.</span>
                           <input
                             type="text"
                             value={tel}
@@ -1002,9 +1004,7 @@ function AdminCampaignPage() {
                           />
                           <button
                             onClick={() => {
-                              setContatosEditaveis(
-                                contatosEditaveis.filter((_, i) => i !== idx)
-                              );
+                              setContatosEditaveis(contatosEditaveis.filter((_, i) => i !== idx));
                             }}
                             className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded transition-colors"
                           >
@@ -1015,9 +1015,7 @@ function AdminCampaignPage() {
 
                       {/* Botão para adicionar novo */}
                       <button
-                        onClick={() =>
-                          setContatosEditaveis([...contatosEditaveis, ""])
-                        }
+                        onClick={() => setContatosEditaveis([...contatosEditaveis, ""])}
                         className="w-full mt-3 px-3 py-2 text-xs font-bold text-[#5850ec] border border-dashed border-[#5850ec] rounded-lg hover:bg-[#5850ec]/5 transition-colors"
                       >
                         + Adicionar Contato
@@ -1025,10 +1023,8 @@ function AdminCampaignPage() {
 
                       {/* Copiar/Colar/Importar CSV */}
                       <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                        <p className="text-xs font-bold text-gray-600 mb-2">
-                          Importar/Exportar:
-                        </p>
-                        
+                        <p className="text-xs font-bold text-gray-600 mb-2">Importar/Exportar:</p>
+
                         {/* Botão Importar CSV */}
                         <button
                           onClick={() => csvInputRef.current?.click()}
@@ -1052,7 +1048,7 @@ function AdminCampaignPage() {
                               e.target.value
                                 .split("\n")
                                 .map((t) => t.trim())
-                                .filter(Boolean)
+                                .filter(Boolean),
                             )
                           }
                           placeholder="Cole um telefone por linha..."
@@ -1061,9 +1057,7 @@ function AdminCampaignPage() {
                         />
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(
-                              contatosEditaveis.join("\n")
-                            );
+                            navigator.clipboard.writeText(contatosEditaveis.join("\n"));
                             toast.success("Copiado para clipboard!");
                           }}
                           className="mt-2 w-full px-3 py-1.5 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
@@ -1080,11 +1074,7 @@ function AdminCampaignPage() {
             {/* Botão de Enviar */}
             <div className="space-y-3 pt-4">
               <Button
-                onClick={() => 
-                  handleEnviar(
-                    contatosEditaveis.filter(t => t.trim())
-                  )
-                }
+                onClick={() => handleEnviar(contatosEditaveis.filter((t) => t.trim()))}
                 disabled={
                   enviando ||
                   contatosEditaveis.filter((t) => t.trim()).length === 0 ||
@@ -1152,9 +1142,7 @@ function AdminCampaignPage() {
               <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
                 <div className="flex items-center gap-2 mb-2">
                   <Users size={14} />
-                  <span>
-                    {contatosEditaveis.filter((t) => t.trim()).length} clientes
-                  </span>
+                  <span>{contatosEditaveis.filter((t) => t.trim()).length} clientes</span>
                 </div>
               </div>
             </div>
@@ -1195,9 +1183,7 @@ function AdminCampaignPage() {
             {carregandoListas ? (
               <div className="text-center text-gray-500 text-sm">Carregando...</div>
             ) : listas.length === 0 ? (
-              <div className="text-center text-gray-400 text-sm py-8">
-                Nenhuma lista criada
-              </div>
+              <div className="text-center text-gray-400 text-sm py-8">Nenhuma lista criada</div>
             ) : (
               <div className="space-y-2">
                 {listas.map((lista: any) => (
@@ -1238,22 +1224,22 @@ function AdminCampaignPage() {
 
                 {/* Adicionar Contato */}
                 <div className="mb-6 pb-6 border-b space-y-2">
-                  <label className="block text-sm font-bold text-gray-600">Adicionar Contato:</label>
+                  <label className="block text-sm font-bold text-gray-600">
+                    Adicionar Contato:
+                  </label>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Telefone (11987654321)"
                       className="flex-1"
                       id="novoTelefone"
                     />
-                    <Input
-                      placeholder="Nome (opcional)"
-                      className="flex-1"
-                      id="novoNome"
-                    />
+                    <Input placeholder="Nome (opcional)" className="flex-1" id="novoNome" />
                     <Button
                       onClick={() => {
-                        const tel = (document.getElementById("novoTelefone") as HTMLInputElement)?.value;
-                        const nome = (document.getElementById("novoNome") as HTMLInputElement)?.value;
+                        const tel = (document.getElementById("novoTelefone") as HTMLInputElement)
+                          ?.value;
+                        const nome = (document.getElementById("novoNome") as HTMLInputElement)
+                          ?.value;
                         if (tel) {
                           adicionarContatoALista(listaEditando, tel, nome);
                           (document.getElementById("novoTelefone") as HTMLInputElement).value = "";
@@ -1287,19 +1273,23 @@ function AdminCampaignPage() {
                       reader.onload = (event) => {
                         try {
                           const csv = event.target?.result as string;
-                          const linhas = csv.split('\n').filter(l => l.trim());
-                          
+                          const linhas = csv.split("\n").filter((l) => l.trim());
+
                           let contatos = linhas;
-                          if (linhas.length > 0 && (linhas[0].toLowerCase().includes('telefone') || linhas[0].toLowerCase().includes('phone'))) {
+                          if (
+                            linhas.length > 0 &&
+                            (linhas[0].toLowerCase().includes("telefone") ||
+                              linhas[0].toLowerCase().includes("phone"))
+                          ) {
                             contatos = linhas.slice(1);
                           }
 
                           const telefonesParsed = contatos
-                            .map(l => {
+                            .map((l) => {
                               const match = l.match(/\d+/g);
-                              return match ? match.join('') : '';
+                              return match ? match.join("") : "";
                             })
-                            .filter(t => t.length >= 10 && t.length <= 15);
+                            .filter((t) => t.length >= 10 && t.length <= 15);
 
                           if (telefonesParsed.length === 0) {
                             toast.error("Nenhum telefone encontrado");
@@ -1330,7 +1320,9 @@ function AdminCampaignPage() {
                   </h4>
                   <div className="max-h-96 overflow-y-auto space-y-2">
                     {contatosLista.length === 0 ? (
-                      <p className="text-center text-gray-400 text-sm py-8">Nenhum contato nesta lista</p>
+                      <p className="text-center text-gray-400 text-sm py-8">
+                        Nenhum contato nesta lista
+                      </p>
                     ) : (
                       contatosLista.map((contato: any, idx: number) => (
                         <div
@@ -1342,8 +1334,8 @@ function AdminCampaignPage() {
                             type="text"
                             defaultValue={contato.telefone}
                             onChange={(e) => {
-                              const updated = contatosLista.map(c => 
-                                c.id === contato.id ? { ...c, telefone: e.target.value } : c
+                              const updated = contatosLista.map((c) =>
+                                c.id === contato.id ? { ...c, telefone: e.target.value } : c,
                               );
                               setContatosLista(updated);
                             }}
@@ -1352,10 +1344,10 @@ function AdminCampaignPage() {
                           />
                           <input
                             type="text"
-                            defaultValue={contato.nome || ''}
+                            defaultValue={contato.nome || ""}
                             onChange={(e) => {
-                              const updated = contatosLista.map(c => 
-                                c.id === contato.id ? { ...c, nome: e.target.value } : c
+                              const updated = contatosLista.map((c) =>
+                                c.id === contato.id ? { ...c, nome: e.target.value } : c,
                               );
                               setContatosLista(updated);
                             }}
@@ -1364,8 +1356,16 @@ function AdminCampaignPage() {
                           />
                           <button
                             onClick={() => {
-                              const tel = (document.querySelectorAll('input[placeholder="Telefone"]')[idx] as HTMLInputElement)?.value;
-                              const nome = (document.querySelectorAll('input[placeholder="Nome"]')[idx] as HTMLInputElement)?.value;
+                              const tel = (
+                                document.querySelectorAll('input[placeholder="Telefone"]')[
+                                  idx
+                                ] as HTMLInputElement
+                              )?.value;
+                              const nome = (
+                                document.querySelectorAll('input[placeholder="Nome"]')[
+                                  idx
+                                ] as HTMLInputElement
+                              )?.value;
                               if (tel) {
                                 editarContatoDaLista(contato.id, tel, nome);
                               }
@@ -1389,7 +1389,7 @@ function AdminCampaignPage() {
                   {contatosLista.length > 0 && (
                     <Button
                       onClick={() => {
-                        const telefones = contatosLista.map(c => c.telefone);
+                        const telefones = contatosLista.map((c) => c.telefone);
                         setContatosEditaveis(telefones);
                         setTabAtivo("criar");
                         toast.success(`${telefones.length} contatos carregados!`);
@@ -1415,9 +1415,7 @@ function AdminCampaignPage() {
       {tabAtivo === "historico" && (
         <div className="space-y-4">
           {carregandoCampanhas ? (
-            <div className="text-center py-12 text-gray-500">
-              Carregando histórico...
-            </div>
+            <div className="text-center py-12 text-gray-500">Carregando histórico...</div>
           ) : campanhas.length === 0 ? (
             <div className="bg-white rounded-xl border p-12 text-center">
               <Clock className="mx-auto text-gray-300 mb-4" size={40} />
@@ -1429,12 +1427,11 @@ function AdminCampaignPage() {
               {campanhaDetalhes && (
                 <div className="bg-white rounded-xl border p-6 mb-4">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-gray-800">
-                      Envios em Tempo Real
-                    </h3>
+                    <h3 className="font-bold text-gray-800">Envios em Tempo Real</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
-                        {enviosCampanha.filter((e: any) => e.status === "enviado").length}/{enviosCampanha.length} enviados
+                        {enviosCampanha.filter((e: any) => e.status === "enviado").length}/
+                        {enviosCampanha.length} enviados
                       </span>
                       <button
                         onClick={() => setCampanhaDetalhes(null)}
@@ -1450,9 +1447,10 @@ function AdminCampaignPage() {
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-500"
                       style={{
-                        width: enviosCampanha.length > 0
-                          ? `${(enviosCampanha.filter((e: any) => e.status === "enviado").length / enviosCampanha.length) * 100}%`
-                          : "0%",
+                        width:
+                          enviosCampanha.length > 0
+                            ? `${(enviosCampanha.filter((e: any) => e.status === "enviado").length / enviosCampanha.length) * 100}%`
+                            : "0%",
                       }}
                     />
                   </div>
@@ -1480,7 +1478,10 @@ function AdminCampaignPage() {
                             <span className="text-xs font-bold text-green-700">✓ Enviado</span>
                           )}
                           {envio.status === "falhou" && (
-                            <span className="text-xs font-bold text-red-600" title={envio.erro_mensagem}>
+                            <span
+                              className="text-xs font-bold text-red-600"
+                              title={envio.erro_mensagem}
+                            >
                               ✗ {envio.erro_mensagem?.slice(0, 30) || "Falhou"}
                             </span>
                           )}
@@ -1489,7 +1490,11 @@ function AdminCampaignPage() {
                           )}
                           {envio.enviado_em && (
                             <span className="text-xs text-gray-400">
-                              {new Date(envio.enviado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                              {new Date(envio.enviado_em).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })}
                             </span>
                           )}
                         </div>
@@ -1507,23 +1512,17 @@ function AdminCampaignPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-gray-900">{campanha.nome}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {campanha.mensagem}
-                    </p>
+                    <p className="text-sm text-gray-500 line-clamp-2">{campanha.mensagem}</p>
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
                       <span>
                         📅{" "}
-                        {new Date(campanha.created_at).toLocaleString(
-                          "pt-BR",
-                          { dateStyle: "short", timeStyle: "short" }
-                        )}
+                        {new Date(campanha.created_at).toLocaleString("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
                       </span>
-                      <span>
-                        📨 {campanha.contatos_total} contatos
-                      </span>
-                      <span>
-                        ✓ {campanha.contatos_enviados} enviados
-                      </span>
+                      <span>📨 {campanha.contatos_total} contatos</span>
+                      <span>✓ {campanha.contatos_enviados} enviados</span>
                       {campanha.contatos_falhados > 0 && (
                         <span className="text-red-600">
                           ✗ {campanha.contatos_falhados} falhados
@@ -1534,7 +1533,9 @@ function AdminCampaignPage() {
 
                   <div className="flex items-center gap-3 ml-4">
                     <button
-                      onClick={() => setCampanhaDetalhes(campanhaDetalhes === campanha.id ? null : campanha.id)}
+                      onClick={() =>
+                        setCampanhaDetalhes(campanhaDetalhes === campanha.id ? null : campanha.id)
+                      }
                       className={`px-3 py-1 rounded text-xs font-bold border transition-all ${
                         campanhaDetalhes === campanha.id
                           ? "bg-[#5850ec] text-white border-[#5850ec]"
@@ -1553,15 +1554,12 @@ function AdminCampaignPage() {
                             : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {campanha.status === "enviada" && (
-                        <CheckCircle2 size={14} />
-                      )}
+                      {campanha.status === "enviada" && <CheckCircle2 size={14} />}
                       {campanha.status === "enviando" && (
                         <Clock size={14} className="animate-spin" />
                       )}
                       {campanha.status === "erro" && <AlertCircle size={14} />}
-                      {campanha.status.charAt(0).toUpperCase() +
-                        campanha.status.slice(1)}
+                      {campanha.status.charAt(0).toUpperCase() + campanha.status.slice(1)}
                     </div>
                   </div>
                 </div>

@@ -28,13 +28,20 @@ function AdminAvaliacoesPage() {
     return data.reduce((s: number, a: any) => s + (a.nota ?? 0), 0) / data.length;
   }, [data]);
 
-  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+      </div>
+    );
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Avaliações</h1>
-        <p className="text-gray-500 text-sm mt-1">Média mensal e histórico de avaliações dos clientes.</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Média mensal e histórico de avaliações dos clientes.
+        </p>
       </div>
 
       {data.length === 0 ? (
@@ -48,8 +55,14 @@ function AdminAvaliacoesPage() {
             <div className="text-5xl font-black text-[#5850ec]">{media.toFixed(1)}</div>
             <div>
               <div className="flex gap-1">
-                {[1,2,3,4,5].map(n => (
-                  <Star key={n} size={20} className={n <= Math.round(media) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    size={20}
+                    className={
+                      n <= Math.round(media) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"
+                    }
+                  />
                 ))}
               </div>
               <p className="text-sm text-gray-500 mt-1">{data.length} avaliações</p>
@@ -63,15 +76,29 @@ function AdminAvaliacoesPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-bold text-sm text-gray-900">{av.pedidos?.nome_cliente ?? "Cliente"}</p>
+                    <p className="font-bold text-sm text-gray-900">
+                      {av.pedidos?.nome_cliente ?? "Cliente"}
+                    </p>
                     <div className="flex gap-0.5">
-                      {[1,2,3,4,5].map(n => (
-                        <Star key={n} size={14} className={n <= (av.nota ?? 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star
+                          key={n}
+                          size={14}
+                          className={
+                            n <= (av.nota ?? 0)
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-200"
+                          }
+                        />
                       ))}
                     </div>
                   </div>
-                  {av.comentario && <p className="text-sm text-gray-600 italic">"{av.comentario}"</p>}
-                  <p className="text-xs text-gray-400 mt-1">{format(new Date(av.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                  {av.comentario && (
+                    <p className="text-sm text-gray-600 italic">"{av.comentario}"</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {format(new Date(av.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
                 </div>
               </div>
             ))}

@@ -4,7 +4,7 @@
 
 export interface Alert {
   id: string;
-  type: 'warning' | 'error' | 'info' | 'success';
+  type: "warning" | "error" | "info" | "success";
   title: string;
   message: string;
   timestamp: Date;
@@ -17,13 +17,13 @@ export interface Alert {
  * Tipos de alertas automáticos do sistema
  */
 export const ALERT_TYPES = {
-  LOW_STOCK: 'low_stock',
-  PENDING_ORDERS: 'pending_orders',
-  HIGH_CANCELLATION: 'high_cancellation',
-  PEAK_HOURS: 'peak_hours',
-  GOAL_REACHED: 'goal_reached',
-  LOW_CUSTOMER_RETENTION: 'low_retention',
-  PAYMENT_ISSUES: 'payment_issues',
+  LOW_STOCK: "low_stock",
+  PENDING_ORDERS: "pending_orders",
+  HIGH_CANCELLATION: "high_cancellation",
+  PEAK_HOURS: "peak_hours",
+  GOAL_REACHED: "goal_reached",
+  LOW_CUSTOMER_RETENTION: "low_retention",
+  PAYMENT_ISSUES: "payment_issues",
 } as const;
 
 /**
@@ -42,13 +42,13 @@ export function generateAlerts(metrics: {
   // Alerta: Produtos com estoque baixo
   if (metrics.lowStockProducts.length > 0) {
     alerts.push({
-      id: 'low-stock',
-      type: 'warning',
+      id: "low-stock",
+      type: "warning",
       title: `${metrics.lowStockProducts.length} produtos com estoque baixo`,
-      message: `${metrics.lowStockProducts.map((p) => p.nome).join(', ')} estão acabando.`,
+      message: `${metrics.lowStockProducts.map((p) => p.nome).join(", ")} estão acabando.`,
       timestamp: new Date(),
-      actionUrl: '/admin/produtos',
-      actionLabel: 'Ir para Produtos',
+      actionUrl: "/admin/produtos",
+      actionLabel: "Ir para Produtos",
       read: false,
     });
   }
@@ -56,13 +56,13 @@ export function generateAlerts(metrics: {
   // Alerta: Pedidos pendentes
   if (metrics.pendingOrders > 5) {
     alerts.push({
-      id: 'pending-orders',
-      type: 'info',
+      id: "pending-orders",
+      type: "info",
       title: `${metrics.pendingOrders} pedidos aguardando`,
-      message: 'Existem pedidos prontos para serem entregues.',
+      message: "Existem pedidos prontos para serem entregues.",
       timestamp: new Date(),
-      actionUrl: '/admin/pedidos',
-      actionLabel: 'Ver Pedidos',
+      actionUrl: "/admin/pedidos",
+      actionLabel: "Ver Pedidos",
       read: false,
     });
   }
@@ -70,13 +70,13 @@ export function generateAlerts(metrics: {
   // Alerta: Taxa de cancelamento alta
   if (metrics.cancelationRate > 15) {
     alerts.push({
-      id: 'high-cancellation',
-      type: 'warning',
+      id: "high-cancellation",
+      type: "warning",
       title: `Taxa de cancelamento em ${Math.round(metrics.cancelationRate)}%`,
-      message: 'Acima do ideal (10%). Verifique satisfação dos clientes.',
+      message: "Acima do ideal (10%). Verifique satisfação dos clientes.",
       timestamp: new Date(),
-      actionUrl: '/admin/relatorios',
-      actionLabel: 'Ver Relatórios',
+      actionUrl: "/admin/relatorios",
+      actionLabel: "Ver Relatórios",
       read: false,
     });
   }
@@ -84,10 +84,10 @@ export function generateAlerts(metrics: {
   // Alerta: Retenção de clientes baixa
   if (metrics.customerRetention < 25) {
     alerts.push({
-      id: 'low-retention',
-      type: 'warning',
+      id: "low-retention",
+      type: "warning",
       title: `Retenção de clientes em ${Math.round(metrics.customerRetention)}%`,
-      message: 'Considere campanhas de reengajamento.',
+      message: "Considere campanhas de reengajamento.",
       timestamp: new Date(),
       read: false,
     });
@@ -96,10 +96,10 @@ export function generateAlerts(metrics: {
   // Sucesso: Meta atingida!
   if (metrics.goalReached) {
     alerts.push({
-      id: 'goal-reached',
-      type: 'success',
-      title: '🎉 Meta mensal atingida!',
-      message: 'Parabéns! Você atingiu a meta de vendas do mês.',
+      id: "goal-reached",
+      type: "success",
+      title: "🎉 Meta mensal atingida!",
+      message: "Parabéns! Você atingiu a meta de vendas do mês.",
       timestamp: new Date(),
       read: false,
     });
@@ -113,7 +113,7 @@ export function generateAlerts(metrics: {
  */
 export function calculateCancellationRate(orders: any[]): number {
   if (orders.length === 0) return 0;
-  const cancelled = orders.filter((o) => o.status === 'cancelado').length;
+  const cancelled = orders.filter((o) => o.status === "cancelado").length;
   return (cancelled / orders.length) * 100;
 }
 
@@ -129,5 +129,5 @@ export function isPeakHour(hour: number): boolean {
  * Formata alert para exibição
  */
 export function formatAlertMessage(alert: Alert): string {
-  return `[${alert.timestamp.toLocaleTimeString('pt-BR')}] ${alert.title}`;
+  return `[${alert.timestamp.toLocaleTimeString("pt-BR")}] ${alert.title}`;
 }

@@ -10,12 +10,12 @@
 
 Segundo a API Official do WhatsApp (Meta), os preços no Brasil são:
 
-| Tipo de Mensagem | Preço (R$) | Preço (USD) |
-|------------------|-----------|-----------|
-| **Marketing** | R$ 0,31-0,38 | $0,0625 |
-| **Utility** | R$ 0,04-0,05 | $0,008-0,01 |
+| Tipo de Mensagem   | Preço (R$)   | Preço (USD) |
+| ------------------ | ------------ | ----------- |
+| **Marketing**      | R$ 0,31-0,38 | $0,0625     |
+| **Utility**        | R$ 0,04-0,05 | $0,008-0,01 |
 | **Authentication** | R$ 0,15-0,19 | $0,03-0,038 |
-| **Service (24h)** | **FREE** | **FREE** |
+| **Service (24h)**  | **FREE**     | **FREE**    |
 
 ---
 
@@ -31,11 +31,13 @@ Segundo a API Official do WhatsApp (Meta), os preços no Brasil são:
 ```
 
 **Por mês (4 semanas):**
+
 ```
 R$ 168,00 × 4 = R$ 672,00 por mês
 ```
 
 **Por ano:**
+
 ```
 R$ 672,00 × 12 = R$ 8.064,00 por ano
 ```
@@ -52,11 +54,13 @@ R$ 672,00 × 12 = R$ 8.064,00 por ano
 ```
 
 **Por mês:**
+
 ```
 R$ 21,60 × 4 = R$ 86,40 por mês
 ```
 
 **Por ano:**
+
 ```
 R$ 86,40 × 12 = R$ 1.036,80 por ano
 ```
@@ -65,17 +69,18 @@ R$ 86,40 × 12 = R$ 1.036,80 por ano
 
 ## 📈 Resumo de Custos
 
-| Período | Marketing | Utility | Diferença |
-|---------|-----------|---------|-----------|
-| **Semana** | R$ 168 | R$ 21,60 | R$ 146,40 |
-| **Mês** | **R$ 672** | **R$ 86,40** | **R$ 585,60** |
-| **Ano** | **R$ 8.064** | **R$ 1.036,80** | **R$ 7.027,20** |
+| Período    | Marketing    | Utility         | Diferença       |
+| ---------- | ------------ | --------------- | --------------- |
+| **Semana** | R$ 168       | R$ 21,60        | R$ 146,40       |
+| **Mês**    | **R$ 672**   | **R$ 86,40**    | **R$ 585,60**   |
+| **Ano**    | **R$ 8.064** | **R$ 1.036,80** | **R$ 7.027,20** |
 
 ---
 
 ## 🤔 Qual categoria usar?
 
 ### **Marketing:**
+
 - ✅ Promoções, ofertas, novidades
 - ✅ Campanhas de vendas
 - ❌ Mais caro
@@ -83,6 +88,7 @@ R$ 86,40 × 12 = R$ 1.036,80 por ano
 - ⚠️ Taxa de entrega pode ser menor
 
 ### **Utility:**
+
 - ✅ Mais barato
 - ✅ Taxa de entrega melhor
 - ✅ Sem aprovação complicada
@@ -90,6 +96,7 @@ R$ 86,40 × 12 = R$ 1.036,80 por ano
 - ✅ Melhor para newsletters, atualizações
 
 ### **Service (24h window):**
+
 - ✅ **TOTALMENTE GRÁTIS**
 - ✅ Respostas a clientes que iniciaram
 - ❌ Só funciona dentro de 24h
@@ -124,15 +131,15 @@ Seu sistema já usa a API Oficial! Os custos são:
 
 ## 🆚 Comparação: Seu Sistema vs Alternativas
 
-| Aspecto | Seu Sistema | BSP (Intermediário) | Manual |
-|---------|-----------|-----------|---------|
-| **Custo/mês (480/sem)** | **R$ 86-672** | **R$ 100-700** (+ markup) | R$ 500-1000 |
-| **Fonte** | ✅ API Oficial Meta | ✅ API Oficial Meta + % | ❌ Manual |
-| **Setup** | ✅ Já feito | ⏳ 1-2 dias | ❌ Humano |
-| **Taxa de entrega** | ~95%+ | ~95%+ | ~80% |
-| **Suporte** | ✅ Sistema próprio | ✅ BSP | ❌ Nenhum |
-| **Controle** | ✅ Total | ⚠️ Compartilhado | ⚠️ Dependente |
-| **Segurança** | ✅ Suas credenciais | ⚠️ Compartilhadas | ❌ Risco |
+| Aspecto                 | Seu Sistema         | BSP (Intermediário)       | Manual        |
+| ----------------------- | ------------------- | ------------------------- | ------------- |
+| **Custo/mês (480/sem)** | **R$ 86-672**       | **R$ 100-700** (+ markup) | R$ 500-1000   |
+| **Fonte**               | ✅ API Oficial Meta | ✅ API Oficial Meta + %   | ❌ Manual     |
+| **Setup**               | ✅ Já feito         | ⏳ 1-2 dias               | ❌ Humano     |
+| **Taxa de entrega**     | ~95%+               | ~95%+                     | ~80%          |
+| **Suporte**             | ✅ Sistema próprio  | ✅ BSP                    | ❌ Nenhum     |
+| **Controle**            | ✅ Total            | ⚠️ Compartilhado          | ⚠️ Dependente |
+| **Segurança**           | ✅ Suas credenciais | ⚠️ Compartilhadas         | ❌ Risco      |
 
 ---
 
@@ -141,16 +148,20 @@ Seu sistema já usa a API Oficial! Os custos são:
 ## 💰 ROI Analysis
 
 ### Custo Mensal (Utility = recomendado):
+
 **R$ 86,40/mês**
 
 ### Economia vs BSP:
+
 BSPs adicionam 15-35% de markup:
+
 - R$ 86,40 × 25% (média) = **R$ 21,60 economizados/mês**
 - **R$ 259,20/ano economizados**
 
 ### Retorno esperado:
 
 Se cada conversa gera **R$ 50 de venda:**
+
 - 480 contatos = ~30-50 conversões/semana
 - 150-250 vendas/mês
 - ~R$ 7.500-12.500 em vendas/mês
@@ -164,6 +175,7 @@ Se cada conversa gera **R$ 50 de venda:**
 ## 📱 Opções
 
 ### 1. **Seu Sistema (Recomendado)** ✅
+
 - **Tipo:** API Oficial Meta direto
 - **Custo:** R$ 86,40/mês (Utility) ou R$ 672/mês (Marketing)
 - **Setup:** ✅ Já feito
@@ -172,6 +184,7 @@ Se cada conversa gera **R$ 50 de venda:**
 - **Ideal para:** 480 contatos/semana
 
 ### 2. **Via BSP (Intermediário)**
+
 - **Tipo:** API Oficial + serviço intermediário
 - **Custo:** R$ 100-800/mês (incluindo markup 15-35%)
 - **Setup:** 1-2 dias
@@ -180,6 +193,7 @@ Se cada conversa gera **R$ 50 de venda:**
 - **Ideal para:** Quem quer delegar tudo
 
 ### 3. **Manual (Não recomendado)**
+
 - **Custo:** R$ 500-1.000/mês
 - **Setup:** Contrate pessoa
 - **Taxa de entrega:** Baixa (~80%)
@@ -200,6 +214,7 @@ Vantagem: Controle total + sem markup
 ```
 
 **Seu sistema é ótimo porque:**
+
 - ✅ Usa API Oficial direto
 - ✅ Sem intermediário (sem markup extra)
 - ✅ Controle total das campanhas

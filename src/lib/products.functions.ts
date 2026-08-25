@@ -1,65 +1,62 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createServerFn } from "@tanstack/react-start";
 
-export const getAdminProducts = createServerFn({ method: "GET" })
-  .handler(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select(`*, categorias (nome)`)
-        .order("ordem", { ascending: true })
-        .order("nome",  { ascending: true }); // desempate por nome
+export const getAdminProducts = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { data, error } = await supabase
+      .from("produtos")
+      .select(`*, categorias (nome)`)
+      .order("ordem", { ascending: true })
+      .order("nome", { ascending: true }); // desempate por nome
 
-      if (error) {
-        console.error("Error fetching admin products:", error);
-        return [];
-      }
-
-      return data || [];
-    } catch (err) {
-      console.error("Unexpected error in getAdminProducts:", err);
+    if (error) {
+      console.error("Error fetching admin products:", error);
       return [];
     }
-  });
 
-export const getPublicProducts = createServerFn({ method: "GET" })
-  .handler(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select(`*, categorias (nome, ordem_filtro)`)
-        .eq("ativo", true)
-        .order("categoria_id", { ascending: true })  // agrupa por categoria
-        .order("ordem",        { ascending: true })   // depois por ordem dentro da categoria
-        .order("nome",         { ascending: true });  // desempate por nome
+    return data || [];
+  } catch (err) {
+    console.error("Unexpected error in getAdminProducts:", err);
+    return [];
+  }
+});
 
-      if (error) {
-        console.error("Error fetching public products:", error);
-        return [];
-      }
+export const getPublicProducts = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { data, error } = await supabase
+      .from("produtos")
+      .select(`*, categorias (nome, ordem_filtro)`)
+      .eq("ativo", true)
+      .order("categoria_id", { ascending: true }) // agrupa por categoria
+      .order("ordem", { ascending: true }) // depois por ordem dentro da categoria
+      .order("nome", { ascending: true }); // desempate por nome
 
-      return data || [];
-    } catch (err) {
-      console.error("Unexpected error in getPublicProducts:", err);
+    if (error) {
+      console.error("Error fetching public products:", error);
       return [];
     }
-  });
 
-export const getCategories = createServerFn({ method: "GET" })
-  .handler(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("categorias")
-        .select("*")
-        .order("ordem", { ascending: true });
+    return data || [];
+  } catch (err) {
+    console.error("Unexpected error in getPublicProducts:", err);
+    return [];
+  }
+});
 
-      if (error) {
-        console.error("Error fetching categories:", error);
-        return [];
-      }
-      return data;
-    } catch (err) {
-      console.error("Unexpected error in getCategories:", err);
+export const getCategories = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { data, error } = await supabase
+      .from("categorias")
+      .select("*")
+      .order("ordem", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching categories:", error);
       return [];
     }
-  });
+    return data;
+  } catch (err) {
+    console.error("Unexpected error in getCategories:", err);
+    return [];
+  }
+});

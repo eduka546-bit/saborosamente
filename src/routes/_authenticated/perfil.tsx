@@ -5,7 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Plus, Trash2, Home, Briefcase, MapPinned, Pencil, ShoppingBag, Clock, ChevronRight, Truck, Gift, ArrowUpCircle, ArrowDownCircle, RotateCcw } from "lucide-react";
+import {
+  MapPin,
+  Plus,
+  Trash2,
+  Home,
+  Briefcase,
+  MapPinned,
+  Pencil,
+  ShoppingBag,
+  Clock,
+  ChevronRight,
+  Truck,
+  Gift,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  RotateCcw,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSaldo } from "@/lib/cashback";
 import { format } from "date-fns";
@@ -23,7 +39,9 @@ import {
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   beforeLoad: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       throw redirect({ to: "/auth", search: { redirect: "/perfil" } });
     }
@@ -50,11 +68,11 @@ function PerfilPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
   const [cashbackTransacoes, setCashbackTransacoes] = useState<any[]>([]);
-  
+
   const [profileForm, setProfileForm] = useState({
     nome: "",
     telefone: "",
-    cpf: ""
+    cpf: "",
   });
 
   // Form state for new/edit address
@@ -65,7 +83,7 @@ function PerfilPage() {
     rua: "",
     numero: "",
     complemento: "",
-    cep: ""
+    cep: "",
   });
 
   useEffect(() => {
@@ -73,8 +91,9 @@ function PerfilPage() {
     fetchAddresses();
     fetchOrders();
     // Busca cashback
-    getSaldo(session.user.id).then(s => setCashbackSaldo(s));
-    supabase.from("cashback_transacoes")
+    getSaldo(session.user.id).then((s) => setCashbackSaldo(s));
+    supabase
+      .from("cashback_transacoes")
       .select("*")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
@@ -93,25 +112,31 @@ function PerfilPage() {
       if (error) throw error;
 
       // Busca nomes dos produtos separadamente (sem FK direta)
-      const produtoIds = [...new Set(
-        (pedidos ?? []).flatMap((p: any) => (p.itens ?? []).map((i: any) => i.produto_id).filter(Boolean))
-      )];
-      let nomesMap: Record<string, string> = {};
+      const produtoIds = [
+        ...new Set(
+          (pedidos ?? []).flatMap((p: any) =>
+            (p.itens ?? []).map((i: any) => i.produto_id).filter(Boolean),
+          ),
+        ),
+      ];
+      const nomesMap: Record<string, string> = {};
       if (produtoIds.length > 0) {
         const { data: prods } = await supabase
           .from("produtos")
           .select("id, nome")
           .in("id", produtoIds);
-        (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
+        (prods ?? []).forEach((p: any) => {
+          nomesMap[p.id] = p.nome;
+        });
       }
 
       const ordersWithNames = (pedidos ?? []).map((pedido: any) => ({
         ...pedido,
         itens: (pedido.itens ?? []).map((item: any) => ({
           ...item,
-          produtos: { nome: nomesMap[item.produto_id] ?? "Produto" }
+          produtos: { nome: nomesMap[item.produto_id] ?? "Produto" },
         })),
-        historico: []
+        historico: [],
       }));
 
       setOrders(ordersWithNames);
@@ -128,13 +153,13 @@ function PerfilPage() {
       .select("*")
       .eq("id", session.user.id)
       .single();
-    
+
     if (data) {
       setProfile(data);
       setProfileForm({
         nome: data.nome || "",
         telefone: data.telefone || "",
-        cpf: data.cpf || ""
+        cpf: data.cpf || "",
       });
     }
     setLoading(false);
@@ -144,18 +169,19 @@ function PerfilPage() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
+      const { error } = await supabase.from("profiles").upsert(
+        {
           id: session.user.id,
           nome: profileForm.nome,
           telefone: profileForm.telefone,
           cpf: profileForm.cpf,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "id" });
+        },
+        { onConflict: "id" },
+      );
 
       if (error) throw error;
-      
+
       toast.success("Perfil atualizado com sucesso!");
       setIsEditingProfile(false);
       fetchProfile();
@@ -168,18 +194,18 @@ function PerfilPage() {
 
   const handleCepSearch = async (cep: string) => {
     const numericCep = cep.replace(/\D/g, "");
-    setNewAddress(prev => ({ ...prev, cep: numericCep }));
+    setNewAddress((prev) => ({ ...prev, cep: numericCep }));
 
     if (numericCep.length === 8) {
       try {
         const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
         const data = await response.json();
         if (!data.erro) {
-          setNewAddress(prev => ({
+          setNewAddress((prev) => ({
             ...prev,
             rua: data.logradouro,
             bairro: data.bairro,
-            cidade: data.localidade
+            cidade: data.localidade,
           }));
           toast.success("CEP encontrado!");
         } else {
@@ -197,7 +223,7 @@ function PerfilPage() {
       .select("*")
       .eq("user_id", session.user.id)
       .order("is_default", { ascending: false });
-    
+
     if (data) setAddresses(data);
   };
 
@@ -230,7 +256,7 @@ function PerfilPage() {
           numero: newAddress.numero,
           complemento: newAddress.complemento,
           cep: newAddress.cep,
-          is_default: addresses.length === 0
+          is_default: addresses.length === 0,
         });
 
         if (error) throw error;
@@ -239,13 +265,20 @@ function PerfilPage() {
 
       setIsAddingAddress(false);
       setEditingAddressId(null);
-      setNewAddress({ label: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "", cep: "" });
+      setNewAddress({
+        label: "",
+        cidade: "",
+        bairro: "",
+        rua: "",
+        numero: "",
+        complemento: "",
+        cep: "",
+      });
       fetchAddresses();
     } catch (error: any) {
       toast.error("Erro ao salvar endereço: " + error.message);
     }
   };
-
 
   const handleEditAddress = (addr: any) => {
     setNewAddress({
@@ -255,12 +288,12 @@ function PerfilPage() {
       rua: addr.rua,
       numero: addr.numero,
       complemento: addr.complemento || "",
-      cep: addr.cep || ""
+      cep: addr.cep || "",
     });
     setEditingAddressId(addr.id);
     setIsAddingAddress(true);
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -280,8 +313,9 @@ function PerfilPage() {
   const currentTaxa = useMemo(() => {
     if (!newAddress.cidade || !newAddress.bairro) return null;
     return taxas.find(
-      t => t.cidade.toLowerCase().trim() === newAddress.cidade.toLowerCase().trim() && 
-           t.bairro.toLowerCase().trim() === newAddress.bairro.toLowerCase().trim()
+      (t) =>
+        t.cidade.toLowerCase().trim() === newAddress.cidade.toLowerCase().trim() &&
+        t.bairro.toLowerCase().trim() === newAddress.bairro.toLowerCase().trim(),
     );
   }, [newAddress.cidade, newAddress.bairro, taxas]);
 
@@ -292,7 +326,7 @@ function PerfilPage() {
         add(item.produto_id, item.quantidade, item.peso);
       });
       toast.success("Pedido repetido!", {
-        description: `${order.itens?.length || 0} item(ns) adicionados ao carrinho`
+        description: `${order.itens?.length || 0} item(ns) adicionados ao carrinho`,
       });
     } catch (error: any) {
       toast.error("Erro ao repetir pedido");
@@ -319,35 +353,39 @@ function PerfilPage() {
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="nome">Nome Completo</Label>
-                  <Input 
-                    id="nome" 
-                    value={profileForm.nome} 
-                    onChange={e => setProfileForm({...profileForm, nome: e.target.value})}
+                  <Input
+                    id="nome"
+                    value={profileForm.nome}
+                    onChange={(e) => setProfileForm({ ...profileForm, nome: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="telefone">Telefone / WhatsApp</Label>
-                  <Input 
-                    id="telefone" 
-                    value={profileForm.telefone} 
-                    onChange={e => setProfileForm({...profileForm, telefone: e.target.value})}
+                  <Input
+                    id="telefone"
+                    value={profileForm.telefone}
+                    onChange={(e) => setProfileForm({ ...profileForm, telefone: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cpf">CPF</Label>
-                  <Input 
-                    id="cpf" 
-                    value={profileForm.cpf} 
-                    onChange={e => setProfileForm({...profileForm, cpf: e.target.value})}
+                  <Input
+                    id="cpf"
+                    value={profileForm.cpf}
+                    onChange={(e) => setProfileForm({ ...profileForm, cpf: e.target.value })}
                   />
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" className="flex-1" disabled={savingProfile}>
                     {savingProfile ? "Salvando..." : "Salvar"}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditingProfile(false)}
+                  >
                     Cancelar
                   </Button>
                 </div>
@@ -370,7 +408,11 @@ function PerfilPage() {
                   <Label className="text-xs text-muted-foreground uppercase">CPF</Label>
                   <p className="font-medium">{profile?.cpf || "Não informado"}</p>
                 </div>
-                <Button variant="outline" className="w-full mt-4" onClick={() => setIsEditingProfile(true)}>
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => setIsEditingProfile(true)}
+                >
                   <Pencil className="mr-2 h-4 w-4" /> Editar Dados
                 </Button>
               </div>
@@ -405,22 +447,30 @@ function PerfilPage() {
                     <div className="bg-muted/30 px-6 py-4 flex items-center justify-between border-b">
                       <div className="flex items-center gap-4">
                         <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pedido</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            Pedido
+                          </p>
                           <p className="font-bold text-primary">#{order.id.slice(0, 8)}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Data</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            Data
+                          </p>
                           <p className="text-sm font-medium">
-                            {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                            {new Date(order.created_at).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
-                          order.status === 'Entregue' ? 'bg-green-50 text-green-600 border-green-200' :
-                          order.status === 'Cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
-                          'bg-yellow-50 text-yellow-600 border-yellow-200'
-                        }`}>
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+                            order.status === "Entregue"
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : order.status === "Cancelado"
+                                ? "bg-red-50 text-red-600 border-red-200"
+                                : "bg-yellow-50 text-yellow-600 border-yellow-200"
+                          }`}
+                        >
                           {order.status}
                         </span>
                       </div>
@@ -429,32 +479,47 @@ function PerfilPage() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1">
                           <p className="text-sm font-medium text-muted-foreground mb-2">
-                            {order.itens?.length} {order.itens?.length === 1 ? 'item' : 'itens'}
+                            {order.itens?.length} {order.itens?.length === 1 ? "item" : "itens"}
                           </p>
                           <div className="flex -space-x-2">
                             {order.itens?.slice(0, 5).map((item: any) => (
-                              <div key={item.id} className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold" title={item.produtos?.nome}>
+                              <div
+                                key={item.id}
+                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold"
+                                title={item.produtos?.nome}
+                              >
                                 {item.quantidade}
                               </div>
                             ))}
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total</p>
-                          <p className="text-lg font-bold">R$ {order.valor_total.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            Total
+                          </p>
+                          <p className="text-lg font-bold">
+                            R$ {order.valor_total.toFixed(2).replace(".", ",")}
+                          </p>
                         </div>
                       </div>
-                      
+
                       {order.status && (
                         <div className="mt-4 pt-4 border-t space-y-3">
                           <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Status</p>
-                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
-                              order.status === 'entregue' ? 'bg-green-50 text-green-600 border-green-200' :
-                              order.status === 'cancelado' ? 'bg-red-50 text-red-600 border-red-200' :
-                              order.status === 'preparando' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                              'bg-yellow-50 text-yellow-600 border-yellow-200'
-                            }`}>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                              Status
+                            </p>
+                            <span
+                              className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
+                                order.status === "entregue"
+                                  ? "bg-green-50 text-green-600 border-green-200"
+                                  : order.status === "cancelado"
+                                    ? "bg-red-50 text-red-600 border-red-200"
+                                    : order.status === "preparando"
+                                      ? "bg-blue-50 text-blue-600 border-blue-200"
+                                      : "bg-yellow-50 text-yellow-600 border-yellow-200"
+                              }`}
+                            >
                               {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                             </span>
                           </div>
@@ -485,9 +550,15 @@ function PerfilPage() {
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-yellow-600 mb-1">Saldo disponível</p>
-                  <p className="text-3xl font-black text-yellow-700">R$ {cashbackSaldo.toFixed(2).replace(".", ",")}</p>
-                  <p className="text-xs text-yellow-600 mt-1">Use no checkout para descontar do próximo pedido</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-yellow-600 mb-1">
+                    Saldo disponível
+                  </p>
+                  <p className="text-3xl font-black text-yellow-700">
+                    R$ {cashbackSaldo.toFixed(2).replace(".", ",")}
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    Use no checkout para descontar do próximo pedido
+                  </p>
                 </div>
                 <div className="h-16 w-16 rounded-full bg-yellow-200 flex items-center justify-center">
                   <Gift size={28} className="text-yellow-600" />
@@ -497,22 +568,32 @@ function PerfilPage() {
 
             {cashbackTransacoes.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Histórico</h3>
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                  Histórico
+                </h3>
                 {cashbackTransacoes.map((t: any) => (
-                  <div key={t.id} className="flex items-center justify-between bg-white border rounded-xl px-4 py-3">
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between bg-white border rounded-xl px-4 py-3"
+                  >
                     <div className="flex items-center gap-3">
-                      {t.tipo === "recebido"
-                        ? <ArrowUpCircle size={16} className="text-green-500 shrink-0" />
-                        : t.tipo === "usado"
-                        ? <ArrowDownCircle size={16} className="text-blue-500 shrink-0" />
-                        : <Clock size={16} className="text-red-400 shrink-0" />
-                      }
+                      {t.tipo === "recebido" ? (
+                        <ArrowUpCircle size={16} className="text-green-500 shrink-0" />
+                      ) : t.tipo === "usado" ? (
+                        <ArrowDownCircle size={16} className="text-blue-500 shrink-0" />
+                      ) : (
+                        <Clock size={16} className="text-red-400 shrink-0" />
+                      )}
                       <div>
                         <p className="text-sm font-medium text-gray-800 capitalize">{t.tipo}</p>
-                        <p className="text-xs text-gray-400">{format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                        <p className="text-xs text-gray-400">
+                          {format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
                       </div>
                     </div>
-                    <span className={`font-bold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}>
+                    <span
+                      className={`font-bold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}
+                    >
                       {t.tipo === "recebido" ? "+" : "−"} R$ {Math.abs(t.valor).toFixed(2)}
                     </span>
                   </div>
@@ -531,9 +612,14 @@ function PerfilPage() {
               <CardContent className="p-6 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
-                  <p className="text-sm text-gray-500">Compartilhe seu link e ganhe cashback a cada amigo que fizer o primeiro pedido.</p>
+                  <p className="text-sm text-gray-500">
+                    Compartilhe seu link e ganhe cashback a cada amigo que fizer o primeiro pedido.
+                  </p>
                 </div>
-                <Link to="/indicar" className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold hover:bg-primary/90 transition-all whitespace-nowrap">
+                <Link
+                  to="/indicar"
+                  className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold hover:bg-primary/90 transition-all whitespace-nowrap"
+                >
                   Ver meu link
                 </Link>
               </CardContent>
@@ -547,37 +633,49 @@ function PerfilPage() {
                 <MapPinned className="h-5 w-5 text-primary" />
                 Meus Endereços
               </h2>
-              <Button onClick={() => {
-                setIsAddingAddress(!isAddingAddress);
-                if (!isAddingAddress) setEditingAddressId(null);
-              }} size="sm" className="rounded-full">
-                {isAddingAddress ? "Cancelar" : <><Plus className="mr-2 h-4 w-4" /> Novo Endereço</>}
+              <Button
+                onClick={() => {
+                  setIsAddingAddress(!isAddingAddress);
+                  if (!isAddingAddress) setEditingAddressId(null);
+                }}
+                size="sm"
+                className="rounded-full"
+              >
+                {isAddingAddress ? (
+                  "Cancelar"
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" /> Novo Endereço
+                  </>
+                )}
               </Button>
             </div>
 
             {isAddingAddress && (
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader>
-                  <CardTitle className="text-lg">{editingAddressId ? "Editar Endereço" : "Adicionar Novo Endereço"}</CardTitle>
+                  <CardTitle className="text-lg">
+                    {editingAddressId ? "Editar Endereço" : "Adicionar Novo Endereço"}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSaveAddress} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cep">CEP</Label>
-                        <Input 
-                          id="cep" 
+                        <Input
+                          id="cep"
                           placeholder="00000-000"
                           value={newAddress.cep}
-                          onChange={e => handleCepSearch(e.target.value)}
+                          onChange={(e) => handleCepSearch(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="label">Apelido (ex: Casa, Trabalho)</Label>
-                        <Input 
-                          id="label" 
-                          value={newAddress.label} 
-                          onChange={e => setNewAddress({...newAddress, label: e.target.value})}
+                        <Input
+                          id="label"
+                          value={newAddress.label}
+                          onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
                           placeholder="Ex: Casa"
                           required
                         />
@@ -588,7 +686,8 @@ function PerfilPage() {
                       <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
                         <Truck size={18} />
                         <span className="text-sm font-bold">
-                          Taxa de entrega para este local: R$ {currentTaxa.taxa.toFixed(2).replace('.', ',')}
+                          Taxa de entrega para este local: R${" "}
+                          {currentTaxa.taxa.toFixed(2).replace(".", ",")}
                         </span>
                       </div>
                     )}
@@ -596,10 +695,10 @@ function PerfilPage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="cidade">Cidade</Label>
-                        <Input 
-                          id="cidade" 
-                          value={newAddress.cidade} 
-                          onChange={e => setNewAddress({...newAddress, cidade: e.target.value})}
+                        <Input
+                          id="cidade"
+                          value={newAddress.cidade}
+                          onChange={(e) => setNewAddress({ ...newAddress, cidade: e.target.value })}
                           required
                         />
                       </div>
@@ -608,19 +707,19 @@ function PerfilPage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="bairro">Bairro</Label>
-                        <Input 
-                          id="bairro" 
-                          value={newAddress.bairro} 
-                          onChange={e => setNewAddress({...newAddress, bairro: e.target.value})}
+                        <Input
+                          id="bairro"
+                          value={newAddress.bairro}
+                          onChange={(e) => setNewAddress({ ...newAddress, bairro: e.target.value })}
                           required
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="rua">Rua</Label>
-                        <Input 
-                          id="rua" 
-                          value={newAddress.rua} 
-                          onChange={e => setNewAddress({...newAddress, rua: e.target.value})}
+                        <Input
+                          id="rua"
+                          value={newAddress.rua}
+                          onChange={(e) => setNewAddress({ ...newAddress, rua: e.target.value })}
                           required
                         />
                       </div>
@@ -628,23 +727,27 @@ function PerfilPage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="numero">Número</Label>
-                        <Input 
-                          id="numero" 
-                          value={newAddress.numero} 
-                          onChange={e => setNewAddress({...newAddress, numero: e.target.value})}
+                        <Input
+                          id="numero"
+                          value={newAddress.numero}
+                          onChange={(e) => setNewAddress({ ...newAddress, numero: e.target.value })}
                           required
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="complemento">Complemento (opcional)</Label>
-                        <Input 
-                          id="complemento" 
-                          value={newAddress.complemento} 
-                          onChange={e => setNewAddress({...newAddress, complemento: e.target.value})}
+                        <Input
+                          id="complemento"
+                          value={newAddress.complemento}
+                          onChange={(e) =>
+                            setNewAddress({ ...newAddress, complemento: e.target.value })
+                          }
                         />
                       </div>
                     </div>
-                    <Button type="submit" className="w-full">{editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}</Button>
+                    <Button type="submit" className="w-full">
+                      {editingAddressId ? "Atualizar Endereço" : "Salvar Endereço"}
+                    </Button>
                   </form>
                 </CardContent>
               </Card>
@@ -658,21 +761,33 @@ function PerfilPage() {
                 </div>
               ) : (
                 addresses.map((addr) => (
-                  <Card key={addr.id} className={addr.is_default ? "border-primary/50 shadow-sm" : ""}>
+                  <Card
+                    key={addr.id}
+                    className={addr.is_default ? "border-primary/50 shadow-sm" : ""}
+                  >
                     <CardContent className="p-6 flex items-start justify-between">
                       <div className="flex gap-4">
                         <div className="mt-1 bg-primary/10 p-2 rounded-xl text-primary">
-                          {addr.label?.toLowerCase().includes("casa") ? <Home size={20} /> : 
-                           addr.label?.toLowerCase().includes("trabalho") ? <Briefcase size={20} /> : 
-                           <MapPin size={20} />}
+                          {addr.label?.toLowerCase().includes("casa") ? (
+                            <Home size={20} />
+                          ) : addr.label?.toLowerCase().includes("trabalho") ? (
+                            <Briefcase size={20} />
+                          ) : (
+                            <MapPin size={20} />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold">{addr.label}</h3>
-                            {addr.is_default && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Padrão</span>}
+                            {addr.is_default && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                Padrão
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {addr.rua}, {addr.numero}{addr.complemento ? ` - ${addr.complemento}` : ""}
+                            {addr.rua}, {addr.numero}
+                            {addr.complemento ? ` - ${addr.complemento}` : ""}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {addr.bairro}, {addr.cidade}
@@ -680,17 +795,17 @@ function PerfilPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleEditAddress(addr)}
                         >
                           <Pencil size={18} />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setAddressToDelete(addr.id)}
                         >
@@ -706,17 +821,21 @@ function PerfilPage() {
         </div>
       </div>
 
-      <AlertDialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+      <AlertDialog
+        open={!!addressToDelete}
+        onOpenChange={(open) => !open && setAddressToDelete(null)}
+      >
         <AlertDialogContent className="rounded-3xl border-none">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl font-bold">Excluir endereço?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O endereço será removido permanentemente da sua conta.
+              Esta ação não pode ser desfeita. O endereço será removido permanentemente da sua
+              conta.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="rounded-full border-border">Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteAddress}
               className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

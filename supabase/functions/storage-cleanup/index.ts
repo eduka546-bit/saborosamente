@@ -103,10 +103,7 @@ serve(async (req) => {
     console.log(`🗑️ Arquivos órfãos encontrados: ${orphanedFiles.length}`);
 
     // 5. Calcular espaço que será liberado
-    const totalSize = orphanedFiles.reduce(
-      (sum, name) => sum + (fileSize[name] || 0),
-      0
-    );
+    const totalSize = orphanedFiles.reduce((sum, name) => sum + (fileSize[name] || 0), 0);
     const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
 
     console.log(`💾 Espaço a liberar: ${totalSizeMB} MB`);
@@ -118,9 +115,7 @@ serve(async (req) => {
     for (let i = 0; i < orphanedFiles.length; i += BATCH_SIZE) {
       const batch = orphanedFiles.slice(i, i + BATCH_SIZE);
 
-      const { error: delError } = await supabase.storage
-        .from("product-images")
-        .remove(batch);
+      const { error: delError } = await supabase.storage.from("product-images").remove(batch);
 
       if (delError) {
         console.warn(`Erro ao deletar lote: ${delError.message}`);
@@ -147,7 +142,7 @@ serve(async (req) => {
       }),
       {
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error: any) {
     console.error("❌ Erro na limpeza:", error.message);
@@ -159,7 +154,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

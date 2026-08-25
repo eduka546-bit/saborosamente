@@ -29,11 +29,7 @@ export interface KPIs {
 /**
  * Calcula KPIs principais do negócio
  */
-export function calculateKPIs(
-  orders: any[],
-  customers: any[],
-  previousOrders?: any[]
-): KPIs {
+export function calculateKPIs(orders: any[], customers: any[], previousOrders?: any[]): KPIs {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.valor_total || 0), 0);
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -48,7 +44,8 @@ export function calculateKPIs(
     if (cid) customerOrders[cid] = (customerOrders[cid] || 0) + 1;
   });
   const recurringCustomers = Object.values(customerOrders).filter((qty) => qty > 1).length;
-  const customerRetention = customers.length > 0 ? (recurringCustomers / customers.length) * 100 : 0;
+  const customerRetention =
+    customers.length > 0 ? (recurringCustomers / customers.length) * 100 : 0;
 
   // Hora de pico (assumindo formato de data padrão)
   const hourMap: Record<string, number> = {};
@@ -83,7 +80,7 @@ export function calculateKPIs(
  */
 export function groupSalesByPeriod(
   orders: any[],
-  period: 'day' | 'week' | 'month' = 'day'
+  period: "day" | "week" | "month" = "day",
 ): SalesData[] {
   const groupMap: Record<string, { revenue: number; orders: number }> = {};
 
@@ -91,14 +88,14 @@ export function groupSalesByPeriod(
     const date = new Date(order.created_at);
     let key: string;
 
-    if (period === 'day') {
-      key = date.toLocaleDateString('pt-BR');
-    } else if (period === 'week') {
+    if (period === "day") {
+      key = date.toLocaleDateString("pt-BR");
+    } else if (period === "week") {
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
-      key = `Semana de ${weekStart.toLocaleDateString('pt-BR')}`;
+      key = `Semana de ${weekStart.toLocaleDateString("pt-BR")}`;
     } else {
-      key = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      key = date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     }
 
     if (!groupMap[key]) {
@@ -122,12 +119,12 @@ export function groupSalesByPeriod(
  */
 export function getCategoryMetrics(
   orders: any[],
-  items: any[]
+  items: any[],
 ): Record<string, { vendas: number; receita: number }> {
   const categoryMap: Record<string, { vendas: number; receita: number }> = {};
 
   items.forEach((item) => {
-    const category = item.produtos?.categoria || 'Sem categoria';
+    const category = item.produtos?.categoria || "Sem categoria";
     const receita = (item.preco_unitario || 0) * (item.quantidade || 0);
 
     if (!categoryMap[category]) {
@@ -145,9 +142,9 @@ export function getCategoryMetrics(
  * Formata número para moeda brasileira
  */
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
   }).format(value);
 }
 

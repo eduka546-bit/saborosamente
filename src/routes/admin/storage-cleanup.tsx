@@ -45,7 +45,7 @@ function StorageCleanupPage() {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -56,7 +56,7 @@ function StorageCleanupPage() {
 
       setStorageStats(data.stats);
       toast.success(
-        `✅ Storage limpo! ${data.stats.deleted_files} arquivos removidos, ${data.stats.space_freed_mb} MB liberados`
+        `✅ Storage limpo! ${data.stats.deleted_files} arquivos removidos, ${data.stats.space_freed_mb} MB liberados`,
       );
     } catch (err: any) {
       const message = err.message || "Erro desconhecido";
@@ -68,7 +68,11 @@ function StorageCleanupPage() {
   };
 
   const handleDatabaseCleanup = async () => {
-    if (!confirm("Tem certeza? Dados órfãos do banco serão permanentemente deletados! (Pedidos > 1 ano, conversas > 6 meses, carrinhos > 90 dias)")) {
+    if (
+      !confirm(
+        "Tem certeza? Dados órfãos do banco serão permanentemente deletados! (Pedidos > 1 ano, conversas > 6 meses, carrinhos > 90 dias)",
+      )
+    ) {
       return;
     }
 
@@ -85,7 +89,7 @@ function StorageCleanupPage() {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -97,7 +101,7 @@ function StorageCleanupPage() {
       setDatabaseStats(data.stats);
       const total = data.summary?.total_records_deleted || 0;
       toast.success(
-        `✅ Banco limpo! ${total} registros órfãos removidos, ~${data.summary?.estimated_space_freed_mb} MB liberados`
+        `✅ Banco limpo! ${total} registros órfãos removidos, ~${data.summary?.estimated_space_freed_mb} MB liberados`,
       );
     } catch (err: any) {
       const message = err.message || "Erro desconhecido";
@@ -163,7 +167,10 @@ function StorageCleanupPage() {
               <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-green-900">Limpeza Concluída!</p>
-                <p className="text-sm text-green-800">{storageStats.deleted_files} arquivos removidos, {storageStats.space_freed_mb} MB liberados</p>
+                <p className="text-sm text-green-800">
+                  {storageStats.deleted_files} arquivos removidos, {storageStats.space_freed_mb} MB
+                  liberados
+                </p>
               </div>
             </div>
 
@@ -188,7 +195,8 @@ function StorageCleanupPage() {
           Limpeza do Banco de Dados
         </h2>
         <p className="text-blue-800 mb-4">
-          Remove dados antigos e órfãos (pedidos &gt; 1 ano, conversas &gt; 6 meses, carrinhos &gt; 90 dias)
+          Remove dados antigos e órfãos (pedidos &gt; 1 ano, conversas &gt; 6 meses, carrinhos &gt;
+          90 dias)
         </p>
         <button
           onClick={handleDatabaseCleanup}
@@ -215,15 +223,23 @@ function StorageCleanupPage() {
               <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-green-900">Limpeza Concluída!</p>
-                <p className="text-sm text-green-800">{databaseStats.reduce((s, r) => s + (r.records_deleted || 0), 0)} registros removidos</p>
+                <p className="text-sm text-green-800">
+                  {databaseStats.reduce((s, r) => s + (r.records_deleted || 0), 0)} registros
+                  removidos
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
               {databaseStats.map((stat, idx) => (
-                <div key={idx} className="bg-white border border-blue-200 rounded-lg p-3 flex justify-between">
+                <div
+                  key={idx}
+                  className="bg-white border border-blue-200 rounded-lg p-3 flex justify-between"
+                >
                   <p className="text-sm text-blue-900 font-semibold">{stat.task}</p>
-                  <p className="text-sm font-bold text-blue-600">{stat.records_deleted || 0} registros</p>
+                  <p className="text-sm font-bold text-blue-600">
+                    {stat.records_deleted || 0} registros
+                  </p>
                 </div>
               ))}
             </div>
@@ -235,8 +251,12 @@ function StorageCleanupPage() {
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
         <p className="font-semibold text-gray-900 mb-2">ℹ️ Informações:</p>
         <ul className="list-disc list-inside space-y-1 text-gray-700">
-          <li><strong>Storage:</strong> Remove imagens não referenciadas por produtos</li>
-          <li><strong>Banco:</strong> Remove dados muito antigos e conversas encerradas</li>
+          <li>
+            <strong>Storage:</strong> Remove imagens não referenciadas por produtos
+          </li>
+          <li>
+            <strong>Banco:</strong> Remove dados muito antigos e conversas encerradas
+          </li>
           <li>Cada limpeza é segura e reversível</li>
           <li>Recomenda-se fazer backup antes se quiser</li>
           <li>Pode levar alguns segundos dependendo do volume</li>

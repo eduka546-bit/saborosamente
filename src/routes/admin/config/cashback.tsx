@@ -14,7 +14,12 @@ export const Route = createFileRoute("/admin/config/cashback")({
 
 function AdminConfigCashbackPage() {
   const queryClient = useQueryClient();
-  const [config, setConfig] = useState({ ativo: false, percentual: "5", minimo_pedido: "0", validade_dias: "30" });
+  const [config, setConfig] = useState({
+    ativo: false,
+    percentual: "5",
+    minimo_pedido: "0",
+    validade_dias: "30",
+  });
 
   const { isLoading } = useQuery({
     queryKey: ["config-cashback"],
@@ -27,10 +32,16 @@ function AdminConfigCashbackPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("site_settings").update({ cashback_config: config } as any).neq("id", "");
+      const { error } = await supabase
+        .from("site_settings")
+        .update({ cashback_config: config } as any)
+        .neq("id", "");
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["config-cashback"] }); toast.success("Configurações de cashback salvas!"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["config-cashback"] });
+      toast.success("Configurações de cashback salvas!");
+    },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
@@ -41,31 +52,76 @@ function AdminConfigCashbackPage() {
         <p className="text-gray-500 text-sm mt-1">Defina as regras do programa de cashback.</p>
       </div>
 
-      {isLoading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div> : (
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
+      ) : (
         <div className="bg-white rounded-xl border p-6 space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-xl">
-            <div><p className="font-semibold text-gray-800">Cashback Ativo</p><p className="text-xs text-gray-500">Habilitar programa de cashback</p></div>
-            <Switch checked={config.ativo} onCheckedChange={v => setConfig({ ...config, ativo: v })} />
+            <div>
+              <p className="font-semibold text-gray-800">Cashback Ativo</p>
+              <p className="text-xs text-gray-500">Habilitar programa de cashback</p>
+            </div>
+            <Switch
+              checked={config.ativo}
+              onCheckedChange={(v) => setConfig({ ...config, ativo: v })}
+            />
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Percentual de Cashback (%)</label>
-              <Input type="number" step="0.5" value={config.percentual} onChange={e => setConfig({ ...config, percentual: e.target.value })} placeholder="5" />
-              <p className="text-xs text-gray-400 mt-1">Porcentagem do valor do pedido retornada como cashback</p>
+              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                Percentual de Cashback (%)
+              </label>
+              <Input
+                type="number"
+                step="0.5"
+                value={config.percentual}
+                onChange={(e) => setConfig({ ...config, percentual: e.target.value })}
+                placeholder="5"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Porcentagem do valor do pedido retornada como cashback
+              </p>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Pedido mínimo para gerar cashback (R$)</label>
-              <Input type="number" step="1" value={config.minimo_pedido} onChange={e => setConfig({ ...config, minimo_pedido: e.target.value })} placeholder="0" />
+              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                Pedido mínimo para gerar cashback (R$)
+              </label>
+              <Input
+                type="number"
+                step="1"
+                value={config.minimo_pedido}
+                onChange={(e) => setConfig({ ...config, minimo_pedido: e.target.value })}
+                placeholder="0"
+              />
             </div>
             <div>
-              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Validade do cashback (dias)</label>
-              <Input type="number" step="1" value={config.validade_dias} onChange={e => setConfig({ ...config, validade_dias: e.target.value })} placeholder="30" />
+              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                Validade do cashback (dias)
+              </label>
+              <Input
+                type="number"
+                step="1"
+                value={config.validade_dias}
+                onChange={(e) => setConfig({ ...config, validade_dias: e.target.value })}
+                placeholder="30"
+              />
             </div>
           </div>
 
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="w-full bg-[#5850ec] text-white">
-            {saveMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />} Salvar Configurações
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+            className="w-full bg-[#5850ec] text-white"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 size={16} className="animate-spin mr-2" />
+            ) : (
+              <Save size={16} className="mr-2" />
+            )}{" "}
+            Salvar Configurações
           </Button>
         </div>
       )}

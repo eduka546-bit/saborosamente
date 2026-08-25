@@ -13,7 +13,7 @@ function requireEnv(nome: string): string {
   if (!valor) {
     throw new Error(
       `Variável de ambiente obrigatória ausente: ${nome}. ` +
-      `Configure os secrets da função (supabase secrets set ${nome}=...) antes do deploy.`
+        `Configure os secrets da função (supabase secrets set ${nome}=...) antes do deploy.`,
     );
   }
   return valor;
@@ -72,7 +72,7 @@ async function sendWhatsAppList(
   headerText: string,
   bodyText: string,
   buttonLabel: string,
-  sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]
+  sections: { title: string; rows: { id: string; title: string; description?: string }[] }[],
 ): Promise<boolean> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
@@ -119,7 +119,12 @@ async function concluirExecucao(execucaoId: string) {
 
 // Executa um nó e segue a cadeia até parar (num "aguardar" reagendado, num
 // "transferir"/"encerrar", ou ao acabar os nós).
-async function executarNo(no: any, todosNos: any[], execucao: any, telefone: string): Promise<void> {
+async function executarNo(
+  no: any,
+  todosNos: any[],
+  execucao: any,
+  telefone: string,
+): Promise<void> {
   if (!no) {
     await concluirExecucao(execucao.id);
     return;
@@ -145,7 +150,7 @@ async function executarNo(no: any, todosNos: any[], execucao: any, telefone: str
           no.config?.titulo ?? "Menu",
           no.config?.corpo ?? "Escolha uma opção:",
           "Ver opções",
-          [{ title: "Opções", rows }]
+          [{ title: "Opções", rows }],
         );
       }
       await avancar(no, todosNos, execucao, telefone);
@@ -156,13 +161,20 @@ async function executarNo(no: any, todosNos: any[], execucao: any, telefone: str
       // Reagenda: grava novo aguardando_ate e para. O próximo tick retoma.
       const valor = Number(no.config?.valor ?? 1);
       const unidade = no.config?.unidade ?? "horas";
-      const ms = unidade === "minutos" ? valor * 60_000
-        : unidade === "horas" ? valor * 3_600_000
-        : valor * 86_400_000;
+      const ms =
+        unidade === "minutos"
+          ? valor * 60_000
+          : unidade === "horas"
+            ? valor * 3_600_000
+            : valor * 86_400_000;
       const aguardandoAte = new Date(Date.now() + ms).toISOString();
       await supabase
         .from("automacao_execucoes")
-        .update({ aguardando_ate: aguardandoAte, no_atual_id: no.id, updated_at: new Date().toISOString() })
+        .update({
+          aguardando_ate: aguardandoAte,
+          no_atual_id: no.id,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", execucao.id);
       break;
     }

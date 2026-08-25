@@ -8,8 +8,8 @@ Se você tiver **Row Level Security (RLS)** ativado na tabela `produtos`, pode p
 2. Execute esta query para verificar se RLS está ativado:
 
 ```sql
-SELECT tablename, rowsecurity 
-FROM pg_tables 
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE tablename = 'produtos';
 ```
 
@@ -73,8 +73,8 @@ Após criar as políticas, teste-as:
 
 ```sql
 -- 1. Verifique se as políticas foram criadas
-SELECT policyname, permissive, roles, qual 
-FROM pg_policies 
+SELECT policyname, permissive, roles, qual
+FROM pg_policies
 WHERE tablename = 'produtos';
 
 -- 2. Tente fazer uma SELECT com uma nova conexão (simule usuário normal)

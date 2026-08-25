@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { 
-  ClipboardList, 
-  Users, 
-  Utensils, 
-  Ticket, 
-  CircleDollarSign, 
-  BarChart3, 
-  Settings, 
+import {
+  ClipboardList,
+  Users,
+  Utensils,
+  Ticket,
+  CircleDollarSign,
+  BarChart3,
+  Settings,
   LogOut,
   ChevronDown,
   LayoutDashboard,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,18 +30,21 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
         type="button"
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-xs xl:text-sm font-medium transition-colors hover:text-white shrink-0 outline-none cursor-default",
-          active ? "text-white" : "text-white/90"
+          active ? "text-white" : "text-white/90",
         )}
       >
         <Icon size={18} strokeWidth={2.5} />
         <span className="whitespace-nowrap">{label}</span>
-        {items && <ChevronDown size={14} className="ml-0.5 transition-transform duration-200 group-hover:rotate-180" />}
+        {items && (
+          <ChevronDown
+            size={14}
+            className="ml-0.5 transition-transform duration-200 group-hover:rotate-180"
+          />
+        )}
       </button>
 
       {items && (
-        <div 
-          className="absolute left-0 mt-0 w-64 rounded-b-md bg-white py-2 shadow-xl ring-1 ring-black/5 z-[10000] opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto"
-        >
+        <div className="absolute left-0 mt-0 w-64 rounded-b-md bg-white py-2 shadow-xl ring-1 ring-black/5 z-[10000] opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
           <div className="py-1">
             {items.map((item) => (
               <Link
@@ -62,7 +65,7 @@ function NavItem({ label, icon: Icon, items, active }: NavItemProps) {
 export function AdminHeader() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.location.href = "/admin/login";
     }
   };
@@ -71,7 +74,10 @@ export function AdminHeader() {
     <header className="bg-primary text-white shadow-lg sticky top-0 z-[9999] w-full border-b border-white/10">
       <div className="mx-auto flex h-16 max-w-[1800px] items-center justify-between px-4 gap-4">
         <div className="flex items-center gap-2 xl:gap-8 py-2">
-          <Link to="/admin" className="flex items-center gap-2 font-bold text-lg xl:text-xl shrink-0 hover:opacity-90 transition-opacity mr-2">
+          <Link
+            to="/admin"
+            className="flex items-center gap-2 font-bold text-lg xl:text-xl shrink-0 hover:opacity-90 transition-opacity mr-2"
+          >
             <div className="h-9 w-9 bg-white/20 rounded-lg flex items-center justify-center border border-white/20">
               <span className="text-white font-black">PD</span>
             </div>
@@ -79,59 +85,55 @@ export function AdminHeader() {
           </Link>
 
           <nav className="flex items-center">
-            <NavItem 
-              label="Pedidos" 
-              icon={ClipboardList} 
+            <NavItem
+              label="Pedidos"
+              icon={ClipboardList}
               items={[
                 { label: "Ver pedidos", href: "/admin/pedidos" },
-                { label: "Carrinho abandonado", href: "/admin/pedidos/carrinhos-abandonados" }
-              ]} 
+                { label: "Carrinho abandonado", href: "/admin/pedidos/carrinhos-abandonados" },
+              ]}
             />
-            <NavItem 
-              label="Clientes" 
-              icon={Users} 
+            <NavItem
+              label="Clientes"
+              icon={Users}
               items={[
                 { label: "Ver clientes", href: "/admin/clientes" },
                 { label: "Cashback", href: "/admin/cashback" },
                 { label: "Feedbacks", href: "/admin/avaliacoes" },
-                { label: "Pontuação", href: "/admin/pontuacao" }
-              ]} 
+                { label: "Pontuação", href: "/admin/pontuacao" },
+              ]}
             />
-            <NavItem 
-              label="Cardápio" 
-              icon={Utensils} 
+            <NavItem
+              label="Cardápio"
+              icon={Utensils}
               items={[
                 { label: "Cardápio", href: "/admin/produtos" },
                 { label: "Combos Monte Você Mesmo", href: "/admin/combos" },
-                { label: "Categorias", href: "/admin/categorias" }
-              ]} 
+                { label: "Categorias", href: "/admin/categorias" },
+              ]}
             />
-            <NavItem 
-              label="Cupons" 
-              icon={Ticket} 
-              items={[
-                { label: "Ver cupons", href: "/admin/cupons" }
-              ]} 
+            <NavItem
+              label="Cupons"
+              icon={Ticket}
+              items={[{ label: "Ver cupons", href: "/admin/cupons" }]}
             />
-            <NavItem 
-              label="Campanhas" 
-              icon={MessageSquare} 
-              items={[
-                { label: "WhatsApp em Massa", href: "/admin/campanhas" }
-              ]} 
+            <NavItem
+              label="Campanhas"
+              icon={MessageSquare}
+              items={[{ label: "WhatsApp em Massa", href: "/admin/campanhas" }]}
             />
-            <NavItem 
-              label="Financeiro" 
-              icon={CircleDollarSign} 
+            <NavItem
+              label="Financeiro"
+              icon={CircleDollarSign}
               items={[
                 { label: "Lançamentos", href: "/admin/financeiro/lancamentos" },
                 { label: "Transações", href: "/admin/financeiro/transacoes" },
-                { label: "Configurar Pagamentos", href: "/admin/config/site" }
-              ]} 
+                { label: "Configurar Pagamentos", href: "/admin/config/site" },
+              ]}
             />
-            <NavItem 
-              label="Relatórios" 
-              icon={BarChart3} 
+            <NavItem
+              label="Relatórios"
+              icon={BarChart3}
               items={[
                 { label: "KPI e indicadores", href: "/admin/relatorios/kpi" },
                 { label: "Faturamento e evolução", href: "/admin/relatorios/faturamento" },
@@ -139,12 +141,12 @@ export function AdminHeader() {
                 { label: "Clientes", href: "/admin/relatorios/clientes" },
                 { label: "Estoque e produção", href: "/admin/relatorios/estoque" },
                 { label: "Comunicação", href: "/admin/relatorios/comunicacao" },
-                { label: "Inteligência de mercado", href: "/admin/relatorios/inteligencia" }
-              ]} 
+                { label: "Inteligência de mercado", href: "/admin/relatorios/inteligencia" },
+              ]}
             />
-            <NavItem 
-              label="Configurações" 
-              icon={Settings} 
+            <NavItem
+              label="Configurações"
+              icon={Settings}
               items={[
                 { label: "Personalizar Site", href: "/admin/config/site" },
                 { label: "Fale Conosco / FAQ", href: "/admin/config/faq" },
@@ -157,8 +159,8 @@ export function AdminHeader() {
                 { label: "Informativo", href: "/admin/config/informativo" },
                 { label: "Entregador", href: "/admin/config/entregador" },
                 { label: "Parâmetros", href: "/admin/config/parametros" },
-                { label: "Impressão automática", href: "/admin/config/impressao" }
-              ]} 
+                { label: "Impressão automática", href: "/admin/config/impressao" },
+              ]}
             />
           </nav>
         </div>
@@ -168,7 +170,7 @@ export function AdminHeader() {
             <span className="font-bold text-white uppercase tracking-wider">Saborosamente</span>
             <span className="text-white/70 font-medium">Painel Gestor</span>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs xl:text-sm font-semibold hover:bg-white/25 transition-all active:scale-95 border border-white/20"
           >

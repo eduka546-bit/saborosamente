@@ -38,8 +38,11 @@ function AdminRelatoriosFaturamentoPage() {
   });
 
   const chartData = useMemo(() => {
-    const months = eachMonthOfInterval({ start: new Date(year, 0, 1), end: new Date(year, 11, 31) });
-    return months.map(month => {
+    const months = eachMonthOfInterval({
+      start: new Date(year, 0, 1),
+      end: new Date(year, 11, 31),
+    });
+    return months.map((month) => {
       const key = format(month, "yyyy-MM");
       const monthOrders = orders.filter((o: any) => o.created_at.startsWith(key));
       const receita = monthOrders.reduce((s: number, o: any) => s + (o.valor_total ?? 0), 0);
@@ -50,10 +53,13 @@ function AdminRelatoriosFaturamentoPage() {
   const total = orders.reduce((s: number, o: any) => s + (o.valor_total ?? 0), 0);
 
   const exportCSV = () => {
-    const rows = chartData.map(d => `${d.name},${d.receita.toFixed(2)},${d.pedidos}`).join("\n");
+    const rows = chartData.map((d) => `${d.name},${d.receita.toFixed(2)},${d.pedidos}`).join("\n");
     const blob = new Blob([`Mês,Receita,Pedidos\n${rows}`], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `faturamento_${year}.csv`; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `faturamento_${year}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -65,20 +71,34 @@ function AdminRelatoriosFaturamentoPage() {
           <p className="text-gray-500 text-sm mt-1">Receita mensal ao longo do ano.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className="h-10 px-3 rounded-md border border-input bg-white text-sm font-bold">
-            {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="h-10 px-3 rounded-md border border-input bg-white text-sm font-bold"
+          >
+            {[2024, 2025, 2026].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
-          <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2"><Download size={16} /> CSV</Button>
+          <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2">
+            <Download size={16} /> CSV
+          </Button>
         </div>
       </div>
 
       <div className="bg-white rounded-xl border p-4 mb-6">
         <p className="text-xs font-bold uppercase text-gray-400">Total {year}</p>
-        <p className="text-3xl font-black text-green-600">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        <p className="text-3xl font-black text-green-600">
+          R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </p>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <div className="bg-white rounded-xl border p-6">
           <div className="h-[350px]">
@@ -86,9 +106,9 @@ function AdminRelatoriosFaturamentoPage() {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" />
-                <YAxis tickFormatter={v => `R$${v}`} />
+                <YAxis tickFormatter={(v) => `R$${v}`} />
                 <Tooltip formatter={(v: any) => [`R$ ${Number(v).toFixed(2)}`, "Receita"]} />
-                <Bar dataKey="receita" fill="#5850ec" radius={[4,4,0,0]} />
+                <Bar dataKey="receita" fill="#5850ec" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

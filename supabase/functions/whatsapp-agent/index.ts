@@ -9,7 +9,7 @@ function requireEnv(nome: string): string {
   if (!valor) {
     throw new Error(
       `Variável de ambiente obrigatória ausente: ${nome}. ` +
-      `Configure os secrets da função (supabase secrets set ${nome}=...) antes de fazer o deploy.`
+        `Configure os secrets da função (supabase secrets set ${nome}=...) antes de fazer o deploy.`,
     );
   }
   return valor;
@@ -39,12 +39,12 @@ const CATEGORIAS_SEM_DESCONTO = ["sopa", "complemento"];
 
 function categoriaSemDesconto(categoria: string | null | undefined): boolean {
   const c = String(categoria ?? "").toLowerCase();
-  return CATEGORIAS_SEM_DESCONTO.some(termo => c.includes(termo));
+  return CATEGORIAS_SEM_DESCONTO.some((termo) => c.includes(termo));
 }
 
 // Retorna a porcentagem de desconto (0, 0.03, 0.05 ou 0.07) para uma quantidade total.
 function descontoProgressivoPorQuantidade(totalUnidades: number): number {
-  return FAIXAS_DESCONTO_PROGRESSIVO.find(f => totalUnidades >= f.min)?.desconto ?? 0;
+  return FAIXAS_DESCONTO_PROGRESSIVO.find((f) => totalUnidades >= f.min)?.desconto ?? 0;
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -106,7 +106,13 @@ async function sendTypingIndicator(_to: string, messageId?: string) {
 }
 
 // Envia lista interativa (menu com seções e opções clicáveis)
-async function sendWhatsAppList(to: string, headerText: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]): Promise<boolean> {
+async function sendWhatsAppList(
+  to: string,
+  headerText: string,
+  bodyText: string,
+  buttonLabel: string,
+  sections: { title: string; rows: { id: string; title: string; description?: string }[] }[],
+): Promise<boolean> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
@@ -142,7 +148,11 @@ async function sendWhatsAppList(to: string, headerText: string, bodyText: string
 }
 
 // Envia botões de resposta rápida (máximo 3 botões)
-async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: string; title: string }[]) {
+async function sendWhatsAppButtons(
+  to: string,
+  bodyText: string,
+  buttons: { id: string; title: string }[],
+) {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
@@ -158,7 +168,7 @@ async function sendWhatsAppButtons(to: string, bodyText: string, buttons: { id: 
         type: "button",
         body: { text: bodyText },
         action: {
-          buttons: buttons.map(b => ({
+          buttons: buttons.map((b) => ({
             type: "reply",
             reply: { id: b.id, title: b.title },
           })),
@@ -186,31 +196,43 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
       ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`
       : "Escolha uma opção abaixo 👇",
     "Ver opções",
-    [{
-      title: "O que você precisa?",
-      rows: [
-        { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
-        { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Montar meu pedido" },
-        { id: "menu_recomenda", title: "⭐ Recomendações", description: "Escolher um prato" },
-        { id: "menu_duvidas", title: "❓ Dúvidas", description: "Entrega, pagamento e preparo" },
-        { id: "menu_site", title: "🌐 Acessar o site", description: "saborosamente.vercel.app" },
-        { id: "menu_atendente", title: "👤 Falar com atendente", description: "Falar com nossa equipe" },
-      ],
-    }]
+    [
+      {
+        title: "O que você precisa?",
+        rows: [
+          { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
+          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Montar meu pedido" },
+          { id: "menu_recomenda", title: "⭐ Recomendações", description: "Escolher um prato" },
+          { id: "menu_duvidas", title: "❓ Dúvidas", description: "Entrega, pagamento e preparo" },
+          { id: "menu_site", title: "🌐 Acessar o site", description: "saborosamente.vercel.app" },
+          {
+            id: "menu_atendente",
+            title: "👤 Falar com atendente",
+            description: "Falar com nossa equipe",
+          },
+        ],
+      },
+    ],
   );
 
   if (!menuEnviado) {
     await sendWhatsAppMessage(
       to,
-      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`
+      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`,
     );
   }
 }
 
 function solicitouMenuPrincipal(texto: string): boolean {
-  const normalizado = texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return /(^|\s)(menu|opcao|opcoes)(\s|$)/.test(normalizado)
-    || ["oi", "ola", "bom dia", "boa tarde", "boa noite"].includes(normalizado);
+  const normalizado = texto
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return (
+    /(^|\s)(menu|opcao|opcoes)(\s|$)/.test(normalizado) ||
+    ["oi", "ola", "bom dia", "boa tarde", "boa noite"].includes(normalizado)
+  );
 }
 
 function identificarOpcaoMenu(texto: string): string | null {
@@ -227,7 +249,7 @@ function identificarOpcaoMenu(texto: string): string | null {
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string): Promise<boolean> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  
+
   // Otimizar URL para reduzir egress: adicionar transform parameters
   let optimizedUrl = imageUrl;
   if (imageUrl.includes("supabase.co")) {
@@ -235,7 +257,7 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
     const separator = imageUrl.includes("?") ? "&" : "?";
     optimizedUrl = `${imageUrl}${separator}width=800&quality=75`;
   }
-  
+
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
     const res = await fetch(url, {
       method: "POST",
@@ -260,7 +282,12 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
   return false;
 }
 
-async function sendWhatsAppDocument(to: string, docUrl: string, filename: string, caption?: string): Promise<boolean> {
+async function sendWhatsAppDocument(
+  to: string,
+  docUrl: string,
+  filename: string,
+  caption?: string,
+): Promise<boolean> {
   const mediaUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/media`;
   const messageUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
@@ -291,11 +318,14 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
       console.error(`Upload do documento para o WhatsApp falhou (tentativa ${tentativa}):`, error);
       return null;
     });
-    uploadData = await upload?.json().catch(() => ({})) as { id?: string; error?: unknown };
-    console.log(`Upload do documento resposta (tentativa ${tentativa}):`, JSON.stringify(uploadData));
+    uploadData = (await upload?.json().catch(() => ({}))) as { id?: string; error?: unknown };
+    console.log(
+      `Upload do documento resposta (tentativa ${tentativa}):`,
+      JSON.stringify(uploadData),
+    );
     uploadOk = !!upload?.ok && !!uploadData.id;
     if (uploadOk) break;
-    if (tentativa === 1) await new Promise(resolve => setTimeout(resolve, 3000));
+    if (tentativa === 1) await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   if (!uploadOk) {
@@ -305,7 +335,7 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
 
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
     if (tentativa > 1) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
     const res = await fetch(messageUrl, {
       method: "POST",
@@ -331,7 +361,10 @@ async function sendWhatsAppDocument(to: string, docUrl: string, filename: string
 }
 
 function removerLinksDeArquivos(texto: string): string {
-  return texto.replace(/https?:\/\/[^\s]+supabase\.co\/storage\/[^\s]+/gi, "").replace(/[ \t]{2,}/g, " ").trim();
+  return texto
+    .replace(/https?:\/\/[^\s]+supabase\.co\/storage\/[^\s]+/gi, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
 async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
@@ -344,14 +377,21 @@ async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
 
   const arquivo = arquivos?.find((item: any) => {
     const texto = `${item.nome ?? ""} ${item.descricao ?? ""}`.toLowerCase();
-    return item.tipo?.toLowerCase() === "pdf" || texto.includes("cardápio") || texto.includes("cardapio");
+    return (
+      item.tipo?.toLowerCase() === "pdf" || texto.includes("cardápio") || texto.includes("cardapio")
+    );
   });
 
   if (!arquivo?.url) return false;
 
   const legenda = "Aqui está nosso cardápio completo! 📎 Escolha o que você quer 😊";
-  const enviado = await sendWhatsAppDocument(telefone, arquivo.url, "Cardápio Saborosamente.pdf", legenda);
-  if (enviado) await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
+  const enviado = await sendWhatsAppDocument(
+    telefone,
+    arquivo.url,
+    "Cardápio Saborosamente.pdf",
+    legenda,
+  );
+  if (enviado) await new Promise((resolve) => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
   return enviado;
 }
 
@@ -383,7 +423,11 @@ function conversaComecouNovamente(conversa: any, historico: any[]): boolean {
   if (!historico.length) return true;
 
   const ultimaMensagem = conversa?.ultima_msg ? new Date(conversa.ultima_msg).getTime() : 0;
-  return !Number.isFinite(ultimaMensagem) || !ultimaMensagem || Date.now() - ultimaMensagem > JANELA_DE_CONVERSA_MS;
+  return (
+    !Number.isFinite(ultimaMensagem) ||
+    !ultimaMensagem ||
+    Date.now() - ultimaMensagem > JANELA_DE_CONVERSA_MS
+  );
 }
 
 async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
@@ -440,7 +484,8 @@ async function getEntregasContexto(): Promise<string> {
     .order("cidade")
     .order("bairro");
 
-  if (!taxas?.length) return "\n\nÁREAS DE ENTREGA: consulte nossa equipe para confirmar disponibilidade.";
+  if (!taxas?.length)
+    return "\n\nÁREAS DE ENTREGA: consulte nossa equipe para confirmar disponibilidade.";
 
   // Agrupa por cidade
   const porCidade: Record<string, { bairro: string; valor: number }[]> = {};
@@ -449,14 +494,18 @@ async function getEntregasContexto(): Promise<string> {
     porCidade[t.cidade].push({ bairro: t.bairro, valor: Number(t.valor) });
   }
 
-  const linhas: string[] = ["\n\nÁREAS DE ENTREGA (use SOMENTE esses bairros/cidades para confirmar entrega e informar taxa):"];
+  const linhas: string[] = [
+    "\n\nÁREAS DE ENTREGA (use SOMENTE esses bairros/cidades para confirmar entrega e informar taxa):",
+  ];
   for (const [cidade, bairros] of Object.entries(porCidade)) {
     linhas.push(`\n📍 ${cidade}:`);
     for (const b of bairros) {
       linhas.push(`  - ${b.bairro}: R$ ${b.valor.toFixed(2)}`);
     }
   }
-  linhas.push("\nSe o bairro/cidade não estiver na lista, informe que não atendemos aquela região ainda.");
+  linhas.push(
+    "\nSe o bairro/cidade não estiver na lista, informe que não atendemos aquela região ainda.",
+  );
 
   return linhas.join("\n");
 }
@@ -471,13 +520,19 @@ async function getSiteSettings(): Promise<string> {
 
   const pagamentos: string[] = [];
   if (Array.isArray(data.payment_methods)) {
-    data.payment_methods.filter((p: any) => p.enabled !== false).forEach((p: any) => pagamentos.push(p.label));
+    data.payment_methods
+      .filter((p: any) => p.enabled !== false)
+      .forEach((p: any) => pagamentos.push(p.label));
   }
   if (Array.isArray(data.meal_flags)) {
-    data.meal_flags.filter((p: any) => p.enabled !== false).forEach((p: any) => pagamentos.push(p.label));
+    data.meal_flags
+      .filter((p: any) => p.enabled !== false)
+      .forEach((p: any) => pagamentos.push(p.label));
   }
   if (Array.isArray(data.card_flags)) {
-    data.card_flags.filter((p: any) => p.enabled !== false).forEach((p: any) => pagamentos.push(p.label));
+    data.card_flags
+      .filter((p: any) => p.enabled !== false)
+      .forEach((p: any) => pagamentos.push(p.label));
   }
 
   const linhas = ["\n\nINFORMAÇÕES DO NEGÓCIO:"];
@@ -497,7 +552,9 @@ async function getArquivosContexto(): Promise<{ texto: string; arquivos: any[] }
 
   if (!arquivos?.length) return { texto: "", arquivos: [] };
 
-  const linhas = arquivos.map((a: any) => `- [${a.tipo.toUpperCase()}] "${a.nome}": ${a.descricao} → URL: ${a.url}`);
+  const linhas = arquivos.map(
+    (a: any) => `- [${a.tipo.toUpperCase()}] "${a.nome}": ${a.descricao} → URL: ${a.url}`,
+  );
 
   return {
     texto: `\n\nARQUIVOS DISPONÍVEIS PARA ENVIAR AO CLIENTE:\n${linhas.join("\n")}\nQuando o cliente pedir algo relacionado a esses arquivos, use a função enviar_arquivo com a URL correspondente.`,
@@ -551,7 +608,9 @@ async function getModulosPrompt(): Promise<string> {
 async function montarContextoCliente(profile: any): Promise<string> {
   const { data: pedidos } = await supabase
     .from("pedidos")
-    .select("id, created_at, valor_total, status, endereco_bairro, endereco_cidade, metodo_pagamento")
+    .select(
+      "id, created_at, valor_total, status, endereco_bairro, endereco_cidade, metodo_pagamento",
+    )
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false })
     .limit(3);
@@ -569,7 +628,9 @@ async function montarContextoCliente(profile: any): Promise<string> {
   if (enderecos?.length) {
     linhas.push(`- Endereços salvos:`);
     enderecos.forEach((e: any) => {
-      linhas.push(`  • ${e.label ?? "Endereço"}: ${e.rua}, ${e.numero} — ${e.bairro}, ${e.cidade}${e.complemento ? ` (${e.complemento})` : ""}`);
+      linhas.push(
+        `  • ${e.label ?? "Endereço"}: ${e.rua}, ${e.numero} — ${e.bairro}, ${e.cidade}${e.complemento ? ` (${e.complemento})` : ""}`,
+      );
     });
   }
 
@@ -577,13 +638,17 @@ async function montarContextoCliente(profile: any): Promise<string> {
     linhas.push(`- Últimos pedidos:`);
     pedidos.forEach((p: any) => {
       const data = new Date(p.created_at).toLocaleDateString("pt-BR");
-      linhas.push(`  • ${data}: R$ ${Number(p.valor_total).toFixed(2)} — ${p.status} — ${p.endereco_bairro ?? "retirada"}`);
+      linhas.push(
+        `  • ${data}: R$ ${Number(p.valor_total).toFixed(2)} — ${p.status} — ${p.endereco_bairro ?? "retirada"}`,
+      );
     });
     const pagMaisUsado = pedidos[0]?.metodo_pagamento;
     if (pagMaisUsado) linhas.push(`- Forma de pagamento preferida: ${pagMaisUsado}`);
   }
 
-  linhas.push(`\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido.`);
+  linhas.push(
+    `\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido.`,
+  );
   return linhas.join("\n");
 }
 
@@ -593,12 +658,12 @@ function telefonesBatem(a: string, b: string): boolean {
   const da = a.replace(/\D/g, "");
   const db = b.replace(/\D/g, "");
   if (!da || !db) return false;
-  return da === db
-    || da.slice(-11) === db.slice(-11)
-    || da.slice(-10) === db.slice(-10);
+  return da === db || da.slice(-11) === db.slice(-11) || da.slice(-10) === db.slice(-10);
 }
 
-async function buscarClientePorTelefone(telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
+async function buscarClientePorTelefone(
+  telefone: string,
+): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
   const tel = telefone.replace(/\D/g, "");
   if (!tel) return { encontrado: false, contexto: "", profile: null };
 
@@ -614,14 +679,18 @@ async function buscarClientePorTelefone(telefone: string): Promise<{ encontrado:
 
   if (error) console.error("buscarClientePorTelefone erro:", JSON.stringify(error));
 
-  const profile = candidatos?.find((c: any) => telefonesBatem(String(c.telefone ?? ""), tel)) ?? null;
+  const profile =
+    candidatos?.find((c: any) => telefonesBatem(String(c.telefone ?? ""), tel)) ?? null;
   if (!profile) return { encontrado: false, contexto: "", profile: null };
 
   const contexto = await montarContextoCliente(profile);
   return { encontrado: true, contexto, profile };
 }
 
-async function buscarClientePorCpf(cpf: string, telefone: string): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
+async function buscarClientePorCpf(
+  cpf: string,
+  telefone: string,
+): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
   // Remove tudo que não é número
   const cpfNum = cpf.replace(/\D/g, "");
   if (cpfNum.length < 11) return { encontrado: false, contexto: "", profile: null };
@@ -637,10 +706,7 @@ async function buscarClientePorCpf(cpf: string, telefone: string): Promise<{ enc
 
   // Vincula o telefone ao perfil para próximas vezes
   if (telefone && (!profile.telefone || profile.telefone !== telefone)) {
-    await supabase
-      .from("profiles")
-      .update({ telefone })
-      .eq("id", profile.id);
+    await supabase.from("profiles").update({ telefone }).eq("id", profile.id);
     console.log(`Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF`);
   }
 
@@ -710,12 +776,10 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
           preco_unitario: item.preco_unitario,
           observacao: item.peso ? `Peso: ${item.peso}` : null,
         };
-      })
+      }),
     );
 
-    const { error: itensError } = await supabase
-      .from("pedido_itens")
-      .insert(itensResolvidos);
+    const { error: itensError } = await supabase.from("pedido_itens").insert(itensResolvidos);
 
     if (itensError) {
       console.error("Erro ao criar itens:", JSON.stringify(itensError));
@@ -737,13 +801,18 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
 const FUNCTIONS_SCHEMA = [
   {
     name: "criar_pedido",
-    description: "Cria um pedido no sistema quando o cliente confirmou todos os dados (nome, itens, endereço/retirada, pagamento). Só use quando o cliente confirmar explicitamente.",
+    description:
+      "Cria um pedido no sistema quando o cliente confirmou todos os dados (nome, itens, endereço/retirada, pagamento). Só use quando o cliente confirmar explicitamente.",
     parameters: {
       type: "object",
       properties: {
         nome: { type: "string", description: "Nome completo do cliente" },
         telefone: { type: "string", description: "Telefone do cliente (ex: 5547999999999)" },
-        metodoEntrega: { type: "string", enum: ["entrega", "retirada"], description: "Método de entrega" },
+        metodoEntrega: {
+          type: "string",
+          enum: ["entrega", "retirada"],
+          description: "Método de entrega",
+        },
         cidade: { type: "string", description: "Cidade (apenas se entrega)" },
         bairro: { type: "string", description: "Bairro (apenas se entrega)" },
         endereco: { type: "string", description: "Rua e número (apenas se entrega)" },
@@ -772,12 +841,17 @@ const FUNCTIONS_SCHEMA = [
   },
   {
     name: "enviar_arquivo",
-    description: "Envia um arquivo (imagem ou PDF) ao cliente pelo WhatsApp quando ele solicitar ou quando for relevante.",
+    description:
+      "Envia um arquivo (imagem ou PDF) ao cliente pelo WhatsApp quando ele solicitar ou quando for relevante.",
     parameters: {
       type: "object",
       properties: {
         url: { type: "string", description: "URL do arquivo a enviar" },
-        tipo: { type: "string", enum: ["imagem", "pdf", "documento"], description: "Tipo do arquivo" },
+        tipo: {
+          type: "string",
+          enum: ["imagem", "pdf", "documento"],
+          description: "Tipo do arquivo",
+        },
         nome: { type: "string", description: "Nome do arquivo" },
         mensagem: { type: "string", description: "Mensagem de texto para acompanhar o arquivo" },
       },
@@ -786,18 +860,24 @@ const FUNCTIONS_SCHEMA = [
   },
   {
     name: "enviar_menu",
-    description: "Envia o menu principal interativo com as opções da SaborosaMente. Use na primeira mensagem do cliente, quando ele pedir um menu/opções, ou quando a conversa ficar confusa e precisar de um ponto de partida claro.",
+    description:
+      "Envia o menu principal interativo com as opções da SaborosaMente. Use na primeira mensagem do cliente, quando ele pedir um menu/opções, ou quando a conversa ficar confusa e precisar de um ponto de partida claro.",
     parameters: {
       type: "object",
       properties: {
-        motivo: { type: "string", description: "Motivo de enviar o menu (ex: primeira mensagem, cliente pediu menu, reorientar conversa)" },
+        motivo: {
+          type: "string",
+          description:
+            "Motivo de enviar o menu (ex: primeira mensagem, cliente pediu menu, reorientar conversa)",
+        },
       },
       required: ["motivo"],
     },
   },
   {
     name: "consultar_cashback",
-    description: "Consulta o saldo de cashback do cliente quando ele perguntar sobre cashback, saldo, desconto acumulado ou créditos.",
+    description:
+      "Consulta o saldo de cashback do cliente quando ele perguntar sobre cashback, saldo, desconto acumulado ou créditos.",
     parameters: {
       type: "object",
       properties: {
@@ -808,7 +888,8 @@ const FUNCTIONS_SCHEMA = [
   },
   {
     name: "buscar_cliente_cpf",
-    description: "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
+    description:
+      "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
     parameters: {
       type: "object",
       properties: {
@@ -831,10 +912,7 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
 
   const payload = JSON.stringify({
     model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt + pedidoCtx },
-      ...mensagensFiltradas,
-    ],
+    messages: [{ role: "system", content: systemPrompt + pedidoCtx }, ...mensagensFiltradas],
     functions: FUNCTIONS_SCHEMA,
     function_call: "auto",
     max_tokens: 600,
@@ -864,22 +942,31 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
       if (response.ok) break;
 
       const transitorio = response.status === 429 || response.status >= 500;
-      console.error(`OpenAI error (tentativa ${tentativa}, status ${response.status}):`, JSON.stringify(data));
+      console.error(
+        `OpenAI error (tentativa ${tentativa}, status ${response.status}):`,
+        JSON.stringify(data),
+      );
       if (!transitorio || tentativa === 2) {
-        return { tipo: "texto", conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏" };
+        return {
+          tipo: "texto",
+          conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏",
+        };
       }
     } catch (e: any) {
       const motivo = e?.name === "AbortError" ? "timeout" : (e?.message ?? "erro de rede");
       console.error(`OpenAI falhou (tentativa ${tentativa}): ${motivo}`);
       if (tentativa === 2) {
-        return { tipo: "texto", conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏" };
+        return {
+          tipo: "texto",
+          conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏",
+        };
       }
     } finally {
       clearTimeout(timeout);
     }
 
     // Pequeno backoff antes da segunda tentativa
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
   }
 
   const choice = data?.choices?.[0];
@@ -887,11 +974,18 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
 
   if (msg?.function_call) {
     let args: any = {};
-    try { args = JSON.parse(msg.function_call.arguments); } catch (_) { /* ignore */ }
+    try {
+      args = JSON.parse(msg.function_call.arguments);
+    } catch (_) {
+      /* ignore */
+    }
     return { tipo: "function", nome: msg.function_call.name, args };
   }
 
-  return { tipo: "texto", conteudo: msg?.content ?? "Desculpe, não consegui processar sua mensagem. Tente novamente." };
+  return {
+    tipo: "texto",
+    conteudo: msg?.content ?? "Desculpe, não consegui processar sua mensagem. Tente novamente.",
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -904,7 +998,7 @@ async function verificarEExecutarAutomacoes(
   conversa: any,
   historico: any[],
   gatilhoTipo: string,
-  gatilhoContexto: any = {}
+  gatilhoContexto: any = {},
 ) {
   try {
     // Busca automações ativas com esse gatilho
@@ -945,7 +1039,8 @@ async function verificarEExecutarAutomacoes(
           status: "em_andamento",
           dados: {},
         })
-        .select().single();
+        .select()
+        .single();
 
       if (!execucao) continue;
 
@@ -953,7 +1048,8 @@ async function verificarEExecutarAutomacoes(
       await executarNo(nos[0], nos, execucao, telefone, conversa, historico);
 
       // Incrementa contador
-      await supabase.from("automacoes")
+      await supabase
+        .from("automacoes")
         .update({ execucoes_total: (aut.execucoes_total ?? 0) + 1 })
         .eq("id", aut.id);
 
@@ -972,8 +1068,8 @@ function avaliarGatilho(automacao: any, texto: string, ctx: any): boolean {
     case "keyword": {
       const palavras: string[] = val.palavras ?? [];
       const textoLower = texto.toLowerCase();
-      if (val.modo === "all") return palavras.every(p => textoLower.includes(p.toLowerCase()));
-      return palavras.some(p => textoLower.includes(p.toLowerCase()));
+      if (val.modo === "all") return palavras.every((p) => textoLower.includes(p.toLowerCase()));
+      return palavras.some((p) => textoLower.includes(p.toLowerCase()));
     }
     case "primeira_msg":
       return ctx.primeiraMsg === true;
@@ -996,7 +1092,7 @@ async function executarNo(
   execucao: any,
   telefone: string,
   conversa: any,
-  historico: any[]
+  historico: any[],
 ) {
   switch (no.tipo) {
     case "mensagem": {
@@ -1018,7 +1114,7 @@ async function executarNo(
           no.config.titulo ?? "Menu",
           no.config.corpo ?? "Escolha uma opção:",
           "Ver opções",
-          [{ title: "Opções", rows }]
+          [{ title: "Opções", rows }],
         );
       }
       await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
@@ -1028,11 +1124,15 @@ async function executarNo(
     case "aguardar": {
       const valor = no.config.valor ?? 1;
       const unidade = no.config.unidade ?? "horas";
-      const ms = unidade === "minutos" ? valor * 60_000
-        : unidade === "horas" ? valor * 3_600_000
-        : valor * 86_400_000;
+      const ms =
+        unidade === "minutos"
+          ? valor * 60_000
+          : unidade === "horas"
+            ? valor * 3_600_000
+            : valor * 86_400_000;
       const aguardandoAte = new Date(Date.now() + ms).toISOString();
-      await supabase.from("automacao_execucoes")
+      await supabase
+        .from("automacao_execucoes")
         .update({ aguardando_ate: aguardandoAte, no_atual_id: no.id })
         .eq("id", execucao.id);
       // A retomada acontece no próximo processamento
@@ -1049,7 +1149,11 @@ async function executarNo(
         condicaoVerdadeira = ultimaMsg.includes(valor);
       } else if (campo === "tag") {
         const { data: tag } = await supabase
-          .from("contato_tags").select("id").eq("telefone", telefone).eq("tag", valor).maybeSingle();
+          .from("contato_tags")
+          .select("id")
+          .eq("telefone", telefone)
+          .eq("tag", valor)
+          .maybeSingle();
         condicaoVerdadeira = !!tag;
       }
 
@@ -1066,7 +1170,9 @@ async function executarNo(
     case "tag": {
       const tag = no.config.tag ?? "";
       if (tag) {
-        await supabase.from("contato_tags").upsert({ telefone, tag }, { onConflict: "telefone,tag" });
+        await supabase
+          .from("contato_tags")
+          .upsert({ telefone, tag }, { onConflict: "telefone,tag" });
       }
       await avancarExecucao(no, todos_nos, execucao, telefone, conversa, historico, true);
       break;
@@ -1089,14 +1195,20 @@ async function executarNo(
 }
 
 async function avancarExecucao(
-  no: any, todos_nos: any[], execucao: any,
-  telefone: string, conversa: any, historico: any[], _avancou: boolean
+  no: any,
+  todos_nos: any[],
+  execucao: any,
+  telefone: string,
+  conversa: any,
+  historico: any[],
+  _avancou: boolean,
 ) {
   const proximoId = no.proximo_id;
   const proximoNo = todos_nos.find((n: any) => n.id === proximoId);
 
   if (proximoNo) {
-    await supabase.from("automacao_execucoes")
+    await supabase
+      .from("automacao_execucoes")
       .update({ no_atual_id: proximoNo.id })
       .eq("id", execucao.id);
     // Executa próximo nó imediatamente (exceto aguardar)
@@ -1109,7 +1221,8 @@ async function avancarExecucao(
 }
 
 async function concluirExecucao(execucao: any) {
-  await supabase.from("automacao_execucoes")
+  await supabase
+    .from("automacao_execucoes")
     .update({ status: "concluida", updated_at: new Date().toISOString() })
     .eq("id", execucao.id);
 }
@@ -1123,15 +1236,16 @@ async function processarModoTreino(
   texto: string,
   conversa: any,
   historico: any[],
-  config: any
+  config: any,
 ) {
   const textoLower = texto.trim().toLowerCase();
 
   // Comando #sair — desativa o modo treino
   if (textoLower === "#sair") {
     await supabase.from("agente_config").update({ modo_treino: false }).eq("id", config.id);
-    await sendWhatsAppMessage(telefone,
-      "✅ Modo treino *desativado*!\n\nA Saborosa voltará a responder normalmente a todos os clientes. 🍱"
+    await sendWhatsAppMessage(
+      telefone,
+      "✅ Modo treino *desativado*!\n\nA Saborosa voltará a responder normalmente a todos os clientes. 🍱",
     );
     return;
   }
@@ -1149,21 +1263,26 @@ async function processarModoTreino(
       return;
     }
 
-    const lista = modulos.map((m: any, i: number) =>
-      `${i + 1}. *${m.nome}* [${m.categoria}] ${m.ativo ? "✅" : "❌"}`
-    ).join("\n");
+    const lista = modulos
+      .map((m: any, i: number) => `${i + 1}. *${m.nome}* [${m.categoria}] ${m.ativo ? "✅" : "❌"}`)
+      .join("\n");
 
-    await sendWhatsAppMessage(telefone, `📚 *Últimos módulos:*\n\n${lista}\n\n_Use #testar para simular uma conversa de cliente._`);
+    await sendWhatsAppMessage(
+      telefone,
+      `📚 *Últimos módulos:*\n\n${lista}\n\n_Use #testar para simular uma conversa de cliente._`,
+    );
     return;
   }
 
   // Comando #testar — entra em modo simulação (a IA responde como cliente)
   if (textoLower === "#testar") {
-    await supabase.from("whatsapp_conversas")
+    await supabase
+      .from("whatsapp_conversas")
       .update({ mensagens: [] }) // limpa histórico para simular novo cliente
       .eq("id", conversa.id);
-    await sendWhatsAppMessage(telefone,
-      "🧪 *Modo simulação ativado!*\n\nAgora vou responder como se fosse um cliente. Mande uma mensagem para testar.\n\n_Envie #sair para encerrar o treino._"
+    await sendWhatsAppMessage(
+      telefone,
+      "🧪 *Modo simulação ativado!*\n\nAgora vou responder como se fosse um cliente. Mande uma mensagem para testar.\n\n_Envie #sair para encerrar o treino._",
     );
     return;
   }
@@ -1200,14 +1319,14 @@ Responda APENAS o JSON, sem explicações.`;
     });
     const json = await resp.json();
     raw = json.choices?.[0]?.message?.content ?? "";
-    
+
     // Tenta extrair JSON de dentro de markdown code blocks
     let jsonStr = raw.trim();
     const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
       jsonStr = jsonMatch[1].trim();
     }
-    
+
     const parsed = JSON.parse(jsonStr);
     if (parsed.nome && parsed.categoria && parsed.conteudo) {
       modulo = parsed;
@@ -1237,13 +1356,17 @@ Responda APENAS o JSON, sem explicações.`;
 
   if (error) {
     console.error("Erro ao salvar módulo - Detalhes:", error);
-    await sendWhatsAppMessage(telefone, `❌ Erro ao salvar instrução: ${error.message}\n\nDados tentados: Nome="${modulo.nome}", Categoria="${modulo.categoria}"`);
+    await sendWhatsAppMessage(
+      telefone,
+      `❌ Erro ao salvar instrução: ${error.message}\n\nDados tentados: Nome="${modulo.nome}", Categoria="${modulo.categoria}"`,
+    );
     return;
   }
 
   await appendMensagem(conversa.id, historico, { role: "user", content: texto });
-  await sendWhatsAppMessage(telefone,
-    `✅ *Instrução salva!*\n\n📌 *${modulo.nome}*\n🏷️ Categoria: ${modulo.categoria}\n\n_A Saborosa já vai usar essa instrução nas próximas conversas._\n\nEnvie mais instruções, *#ver* para listar, *#testar* para simular ou *#sair* para encerrar.`
+  await sendWhatsAppMessage(
+    telefone,
+    `✅ *Instrução salva!*\n\n📌 *${modulo.nome}*\n🏷️ Categoria: ${modulo.categoria}\n\n_A Saborosa já vai usar essa instrução nas próximas conversas._\n\nEnvie mais instruções, *#ver* para listar, *#testar* para simular ou *#sair* para encerrar.`,
   );
 }
 
@@ -1308,7 +1431,10 @@ Deno.serve(async (req: Request) => {
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
-        await appendMensagem(conversa.id, historico, { role: "user", content: texto || menuId || "" });
+        await appendMensagem(conversa.id, historico, {
+          role: "user",
+          content: texto || menuId || "",
+        });
         return new Response("OK", { status: 200 });
       }
 
@@ -1322,7 +1448,7 @@ Deno.serve(async (req: Request) => {
       if (!config) {
         await sendWhatsAppMessage(
           telefone,
-          "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente."
+          "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente.",
         );
         return new Response("OK", { status: 200 });
       }
@@ -1341,7 +1467,12 @@ Deno.serve(async (req: Request) => {
       // ── Verifica automações de keyword ───────────────────────────────────
       if (texto && !menuId) {
         const autoDisparou = await verificarEExecutarAutomacoes(
-          telefone, texto, conversa, historico, "keyword", {}
+          telefone,
+          texto,
+          conversa,
+          historico,
+          "keyword",
+          {},
         );
         // Se uma automação de keyword disparou, ela já enviou a própria resposta.
         // Encerramos aqui para não gerar resposta duplicada da IA.
@@ -1361,13 +1492,16 @@ Deno.serve(async (req: Request) => {
       // abaixo não seria executado.
       if ((primeiraMsg || pediuMenu) && !menuId) {
         if (primeiraMsg) {
-          await verificarEExecutarAutomacoes(
-            telefone, texto, conversa, historico, "primeira_msg", { primeiraMsg: true }
-          );
+          await verificarEExecutarAutomacoes(telefone, texto, conversa, historico, "primeira_msg", {
+            primeiraMsg: true,
+          });
         }
         const nomeCliente = clienteResult?.profile?.nome ?? nomeConhecido;
         await sendMenuPrincipal(telefone, nomeCliente);
-        await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
+        await appendMensagem(conversa.id, historico, {
+          role: "assistant",
+          content: "[Menu principal enviado]",
+        });
         return new Response("OK", { status: 200 });
       }
 
@@ -1379,7 +1513,10 @@ Deno.serve(async (req: Request) => {
         switch (menuId) {
           case "menu_atendente": {
             // Transfere para humano
-            await supabase.from("whatsapp_conversas").update({ modo: "humano" }).eq("id", conversa.id);
+            await supabase
+              .from("whatsapp_conversas")
+              .update({ modo: "humano" })
+              .eq("id", conversa.id);
             const msg = primeiroNome
               ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
               : "Tudo bem! 😊 Vou te conectar com nossa equipe agora. Um momento!";
@@ -1388,20 +1525,33 @@ Deno.serve(async (req: Request) => {
             return new Response("OK", { status: 200 });
           }
           case "menu_site": {
-            await sendWhatsAppButtons(telefone,
+            await sendWhatsAppButtons(
+              telefone,
               "🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\nsaborosamente.vercel.app",
-              [{ id: "btn_cardapio", title: "🍽️ Ver cardápio" }, { id: "btn_pedido", title: "🛒 Fazer pedido" }]
+              [
+                { id: "btn_cardapio", title: "🍽️ Ver cardápio" },
+                { id: "btn_pedido", title: "🛒 Fazer pedido" },
+              ],
             );
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Site enviado]" });
+            await appendMensagem(conversa.id, historico, {
+              role: "assistant",
+              content: "[Site enviado]",
+            });
             await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
           }
           case "menu_cardapio":
           case "btn_cardapio": {
-            await appendMensagem(conversa.id, historico, { role: "user", content: "Quero ver o cardápio completo" });
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Quero ver o cardápio completo",
+            });
             const cardapioEnviado = await enviarCardapioPrincipal(telefone);
             if (cardapioEnviado) {
-              await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Cardápio enviado]" });
+              await appendMensagem(conversa.id, historico, {
+                role: "assistant",
+                content: "[Cardápio enviado]",
+              });
               await sendMenuInterativo(telefone);
               return new Response("OK", { status: 200 });
             }
@@ -1409,11 +1559,17 @@ Deno.serve(async (req: Request) => {
           }
           case "menu_pedido":
           case "btn_pedido": {
-            await appendMensagem(conversa.id, historico, { role: "user", content: "Quero fazer um pedido" });
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Quero fazer um pedido",
+            });
             break;
           }
           case "menu_recomenda": {
-            await appendMensagem(conversa.id, historico, { role: "user", content: "Me dê uma recomendação de prato" });
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Me dê uma recomendação de prato",
+            });
             break;
           }
           case "menu_duvidas": {
@@ -1422,35 +1578,96 @@ Deno.serve(async (req: Request) => {
               "❓ Dúvidas Frequentes",
               "Escolha o assunto da sua dúvida 👇",
               "Ver assuntos",
-              [{
-                title: "Sobre nós",
-                rows: [
-                  { id: "duvida_entrega",    title: "🚚 Entrega e frete",      description: "Cidades, taxas e prazos" },
-                  { id: "duvida_pagamento",  title: "💳 Formas de pagamento",  description: "Pix, cartão, alimentação..." },
-                  { id: "duvida_preparo",    title: "🍲 Como preparar",        description: "Tempo e modo de preparo" },
-                  { id: "duvida_validade",   title: "❄️ Validade e armazenamento", description: "Quanto tempo dura" },
-                  { id: "duvida_minimo",     title: "📦 Pedido mínimo",        description: "Quantidade mínima" },
-                ],
-              }]
+              [
+                {
+                  title: "Sobre nós",
+                  rows: [
+                    {
+                      id: "duvida_entrega",
+                      title: "🚚 Entrega e frete",
+                      description: "Cidades, taxas e prazos",
+                    },
+                    {
+                      id: "duvida_pagamento",
+                      title: "💳 Formas de pagamento",
+                      description: "Pix, cartão, alimentação...",
+                    },
+                    {
+                      id: "duvida_preparo",
+                      title: "🍲 Como preparar",
+                      description: "Tempo e modo de preparo",
+                    },
+                    {
+                      id: "duvida_validade",
+                      title: "❄️ Validade e armazenamento",
+                      description: "Quanto tempo dura",
+                    },
+                    {
+                      id: "duvida_minimo",
+                      title: "📦 Pedido mínimo",
+                      description: "Quantidade mínima",
+                    },
+                  ],
+                },
+              ],
             );
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu dúvidas enviado]" });
+            await appendMensagem(conversa.id, historico, {
+              role: "assistant",
+              content: "[Menu dúvidas enviado]",
+            });
             await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
           }
-          case "duvida_entrega":    { await appendMensagem(conversa.id, historico, { role: "user", content: "Como funciona a entrega e qual o frete?" }); break; }
-          case "duvida_pagamento":  { await appendMensagem(conversa.id, historico, { role: "user", content: "Quais as formas de pagamento aceitas?" }); break; }
-          case "duvida_preparo":    { await appendMensagem(conversa.id, historico, { role: "user", content: "Como preparo as marmitas congeladas?" }); break; }
-          case "duvida_validade":   { await appendMensagem(conversa.id, historico, { role: "user", content: "Qual a validade e como armazenar as marmitas?" }); break; }
-          case "duvida_minimo":     { await appendMensagem(conversa.id, historico, { role: "user", content: "Tem pedido mínimo?" }); break; }
+          case "duvida_entrega": {
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Como funciona a entrega e qual o frete?",
+            });
+            break;
+          }
+          case "duvida_pagamento": {
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Quais as formas de pagamento aceitas?",
+            });
+            break;
+          }
+          case "duvida_preparo": {
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Como preparo as marmitas congeladas?",
+            });
+            break;
+          }
+          case "duvida_validade": {
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Qual a validade e como armazenar as marmitas?",
+            });
+            break;
+          }
+          case "duvida_minimo": {
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: "Tem pedido mínimo?",
+            });
+            break;
+          }
           default: {
             // Opção não reconhecida — trata como texto normal
-            await appendMensagem(conversa.id, historico, { role: "user", content: texto || menuId });
+            await appendMensagem(conversa.id, historico, {
+              role: "user",
+              content: texto || menuId,
+            });
             break;
           }
         }
         // Recarga historico após append
         const { data: conversaAtualizada } = await supabase
-          .from("whatsapp_conversas").select("mensagens").eq("id", conversa.id).single();
+          .from("whatsapp_conversas")
+          .select("mensagens")
+          .eq("id", conversa.id)
+          .single();
         historico = conversaAtualizada?.mensagens ?? historico;
       }
 
@@ -1470,8 +1687,9 @@ Deno.serve(async (req: Request) => {
       ]);
 
       // Contexto do cliente reconhecido (se encontrado)
-      const clienteCtx = clienteResult.encontrado ? clienteResult.contexto : 
-        `\n\nCLIENTE NÃO CADASTRADO: telefone ${telefone}${nomeContato ? `, nome do WhatsApp: ${nomeContato}` : ""}.
+      const clienteCtx = clienteResult.encontrado
+        ? clienteResult.contexto
+        : `\n\nCLIENTE NÃO CADASTRADO: telefone ${telefone}${nomeContato ? `, nome do WhatsApp: ${nomeContato}` : ""}.
 Se for a primeira mensagem, cumprimente e atenda normalmente.
 Se o cliente disser o CPF, use a função buscar_cliente_cpf para verificar o cadastro.`;
 
@@ -1515,9 +1733,10 @@ PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
 ETAPA 1 — IDENTIFICAR O CLIENTE (obrigatória, antes de qualquer coisa):
-${clienteResult.encontrado
-  ? `✅ Cliente JÁ identificado: ${clienteResult.profile?.nome}. Pule para ETAPA 2.`
-  : `⚠️ Cliente NÃO identificado ainda. Ao iniciar um pedido, pergunte o nome completo primeiro:
+${
+  clienteResult.encontrado
+    ? `✅ Cliente JÁ identificado: ${clienteResult.profile?.nome}. Pule para ETAPA 2.`
+    : `⚠️ Cliente NÃO identificado ainda. Ao iniciar um pedido, pergunte o nome completo primeiro:
    "Para começar seu pedido, qual é o seu nome completo? 😊"
    → Com o nome: busque no banco usando o número de telefone já registrado.
    → Se não encontrar pelo nome/telefone: "Não encontrei seu cadastro. Qual é o seu CPF para eu verificar?"
@@ -1565,7 +1784,6 @@ REGRA DE SEGURANÇA:
 - Prefira errar por excesso de confirmação do que criar um pedido errado.
 - Se o cliente ficar confuso ou pedir para cancelar: "Sem problema! Pedido cancelado 😊 Posso te ajudar com mais alguma coisa?"`;
 
-
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
       historico = await appendMensagem(conversa.id, historico, { role: "user", content: texto });
 
@@ -1574,7 +1792,6 @@ REGRA DE SEGURANÇA:
 
       // ── Processa resultado ───────────────────────────────────────────────
       if (resultado.tipo === "function") {
-
         // ── Criar pedido ─────────────────────────────────────────────────
         if (resultado.nome === "criar_pedido") {
           const args = resultado.args;
@@ -1585,7 +1802,7 @@ REGRA DE SEGURANÇA:
           const subtotal = args.itens.reduce(
             (acc: number, item: any) =>
               acc + (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0),
-            0
+            0,
           );
           args.valorTotal = subtotal;
 
@@ -1593,7 +1810,7 @@ REGRA DE SEGURANÇA:
           // entrega + cidade São Bento do Sul + 5 ou mais unidades no total → R$ 5,00.
           const totalUnidades = args.itens.reduce(
             (acc: number, item: any) => acc + (Number(item.quantidade) || 0),
-            0
+            0,
           );
           const cidadeNorm = String(args.cidade ?? "")
             .toLowerCase()
@@ -1613,9 +1830,10 @@ REGRA DE SEGURANÇA:
           if (pctDesconto > 0) {
             const subtotalComDesconto = args.itens.reduce((acc: number, item: any) => {
               // Resolve a categoria do item pelo contexto de produtos (por id ou nome)
-              const prod = produtos.find((p: any) =>
-                (item.produto_id && p.id === item.produto_id) ||
-                (item.nome && String(p.nome).toLowerCase() === String(item.nome).toLowerCase())
+              const prod = produtos.find(
+                (p: any) =>
+                  (item.produto_id && p.id === item.produto_id) ||
+                  (item.nome && String(p.nome).toLowerCase() === String(item.nome).toLowerCase()),
               );
               const categoria = prod?.categorias?.nome ?? "";
               const valorItem = (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0);
@@ -1630,7 +1848,10 @@ REGRA DE SEGURANÇA:
           if (pedidoId) {
             const protocolo = pedidoId.slice(0, 8).toUpperCase();
             const itensTexto = args.itens
-              .map((i: any) => `${i.quantidade}x ${i.nome}${i.peso ? ` (${i.peso})` : ""} — R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}`)
+              .map(
+                (i: any) =>
+                  `${i.quantidade}x ${i.nome}${i.peso ? ` (${i.peso})` : ""} — R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}`,
+              )
               .join("\n");
             const desconto = Number(args.descontoAplicado ?? 0);
             const total = (subtotal - desconto + (args.taxaEntrega ?? 0)).toFixed(2);
@@ -1649,10 +1870,14 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
 
             await sendWhatsAppMessage(telefone, confirmacao);
             await salvarPedidoEmAndamento(conversa.id, null); // limpa pedido em andamento
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: confirmacao });
+            await appendMensagem(conversa.id, historico, {
+              role: "assistant",
+              content: confirmacao,
+            });
             await sendMenuInterativo(telefone);
           } else {
-            const erroMsg = "Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: saborosamente.vercel.app";
+            const erroMsg =
+              "Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: saborosamente.vercel.app";
             await sendWhatsAppMessage(telefone, erroMsg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
             await sendMenuInterativo(telefone);
@@ -1678,17 +1903,23 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             content: `[Arquivo enviado: ${nome ?? url}] ${legenda}`,
           });
           if (!midiaEnviada) {
-            await sendWhatsAppMessage(telefone, "Não consegui entregar o arquivo agora. Vou tentar novamente quando você solicitar. 🙏");
+            await sendWhatsAppMessage(
+              telefone,
+              "Não consegui entregar o arquivo agora. Vou tentar novamente quando você solicitar. 🙏",
+            );
             return new Response("OK", { status: 200 });
           }
-          await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
+          await new Promise((resolve) => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
           await sendMenuInterativo(telefone);
         }
 
         // ── Enviar menu principal ─────────────────────────────────────────
         else if (resultado.nome === "enviar_menu") {
           await sendMenuInterativo(telefone);
-          await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
+          await appendMensagem(conversa.id, historico, {
+            role: "assistant",
+            content: "[Menu principal enviado]",
+          });
         }
 
         // ── Buscar cliente por CPF ────────────────────────────────────────
@@ -1700,9 +1931,13 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           if (cpfResult.encontrado) {
             const nomeCliente = cpfResult.profile?.nome?.split(" ")[0] ?? "cliente";
             resposta = `Ótimo! Encontrei seu cadastro 😊 Seja bem-vindo de volta, *${nomeCliente}*! Já vinculamos seu número para as próximas vezes. Posso te ajudar?`;
-            await appendMensagem(conversa.id, historico, { role: "system", content: cpfResult.contexto });
+            await appendMensagem(conversa.id, historico, {
+              role: "system",
+              content: cpfResult.contexto,
+            });
           } else {
-            resposta = "Não encontrei nenhum cadastro com esse CPF. Sem problema! Pode continuar normalmente que vou te ajudar 😊";
+            resposta =
+              "Não encontrei nenhum cadastro com esse CPF. Sem problema! Pode continuar normalmente que vou te ajudar 😊";
           }
 
           await sendWhatsAppMessage(telefone, resposta);
@@ -1720,7 +1955,8 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             if (recheck.encontrado) profile = recheck.profile;
           }
           if (!profile?.id) {
-            const msg = "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
+            const msg =
+              "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             await sendMenuInterativo(telefone);
@@ -1732,15 +1968,15 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               .maybeSingle();
             const saldo = Number((saldoData as any)?.saldo ?? 0);
             const nome = profile.nome?.split(" ")[0] ?? "você";
-            const msg = saldo > 0
-              ? `💰 *${nome}*, seu saldo de cashback é *R$ ${saldo.toFixed(2).replace(".", ",")}*!\n\nVocê pode usá-lo como desconto no próximo pedido pelo site: saborosamente.vercel.app 🛒`
-              : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
+            const msg =
+              saldo > 0
+                ? `💰 *${nome}*, seu saldo de cashback é *R$ ${saldo.toFixed(2).replace(".", ",")}*!\n\nVocê pode usá-lo como desconto no próximo pedido pelo site: saborosamente.vercel.app 🛒`
+                : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             await sendMenuInterativo(telefone);
           }
         }
-
       } else {
         // ── Resposta de texto normal ─────────────────────────────────────
         const resposta = resultado.conteudo;
@@ -1759,14 +1995,25 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               comentario: null,
             });
 
-            await supabase.from("whatsapp_conversas")
+            await supabase
+              .from("whatsapp_conversas")
               .update({ aguardando_avaliacao: null })
               .eq("id", conversa.id);
 
-            const msgs = ["", "Ih, precisa melhorar 😔", "Vamos nos esforçar mais! 🙏", "Obrigado pelo feedback 😊", "Que ótimo! Ficamos felizes 😄", "Perfeito! Que alegria! 🎉"];
+            const msgs = [
+              "",
+              "Ih, precisa melhorar 😔",
+              "Vamos nos esforçar mais! 🙏",
+              "Obrigado pelo feedback 😊",
+              "Que ótimo! Ficamos felizes 😄",
+              "Perfeito! Que alegria! 🎉",
+            ];
             const agradecimento = `${msgs[nota]} Obrigada pela avaliação, *${nota} estrela${nota > 1 ? "s" : ""}*! ⭐\n\nSe quiser comentar algo, pode escrever agora. Se não, é só me chamar quando precisar! 🫶🏼`;
             await sendWhatsAppMessage(telefone, agradecimento);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: agradecimento });
+            await appendMensagem(conversa.id, historico, {
+              role: "assistant",
+              content: agradecimento,
+            });
           } else {
             await sendWhatsAppMessage(telefone, resposta);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
@@ -1778,7 +2025,6 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           await sendMenuInterativo(telefone);
         }
       }
-
     } catch (err: any) {
       console.error("Erro no agente:", err.message ?? err);
     }

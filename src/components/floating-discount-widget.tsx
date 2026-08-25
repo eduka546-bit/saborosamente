@@ -7,7 +7,7 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
 
   if (count === 0) {
     return (
-      <div 
+      <div
         onClick={onClick}
         className="fixed right-4 bottom-24 z-50 flex items-center justify-center bg-primary text-white size-14 rounded-full shadow-2xl border-4 border-white cursor-pointer hover:scale-110 transition-transform animate-in fade-in slide-in-from-bottom-4 duration-500 group"
       >
@@ -18,14 +18,14 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
 
   const currentLevel = [...RULES.PROGRESSIVE_DISCOUNT]
     .sort((a, b) => b.min - a.min)
-    .find(r => count >= r.min);
+    .find((r) => count >= r.min);
 
   const nextLevel = [...RULES.PROGRESSIVE_DISCOUNT]
     .sort((a, b) => a.min - b.min)
-    .find(r => count < r.min);
+    .find((r) => count < r.min);
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className="fixed right-4 bottom-24 z-50 flex flex-col items-end gap-2 group animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer"
     >
@@ -38,14 +38,19 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
             </div>
           )}
         </div>
-        
+
         <div className="flex flex-col min-w-[120px]">
           <span className="text-[10px] font-black text-primary uppercase leading-none mb-1 flex items-center gap-1">
             {currentLevel ? `${(currentLevel.discount * 100).toFixed(0)}% OFF ATIVO` : "Seu Pedido"}
           </span>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-black text-primary-dark">{count} {count === 1 ? 'item' : 'itens'}</span>
-            <ChevronRight size={14} className="text-primary group-hover:translate-x-1 transition-transform" />
+            <span className="text-sm font-black text-primary-dark">
+              {count} {count === 1 ? "item" : "itens"}
+            </span>
+            <ChevronRight
+              size={14}
+              className="text-primary group-hover:translate-x-1 transition-transform"
+            />
           </div>
           {nextLevel && (
             <span className="text-[9px] font-bold text-accent uppercase mt-1">
@@ -54,7 +59,7 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
           )}
         </div>
       </div>
-      
+
       {/* Floating indicator for mobile or simple view */}
       <div className="md:hidden bg-primary text-white size-14 rounded-full flex items-center justify-center shadow-xl border-4 border-white relative">
         <ShoppingBag size={20} />

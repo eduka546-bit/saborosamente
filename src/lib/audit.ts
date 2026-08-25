@@ -89,7 +89,7 @@ function sanitizarDados(dados: Record<string, any>): Record<string, any> {
     delete sanitizado[chave];
 
     // Remove chaves que contenham a palavra
-    Object.keys(sanitizado).forEach(k => {
+    Object.keys(sanitizado).forEach((k) => {
       if (k.toLowerCase().includes(chave.toLowerCase())) {
         delete sanitizado[k];
       }

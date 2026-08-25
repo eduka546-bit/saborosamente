@@ -30,7 +30,7 @@ function AdminPedidosComplementosPage() {
       const comps = item.complementos_selecionados;
       if (!Array.isArray(comps)) return;
       comps.forEach((c: any) => {
-        const nome = typeof c === "string" ? c : c?.nome ?? JSON.stringify(c);
+        const nome = typeof c === "string" ? c : (c?.nome ?? JSON.stringify(c));
         map.set(nome, (map.get(nome) ?? 0) + (item.quantidade ?? 1));
       });
     });
@@ -48,14 +48,26 @@ function AdminPedidosComplementosPage() {
       </div>
       <div className="bg-white rounded-xl border p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input placeholder="Buscar complemento..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
+          />
+          <Input
+            placeholder="Buscar complemento..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : grouped.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed p-16 text-center text-gray-400">Nenhum complemento registrado ainda.</div>
+        <div className="bg-white rounded-2xl border border-dashed p-16 text-center text-gray-400">
+          Nenhum complemento registrado ainda.
+        </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm text-left">

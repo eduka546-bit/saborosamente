@@ -24,7 +24,13 @@ export function generateAbandonCoupon(): string {
 }
 
 interface UseAbandonedCartOptions {
-  lines: Array<{ productId: string; quantity: number; weight?: string; product?: any; subtotal?: number }>;
+  lines: Array<{
+    productId: string;
+    quantity: number;
+    weight?: string;
+    product?: any;
+    subtotal?: number;
+  }>;
   total: number;
   /** Chamar quando o exit intent for disparado — passa o cupom gerado e o percentual */
   onExitIntent: (coupon: string, discountPercent: number) => void;
@@ -36,11 +42,11 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
   const couponRef = useRef<string | null>(null);
   const exitFiredRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasCart = lines.length > 0;
-
-  // Não disparar no painel admin
+  // Não disparar no painel admin. IMPORTANTE: não fazer early return aqui —
+  // os hooks abaixo precisam ser chamados sempre na mesma ordem (regras de
+  // hooks do React). A flag isAdmin é usada para desativar a lógica interna.
   const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
-  if (isAdmin) return { markConverted: async () => {} };
+  const hasCart = lines.length > 0 && !isAdmin;
 
   // ── Salva / atualiza o carrinho no banco ──────────────────────────────────
   const saveToDb = useCallback(
@@ -48,7 +54,9 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       if (!hasCart) return;
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         const user = session?.user ?? null;
 
         // Snapshot dos itens para o banco
@@ -75,10 +83,7 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
 
         if (dbIdRef.current) {
           // Atualiza registro existente
-          await supabase
-            .from("carrinhos_abandonados")
-            .update(payload)
-            .eq("id", dbIdRef.current);
+          await supabase.from("carrinhos_abandonados").update(payload).eq("id", dbIdRef.current);
         } else {
           // Cria novo registro
           const { data } = await supabase
@@ -92,7 +97,7 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
         console.warn("[AbandonedCart] erro ao salvar:", err);
       }
     },
-    [lines, total, hasCart]
+    [lines, total, hasCart],
   );
 
   // ── Marca como convertido quando pedido é finalizado ─────────────────────
@@ -109,7 +114,9 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       if (typeof window !== "undefined") {
         localStorage.removeItem("saborosamente.abandon_coupon");
       }
-    } catch {}
+    } catch {
+      /* falha silenciosa: marcar conversão é best-effort */
+    }
   }, []);
 
   const saveCoupon = useCallback(async (cupom: string, discountPercent: number = 5) => {
@@ -132,7 +139,9 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
         .from("carrinhos_abandonados")
         .update({ cupom_oferta: cupom, origem: "exit_intent" })
         .eq("id", dbIdRef.current);
-    } catch {}
+    } catch {
+      /* falha silenciosa: vincular cupom ao carrinho é best-effort */
+    }
   }, []);
 
   // ── Auto-save depois de 3 min parado com carrinho ─────────────────────────
@@ -140,9 +149,12 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     if (!hasCart) return;
 
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      saveToDb("timeout");
-    }, 3 * 60 * 1000); // 3 minutos
+    saveTimeoutRef.current = setTimeout(
+      () => {
+        saveToDb("timeout");
+      },
+      3 * 60 * 1000,
+    ); // 3 minutos
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -171,7 +183,9 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
         if (data?.exit_intent_discount) {
           discountPercent = Number(data.exit_intent_discount);
         }
-      } catch {}
+      } catch {
+        /* usa o desconto padrão de 5% se a consulta falhar */
+      }
 
       await saveToDb("exit_intent");
       await saveCoupon(coupon, discountPercent);

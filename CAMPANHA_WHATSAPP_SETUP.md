@@ -9,44 +9,48 @@ Seu sistema de envio em massa de mensagens WhatsApp com **IMAGENS, VÍDEOS E TEX
 ## 📋 O que foi implementado
 
 ### 1. **Página de Campanhas** (`/admin/campanhas`)
-   - **Upload de Mídia**: Escolha entre Imagem, Vídeo ou Só Texto
-     - 📷 **Imagem**: PNG, JPG, WebP até 5MB
-     - 🎥 **Vídeo**: MP4 até 16MB (WhatsApp Business)
-     - 📝 **Só Texto**: Apenas a mensagem
-   - **Editor de Mensagem**: TextArea com contador de caracteres
-   - **Pré-visualização**: Celular em tempo real (com vídeo/imagem)
-   - **Filtros de Clientes**:
-     - ✅ Todos (com telefone)
-     - ✅ Por Bairro (dropdown)
-     - ✅ Por Gasto (range R$ min-max)
-     - ✅ Ativos 30 dias (compra recente)
-   - **Gerenciar Contatos**: 
-     - 📥 **Importar CSV**: Carregue lista de telefones
-     - ➕ **Adicionar Contato**: Um por um
-     - 📋 **Copiar/Colar**: Bloco inteiro
-     - ✏️ **Editar**: Cada contato individualmente
-     - 🗑️ **Remover**: Limpar contatos
+
+- **Upload de Mídia**: Escolha entre Imagem, Vídeo ou Só Texto
+  - 📷 **Imagem**: PNG, JPG, WebP até 5MB
+  - 🎥 **Vídeo**: MP4 até 16MB (WhatsApp Business)
+  - 📝 **Só Texto**: Apenas a mensagem
+- **Editor de Mensagem**: TextArea com contador de caracteres
+- **Pré-visualização**: Celular em tempo real (com vídeo/imagem)
+- **Filtros de Clientes**:
+  - ✅ Todos (com telefone)
+  - ✅ Por Bairro (dropdown)
+  - ✅ Por Gasto (range R$ min-max)
+  - ✅ Ativos 30 dias (compra recente)
+- **Gerenciar Contatos**:
+  - 📥 **Importar CSV**: Carregue lista de telefones
+  - ➕ **Adicionar Contato**: Um por um
+  - 📋 **Copiar/Colar**: Bloco inteiro
+  - ✏️ **Editar**: Cada contato individualmente
+  - 🗑️ **Remover**: Limpar contatos
 
 ### 2. **Menu Admin**
-   - Link "Campanhas → WhatsApp em Massa"
-   - Acesso em: `/admin/campanhas`
+
+- Link "Campanhas → WhatsApp em Massa"
+- Acesso em: `/admin/campanhas`
 
 ### 3. **Supabase Function** (`whatsapp-campanha-enviar`)
-   - Envio **sequencial** com rate limiting inteligente
-   - Suporta **vídeo + texto**, **imagem + texto**, ou **só texto**
-   - Vídeo/imagem é enviado PRIMEIRO, depois o texto
-   - **🛡️ Proteções contra restrição:**
-     - Rate limit: 30 msgs/min (conservador)
-     - Delay mínimo: 2 segundos entre mensagens
-     - Backoff exponencial em case de error 429
-     - Retry automático (até 3 tentativas)
-     - Monitoramento em tempo real
-   - Detecta erros: rate limit, telefone inválido, número bloqueado
-   - Rastreamento completo
+
+- Envio **sequencial** com rate limiting inteligente
+- Suporta **vídeo + texto**, **imagem + texto**, ou **só texto**
+- Vídeo/imagem é enviado PRIMEIRO, depois o texto
+- **🛡️ Proteções contra restrição:**
+  - Rate limit: 30 msgs/min (conservador)
+  - Delay mínimo: 2 segundos entre mensagens
+  - Backoff exponencial em case de error 429
+  - Retry automático (até 3 tentativas)
+  - Monitoramento em tempo real
+- Detecta erros: rate limit, telefone inválido, número bloqueado
+- Rastreamento completo
 
 ### 4. **Histórico de Campanhas**
-   - Status em tempo real: Enviando / Enviada / Erro
-   - Estatísticas: enviados, falhados, total
+
+- Status em tempo real: Enviando / Enviada / Erro
+- Estatísticas: enviados, falhados, total
 
 ---
 
@@ -59,6 +63,7 @@ Seu sistema de envio em massa de mensagens WhatsApp com **IMAGENS, VÍDEOS E TEX
 3. Execute (Ctrl+Enter)
 
 **O que é criado:**
+
 - `campanhas_whatsapp`: armazena campanha com `video_url` e `midia_tipo`
 - `campanhas_whatsapp_envios`: rastreamento individual
 - Storage bucket `campanhas`: para imagens E vídeos (16MB)
@@ -85,23 +90,27 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 ## 📱 Como Usar
 
 ### Com Vídeo:
+
 1. Tipo de Mídia: "🎥 Vídeo"
 2. Upload: MP4 (máx 16MB)
 3. Mensagem: texto que vai junto
 4. Enviar
 
 ### Com Imagem:
+
 1. Tipo de Mídia: "📷 Imagem"
 2. Upload: PNG/JPG/WebP (máx 5MB)
 3. Mensagem: texto
 4. Enviar
 
 ### Só Texto:
+
 1. Tipo de Mídia: "📝 Só Texto"
 2. Digite mensagem
 3. Enviar
 
 ### Importar CSV de Contatos:
+
 1. Clique em **"Ver/Editar Lista Completa"**
 2. Clique em **"📥 Importar CSV"**
 3. Selecione arquivo `.csv` com telefones
@@ -109,6 +118,7 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 5. Edite/confirme antes de enviar
 
 **Formatos de CSV aceitos:**
+
 - Apenas telefones (um por linha)
 - Com header "Telefone" ou "Phone"
 - Múltiplas colunas (extrai telefone automaticamente)
@@ -127,18 +137,20 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 ✅ **Adicionar contatos manualmente**
 ✅ Envio inteligente (mídia primeiro, depois texto)
 ✅ **🛡️ Proteções contra restrição WhatsApp:**
-   - Rate limiting (30 msgs/min)
-   - Delay 2s entre mensagens
-   - Backoff exponencial
-   - Retry automático
-   - Monitoramento em tempo real
-✅ Histórico completo com estatísticas
+
+- Rate limiting (30 msgs/min)
+- Delay 2s entre mensagens
+- Backoff exponencial
+- Retry automático
+- Monitoramento em tempo real
+  ✅ Histórico completo com estatísticas
 
 ---
 
 ## 📊 Banco de Dados
 
 ### campanhas_whatsapp
+
 - `id, nome, mensagem`
 - `imagem_url` (NULL se vídeo/texto)
 - `video_url` (NULL se imagem/texto)
@@ -146,6 +158,7 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 - `status, contatos_total, contatos_enviados, contatos_falhados`
 
 ### campanhas_whatsapp_envios
+
 - `campanha_id, telefone, status`
 - `erro_mensagem, enviado_em`
 
@@ -154,15 +167,18 @@ WHATSAPP_PHONE_NUMBER_ID=seu_phone_id
 ## 🚨 Troubleshooting
 
 **Vídeo não envia?**
+
 - Formato: MP4 recomendado
 - Tamanho: máx 16MB
 - Verifique se bucket permite vídeos
 
 **Imagem não envia?**
+
 - Tamanho: máx 5MB
 - Formatos: PNG, JPG, WebP
 
 **Contatos não carregam?**
+
 - Verifique `telefone` em `profiles`
 - Verifique `bairro` para filtro
 

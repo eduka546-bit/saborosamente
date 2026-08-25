@@ -15,36 +15,62 @@ function AdminPontuacaoPage() {
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["pontuacao-clientes"],
     queryFn: async () => {
-      const { data: profs, error } = await supabase.from("profiles").select("id, nome, email").order("nome");
+      const { data: profs, error } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .order("nome");
       if (error) throw error;
-      const { data: orders } = await supabase.from("pedidos").select("user_id, valor_total").neq("status", "Cancelado");
+      const { data: orders } = await supabase
+        .from("pedidos")
+        .select("user_id, valor_total")
+        .neq("status", "Cancelado");
       const map = new Map<string, number>();
       (orders ?? []).forEach((o: any) => {
-        if (o.user_id) map.set(o.user_id, (map.get(o.user_id) ?? 0) + Math.floor((o.valor_total ?? 0) / 10));
+        if (o.user_id)
+          map.set(o.user_id, (map.get(o.user_id) ?? 0) + Math.floor((o.valor_total ?? 0) / 10));
       });
-      return (profs ?? []).map((p: any) => ({ ...p, pontos: map.get(p.id) ?? 0 })).sort((a: any, b: any) => b.pontos - a.pontos);
+      return (profs ?? [])
+        .map((p: any) => ({ ...p, pontos: map.get(p.id) ?? 0 }))
+        .sort((a: any, b: any) => b.pontos - a.pontos);
     },
   });
 
-  const filtered = useMemo(() =>
-    profiles.filter((p: any) => p.nome?.toLowerCase().includes(search.toLowerCase()) || p.email?.toLowerCase().includes(search.toLowerCase())),
-    [profiles, search]
+  const filtered = useMemo(
+    () =>
+      profiles.filter(
+        (p: any) =>
+          p.nome?.toLowerCase().includes(search.toLowerCase()) ||
+          p.email?.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [profiles, search],
   );
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Pontuação de Clientes</h1>
-        <p className="text-gray-500 text-sm mt-1">Ranking de pontos acumulados (1 ponto a cada R$ 10 gastos).</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Ranking de pontos acumulados (1 ponto a cada R$ 10 gastos).
+        </p>
       </div>
       <div className="bg-white rounded-xl border p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input placeholder="Buscar cliente..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
+          />
+          <Input
+            placeholder="Buscar cliente..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm text-left">

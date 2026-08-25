@@ -1,9 +1,9 @@
 /**
  * Script de upload de imagens dos produtos para o Supabase Storage
- * 
+ *
  * Como usar:
  *   bun run upload_imagens.ts
- * 
+ *
  * O script:
  * 1. Varre as pastas em ./Imagens/
  * 2. Extrai o código do produto (TD01, SO01, etc.) do nome da pasta
@@ -34,8 +34,8 @@ async function main() {
 
   // Lista todas as pastas
   const pastas = (await readdir(IMAGENS_DIR, { withFileTypes: true }))
-    .filter(d => d.isDirectory())
-    .map(d => d.name);
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
 
   console.log(`📁 ${pastas.length} pastas encontradas\n`);
 
@@ -68,7 +68,7 @@ async function main() {
 
     // Lista imagens da pasta
     const arquivos = (await readdir(join(IMAGENS_DIR, pasta)))
-      .filter(f => IMG_EXTS.has(extname(f).toLowerCase()))
+      .filter((f) => IMG_EXTS.has(extname(f).toLowerCase()))
       .sort(); // ordena para consistência
 
     if (!arquivos.length) {
@@ -100,9 +100,9 @@ async function main() {
           continue;
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from(BUCKET)
-          .getPublicUrl(nomeStorage);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(BUCKET).getPublicUrl(nomeStorage);
 
         urlsUploadadas.push(publicUrl);
         console.log(`  ✅ ${arquivo} → ${publicUrl}`);
@@ -123,7 +123,7 @@ async function main() {
       .from("produtos")
       .update({
         imagem_url: urlsUploadadas[0],
-        imagens: urlsUploadadas.map(url => ({ url })),
+        imagens: urlsUploadadas.map((url) => ({ url })),
       })
       .eq("id", produto.id);
 
@@ -131,7 +131,9 @@ async function main() {
       console.log(`  ❌ Erro ao atualizar banco: ${updateErr.message}`);
       erros++;
     } else {
-      console.log(`  💾 Banco atualizado — imagem principal + ${urlsUploadadas.length - 1} na galeria\n`);
+      console.log(
+        `  💾 Banco atualizado — imagem principal + ${urlsUploadadas.length - 1} na galeria\n`,
+      );
       sucessos++;
     }
   }

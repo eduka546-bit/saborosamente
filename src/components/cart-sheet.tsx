@@ -4,36 +4,25 @@ import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
   SheetFooter,
-  SheetClose
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { DiscountProgressWidget } from "./discount-progress-widget";
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const {
-    lines,
-    subtotal,
-    discount,
-    shipping,
-    total,
-    setQuantity,
-    remove,
-    clear,
-  } = useCart();
+  const { lines, subtotal, discount, shipping, total, setQuantity, remove, clear } = useCart();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+      <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 rounded-l-[2rem] border-l-0 shadow-2xl">
         <SheetHeader className="p-6 border-b bg-white rounded-tl-[2rem]">
           <div className="flex items-center justify-between">
@@ -52,7 +41,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               </div>
               <p className="text-gray-500 font-medium">Seu carrinho está vazio</p>
               <SheetClose asChild>
-                <Button variant="outline" className="rounded-full">Continuar comprando</Button>
+                <Button variant="outline" className="rounded-full">
+                  Continuar comprando
+                </Button>
               </SheetClose>
             </div>
           ) : (
@@ -69,7 +60,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       className="size-16 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-primary-dark truncate">{product.nome}</h4>
+                      <h4 className="text-xs font-bold text-primary-dark truncate">
+                        {product.nome}
+                      </h4>
                       <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
                         {weight || product.peso}
                       </p>
@@ -81,7 +74,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="text-[11px] font-bold min-w-[12px] text-center">{quantity}</span>
+                          <span className="text-[11px] font-bold min-w-[12px] text-center">
+                            {quantity}
+                          </span>
                           <button
                             onClick={() => setQuantity(product.id, quantity + 1, weight)}
                             className="size-6 rounded-full hover:bg-white flex items-center justify-center transition-colors"
@@ -89,7 +84,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                             <Plus className="size-3" />
                           </button>
                         </div>
-                        <span className="text-xs font-black text-primary">{formatBRL(lineTotal)}</span>
+                        <span className="text-xs font-black text-primary">
+                          {formatBRL(lineTotal)}
+                        </span>
                       </div>
                     </div>
                     <button
@@ -103,7 +100,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               </ul>
 
               <DiscountProgressWidget className="bg-white" />
-              
+
               <button
                 onClick={clear}
                 className="text-[10px] font-bold text-gray-400 uppercase hover:text-red-500 transition-colors text-center w-full"
@@ -135,9 +132,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 * Entrega calculada no checkout
               </p>
             </div>
-            <Button 
+            <Button
               onClick={() => setOpen(false)}
-              asChild 
+              asChild
               className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20"
             >
               <Link to="/checkout">Finalizar compra</Link>

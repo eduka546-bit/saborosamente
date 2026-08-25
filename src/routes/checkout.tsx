@@ -4,7 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { CheckCircle2, MessageCircle, MapPin, ChevronDown, LogIn, UserPlus, X, Gift } from "lucide-react";
+import {
+  CheckCircle2,
+  MessageCircle,
+  MapPin,
+  ChevronDown,
+  LogIn,
+  UserPlus,
+  X,
+  Gift,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -124,13 +133,20 @@ function Checkout() {
     setAuthLoading(true);
     try {
       if (authMode === "login") {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
         if (error) throw error;
         setSession(data.session);
         // prefill dados
         if (data.session?.user) {
           setValue("email", data.session.user.email ?? "");
-          const { data: profile } = await supabase.from("profiles").select("nome, telefone").eq("id", data.session.user.id).single();
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("nome, telefone")
+            .eq("id", data.session.user.id)
+            .single();
           if (profile?.nome) setValue("nome", profile.nome);
           if (profile?.telefone) setValue("telefone", profile.telefone);
         }
@@ -140,7 +156,7 @@ function Checkout() {
         const { data, error } = await supabase.auth.signUp({
           email: authEmail,
           password: authPassword,
-          options: { data: { nome: authNome, telefone: authTelefone } }
+          options: { data: { nome: authNome, telefone: authTelefone } },
         });
         if (error) throw error;
         if (data.session) {
@@ -148,7 +164,12 @@ function Checkout() {
           setValue("email", authEmail);
           setValue("nome", authNome);
           setValue("telefone", authTelefone);
-          await supabase.from("profiles").upsert({ id: data.session.user.id, nome: authNome, telefone: authTelefone, email: authEmail });
+          await supabase.from("profiles").upsert({
+            id: data.session.user.id,
+            nome: authNome,
+            telefone: authTelefone,
+            email: authEmail,
+          });
         }
         toast.success("Conta criada! Agora finalize seu pedido.");
         setShowAuthModal(false);
@@ -167,13 +188,17 @@ function Checkout() {
 
   useEffect(() => {
     if (!session?.user) return;
-    getCashbackConfig().then(cfg => setCashbackConfig(cfg));
-    getSaldo(session.user.id).then(s => setCashbackSaldo(s));
+    getCashbackConfig().then((cfg) => setCashbackConfig(cfg));
+    getSaldo(session.user.id).then((s) => setCashbackSaldo(s));
   }, [session]);
 
   // ── cupom de desconto ─────────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState(search.cupom ?? "");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ codigo: string; tipo: string; valor: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    codigo: string;
+    tipo: string;
+    valor: number;
+  } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
@@ -215,7 +240,9 @@ function Checkout() {
       }
       // verifica restrição de primeira compra
       if (data.apenas_primeira_compra) {
-        const { data: { session: s } } = await supabase.auth.getSession();
+        const {
+          data: { session: s },
+        } = await supabase.auth.getSession();
         if (s?.user) {
           // usuário logado — verifica pedidos pelo user_id
           const { count } = await supabase
@@ -247,8 +274,8 @@ function Checkout() {
     ? appliedCoupon.tipo === "Percentual"
       ? subtotal * (appliedCoupon.valor / 100)
       : appliedCoupon.tipo === "Entrega Grátis"
-      ? shipping
-      : appliedCoupon.valor
+        ? shipping
+        : appliedCoupon.valor
     : 0;
 
   // calcula desconto do cashback e total final
@@ -432,16 +459,22 @@ function Checkout() {
         let qrCodeUrl = null;
         if (values.pagamento === "pix") {
           try {
-            const pixRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pix-qr`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-              body: JSON.stringify({
-                pix_dict: "chave-pix@saborosamente", // TODO: Carregar do admin settings
-                valor: finalTotal,
-                descricao: `Pedido #${order.id.slice(0, 8).toUpperCase()}`,
-                pedido_id: order.id,
-              }),
-            });
+            const pixRes = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pix-qr`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({
+                  pix_dict: "chave-pix@saborosamente", // TODO: Carregar do admin settings
+                  valor: finalTotal,
+                  descricao: `Pedido #${order.id.slice(0, 8).toUpperCase()}`,
+                  pedido_id: order.id,
+                }),
+              },
+            );
             const pixData = await pixRes.json();
             qrCodeUrl = pixData.qr_code_url;
           } catch (e) {
@@ -452,15 +485,20 @@ function Checkout() {
         // Envia notificação via WhatsApp com QR code se PIX
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-          body: JSON.stringify({ 
-            pedido_id: order.id, 
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            pedido_id: order.id,
             status_novo: values.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
             qr_code_pix: qrCodeUrl,
             valor_total: finalTotal,
           }),
         });
-      } catch (_) {}
+      } catch (_) {
+        /* falha ao notificar não deve bloquear a finalização do pedido */
+      }
 
       // Credita cashback ao usuário
       if (session?.user?.id) {
@@ -471,7 +509,9 @@ function Checkout() {
         }
       }
 
-      toast.success("Pedido registrado!", { description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}` });
+      toast.success("Pedido registrado!", {
+        description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}`,
+      });
     } catch (error: any) {
       console.error("[checkout] falha ao registrar pedido", error);
       toast.error("Não foi possível registrar o pedido: " + (error?.message ?? "Tente novamente."));
@@ -485,16 +525,19 @@ function Checkout() {
         <CheckCircle2 className="mx-auto size-14 text-primary" aria-hidden="true" />
         <h1 className="mt-6 text-3xl font-extrabold">Pedido recebido!</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Protocolo <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em breve entraremos em
-          contato para confirmar.
+          Protocolo{" "}
+          <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em
+          breve entraremos em contato para confirmar.
         </p>
 
         {/* Modal de Feedback */}
         {!feedbackEnviado && (
           <div className="mt-8 bg-white border rounded-2xl p-6 text-left shadow-sm">
             <h3 className="text-lg font-bold text-center mb-1">Como foi sua experiência?</h3>
-            <p className="text-xs text-muted-foreground text-center mb-4">Sua opinião nos ajuda a melhorar!</p>
-            
+            <p className="text-xs text-muted-foreground text-center mb-4">
+              Sua opinião nos ajuda a melhorar!
+            </p>
+
             {/* Estrelas de nota */}
             <div className="flex justify-center gap-2 mb-4">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -524,12 +567,14 @@ function Checkout() {
                 type="button"
                 onClick={async () => {
                   try {
-                    await supabase.from("avaliacoes").insert([{
-                      pedido_id: orderId,
-                      user_id: session?.user?.id || null,
-                      nota: feedbackNota,
-                      comentario: feedbackComentario || null,
-                    }]);
+                    await supabase.from("avaliacoes").insert([
+                      {
+                        pedido_id: orderId,
+                        user_id: session?.user?.id || null,
+                        nota: feedbackNota,
+                        comentario: feedbackComentario || null,
+                      },
+                    ]);
                     setFeedbackEnviado(true);
                     toast.success("Obrigado pelo feedback!");
                   } catch (e) {
@@ -618,12 +663,7 @@ function Checkout() {
                 <label htmlFor="email" className="text-sm font-medium">
                   E-mail
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  className={fieldClass}
-                  {...register("email")}
-                />
+                <input id="email" type="email" className={fieldClass} {...register("email")} />
                 {errors.email && (
                   <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
                 )}
@@ -692,13 +732,11 @@ function Checkout() {
                 }}
               >
                 <option value="">Selecione...</option>
-                {[...new Set(taxas.map((t) => t.cidade))]
-                  .sort()
-                  .map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
+                {[...new Set(taxas.map((t) => t.cidade))].sort().map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
               {errors.cidade && (
                 <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
@@ -794,7 +832,9 @@ function Checkout() {
                         aria-hidden="true"
                       />
                     ) : (
-                      <span className="text-2xl" aria-hidden="true">💳</span>
+                      <span className="text-2xl" aria-hidden="true">
+                        💳
+                      </span>
                     )}
                     <span className="text-sm font-semibold leading-tight">{opt.label}</span>
                     <span className="text-xs text-muted-foreground">{opt.sublabel}</span>
@@ -807,12 +847,13 @@ function Checkout() {
 
             {(selectedPayment === "pix" || selectedPayment === "mercadopago") && (
               <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                <MessageCircle className="mt-0.5 size-5 shrink-0 text-green-600" aria-hidden="true" />
+                <MessageCircle
+                  className="mt-0.5 size-5 shrink-0 text-green-600"
+                  aria-hidden="true"
+                />
                 <p>
                   Após confirmar o pedido, enviaremos o{" "}
-                  <strong>
-                    {selectedPayment === "pix" ? "código PIX" : "link de pagamento"}
-                  </strong>{" "}
+                  <strong>{selectedPayment === "pix" ? "código PIX" : "link de pagamento"}</strong>{" "}
                   via <strong>WhatsApp</strong>. Mantenha o aplicativo aberto para receber. 📲
                 </p>
               </div>
@@ -833,7 +874,7 @@ function Checkout() {
                           "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
                           isSelected
                             ? "border-primary bg-primary/10 font-semibold shadow-sm"
-                            : "border-border bg-background hover:border-primary"
+                            : "border-border bg-background hover:border-primary",
                         )}
                       >
                         {flag.logo ? (
@@ -845,7 +886,9 @@ function Checkout() {
                   })}
                 </div>
                 {!selectedFlag && (
-                  <p className="text-xs text-muted-foreground">Selecione a bandeira para continuar</p>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione a bandeira para continuar
+                  </p>
                 )}
               </div>
             )}
@@ -865,7 +908,7 @@ function Checkout() {
                           "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
                           isSelected
                             ? "border-primary bg-primary/10 font-semibold shadow-sm"
-                            : "border-border bg-background hover:border-primary"
+                            : "border-border bg-background hover:border-primary",
                         )}
                       >
                         {flag.logo ? (
@@ -910,16 +953,29 @@ function Checkout() {
             <div className="mt-1.5 flex gap-2">
               <input
                 value={couponInput}
-                onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); setAppliedCoupon(null); }}
-                onKeyDown={e => e.key === "Enter" && (e.preventDefault(), applyCoupon(couponInput))}
+                onChange={(e) => {
+                  setCouponInput(e.target.value.toUpperCase());
+                  setCouponError("");
+                  setAppliedCoupon(null);
+                }}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), applyCoupon(couponInput))
+                }
                 placeholder="Digite seu cupom"
-                className={cn(fieldClass, "flex-1 mt-0 uppercase tracking-widest font-bold", appliedCoupon ? "border-green-400 bg-green-50" : "")}
+                className={cn(
+                  fieldClass,
+                  "flex-1 mt-0 uppercase tracking-widest font-bold",
+                  appliedCoupon ? "border-green-400 bg-green-50" : "",
+                )}
                 disabled={!!appliedCoupon}
               />
               {appliedCoupon ? (
                 <button
                   type="button"
-                  onClick={() => { setAppliedCoupon(null); setCouponInput(""); }}
+                  onClick={() => {
+                    setAppliedCoupon(null);
+                    setCouponInput("");
+                  }}
                   className="rounded-2xl border border-red-200 bg-red-50 px-4 text-xs font-bold text-red-500 hover:bg-red-100 transition-colors"
                 >
                   Remover
@@ -942,35 +998,50 @@ function Checkout() {
                 {appliedCoupon.tipo === "Percentual"
                   ? `${appliedCoupon.valor}% de desconto`
                   : appliedCoupon.tipo === "Entrega Grátis"
-                  ? "frete grátis"
-                  : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
+                    ? "frete grátis"
+                    : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
               </p>
             )}
           </div>
 
           {/* ── cashback ───────────────────────────────────────────────── */}
           {session && cashbackSaldo > 0 && cashbackConfig?.ativo && (
-            <div className={cn("rounded-2xl border p-4 space-y-2 transition-all", cashbackAtivado ? "border-yellow-400 bg-yellow-50" : "border-border bg-muted/30")}>
+            <div
+              className={cn(
+                "rounded-2xl border p-4 space-y-2 transition-all",
+                cashbackAtivado ? "border-yellow-400 bg-yellow-50" : "border-border bg-muted/30",
+              )}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Gift size={15} className="text-yellow-600" />
                   <span className="text-sm font-semibold">
-                    Cashback disponível: <strong className="text-yellow-700">{formatBRL(cashbackSaldo)}</strong>
+                    Cashback disponível:{" "}
+                    <strong className="text-yellow-700">{formatBRL(cashbackSaldo)}</strong>
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setCashbackAtivado(!cashbackAtivado)}
-                  className={cn("text-xs font-bold px-3 py-1.5 rounded-full transition-all", cashbackAtivado ? "bg-yellow-500 text-white" : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200")}
+                  className={cn(
+                    "text-xs font-bold px-3 py-1.5 rounded-full transition-all",
+                    cashbackAtivado
+                      ? "bg-yellow-500 text-white"
+                      : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
+                  )}
                 >
                   {cashbackAtivado ? "✓ Usando" : "Usar"}
                 </button>
               </div>
               {cashbackAtivado && cashbackDesconto > 0 && (
-                <p className="text-xs text-yellow-700">Desconto de <strong>{formatBRL(cashbackDesconto)}</strong> aplicado.</p>
+                <p className="text-xs text-yellow-700">
+                  Desconto de <strong>{formatBRL(cashbackDesconto)}</strong> aplicado.
+                </p>
               )}
               {cashbackSaldo < (cashbackConfig?.minimo_uso ?? 5) && (
-                <p className="text-xs text-muted-foreground">Saldo mínimo para usar: {formatBRL(cashbackConfig?.minimo_uso ?? 5)}</p>
+                <p className="text-xs text-muted-foreground">
+                  Saldo mínimo para usar: {formatBRL(cashbackConfig?.minimo_uso ?? 5)}
+                </p>
               )}
             </div>
           )}
@@ -996,13 +1067,17 @@ function Checkout() {
             {isSubmitting
               ? "Registrando pedido..."
               : session
-              ? `Confirmar pedido • ${formatBRL(finalTotal)}`
-              : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
+                ? `Confirmar pedido • ${formatBRL(finalTotal)}`
+                : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
 
           {!session && (
             <p className="text-center text-xs text-muted-foreground">
-              <button type="button" onClick={() => setShowAuthModal(true)} className="text-primary font-semibold hover:underline">
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                className="text-primary font-semibold hover:underline"
+              >
                 Fazer login ou criar conta
               </button>{" "}
               para finalizar o pedido e acompanhar suas entregas.
@@ -1030,7 +1105,15 @@ function Checkout() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Entrega</dt>
-              <dd>{appliedCoupon?.tipo === "Entrega Grátis" ? <span className="text-green-600 font-semibold">Grátis</span> : shipping === 0 ? "Grátis" : formatBRL(shipping)}</dd>
+              <dd>
+                {appliedCoupon?.tipo === "Entrega Grátis" ? (
+                  <span className="text-green-600 font-semibold">Grátis</span>
+                ) : shipping === 0 ? (
+                  "Grátis"
+                ) : (
+                  formatBRL(shipping)
+                )}
+              </dd>
             </div>
             {couponDiscount > 0 && appliedCoupon?.tipo !== "Entrega Grátis" && (
               <div className="flex justify-between text-green-600">
@@ -1059,11 +1142,17 @@ function Checkout() {
       {/* ── Modal de login/cadastro inline ──────────────────────────────── */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowAuthModal(false)}
+          />
           <div className="relative w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-primary px-6 py-5 text-white">
-              <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+              >
                 <X size={16} />
               </button>
               <h2 className="text-lg font-black">
@@ -1081,30 +1170,83 @@ function Checkout() {
               {authMode === "register" && (
                 <>
                   <div>
-                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome completo</label>
-                    <input value={authNome} onChange={e => setAuthNome(e.target.value)} required placeholder="Seu nome" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                      Nome completo
+                    </label>
+                    <input
+                      value={authNome}
+                      onChange={(e) => setAuthNome(e.target.value)}
+                      required
+                      placeholder="Seu nome"
+                      className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Telefone / WhatsApp</label>
-                    <input value={authTelefone} onChange={e => setAuthTelefone(e.target.value)} placeholder="(47) 99999-9999" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                      Telefone / WhatsApp
+                    </label>
+                    <input
+                      value={authTelefone}
+                      onChange={(e) => setAuthTelefone(e.target.value)}
+                      placeholder="(47) 99999-9999"
+                      className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    />
                   </div>
                 </>
               )}
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">E-mail</label>
-                <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} required placeholder="seu@email.com" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  required
+                  placeholder="seu@email.com"
+                  className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Senha</label>
-                <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} required placeholder="••••••••" className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                />
               </div>
 
-              <button type="submit" disabled={authLoading} className="w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2">
-                {authLoading ? "Aguarde..." : authMode === "login" ? <><LogIn size={16} /> Entrar e finalizar pedido</> : <><UserPlus size={16} /> Criar conta e finalizar</>}
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {authLoading ? (
+                  "Aguarde..."
+                ) : authMode === "login" ? (
+                  <>
+                    <LogIn size={16} /> Entrar e finalizar pedido
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={16} /> Criar conta e finalizar
+                  </>
+                )}
               </button>
 
-              <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors py-1">
-                {authMode === "login" ? "Não tem conta? Criar agora" : "Já tenho conta. Fazer login"}
+              <button
+                type="button"
+                onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
+                className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+              >
+                {authMode === "login"
+                  ? "Não tem conta? Criar agora"
+                  : "Já tenho conta. Fazer login"}
               </button>
             </form>
           </div>

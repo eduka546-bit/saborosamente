@@ -21,15 +21,15 @@ async function sendWhatsApp(to: string, text: string) {
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const response = await fetch(url, {
     method: "POST",
-    headers: { 
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`, 
-      "Content-Type": "application/json" 
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ 
-      messaging_product: "whatsapp", 
-      to, 
-      type: "text", 
-      text: { body: text } 
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "text",
+      text: { body: text },
     }),
   });
 
@@ -47,18 +47,18 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
   const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const response = await fetch(url, {
     method: "POST",
-    headers: { 
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`, 
-      "Content-Type": "application/json" 
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ 
-      messaging_product: "whatsapp", 
-      to, 
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
       type: "image",
-      image: { 
+      image: {
         link: imageUrl,
-        caption: caption || undefined
-      } 
+        caption: caption || undefined,
+      },
     }),
   });
 
@@ -90,7 +90,11 @@ async function isClienteRecorrente(user_id: string): Promise<boolean> {
 /**
  * Gera mensagens personalizadas por status do pedido
  */
-function mensagemStatus(status: string, pedido: any, isRecorrente: boolean = false): { texto: string; tipo: 'texto' | 'pix' } | null {
+function mensagemStatus(
+  status: string,
+  pedido: any,
+  isRecorrente: boolean = false,
+): { texto: string; tipo: "texto" | "pix" } | null {
   const protocolo = pedido.id.slice(0, 8).toUpperCase();
   const nome = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
   const linkRastreamento = `${VITE_SUPABASE_URL}/pedido?p=${protocolo}`;
@@ -98,40 +102,42 @@ function mensagemStatus(status: string, pedido: any, isRecorrente: boolean = fal
   switch (status) {
     case "novo_pedido":
       // Se é cliente recorrente, oferece desconto especial
-      const bonus = isRecorrente ? "\n\n🎁 *Bônus recorrente desbloqueado!* Use código *VOLTA5* para 5% OFF" : "";
+      const bonus = isRecorrente
+        ? "\n\n🎁 *Bônus recorrente desbloqueado!* Use código *VOLTA5* para 5% OFF"
+        : "";
       return {
-        tipo: 'texto',
-        texto: `🍱 Olá, *${nome}*! Recebemos seu pedido *#${protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: ${linkRastreamento}${bonus}`
+        tipo: "texto",
+        texto: `🍱 Olá, *${nome}*! Recebemos seu pedido *#${protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: ${linkRastreamento}${bonus}`,
       };
 
     case "pagamento_confirmado":
       return {
-        tipo: 'pix',
-        texto: `✅ Pagamento confirmado, *${nome}*! Seu pedido *#${protocolo}* foi confirmado.\n\nEstamos preparando com carinho 🍱\n\nAcompanhe: ${linkRastreamento}`
+        tipo: "pix",
+        texto: `✅ Pagamento confirmado, *${nome}*! Seu pedido *#${protocolo}* foi confirmado.\n\nEstamos preparando com carinho 🍱\n\nAcompanhe: ${linkRastreamento}`,
       };
 
     case "preparando":
       return {
-        tipo: 'texto',
-        texto: `🔥 *${nome}*, seu pedido *#${protocolo}* está sendo preparado agora com carinho 👨‍🍳\n\nTempo estimado: 30-45 min\n\nAcompanhe: ${linkRastreamento}`
+        tipo: "texto",
+        texto: `🔥 *${nome}*, seu pedido *#${protocolo}* está sendo preparado agora com carinho 👨‍🍳\n\nTempo estimado: 30-45 min\n\nAcompanhe: ${linkRastreamento}`,
       };
 
     case "saiu para entrega":
       return {
-        tipo: 'texto',
-        texto: `🚚 *${nome}*, seu pedido *#${protocolo}* saiu para entrega agora! 🏃‍♂️\n\nRastreie em tempo real: ${linkRastreamento}`
+        tipo: "texto",
+        texto: `🚚 *${nome}*, seu pedido *#${protocolo}* saiu para entrega agora! 🏃‍♂️\n\nRastreie em tempo real: ${linkRastreamento}`,
       };
 
     case "entregue":
       return {
-        tipo: 'texto',
-        texto: `🎉 Pedido *#${protocolo}* entregue, *${nome}*!\n\nEsperamos que aprecie bastante 😋\n\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼`
+        tipo: "texto",
+        texto: `🎉 Pedido *#${protocolo}* entregue, *${nome}*!\n\nEsperamos que aprecie bastante 😋\n\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼`,
       };
 
     case "cancelado":
       return {
-        tipo: 'texto',
-        texto: `😔 Oi, *${nome}*. Infelizmente seu pedido *#${protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬`
+        tipo: "texto",
+        texto: `😔 Oi, *${nome}*. Infelizmente seu pedido *#${protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬`,
       };
 
     default:
@@ -147,7 +153,8 @@ Deno.serve(async (req) => {
 
     if (!pedido_id || !status_novo) {
       return new Response(JSON.stringify({ error: "pedido_id e status_novo são obrigatórios" }), {
-        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -160,14 +167,16 @@ Deno.serve(async (req) => {
 
     if (error || !pedido) {
       return new Response(JSON.stringify({ error: "Pedido não encontrado" }), {
-        status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 404,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     const telefone = pedido.telefone_cliente;
     if (!telefone) {
       return new Response(JSON.stringify({ ok: false, motivo: "sem telefone" }), {
-        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -181,7 +190,8 @@ Deno.serve(async (req) => {
     const mensagemObj = mensagemStatus(status_novo, pedido, isRecorrente);
     if (!mensagemObj) {
       return new Response(JSON.stringify({ ok: false, motivo: "sem mensagem para esse status" }), {
-        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -192,9 +202,9 @@ Deno.serve(async (req) => {
     if (status_novo === "pagamento_confirmado" && qr_code_pix) {
       try {
         await sendWhatsAppImage(
-          telWA, 
-          qr_code_pix, 
-          `PIX no valor de R$ ${valor_total?.toFixed(2) || "---"}`
+          telWA,
+          qr_code_pix,
+          `PIX no valor de R$ ${valor_total?.toFixed(2) || "---"}`,
         );
       } catch (e) {
         console.warn("Erro ao enviar QR Code do PIX:", e);
@@ -209,13 +219,13 @@ Deno.serve(async (req) => {
       // Registra sessão de avaliação na conversa WhatsApp (se tabela existe)
       try {
         await supabase.from("whatsapp_conversas").upsert(
-          { 
-            telefone: telWA, 
-            mensagens: [], 
-            aguardando_avaliacao: pedido_id, 
-            ultima_msg: new Date().toISOString() 
+          {
+            telefone: telWA,
+            mensagens: [],
+            aguardando_avaliacao: pedido_id,
+            ultima_msg: new Date().toISOString(),
           },
-          { onConflict: "telefone" }
+          { onConflict: "telefone" },
         );
       } catch (e) {
         console.warn("Erro ao registrar conversa de avaliação:", e);
@@ -223,20 +233,26 @@ Deno.serve(async (req) => {
     }
 
     // Log de sucesso
-    console.log(`✅ Notificação WhatsApp enviada para ${telWA}: ${status_novo}${isRecorrente ? ' [CLIENTE RECORRENTE]' : ''}`);
+    console.log(
+      `✅ Notificação WhatsApp enviada para ${telWA}: ${status_novo}${isRecorrente ? " [CLIENTE RECORRENTE]" : ""}`,
+    );
 
-    return new Response(JSON.stringify({ 
-      ok: true, 
-      cliente_recorrente: isRecorrente,
-      status: status_novo 
-    }), {
-      status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        cliente_recorrente: isRecorrente,
+        status: status_novo,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   } catch (e: any) {
     console.error("whatsapp-notify error:", e.message);
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });

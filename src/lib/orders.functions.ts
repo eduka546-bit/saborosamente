@@ -47,8 +47,10 @@ export const createOrder = createServerFn({ method: "POST" })
       observacao: [
         data.observacoes,
         data.troco ? `Troco para: ${data.troco}` : null,
-        data.tipoCartao ? `Cartão: ${data.tipoCartao}` : null
-      ].filter(Boolean).join(" | "),
+        data.tipoCartao ? `Cartão: ${data.tipoCartao}` : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
       valor_total: data.valorTotal,
       taxa_entrega: data.taxaEntrega,
       desconto_aplicado: data.desconto ?? 0,
@@ -82,12 +84,10 @@ export const createOrder = createServerFn({ method: "POST" })
       produto_id: item.productId,
       quantidade: item.quantity,
       preco_unitario: item.price,
-      observacao: item.weight ? `Peso: ${item.weight}` : null
+      observacao: item.weight ? `Peso: ${item.weight}` : null,
     }));
 
-    const { error: itemsError } = await supabase
-      .from("pedido_itens")
-      .insert(itemsToInsert);
+    const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
 
     if (itemsError) throw new Error(itemsError.message);
 

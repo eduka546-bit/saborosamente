@@ -1,11 +1,11 @@
 /**
  * Exemplos de como usar o novo campo `rating` na tabela `produtos`
- * 
+ *
  * Este arquivo é apenas para referência. Copie os padrões para seu código.
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { z } from 'zod';
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 // ============================================================================
 // 1. ATUALIZAR SCHEMAS ZOD
@@ -32,16 +32,16 @@ export type ProdutoComRating = z.infer<typeof produtoComRatingSchema>;
 // ============================================================================
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || '',
-  process.env.VITE_SUPABASE_ANON_KEY || ''
+  process.env.VITE_SUPABASE_URL || "",
+  process.env.VITE_SUPABASE_ANON_KEY || "",
 );
 
 // Exemplo 1: Buscar produtos ordenados por rating (melhor primeiro)
 export async function getProdutosOrdernadorPorRating() {
   const { data, error } = await supabase
-    .from('produtos')
-    .select('id, nome, preco, rating')
-    .order('rating', { ascending: false })
+    .from("produtos")
+    .select("id, nome, preco, rating")
+    .order("rating", { ascending: false })
     .limit(10);
 
   if (error) throw error;
@@ -51,28 +51,25 @@ export async function getProdutosOrdernadorPorRating() {
 // Exemplo 2: Filtrar apenas produtos bem avaliados
 export async function getProdutosComBomRating(minimo: number = 4.5) {
   const { data, error } = await supabase
-    .from('produtos')
-    .select('id, nome, preco, rating')
-    .gte('rating', minimo)
-    .order('rating', { ascending: false });
+    .from("produtos")
+    .select("id, nome, preco, rating")
+    .gte("rating", minimo)
+    .order("rating", { ascending: false });
 
   if (error) throw error;
   return data;
 }
 
 // Exemplo 3: Atualizar rating de um produto
-export async function atualizarRatingProduto(
-  produtoId: string,
-  novoRating: number
-) {
+export async function atualizarRatingProduto(produtoId: string, novoRating: number) {
   // Validar que o rating está no intervalo permitido
   const validatedRating = ratingSchema.parse(novoRating);
 
   const { data, error } = await supabase
-    .from('produtos')
+    .from("produtos")
     .update({ rating: validatedRating })
-    .eq('id', produtoId)
-    .select('id, nome, rating')
+    .eq("id", produtoId)
+    .select("id, nome, rating")
     .single();
 
   if (error) throw error;
@@ -81,14 +78,11 @@ export async function atualizarRatingProduto(
 
 // Exemplo 4: Buscar estatísticas de ratings
 export async function obterEstatisticasRating() {
-  const { data, error } = await supabase
-    .rpc('get_rating_stats'); // Você precisaria criar essa função SQL
+  const { data, error } = await supabase.rpc("get_rating_stats"); // Você precisaria criar essa função SQL
 
   if (error) {
     // Fallback: calcular manualmente
-    const { data: produtos } = await supabase
-      .from('produtos')
-      .select('rating');
+    const { data: produtos } = await supabase.from("produtos").select("rating");
 
     if (produtos && produtos.length > 0) {
       const ratings = produtos.filter((p) => p.rating).map((p) => p.rating);
@@ -109,16 +103,13 @@ export async function obterEstatisticasRating() {
 }
 
 // Exemplo 5: Buscar produtos por faixa de rating
-export async function getProdutosPorFaixaRating(
-  min: number,
-  max: number
-) {
+export async function getProdutosPorFaixaRating(min: number, max: number) {
   const { data, error } = await supabase
-    .from('produtos')
-    .select('id, nome, preco, rating')
-    .gte('rating', min)
-    .lte('rating', max)
-    .order('rating', { ascending: false });
+    .from("produtos")
+    .select("id, nome, preco, rating")
+    .gte("rating", min)
+    .lte("rating", max)
+    .order("rating", { ascending: false });
 
   if (error) throw error;
   return data;
@@ -136,7 +127,7 @@ export function RatingDisplay({ rating }: { rating?: number | null }) {
 
   return (
     <span className="flex items-center gap-2">
-      <span className="text-lg">{'⭐'.repeat(Math.floor(rating))}</span>
+      <span className="text-lg">{"⭐".repeat(Math.floor(rating))}</span>
       <span className="font-semibold">{rating.toFixed(1)}</span>
     </span>
   );
@@ -175,19 +166,19 @@ export function RatingInput({
 export async function exemploCompleto() {
   try {
     // 1. Buscar produtos com melhor rating
-    console.log('📊 Produtos melhor avaliados:');
+    console.log("📊 Produtos melhor avaliados:");
     const melhoresAvaliados = await getProdutosOrdernadorPorRating();
     melhoresAvaliados.forEach((p: any) => {
       console.log(`  - ${p.nome}: ⭐ ${p.rating}`);
     });
 
     // 2. Buscar produtos bem avaliados (>= 4.5)
-    console.log('\n⭐ Produtos com rating >= 4.5:');
+    console.log("\n⭐ Produtos com rating >= 4.5:");
     const bomRating = await getProdutosComBomRating(4.5);
     console.log(`  Total: ${bomRating.length} produtos`);
 
     // 3. Buscar estatísticas
-    console.log('\n📈 Estatísticas de ratings:');
+    console.log("\n📈 Estatísticas de ratings:");
     const stats = await obterEstatisticasRating();
     if (stats) {
       console.log(`  Média: ${stats.media}`);
@@ -198,17 +189,12 @@ export async function exemploCompleto() {
     // 4. Atualizar um rating (exemplo)
     if (melhoresAvaliados.length > 0) {
       const primeiroProduto = melhoresAvaliados[0];
-      console.log(
-        `\n✏️  Atualizando rating de "${primeiroProduto.nome}" para 4.8`
-      );
-      const atualizado = await atualizarRatingProduto(
-        primeiroProduto.id,
-        4.8
-      );
+      console.log(`\n✏️  Atualizando rating de "${primeiroProduto.nome}" para 4.8`);
+      const atualizado = await atualizarRatingProduto(primeiroProduto.id, 4.8);
       console.log(`  Novo rating: ⭐ ${atualizado.rating}`);
     }
   } catch (error) {
-    console.error('❌ Erro:', error);
+    console.error("❌ Erro:", error);
   }
 }
 

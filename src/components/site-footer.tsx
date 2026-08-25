@@ -14,7 +14,8 @@ const LOGO_URL =
   "https://assets.lovable.dev/a/v1/2243a82c-49d6-4af9-887d-485d4661259d/fd470ffb-641c-4979-acb2-e05ec52a30be/saborosamente-logo.png";
 
 // Link real do Google Maps
-const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=Rua+Augusto+Wunderwald,+7,+Progresso,+São+Bento+do+Sul,+SC";
+const MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Rua+Augusto+Wunderwald,+7,+Progresso,+São+Bento+do+Sul,+SC";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -26,7 +27,16 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
       <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -65,16 +75,17 @@ export function SiteFooter() {
 
   const bg = settings?.announcement_bg_color || "#086e45";
   const text = settings?.announcement_text_color || "#ffffff";
-  const logoUrl = (settings as any)?.footer_logo_url
-    || (settings as any)?.profile_image_url
-    || LOGO_URL;
+  const logoUrl =
+    (settings as any)?.footer_logo_url || (settings as any)?.profile_image_url || LOGO_URL;
   const whatsapp = (settings as any)?.footer_whatsapp || "5547991507757";
   const instagram = (settings as any)?.footer_instagram || "saborosamente.sbs";
   const addressLine1 = (settings as any)?.footer_address_line1 || "Rua Augusto Wunderwald, 7";
   const addressLine2 = (settings as any)?.footer_address_line2 || "Progresso — São Bento do Sul/SC";
   const addressCep = (settings as any)?.footer_address_cep || "CEP 89281-060";
   const mapsUrl = (settings as any)?.footer_maps_url || MAPS_URL;
-  const description = (settings as any)?.footer_description || "Comida de verdade, congelada no ponto certo e entregue na sua porta.";
+  const description =
+    (settings as any)?.footer_description ||
+    "Comida de verdade, congelada no ponto certo e entregue na sua porta.";
   const credit = (settings as any)?.footer_credit || "@emf.digital";
 
   const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
@@ -82,16 +93,14 @@ export function SiteFooter() {
   const mealFlags = enabledOrDefault((settings as any)?.meal_flags, defaultMealFlags);
 
   const mercadoPago = methods.find((m) =>
-    (m.label || (m as any).name || "").toLowerCase().includes("mercado")
+    (m.label || (m as any).name || "").toLowerCase().includes("mercado"),
   );
 
   return (
     <footer style={{ backgroundColor: bg, color: text }} className="relative mt-24 overflow-hidden">
-
       {/* ── corpo principal ─────────────────────────────────────────────── */}
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
-
           {/* coluna 1 — marca */}
           <div className="space-y-5 lg:col-span-1">
             <Link to="/" aria-label="Início" className="inline-block">
@@ -102,9 +111,7 @@ export function SiteFooter() {
                 style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}
               />
             </Link>
-            <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">
-              {description}
-            </p>
+            <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">{description}</p>
             <div className="flex flex-col gap-2 pt-1">
               <div className="flex items-center gap-2 text-xs opacity-70">
                 <Leaf size={13} className="shrink-0" />
@@ -123,7 +130,9 @@ export function SiteFooter() {
 
           {/* coluna 2 — navegação */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Navegação</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+              Navegação
+            </h3>
             <nav>
               <ul className="space-y-3 text-sm">
                 {[
@@ -150,7 +159,9 @@ export function SiteFooter() {
 
           {/* coluna 3 — atendimento */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Atendimento</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+              Atendimento
+            </h3>
             <ul className="space-y-4 text-sm">
               <li>
                 <a
@@ -162,7 +173,10 @@ export function SiteFooter() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
                     <WhatsAppIcon className="size-4" />
                   </span>
-                  <span>(+55) {whatsapp.replace(/^55/, "").replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</span>
+                  <span>
+                    (+55){" "}
+                    {whatsapp.replace(/^55/, "").replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
+                  </span>
                 </a>
               </li>
               <li>
@@ -195,7 +209,9 @@ export function SiteFooter() {
 
           {/* coluna 4 — localização */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">Localização</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+              Localização
+            </h3>
             <a
               href={mapsUrl}
               target="_blank"
@@ -204,8 +220,10 @@ export function SiteFooter() {
             >
               <MapPin size={15} className="shrink-0 mt-0.5" />
               <address className="not-italic">
-                {addressLine1}<br />
-                {addressLine2}<br />
+                {addressLine1}
+                <br />
+                {addressLine2}
+                <br />
                 {addressCep}
               </address>
             </a>
@@ -226,10 +244,8 @@ export function SiteFooter() {
 
         {/* ── formas de pagamento ─────────────────────────────────────────── */}
         <div className="mt-16 pt-12 space-y-10">
-
           {/* dois módulos lado a lado em desktop */}
           <div className="grid gap-10 md:grid-cols-2">
-
             {/* cartão de crédito/débito + mercado pago */}
             {(cardFlags.length > 0 || mercadoPago) && (
               <div className="space-y-4">
@@ -247,10 +263,17 @@ export function SiteFooter() {
                   {mercadoPago && (
                     <div title="Mercado Pago" className="group flex flex-col items-center gap-1.5">
                       <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
-                        {(mercadoPago.icon || (mercadoPago as any).logo) ? (
-                          <img src={mercadoPago.icon || (mercadoPago as any).logo} alt="Mercado Pago" loading="lazy" className="h-full w-full object-contain" />
+                        {mercadoPago.icon || (mercadoPago as any).logo ? (
+                          <img
+                            src={mercadoPago.icon || (mercadoPago as any).logo}
+                            alt="Mercado Pago"
+                            loading="lazy"
+                            className="h-full w-full object-contain"
+                          />
                         ) : (
-                          <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">MP</span>
+                          <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">
+                            MP
+                          </span>
                         )}
                       </div>
                       <span className="text-[8px] font-semibold uppercase tracking-wide opacity-50 text-center leading-tight max-w-[4.5rem]">

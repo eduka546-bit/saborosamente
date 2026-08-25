@@ -27,12 +27,18 @@ function AdminPedidosAcompanhamentosPage() {
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Acompanhamentos Solicitados</h1>
-        <p className="text-gray-500 text-sm mt-1">Observações e acompanhamentos pedidos pelos clientes.</p>
+        <p className="text-gray-500 text-sm mt-1">
+          Observações e acompanhamentos pedidos pelos clientes.
+        </p>
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : data.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed p-16 text-center text-gray-400">Nenhuma observação registrada.</div>
+        <div className="bg-white rounded-2xl border border-dashed p-16 text-center text-gray-400">
+          Nenhuma observação registrada.
+        </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm text-left">
@@ -47,11 +53,15 @@ function AdminPedidosAcompanhamentosPage() {
             <tbody className="divide-y">
               {data.map((item: any, idx: number) => (
                 <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-semibold text-gray-900">{item.produtos?.nome ?? "—"}</td>
+                  <td className="px-6 py-4 font-semibold text-gray-900">
+                    {item.produtos?.nome ?? "—"}
+                  </td>
                   <td className="px-6 py-4 text-gray-600 italic">"{item.observacao}"</td>
                   <td className="px-6 py-4 text-[#5850ec] font-bold">{item.quantidade}×</td>
                   <td className="px-6 py-4 text-gray-400 text-xs">
-                    {item.pedidos?.created_at ? new Date(item.pedidos.created_at).toLocaleDateString("pt-BR") : "—"}
+                    {item.pedidos?.created_at
+                      ? new Date(item.pedidos.created_at).toLocaleDateString("pt-BR")
+                      : "—"}
                   </td>
                 </tr>
               ))}

@@ -2,8 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ShoppingCart, Loader2, Search, MessageCircle,
-  TrendingUp, DollarSign, RefreshCw, CheckCircle2, Eye, X
+  ShoppingCart,
+  Loader2,
+  Search,
+  MessageCircle,
+  TrendingUp,
+  DollarSign,
+  RefreshCw,
+  CheckCircle2,
+  Eye,
+  X,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
@@ -29,15 +37,17 @@ function ItemsPreview({ itens }: { itens: any[] }) {
       {itens.slice(0, 3).map((item: any, i: number) => (
         <div key={i} className="flex items-center gap-2">
           {item.imagem && (
-            <img src={item.imagem} className="h-6 w-6 rounded object-cover border shrink-0" alt="" />
+            <img
+              src={item.imagem}
+              className="h-6 w-6 rounded object-cover border shrink-0"
+              alt=""
+            />
           )}
           <span className="truncate max-w-[160px]">{item.nome ?? item.productId}</span>
           <span className="text-gray-400 shrink-0">×{item.quantity}</span>
         </div>
       ))}
-      {itens.length > 3 && (
-        <p className="text-gray-400">+{itens.length - 3} mais</p>
-      )}
+      {itens.length > 3 && <p className="text-gray-400">+{itens.length - 3} mais</p>}
     </div>
   );
 }
@@ -75,17 +85,18 @@ function AdminCarrinhosAbandonadosPage() {
     },
   });
 
-  const filtered = useMemo(() =>
-    data.filter((c: any) => {
-      const matchStatus = filterStatus === "todos" || c.status === filterStatus;
-      const matchSearch =
-        !search ||
-        c.nome?.toLowerCase().includes(search.toLowerCase()) ||
-        c.telefone?.includes(search) ||
-        c.email?.toLowerCase().includes(search.toLowerCase());
-      return matchStatus && matchSearch;
-    }),
-    [data, search, filterStatus]
+  const filtered = useMemo(
+    () =>
+      data.filter((c: any) => {
+        const matchStatus = filterStatus === "todos" || c.status === filterStatus;
+        const matchSearch =
+          !search ||
+          c.nome?.toLowerCase().includes(search.toLowerCase()) ||
+          c.telefone?.includes(search) ||
+          c.email?.toLowerCase().includes(search.toLowerCase());
+        return matchStatus && matchSearch;
+      }),
+    [data, search, filterStatus],
   );
 
   // Estatísticas
@@ -106,9 +117,11 @@ function AdminCarrinhosAbandonadosPage() {
     const itens = (carrinho.itens as any[])
       .map((i: any) => `• ${i.nome ?? i.productId} ×${i.quantity}`)
       .join("\n");
-    const coupon = carrinho.cupom_oferta ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para 10% OFF!` : "";
+    const coupon = carrinho.cupom_oferta
+      ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para 10% OFF!`
+      : "";
     const msg = encodeURIComponent(
-      `Olá${carrinho.nome ? `, ${carrinho.nome}` : ""}! 👋\n\nVimos que você deixou itens no carrinho da Saborosamente:\n\n${itens}\n\n💰 Total: R$ ${Number(carrinho.valor_total).toFixed(2)}${coupon}\n\nPosso te ajudar a finalizar o pedido? 😊`
+      `Olá${carrinho.nome ? `, ${carrinho.nome}` : ""}! 👋\n\nVimos que você deixou itens no carrinho da Saborosamente:\n\n${itens}\n\n💰 Total: R$ ${Number(carrinho.valor_total).toFixed(2)}${coupon}\n\nPosso te ajudar a finalizar o pedido? 😊`,
     );
     return `https://wa.me/55${phone}?text=${msg}`;
   };
@@ -160,16 +173,19 @@ function AdminCarrinhosAbandonadosPage() {
       {/* Filtros */}
       <div className="bg-white rounded-xl border p-4 mb-6 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={16}
+          />
           <Input
             placeholder="Buscar por nome, telefone ou e-mail..."
             className="pl-9"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
-          {["todos", "abandonado", "recuperado", "convertido"].map(s => (
+          {["todos", "abandonado", "recuperado", "convertido"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -187,7 +203,9 @@ function AdminCarrinhosAbandonadosPage() {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["carrinhos-abandonados-admin"] })}
+          onClick={() =>
+            queryClient.invalidateQueries({ queryKey: ["carrinhos-abandonados-admin"] })
+          }
         >
           <RefreshCw size={14} /> Atualizar
         </Button>
@@ -246,12 +264,17 @@ function AdminCarrinhosAbandonadosPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-500"}`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded-full ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-500"}`}
+                      >
                         {c.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs">
-                      {formatDistanceToNow(new Date(c.created_at), { locale: ptBR, addSuffix: true })}
+                      {formatDistanceToNow(new Date(c.created_at), {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 justify-center">
@@ -305,10 +328,16 @@ function AdminCarrinhosAbandonadosPage() {
               {/* Cliente */}
               <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
                 <p className="font-bold text-gray-900">{selectedCarrinho.nome ?? "Anônimo"}</p>
-                {selectedCarrinho.telefone && <p className="text-sm text-gray-500">📞 {selectedCarrinho.telefone}</p>}
-                {selectedCarrinho.email && <p className="text-sm text-gray-500">✉️ {selectedCarrinho.email}</p>}
+                {selectedCarrinho.telefone && (
+                  <p className="text-sm text-gray-500">📞 {selectedCarrinho.telefone}</p>
+                )}
+                {selectedCarrinho.email && (
+                  <p className="text-sm text-gray-500">✉️ {selectedCarrinho.email}</p>
+                )}
                 <p className="text-xs text-gray-400 pt-1">
-                  {format(new Date(selectedCarrinho.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {format(new Date(selectedCarrinho.created_at), "dd/MM/yyyy 'às' HH:mm", {
+                    locale: ptBR,
+                  })}
                 </p>
               </div>
 
@@ -319,13 +348,23 @@ function AdminCarrinhosAbandonadosPage() {
                   {(selectedCarrinho.itens as any[]).map((item: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 bg-white rounded-xl border p-3">
                       {item.imagem && (
-                        <img src={item.imagem} className="h-10 w-10 rounded-lg object-cover border" alt="" />
+                        <img
+                          src={item.imagem}
+                          className="h-10 w-10 rounded-lg object-cover border"
+                          alt=""
+                        />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{item.nome ?? item.productId}</p>
-                        <p className="text-xs text-gray-400">{item.quantity}× — R$ {Number(item.preco ?? 0).toFixed(2)}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {item.nome ?? item.productId}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {item.quantity}× — R$ {Number(item.preco ?? 0).toFixed(2)}
+                        </p>
                       </div>
-                      <p className="text-sm font-bold text-green-600">R$ {Number(item.subtotal ?? 0).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-green-600">
+                        R$ {Number(item.subtotal ?? 0).toFixed(2)}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -342,13 +381,19 @@ function AdminCarrinhosAbandonadosPage() {
               {selectedCarrinho.cupom_oferta && (
                 <div className="bg-[#5850ec]/5 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500 mb-1">Cupom gerado pelo exit intent</p>
-                  <p className="font-black tracking-widest text-[#5850ec]">{selectedCarrinho.cupom_oferta}</p>
+                  <p className="font-black tracking-widest text-[#5850ec]">
+                    {selectedCarrinho.cupom_oferta}
+                  </p>
                 </div>
               )}
 
               {/* Ações */}
               {buildWhatsAppUrl(selectedCarrinho) && (
-                <a href={buildWhatsAppUrl(selectedCarrinho)!} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={buildWhatsAppUrl(selectedCarrinho)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Button
                     className="w-full bg-green-500 hover:bg-green-600 text-white gap-2"
                     onClick={() => {

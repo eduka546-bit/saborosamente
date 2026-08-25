@@ -20,32 +20,24 @@ export function OptimizedImage({
   alt,
   widths = [320, 640, 1024],
   priority = false,
-  loading = priority ? 'eager' : 'lazy',
+  loading = priority ? "eager" : "lazy",
   sizes,
   className,
   ...props
 }: OptimizedImageProps) {
   if (!src) return null;
 
-  const webpUrl = getOptimizedImageUrl(src, undefined, 'webp');
-  const jpegUrl = getOptimizedImageUrl(src, undefined, 'jpeg');
+  const webpUrl = getOptimizedImageUrl(src, undefined, "webp");
+  const jpegUrl = getOptimizedImageUrl(src, undefined, "jpeg");
   const srcSet = generateSrcSet(src, widths);
   const calculatedSizes = sizes || generateSizes();
 
   return (
     <picture>
       {/* WebP para navegadores modernos */}
-      <source
-        srcSet={srcSet}
-        sizes={calculatedSizes}
-        type="image/webp"
-      />
+      <source srcSet={srcSet} sizes={calculatedSizes} type="image/webp" />
       {/* Fallback JPEG */}
-      <source
-        srcSet={srcSet}
-        sizes={calculatedSizes}
-        type="image/jpeg"
-      />
+      <source srcSet={srcSet} sizes={calculatedSizes} type="image/jpeg" />
       {/* Fallback para navegadores antigos */}
       <img
         src={jpegUrl}

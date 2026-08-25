@@ -19,7 +19,12 @@ async function sendWhatsApp(to: string, text: string) {
   const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to: telWA, type: "text", text: { body: text } }),
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: telWA,
+      type: "text",
+      text: { body: text },
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -39,7 +44,9 @@ Deno.serve(async (req) => {
 
   try {
     let body: any = {};
-    try { body = await req.json(); } catch (_) {}
+    try {
+      body = await req.json();
+    } catch (_) {}
 
     if (body.carrinho_id) {
       // Modo manual: envia para carrinho específico
@@ -51,13 +58,15 @@ Deno.serve(async (req) => {
 
       if (!carrinho) {
         return new Response(JSON.stringify({ error: "Carrinho não encontrado" }), {
-          status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
       const resultado = await processarCarrinho(carrinho);
       return new Response(JSON.stringify(resultado), {
-        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -67,9 +76,9 @@ Deno.serve(async (req) => {
       .from("carrinhos_abandonados")
       .select("*")
       .eq("status", "abandonado")
-      .is("notificado_em", null)          // ainda não notificado
-      .lt("updated_at", umaHoraAtras)     // abandonado há mais de 1h
-      .not("telefone", "is", null)        // tem telefone
+      .is("notificado_em", null) // ainda não notificado
+      .lt("updated_at", umaHoraAtras) // abandonado há mais de 1h
+      .not("telefone", "is", null) // tem telefone
       .order("updated_at", { ascending: true })
       .limit(20);
 
@@ -80,23 +89,26 @@ Deno.serve(async (req) => {
       const r = await processarCarrinho(carrinho);
       resultados.push(r);
       // Pequeno delay para não sobrecarregar a API do WhatsApp
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     console.log(`Processados ${resultados.length} carrinhos abandonados`);
     return new Response(JSON.stringify({ processados: resultados.length, resultados }), {
-      status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-
   } catch (e: any) {
     console.error("whatsapp-cart-recovery error:", e.message);
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });
 
-async function processarCarrinho(carrinho: any): Promise<{ id: string; ok: boolean; motivo?: string }> {
+async function processarCarrinho(
+  carrinho: any,
+): Promise<{ id: string; ok: boolean; motivo?: string }> {
   // Não enviar se já foi notificado
   if (carrinho.notificado_em) {
     return { id: carrinho.id, ok: false, motivo: "já notificado" };
@@ -113,9 +125,10 @@ async function processarCarrinho(carrinho: any): Promise<{ id: string; ok: boole
   const cupom = carrinho.cupom_oferta;
 
   // Monta resumo dos itens
-  const itensTexto = itens.slice(0, 3).map((i: any) =>
-    `• ${i.quantity ?? 1}x ${i.nome ?? "Produto"}`
-  ).join("\n");
+  const itensTexto = itens
+    .slice(0, 3)
+    .map((i: any) => `• ${i.quantity ?? 1}x ${i.nome ?? "Produto"}`)
+    .join("\n");
   const maisItens = itens.length > 3 ? `\n_...e mais ${itens.length - 3} itens_` : "";
 
   let mensagem = `🍱 Oi, *${nome}*! Você deixou algumas delícias no carrinho 😊\n\n`;

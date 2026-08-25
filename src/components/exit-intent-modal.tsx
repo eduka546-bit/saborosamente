@@ -56,20 +56,17 @@ export function ExitIntentModal({
     <div
       className={cn(
         "fixed inset-0 z-[9999] flex items-center justify-center px-4 transition-all duration-300",
-        visible ? "opacity-100" : "opacity-0"
+        visible ? "opacity-100" : "opacity-0",
       )}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Card */}
       <div
         className={cn(
           "relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl transition-all duration-300",
-          visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+          visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4",
         )}
       >
         {/* Faixa verde no topo */}
@@ -86,9 +83,7 @@ export function ExitIntentModal({
             <ShoppingBag size={32} className="text-white" />
           </div>
 
-          <h2 className="text-2xl font-black leading-tight mb-1">
-            Espera! Não vá embora.
-          </h2>
+          <h2 className="text-2xl font-black leading-tight mb-1">Espera! Não vá embora.</h2>
           <p className="text-sm text-white/80 leading-relaxed">
             Você tem{" "}
             <strong className="text-white">
@@ -108,26 +103,20 @@ export function ExitIntentModal({
             <p className="text-lg font-black text-gray-900">
               {discountPercent}% de desconto na sua compra
             </p>
-            <p className="text-xs text-gray-500">
-              Use o cupom abaixo antes de finalizar o pedido
-            </p>
+            <p className="text-xs text-gray-500">Use o cupom abaixo antes de finalizar o pedido</p>
           </div>
 
           {/* Cupom */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-3 rounded-xl border-2 border-dashed border-[#086e45]/40 bg-[#086e45]/5 px-4 py-3">
               <Tag size={16} className="text-[#086e45] shrink-0" />
-              <span className="font-black text-lg tracking-widest text-[#086e45]">
-                {coupon}
-              </span>
+              <span className="font-black text-lg tracking-widest text-[#086e45]">{coupon}</span>
             </div>
             <button
               onClick={handleCopy}
               className={cn(
                 "h-12 w-12 rounded-xl flex items-center justify-center transition-all shrink-0",
-                copied
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                copied ? "bg-green-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200",
               )}
               title="Copiar cupom"
             >

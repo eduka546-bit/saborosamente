@@ -10,7 +10,7 @@ const requestCounts = new Map<string, { count: number; resetTime: number }>();
 serve(async (req) => {
   // Pegar IP do cliente
   const ip = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
-  
+
   const now = Math.floor(Date.now() / 1000);
   let data = requestCounts.get(ip);
 
@@ -33,13 +33,20 @@ serve(async (req) => {
   // Bloquear User-Agents suspeitos
   const userAgent = req.headers.get("user-agent") || "";
   const botPatterns = [
-    "bot", "crawler", "spider", "scraper", "curl", "wget", "python",
-    "java(?!script)", "ruby", "perl", "php"
+    "bot",
+    "crawler",
+    "spider",
+    "scraper",
+    "curl",
+    "wget",
+    "python",
+    "java(?!script)",
+    "ruby",
+    "perl",
+    "php",
   ];
-  
-  const isBot = botPatterns.some(pattern => 
-    new RegExp(pattern, "i").test(userAgent)
-  );
+
+  const isBot = botPatterns.some((pattern) => new RegExp(pattern, "i").test(userAgent));
 
   if (isBot) {
     console.warn(`Blocked bot from ${ip}: ${userAgent}`);
@@ -50,11 +57,14 @@ serve(async (req) => {
   }
 
   // Se passou nas verificações, permite
-  return new Response(JSON.stringify({ 
-    status: "ok",
-    requests_remaining: RATE_LIMIT_REQUESTS - data.count,
-    reset_time: data.resetTime
-  }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({
+      status: "ok",
+      requests_remaining: RATE_LIMIT_REQUESTS - data.count,
+      reset_time: data.resetTime,
+    }),
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 });

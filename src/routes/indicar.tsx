@@ -9,7 +9,10 @@ export const Route = createFileRoute("/indicar")({
   head: () => ({
     meta: [
       { title: "Indique e Ganhe | Saborosamente" },
-      { name: "description", content: "Indique amigos e ganhe cashback a cada pedido feito pela sua indicação." },
+      {
+        name: "description",
+        content: "Indique amigos e ganhe cashback a cada pedido feito pela sua indicação.",
+      },
     ],
   }),
   component: IndicarPage,
@@ -43,7 +46,8 @@ function IndicarPage() {
     mutationFn: async () => {
       const sufixo = Math.random().toString(36).slice(2, 7).toUpperCase();
       const codigo = `IND-${sufixo}`;
-      const { error } = await supabase.from("profiles")
+      const { error } = await supabase
+        .from("profiles")
         .update({ codigo_indicacao: codigo })
         .eq("id", session.user.id);
       if (error) throw error;
@@ -96,16 +100,27 @@ function IndicarPage() {
     }
   };
 
-  const totalConvertidas = indicacoes.filter((i: any) => i.status === "convertido" || i.status === "pago").length;
-  const totalCashback = indicacoes.reduce((s: number, i: any) => s + (Number(i.cashback_gerado) || 0), 0);
+  const totalConvertidas = indicacoes.filter(
+    (i: any) => i.status === "convertido" || i.status === "pago",
+  ).length;
+  const totalCashback = indicacoes.reduce(
+    (s: number, i: any) => s + (Number(i.cashback_gerado) || 0),
+    0,
+  );
 
   if (!session) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center space-y-4">
         <Gift size={48} className="text-primary/30" />
         <h1 className="text-2xl font-bold">Indique e Ganhe</h1>
-        <p className="text-gray-500 max-w-xs">Faça login para gerar seu link de indicação e ganhar cashback a cada amigo que comprar.</p>
-        <Link to="/auth" search={{ redirect: "/indicar" }} className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold text-sm hover:bg-primary/90 transition-all">
+        <p className="text-gray-500 max-w-xs">
+          Faça login para gerar seu link de indicação e ganhar cashback a cada amigo que comprar.
+        </p>
+        <Link
+          to="/auth"
+          search={{ redirect: "/indicar" }}
+          className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold text-sm hover:bg-primary/90 transition-all"
+        >
           Entrar / Cadastrar
         </Link>
       </div>
@@ -121,7 +136,8 @@ function IndicarPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Indique e Ganhe</h1>
         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
-          A cada amigo que fizer o primeiro pedido usando seu link, você ganha <strong>R$ 5,00</strong> de cashback automático 🎉
+          A cada amigo que fizer o primeiro pedido usando seu link, você ganha{" "}
+          <strong>R$ 5,00</strong> de cashback automático 🎉
         </p>
       </div>
 
@@ -132,7 +148,9 @@ function IndicarPage() {
           <p className="text-xs text-gray-400 font-bold uppercase mt-1">Indicações convertidas</p>
         </div>
         <div className="bg-white rounded-2xl border p-5 text-center">
-          <p className="text-3xl font-black text-green-600">R$ {totalCashback.toFixed(2).replace(".", ",")}</p>
+          <p className="text-3xl font-black text-green-600">
+            R$ {totalCashback.toFixed(2).replace(".", ",")}
+          </p>
           <p className="text-xs text-gray-400 font-bold uppercase mt-1">Cashback acumulado</p>
         </div>
       </div>
@@ -147,7 +165,10 @@ function IndicarPage() {
             <div className="flex-1 bg-gray-50 border rounded-xl px-3 py-2.5 text-xs font-mono text-gray-600 truncate">
               {linkIndicacao}
             </div>
-            <button onClick={copiarLink} className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all shrink-0">
+            <button
+              onClick={copiarLink}
+              className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all shrink-0"
+            >
               {copiado ? <Check size={16} /> : <Copy size={16} />}
             </button>
           </div>
@@ -165,10 +186,10 @@ function IndicarPage() {
         <p className="font-bold text-gray-800 mb-4">Como funciona</p>
         <div className="space-y-3">
           {[
-            { icon: Share2,       texto: "Compartilhe seu link com amigos" },
-            { icon: Users,        texto: "Amigo faz o primeiro pedido pelo link" },
-            { icon: TrendingUp,   texto: "Você ganha R$ 5,00 de cashback automaticamente" },
-            { icon: Gift,         texto: "Use o cashback como desconto nos seus pedidos" },
+            { icon: Share2, texto: "Compartilhe seu link com amigos" },
+            { icon: Users, texto: "Amigo faz o primeiro pedido pelo link" },
+            { icon: TrendingUp, texto: "Você ganha R$ 5,00 de cashback automaticamente" },
+            { icon: Gift, texto: "Use o cashback como desconto nos seus pedidos" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -191,18 +212,26 @@ function IndicarPage() {
               <div key={ind.id} className="px-5 py-3.5 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-800">{ind.indicado_telefone}</p>
-                  <p className="text-xs text-gray-400">{new Date(ind.created_at).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(ind.created_at).toLocaleDateString("pt-BR")}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    ind.status === "convertido" || ind.status === "pago"
-                      ? "bg-green-50 text-green-700"
-                      : "bg-yellow-50 text-yellow-700"
-                  }`}>
-                    {ind.status === "convertido" || ind.status === "pago" ? "✓ Convertido" : "Aguardando"}
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      ind.status === "convertido" || ind.status === "pago"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-yellow-50 text-yellow-700"
+                    }`}
+                  >
+                    {ind.status === "convertido" || ind.status === "pago"
+                      ? "✓ Convertido"
+                      : "Aguardando"}
                   </span>
                   {ind.cashback_gerado > 0 && (
-                    <p className="text-xs text-green-600 font-bold mt-0.5">+R$ {Number(ind.cashback_gerado).toFixed(2)}</p>
+                    <p className="text-xs text-green-600 font-bold mt-0.5">
+                      +R$ {Number(ind.cashback_gerado).toFixed(2)}
+                    </p>
                   )}
                 </div>
               </div>

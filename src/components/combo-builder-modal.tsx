@@ -17,7 +17,12 @@ import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { COMBO_RULES, NO_DISCOUNT_CATEGORIES, isNoDiscount, getComboDiscount } from "@/lib/combo-rules";
+import {
+  COMBO_RULES,
+  NO_DISCOUNT_CATEGORIES,
+  isNoDiscount,
+  getComboDiscount,
+} from "@/lib/combo-rules";
 
 export { COMBO_RULES };
 
@@ -78,9 +83,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     const totalQty = items.reduce((s, i) => s + i.quantity, 0);
     const subtotal = items.reduce((s, i) => s + i.preco * i.quantity, 0);
     const marmitaSubtotal = items
-      .filter(i => !isNoDiscountLocal(i.categoria))
+      .filter((i) => !isNoDiscountLocal(i.categoria))
       .reduce((s, i) => s + i.preco * i.quantity, 0);
-    const rule = COMBO_RULES.find(r => totalQty >= r.min);
+    const rule = COMBO_RULES.find((r) => totalQty >= r.min);
     const discountPct = rule?.discount ?? 0;
     const discount = marmitaSubtotal * discountPct;
     const total = subtotal - discount;
@@ -111,7 +116,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   }
 
   function getQty(productId: string, weight: string) {
-    return items.find(i => i.productId === productId && i.weight === weight)?.quantity ?? 0;
+    return items.find((i) => i.productId === productId && i.weight === weight)?.quantity ?? 0;
   }
 
   function changeQty(product: any, weight: string, delta: number) {
@@ -119,23 +124,29 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     const preco = getPrice(product, weight);
     const key = getItemKey(product.id, weight);
 
-    setItems(prev => {
-      const existing = prev.find(i => i.productId === product.id && i.weight === weight);
+    setItems((prev) => {
+      const existing = prev.find((i) => i.productId === product.id && i.weight === weight);
       if (existing) {
         const newQty = existing.quantity + delta;
-        if (newQty <= 0) return prev.filter(i => !(i.productId === product.id && i.weight === weight));
-        return prev.map(i => i.productId === product.id && i.weight === weight ? { ...i, quantity: newQty } : i);
+        if (newQty <= 0)
+          return prev.filter((i) => !(i.productId === product.id && i.weight === weight));
+        return prev.map((i) =>
+          i.productId === product.id && i.weight === weight ? { ...i, quantity: newQty } : i,
+        );
       }
       if (delta <= 0) return prev;
-      return [...prev, {
-        productId: product.id,
-        weight,
-        quantity: delta,
-        nome: product.nome,
-        preco,
-        categoria: cat,
-        imagem: product.imagem_url || product.imagem || "",
-      }];
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          weight,
+          quantity: delta,
+          nome: product.nome,
+          preco,
+          categoria: cat,
+          imagem: product.imagem_url || product.imagem || "",
+        },
+      ];
     });
   }
 
@@ -144,7 +155,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
       toast.error("Adicione pelo menos 1 item ao combo.");
       return;
     }
-    items.forEach(item => {
+    items.forEach((item) => {
       add(item.productId, item.quantity, item.weight);
     });
     toast.success(`Combo adicionado!`, {
@@ -156,8 +167,10 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     setSelectedCategory("Todas");
   }
 
-  const nextRule = COMBO_RULES.slice().reverse().find(r => r.min > totalQty);
-  const currentRule = COMBO_RULES.find(r => totalQty >= r.min);
+  const nextRule = COMBO_RULES.slice()
+    .reverse()
+    .find((r) => r.min > totalQty);
+  const currentRule = COMBO_RULES.find((r) => totalQty >= r.min);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
@@ -166,7 +179,6 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
 
       {/* Modal */}
       <div className="relative w-full max-w-5xl max-h-[95vh] rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
-        
         {/* Header */}
         <div className="bg-[#086e45] px-6 py-4 text-white flex items-center justify-between shrink-0">
           <div>
@@ -186,29 +198,37 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
         {/* Barra de progresso do desconto */}
         <div className="bg-[#086e45]/5 border-b px-6 py-3 shrink-0">
           <div className="flex items-center gap-6 flex-wrap">
-            {COMBO_RULES.slice().reverse().map(rule => {
-              const active = totalQty >= rule.min;
-              const isCurrent = currentRule?.min === rule.min;
-              return (
-                <div key={rule.min} className={cn(
-                  "flex items-center gap-2 text-xs font-bold transition-all",
-                  active ? "text-[#086e45]" : "text-gray-400"
-                )}>
-                  <div className={cn(
-                    "h-5 px-2 rounded-full flex items-center gap-1 transition-all",
-                    active ? "bg-[#086e45] text-white" : "bg-gray-200 text-gray-400"
-                  )}>
-                    <Tag size={10} />
-                    {rule.badge}
+            {COMBO_RULES.slice()
+              .reverse()
+              .map((rule) => {
+                const active = totalQty >= rule.min;
+                const isCurrent = currentRule?.min === rule.min;
+                return (
+                  <div
+                    key={rule.min}
+                    className={cn(
+                      "flex items-center gap-2 text-xs font-bold transition-all",
+                      active ? "text-[#086e45]" : "text-gray-400",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "h-5 px-2 rounded-full flex items-center gap-1 transition-all",
+                        active ? "bg-[#086e45] text-white" : "bg-gray-200 text-gray-400",
+                      )}
+                    >
+                      <Tag size={10} />
+                      {rule.badge}
+                    </div>
+                    {rule.min}+ itens
+                    {isCurrent && <span className="text-[#086e45]">✓</span>}
                   </div>
-                  {rule.min}+ itens
-                  {isCurrent && <span className="text-[#086e45]">✓</span>}
-                </div>
-              );
-            })}
+                );
+              })}
             {nextRule && totalQty > 0 && (
               <span className="text-xs text-gray-400 ml-auto">
-                Faltam <strong className="text-[#086e45]">{nextRule.min - totalQty}</strong> para {nextRule.badge}
+                Faltam <strong className="text-[#086e45]">{nextRule.min - totalQty}</strong> para{" "}
+                {nextRule.badge}
               </span>
             )}
           </div>
@@ -220,16 +240,19 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
             {/* Busca e filtro */}
             <div className="px-4 pt-4 pb-3 space-y-3 shrink-0">
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
                 <Input
                   placeholder="Buscar marmita..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                   className="pl-8 h-9 text-sm"
                 />
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -237,7 +260,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                       "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all border",
                       selectedCategory === cat
                         ? "bg-[#086e45] text-white border-[#086e45]"
-                        : "bg-gray-50 text-gray-500 border-transparent hover:border-[#086e45]/30"
+                        : "bg-gray-50 text-gray-500 border-transparent hover:border-[#086e45]/30",
                     )}
                   >
                     {cat}
@@ -249,88 +272,103 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
             {/* Lista de produtos */}
             <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
               {filteredProducts.length === 0 ? (
-                <div className="py-12 text-center text-gray-400 text-sm">Nenhum produto encontrado.</div>
-              ) : filteredProducts.map((product: any) => {
-                const cat = product.categorias?.nome || product.categoria || "";
-                const noDiscount = isNoDiscount(cat);
-                const weights = getWeights(product);
+                <div className="py-12 text-center text-gray-400 text-sm">
+                  Nenhum produto encontrado.
+                </div>
+              ) : (
+                filteredProducts.map((product: any) => {
+                  const cat = product.categorias?.nome || product.categoria || "";
+                  const noDiscount = isNoDiscount(cat);
+                  const weights = getWeights(product);
 
-                return (
-                  <div key={product.id} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all">
-                    {/* Imagem */}
-                    <div className="h-14 w-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                      {(product.imagem_url || product.imagem) ? (
-                        <img
-                          src={product.imagem_url || product.imagem}
-                          alt={product.nome}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">📦</div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{product.nome}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{cat}</p>
-                      {noDiscount && (
-                        <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
-                          Preço fixo
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Tamanhos + controles */}
-                    <div className="flex flex-col gap-1.5 shrink-0">
-                      {weights.map(w => {
-                        const price = getPrice(product, w);
-                        const qty = getQty(product.id, w);
-                        return (
-                          <div key={w} className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-400 w-8 text-right font-bold">{w}</span>
-                            <span className="text-xs font-bold text-[#086e45] w-16 text-right">
-                              {formatBRL(price)}
-                              {!noDiscount && currentRule && (
-                                <span className="text-[9px] text-green-600 ml-0.5">
-                                  →{formatBRL(price * (1 - currentRule.discount))}
-                                </span>
-                              )}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => changeQty(product, w, -1)}
-                                disabled={qty === 0}
-                                className={cn(
-                                  "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
-                                  qty > 0
-                                    ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
-                                    : "border-gray-200 text-gray-300 cursor-not-allowed"
-                                )}
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span className={cn(
-                                "w-6 text-center text-sm font-black",
-                                qty > 0 ? "text-[#086e45]" : "text-gray-300"
-                              )}>
-                                {qty}
-                              </span>
-                              <button
-                                onClick={() => changeQty(product, w, 1)}
-                                className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
+                  return (
+                    <div
+                      key={product.id}
+                      className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all"
+                    >
+                      {/* Imagem */}
+                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                        {product.imagem_url || product.imagem ? (
+                          <img
+                            src={product.imagem_url || product.imagem}
+                            alt={product.nome}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">
+                            📦
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                          {product.nome}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{cat}</p>
+                        {noDiscount && (
+                          <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
+                            Preço fixo
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tamanhos + controles */}
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        {weights.map((w) => {
+                          const price = getPrice(product, w);
+                          const qty = getQty(product.id, w);
+                          return (
+                            <div key={w} className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-400 w-8 text-right font-bold">
+                                {w}
+                              </span>
+                              <span className="text-xs font-bold text-[#086e45] w-16 text-right">
+                                {formatBRL(price)}
+                                {!noDiscount && currentRule && (
+                                  <span className="text-[9px] text-green-600 ml-0.5">
+                                    →{formatBRL(price * (1 - currentRule.discount))}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => changeQty(product, w, -1)}
+                                  disabled={qty === 0}
+                                  className={cn(
+                                    "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
+                                    qty > 0
+                                      ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
+                                      : "border-gray-200 text-gray-300 cursor-not-allowed",
+                                  )}
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span
+                                  className={cn(
+                                    "w-6 text-center text-sm font-black",
+                                    qty > 0 ? "text-[#086e45]" : "text-gray-300",
+                                  )}
+                                >
+                                  {qty}
+                                </span>
+                                <button
+                                  onClick={() => changeQty(product, w, 1)}
+                                  className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -350,18 +388,27 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                   <div className="text-3xl mb-2">🍱</div>
                   <p className="text-xs text-gray-400">Adicione marmitas ao seu combo</p>
                 </div>
-              ) : items.map(item => (
-                <div key={getItemKey(item.productId, item.weight)} className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-[#086e45] w-5 text-center shrink-0">{item.quantity}×</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-gray-800 font-medium leading-tight">{item.nome}</p>
-                    <p className="text-gray-400">{item.weight}</p>
+              ) : (
+                items.map((item) => (
+                  <div
+                    key={getItemKey(item.productId, item.weight)}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <span className="font-bold text-[#086e45] w-5 text-center shrink-0">
+                      {item.quantity}×
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-gray-800 font-medium leading-tight">
+                        {item.nome}
+                      </p>
+                      <p className="text-gray-400">{item.weight}</p>
+                    </div>
+                    <span className="font-bold text-gray-600 shrink-0">
+                      {formatBRL(item.preco * item.quantity)}
+                    </span>
                   </div>
-                  <span className="font-bold text-gray-600 shrink-0">
-                    {formatBRL(item.preco * item.quantity)}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Totais e CTA */}
@@ -384,10 +431,13 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
               </div>
 
               {/* Info sobre sopas */}
-              {items.some(i => isNoDiscountLocal(i.categoria)) && (
+              {items.some((i) => isNoDiscountLocal(i.categoria)) && (
                 <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-2.5 text-[10px] text-blue-700">
                   <Info size={12} className="shrink-0 mt-0.5" />
-                  <span>Sopas e complementos têm preço fixo e não recebem desconto, mas contam na quantidade do combo.</span>
+                  <span>
+                    Sopas e complementos têm preço fixo e não recebem desconto, mas contam na
+                    quantidade do combo.
+                  </span>
                 </div>
               )}
 
@@ -398,12 +448,16 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                   "w-full rounded-2xl py-3.5 text-sm font-black transition-all flex items-center justify-center gap-2",
                   items.length > 0
                     ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg hover:shadow-[#086e45]/30"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed",
                 )}
               >
                 <ShoppingCart size={16} />
                 Adicionar ao carrinho
-                {totalQty > 0 && <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{totalQty} itens</span>}
+                {totalQty > 0 && (
+                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                    {totalQty} itens
+                  </span>
+                )}
               </button>
             </div>
           </div>

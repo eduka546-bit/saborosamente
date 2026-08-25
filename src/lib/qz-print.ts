@@ -13,7 +13,7 @@
 declare const qz: any;
 
 const QZ_CDN = "/qz-tray.js"; // servido localmente via public/
-const QZ_WS  = "wss://localhost:8181";
+const QZ_WS = "wss://localhost:8181";
 
 let qzLoaded = false;
 let qzConnected = false;
@@ -23,12 +23,19 @@ async function loadQzScript(): Promise<void> {
   if (qzLoaded) return;
   return new Promise((resolve, reject) => {
     const existing = document.getElementById("qz-tray-script");
-    if (existing) { qzLoaded = true; resolve(); return; }
+    if (existing) {
+      qzLoaded = true;
+      resolve();
+      return;
+    }
 
     const script = document.createElement("script");
     script.id = "qz-tray-script";
     script.src = QZ_CDN;
-    script.onload = () => { qzLoaded = true; resolve(); };
+    script.onload = () => {
+      qzLoaded = true;
+      resolve();
+    };
     script.onerror = () => reject(new Error("Não foi possível carregar o script QZ Tray do CDN."));
     document.head.appendChild(script);
   });
@@ -43,7 +50,9 @@ export async function conectarQZ(): Promise<boolean> {
 
     // Desativa verificação de certificado para uso local
     qz.security.setCertificatePromise((_resolve: any, _reject: any) => {
-      _resolve("-----BEGIN CERTIFICATE REQUEST-----\nMIIByjCCATMCAQAwgYkx...\n-----END CERTIFICATE REQUEST-----");
+      _resolve(
+        "-----BEGIN CERTIFICATE REQUEST-----\nMIIByjCCATMCAQAwgYkx...\n-----END CERTIFICATE REQUEST-----",
+      );
     });
     qz.security.setSignatureAlgorithm("SHA512");
     qz.security.setSignaturePromise((_hash: any) => {
@@ -101,14 +110,16 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
 
-  const itensLines = itens.map((item: any) => {
-    const tot = item.preco_unitario * item.quantidade;
-    const prod = `${item.quantidade}x ${item.nome}`;
-    const val = `R$ ${tot.toFixed(2)}`;
-    const gap = colunas - prod.length - val.length;
-    const line = prod + " ".repeat(Math.max(1, gap)) + val;
-    return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
-  }).join("\n");
+  const itensLines = itens
+    .map((item: any) => {
+      const tot = item.preco_unitario * item.quantidade;
+      const prod = `${item.quantidade}x ${item.nome}`;
+      const val = `R$ ${tot.toFixed(2)}`;
+      const gap = colunas - prod.length - val.length;
+      const line = prod + " ".repeat(Math.max(1, gap)) + val;
+      return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
+    })
+    .join("\n");
 
   const linhas = [
     c("SABOROSAMENTE"),
@@ -122,11 +133,13 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     order.telefone_cliente ?? "",
     SEP,
     c(isDelivery ? "** DELIVERY **" : "** RETIRADA **"),
-    ...(isDelivery && order.endereco_rua ? [
-      "ENTREGA:",
-      `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
-      `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
-    ] : []),
+    ...(isDelivery && order.endereco_rua
+      ? [
+          "ENTREGA:",
+          `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
+          `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
+        ]
+      : []),
     SEP,
     "ITENS:",
     THIN,
@@ -148,15 +161,14 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     "\n\n\n", // alimenta o papel
   ];
 
-  return linhas.filter(l => l != null).join("\n");
+  return linhas.filter((l) => l != null).join("\n");
 }
 
 // ── Impressão principal — QZ Tray TCP ou fallback window.print ───────────────
 export async function imprimirComanda(
   order: any,
-  config: { ip: string; porta?: string | number; copias?: number; papel?: string }
+  config: { ip: string; porta?: string | number; copias?: number; papel?: string },
 ): Promise<{ ok: boolean; metodo: "qz" | "popup" }> {
-
   const disponivelQZ = await qzDisponivel();
 
   if (disponivelQZ) {
@@ -165,12 +177,12 @@ export async function imprimirComanda(
       const copias = Number(config.copias ?? 1);
 
       const printerConfig = qz.configs.create(
-        `\\\\${config.ip}`,   // nome da impressora de rede no Windows
+        `\\\\${config.ip}`, // nome da impressora de rede no Windows
         {
           raw: true,
           copies: copias,
           scaleContent: false,
-        }
+        },
       );
 
       // Fallback: se não achar por nome de rede, tenta TCP direto
@@ -193,7 +205,7 @@ export async function imprimirTCP(
   ip: string,
   porta: number = 9100,
   copias: number = 1,
-  papel = "80mm"
+  papel = "80mm",
 ): Promise<boolean> {
   const disponivelQZ = await qzDisponivel();
   if (!disponivelQZ) return false;
@@ -204,7 +216,7 @@ export async function imprimirTCP(
 
     const cfg = qz.configs.create(
       { host: ip, port: porta, type: "raw" },
-      { copies: copias, raw: true }
+      { copies: copias, raw: true },
     );
 
     await qz.print(cfg, [{ type: "raw", format: "plain", data: conteudo }]);

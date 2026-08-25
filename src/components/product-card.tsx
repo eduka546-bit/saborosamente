@@ -1,4 +1,14 @@
-import { Plus, Info, X, ShoppingCart, ChevronLeft, ChevronRight, Flame, Gift, TrendingUp } from "lucide-react";
+import {
+  Plus,
+  Info,
+  X,
+  ShoppingCart,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Gift,
+  TrendingUp,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useState } from "react";
@@ -33,26 +43,29 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add } = useCart();
   const [comboOpen, setComboOpen] = useState(false);
   const combo = isComboProduct(product);
-  
+
   // ── Badges dinâmicas ──────────────────────────────────────────────
   const getBadges = () => {
     const badges: { label: string; color: string; icon: any }[] = [];
-    
+
     // Simulação: produtos com "melhor" ou categoria especial
-    if (product.nome?.toLowerCase().includes("melhor") || product.nome?.toLowerCase().includes("destaque")) {
+    if (
+      product.nome?.toLowerCase().includes("melhor") ||
+      product.nome?.toLowerCase().includes("destaque")
+    ) {
       badges.push({ label: "Bestseller", color: "bg-tangerine", icon: TrendingUp });
     }
-    
+
     // Simulação: produtos recentes (últimos adicionados)
     if ((product.id as any) % 7 === 0) {
       badges.push({ label: "Novo", color: "bg-accent", icon: Gift });
     }
-    
+
     // Simulação: desconto (para produtos com preco_300g diferente)
     if (product.preco_300g && product.preco_300g < product.preco * 0.9) {
       badges.push({ label: "-10%", color: "bg-destructive", icon: Flame });
     }
-    
+
     return badges.slice(0, 2); // Máximo 2 badges
   };
 
@@ -71,10 +84,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
     return product.peso ? [product.peso] : [];
   })();
-  const [selectedWeight, setSelectedWeight] = useState(weights.includes("300g") ? "300g" : (weights[0] || ""));
+  const [selectedWeight, setSelectedWeight] = useState(
+    weights.includes("300g") ? "300g" : weights[0] || "",
+  );
 
   // Para combos prontos, mostra P/M/G em vez de 200g/300g/400g
-  const isComboPronto = (product.categorias?.nome || product.categoria || "").toLowerCase().includes("combo pronto");
+  const isComboPronto = (product.categorias?.nome || product.categoria || "")
+    .toLowerCase()
+    .includes("combo pronto");
   const weightLabel = (w: string) => {
     if (!isComboPronto) return w;
     if (w === "200g") return "P";
@@ -83,25 +100,31 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     return w;
   };
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
-  const currentPrice = isSopa ? 18.00 : (selectedWeight === "300g" && product.preco_300g 
-    ? product.preco_300g 
-    : selectedWeight === "400g" && product.preco_400g
-      ? product.preco_400g
-      : product.preco);
+  const currentPrice = isSopa
+    ? 18.0
+    : selectedWeight === "300g" && product.preco_300g
+      ? product.preco_300g
+      : selectedWeight === "400g" && product.preco_400g
+        ? product.preco_400g
+        : product.preco;
 
   // Imagem por tamanho — usa a específica se cadastrada, senão a principal
   const currentImage = (() => {
-    if (selectedWeight === "200g" && (product as any).imagem_200g) return (product as any).imagem_200g;
-    if (selectedWeight === "300g" && (product as any).imagem_300g) return (product as any).imagem_300g;
-    if (selectedWeight === "400g" && (product as any).imagem_400g) return (product as any).imagem_400g;
+    if (selectedWeight === "200g" && (product as any).imagem_200g)
+      return (product as any).imagem_200g;
+    if (selectedWeight === "300g" && (product as any).imagem_300g)
+      return (product as any).imagem_300g;
+    if (selectedWeight === "400g" && (product as any).imagem_400g)
+      return (product as any).imagem_400g;
     return product.imagem;
   })();
 
-  const currentNutritional = selectedWeight === "300g" && product.tabela_nutricional_300g
-    ? product.tabela_nutricional_300g
-    : selectedWeight === "400g" && product.tabela_nutricional_400g
-      ? product.tabela_nutricional_400g
-      : product.tabela_nutricional;
+  const currentNutritional =
+    selectedWeight === "300g" && product.tabela_nutricional_300g
+      ? product.tabela_nutricional_300g
+      : selectedWeight === "400g" && product.tabela_nutricional_400g
+        ? product.tabela_nutricional_400g
+        : product.tabela_nutricional;
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -110,7 +133,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       return;
     }
     add(product.id, 1, selectedWeight);
-    toast.success("Adicionado", { 
+    toast.success("Adicionado", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
       className: "max-w-[280px] text-xs font-medium",
     });
@@ -156,21 +179,30 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
 
             <div>
-              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
+              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
+                {product.nome}
+              </h3>
               {product.descricao && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{product.descricao}</p>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                  {product.descricao}
+                </p>
               )}
             </div>
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-[9px] font-black text-muted-foreground uppercase">A partir de</span>
+                <span className="text-[9px] font-black text-muted-foreground uppercase">
+                  A partir de
+                </span>
                 <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
                   {formatBRL(product.preco)}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setComboOpen(true); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setComboOpen(true);
+                }}
                 className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <ShoppingCart className="size-4" /> Montar
@@ -191,10 +223,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
-    <Link to={`/produto/${product.id}`}>
-      <article
-        className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
-      >
+      <Link to={`/produto/${product.id}`}>
+        <article className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1">
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2 flex-wrap">
             {badges.map((badge, idx) => {
@@ -223,12 +253,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             />
             {product.imagens && product.imagens.length > 0 && (
               <div className="absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-between px-2">
-                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
-                   <ChevronLeft size={16} />
-                 </div>
-                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
-                   <ChevronRight size={16} />
-                 </div>
+                <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
+                  <ChevronLeft size={16} />
+                </div>
+                <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
+                  <ChevronRight size={16} />
+                </div>
               </div>
             )}
 
@@ -248,7 +278,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
 
             <div>
-              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">{product.nome}</h3>
+              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
+                {product.nome}
+              </h3>
             </div>
 
             {weights.length > 1 ? (
@@ -265,7 +297,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       "rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all",
                       selectedWeight === w
                         ? "bg-gradient-brand text-white shadow-md scale-105"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105 border border-border/50"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105 border border-border/50",
                     )}
                   >
                     {weightLabel(w)}
@@ -277,7 +309,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 {product.peso}
               </p>
             )}
-            
+
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
                 <span className="text-[9px] font-black text-muted-foreground uppercase">
@@ -291,7 +323,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 type="button"
                 onClick={handleAddToCart}
                 className={cn(
-                  "inline-flex size-9 items-center justify-center rounded-full text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg bg-primary hover:bg-primary/90"
+                  "inline-flex size-9 items-center justify-center rounded-full text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg bg-primary hover:bg-primary/90",
                 )}
               >
                 <Plus className="size-5" aria-hidden="true" />
@@ -319,29 +351,29 @@ function ProductCarousel({ images }: { images: string[] }) {
 
   return (
     <div className="relative size-full overflow-hidden">
-      <div 
-        className="flex size-full transition-transform duration-500 ease-in-out" 
+      <div
+        className="flex size-full transition-transform duration-500 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {images.map((img, i) => (
-          <img 
-            key={i} 
-            src={img} 
-            className="size-full object-cover shrink-0" 
-            alt={`Imagem ${i + 1}`} 
+          <img
+            key={i}
+            src={img}
+            className="size-full object-cover shrink-0"
+            alt={`Imagem ${i + 1}`}
           />
         ))}
       </div>
-      
+
       {images.length > 1 && (
         <>
-          <button 
+          <button
             onClick={prev}
             className="absolute left-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
           >
             <ChevronLeft className="size-6" />
           </button>
-          <button 
+          <button
             onClick={next}
             className="absolute right-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
           >
@@ -349,11 +381,11 @@ function ProductCarousel({ images }: { images: string[] }) {
           </button>
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
             {images.map((_, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={cn(
                   "size-1.5 rounded-full transition-all",
-                  currentIndex === i ? "w-4 bg-primary" : "bg-white/50"
+                  currentIndex === i ? "w-4 bg-primary" : "bg-white/50",
                 )}
               />
             ))}

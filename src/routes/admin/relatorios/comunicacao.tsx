@@ -25,10 +25,15 @@ function AdminRelatoriosComunicacaoPage() {
   const uniquePhones = [...new Set(orders.map((o: any) => o.telefone_cliente).filter(Boolean))];
 
   const generateWhatsAppList = () => {
-    const lines = uniquePhones.map(phone => `https://wa.me/55${phone?.replace(/\D/g, "")}`).join("\n");
+    const lines = uniquePhones
+      .map((phone) => `https://wa.me/55${phone?.replace(/\D/g, "")}`)
+      .join("\n");
     const blob = new Blob([lines], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "contatos_whatsapp.txt"; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "contatos_whatsapp.txt";
+    a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -40,17 +45,24 @@ function AdminRelatoriosComunicacaoPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <div className="grid gap-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-xl border p-5">
               <div className="flex items-center gap-3 mb-2">
                 <Users className="text-[#5850ec]" size={20} />
-                <p className="text-xs font-bold uppercase text-gray-400">Contatos únicos (WhatsApp)</p>
+                <p className="text-xs font-bold uppercase text-gray-400">
+                  Contatos únicos (WhatsApp)
+                </p>
               </div>
               <p className="text-3xl font-black text-[#5850ec]">{uniquePhones.length}</p>
-              <button onClick={generateWhatsAppList} className="mt-3 text-xs font-bold text-[#5850ec] hover:underline flex items-center gap-1">
+              <button
+                onClick={generateWhatsAppList}
+                className="mt-3 text-xs font-bold text-[#5850ec] hover:underline flex items-center gap-1"
+              >
                 <MessageCircle size={13} /> Exportar lista de links
               </button>
             </div>
@@ -59,7 +71,9 @@ function AdminRelatoriosComunicacaoPage() {
                 <MessageCircle className="text-green-600" size={20} />
                 <p className="text-xs font-bold uppercase text-gray-400">Pedidos com telefone</p>
               </div>
-              <p className="text-3xl font-black text-green-600">{orders.filter((o: any) => o.telefone_cliente).length}</p>
+              <p className="text-3xl font-black text-green-600">
+                {orders.filter((o: any) => o.telefone_cliente).length}
+              </p>
             </div>
           </div>
 
@@ -70,7 +84,11 @@ function AdminRelatoriosComunicacaoPage() {
             </div>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
-                <tr><th className="px-6 py-3">Cliente</th><th className="px-6 py-3">Telefone</th><th className="px-6 py-3">Link WhatsApp</th></tr>
+                <tr>
+                  <th className="px-6 py-3">Cliente</th>
+                  <th className="px-6 py-3">Telefone</th>
+                  <th className="px-6 py-3">Link WhatsApp</th>
+                </tr>
               </thead>
               <tbody className="divide-y">
                 {orders.slice(0, 50).map((o: any, i: number) => (
@@ -79,7 +97,12 @@ function AdminRelatoriosComunicacaoPage() {
                     <td className="px-6 py-3 text-gray-500">{o.telefone_cliente ?? "—"}</td>
                     <td className="px-6 py-3">
                       {o.telefone_cliente && (
-                        <a href={`https://wa.me/55${o.telefone_cliente.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-green-600 font-bold text-xs hover:underline flex items-center gap-1">
+                        <a
+                          href={`https://wa.me/55${o.telefone_cliente.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 font-bold text-xs hover:underline flex items-center gap-1"
+                        >
                           <MessageCircle size={12} /> Abrir
                         </a>
                       )}

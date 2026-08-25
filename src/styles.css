@@ -4,19 +4,25 @@
 @import "./styles/image-optimization.css";
 
 /* Importar fontes da identidade visual */
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Pacifico&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap");
 
 @layer base {
   /* Variáveis de fontes customizadas */
   :root {
-    --font-mazzard: "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mazzard:
+      "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-pacifico: "Pacifico", cursive;
     --font-halimun: "Indie Flower", cursive;
   }
 
   /* Aplicar Mazzard em headings por padrão */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-mazzard);
   }
 }
@@ -143,7 +149,12 @@
   --tangerine-foreground: oklch(1 0 0);
   --teal: oklch(0.629 0.109 183);
   --info: oklch(0.596 0.135 239.1);
-  --gradient-brand: linear-gradient(135deg, oklch(0.4 0.09 158.6), oklch(0.475 0.107 158.6) 55%, oklch(0.8 0.168 123.8));
+  --gradient-brand: linear-gradient(
+    135deg,
+    oklch(0.4 0.09 158.6),
+    oklch(0.475 0.107 158.6) 55%,
+    oklch(0.8 0.168 123.8)
+  );
   --gradient-sun: linear-gradient(120deg, oklch(0.958 0.132 104.5), oklch(0.8 0.168 123.8));
   --shadow-soft: 0 10px 30px -12px oklch(0.4 0.09 158.6 / 0.25);
   --shadow-lift: 0 22px 50px -20px oklch(0.4 0.09 158.6 / 0.45);
@@ -334,7 +345,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 var(--color-primary) / 25%;
   }
   50% {
@@ -352,7 +364,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -361,7 +374,8 @@
 }
 
 @keyframes float-slow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
   50% {
@@ -370,7 +384,8 @@
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -444,7 +459,12 @@
 }
 
 @utility shimmer-effect {
-  background: linear-gradient(90deg, var(--color-background), var(--color-muted), var(--color-background));
+  background: linear-gradient(
+    90deg,
+    var(--color-background),
+    var(--color-muted),
+    var(--color-background)
+  );
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
@@ -485,7 +505,9 @@
 
 /* Premium hover lift */
 @utility hover-lift {
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 40px -15px oklch(0.4 0.09 158.6 / 0.2);

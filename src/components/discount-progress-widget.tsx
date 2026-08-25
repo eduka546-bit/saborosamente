@@ -9,34 +9,32 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
 
   const nextLevel = [...RULES.PROGRESSIVE_DISCOUNT]
     .sort((a, b) => a.min - b.min)
-    .find(r => count < r.min);
+    .find((r) => count < r.min);
 
   const currentLevel = [...RULES.PROGRESSIVE_DISCOUNT]
     .sort((a, b) => b.min - a.min)
-    .find(r => count >= r.min);
+    .find((r) => count >= r.min);
 
-  const progress = nextLevel 
-    ? (count / nextLevel.min) * 100 
-    : 100;
+  const progress = nextLevel ? (count / nextLevel.min) * 100 : 100;
 
   return (
     <div className={cn("rounded-2xl bg-primary/5 p-4 border border-primary/10", className)}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
           <ShoppingBag size={14} />
-          {currentLevel 
-            ? `Desconto Ativo: ${(currentLevel.discount * 100).toFixed(0)}%` 
+          {currentLevel
+            ? `Desconto Ativo: ${(currentLevel.discount * 100).toFixed(0)}%`
             : "Desconto Progressivo"}
         </h3>
         <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-          {count} {count === 1 ? 'item' : 'itens'}
+          {count} {count === 1 ? "item" : "itens"}
         </span>
       </div>
 
       {nextLevel ? (
         <div className="space-y-2">
           <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />

@@ -73,20 +73,17 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
     <div
       className={cn(
         "fixed inset-0 z-[9998] flex items-center justify-center px-4 transition-all duration-300",
-        visible ? "opacity-100" : "opacity-0"
+        visible ? "opacity-100" : "opacity-0",
       )}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={fechar}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={fechar} />
 
       {/* Modal */}
       <div
         className={cn(
           "relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl transition-all duration-300",
-          visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+          visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4",
         )}
       >
         {/* Botão fechar */}
@@ -137,9 +134,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
           {/* Cupom */}
           {config.cupom_codigo && (
             <div className="bg-[#086e45]/5 border border-[#086e45]/20 rounded-2xl p-4 text-center space-y-2">
-              {config.cupom_texto && (
-                <p className="text-xs text-gray-500">{config.cupom_texto}</p>
-              )}
+              {config.cupom_texto && <p className="text-xs text-gray-500">{config.cupom_texto}</p>}
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(config.cupom_codigo!).catch(() => {});
@@ -149,7 +144,9 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
                 {config.cupom_codigo}
               </button>
               {config.cupom_desconto && (
-                <p className="text-xs text-[#086e45] font-semibold">e ganhe {config.cupom_desconto}.</p>
+                <p className="text-xs text-[#086e45] font-semibold">
+                  e ganhe {config.cupom_desconto}.
+                </p>
               )}
             </div>
           )}
@@ -164,7 +161,9 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
             >
               <MessageCircle size={16} className="text-green-500" />
               <span>
-                {config.whatsapp_texto && <span className="font-medium">{config.whatsapp_texto} </span>}
+                {config.whatsapp_texto && (
+                  <span className="font-medium">{config.whatsapp_texto} </span>
+                )}
                 <span className="font-bold">{config.whatsapp}</span>
               </span>
             </a>
@@ -186,7 +185,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
             <input
               type="checkbox"
               checked={naoMostrar}
-              onChange={e => setNaoMostrar(e.target.checked)}
+              onChange={(e) => setNaoMostrar(e.target.checked)}
               className="rounded accent-[#086e45]"
             />
             Não exibir mais esta mensagem.

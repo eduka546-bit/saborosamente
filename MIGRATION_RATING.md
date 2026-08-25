@@ -9,7 +9,7 @@
 5. Copie e cole o conteúdo do arquivo `add_rating_field.sql`:
 
 ```sql
-ALTER TABLE produtos 
+ALTER TABLE produtos
 ADD COLUMN IF NOT EXISTS rating DECIMAL(3, 1) DEFAULT 5.0;
 
 ALTER TABLE produtos
@@ -38,18 +38,21 @@ Se o Supabase suporta múltiplas declarações SQL:
 2. Execute cada comando individualmente se necessário:
 
 ### Passo 1: Adicionar coluna
+
 ```sql
-ALTER TABLE produtos 
+ALTER TABLE produtos
 ADD COLUMN IF NOT EXISTS rating DECIMAL(3, 1) DEFAULT 5.0;
 ```
 
 ### Passo 2: Adicionar constraint
+
 ```sql
 ALTER TABLE produtos
 ADD CONSTRAINT check_rating CHECK (rating >= 3.5 AND rating <= 5.0);
 ```
 
 ### Passo 3: Criar índice
+
 ```sql
 CREATE INDEX IF NOT EXISTS idx_produtos_rating ON produtos(rating);
 ```
@@ -60,17 +63,17 @@ Após executar a migration, verifique se tudo funcionou:
 
 ```sql
 -- Verificar se a coluna foi adicionada
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
 WHERE table_name = 'produtos' AND column_name = 'rating';
 
 -- Verificar a constraint
-SELECT constraint_name, constraint_definition 
-FROM information_schema.table_constraints 
+SELECT constraint_name, constraint_definition
+FROM information_schema.table_constraints
 WHERE table_name = 'produtos' AND constraint_name = 'check_rating';
 
 -- Verificar o índice
-SELECT indexname FROM pg_indexes 
+SELECT indexname FROM pg_indexes
 WHERE tablename = 'produtos' AND indexname = 'idx_produtos_rating';
 ```
 
@@ -84,6 +87,7 @@ WHERE tablename = 'produtos' AND indexname = 'idx_produtos_rating';
 ## Próximos Passos
 
 Após a migration:
+
 1. Atualize seus tipos TypeScript/Zod para incluir o campo `rating`
 2. Atualize as queries que inserem/atualizam produtos
 3. Atualize a UI para exibir ratings dos produtos

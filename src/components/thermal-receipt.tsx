@@ -60,10 +60,7 @@ export function ThermalReceipt({ order }: ThermalReceiptProps) {
   const seq = order.id.slice(-6).toUpperCase();
   const isDelivery = order.metodo_entrega === "entrega";
 
-  const subtotal = order.itens.reduce(
-    (s, i) => s + i.preco_unitario * i.quantidade,
-    0
-  );
+  const subtotal = order.itens.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0);
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
   const total = order.valor_total;
@@ -107,51 +104,61 @@ export function ThermalReceipt({ order }: ThermalReceiptProps) {
 
       <div className="receipt-root">
         <pre>
-{center("SABOROSAMENTE")}
-{center("Atacado de Refeicoes")}
-{center("e Sopas Congeladas")}
-{SEP}
-{center(`PEDIDO #${seq}`)}
-{center(`${dateStr}  ${timeStr}`)}
-{SEP}
-CLIENTE:
-{order.nome_cliente}
-{order.telefone_cliente ? order.telefone_cliente : ""}
-{SEP}
-{center(isDelivery ? "** DELIVERY **" : "** RETIRADA **")}
-{isDelivery && order.endereco_rua ? `\nENTREGA:
+          {center("SABOROSAMENTE")}
+          {center("Atacado de Refeicoes")}
+          {center("e Sopas Congeladas")}
+          {SEP}
+          {center(`PEDIDO #${seq}`)}
+          {center(`${dateStr}  ${timeStr}`)}
+          {SEP}
+          CLIENTE:
+          {order.nome_cliente}
+          {order.telefone_cliente ? order.telefone_cliente : ""}
+          {SEP}
+          {center(isDelivery ? "** DELIVERY **" : "** RETIRADA **")}
+          {isDelivery && order.endereco_rua
+            ? `\nENTREGA:
 ${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}
 ${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}
-${order.endereco_cep ?? ""}` : ""}
-{SEP}
-ITENS
-{SEP_THIN}
-{order.itens.map((item) => {
-  const total_item = item.preco_unitario * item.quantidade;
-  const lineProd = `${item.quantidade}x ${item.nome}`;
-  const lineVal = `R$ ${total_item.toFixed(2)}`;
-  const gap = 32 - lineProd.length - lineVal.length;
-  return [
-    lineProd + " ".repeat(Math.max(1, gap)) + lineVal,
-    item.observacao ? `  Obs: ${item.observacao}` : null,
-  ].filter(Boolean).join("\n");
-}).join("\n")}
-{SEP_THIN}
-{row("Subtotal:", `R$ ${subtotal.toFixed(2)}`)}
-{entrega > 0 ? row("Entrega:", `R$ ${entrega.toFixed(2)}`) : row("Entrega:", "GRATIS")}
-{desconto > 0 ? row(`Desconto${order.cupom_codigo ? ` (${order.cupom_codigo})` : ""}:`, `- R$ ${desconto.toFixed(2)}`) : ""}
-{SEP}
-{row("TOTAL:", `R$ ${total.toFixed(2)}`)}
-{SEP}
-PAGAMENTO:
-{order.metodo_pagamento ?? "Nao informado"}
-{order.troco ? `Troco para: R$ ${order.troco}` : ""}
-{order.observacao ? `\nOBS: ${order.observacao}` : ""}
-{SEP}
-{center("Obrigado pela preferencia!")}
-{center("prefirodelivery.com")}
-{center("@saborosamente.sbs")}
-{" "}
+${order.endereco_cep ?? ""}`
+            : ""}
+          {SEP}
+          ITENS
+          {SEP_THIN}
+          {order.itens
+            .map((item) => {
+              const total_item = item.preco_unitario * item.quantidade;
+              const lineProd = `${item.quantidade}x ${item.nome}`;
+              const lineVal = `R$ ${total_item.toFixed(2)}`;
+              const gap = 32 - lineProd.length - lineVal.length;
+              return [
+                lineProd + " ".repeat(Math.max(1, gap)) + lineVal,
+                item.observacao ? `  Obs: ${item.observacao}` : null,
+              ]
+                .filter(Boolean)
+                .join("\n");
+            })
+            .join("\n")}
+          {SEP_THIN}
+          {row("Subtotal:", `R$ ${subtotal.toFixed(2)}`)}
+          {entrega > 0 ? row("Entrega:", `R$ ${entrega.toFixed(2)}`) : row("Entrega:", "GRATIS")}
+          {desconto > 0
+            ? row(
+                `Desconto${order.cupom_codigo ? ` (${order.cupom_codigo})` : ""}:`,
+                `- R$ ${desconto.toFixed(2)}`,
+              )
+            : ""}
+          {SEP}
+          {row("TOTAL:", `R$ ${total.toFixed(2)}`)}
+          {SEP}
+          PAGAMENTO:
+          {order.metodo_pagamento ?? "Nao informado"}
+          {order.troco ? `Troco para: R$ ${order.troco}` : ""}
+          {order.observacao ? `\nOBS: ${order.observacao}` : ""}
+          {SEP}
+          {center("Obrigado pela preferencia!")}
+          {center("prefirodelivery.com")}
+          {center("@saborosamente.sbs")}{" "}
         </pre>
       </div>
     </>
@@ -183,13 +190,15 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   const sep = "─".repeat(32);
   const thin = "·".repeat(32);
 
-  const itensLines = order.itens.map((item) => {
-    const tot = item.preco_unitario * item.quantidade;
-    const prod = `${item.quantidade}x ${item.nome}`;
-    const val = `R$ ${tot.toFixed(2)}`;
-    const line = prod + " ".repeat(Math.max(1, 32 - prod.length - val.length)) + val;
-    return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
-  }).join("\n");
+  const itensLines = order.itens
+    .map((item) => {
+      const tot = item.preco_unitario * item.quantidade;
+      const prod = `${item.quantidade}x ${item.nome}`;
+      const val = `R$ ${tot.toFixed(2)}`;
+      const line = prod + " ".repeat(Math.max(1, 32 - prod.length - val.length)) + val;
+      return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
+    })
+    .join("\n");
 
   const body = [
     c("SABOROSAMENTE"),
@@ -204,12 +213,14 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     order.telefone_cliente ?? "",
     sep,
     c(isDelivery ? "** DELIVERY **" : "** RETIRADA **"),
-    ...(isDelivery && order.endereco_rua ? [
-      "ENTREGA:",
-      `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
-      `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
-      order.endereco_cep ?? "",
-    ] : []),
+    ...(isDelivery && order.endereco_rua
+      ? [
+          "ENTREGA:",
+          `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
+          `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
+          order.endereco_cep ?? "",
+        ]
+      : []),
     sep,
     "ITENS",
     thin,
@@ -217,7 +228,14 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     thin,
     r("Subtotal:", `R$ ${subtotal.toFixed(2)}`),
     r("Entrega:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
-    ...(desconto > 0 ? [r(`Desconto${order.cupom_codigo ? ` (${order.cupom_codigo})` : ""}:`, `- R$ ${desconto.toFixed(2)}`)] : []),
+    ...(desconto > 0
+      ? [
+          r(
+            `Desconto${order.cupom_codigo ? ` (${order.cupom_codigo})` : ""}:`,
+            `- R$ ${desconto.toFixed(2)}`,
+          ),
+        ]
+      : []),
     sep,
     r("TOTAL:", `R$ ${order.valor_total.toFixed(2)}`),
     sep,
@@ -229,7 +247,9 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     c("Obrigado pela preferencia!"),
     c("@saborosamente.sbs"),
     " ",
-  ].filter((l) => l !== null && l !== undefined).join("\n");
+  ]
+    .filter((l) => l !== null && l !== undefined)
+    .join("\n");
 
   win.document.write(`<!DOCTYPE html>
 <html>

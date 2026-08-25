@@ -25,7 +25,10 @@ function AdminPedidosItensPage() {
   });
 
   const grouped = useMemo(() => {
-    const map = new Map<string, { nome: string; imagem: string; quantidade: number; receita: number }>();
+    const map = new Map<
+      string,
+      { nome: string; imagem: string; quantidade: number; receita: number }
+    >();
     data.forEach((item: any) => {
       const id = item.produto_id;
       const existing = map.get(id);
@@ -42,7 +45,7 @@ function AdminPedidosItensPage() {
       }
     });
     return [...map.values()]
-      .filter(i => i.nome.toLowerCase().includes(search.toLowerCase()))
+      .filter((i) => i.nome.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => b.quantidade - a.quantidade);
   }, [data, search]);
 
@@ -54,12 +57,22 @@ function AdminPedidosItensPage() {
       </div>
       <div className="bg-white rounded-xl border p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input placeholder="Buscar produto..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
+          />
+          <Input
+            placeholder="Buscar produto..."
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm text-left">
@@ -77,12 +90,20 @@ function AdminPedidosItensPage() {
                   <td className="px-6 py-4 font-black text-gray-300 text-lg">{idx + 1}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {item.imagem && <img src={item.imagem} className="h-10 w-10 rounded-lg object-cover border" alt="" />}
+                      {item.imagem && (
+                        <img
+                          src={item.imagem}
+                          className="h-10 w-10 rounded-lg object-cover border"
+                          alt=""
+                        />
+                      )}
                       <span className="font-semibold text-gray-900">{item.nome}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-bold text-[#5850ec]">{item.quantidade}×</td>
-                  <td className="px-6 py-4 font-bold text-green-600">R$ {item.receita.toFixed(2).replace(".", ",")}</td>
+                  <td className="px-6 py-4 font-bold text-green-600">
+                    R$ {item.receita.toFixed(2).replace(".", ",")}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,14 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleDollarSign, TrendingUp, TrendingDown, Download, ArrowUpRight, FileText, Loader2 } from "lucide-react";
+import {
+  CircleDollarSign,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  ArrowUpRight,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, startOfMonth, startOfYear, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfMonth,
+  startOfYear,
+  eachDayOfInterval,
+  eachMonthOfInterval,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
 export const Route = createFileRoute("/admin/financeiro/")({
@@ -46,14 +67,13 @@ function AdminFinanceiroIndex() {
       fmt = "MMM";
     }
 
-    const chartData = intervals.map(date => {
-      const key = period === "Anual"
-        ? format(date, "yyyy-MM")
-        : format(date, "yyyy-MM-dd");
+    const chartData = intervals.map((date) => {
+      const key = period === "Anual" ? format(date, "yyyy-MM") : format(date, "yyyy-MM-dd");
       const dayOrders = orders.filter((o: any) => {
-        const oDate = period === "Anual"
-          ? format(new Date(o.created_at), "yyyy-MM")
-          : format(new Date(o.created_at), "yyyy-MM-dd");
+        const oDate =
+          period === "Anual"
+            ? format(new Date(o.created_at), "yyyy-MM")
+            : format(new Date(o.created_at), "yyyy-MM-dd");
         return oDate === key;
       });
       const receita = dayOrders.reduce((s: number, o: any) => s + (o.valor_total || 0), 0);
@@ -74,7 +94,7 @@ function AdminFinanceiroIndex() {
 
   const exportCSV = () => {
     const headers = "Data,Receita,Pedidos\n";
-    const rows = chartData.map(d => `${d.name},${d.receita},`).join("\n");
+    const rows = chartData.map((d) => `${d.name},${d.receita},`).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -89,7 +109,9 @@ function AdminFinanceiroIndex() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Financeiro</h1>
-          <p className="text-gray-500 text-sm mt-1">Fluxo de receitas baseado nos pedidos concluídos.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Fluxo de receitas baseado nos pedidos concluídos.
+          </p>
         </div>
         <Button onClick={exportCSV} className="flex items-center gap-2 bg-[#5850ec] text-white">
           <Download size={18} /> Exportar CSV
@@ -97,13 +119,17 @@ function AdminFinanceiroIndex() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-3 mb-8">
             <Card className="border-green-100 bg-green-50/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">Receita (30 dias)</CardTitle>
+                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Receita (30 dias)
+                </CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
@@ -112,13 +138,16 @@ function AdminFinanceiroIndex() {
                 </div>
                 <div className="flex items-center gap-1 text-xs text-green-600 mt-1 font-bold">
                   <ArrowUpRight size={14} />
-                  {totals.pct >= 0 ? "+" : ""}{totals.pct.toFixed(1)}% vs 30 dias anteriores
+                  {totals.pct >= 0 ? "+" : ""}
+                  {totals.pct.toFixed(1)}% vs 30 dias anteriores
                 </div>
               </CardContent>
             </Card>
             <Card className="border-orange-100 bg-orange-50/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">Descontos (30 dias)</CardTitle>
+                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Descontos (30 dias)
+                </CardTitle>
                 <TrendingDown className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
@@ -130,12 +159,17 @@ function AdminFinanceiroIndex() {
             </Card>
             <Card className="border-blue-100 bg-blue-50/30">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pedidos (30 dias)</CardTitle>
+                <CardTitle className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Pedidos (30 dias)
+                </CardTitle>
                 <CircleDollarSign className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-blue-700">
-                  {orders.filter((o: any) => new Date(o.created_at) >= subDays(new Date(), 30)).length}
+                  {
+                    orders.filter((o: any) => new Date(o.created_at) >= subDays(new Date(), 30))
+                      .length
+                  }
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Pedidos não cancelados</p>
               </CardContent>
@@ -148,7 +182,7 @@ function AdminFinanceiroIndex() {
                 <FileText className="text-[#5850ec]" size={20} /> Receita por período
               </h3>
               <div className="flex bg-gray-100 p-1 rounded-lg">
-                {(["Semanal", "Mensal", "Anual"] as const).map(p => (
+                {(["Semanal", "Mensal", "Anual"] as const).map((p) => (
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
@@ -169,13 +203,34 @@ function AdminFinanceiroIndex() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} tickFormatter={v => `R$${v}`} />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tickFormatter={(v) => `R$${v}`}
+                  />
                   <Tooltip
                     formatter={(v: any) => [`R$ ${Number(v).toFixed(2)}`, "Receita"]}
-                    contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
                   />
-                  <Area type="monotone" dataKey="receita" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorReceita)" />
+                  <Area
+                    type="monotone"
+                    dataKey="receita"
+                    stroke="#22c55e"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorReceita)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

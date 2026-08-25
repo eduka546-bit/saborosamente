@@ -30,15 +30,19 @@ export const Route = createFileRoute("/admin/categorias")({
   component: AdminCategoriasPage,
 });
 
-function SortableRow({ cat, editingId, editForm, setEditForm, setEditingId, onUpdate, onDelete, onToggleVisible }: any) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: cat.id });
+function SortableRow({
+  cat,
+  editingId,
+  editForm,
+  setEditForm,
+  setEditingId,
+  onUpdate,
+  onDelete,
+  onToggleVisible,
+}: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: cat.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -48,7 +52,11 @@ function SortableRow({ cat, editingId, editForm, setEditForm, setEditingId, onUp
   };
 
   return (
-    <tr ref={setNodeRef} style={style} className={cn("hover:bg-gray-50 transition-colors", !cat.visivel_no_filtro && "opacity-50")}>
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={cn("hover:bg-gray-50 transition-colors", !cat.visivel_no_filtro && "opacity-50")}
+    >
       {/* Handle de drag */}
       <td className="px-4 py-4">
         <div
@@ -63,21 +71,38 @@ function SortableRow({ cat, editingId, editForm, setEditForm, setEditingId, onUp
       {editingId === cat.id ? (
         <>
           <td className="px-3 py-2">
-            <Input value={editForm.nome} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} className="h-8 text-xs" />
+            <Input
+              value={editForm.nome}
+              onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
+              className="h-8 text-xs"
+            />
           </td>
           <td className="px-3 py-2">
-            <Input value={editForm.descricao} onChange={e => setEditForm({ ...editForm, descricao: e.target.value })} className="h-8 text-xs" placeholder="Descrição opcional" />
+            <Input
+              value={editForm.descricao}
+              onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })}
+              className="h-8 text-xs"
+              placeholder="Descrição opcional"
+            />
           </td>
           <td className="px-6 py-4 text-gray-400">{cat.produtos?.[0]?.count ?? 0}</td>
           <td className="px-4 py-4"></td>
           <td className="px-3 py-2 text-right">
             <div className="flex gap-1 justify-end">
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600"
-                onClick={() => onUpdate(cat.id, editForm)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-green-600"
+                onClick={() => onUpdate(cat.id, editForm)}
+              >
                 <Save size={14} />
               </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-400"
-                onClick={() => setEditingId(null)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-gray-400"
+                onClick={() => setEditingId(null)}
+              >
                 <X size={14} />
               </Button>
             </div>
@@ -97,25 +122,40 @@ function SortableRow({ cat, editingId, editForm, setEditForm, setEditingId, onUp
                 onCheckedChange={(v) => onToggleVisible(cat.id, v)}
               />
               <span className="text-xs text-gray-400">
-                {cat.visivel_no_filtro !== false
-                  ? <span className="flex items-center gap-1 text-green-600"><Eye size={12} /> Visível</span>
-                  : <span className="flex items-center gap-1 text-gray-400"><EyeOff size={12} /> Oculto</span>
-                }
+                {cat.visivel_no_filtro !== false ? (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Eye size={12} /> Visível
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <EyeOff size={12} /> Oculto
+                  </span>
+                )}
               </span>
             </div>
           </td>
 
           <td className="px-6 py-4 text-right">
             <div className="flex gap-1 justify-end">
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-[#5850ec]"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-400 hover:text-[#5850ec]"
                 onClick={() => {
                   setEditingId(cat.id);
                   setEditForm({ nome: cat.nome, descricao: cat.descricao ?? "" });
-                }}>
+                }}
+              >
                 <Edit3 size={14} />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500"
-                onClick={() => { if (confirm("Excluir categoria?")) onDelete(cat.id); }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-400 hover:text-red-500"
+                onClick={() => {
+                  if (confirm("Excluir categoria?")) onDelete(cat.id);
+                }}
+              >
                 <Trash2 size={14} />
               </Button>
             </div>
@@ -136,7 +176,7 @@ function AdminCategoriasPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const { isLoading } = useQuery({
@@ -204,10 +244,13 @@ function AdminCategoriasPage() {
   });
 
   const handleToggleVisible = async (id: string, visible: boolean) => {
-    setLocalCategories(prev =>
-      prev.map(c => c.id === id ? { ...c, visivel_no_filtro: visible } : c)
+    setLocalCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, visivel_no_filtro: visible } : c)),
     );
-    const { error } = await supabase.from("categorias").update({ visivel_no_filtro: visible }).eq("id", id);
+    const { error } = await supabase
+      .from("categorias")
+      .update({ visivel_no_filtro: visible })
+      .eq("id", id);
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
       queryClient.invalidateQueries({ queryKey: ["admin-categories-full"] });
@@ -221,8 +264,8 @@ function AdminCategoriasPage() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = localCategories.findIndex(c => c.id === active.id);
-    const newIndex = localCategories.findIndex(c => c.id === over.id);
+    const oldIndex = localCategories.findIndex((c) => c.id === active.id);
+    const newIndex = localCategories.findIndex((c) => c.id === over.id);
     const reordered = arrayMove(localCategories, oldIndex, newIndex);
 
     setLocalCategories(reordered);
@@ -230,9 +273,7 @@ function AdminCategoriasPage() {
     // Salva a nova ordem no banco
     try {
       for (let i = 0; i < reordered.length; i++) {
-        await supabase.from("categorias")
-          .update({ ordem_filtro: i })
-          .eq("id", reordered[i].id);
+        await supabase.from("categorias").update({ ordem_filtro: i }).eq("id", reordered[i].id);
       }
       queryClient.invalidateQueries({ queryKey: ["public-categories"] });
       toast.success("Ordem salva!");
@@ -251,7 +292,10 @@ function AdminCategoriasPage() {
             Arraste para reordenar. Use o toggle para mostrar/ocultar no filtro do catálogo.
           </p>
         </div>
-        <Button onClick={() => setIsAdding(true)} className="bg-[#5850ec] text-white flex items-center gap-2">
+        <Button
+          onClick={() => setIsAdding(true)}
+          className="bg-[#5850ec] text-white flex items-center gap-2"
+        >
           <Plus size={16} /> Nova Categoria
         </Button>
       </div>
@@ -262,7 +306,9 @@ function AdminCategoriasPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
           <table className="w-full text-sm text-left">
@@ -283,7 +329,7 @@ function AdminCategoriasPage() {
               modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
-                items={localCategories.map(c => c.id)}
+                items={localCategories.map((c) => c.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <tbody className="divide-y">
@@ -313,21 +359,39 @@ function AdminCategoriasPage() {
             <h2 className="text-xl font-bold mb-6 text-[#5850ec]">Nova Categoria</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Nome *</label>
-                <Input value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Marmitas" required />
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Nome *
+                </label>
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  placeholder="Ex: Marmitas"
+                  required
+                />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">Descrição</label>
-                <Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex: Refeições completas" />
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Descrição
+                </label>
+                <Input
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                  placeholder="Ex: Refeições completas"
+                />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" onClick={() => setIsAdding(false)} className="flex-1">Cancelar</Button>
+                <Button variant="outline" onClick={() => setIsAdding(false)} className="flex-1">
+                  Cancelar
+                </Button>
                 <Button
                   onClick={() => addMutation.mutate(form)}
                   className="flex-1 bg-[#5850ec] text-white"
                   disabled={!form.nome || addMutation.isPending}
                 >
-                  {addMutation.isPending ? <Loader2 size={16} className="animate-spin mr-2" /> : null} Criar
+                  {addMutation.isPending ? (
+                    <Loader2 size={16} className="animate-spin mr-2" />
+                  ) : null}{" "}
+                  Criar
                 </Button>
               </div>
             </div>

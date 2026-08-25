@@ -95,7 +95,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Saborosamente | Marmitas Congeladas Artesanais" },
       {
         property: "og:description",
-        content: "Comida de verdade congelada no ponto certo. Escolha suas marmitas e receba em casa.",
+        content:
+          "Comida de verdade congelada no ponto certo. Escolha suas marmitas e receba em casa.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -170,12 +171,12 @@ function RootComponent() {
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          {isAdminPath ? (!isLoginPage && <AdminHeader />) : <SiteHeader />}
-          
+          {isAdminPath ? !isLoginPage && <AdminHeader /> : <SiteHeader />}
+
           <main className="flex-1 relative z-10">
             <Outlet />
           </main>
-          
+
           {mounted && !isAdminPath && <SiteFooter />}
         </div>
         <Toaster position="top-right" closeButton={false} offset={20} />

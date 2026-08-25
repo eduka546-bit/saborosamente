@@ -28,7 +28,11 @@ export interface Product {
   preco_400g?: number;
   peso: string;
   categoria: ProductCategory;
+  /** Categoria vinda do join do Supabase (tabela `categorias`). Opcional. */
+  categorias?: { nome: string } | null;
   imagem: string;
+  /** URL da imagem no storage do Supabase (schema do banco). Opcional. */
+  imagem_url?: string;
   imagens?: string[];
   destaque?: boolean;
   tabela_nutricional?: NutritionalInfo;
@@ -37,19 +41,13 @@ export interface Product {
   informacao_nutricional?: string;
 }
 
-export const CATEGORIES: ProductCategory[] = [
-  "Fitness",
-  "Tradicional",
-  "Vegetariana",
-  "Low Carb",
-];
+export const CATEGORIES: ProductCategory[] = ["Fitness", "Tradicional", "Vegetariana", "Low Carb"];
 
 export const products: Product[] = [
   {
     id: "frango-grelhado",
     nome: "Frango Grelhado com Purê de Batata-doce",
-    descricao:
-      "Filé de frango grelhado no ponto, purê cremoso de batata-doce e vagem no vapor.",
+    descricao: "Filé de frango grelhado no ponto, purê cremoso de batata-doce e vagem no vapor.",
     ingredientes: ["Peito de frango", "Batata-doce", "Vagem", "Azeite", "Ervas finas"],
     preco: 24.9,
     peso: "450g",

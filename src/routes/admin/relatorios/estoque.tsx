@@ -14,7 +14,9 @@ function AdminRelatoriosEstoquePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, nome, imagem_url, estoque_atual, estoque_minimo, controle_estoque, status, categorias(nome)")
+        .select(
+          "id, nome, imagem_url, estoque_atual, estoque_minimo, controle_estoque, status, categorias(nome)",
+        )
         .eq("controle_estoque", true)
         .order("estoque_atual");
       if (error) throw error;
@@ -22,7 +24,9 @@ function AdminRelatoriosEstoquePage() {
     },
   });
 
-  const baixoEstoque = products.filter((p: any) => (p.estoque_atual ?? 0) <= (p.estoque_minimo ?? 5));
+  const baixoEstoque = products.filter(
+    (p: any) => (p.estoque_atual ?? 0) <= (p.estoque_minimo ?? 5),
+  );
   const semEstoque = products.filter((p: any) => (p.estoque_atual ?? 0) === 0);
 
   return (
@@ -48,12 +52,16 @@ function AdminRelatoriosEstoquePage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#5850ec]" size={32} /></div>
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#5850ec]" size={32} />
+        </div>
       ) : products.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed p-20 text-center">
           <Package size={48} className="mx-auto text-gray-200 mb-4" />
           <p className="text-gray-400">Nenhum produto com controle de estoque ativo.</p>
-          <p className="text-xs text-gray-400 mt-1">Ative o controle de estoque em Cardápio → editar produto.</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Ative o controle de estoque em Cardápio → editar produto.
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
@@ -76,7 +84,13 @@ function AdminRelatoriosEstoquePage() {
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {p.imagem_url && <img src={p.imagem_url} className="h-8 w-8 rounded object-cover border" alt="" />}
+                        {p.imagem_url && (
+                          <img
+                            src={p.imagem_url}
+                            className="h-8 w-8 rounded object-cover border"
+                            alt=""
+                          />
+                        )}
                         <span className="font-semibold text-gray-900">{p.nome}</span>
                       </div>
                     </td>
@@ -84,9 +98,19 @@ function AdminRelatoriosEstoquePage() {
                     <td className="px-6 py-4 font-bold text-gray-900">{atual}</td>
                     <td className="px-6 py-4 text-gray-400">{minimo}</td>
                     <td className="px-6 py-4">
-                      {situacao === "sem" && <Badge className="bg-red-100 text-red-700 flex items-center gap-1 w-fit"><AlertTriangle size={11} /> Sem estoque</Badge>}
-                      {situacao === "baixo" && <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1 w-fit"><AlertTriangle size={11} /> Estoque baixo</Badge>}
-                      {situacao === "ok" && <Badge className="bg-green-100 text-green-700 w-fit">Normal</Badge>}
+                      {situacao === "sem" && (
+                        <Badge className="bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+                          <AlertTriangle size={11} /> Sem estoque
+                        </Badge>
+                      )}
+                      {situacao === "baixo" && (
+                        <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1 w-fit">
+                          <AlertTriangle size={11} /> Estoque baixo
+                        </Badge>
+                      )}
+                      {situacao === "ok" && (
+                        <Badge className="bg-green-100 text-green-700 w-fit">Normal</Badge>
+                      )}
                     </td>
                   </tr>
                 );

@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const data = await res.json() as {
+    const data = (await res.json()) as {
       data: {
         name: string;
         status: string;
@@ -76,7 +76,6 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
-
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     console.error("Erro:", msg);

@@ -62,14 +62,15 @@ npx tsx src/migrations/execute-migration.ts
 bun src/migrations/verify-migration.ts
 
 # OU manualmente no SQL Editor do Supabase
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
 WHERE table_name = 'produtos' AND column_name = 'rating';
 ```
 
 ### Atualize seu Código TypeScript
 
 1. **Atualize tipos Zod** (se usar validação):
+
    ```typescript
    export const produtoSchema = z.object({
      rating: z.number().min(3.5).max(5.0).optional(),
@@ -78,6 +79,7 @@ WHERE table_name = 'produtos' AND column_name = 'rating';
    ```
 
 2. **Atualize queries que selecionam produtos**:
+
    ```typescript
    .select('id, nome, preco, rating') // Adicione rating
    ```
@@ -91,16 +93,17 @@ WHERE table_name = 'produtos' AND column_name = 'rating';
 
 ## 🔍 Verificação Rápida
 
-| Passo | Verificação | Status |
-|-------|-------------|---------|
-| 1 | Coluna `rating` adicionada | ? |
-| 2 | Tipo DECIMAL(3,1) com default 5.0 | ? |
-| 3 | Constraint check_rating (3.5-5.0) | ? |
-| 4 | Índice idx_produtos_rating criado | ? |
-| 5 | Tipos TypeScript atualizados | ? |
-| 6 | Queries atualizadas com rating | ? |
+| Passo | Verificação                       | Status |
+| ----- | --------------------------------- | ------ |
+| 1     | Coluna `rating` adicionada        | ?      |
+| 2     | Tipo DECIMAL(3,1) com default 5.0 | ?      |
+| 3     | Constraint check_rating (3.5-5.0) | ?      |
+| 4     | Índice idx_produtos_rating criado | ?      |
+| 5     | Tipos TypeScript atualizados      | ?      |
+| 6     | Queries atualizadas com rating    | ?      |
 
 **Para marcar como completo**, execute:
+
 ```bash
 bun src/migrations/verify-migration.ts
 ```
@@ -110,18 +113,22 @@ bun src/migrations/verify-migration.ts
 ## 🐛 Se Algo Falhar
 
 ### Erro: "Table 'produtos' not found"
+
 - Verifique se a tabela está em plural (`produtos`) ou singular (`produto`)
 - Atualize o SQL conforme necessário
 
 ### Erro: "Constraint check_rating already exists"
+
 - Esto é ok! Significa que já foi executado antes
 - O `IF NOT EXISTS` evita erros em re-execuções
 
 ### Erro: "Permission denied"
+
 - Use a conta com role `ADMIN` no Supabase
 - Ou use `SB_SERVICE_ROLE_KEY` se executar via script
 
 ### Script Typescript não funciona
+
 ```bash
 # Instale tsx globalmente
 bun install -g tsx
