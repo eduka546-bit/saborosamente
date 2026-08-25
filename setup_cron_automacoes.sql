@@ -25,10 +25,10 @@ BEGIN
   END IF;
 END $$;
 
--- Agenda a chamada a cada minuto
+-- Agenda a chamada a cada 4 minutos
 SELECT cron.schedule(
   'whatsapp-automacoes-tick',
-  '* * * * *',
+  '*/4 * * * *',
   $$
   SELECT net.http_post(
     url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/whatsapp-automacoes-tick',
