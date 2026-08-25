@@ -75,7 +75,10 @@ async function sendWhatsAppMessage(to: string, text: string) {
   }
 }
 
-async function sendTypingIndicator(to: string, messageId?: string) {
+// Nota: a API de "mark as read"/typing do WhatsApp Cloud não usa o campo "to"
+// no corpo (só messaging_product, message_id e status). O parâmetro é mantido
+// por consistência com os demais helpers, mas prefixado com _ por não ser usado.
+async function sendTypingIndicator(_to: string, messageId?: string) {
   if (!messageId) return;
 
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
@@ -1087,7 +1090,7 @@ async function executarNo(
 
 async function avancarExecucao(
   no: any, todos_nos: any[], execucao: any,
-  telefone: string, conversa: any, historico: any[], avancou: boolean
+  telefone: string, conversa: any, historico: any[], _avancou: boolean
 ) {
   const proximoId = no.proximo_id;
   const proximoNo = todos_nos.find((n: any) => n.id === proximoId);
@@ -1456,7 +1459,7 @@ Deno.serve(async (req: Request) => {
         { texto: cardapioContexto, produtos },
         entregasContexto,
         settingsContexto,
-        { texto: arquivosContexto, arquivos },
+        { texto: arquivosContexto },
         modulosPrompt,
       ] = await Promise.all([
         getProdutosContexto(),
