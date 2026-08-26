@@ -586,6 +586,21 @@ async function getEntregasContexto(): Promise<string> {
     "\nSe o bairro/cidade não estiver na lista, informe que não atendemos aquela região ainda.",
   );
 
+  // Resumo "a partir de" por cidade (menor taxa de cada uma). Serve para a IA
+  // responder a dúvida de entrega de forma objetiva, listando todas as cidades
+  // de uma vez, sem precisar perguntar a cidade antes.
+  const resumo: string[] = [
+    "\nRESUMO PARA A DÚVIDA DE ENTREGA — quando o cliente perguntar sobre entrega/frete de forma geral (sem citar a cidade dele), liste TODAS as cidades atendidas com o valor 'a partir de', assim, de uma vez só (não pergunte a cidade antes):",
+  ];
+  for (const [cidade, bairros] of Object.entries(porCidade)) {
+    const menor = Math.min(...bairros.map((b) => b.valor));
+    resumo.push(`  - ${cidade}: a partir de R$ ${menor.toFixed(2)}`);
+  }
+  resumo.push(
+    "Depois de listar, pergunte a cidade/bairro do cliente para confirmar a taxa exata. Lembre do frete promocional de São Bento do Sul (R$ 5,00 para 5+ unidades), se aplicável.",
+  );
+  linhas.push(resumo.join("\n"));
+
   return linhas.join("\n");
 }
 
@@ -2222,7 +2237,8 @@ Deno.serve(async (req: Request) => {
           case "duvida_entrega": {
             await appendMensagem(conversa.id, historico, {
               role: "user",
-              content: "Como funciona a entrega e qual o frete?",
+              content:
+                "Como funciona a entrega e qual o frete? Liste todas as cidades que vocês entregam já com o valor a partir de quanto.",
             });
             break;
           }
@@ -2845,9 +2861,19 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
           }
         } else {
-          // Resposta conversacional normal: NÃO reexibir o menu.
+          // Resposta conversacional normal.
           await sendWhatsAppMessage(telefone, resposta);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+
+          // Chatbot: depois de responder, reexibe o menu para o cliente ter um
+          // próximo passo claro — EXCETO se há um pedido em andamento (o menu
+          // atrapalharia a coleta) ou se a própria IA já mandou o menu/pergunta
+          // direta esperando resposta. Assim o fluxo fica guiado sem grudar o
+          // menu no meio de uma conversa que claramente continua.
+          const perguntaAberta = /\?\s*$/.test(resposta.trim());
+          if (!pedidoEmAndamento && !perguntaAberta) {
+            await sendMenuInterativo(telefone);
+          }
         }
       }
     } catch (err: any) {
