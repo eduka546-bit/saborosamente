@@ -23,6 +23,9 @@ const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
+// Após esse tempo sem atividade em atendimento humano, o bot reassume a conversa
+// (evita deixar o cliente no vácuo se ninguém da equipe respondeu).
+const HANDOFF_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
 const OPENAI_TIMEOUT_MS = 25_000;
 const WHATSAPP_API_VERSION = "v20.0";
@@ -414,6 +417,110 @@ async function salvarPedidoEmAndamento(conversaId: string, pedido: any) {
     .eq("id", conversaId);
 }
 
+// Registra um evento de observabilidade (escalação, falha de pedido, etc).
+// Best-effort: nunca deixa uma falha de log quebrar o fluxo do agente.
+async function registrarEvento(
+  tipo: string,
+  telefone: string,
+  conversaId: string | null,
+  detalhe: Record<string, unknown> = {},
+) {
+  try {
+    await supabase.from("agente_eventos").insert({
+      tipo,
+      telefone,
+      conversa_id: conversaId,
+      detalhe,
+    });
+  } catch (e: any) {
+    console.error("registrarEvento erro:", e?.message ?? e);
+  }
+}
+
+// Mensagens amigáveis por status de pedido
+const STATUS_PEDIDO_MSG: Record<string, string> = {
+  rascunho: "está sendo montado 📝",
+  novo_pedido: "foi recebido e está aguardando confirmação ⏳",
+  pendente: "foi recebido e está aguardando confirmação ⏳",
+  pagamento_confirmado: "teve o pagamento confirmado ✅",
+  preparando: "está sendo preparado com carinho 👩‍🍳",
+  "saiu para entrega": "saiu para entrega 🛵",
+  entregue: "foi entregue ✅ Bom apetite! 🍱",
+  cancelado: "foi cancelado ❌",
+};
+
+// Consulta o status de um pedido. Se houver protocolo, busca por ele; senão,
+// o pedido mais recente do telefone. Retorna uma mensagem pronta ao cliente.
+async function consultarPedidoStatus(telefone: string, protocolo?: string): Promise<string> {
+  try {
+    let query = supabase
+      .from("pedidos")
+      .select("id, status, created_at, metodo_entrega, valor_total")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const protoLimpo = (protocolo ?? "").replace(/[^0-9a-fA-F]/g, "");
+    if (protoLimpo.length >= 6) {
+      query = query.ilike("id", `${protoLimpo}%`);
+    } else {
+      query = query.eq("telefone_cliente", telefone);
+    }
+
+    const { data: pedidos, error } = await query;
+    if (error) {
+      console.error("consultarPedidoStatus erro:", JSON.stringify(error));
+      return "Tive um problema para consultar seu pedido agora 😔 Pode tentar de novo em instantes?";
+    }
+
+    const pedido = pedidos?.[0];
+    if (!pedido) {
+      return protoLimpo.length >= 6
+        ? "Não encontrei nenhum pedido com esse protocolo 🤔 Confere o número pra mim? É o código que enviei na confirmação."
+        : "Não encontrei um pedido recente no seu número 🤔 Se você fez o pedido com outro telefone, me passa o protocolo (o código da confirmação).";
+    }
+
+    const proto = String(pedido.id).slice(0, 8).toUpperCase();
+    const statusMsg =
+      STATUS_PEDIDO_MSG[String(pedido.status).toLowerCase()] ?? `está com status: ${pedido.status}`;
+    return `Seu pedido *#${proto}* ${statusMsg}`;
+  } catch (e: any) {
+    console.error("consultarPedidoStatus exceção:", e?.message ?? e);
+    return "Tive um problema para consultar seu pedido agora 😔 Pode tentar de novo em instantes?";
+  }
+}
+
+// Normaliza texto para comparação (minúsculo, sem acento, sem espaços extras)
+function normalizarTexto(s: string | null | undefined): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+// Busca a taxa de entrega cadastrada para uma cidade/bairro em delivery_rates.
+// Retorna a taxa (number) se a área for atendida, ou null caso contrário.
+async function buscarTaxaEntrega(cidade: string, bairro: string): Promise<number | null> {
+  const { data: taxas, error } = await supabase
+    .from("delivery_rates")
+    .select("cidade, bairro, valor")
+    .eq("ativo", true);
+
+  if (error) {
+    console.error("buscarTaxaEntrega erro:", JSON.stringify(error));
+    return null;
+  }
+
+  const cidadeN = normalizarTexto(cidade);
+  const bairroN = normalizarTexto(bairro);
+
+  const match = (taxas ?? []).find(
+    (t: any) => normalizarTexto(t.cidade) === cidadeN && normalizarTexto(t.bairro) === bairroN,
+  );
+
+  return match ? Number(match.valor) : null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Contexto dinâmico do banco
 // ─────────────────────────────────────────────────────────────────────────────
@@ -612,10 +719,31 @@ async function montarContextoCliente(profile: any): Promise<string> {
     });
     const pagMaisUsado = pedidos[0]?.metodo_pagamento;
     if (pagMaisUsado) linhas.push(`- Forma de pagamento preferida: ${pagMaisUsado}`);
+
+    // Itens do último pedido — permite ao agente oferecer "repetir o de sempre".
+    const ultimoPedidoId = pedidos[0]?.id;
+    if (ultimoPedidoId) {
+      const { data: itens } = await supabase
+        .from("pedido_itens")
+        .select("quantidade, observacao, produtos:produto_id(nome)")
+        .eq("pedido_id", ultimoPedidoId);
+      if (itens?.length) {
+        const itensTxt = itens
+          .map((i: any) => {
+            const nome = i.produtos?.nome ?? "item";
+            const peso = i.observacao?.replace(/^Peso:\s*/i, "") ?? "";
+            return `${i.quantidade}x ${nome}${peso ? ` (${peso})` : ""}`;
+          })
+          .join(", ");
+        linhas.push(
+          `- Itens do último pedido (para oferecer repetir, se o cliente quiser): ${itensTxt}`,
+        );
+      }
+    }
   }
 
   linhas.push(
-    `\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido.`,
+    `\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido. Se o cliente pedir para "repetir o pedido" ou "o de sempre", use os itens do último pedido acima.`,
   );
   return linhas.join("\n");
 }
@@ -661,21 +789,32 @@ async function buscarClientePorCpf(
 ): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
   // Remove tudo que não é número
   const cpfNum = cpf.replace(/\D/g, "");
-  if (cpfNum.length < 11) return { encontrado: false, contexto: "", profile: null };
+  if (cpfNum.length !== 11) return { encontrado: false, contexto: "", profile: null };
 
-  const { data: profiles } = await supabase
+  // Busca candidatos pelos dígitos do CPF e compara de forma EXATA (o CPF no
+  // banco pode ter máscara). Evita casar por substring/CPF parcial.
+  const { data: candidatos } = await supabase
     .from("profiles")
     .select("id, nome, telefone, cpf")
     .ilike("cpf", `%${cpfNum}%`)
-    .limit(1);
+    .limit(20);
 
-  const profile = profiles?.[0] ?? null;
+  const profile =
+    (candidatos ?? []).find((p: any) => String(p.cpf ?? "").replace(/\D/g, "") === cpfNum) ?? null;
   if (!profile) return { encontrado: false, contexto: "", profile: null };
 
-  // Vincula o telefone ao perfil para próximas vezes
-  if (telefone && (!profile.telefone || profile.telefone !== telefone)) {
+  // Segurança/privacidade: só vincula este telefone ao cadastro se ele NÃO tiver
+  // telefone cadastrado. Se já houver um telefone (mesmo diferente), NÃO
+  // sobrescrevemos — assim ninguém "rouba" um cadastro alheio informando o CPF.
+  const telefoneCadastrado = String(profile.telefone ?? "").replace(/\D/g, "");
+  if (telefone && !telefoneCadastrado) {
     await supabase.from("profiles").update({ telefone }).eq("id", profile.id);
-    console.log(`Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF`);
+    console.log(`Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF (perfil sem telefone)`);
+  } else if (telefone && !telefonesBatem(telefone, telefoneCadastrado)) {
+    // Cadastro já pertence a outro número: reconhece para leitura mas não vincula.
+    console.warn(
+      `CPF ${cpfNum} consultado do telefone ${telefone}, mas o cadastro já tem outro telefone. Vínculo NÃO alterado.`,
+    );
   }
 
   const contexto = await montarContextoCliente(profile);
@@ -864,6 +1003,22 @@ const FUNCTIONS_SCHEMA = [
         cpf: { type: "string", description: "CPF informado pelo cliente (apenas números)" },
       },
       required: ["cpf"],
+    },
+  },
+  {
+    name: "consultar_pedido",
+    description:
+      "Consulta o status de um pedido quando o cliente pergunta sobre o andamento ('cadê meu pedido?', 'meu pedido saiu?'). Se o cliente informar o número/protocolo, passe em 'protocolo'. Caso contrário, o sistema busca o pedido mais recente do próprio telefone.",
+    parameters: {
+      type: "object",
+      properties: {
+        protocolo: {
+          type: "string",
+          description:
+            "Protocolo do pedido informado pelo cliente (os primeiros caracteres do código), se houver. Opcional.",
+        },
+      },
+      required: [],
     },
   },
 ];
@@ -1152,6 +1307,10 @@ async function executarNo(
 
     case "transferir": {
       await supabase.from("whatsapp_conversas").update({ modo: "humano" }).eq("id", conversa.id);
+      await registrarEvento("escalacao_humano", telefone, conversa.id, {
+        origem: "automacao",
+        automacao_id: execucao?.automacao_id ?? null,
+      });
       await concluirExecucao(execucao);
       break;
     }
@@ -1453,7 +1612,23 @@ Deno.serve(async (req: Request) => {
         msg.interactive?.list_reply?.title ??
         "";
 
-      if (!texto && !menuId) return new Response("OK", { status: 200 });
+      // Mídia não suportada (áudio, imagem, figurinha, localização, contato...):
+      // não deixa o cliente no vácuo. Responde pedindo para escrever — a menos
+      // que a conversa esteja em atendimento humano (aí um atendente cuida).
+      if (!texto && !menuId) {
+        const tiposMidia = ["audio", "voice", "image", "video", "sticker", "document", "location", "contacts"];
+        if (msg.type && tiposMidia.includes(msg.type)) {
+          const conversaMidia = await getOrCreateConversa(telefone, nomeContato);
+          if (conversaMidia?.modo !== "humano") {
+            const aviso =
+              msg.type === "audio" || msg.type === "voice"
+                ? "Oi! 😊 Ainda não consigo ouvir áudios por aqui. Pode me escrever sua mensagem que eu te ajudo rapidinho? 🫶🏼"
+                : "Oi! 😊 Recebi seu arquivo, mas por aqui eu consigo te ajudar melhor por texto. Pode me escrever o que você precisa? 🫶🏼";
+            await sendWhatsAppMessage(telefone, aviso);
+          }
+        }
+        return new Response("OK", { status: 200 });
+      }
 
       // ── Busca/cria conversa ──────────────────────────────────────────────
       const conversa = await getOrCreateConversa(telefone, nomeContato);
@@ -1464,11 +1639,32 @@ Deno.serve(async (req: Request) => {
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
-        await appendMensagem(conversa.id, historico, {
-          role: "user",
-          content: texto || menuId || "",
-        });
-        return new Response("OK", { status: 200 });
+        // Retorno automático ao bot: se o atendimento humano ficou inativo por
+        // muito tempo, o bot reassume para não deixar o cliente sem resposta.
+        const ultimaAtividade = conversa?.ultima_msg
+          ? new Date(conversa.ultima_msg).getTime()
+          : 0;
+        const handoffExpirou =
+          ultimaAtividade > 0 && Date.now() - ultimaAtividade > HANDOFF_TIMEOUT_MS;
+
+        if (handoffExpirou) {
+          await supabase
+            .from("whatsapp_conversas")
+            .update({ modo: "bot" })
+            .eq("id", conversa.id);
+          conversa.modo = "bot";
+          await registrarEvento("retorno_bot", telefone, conversa.id, {
+            motivo: "timeout_handoff",
+          });
+          // Segue o fluxo normal abaixo (o bot volta a responder).
+        } else {
+          // Atendimento humano ativo: só registra a mensagem, não responde.
+          await appendMensagem(conversa.id, historico, {
+            role: "user",
+            content: texto || menuId || "",
+          });
+          return new Response("OK", { status: 200 });
+        }
       }
 
       // ── Busca config do agente ───────────────────────────────────────────
@@ -1578,6 +1774,9 @@ Deno.serve(async (req: Request) => {
               .from("whatsapp_conversas")
               .update({ modo: "humano" })
               .eq("id", conversa.id);
+            await registrarEvento("escalacao_humano", telefone, conversa.id, {
+              origem: "menu_atendente",
+            });
             const msg = primeiroNome
               ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
               : "Tudo bem! 😊 Vou te conectar com nossa equipe agora. Um momento!";
@@ -1780,6 +1979,7 @@ REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
 3. Para enviar arquivos: use a função enviar_arquivo com a URL exata da lista ARQUIVOS DISPONÍVEIS.
 4. Para buscar cliente por CPF: use a função buscar_cliente_cpf quando o cliente informar o CPF.
 5. Site para pedidos online: ${SITE_URL}
+6. Quando o cliente perguntar sobre o andamento/status de um pedido ("cadê meu pedido?", "já saiu?"), use a função consultar_pedido. Se ele informar o protocolo/número, repasse; senão a função busca o pedido mais recente do número dele.
 
 PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 - Ao informar o valor de uma marmita, apresente como "a partir de R$ X,XX", porque o preço final cai conforme a quantidade (desconto progressivo).
@@ -1815,6 +2015,7 @@ ETAPA 3 — ENTREGA OU RETIRADA:
 - Se entrega: "Qual a cidade e bairro?" → verifique na lista ÁREAS DE ENTREGA e informe a taxa.
 - Se entrega em São Bento do Sul e o pedido tiver 5 ou mais unidades (somando as quantidades de todos os itens): informe "Boa notícia! Como seu pedido tem 5 itens ou mais, o frete para São Bento do Sul fica só R$ 5,00! 🎉" e use taxaEntrega = 5.00.
 - Se entrega: pergunte rua e número.
+- HORÁRIO DE ENTREGA: entregamos no horário que o cliente preferir, das 9h30 às 19h. Pergunte de forma natural: "Que horário fica melhor pra você receber? Entregamos das 9h30 às 19h 😊". Se o cliente pedir um horário fora dessa janela, explique gentilmente que só entregamos entre 9h30 e 19h e ofereça um horário dentro dela. Nunca prometa um horário exato de chegada — combine a janela/preferência e diga que a equipe confirma. Inclua o horário combinado no campo observacoes ao criar o pedido (ex: "Entrega preferida: 14h").
 
 ETAPA 4 — FORMA DE PAGAMENTO:
 - "Como vai preferir pagar?" → liste as opções disponíveis.
@@ -1868,6 +2069,57 @@ REGRA DE SEGURANÇA:
             return new Response("OK", { status: 200 });
           }
 
+          // ── Validação de entrega (servidor) ──────────────────────────────
+          // Só confia no modelo para itens; endereço e taxa são validados aqui.
+          if (args.metodoEntrega === "entrega") {
+            // 1) Endereço obrigatório: cidade, bairro e rua/número.
+            if (!args.cidade || !args.bairro || !args.endereco) {
+              const msg =
+                "Para entrega eu preciso do endereço completo 😊 Me confirma a *cidade*, o *bairro* e a *rua com número*?";
+              await sendWhatsAppMessage(telefone, msg);
+              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+              return new Response("OK", { status: 200 });
+            }
+
+            // 2) Área atendida? Valida cidade/bairro contra delivery_rates e usa
+            //    a taxa CADASTRADA (não a que o modelo informou).
+            const taxaCadastrada = await buscarTaxaEntrega(args.cidade, args.bairro);
+            if (taxaCadastrada === null) {
+              const msg = `Poxa, ainda não entregamos em *${args.bairro}, ${args.cidade}* 😕 Posso registrar como *retirada na loja* ou você prefere outro endereço dentro da nossa área de entrega?`;
+              await sendWhatsAppMessage(telefone, msg);
+              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+              await registrarEvento("area_nao_atendida", telefone, conversa.id, {
+                cidade: args.cidade,
+                bairro: args.bairro,
+              });
+              return new Response("OK", { status: 200 });
+            }
+            args.taxaEntrega = taxaCadastrada;
+          } else {
+            // Retirada não tem taxa de entrega.
+            args.taxaEntrega = 0;
+          }
+
+          // Preço real: corrige preco_unitario de cada item usando o preço do
+          // banco (o modelo pode inventar valor). Casa por produto_id ou nome e
+          // escolhe o preço conforme o peso (200g padrão, 300g, 400g).
+          // Fallback: mantém o valor do modelo se o produto não for encontrado.
+          for (const item of args.itens) {
+            const prod = produtos.find(
+              (p: any) =>
+                (item.produto_id && p.id === item.produto_id) ||
+                (item.nome && normalizarTexto(p.nome) === normalizarTexto(item.nome)),
+            );
+            if (!prod) continue;
+
+            const peso = normalizarTexto(item.peso);
+            let precoReal = Number(prod.preco) || 0;
+            if (peso.includes("300") && prod.preco_300g) precoReal = Number(prod.preco_300g);
+            else if (peso.includes("400") && prod.preco_400g) precoReal = Number(prod.preco_400g);
+
+            if (precoReal > 0) item.preco_unitario = precoReal;
+          }
+
           // Calcula valor total real no servidor (ignora o total que o modelo mandou)
           const subtotal = args.itens.reduce(
             (acc: number, item: any) =>
@@ -1916,6 +2168,16 @@ REGRA DE SEGURANÇA:
           const pedidoId = await criarPedidoNoBanco(args);
 
           if (pedidoId) {
+            // Cliente novo (não reconhecido em profiles): guarda o nome informado
+            // na conversa para reconhecê-lo pelo nome nas próximas vezes.
+            // (profiles.id tem FK para auth.users, então não criamos profile aqui.)
+            if (!clienteResult.encontrado && args.nome && !conversa?.nome) {
+              await supabase
+                .from("whatsapp_conversas")
+                .update({ nome: args.nome })
+                .eq("id", conversa.id);
+            }
+
             const protocolo = pedidoId.slice(0, 8).toUpperCase();
             const itensTexto = args.itens
               .map(
@@ -1950,6 +2212,11 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               `Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: ${SITE_URL}`;
             await sendWhatsAppMessage(telefone, erroMsg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
+            await registrarEvento("pedido_falhou", telefone, conversa.id, {
+              itens: args.itens?.length ?? 0,
+              metodoEntrega: args.metodoEntrega ?? null,
+              valorTotal: args.valorTotal ?? null,
+            });
             await sendMenuInterativo(telefone);
           }
         }
@@ -2029,7 +2296,6 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-            await sendMenuInterativo(telefone);
           } else {
             const { data: saldoData } = await supabase
               .from("cashback_saldo")
@@ -2044,8 +2310,15 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
                 : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-            await sendMenuInterativo(telefone);
           }
+        }
+
+        // ── Consultar status do pedido ────────────────────────────────────
+        else if (resultado.nome === "consultar_pedido") {
+          const protocolo = resultado.args?.protocolo as string | undefined;
+          const msg = await consultarPedidoStatus(telefone, protocolo);
+          await sendWhatsAppMessage(telefone, msg);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
         }
       } else {
         // ── Resposta de texto normal ─────────────────────────────────────
@@ -2085,14 +2358,15 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
               content: agradecimento,
             });
           } else {
+            // Resposta conversacional: NÃO reexibir o menu (evita atrito de
+            // grudar o menu no meio de uma conversa fluida).
             await sendWhatsAppMessage(telefone, resposta);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
-            await sendMenuInterativo(telefone);
           }
         } else {
+          // Resposta conversacional normal: NÃO reexibir o menu.
           await sendWhatsAppMessage(telefone, resposta);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
-          await sendMenuInterativo(telefone);
         }
       }
     } catch (err: any) {
