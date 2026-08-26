@@ -1,9 +1,0 @@
-TS_ERRORS=2
-﻿src/components/product-card.tsx(226,13): error TS2322: Type '`/produto/${string}`' is not assignable to type '"/admin" | "/" | "/checkout" | "." | ".." | "/admin-login" | "/auth" | "/carrinho" | "/fale-conosco" | "/indicar" | "/privacidade" | "/perfil" | "/admin/acompanhamentos" | "/admin/agente" | ... 50 more ... | "/admin/relatorios"'.
-src/lib/push.ts(61,7): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
-  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
-    Types of property 'buffer' are incompatible.
-      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
-        Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
-          Types of property '[Symbol.toStringTag]' are incompatible.
-            Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.

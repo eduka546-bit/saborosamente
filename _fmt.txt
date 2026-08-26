@@ -1,1 +1,0 @@
-format=JPEG dims=2500x2500
