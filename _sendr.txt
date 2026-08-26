@@ -1,0 +1,2 @@
+STATUS=200
+BODY={"ok":true,"enviados":1,"removidas":0,"total":1}
