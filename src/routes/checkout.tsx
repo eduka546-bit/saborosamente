@@ -439,7 +439,7 @@ function Checkout() {
       try {
         // Se pagamento é PIX, gera QR code primeiro
         let qrCodeUrl = null;
-        if (values.pagamento === "pix") {
+        if (data.pagamento === "pix") {
           try {
             const pixRes = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pix-qr`,
@@ -473,7 +473,7 @@ function Checkout() {
           },
           body: JSON.stringify({
             pedido_id: order.id,
-            status_novo: values.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
+            status_novo: "pendente",
             qr_code_pix: qrCodeUrl,
             valor_total: finalTotal,
           }),
