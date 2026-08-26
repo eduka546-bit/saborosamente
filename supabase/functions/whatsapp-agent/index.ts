@@ -464,15 +464,6 @@ async function consultarPedidoStatus(telefone: string, protocolo?: string): Prom
   }
 }
 
-// Normaliza texto para comparação (minúsculo, sem acento, sem espaços extras)
-function normalizarTexto(s: string | null | undefined): string {
-  return String(s ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Contexto dinâmico do banco
 // ─────────────────────────────────────────────────────────────────────────────

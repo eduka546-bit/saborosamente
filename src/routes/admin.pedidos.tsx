@@ -41,6 +41,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
+import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
@@ -352,6 +353,36 @@ function AdminOrdersPage() {
   });
   const knownIdsRef = useRef<Set<string>>(new Set());
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>("default");
+  const [pushStatus, setPushStatus] = useState<
+    "nao-suportado" | "inscrito" | "nao-inscrito" | "bloqueado" | "carregando"
+  >("carregando");
+  const [pushLoading, setPushLoading] = useState(false);
+
+  // ── Verifica estado do push (notificação com app fechado) ─────────────────
+  useEffect(() => {
+    statusPush().then(setPushStatus);
+  }, []);
+
+  const togglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushStatus === "inscrito") {
+        await desativarPush();
+        setPushStatus("nao-inscrito");
+        toast.success("Notificações push desativadas neste aparelho.");
+      } else {
+        await ativarPush();
+        setPushStatus("inscrito");
+        toast.success("Notificações push ativadas! Você será avisado mesmo com o app fechado.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível ativar as notificações push.");
+      const s = await statusPush();
+      setPushStatus(s);
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   // ── Lê config de impressão do banco ──────────────────────────────────────
   const { data: configImpressaoData } = useQuery({
@@ -826,6 +857,36 @@ function AdminOrdersPage() {
             <Printer size={16} />
             {autoPrint ? "Auto-imprimir ON" : "Auto-imprimir OFF"}
           </button>
+
+          {/* Toggle de notificações push (funciona com o app fechado) */}
+          {pushStatus !== "nao-suportado" && (
+            <button
+              onClick={togglePush}
+              disabled={pushLoading || pushStatus === "bloqueado" || pushStatus === "carregando"}
+              title={
+                pushStatus === "bloqueado"
+                  ? "Notificações bloqueadas no navegador — libere nas configurações do site"
+                  : "Receber alertas de pedidos e atendimento mesmo com o app fechado"
+              }
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition-all disabled:opacity-60",
+                pushStatus === "inscrito"
+                  ? "bg-[#5850ec] text-white border-[#5850ec]"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-[#5850ec]/40",
+              )}
+            >
+              <Bell size={16} />
+              {pushStatus === "carregando"
+                ? "..."
+                : pushStatus === "inscrito"
+                  ? "Push ON"
+                  : pushStatus === "bloqueado"
+                    ? "Push bloqueado"
+                    : pushLoading
+                      ? "Ativando..."
+                      : "Ativar push"}
+            </button>
+          )}
         </div>
       </div>
 

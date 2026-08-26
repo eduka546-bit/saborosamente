@@ -1,0 +1,2 @@
+﻿src/routes/admin/config/respostas.tsx 86ms
+prettier=0

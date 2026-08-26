@@ -53,6 +53,7 @@ import { Route as AdminConfigInformativoRouteImport } from './routes/admin/confi
 import { Route as AdminConfigMesasRouteImport } from './routes/admin/config/mesas'
 import { Route as AdminConfigOrigemRouteImport } from './routes/admin/config/origem'
 import { Route as AdminConfigParametrosRouteImport } from './routes/admin/config/parametros'
+import { Route as AdminConfigRespostasRouteImport } from './routes/admin/config/respostas'
 import { Route as AdminConfigSiteRouteImport } from './routes/admin.config.site'
 import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
 import { Route as AdminConfigUnidadesRouteImport } from './routes/admin/config/unidades'
@@ -295,6 +296,11 @@ const AdminConfigParametrosRoute = AdminConfigParametrosRouteImport.update({
   path: '/config/parametros',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigRespostasRoute = AdminConfigRespostasRouteImport.update({
+  id: '/config/respostas',
+  path: '/config/respostas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminConfigSiteRoute = AdminConfigSiteRouteImport.update({
   id: '/config/site',
   path: '/config/site',
@@ -448,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
+  '/admin/config/respostas': typeof AdminConfigRespostasRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
@@ -512,6 +519,7 @@ export interface FileRoutesByTo {
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
+  '/admin/config/respostas': typeof AdminConfigRespostasRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
+  '/admin/config/respostas': typeof AdminConfigRespostasRoute
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
@@ -647,6 +656,7 @@ export interface FileRouteTypes {
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
+    | '/admin/config/respostas'
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
@@ -711,6 +721,7 @@ export interface FileRouteTypes {
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
+    | '/admin/config/respostas'
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
@@ -777,6 +788,7 @@ export interface FileRouteTypes {
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
+    | '/admin/config/respostas'
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
@@ -1125,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigParametrosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/respostas': {
+      id: '/admin/config/respostas'
+      path: '/config/respostas'
+      fullPath: '/admin/config/respostas'
+      preLoaderRoute: typeof AdminConfigRespostasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/config/site': {
       id: '/admin/config/site'
       path: '/config/site'
@@ -1332,6 +1351,7 @@ interface AdminRouteChildren {
   AdminConfigMesasRoute: typeof AdminConfigMesasRoute
   AdminConfigOrigemRoute: typeof AdminConfigOrigemRoute
   AdminConfigParametrosRoute: typeof AdminConfigParametrosRoute
+  AdminConfigRespostasRoute: typeof AdminConfigRespostasRoute
   AdminConfigSiteRoute: typeof AdminConfigSiteRoute
   AdminConfigTaxasRoute: typeof AdminConfigTaxasRoute
   AdminConfigUnidadesRoute: typeof AdminConfigUnidadesRoute
@@ -1381,6 +1401,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConfigMesasRoute: AdminConfigMesasRoute,
   AdminConfigOrigemRoute: AdminConfigOrigemRoute,
   AdminConfigParametrosRoute: AdminConfigParametrosRoute,
+  AdminConfigRespostasRoute: AdminConfigRespostasRoute,
   AdminConfigSiteRoute: AdminConfigSiteRoute,
   AdminConfigTaxasRoute: AdminConfigTaxasRoute,
   AdminConfigUnidadesRoute: AdminConfigUnidadesRoute,

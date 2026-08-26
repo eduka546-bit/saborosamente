@@ -20,14 +20,43 @@ self.addEventListener("fetch", () => {
   // instalável em alguns navegadores.
 });
 
-// Ao clicar numa notificação do sistema, foca/abre o painel de pedidos.
+// Recebe Web Push do servidor (funciona com o app fechado) e mostra a notificação.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: "Saborosamente", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = payload.title || "Saborosamente";
+  const options = {
+    body: payload.body || "",
+    icon: "/favicon.png",
+    badge: "/favicon.png",
+    tag: payload.tag || "saborosamente",
+    requireInteraction: payload.requireInteraction ?? true,
+    data: { url: payload.url || "/admin/pedidos" },
+    // Vibração no celular (Android)
+    vibrate: [200, 100, 200],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Ao clicar numa notificação do sistema, foca/abre a rota indicada no payload.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const destino = event.notification.data?.url || "/admin/pedidos";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsArr) => {
       const jaAberto = clientsArr.find((c) => c.url.includes("/admin"));
-      if (jaAberto) return jaAberto.focus();
-      if (self.clients.openWindow) return self.clients.openWindow("/admin/pedidos");
+      if (jaAberto) {
+        jaAberto.focus();
+        if ("navigate" in jaAberto) jaAberto.navigate(destino).catch(() => {});
+        return;
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(destino);
     }),
   );
 });
