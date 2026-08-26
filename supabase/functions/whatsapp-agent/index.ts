@@ -26,6 +26,11 @@ const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
 const OPENAI_TIMEOUT_MS = 25_000;
 const WHATSAPP_API_VERSION = "v20.0";
+const MAX_TENTATIVAS_ENVIO = 2; // tentativas de reenvio de mídia ao WhatsApp
+const IMG_TRANSFORM = "width=800&quality=75"; // otimização de imagem do Supabase Storage
+const SITE_URL = "saborosamente.vercel.app";
+// Mensagem padrão quando a OpenAI falha (timeout/erro transitório).
+const MSG_ERRO_TECNICO = "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏";
 
 // Desconto progressivo — deve espelhar src/lib/cart.tsx (PROGRESSIVE_DISCOUNT).
 // O desconto incide APENAS sobre marmitas; sopas e complementos contam na
@@ -55,26 +60,42 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // WhatsApp Cloud API helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function sendWhatsAppMessage(to: string, text: string) {
-  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const textoSemUrls = removerLinksDeArquivos(text);
-  const res = await fetch(url, {
+const WHATSAPP_MESSAGES_URL = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+// Faz um POST no endpoint /messages do WhatsApp, centralizando URL, headers e
+// tratamento de erro/rede. Retorna true se a API aceitou a requisição.
+async function postWhatsApp(payload: Record<string, unknown>, contexto: string): Promise<boolean> {
+  const res = await fetch(WHATSAPP_MESSAGES_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${WHATSAPP_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
+    body: JSON.stringify(payload),
+  }).catch((error) => {
+    console.error(`${contexto} network error:`, error);
+    return null;
+  });
+
+  if (!res) return false;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error(`${contexto} error:`, JSON.stringify(err));
+    return false;
+  }
+  return true;
+}
+
+async function sendWhatsAppMessage(to: string, text: string) {
+  await postWhatsApp(
+    {
       messaging_product: "whatsapp",
       to,
       type: "text",
-      text: { body: textoSemUrls },
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsAppMessage error:", JSON.stringify(err));
-  }
+      text: { body: removerLinksDeArquivos(text) },
+    },
+    "sendWhatsAppMessage",
+  );
 }
 
 // Nota: a API de "mark as read"/typing do WhatsApp Cloud não usa o campo "to"
@@ -82,29 +103,15 @@ async function sendWhatsAppMessage(to: string, text: string) {
 // por consistência com os demais helpers, mas prefixado com _ por não ser usado.
 async function sendTypingIndicator(_to: string, messageId?: string) {
   if (!messageId) return;
-
-  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  await postWhatsApp(
+    {
       messaging_product: "whatsapp",
       status: "read",
       message_id: messageId,
       typing_indicator: { type: "text" },
-    }),
-  }).catch((error) => {
-    console.error("sendTypingIndicator network error:", error);
-    return null;
-  });
-
-  if (res && !res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendTypingIndicator error:", JSON.stringify(err));
-  }
+    },
+    "sendTypingIndicator",
+  );
 }
 
 // Envia lista interativa (menu com seções e opções clicáveis)
@@ -115,14 +122,8 @@ async function sendWhatsAppList(
   buttonLabel: string,
   sections: { title: string; rows: { id: string; title: string; description?: string }[] }[],
 ): Promise<boolean> {
-  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  return await postWhatsApp(
+    {
       messaging_product: "whatsapp",
       to,
       type: "interactive",
@@ -130,39 +131,21 @@ async function sendWhatsAppList(
         type: "list",
         header: { type: "text", text: headerText },
         body: { text: bodyText },
-        action: {
-          button: buttonLabel,
-          sections,
-        },
+        action: { button: buttonLabel, sections },
       },
-    }),
-  }).catch((error) => {
-    console.error("sendWhatsAppList network error:", error);
-    return null;
-  });
-  if (!res) return false;
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsAppList error:", JSON.stringify(err));
-    return false;
-  }
-  return true;
+    },
+    "sendWhatsAppList",
+  );
 }
 
-// Envia botões de resposta rápida (máximo 3 botões)
+// Envia botões de resposta rápida (a API do WhatsApp aceita no máximo 3).
 async function sendWhatsAppButtons(
   to: string,
   bodyText: string,
   buttons: { id: string; title: string }[],
 ) {
-  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  await postWhatsApp(
+    {
       messaging_product: "whatsapp",
       to,
       type: "interactive",
@@ -170,18 +153,15 @@ async function sendWhatsAppButtons(
         type: "button",
         body: { text: bodyText },
         action: {
-          buttons: buttons.map((b) => ({
+          buttons: buttons.slice(0, 3).map((b) => ({
             type: "reply",
             reply: { id: b.id, title: b.title },
           })),
         },
       },
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsAppButtons error:", JSON.stringify(err));
-  }
+    },
+    "sendWhatsAppButtons",
+  );
 }
 
 // Envia o menu principal da Saborosa
@@ -206,7 +186,7 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
           { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Montar meu pedido" },
           { id: "menu_recomenda", title: "⭐ Recomendações", description: "Escolher um prato" },
           { id: "menu_duvidas", title: "❓ Dúvidas", description: "Entrega, pagamento e preparo" },
-          { id: "menu_site", title: "🌐 Acessar o site", description: "saborosamente.vercel.app" },
+          { id: "menu_site", title: "🌐 Acessar o site", description: SITE_URL },
           {
             id: "menu_atendente",
             title: "👤 Falar com atendente",
@@ -250,36 +230,22 @@ function identificarOpcaoMenu(texto: string): string | null {
 }
 
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string): Promise<boolean> {
-  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-
-  // Otimizar URL para reduzir egress: adicionar transform parameters
+  // Otimiza a URL para reduzir egress (transformação de imagem do Supabase Storage).
   let optimizedUrl = imageUrl;
   if (imageUrl.includes("supabase.co")) {
-    // Adicionar parâmetros de transformação de imagem
     const separator = imageUrl.includes("?") ? "&" : "?";
-    optimizedUrl = `${imageUrl}${separator}width=800&quality=75`;
+    optimizedUrl = `${imageUrl}${separator}${IMG_TRANSFORM}`;
   }
 
-  for (let tentativa = 1; tentativa <= 2; tentativa++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "image",
-        image: { link: optimizedUrl, ...(caption ? { caption } : {}) },
-      }),
-    }).catch((error) => {
-      console.error(`sendWhatsAppImage network error (tentativa ${tentativa}):`, error);
-      return null;
-    });
-    if (res?.ok) return true;
-    const err = await res?.json().catch(() => ({}));
-    console.error(`sendWhatsAppImage error (tentativa ${tentativa}):`, JSON.stringify(err));
+  const payload = {
+    messaging_product: "whatsapp",
+    to,
+    type: "image",
+    image: { link: optimizedUrl, ...(caption ? { caption } : {}) },
+  };
+
+  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS_ENVIO; tentativa++) {
+    if (await postWhatsApp(payload, `sendWhatsAppImage (tentativa ${tentativa})`)) return true;
   }
   return false;
 }
@@ -949,19 +915,13 @@ async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAnda
         JSON.stringify(data),
       );
       if (!transitorio || tentativa === 2) {
-        return {
-          tipo: "texto",
-          conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏",
-        };
+        return { tipo: "texto", conteudo: MSG_ERRO_TECNICO };
       }
     } catch (e: any) {
       const motivo = e?.name === "AbortError" ? "timeout" : (e?.message ?? "erro de rede");
       console.error(`OpenAI falhou (tentativa ${tentativa}): ${motivo}`);
       if (tentativa === 2) {
-        return {
-          tipo: "texto",
-          conteudo: "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏",
-        };
+        return { tipo: "texto", conteudo: MSG_ERRO_TECNICO };
       }
     } finally {
       clearTimeout(timeout);
@@ -1461,9 +1421,12 @@ Deno.serve(async (req: Request) => {
 
   // ── Recebe mensagens (POST) ──────────────────────────────────────────────
   if (req.method === "POST") {
-    const body = await req.json();
-
     try {
+      // Parse do corpo dentro do try: um body inválido não deve derrubar a
+      // função com 500 (o WhatsApp reenviaria o webhook). Respondemos 200.
+      const body = await req.json().catch(() => null);
+      if (!body) return new Response("OK", { status: 200 });
+
       const entry = body?.entry?.[0];
       const changes = entry?.changes?.[0];
       const value = changes?.value;
@@ -1525,10 +1488,9 @@ Deno.serve(async (req: Request) => {
 
       // ── MODO TREINO: processa mensagens do treinador como instruções ──────
       if (config.modo_treino && config.treinador_telefone) {
-        const telNorm = telefone.replace(/\D/g, "");
-        const treinadorNorm = String(config.treinador_telefone).replace(/\D/g, "");
-
-        if (telNorm === treinadorNorm || telNorm.endsWith(treinadorNorm.slice(-10))) {
+        // Usa telefonesBatem (mesma comparação robusta do reconhecimento de
+        // cliente) em vez de endsWith solto, que poderia dar falso-positivo.
+        if (telefonesBatem(telefone, String(config.treinador_telefone))) {
           await processarModoTreino(telefone, texto || menuId || "", conversa, historico, config);
           return new Response("OK", { status: 200 });
         }
@@ -1539,18 +1501,28 @@ Deno.serve(async (req: Request) => {
       // fluxo (e não deve ser processada pela IA nem reiniciar outra automação).
       {
         const respostaCliente = texto || menuId || "";
-        // Persiste a mensagem do cliente ANTES de retomar (para a condição por
-        // "mensagem" enxergar a resposta). Se retomar, encerramos aqui — por isso
-        // o fluxo normal abaixo não chega a persistir de novo.
-        historico = await appendMensagem(conversa.id, historico, {
-          role: "user",
-          content: respostaCliente,
-        });
-        const retomou = await retomarPorResposta(telefone, respostaCliente, conversa, historico);
-        if (retomou) return new Response("OK", { status: 200 });
-        // Não retomou: remove a mensagem recém-adicionada para evitar duplicá-la,
-        // já que os fluxos seguintes (keyword/IA) persistem a mensagem novamente.
-        historico = historico.slice(0, -1);
+        // Passa um histórico com a resposta em memória (sem persistir ainda) para
+        // que a condição por "mensagem" enxergue a resposta do cliente.
+        const historicoComResposta = [
+          ...historico,
+          { role: "user", content: respostaCliente },
+        ];
+        const retomou = await retomarPorResposta(
+          telefone,
+          respostaCliente,
+          conversa,
+          historicoComResposta,
+        );
+        if (retomou) {
+          // Só agora persiste a mensagem do cliente (a retomada assumiu o turno).
+          await appendMensagem(conversa.id, historico, {
+            role: "user",
+            content: respostaCliente,
+          });
+          return new Response("OK", { status: 200 });
+        }
+        // Não retomou: não persistimos nada aqui; os fluxos seguintes (keyword/IA)
+        // cuidam de gravar a mensagem do usuário normalmente.
       }
 
       // ── Verifica automações de keyword ───────────────────────────────────
@@ -1616,7 +1588,7 @@ Deno.serve(async (req: Request) => {
           case "menu_site": {
             await sendWhatsAppButtons(
               telefone,
-              "🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\nsaborosamente.vercel.app",
+              `🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\n${SITE_URL}`,
               [
                 { id: "btn_cardapio", title: "🍽️ Ver cardápio" },
                 { id: "btn_pedido", title: "🛒 Fazer pedido" },
@@ -1807,7 +1779,7 @@ REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
 2. NUNCA confirme entrega em bairro/cidade fora da lista ÁREAS DE ENTREGA.
 3. Para enviar arquivos: use a função enviar_arquivo com a URL exata da lista ARQUIVOS DISPONÍVEIS.
 4. Para buscar cliente por CPF: use a função buscar_cliente_cpf quando o cliente informar o CPF.
-5. Site para pedidos online: saborosamente.vercel.app
+5. Site para pedidos online: ${SITE_URL}
 
 PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 - Ao informar o valor de uma marmita, apresente como "a partir de R$ X,XX", porque o preço final cai conforme a quantidade (desconto progressivo).
@@ -1886,6 +1858,15 @@ REGRA DE SEGURANÇA:
           const args = resultado.args;
           args.telefone = telefone; // garante o número correto
           args.itens = Array.isArray(args.itens) ? args.itens : [];
+
+          // Guard: nunca cria pedido sem itens (evita pedido fantasma de R$ 0).
+          if (args.itens.length === 0) {
+            const msg =
+              "Ops, não consegui identificar os itens do seu pedido 😅 Pode me dizer o que você vai querer?";
+            await sendWhatsAppMessage(telefone, msg);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            return new Response("OK", { status: 200 });
+          }
 
           // Calcula valor total real no servidor (ignora o total que o modelo mandou)
           const subtotal = args.itens.reduce(
@@ -1966,7 +1947,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             await sendMenuInterativo(telefone);
           } else {
             const erroMsg =
-              "Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: saborosamente.vercel.app";
+              `Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: ${SITE_URL}`;
             await sendWhatsAppMessage(telefone, erroMsg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
             await sendMenuInterativo(telefone);
@@ -2059,7 +2040,7 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
             const nome = profile.nome?.split(" ")[0] ?? "você";
             const msg =
               saldo > 0
-                ? `💰 *${nome}*, seu saldo de cashback é *R$ ${saldo.toFixed(2).replace(".", ",")}*!\n\nVocê pode usá-lo como desconto no próximo pedido pelo site: saborosamente.vercel.app 🛒`
+                ? `💰 *${nome}*, seu saldo de cashback é *R$ ${saldo.toFixed(2).replace(".", ",")}*!\n\nVocê pode usá-lo como desconto no próximo pedido pelo site: ${SITE_URL} 🛒`
                 : `Oi, *${nome}*! Você ainda não tem saldo de cashback 😊\n\nA cada pedido você acumula cashback para usar nas próximas compras. Que tal pedir agora? 🍱`;
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
