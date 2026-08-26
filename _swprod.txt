@@ -1,4 +1,0 @@
-STATUS=200
-hasPush=true
-hasShowNotification=true
-len=2308

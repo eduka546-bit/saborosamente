@@ -56,10 +56,23 @@ export async function ativarPush(): Promise<boolean> {
   // Reaproveita inscrição existente ou cria nova
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-    });
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      });
+    } catch (err: any) {
+      // Expõe a causa real (o navegador costuma mascarar como "push service error").
+      const detalhe = `${err?.name ?? "Erro"}: ${err?.message ?? String(err)}`;
+      console.error("[push] subscribe falhou:", err);
+      throw new Error(
+        detalhe.includes("push service")
+          ? `${detalhe} — o navegador não conseguiu contatar o serviço de push. ` +
+            `No Brave: ative "Usar serviços do Google para push" em brave://settings/privacy. ` +
+            `Verifique também se há conexão e se as notificações não estão bloqueadas no sistema.`
+          : detalhe,
+      );
+    }
   }
 
   const json = sub.toJSON();

@@ -1,2 +1,0 @@
-PAIR_MATCHES=true
-privLen=32 (esperado 32)

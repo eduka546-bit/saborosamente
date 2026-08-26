@@ -2059,58 +2059,19 @@ Deno.serve(async (req: Request) => {
             break;
           }
           case "menu_duvidas": {
-            const duvidasEnviado = await sendWhatsAppList(
-              telefone,
-              "❓ Dúvidas Frequentes",
-              "Escolha o assunto da sua dúvida 👇",
-              "Ver assuntos",
-              [
-                {
-                  // OBS: title de cada row tem limite de 24 caracteres na API do
-                  // WhatsApp (emoji conta como 2+). Se um row passar, a lista
-                  // inteira é rejeitada e o cliente não recebe nada. Manter curto.
-                  title: "Sobre nós",
-                  rows: [
-                    {
-                      id: "duvida_entrega",
-                      title: "🚚 Entrega e frete",
-                      description: "Cidades, taxas e prazos",
-                    },
-                    {
-                      id: "duvida_pagamento",
-                      title: "💳 Pagamento",
-                      description: "Pix, cartão, alimentação...",
-                    },
-                    {
-                      id: "duvida_preparo",
-                      title: "🍲 Como preparar",
-                      description: "Tempo e modo de preparo",
-                    },
-                    {
-                      id: "duvida_validade",
-                      title: "❄️ Validade",
-                      description: "Quanto tempo dura e como guardar",
-                    },
-                    {
-                      id: "duvida_minimo",
-                      title: "📦 Pedido mínimo",
-                      description: "Quantidade mínima",
-                    },
-                  ],
-                },
-              ],
-            );
-            // Fallback: se a lista interativa falhar (ex.: limite de caracteres),
-            // manda as opções em texto para o cliente não ficar sem resposta.
-            if (!duvidasEnviado) {
-              await sendWhatsAppMessage(
-                telefone,
-                "❓ *Dúvidas Frequentes*\n\nSobre o que você quer saber? É só me dizer:\n\n🚚 Entrega e frete\n💳 Formas de pagamento\n🍲 Como preparar\n❄️ Validade e armazenamento\n📦 Pedido mínimo",
-              );
-            }
+            await sendMenuDuvidas(telefone);
             await appendMensagem(conversa.id, historico, {
               role: "assistant",
               content: "[Menu dúvidas enviado]",
+            });
+            return new Response("OK", { status: 200 });
+          }
+          case "menu_voltar": {
+            // Volta do submenu de dúvidas para o menu principal.
+            await sendMenuInterativo(telefone);
+            await appendMensagem(conversa.id, historico, {
+              role: "assistant",
+              content: "[Menu principal enviado]",
             });
             return new Response("OK", { status: 200 });
           }
@@ -2136,7 +2097,9 @@ Deno.serve(async (req: Request) => {
                 role: "assistant",
                 content: respostaFixa,
               });
-              await sendMenuInterativo(telefone);
+              // Reexibe o menu de dúvidas (com opção de voltar) para o cliente
+              // ver outra dúvida ou retornar ao menu principal.
+              await sendMenuDuvidas(telefone);
               return new Response("OK", { status: 200 });
             }
             // Fallback: sem resposta fixa cadastrada → deixa a IA responder.

@@ -1,2 +1,0 @@
-STATUS=200
-[{"id":"b7bd6b4f-8e80-4f86-9002-8bf506ee9fa6","user_id":"c1ae1980-d058-4023-a04d-34f6d0a7e63f","endpoint":"https://fcm.googleapis.com/fcm/send/cJfbFsAd7Uk:APA91bGnLnAFg-FjqFqlsnLf9nu_M-DDLMOB1_b89Obd8Nzy62Uz7xGiBWmMzrWdHvCfhhwHs7o-lVzplBaV3r0GR4QlpgSLAK8qwb-65JKTeS_4Jz5yl4ZEiuo6JJVDSm1Sy_-5daPn","p256dh":"BNJor-wmZmP9MWJvrM2Giy0Fwe3iiFtaabt_IE1NByVZDCB1sOeKKjDRt_8pVrRAKj1by1-rew1dqX4XZHdQ84o","auth":"COG7GNRYUqfkXMusE2MPoA","user_agent":"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHT

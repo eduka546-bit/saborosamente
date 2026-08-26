@@ -1,3 +1,0 @@
-ahead=0
-HEAD=7b3a334
-header in HEAD has Sheet: true
