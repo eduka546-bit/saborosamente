@@ -1,0 +1,10 @@
+public dir:
+  favicon.png (2133b)
+  icon-app.png.jpg (1512922b)
+  manifest.webmanifest (705b)
+  qz-tray.js (125075b)
+  robots.txt (232b)
+  sitemap.xml (542b)
+  sw.js (2335b)
+
+root pngs/jpgs recentes:

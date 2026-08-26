@@ -410,6 +410,30 @@ async function registrarEvento(
   } catch (e: any) {
     console.error("registrarEvento erro:", e?.message ?? e);
   }
+
+  // Quando um cliente é escalado para atendimento humano, avisa os admins via
+  // push (funciona com o app fechado). Best-effort — nunca quebra o fluxo.
+  if (tipo === "escalacao_humano") {
+    try {
+      const nome = (detalhe?.nome as string) || telefone;
+      await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+        },
+        body: JSON.stringify({
+          title: "👤 Cliente quer atendente!",
+          body: `${nome} está aguardando você no WhatsApp.`,
+          url: "/admin/agente",
+          tag: `handoff-${conversaId ?? telefone}`,
+        }),
+      });
+    } catch (pushErr: any) {
+      console.error("Falha ao disparar push de handoff:", pushErr?.message ?? pushErr);
+    }
+  }
 }
 
 // Mensagens amigáveis por status de pedido

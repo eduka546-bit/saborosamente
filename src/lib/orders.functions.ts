@@ -174,5 +174,34 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
+    // 4. Dispara notificação push para os admins (funciona com o app fechado).
+    //    Fire-and-forget: uma falha aqui nunca deve derrubar a criação do pedido.
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
+      const serviceKey =
+        process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+      const protocolo = String(order.id).slice(0, 8).toUpperCase();
+      const valor = Number(data.valorTotal ?? 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey ?? "",
+        },
+        body: JSON.stringify({
+          title: "🛒 Novo pedido!",
+          body: `${data.nome || "Cliente"} — ${valor} · #${protocolo}`,
+          url: "/admin/pedidos",
+          tag: `pedido-${order.id}`,
+        }),
+      });
+    } catch (pushError) {
+      console.error("Falha ao disparar push de novo pedido:", pushError);
+    }
+
     return order;
   });

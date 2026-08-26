@@ -1,0 +1,25 @@
+TSC:
+TS_ERRORS=2
+﻿src/components/product-card.tsx(226,13): error TS2322: Type '`/produto/${string}`' is not assignable to type '"/admin" | "/" | "/checkout" | "." | ".." | "/admin-login" | "/auth" | "/carrinho" | "/fale-conosco" | "/indicar" | "/privacidade" | "/perfil" | "/admin/acompanhamentos" | "/admin/agente" | ... 50 more ... | "/admin/relatorios"'.
+src/lib/push.ts(61,7): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+          Types of property '[Symbol.toStringTag]' are incompatible.
+            Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+
+
+BUILD:
+BUILD_OK=true VERCEL_OUT=true
+B
+.vercel/output/functions/__server.func/_libs/@supabase/storage-js+[...].mjs                119.58 kB Ôöé gzip:  22.34 kB
+.vercel/output/functions/__server.func/_libs/supabase__auth-js.mjs                         312.30 kB Ôöé gzip:  63.63 kB
+.vercel/output/functions/__server.func/_libs/@tanstack/react-router+[...].mjs              664.58 kB Ôöé gzip: 138.97 kB
+.vercel/output/functions/__server.func/_libs/recharts+[...].mjs                            706.33 kB Ôöé gzip: 146.91 kB
+
+[32mÔ£ô built in 939ms[39m
+[36mi[39m Generated [36m.vercel/output/nitro.json[39m
+
+[90m[[90mnitro[90m][39m [32mÔêÜ[39m You can preview this build using [36mnpx vite preview[39m
+[90m[[90mnitro[90m][39m [32mÔêÜ[39m You can deploy this build using [36mnpx nitro deploy --prebuilt[39m
