@@ -1,1 +1,0 @@
-import{n as e,t}from"./createServerFn-CXI6vJCm.js";var n=t({method:`GET`}).handler(e(`63dca7bdf94d16710d79005fe4d62aa8ece1b7ae5078dca9aa66593a5c5177bc`)),r=t({method:`GET`}).handler(e(`06b79c102cdad9360930a00ea009b4fe5cc4fdc50a938ba6f6595222f149b730`));t({method:`GET`}).handler(e(`8e28ffefb35b7f29bda8f5128c6f8fb45636d264c3d475770b9bb49c082743e7`));export{r as n,n as t};

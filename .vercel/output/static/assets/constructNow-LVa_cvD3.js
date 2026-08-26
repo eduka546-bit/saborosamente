@@ -1,1 +1,0 @@
-import{u as e}from"./pt-BR-DC1d5XfC.js";function t(t){return e(t,Date.now())}export{t};
