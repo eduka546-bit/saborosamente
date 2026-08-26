@@ -694,12 +694,15 @@ async function montarContextoCliente(profile: any): Promise<string> {
     .order("created_at", { ascending: false })
     .limit(3);
 
-  const { data: enderecos } = await supabase
+  const { data: enderecos, error: enderecosError } = await supabase
     .from("user_addresses")
-    .select("label, cidade, bairro, rua, numero, complemento")
+    .select("label, cidade, bairro, rua, numero, complemento, is_default")
     .eq("user_id", profile.id)
-    .order("principal", { ascending: false })
+    .order("is_default", { ascending: false })
     .limit(3);
+  if (enderecosError) {
+    console.error("Erro ao buscar endereços do cliente:", JSON.stringify(enderecosError));
+  }
 
   const linhas = [`\n\nCLIENTE RECONHECIDO — personalize o atendimento com essas informações:`];
   linhas.push(`- Nome: ${profile.nome}`);
@@ -2580,6 +2583,42 @@ Se o cliente disser "quero o mesmo", "repetir", "o de sempre" E existir dados do
                 .from("whatsapp_conversas")
                 .update({ nome: args.nome })
                 .eq("id", conversa.id);
+            }
+
+            // Salva o endereço de entrega em user_addresses (se cliente
+            // reconhecido, é entrega e o endereço ainda não estiver salvo).
+            // Assim ele fica disponível para repetir pedido nas próximas vezes.
+            if (
+              clienteResult.encontrado &&
+              clienteResult.profile?.id &&
+              args.metodoEntrega === "entrega" &&
+              args.cidade &&
+              args.bairro &&
+              args.endereco
+            ) {
+              try {
+                const { data: jaExiste } = await supabase
+                  .from("user_addresses")
+                  .select("id")
+                  .eq("user_id", clienteResult.profile.id)
+                  .ilike("rua", args.endereco)
+                  .ilike("bairro", args.bairro)
+                  .limit(1);
+                if (!jaExiste?.length) {
+                  await supabase.from("user_addresses").insert({
+                    user_id: clienteResult.profile.id,
+                    label: "WhatsApp",
+                    rua: args.endereco,
+                    numero: "",
+                    bairro: args.bairro,
+                    cidade: args.cidade,
+                    complemento: "",
+                    is_default: false,
+                  });
+                }
+              } catch (e: any) {
+                console.error("Falha ao salvar endereço do cliente:", e.message);
+              }
             }
 
             const protocolo = pedidoId.slice(0, 8).toUpperCase();
