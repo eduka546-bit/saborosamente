@@ -1,0 +1,6 @@
+remote:
+origin	https://github.com/eduka546-bit/saborosamente.git (fetch)
+origin	https://github.com/eduka546-bit/saborosamente.git (push)
+
+upstream:
+origin/main
