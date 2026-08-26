@@ -170,9 +170,15 @@ function RootComponent() {
   // Registra o service worker (PWA) — permite instalar o painel como app.
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/sw.js").catch((err) => {
-      console.warn("Falha ao registrar service worker:", err);
-    });
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        // Força checar por uma versão nova do SW a cada carga (evita cache antigo).
+        reg.update().catch(() => {});
+      })
+      .catch((err) => {
+        console.warn("Falha ao registrar service worker:", err);
+      });
   }, []);
 
   return (

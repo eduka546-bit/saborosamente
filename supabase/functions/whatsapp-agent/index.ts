@@ -2001,40 +2001,18 @@ Deno.serve(async (req: Request) => {
           }
           case "menu_pedido":
           case "btn_pedido": {
-            // Pergunta ao cliente se quer fazer o pedido com a IA ou com um
-            // atendente humano, para dar a opção de escolher.
-            await sendWhatsAppButtons(
-              telefone,
-              "Ótimo! 🛒 Posso te ajudar a montar seu pedido por aqui mesmo, ou se preferir, te conecto com alguém da equipe. O que você prefere?",
-              [
-                { id: "pedido_ia", title: "📝 Fazer por aqui" },
-                { id: "pedido_humano", title: "👤 Falar com alguém" },
-              ],
-            );
-            await appendMensagem(conversa.id, historico, {
-              role: "assistant",
-              content: "[Perguntou se quer fazer pedido com IA ou humano]",
-            });
-            return new Response("OK", { status: 200 });
-          }
-          case "pedido_ia": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content: "Quero fazer um pedido",
-            });
-            break;
-          }
-          case "pedido_humano": {
+            // Fazer pedido → transfere DIRETO para um humano da equipe.
+            // A IA não monta pedido; quem finaliza é sempre uma pessoa.
             await supabase
               .from("whatsapp_conversas")
               .update({ modo: "humano" })
               .eq("id", conversa.id);
             await registrarEvento("escalacao_humano", telefone, conversa.id, {
-              origem: "pedido_humano",
+              origem: "menu_pedido",
             });
             const msg = primeiroNome
-              ? `Sem problema, ${primeiroNome}! 😊 Vou te conectar com nossa equipe pra fazer seu pedido. Um momento!`
-              : "Sem problema! 😊 Vou te conectar com nossa equipe pra fazer seu pedido. Um momento!";
+              ? `Perfeito, ${primeiroNome}! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!`
+              : "Perfeito! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             return new Response("OK", { status: 200 });

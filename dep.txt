@@ -1,0 +1,12 @@
+﻿supabase : WARNING: Docker is not running
+No linha:1 caractere:145
++ ... "Machine"); supabase functions deploy whatsapp-agent --no-verify-jwt  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING: Docker is not running:St 
+   ring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Uploading asset (whatsapp-agent): supabase/functions/whatsapp-agent/index.ts
+Deployed Functions on project lxcgbrovdmpjatywweiv: whatsapp-agent
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/lxcgbrovdmpjatywweiv/functions
+EXIT=0
