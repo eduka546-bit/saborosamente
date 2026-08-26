@@ -1,1 +1,0 @@
-not-yet ENOENT: no such file or directory, open 'C:\Users\arthu\saborosamente\_push2.txt'

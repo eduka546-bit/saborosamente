@@ -1,7 +1,7 @@
 ﻿supabase : WARNING: Docker is not running
 No linha:1 caractere:145
-+ ... th","Machine"); supabase functions deploy whatsapp-agent 2>&1 | Out-F ...
-+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ ... "Machine"); supabase functions deploy whatsapp-agent --no-verify-jwt  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (WARNING: Docker is not running:St 
    ring) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError

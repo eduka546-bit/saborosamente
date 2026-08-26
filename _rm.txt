@@ -1,2 +1,0 @@
-rm '.vercel/output/static/robots.txt'
-rm '.vercel/output/static/sitemap.xml'
