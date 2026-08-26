@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
+import { normalizarEntregaConfig, gerarDatasEntrega } from "@/lib/entrega-config";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -241,49 +242,10 @@ function Checkout() {
     },
   });
 
-  // ── Datas de entrega: próximos dias, pulando domingo ───────────────────────
-  const DIAS_SEMANA = [
-    "Domingo",
-    "Segunda-feira",
-    "Terça-feira",
-    "Quarta-feira",
-    "Quinta-feira",
-    "Sexta-feira",
-    "Sábado",
-  ];
-  const datasEntrega = (() => {
-    const out: { valor: string; label: string }[] = [];
-    const hoje = new Date();
-    let d = 0;
-    // Gera as próximas ~7 datas úteis (pula domingo)
-    while (out.length < 7 && d < 20) {
-      const dia = new Date(hoje);
-      dia.setDate(hoje.getDate() + d);
-      d++;
-      if (dia.getDay() === 0) continue; // pula domingo
-      const dd = String(dia.getDate()).padStart(2, "0");
-      const mm = String(dia.getMonth() + 1).padStart(2, "0");
-      const yyyy = dia.getFullYear();
-      out.push({
-        valor: `${dd}/${mm}/${yyyy}`,
-        label: `${dd}/${mm}/${yyyy} (${DIAS_SEMANA[dia.getDay()]})`,
-      });
-    }
-    return out;
-  })();
-
-  const HORARIOS_ENTREGA = [
-    "09:30h ~ 10:30h",
-    "10:30h ~ 11:30h",
-    "11:30h ~ 12:30h",
-    "12:30h ~ 13:30h",
-    "13:30h ~ 14:30h",
-    "14:30h ~ 15:30h",
-    "15:30h ~ 16:30h",
-    "16:30h ~ 17:30h",
-    "17:30h ~ 18:30h",
-    "18:30h ~ 19:00h",
-  ];
+  // ── Datas e horários de entrega — configuráveis na aba Parâmetros do admin ──
+  const entregaCfg = normalizarEntregaConfig((siteSettings as any)?.parametros_loja?.entrega);
+  const datasEntrega = gerarDatasEntrega(entregaCfg);
+  const HORARIOS_ENTREGA = entregaCfg.horarios;
 
   const paymentMethods = enabledOrDefault(siteSettings?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault(siteSettings?.card_flags, defaultCardFlags);
