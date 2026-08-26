@@ -2100,6 +2100,36 @@ REGRA DE SEGURANÇA:
             args.taxaEntrega = 0;
           }
 
+          // ── Pedido mínimo (servidor) ─────────────────────────────────────
+          // Trava determinística: só vale para entrega (retirada não tem mínimo
+          // cadastrado). São Bento do Sul: 2 unidades; demais cidades: 5.
+          if (args.metodoEntrega === "entrega") {
+            const unidadesPedido = args.itens.reduce(
+              (acc: number, item: any) => acc + (Number(item.quantidade) || 0),
+              0,
+            );
+            const cidadeEntregaNorm = String(args.cidade ?? "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .trim();
+            const minimoCidade = cidadeEntregaNorm.includes("sao bento") ? 2 : 5;
+            if (unidadesPedido < minimoCidade) {
+              const msg =
+                `Pra entrega em *${args.cidade}* o pedido mínimo é de *${minimoCidade} unidades* 😊 ` +
+                `Você está com ${unidadesPedido}. Quer adicionar mais ${minimoCidade - unidadesPedido} ` +
+                `pra eu conseguir fechar a entrega?`;
+              await sendWhatsAppMessage(telefone, msg);
+              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+              await registrarEvento("pedido_abaixo_minimo", telefone, conversa.id, {
+                cidade: args.cidade,
+                unidades: unidadesPedido,
+                minimo: minimoCidade,
+              });
+              return new Response("OK", { status: 200 });
+            }
+          }
+
           // Preço real: corrige preco_unitario de cada item usando o preço do
           // banco (o modelo pode inventar valor). Casa por produto_id ou nome e
           // escolhe o preço conforme o peso (200g padrão, 300g, 400g).
