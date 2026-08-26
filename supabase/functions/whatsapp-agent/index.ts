@@ -656,6 +656,26 @@ async function getArquivosContexto(): Promise<{ texto: string; arquivos: any[] }
   };
 }
 
+// Busca uma resposta fixa das dúvidas frequentes pela chave (ex: duvida_preparo).
+// Retorna o texto pronto (titulo + conteudo) ou null se não existir/estiver
+// inativa. Usada para responder as dúvidas do menu sem passar pela IA.
+async function getRespostaFixa(chave: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("agente_respostas_fixas")
+    .select("titulo, conteudo, ativo")
+    .eq("chave", chave)
+    .maybeSingle();
+  if (error) {
+    console.error("Erro ao buscar resposta fixa:", chave, JSON.stringify(error));
+    return null;
+  }
+  if (!data || data.ativo === false) return null;
+  const titulo = String(data.titulo ?? "").trim();
+  const conteudo = String(data.conteudo ?? "").trim();
+  if (!conteudo) return null;
+  return titulo ? `*${titulo}*\n\n${conteudo}` : conteudo;
+}
+
 // Busca módulos ativos do banco e monta o prompt base
 async function getModulosPrompt(): Promise<string> {
   const { data: modulos, error } = await supabase
@@ -931,47 +951,10 @@ async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
 // OpenAI — com function calling para ações estruturadas
 // ─────────────────────────────────────────────────────────────────────────────
 
+// NOTA: a função criar_pedido foi REMOVIDA de propósito. A IA nunca finaliza
+// pedidos — todo pedido é sempre transferido para um humano da equipe via
+// transferir_para_humano. Isso evita pedidos errados criados pelo modelo.
 const FUNCTIONS_SCHEMA = [
-  {
-    name: "criar_pedido",
-    description:
-      "Cria um pedido no sistema quando o cliente confirmou todos os dados (nome, itens, endereço/retirada, pagamento). Só use quando o cliente confirmar explicitamente.",
-    parameters: {
-      type: "object",
-      properties: {
-        nome: { type: "string", description: "Nome completo do cliente" },
-        telefone: { type: "string", description: "Telefone do cliente (ex: 5547999999999)" },
-        metodoEntrega: {
-          type: "string",
-          enum: ["entrega", "retirada"],
-          description: "Método de entrega",
-        },
-        cidade: { type: "string", description: "Cidade (apenas se entrega)" },
-        bairro: { type: "string", description: "Bairro (apenas se entrega)" },
-        endereco: { type: "string", description: "Rua e número (apenas se entrega)" },
-        pagamento: { type: "string", description: "Forma de pagamento escolhida" },
-        observacoes: { type: "string", description: "Observações adicionais do cliente" },
-        taxaEntrega: { type: "number", description: "Taxa de entrega em reais" },
-        valorTotal: { type: "number", description: "Valor total dos itens (sem taxa de entrega)" },
-        itens: {
-          type: "array",
-          description: "Lista de itens do pedido",
-          items: {
-            type: "object",
-            properties: {
-              produto_id: { type: "string", description: "ID do produto (UUID)" },
-              nome: { type: "string", description: "Nome do produto" },
-              quantidade: { type: "number" },
-              preco_unitario: { type: "number" },
-              peso: { type: "string", description: "Ex: 300g ou 400g, se aplicável" },
-            },
-            required: ["produto_id", "nome", "quantidade", "preco_unitario"],
-          },
-        },
-      },
-      required: ["nome", "telefone", "metodoEntrega", "pagamento", "valorTotal", "itens"],
-    },
-  },
   {
     name: "enviar_arquivo",
     description:
@@ -2242,31 +2225,33 @@ Deno.serve(async (req: Request) => {
             });
             break;
           }
-          case "duvida_pagamento": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content: "Quais as formas de pagamento aceitas?",
-            });
-            break;
-          }
-          case "duvida_preparo": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content: "Como preparo as marmitas congeladas?",
-            });
-            break;
-          }
-          case "duvida_validade": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content: "Qual a validade e como armazenar as marmitas?",
-            });
-            break;
-          }
+          // Dúvidas com resposta FIXA (texto pronto do banco, sem IA).
+          // Se a resposta fixa não existir/estiver inativa, cai no fluxo da IA
+          // (break) usando uma pergunta sintética como fallback.
+          case "duvida_pagamento":
+          case "duvida_preparo":
+          case "duvida_validade":
           case "duvida_minimo": {
+            const respostaFixa = await getRespostaFixa(menuId);
+            if (respostaFixa) {
+              await sendWhatsAppMessage(telefone, respostaFixa);
+              await appendMensagem(conversa.id, historico, {
+                role: "assistant",
+                content: respostaFixa,
+              });
+              await sendMenuInterativo(telefone);
+              return new Response("OK", { status: 200 });
+            }
+            // Fallback: sem resposta fixa cadastrada → deixa a IA responder.
+            const perguntasFallback: Record<string, string> = {
+              duvida_pagamento: "Quais as formas de pagamento aceitas?",
+              duvida_preparo: "Como preparo as marmitas congeladas?",
+              duvida_validade: "Qual a validade e como armazenar as marmitas?",
+              duvida_minimo: "Tem pedido mínimo?",
+            };
             await appendMensagem(conversa.id, historico, {
               role: "user",
-              content: "Tem pedido mínimo?",
+              content: perguntasFallback[menuId] ?? "Tenho uma dúvida",
             });
             break;
           }
@@ -2383,11 +2368,7 @@ Depois de ter endereço e forma de pagamento, diga:
 "Perfeito! Já tenho todas as suas informações 😊 Vou te conectar com alguém da equipe pra escolherem juntos os pratos do seu pedido. Um momento!"
 E use a função transferir_para_humano.
 
-EXCEÇÃO — REPETIR O ÚLTIMO PEDIDO:
-Se o cliente disser "quero o mesmo", "repetir", "o de sempre" E existir dados do último pedido no contexto acima:
-- Confirme: "Vou repetir seu último pedido: [itens]. Confirma? ✅"
-- Se confirmar, use criar_pedido normalmente (mesmos itens, endereço e pagamento de antes).
-- Se quiser alterar itens: transfira para humano como na ETAPA 4.`;
+REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação — nem para repetir um pedido anterior, nem para "o de sempre". Todo e qualquer pedido é sempre finalizado por um humano da equipe. Se o cliente quiser repetir o último pedido, colete/confirme os dados e use transferir_para_humano, incluindo no resumo que ele quer repetir o último pedido.`;
 
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
       historico = await appendMensagem(conversa.id, historico, { role: "user", content: texto });
@@ -2397,298 +2378,27 @@ Se o cliente disser "quero o mesmo", "repetir", "o de sempre" E existir dados do
 
       // ── Processa resultado ───────────────────────────────────────────────
       if (resultado.tipo === "function") {
-        // ── Criar pedido ─────────────────────────────────────────────────
+        // ── Criar pedido → SEMPRE transfere para humano ──────────────────
+        // A IA nunca finaliza pedidos. Mesmo que o modelo tente chamar
+        // criar_pedido (função removida do schema, mas por segurança tratamos
+        // aqui), o atendimento é transferido para um humano da equipe.
         if (resultado.nome === "criar_pedido") {
-          const args = resultado.args;
-          args.telefone = telefone; // garante o número correto
-          args.itens = Array.isArray(args.itens) ? args.itens : [];
-
-          // Guard: nunca cria pedido sem itens (evita pedido fantasma de R$ 0).
-          if (args.itens.length === 0) {
-            const msg =
-              "Ops, não consegui identificar os itens do seu pedido 😅 Pode me dizer o que você vai querer?";
-            await sendWhatsAppMessage(telefone, msg);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-            return new Response("OK", { status: 200 });
-          }
-
-          // ── Trava: só IA cria pedido em caso de repetição ────────────────
-          // Se a IA chamou criar_pedido mas NÃO é repetição do último pedido,
-          // barra e transfere para humano. A regra: permitir apenas quando o
-          // cliente explicitamente pediu para repetir (detectamos nas mensagens
-          // recentes do histórico). Isso garante que mesmo se a IA desobedecer
-          // a instrução do system prompt, o pedido novo não é criado por ela.
-          const msgsRecentes = historico
-            .filter((m: any) => m.role === "user")
-            .slice(-5)
-            .map((m: any) => normalizarTexto(m.content ?? ""))
-            .join(" ");
-          const padraoRepetir = /(repet|mesmo|de sempre|o de sempre|igual ao ultimo|mesmo pedido|repetir)/;
-          const ehRepeticao = padraoRepetir.test(msgsRecentes);
-          if (!ehRepeticao) {
-            // Não é repetição: barra o pedido e transfere para humano.
-            await supabase
-              .from("whatsapp_conversas")
-              .update({ modo: "humano" })
-              .eq("id", conversa.id);
-            await registrarEvento("escalacao_humano", telefone, conversa.id, {
-              origem: "trava_pedido_novo_ia",
-              itens: args.itens.map((i: any) => i.nome),
-            });
-            const nomeCliente = clienteResult?.profile?.nome?.split(" ")[0] ?? null;
-            const msgTrava = nomeCliente
-              ? `${nomeCliente}, vou te conectar com nossa equipe pra finalizarem o pedido juntos! 😊 Um momento.`
-              : "Vou te conectar com nossa equipe pra finalizarem o pedido juntos! 😊 Um momento.";
-            await sendWhatsAppMessage(telefone, msgTrava);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: msgTrava });
-            return new Response("OK", { status: 200 });
-          }
-
-          // ── Validação de entrega (servidor) ──────────────────────────────
-          // Só confia no modelo para itens; endereço e taxa são validados aqui.
-          if (args.metodoEntrega === "entrega") {
-            // 1) Endereço obrigatório: cidade, bairro e rua/número.
-            if (!args.cidade || !args.bairro || !args.endereco) {
-              const msg =
-                "Para entrega eu preciso do endereço completo 😊 Me confirma a *cidade*, o *bairro* e a *rua com número*?";
-              await sendWhatsAppMessage(telefone, msg);
-              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-              return new Response("OK", { status: 200 });
-            }
-
-            // 2) Área atendida? Valida cidade/bairro contra delivery_rates e usa
-            //    a taxa CADASTRADA (não a que o modelo informou).
-            const taxaCadastrada = await buscarTaxaEntrega(args.cidade, args.bairro);
-            if (taxaCadastrada === null) {
-              const msg = `Poxa, ainda não entregamos em *${args.bairro}, ${args.cidade}* 😕 Posso registrar como *retirada na loja* ou você prefere outro endereço dentro da nossa área de entrega?`;
-              await sendWhatsAppMessage(telefone, msg);
-              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-              await registrarEvento("area_nao_atendida", telefone, conversa.id, {
-                cidade: args.cidade,
-                bairro: args.bairro,
-              });
-              return new Response("OK", { status: 200 });
-            }
-            args.taxaEntrega = taxaCadastrada;
-          } else {
-            // Retirada não tem taxa de entrega.
-            args.taxaEntrega = 0;
-          }
-
-          // ── Pedido mínimo (servidor) ─────────────────────────────────────
-          // Trava determinística: só vale para entrega (retirada não tem mínimo
-          // cadastrado). São Bento do Sul: 2 unidades; demais cidades: 5.
-          if (args.metodoEntrega === "entrega") {
-            const unidadesPedido = args.itens.reduce(
-              (acc: number, item: any) => acc + (Number(item.quantidade) || 0),
-              0,
-            );
-            const cidadeEntregaNorm = String(args.cidade ?? "")
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .trim();
-            const minimoCidade = cidadeEntregaNorm.includes("sao bento") ? 2 : 5;
-            if (unidadesPedido < minimoCidade) {
-              const msg =
-                `Pra entrega em *${args.cidade}* o pedido mínimo é de *${minimoCidade} unidades* 😊 ` +
-                `Você está com ${unidadesPedido}. Quer adicionar mais ${minimoCidade - unidadesPedido} ` +
-                `pra eu conseguir fechar a entrega?`;
-              await sendWhatsAppMessage(telefone, msg);
-              await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-              await registrarEvento("pedido_abaixo_minimo", telefone, conversa.id, {
-                cidade: args.cidade,
-                unidades: unidadesPedido,
-                minimo: minimoCidade,
-              });
-              return new Response("OK", { status: 200 });
-            }
-          }
-
-          // ── Produtos válidos (servidor) ──────────────────────────────────
-          // Todo item precisa casar com um produto ativo do banco (por id ou
-          // nome). Se algum item não casar, o modelo alucinou um prato que não
-          // existe — não criamos o pedido (evita item órfão sem produto_id) e
-          // pedimos ao cliente para escolher do cardápio real.
-          const itensSemProduto = args.itens.filter(
-            (item: any) =>
-              !produtos.find(
-                (p: any) =>
-                  (item.produto_id && p.id === item.produto_id) ||
-                  (item.nome && normalizarTexto(p.nome) === normalizarTexto(item.nome)),
-              ),
-          );
-          if (itensSemProduto.length > 0) {
-            const nomesInvalidos = itensSemProduto
-              .map((item: any) => item.nome)
-              .filter(Boolean)
-              .join(", ");
-            const msg = nomesInvalidos
-              ? `Hmm, não encontrei *${nomesInvalidos}* no nosso cardápio atual 😅 Quer que eu te mostre as opções disponíveis pra escolher certinho?`
-              : "Hmm, não consegui identificar um dos itens no nosso cardápio atual 😅 Quer que eu te mostre as opções disponíveis?";
-            await sendWhatsAppMessage(telefone, msg);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
-            await registrarEvento("item_inexistente", telefone, conversa.id, {
-              itens: itensSemProduto.map((item: any) => item.nome ?? item.produto_id ?? "?"),
-            });
-            return new Response("OK", { status: 200 });
-          }
-
-          // Preço real: corrige preco_unitario de cada item usando o preço do
-          // banco (o modelo pode inventar valor). Casa por produto_id ou nome e
-          // escolhe o preço conforme o peso (200g padrão, 300g, 400g).
-          // Fallback: mantém o valor do modelo se o produto não for encontrado.
-          for (const item of args.itens) {
-            const prod = produtos.find(
-              (p: any) =>
-                (item.produto_id && p.id === item.produto_id) ||
-                (item.nome && normalizarTexto(p.nome) === normalizarTexto(item.nome)),
-            );
-            if (!prod) continue;
-
-            const peso = normalizarTexto(item.peso);
-            let precoReal = Number(prod.preco) || 0;
-            if (peso.includes("300") && prod.preco_300g) precoReal = Number(prod.preco_300g);
-            else if (peso.includes("400") && prod.preco_400g) precoReal = Number(prod.preco_400g);
-
-            if (precoReal > 0) item.preco_unitario = precoReal;
-          }
-
-          // Calcula valor total real no servidor (ignora o total que o modelo mandou)
-          const subtotal = args.itens.reduce(
-            (acc: number, item: any) =>
-              acc + (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0),
-            0,
-          );
-          args.valorTotal = subtotal;
-
-          // Regra determinística do frete promocional de São Bento do Sul:
-          // entrega + cidade São Bento do Sul + 5 ou mais unidades no total → R$ 5,00.
-          const totalUnidades = args.itens.reduce(
-            (acc: number, item: any) => acc + (Number(item.quantidade) || 0),
-            0,
-          );
-          const cidadeNorm = String(args.cidade ?? "")
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-          const ehSaoBento = cidadeNorm.includes("sao bento");
-          if (args.metodoEntrega === "entrega" && ehSaoBento && totalUnidades >= 5) {
-            args.taxaEntrega = 5.0;
-          }
-
-          // Desconto progressivo determinístico: incide só sobre marmitas.
-          // A faixa é definida pelo total de unidades (sopas/complementos contam
-          // na quantidade, mas não recebem desconto).
-          const pctDesconto = descontoProgressivoPorQuantidade(totalUnidades);
-          let descontoValor = 0;
-          if (pctDesconto > 0) {
-            const subtotalComDesconto = args.itens.reduce((acc: number, item: any) => {
-              // Resolve a categoria do item pelo contexto de produtos (por id ou nome)
-              const prod = produtos.find(
-                (p: any) =>
-                  (item.produto_id && p.id === item.produto_id) ||
-                  (item.nome && String(p.nome).toLowerCase() === String(item.nome).toLowerCase()),
-              );
-              const categoria = prod?.categorias?.nome ?? "";
-              const valorItem = (Number(item.preco_unitario) || 0) * (Number(item.quantidade) || 0);
-              return categoriaSemDesconto(categoria) ? acc : acc + valorItem;
-            }, 0);
-            descontoValor = Number((subtotalComDesconto * pctDesconto).toFixed(2));
-          }
-          args.descontoAplicado = descontoValor;
-
-          const pedidoId = await criarPedidoNoBanco(args);
-
-          if (pedidoId) {
-            // Cliente novo (não reconhecido em profiles): guarda o nome informado
-            // na conversa para reconhecê-lo pelo nome nas próximas vezes.
-            // (profiles.id tem FK para auth.users, então não criamos profile aqui.)
-            if (!clienteResult.encontrado && args.nome && !conversa?.nome) {
-              await supabase
-                .from("whatsapp_conversas")
-                .update({ nome: args.nome })
-                .eq("id", conversa.id);
-            }
-
-            // Salva o endereço de entrega em user_addresses (se cliente
-            // reconhecido, é entrega e o endereço ainda não estiver salvo).
-            // Assim ele fica disponível para repetir pedido nas próximas vezes.
-            if (
-              clienteResult.encontrado &&
-              clienteResult.profile?.id &&
-              args.metodoEntrega === "entrega" &&
-              args.cidade &&
-              args.bairro &&
-              args.endereco
-            ) {
-              try {
-                const { data: jaExiste } = await supabase
-                  .from("user_addresses")
-                  .select("id")
-                  .eq("user_id", clienteResult.profile.id)
-                  .ilike("rua", args.endereco)
-                  .ilike("bairro", args.bairro)
-                  .limit(1);
-                if (!jaExiste?.length) {
-                  await supabase.from("user_addresses").insert({
-                    user_id: clienteResult.profile.id,
-                    label: "WhatsApp",
-                    rua: args.endereco,
-                    numero: "",
-                    bairro: args.bairro,
-                    cidade: args.cidade,
-                    complemento: "",
-                    is_default: false,
-                  });
-                }
-              } catch (e: any) {
-                console.error("Falha ao salvar endereço do cliente:", e.message);
-              }
-            }
-
-            const protocolo = pedidoId.slice(0, 8).toUpperCase();
-            const itensTexto = args.itens
-              .map(
-                (i: any) =>
-                  `${i.quantidade}x ${i.nome}${i.peso ? ` (${i.peso})` : ""} — R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}`,
-              )
-              .join("\n");
-            const desconto = Number(args.descontoAplicado ?? 0);
-            const total = (subtotal - desconto + (args.taxaEntrega ?? 0)).toFixed(2);
-
-            const confirmacao = `✅ *Pedido confirmado!*
-
-🔖 Protocolo: *#${protocolo}*
-
-📦 *Itens:*
-${itensTexto}
-
-${desconto > 0 ? `🎉 Desconto progressivo: -R$ ${desconto.toFixed(2)}\n` : ""}${args.metodoEntrega === "entrega" ? `📍 Entrega em: ${args.bairro}, ${args.cidade}\n💰 Taxa de entrega: R$ ${(args.taxaEntrega ?? 0).toFixed(2)}\n` : "🏪 Retirada na loja\n"}💳 Pagamento: ${args.pagamento}
-💵 *Total: R$ ${total}*
-
-Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a SaborosaMente! 🍱❤️`;
-
-            await sendWhatsAppMessage(telefone, confirmacao);
-            await salvarPedidoEmAndamento(conversa.id, null); // limpa pedido em andamento
-            await appendMensagem(conversa.id, historico, {
-              role: "assistant",
-              content: confirmacao,
-            });
-            await sendMenuInterativo(telefone);
-          } else {
-            const erroMsg =
-              `Ops! Tive um problema técnico ao registrar seu pedido 😔\n\nPode digitar *confirmo* de novo para tentar outra vez, ou fazer o pedido pelo site: ${SITE_URL}`;
-            await sendWhatsAppMessage(telefone, erroMsg);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: erroMsg });
-            await registrarEvento("pedido_falhou", telefone, conversa.id, {
-              itens: args.itens?.length ?? 0,
-              metodoEntrega: args.metodoEntrega ?? null,
-              valorTotal: args.valorTotal ?? null,
-            });
-            await sendMenuInterativo(telefone);
-          }
+          const args = resultado.args ?? {};
+          await supabase
+            .from("whatsapp_conversas")
+            .update({ modo: "humano" })
+            .eq("id", conversa.id);
+          await registrarEvento("escalacao_humano", telefone, conversa.id, {
+            origem: "pedido_sempre_humano",
+            itens: Array.isArray(args.itens) ? args.itens.map((i: any) => i?.nome) : [],
+          });
+          const nomeCliente = clienteResult?.profile?.nome?.split(" ")[0] ?? null;
+          const msgTrava = nomeCliente
+            ? `${nomeCliente}, vou te conectar com nossa equipe pra finalizarem o pedido juntos! 😊 Um momento.`
+            : "Vou te conectar com nossa equipe pra finalizarem o pedido juntos! � Um momento.";
+          await sendWhatsAppMessage(telefone, msgTrava);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: msgTrava });
+          return new Response("OK", { status: 200 });
         }
 
         // ── Enviar arquivo (imagem, PDF, documento) ──────────────────────

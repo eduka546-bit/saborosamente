@@ -1,0 +1,94 @@
+﻿deno.exe : [0m[1m[31merror[no-unused-vars][0m: 
+[0m[1m`categoriaSemDesconto` is never used[0m
+No linha:1 caractere:195
++ ... oding utf8; & "$env:USERPROFILE\.deno\bin\deno.exe" lint supabase/fun ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([0m[1m[31mer... never used[0m 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\function
+s\whatsapp-agent\index.ts[0m[0m[33m:54:10[0m
+  [0m[38;5;12m | [0m
+[0m[38;5;12m54 | [0mfunction categoriaSemDesconto(categoria: string | null 
+| undefined): boolean {
+  [0m[38;5;12m | [0m         [0m[1m[31m^^^^^^^^^^^^^^^^^^^^[0m
+   [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_categoriaSemDesconto`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+[0m[1m[31merror[no-unused-vars][0m: 
+[0m[1m`descontoProgressivoPorQuantidade` is never used[0m
+  [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\function
+s\whatsapp-agent\index.ts[0m[0m[33m:60:10[0m
+  [0m[38;5;12m | [0m
+[0m[38;5;12m60 | [0mfunction 
+descontoProgressivoPorQuantidade(totalUnidades: number): number {
+  [0m[38;5;12m | [0m         
+[0m[1m[31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+   [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_descontoProgressivoPorQuantidade`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+[0m[1m[31merror[no-unused-vars][0m: [0m[1m`salvarPedidoEmAndamento` is 
+never used[0m
+   [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\functio
+ns\whatsapp-agent\index.ts[0m[0m[33m:417:16[0m
+   [0m[38;5;12m | [0m
+[0m[38;5;12m417 | [0masync function salvarPedidoEmAndamento(conversaId: 
+string, pedido: any) {
+   [0m[38;5;12m | [0m               [0m[1m[31m^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_salvarPedidoEmAndamento`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+[0m[1m[31merror[no-unused-vars][0m: [0m[1m`buscarTaxaEntrega` is never 
+used[0m
+   [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\functio
+ns\whatsapp-agent\index.ts[0m[0m[33m:507:16[0m
+   [0m[38;5;12m | [0m
+[0m[38;5;12m507 | [0masync function buscarTaxaEntrega(cidade: string, 
+bairro: string): Promise<number | null> {
+   [0m[38;5;12m | [0m               [0m[1m[31m^^^^^^^^^^^^^^^^^[0m
+    [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_buscarTaxaEntrega`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+[0m[1m[31merror[no-unused-vars][0m: [0m[1m`criarPedidoNoBanco` is never 
+used[0m
+   [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\functio
+ns\whatsapp-agent\index.ts[0m[0m[33m:872:16[0m
+   [0m[38;5;12m | [0m
+[0m[38;5;12m872 | [0masync function criarPedidoNoBanco(pedidoDados: any): 
+Promise<string | null> {
+   [0m[38;5;12m | [0m               [0m[1m[31m^^^^^^^^^^^^^^^^^^[0m
+    [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_criarPedidoNoBanco`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+[0m[1m[31merror[no-unused-vars][0m: [0m[1m`produtos` is never used[0m
+    [0m[38;5;12m-->[0m [0m[36mC:\Users\arthu\saborosamente\supabase\functi
+ons\whatsapp-agent\index.ts[0m[0m[33m:2278:36[0m
+    [0m[38;5;12m | [0m
+[0m[38;5;12m2278 | [0m        { texto: cardapioContexto, produtos },
+    [0m[38;5;12m | [0m                                   
+[0m[1m[31m^^^^^^^^[0m
+     [0m[38;5;12m=[0m [0m[1mhint[0m: If this is intentional, prefix it 
+with an underscore like `_produtos`
+
+  [0m[38;5;12mdocs[0m: https://docs.deno.com/lint/rules/no-unused-vars
+
+
+Found 6 problems
+Checked 1 file
+lint=1
