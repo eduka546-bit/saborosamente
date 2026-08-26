@@ -123,32 +123,6 @@ async function sendWhatsAppList(
   );
 }
 
-// Envia botões de resposta rápida (a API do WhatsApp aceita no máximo 3).
-async function sendWhatsAppButtons(
-  to: string,
-  bodyText: string,
-  buttons: { id: string; title: string }[],
-) {
-  await postWhatsApp(
-    {
-      messaging_product: "whatsapp",
-      to,
-      type: "interactive",
-      interactive: {
-        type: "button",
-        body: { text: bodyText },
-        action: {
-          buttons: buttons.slice(0, 3).map((b) => ({
-            type: "reply",
-            reply: { id: b.id, title: b.title },
-          })),
-        },
-      },
-    },
-    "sendWhatsAppButtons",
-  );
-}
-
 // Envia o menu principal da Saborosa
 async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   const saudacao = nomeCliente ? `Oii, ${nomeCliente.split(" ")[0]}! 🫶🏼` : "Oii! 🫶🏼";
@@ -2013,17 +1987,13 @@ Deno.serve(async (req: Request) => {
             return new Response("OK", { status: 200 });
           }
           case "menu_site": {
-            await sendWhatsAppButtons(
-              telefone,
-              `🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\n${SITE_URL}`,
-              [
-                { id: "btn_cardapio", title: "🍽️ Ver cardápio" },
-                { id: "btn_pedido", title: "🛒 Fazer pedido" },
-              ],
-            );
+            // Envia o link com https:// para o WhatsApp torná-lo clicável.
+            const siteMsg =
+              `🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\nhttps://${SITE_URL}`;
+            await sendWhatsAppMessage(telefone, siteMsg);
             await appendMensagem(conversa.id, historico, {
               role: "assistant",
-              content: "[Site enviado]",
+              content: siteMsg,
             });
             await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
@@ -2109,9 +2079,9 @@ Deno.serve(async (req: Request) => {
                 role: "assistant",
                 content: respostaFixa,
               });
-              // Reexibe o menu de dúvidas (com opção de voltar) para o cliente
-              // ver outra dúvida ou retornar ao menu principal.
-              await sendMenuDuvidas(telefone);
+              // Reexibe o menu (único, com as seções) para o cliente escolher
+              // outra dúvida ou outra opção sem se perder.
+              await sendMenuInterativo(telefone);
               return new Response("OK", { status: 200 });
             }
             // Fallback: sem resposta fixa cadastrada → deixa a IA responder.
