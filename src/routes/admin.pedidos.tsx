@@ -737,6 +737,16 @@ function AdminOrdersPage() {
     { label: "cancelado", icon: XCircle, color: "text-red-500" },
   ];
 
+  // Cores do badge de status — chaves em minúsculo, iguais aos status reais do banco
+  const statusBadgeColors: Record<string, string> = {
+    rascunho: "bg-gray-50 text-gray-600 border-gray-200",
+    pendente: "bg-yellow-50 text-yellow-600 border-yellow-200",
+    preparando: "bg-blue-50 text-blue-600 border-blue-200",
+    "saiu para entrega": "bg-purple-50 text-purple-600 border-purple-200",
+    entregue: "bg-green-50 text-green-600 border-green-200",
+    cancelado: "bg-red-50 text-red-600 border-red-200",
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
       {/* Banner de permissão de notificação */}
@@ -972,17 +982,7 @@ function AdminOrdersPage() {
                           <button
                             className={cn(
                               "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2 border",
-                              order.status === "rascunho"
-                                ? "bg-gray-50 text-gray-600 border-gray-200"
-                                : order.status === "Pendente"
-                                  ? "bg-yellow-50 text-yellow-600 border-yellow-200"
-                                  : order.status === "Em preparo"
-                                    ? "bg-blue-50 text-blue-600 border-blue-200"
-                                    : order.status === "Saiu para entrega"
-                                      ? "bg-purple-50 text-purple-600 border-purple-200"
-                                      : order.status === "Entregue"
-                                        ? "bg-green-50 text-green-600 border-green-200"
-                                        : "bg-red-50 text-red-600 border-red-200",
+                              statusBadgeColors[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200",
                             )}
                           >
                             {order.status}

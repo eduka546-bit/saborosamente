@@ -311,23 +311,23 @@ function AdminCategoriasPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
-              <tr>
-                <th className="px-4 py-4 w-8"></th>
-                <th className="px-6 py-4">Nome</th>
-                <th className="px-6 py-4">Descrição</th>
-                <th className="px-6 py-4">Produtos</th>
-                <th className="px-4 py-4">Visível no filtro</th>
-                <th className="px-6 py-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-              modifiers={[restrictToVerticalAxis]}
-            >
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis]}
+          >
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
+                <tr>
+                  <th className="px-4 py-4 w-8"></th>
+                  <th className="px-6 py-4">Nome</th>
+                  <th className="px-6 py-4">Descrição</th>
+                  <th className="px-6 py-4">Produtos</th>
+                  <th className="px-4 py-4">Visível no filtro</th>
+                  <th className="px-6 py-4 text-right">Ações</th>
+                </tr>
+              </thead>
               <SortableContext
                 items={localCategories.map((c) => c.id)}
                 strategy={verticalListSortingStrategy}
@@ -348,8 +348,8 @@ function AdminCategoriasPage() {
                   ))}
                 </tbody>
               </SortableContext>
-            </DndContext>
-          </table>
+            </table>
+          </DndContext>
         </div>
       )}
 

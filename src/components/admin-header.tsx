@@ -66,7 +66,7 @@ export function AdminHeader() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     if (typeof window !== "undefined") {
-      window.location.href = "/admin/login";
+      window.location.href = "/admin-login";
     }
   };
 

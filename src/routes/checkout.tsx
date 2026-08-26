@@ -473,7 +473,7 @@ function Checkout() {
           },
           body: JSON.stringify({
             pedido_id: order.id,
-            status_novo: "pendente",
+            status_novo: data.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
             qr_code_pix: qrCodeUrl,
             valor_total: finalTotal,
           }),
