@@ -190,6 +190,40 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   }
 }
 
+// Envia o submenu de Dúvidas Frequentes, com uma opção para voltar ao menu
+// principal. Reutilizado ao abrir Dúvidas e após responder cada dúvida, para o
+// cliente encadear perguntas ou voltar sem se perder.
+async function sendMenuDuvidas(to: string): Promise<boolean> {
+  const enviado = await sendWhatsAppList(
+    to,
+    "❓ Dúvidas Frequentes",
+    "Escolha o assunto da sua dúvida 👇",
+    "Ver assuntos",
+    [
+      {
+        // OBS: title de cada row tem limite de 24 caracteres na API do WhatsApp
+        // (emoji conta como 2+). Se um row passar, a lista inteira é rejeitada.
+        title: "Tire suas dúvidas",
+        rows: [
+          { id: "duvida_entrega", title: "🚚 Entrega e frete", description: "Cidades, taxas e prazos" },
+          { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
+          { id: "duvida_preparo", title: "🍲 Como preparar", description: "Tempo e modo de preparo" },
+          { id: "duvida_validade", title: "❄️ Validade", description: "Quanto tempo dura e como guardar" },
+          { id: "duvida_minimo", title: "📦 Pedido mínimo", description: "Quantidade mínima" },
+          { id: "menu_voltar", title: "⬅️ Voltar", description: "Voltar ao menu principal" },
+        ],
+      },
+    ],
+  );
+  if (!enviado) {
+    await sendWhatsAppMessage(
+      to,
+      "❓ *Dúvidas Frequentes*\n\nSobre o que você quer saber?\n\n🚚 Entrega e frete\n💳 Formas de pagamento\n🍲 Como preparar\n❄️ Validade e armazenamento\n📦 Pedido mínimo\n\nOu escreva *menu* para voltar ao menu principal.",
+    );
+  }
+  return enviado;
+}
+
 function solicitouMenuPrincipal(texto: string): boolean {
   const normalizado = texto
     .trim()
