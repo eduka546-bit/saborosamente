@@ -290,7 +290,7 @@ function ProdutoPage() {
                 Escolha o tamanho:
               </h3>
               <div className="grid grid-cols-3 gap-3">
-                {weights.map((w) => (
+                {weights.map((w: string) => (
                   <button
                     key={w}
                     onClick={() => setSelectedWeight(w)}

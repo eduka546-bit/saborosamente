@@ -413,7 +413,7 @@ function EditorAutomacao({
               <div className="max-h-96 overflow-y-auto border rounded-xl bg-white">
                 <FlowDiagram
                   nos={form.nos ?? []}
-                  onUpdate={(novoNos) => setForm((f) => ({ ...f, nos: novoNos }))}
+                  onUpdate={(novoNos) => setForm((f) => ({ ...f, nos: novoNos as No[] }))}
                   onInsert={(indice, tipo) => addNo(tipo as NoTipo, indice)}
                   gatilhoTipo={form.gatilho_tipo}
                   gatilhoValor={form.gatilho_valor}

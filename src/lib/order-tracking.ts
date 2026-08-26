@@ -83,7 +83,7 @@ export function getOrderProgress(status: string): number {
  * Próximo status esperado
  */
 export function getNextStatus(currentStatus: string): string | null {
-  const flowMap: Record<string, string> = {
+  const flowMap: Record<string, string | null> = {
     novo_pedido: "preparando",
     pagamento_confirmado: "preparando",
     preparando: "saiu para entrega",

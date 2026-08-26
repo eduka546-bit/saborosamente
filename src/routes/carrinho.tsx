@@ -236,6 +236,7 @@ function Carrinho() {
 
             <Link
               to="/checkout"
+              search={{ cupom: undefined }}
               disabled={
                 selectedCity !== "" &&
                 !selectedCity.toLowerCase().includes("são bento do sul") &&

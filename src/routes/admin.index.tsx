@@ -500,7 +500,7 @@ function AdminDashboard() {
             </div>
           ) : (stats?.salesData?.length ?? 0) > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={stats.salesData.slice(-7)}>
+              <BarChart data={(stats?.salesData ?? []).slice(-7)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: "11px" }} />
                 <YAxis stroke="#9ca3af" style={{ fontSize: "11px" }} />
@@ -534,7 +534,7 @@ function AdminDashboard() {
             </div>
           ) : (stats?.salesData?.length ?? 0) > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats.salesData}>
+              <LineChart data={stats?.salesData ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" stroke="#9ca3af" style={{ fontSize: "12px" }} />
                 <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />

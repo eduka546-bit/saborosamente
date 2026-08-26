@@ -434,7 +434,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const value = useMemo<CartContextValue>(() => {
+  const value = useMemo(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
 

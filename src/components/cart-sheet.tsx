@@ -137,7 +137,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               asChild
               className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20"
             >
-              <Link to="/checkout">Finalizar compra</Link>
+              <Link to="/checkout" search={{ cupom: undefined }}>
+                Finalizar compra
+              </Link>
             </Button>
           </SheetFooter>
         )}

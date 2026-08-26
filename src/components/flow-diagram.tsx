@@ -256,7 +256,7 @@ export function FlowDiagram({
   // Sensores para drag-and-drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      distance: 8, // Precisão de 8px antes de iniciar drag
+      activationConstraint: { distance: 8 }, // Precisão de 8px antes de iniciar drag
     }),
   );
 

@@ -1564,6 +1564,127 @@ Responda APENAS o JSON, sem explicações.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Mídia recebida do cliente: download + transcrição de áudio + análise de imagem
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Baixa uma mídia enviada pelo cliente. O WhatsApp manda apenas um media_id;
+// é preciso 1) pedir a URL temporária e 2) baixar os bytes com o token.
+async function baixarMidiaWhatsApp(
+  mediaId: string,
+): Promise<{ bytes: Uint8Array; buffer: ArrayBuffer; mime: string } | null> {
+  try {
+    const metaUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${mediaId}`;
+    const metaResp = await fetch(metaUrl, {
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+    });
+    if (!metaResp.ok) {
+      console.error("Falha ao obter metadados da mídia:", metaResp.status);
+      return null;
+    }
+    const meta = (await metaResp.json()) as { url?: string; mime_type?: string };
+    if (!meta.url) return null;
+
+    const arquivoResp = await fetch(meta.url, {
+      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+    });
+    if (!arquivoResp.ok) {
+      console.error("Falha ao baixar bytes da mídia:", arquivoResp.status);
+      return null;
+    }
+    const buffer = await arquivoResp.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    return { bytes, buffer, mime: meta.mime_type ?? "application/octet-stream" };
+  } catch (e: any) {
+    console.error("baixarMidiaWhatsApp exception:", e.message);
+    return null;
+  }
+}
+
+// Transcreve um áudio do cliente usando o Whisper da OpenAI.
+async function transcreverAudio(buffer: ArrayBuffer, mime: string): Promise<string | null> {
+  try {
+    const ext = mime.includes("mp4") || mime.includes("m4a")
+      ? "m4a"
+      : mime.includes("mpeg") || mime.includes("mp3")
+      ? "mp3"
+      : mime.includes("wav")
+      ? "wav"
+      : "ogg"; // WhatsApp normalmente manda voice como audio/ogg (opus)
+    const form = new FormData();
+    form.append("file", new Blob([buffer], { type: mime }), `audio.${ext}`);
+    form.append("model", "whisper-1");
+    form.append("language", "pt");
+
+    const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: form,
+    });
+    if (!resp.ok) {
+      console.error("Whisper retornou erro:", resp.status, await resp.text().catch(() => ""));
+      return null;
+    }
+    const data = (await resp.json()) as { text?: string };
+    return data.text?.trim() || null;
+  } catch (e: any) {
+    console.error("transcreverAudio exception:", e.message);
+    return null;
+  }
+}
+
+// Analisa uma imagem enviada pelo cliente (foto de prato, print, comprovante de
+// Pix). Usa o gpt-4o-mini com visão e devolve uma descrição objetiva em texto,
+// destacando dados de comprovante de pagamento quando houver.
+async function analisarImagem(bytes: Uint8Array, mime: string): Promise<string | null> {
+  try {
+    // Converte para base64 (data URL) para enviar à API de visão.
+    // Feito em blocos para não estourar a pilha em imagens grandes.
+    let binario = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binario += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    const base64 = btoa(binario);
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        max_tokens: 400,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text:
+                  "Descreva objetivamente o que aparece nesta imagem enviada por um cliente de uma loja de marmitas. " +
+                  "Se for um COMPROVANTE DE PAGAMENTO (Pix, transferência, cartão), extraia e liste: valor, data/hora, " +
+                  "nome do pagador, nome/chave do recebedor e ID/autenticação se visíveis. " +
+                  "Se for foto de um prato ou produto, descreva o que é. " +
+                  "Responda em português, curto e direto. Não invente dados que não estejam legíveis.",
+              },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!resp.ok) {
+      console.error("Visão retornou erro:", resp.status, await resp.text().catch(() => ""));
+      return null;
+    }
+    const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch (e: any) {
+    console.error("analisarImagem exception:", e.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Segurança: verificação da assinatura do webhook (X-Hub-Signature-256)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1722,28 +1843,64 @@ Deno.serve(async (req: Request) => {
         identificarOpcaoMenu(msg.text?.body ?? "");
 
       // Suporte a texto, botão interativo e lista interativa
-      const texto =
+      let texto =
         msg.text?.body ??
         msg.interactive?.button_reply?.title ??
         msg.interactive?.list_reply?.title ??
         "";
 
-      // Mídia não suportada (áudio, imagem, figurinha, localização, contato...):
-      // não deixa o cliente no vácuo. Responde pedindo para escrever — a menos
-      // que a conversa esteja em atendimento humano (aí um atendente cuida).
+      // ── Mídia recebida do cliente ────────────────────────────────────────
+      // Áudio → transcreve (Whisper). Imagem → analisa (visão), incluindo
+      // comprovantes de Pix. O resultado vira o "texto" do cliente e o fluxo
+      // normal segue, com a IA respondendo com base nisso. Tipos que ainda não
+      // tratamos (vídeo, sticker, localização, contato, documento) recebem um
+      // aviso amigável. Em atendimento humano, não processamos (a equipe cuida).
       if (!texto && !menuId) {
-        const tiposMidia = ["audio", "voice", "image", "video", "sticker", "document", "location", "contacts"];
-        if (msg.type && tiposMidia.includes(msg.type)) {
-          const conversaMidia = await getOrCreateConversa(telefone, nomeContato);
-          if (conversaMidia?.modo !== "humano") {
-            const aviso =
-              msg.type === "audio" || msg.type === "voice"
-                ? "Oi! 😊 Ainda não consigo ouvir áudios por aqui. Pode me escrever sua mensagem que eu te ajudo rapidinho? 🫶🏼"
-                : "Oi! 😊 Recebi seu arquivo, mas por aqui eu consigo te ajudar melhor por texto. Pode me escrever o que você precisa? 🫶🏼";
-            await sendWhatsAppMessage(telefone, aviso);
+        const conversaMidia = await getOrCreateConversa(telefone, nomeContato);
+        const emAtendimentoHumano = conversaMidia?.modo === "humano";
+
+        if ((msg.type === "audio" || msg.type === "voice") && !emAtendimentoHumano) {
+          const mediaId = msg.audio?.id ?? msg.voice?.id;
+          const midia = mediaId ? await baixarMidiaWhatsApp(mediaId) : null;
+          const transcricao = midia ? await transcreverAudio(midia.buffer, midia.mime) : null;
+          if (transcricao) {
+            // Prefixo discreto ajuda a IA a saber que veio de um áudio.
+            texto = transcricao;
+          } else {
+            await sendWhatsAppMessage(
+              telefone,
+              "Oi! 😊 Tentei ouvir seu áudio mas não consegui entender direito. Pode escrever ou mandar de novo? 🫶🏼",
+            );
+            return new Response("OK", { status: 200 });
           }
+        } else if (msg.type === "image" && !emAtendimentoHumano) {
+          const mediaId = msg.image?.id;
+          const legendaCliente = msg.image?.caption?.trim();
+          const midia = mediaId ? await baixarMidiaWhatsApp(mediaId) : null;
+          const descricao = midia ? await analisarImagem(midia.bytes, midia.mime) : null;
+          if (descricao) {
+            // Monta um texto que descreve a imagem para a IA responder no fluxo.
+            const partes = ["[O cliente enviou uma imagem]"];
+            if (legendaCliente) partes.push(`Legenda do cliente: ${legendaCliente}`);
+            partes.push(`Conteúdo da imagem: ${descricao}`);
+            texto = partes.join("\n");
+          } else {
+            await sendWhatsAppMessage(
+              telefone,
+              "Oi! 😊 Recebi sua imagem mas não consegui analisar agora. Pode me dizer por texto o que você precisa? 🫶🏼",
+            );
+            return new Response("OK", { status: 200 });
+          }
+        } else {
+          // Outros tipos ainda sem suporte (vídeo, sticker, localização...).
+          if (!emAtendimentoHumano) {
+            await sendWhatsAppMessage(
+              telefone,
+              "Oi! 😊 Recebi seu arquivo, mas por aqui eu consigo te ajudar melhor por texto. Pode me escrever o que você precisa? 🫶🏼",
+            );
+          }
+          return new Response("OK", { status: 200 });
         }
-        return new Response("OK", { status: 200 });
       }
 
       // ── Busca/cria conversa ──────────────────────────────────────────────
