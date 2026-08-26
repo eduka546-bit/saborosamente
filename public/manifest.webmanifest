@@ -1,0 +1,25 @@
+{
+  "name": "Saborosamente Admin",
+  "short_name": "SBS Admin",
+  "description": "Painel administrativo da Saborosamente — pedidos, atendimento e agente WhatsApp.",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#5850ec",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -101,6 +101,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@saborosamente" },
+      // PWA — permite instalar o painel como app
+      { name: "theme-color", content: "#5850ec" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "SBS Admin" },
     ],
     links: [
       {
@@ -120,6 +126,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         crossOrigin: "anonymous",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -158,6 +166,14 @@ function RootComponent() {
     setIsLoginPage(login);
     setMounted(true);
   }, [pathname]);
+
+  // Registra o service worker (PWA) — permite instalar o painel como app.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("Falha ao registrar service worker:", err);
+    });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
