@@ -224,7 +224,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
-      <Link to="/produto/$id" params={{ id: String(product.id) }}>
+      <div onClick={() => setDetailOpen(true)}>
         <article className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1">
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2 flex-wrap">
@@ -332,7 +332,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
           </div>
         </article>
-      </Link>
+      </div>
+
+      <ProductDetailModal
+        isOpen={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        product={product}
+      />
     </>
   );
 }

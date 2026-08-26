@@ -9,9 +9,6 @@ import {
   MessageCircle,
   MapPin,
   ChevronDown,
-  LogIn,
-  UserPlus,
-  X,
   Gift,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
@@ -125,67 +122,9 @@ function Checkout() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
-  // Modal de login inline
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authNome, setAuthNome] = useState("");
-  const [authTelefone, setAuthTelefone] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    try {
-      if (authMode === "login") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: authEmail,
-          password: authPassword,
-        });
-        if (error) throw error;
-        setSession(data.session);
-        // prefill dados
-        if (data.session?.user) {
-          setValue("email", data.session.user.email ?? "");
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("nome, telefone")
-            .eq("id", data.session.user.id)
-            .single();
-          if (profile?.nome) setValue("nome", profile.nome);
-          if (profile?.telefone) setValue("telefone", profile.telefone);
-        }
-        toast.success("Login realizado! Agora finalize seu pedido.");
-        setShowAuthModal(false);
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: authEmail,
-          password: authPassword,
-          options: { data: { nome: authNome, telefone: authTelefone } },
-        });
-        if (error) throw error;
-        if (data.session) {
-          setSession(data.session);
-          setValue("email", authEmail);
-          setValue("nome", authNome);
-          setValue("telefone", authTelefone);
-          await supabase.from("profiles").upsert({
-            id: data.session.user.id,
-            nome: authNome,
-            telefone: authTelefone,
-            email: authEmail,
-          });
-        }
-        toast.success("Conta criada! Agora finalize seu pedido.");
-        setShowAuthModal(false);
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+  // ── data e horário de entrega (entrega programada) ─────────────────────────
+  const [dataEntrega, setDataEntrega] = useState<string>("");
+  const [horarioEntrega, setHorarioEntrega] = useState<string>("");
 
   // ── cashback ──────────────────────────────────────────────────────────────
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
@@ -302,6 +241,50 @@ function Checkout() {
     },
   });
 
+  // ── Datas de entrega: próximos dias, pulando domingo ───────────────────────
+  const DIAS_SEMANA = [
+    "Domingo",
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado",
+  ];
+  const datasEntrega = (() => {
+    const out: { valor: string; label: string }[] = [];
+    const hoje = new Date();
+    let d = 0;
+    // Gera as próximas ~7 datas úteis (pula domingo)
+    while (out.length < 7 && d < 20) {
+      const dia = new Date(hoje);
+      dia.setDate(hoje.getDate() + d);
+      d++;
+      if (dia.getDay() === 0) continue; // pula domingo
+      const dd = String(dia.getDate()).padStart(2, "0");
+      const mm = String(dia.getMonth() + 1).padStart(2, "0");
+      const yyyy = dia.getFullYear();
+      out.push({
+        valor: `${dd}/${mm}/${yyyy}`,
+        label: `${dd}/${mm}/${yyyy} (${DIAS_SEMANA[dia.getDay()]})`,
+      });
+    }
+    return out;
+  })();
+
+  const HORARIOS_ENTREGA = [
+    "09:30h ~ 10:30h",
+    "10:30h ~ 11:30h",
+    "11:30h ~ 12:30h",
+    "12:30h ~ 13:30h",
+    "13:30h ~ 14:30h",
+    "14:30h ~ 15:30h",
+    "15:30h ~ 16:30h",
+    "16:30h ~ 17:30h",
+    "17:30h ~ 18:30h",
+    "18:30h ~ 19:00h",
+  ];
+
   const paymentMethods = enabledOrDefault(siteSettings?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault(siteSettings?.card_flags, defaultCardFlags);
   const mealFlags = enabledOrDefault(siteSettings?.meal_flags, defaultMealFlags);
@@ -391,11 +374,23 @@ function Checkout() {
   }
 
   const onSubmit = async (data: CheckoutForm) => {
-    // Exige login antes de finalizar
+    // Exige login antes de finalizar — leva para a página de login/registro,
+    // que volta ao checkout depois de autenticar.
     if (!session) {
-      setShowAuthModal(true);
+      navigate({ to: "/auth", search: { redirect: "/checkout" } as any });
       return;
     }
+
+    // Entrega programada: exige data e horário escolhidos
+    if (!dataEntrega) {
+      toast.error("Escolha a data de entrega.");
+      return;
+    }
+    if (!horarioEntrega) {
+      toast.error("Escolha o horário de entrega.");
+      return;
+    }
+
     try {
       // A validação do cupom (validade, limite de usos, primeira compra) e o
       // incremento de uso agora são feitos no servidor, dentro de createOrder —
@@ -408,7 +403,7 @@ function Checkout() {
           email: data.email,
           telefone: data.telefone,
           metodoEntrega: selectedBairro ? "entrega" : "retirada",
-          horarioEntrega: "",
+          horarioEntrega: `${dataEntrega} • ${horarioEntrega}`,
           cidade: data.cidade,
           bairro: selectedBairro,
           endereco: data.endereco,
@@ -779,6 +774,46 @@ function Checkout() {
               </label>
               <input id="complemento" className={fieldClass} {...register("complemento")} />
             </div>
+
+            {/* ── Data e horário de entrega (entrega programada) ────────────── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="dataEntrega" className="text-sm font-medium">
+                  Data de entrega
+                </label>
+                <select
+                  id="dataEntrega"
+                  className={fieldClass}
+                  value={dataEntrega}
+                  onChange={(e) => setDataEntrega(e.target.value)}
+                >
+                  <option value="">Selecione uma data</option>
+                  {datasEntrega.map((d) => (
+                    <option key={d.valor} value={d.valor}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="horarioEntrega" className="text-sm font-medium">
+                  Horário
+                </label>
+                <select
+                  id="horarioEntrega"
+                  className={fieldClass}
+                  value={horarioEntrega}
+                  onChange={(e) => setHorarioEntrega(e.target.value)}
+                >
+                  <option value="">Selecione um horário</option>
+                  {HORARIOS_ENTREGA.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </fieldset>
 
           {/* ── pagamento ──────────────────────────────────────────────────── */}
@@ -1057,7 +1092,7 @@ function Checkout() {
             <p className="text-center text-xs text-muted-foreground">
               <button
                 type="button"
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => navigate({ to: "/auth", search: { redirect: "/checkout" } as any })}
                 className="text-primary font-semibold hover:underline"
               >
                 Fazer login ou criar conta
@@ -1120,120 +1155,6 @@ function Checkout() {
           </dl>
         </aside>
       </div>
-
-      {/* ── Modal de login/cadastro inline ──────────────────────────────── */}
-      {showAuthModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowAuthModal(false)}
-          />
-          <div className="relative w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-primary px-6 py-5 text-white">
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
-              >
-                <X size={16} />
-              </button>
-              <h2 className="text-lg font-black">
-                {authMode === "login" ? "Entre na sua conta" : "Crie sua conta"}
-              </h2>
-              <p className="text-sm text-white/75 mt-0.5">
-                {authMode === "login"
-                  ? "Seu carrinho foi salvo. Faça login para finalizar."
-                  : "Crie uma conta para acompanhar seus pedidos."}
-              </p>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleAuth} className="p-6 space-y-4">
-              {authMode === "register" && (
-                <>
-                  <div>
-                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
-                      Nome completo
-                    </label>
-                    <input
-                      value={authNome}
-                      onChange={(e) => setAuthNome(e.target.value)}
-                      required
-                      placeholder="Seu nome"
-                      className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
-                      Telefone / WhatsApp
-                    </label>
-                    <input
-                      value={authTelefone}
-                      onChange={(e) => setAuthTelefone(e.target.value)}
-                      placeholder="(47) 99999-9999"
-                      className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                  </div>
-                </>
-              )}
-              <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  required
-                  placeholder="seu@email.com"
-                  className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
-                  Senha
-                </label>
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full rounded-2xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full rounded-full bg-primary py-3 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {authLoading ? (
-                  "Aguarde..."
-                ) : authMode === "login" ? (
-                  <>
-                    <LogIn size={16} /> Entrar e finalizar pedido
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={16} /> Criar conta e finalizar
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
-                className="w-full text-center text-xs text-muted-foreground hover:text-primary transition-colors py-1"
-              >
-                {authMode === "login"
-                  ? "Não tem conta? Criar agora"
-                  : "Já tenho conta. Fazer login"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </section>
   );
 }
