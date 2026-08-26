@@ -156,6 +156,8 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
 }
 
 async function sendMenuInterativo(to: string, saudacao?: string) {
+  // Menu único com seções (funciona como "abas" numa mensagem só): Pedidos,
+  // Dúvidas e Mais. A API do WhatsApp permite no máximo 10 itens no total.
   const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
@@ -165,18 +167,28 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
     "Ver opções",
     [
       {
-        title: "O que você precisa?",
+        title: "Pedidos",
         rows: [
+          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Falar com a equipe" },
           { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
-          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Montar meu pedido" },
-          { id: "menu_recomenda", title: "⭐ Recomendações", description: "Escolher um prato" },
-          { id: "menu_duvidas", title: "❓ Dúvidas", description: "Entrega, pagamento e preparo" },
+        ],
+      },
+      {
+        // OBS: title de cada row tem limite de 24 caracteres na API do WhatsApp.
+        title: "Dúvidas",
+        rows: [
+          { id: "duvida_entrega", title: "🚚 Entrega e frete", description: "Cidades, taxas e prazos" },
+          { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
+          { id: "duvida_preparo", title: "🍲 Como preparar", description: "Tempo e modo de preparo" },
+          { id: "duvida_validade", title: "❄️ Validade", description: "Quanto tempo dura e guardar" },
+          { id: "duvida_minimo", title: "📦 Pedido mínimo", description: "Quantidade mínima" },
+        ],
+      },
+      {
+        title: "Mais",
+        rows: [
           { id: "menu_site", title: "🌐 Acessar o site", description: SITE_URL },
-          {
-            id: "menu_atendente",
-            title: "👤 Falar com atendente",
-            description: "Falar com nossa equipe",
-          },
+          { id: "menu_atendente", title: "👤 Falar com atendente", description: "Falar com nossa equipe" },
         ],
       },
     ],
@@ -185,7 +197,7 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   if (!menuEnviado) {
     await sendWhatsAppMessage(
       to,
-      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU PRINCIPAL 🍱\n\n1. 🍽️ Cardápio\n2. 🛒 Fazer um pedido\n3. ⭐ Recomendações\n4. ❓ Dúvidas\n5. 🌐 Acessar o site\n6. 👤 Falar com atendente\n\nDigite o número ou escreva o que precisa.`,
+      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU 🍱\n\n*Pedidos*\n🛒 Fazer um pedido\n🍽️ Cardápio\n\n*Dúvidas*\n🚚 Entrega e frete\n💳 Pagamento\n🍲 Como preparar\n❄️ Validade\n📦 Pedido mínimo\n\n*Mais*\n🌐 Acessar o site\n👤 Falar com atendente\n\nÉ só me dizer o que você precisa.`,
     );
   }
 }
