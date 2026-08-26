@@ -1,0 +1,8 @@
+has_data.pagamento=true has_values.pagamento=false
+snippet around 440:
+   observacoes: z.string().trim().max(300).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.pagamento === "dinheiro" && data.troco && isNaN(Number(data.troco))) {
+      ctx.addIssue({
+   

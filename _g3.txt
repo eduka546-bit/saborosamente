@@ -1,0 +1,7 @@
+.vercel/output/nitro.json
+supabase/functions/whatsapp-agent/index.ts
+
+---
+ .vercel/output/nitro.json                  | 2 +-
+ supabase/functions/whatsapp-agent/index.ts | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)

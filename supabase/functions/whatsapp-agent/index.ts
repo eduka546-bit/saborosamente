@@ -2148,7 +2148,6 @@ Deno.serve(async (req: Request) => {
               role: "assistant",
               content: "[Menu dúvidas enviado]",
             });
-            await sendMenuInterativo(telefone);
             return new Response("OK", { status: 200 });
           }
           case "duvida_entrega": {
