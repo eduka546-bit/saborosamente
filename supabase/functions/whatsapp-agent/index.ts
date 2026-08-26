@@ -711,6 +711,10 @@ async function montarContextoCliente(profile: any): Promise<string> {
         `  • ${e.label ?? "Endereço"}: ${e.rua}, ${e.numero} — ${e.bairro}, ${e.cidade}${e.complemento ? ` (${e.complemento})` : ""}`,
       );
     });
+  } else {
+    linhas.push(
+      `- ATENÇÃO: este cliente NÃO tem endereço salvo no sistema. Se for entrega, PERGUNTE o endereço completo (cidade, bairro, rua e número). NUNCA invente um endereço nem use textos genéricos como "Rua [endereço]" ou "[bairro]".`,
+    );
   }
 
   if (pedidos?.length) {
@@ -747,7 +751,7 @@ async function montarContextoCliente(profile: any): Promise<string> {
   }
 
   linhas.push(
-    `\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo. Ao pedir pagamento, sugira o preferido. Se o cliente pedir para "repetir o pedido" ou "o de sempre", use os itens do último pedido acima.`,
+    `\nChame o cliente pelo primeiro nome. Ao pedir entrega, sugira o endereço salvo SOMENTE se existir um endereço salvo listado acima; caso contrário, pergunte o endereço completo. NUNCA mostre endereços com colchetes ou placeholders como "[bairro]" ou "Rua [endereço completo]" — se você não tem o dado real, pergunte ao cliente. Ao pedir pagamento, sugira o preferido. Se o cliente pedir para "repetir o pedido" ou "o de sempre", use os itens do último pedido acima.`,
   );
   return linhas.join("\n");
 }
@@ -2316,9 +2320,11 @@ PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
-REGRA IMPORTANTE: Você NÃO monta o pedido completo com o cliente.
-Seu papel é coletar as INFORMAÇÕES INICIAIS (nome, endereço, forma de pagamento) e depois TRANSFERIR PARA UM HUMANO da equipe para escolher os produtos juntos.
+REGRA IMPORTANTE: Você NÃO fecha o pedido nem escolhe os produtos com o cliente.
+Seu papel é coletar as INFORMAÇÕES INICIAIS (nome, endereço, forma de pagamento) e depois TRANSFERIR PARA UM HUMANO da equipe, que vai escolher os produtos e fechar o pedido com o cliente.
+Se o cliente já disser um produto que quer (ex: "quero a parmegiana"), NÃO comece a montar o pedido — apenas registre mentalmente e siga coletando os dados iniciais. Seja transparente logo no início: avise que vai pegar alguns dados e depois conectar com a equipe para finalizar. Exemplo: "Que ótimo! 😊 Vou pegar alguns dados rapidinho e já te conecto com nossa equipe pra fechar seu pedido certinho. Pode ser?"
 A ÚNICA EXCEÇÃO é quando o cliente pedir para **repetir o último pedido** ("o de sempre", "quero o mesmo", "repetir pedido"): nesse caso, você pode usar a função criar_pedido diretamente com os itens do último pedido.
+NUNCA invente endereço, valores ou dados que você não tem. Se não souber, pergunte.
 
 ETAPA 1 — IDENTIFICAR O CLIENTE (obrigatória, antes de qualquer coisa):
 ${
