@@ -1,0 +1,6 @@
+{
+  "supabase": "2.115.0",
+  "psql": "MISSING",
+  "vercel": "MISSING",
+  "bun": "1.4.0"
+}
