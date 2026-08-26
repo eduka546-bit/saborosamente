@@ -1025,6 +1025,25 @@ const FUNCTIONS_SCHEMA = [
       required: [],
     },
   },
+  {
+    name: "transferir_para_humano",
+    description:
+      "Transfere o atendimento para um humano da equipe. Use quando terminar de coletar os dados iniciais do pedido (nome, endereço, pagamento) e for hora de escolher os produtos com um atendente. Também use se o cliente pedir para falar com alguém.",
+    parameters: {
+      type: "object",
+      properties: {
+        motivo: {
+          type: "string",
+          description: "Motivo da transferência (ex: 'cliente quer escolher produtos com atendente', 'cliente solicitou humano')",
+        },
+        resumo: {
+          type: "string",
+          description: "Resumo das informações já coletadas (nome, endereço, pagamento) para o atendente continuar de onde parou.",
+        },
+      },
+      required: ["motivo"],
+    },
+  },
 ];
 
 async function chamarOpenAI(systemPrompt: string, historico: any[], pedidoEmAndamento: any) {
@@ -2297,6 +2316,10 @@ PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
+REGRA IMPORTANTE: Você NÃO monta o pedido completo com o cliente.
+Seu papel é coletar as INFORMAÇÕES INICIAIS (nome, endereço, forma de pagamento) e depois TRANSFERIR PARA UM HUMANO da equipe para escolher os produtos juntos.
+A ÚNICA EXCEÇÃO é quando o cliente pedir para **repetir o último pedido** ("o de sempre", "quero o mesmo", "repetir pedido"): nesse caso, você pode usar a função criar_pedido diretamente com os itens do último pedido.
+
 ETAPA 1 — IDENTIFICAR O CLIENTE (obrigatória, antes de qualquer coisa):
 ${
   clienteResult.encontrado
@@ -2309,46 +2332,26 @@ ${
    → Se não encontrar de jeito nenhum: "Tudo bem! Vou criar seu cadastro. Pode continuar 😊" — colete nome e telefone.`
 }
 
-ETAPA 2 — COLETAR ITENS (uma pergunta por vez):
-- "O que você vai querer hoje? 🍱" → cliente responde com produto
-- Se o produto tiver variação de peso (300g/400g): "Qual o tamanho? 300g ou 400g?"
-- Confirme cada item: "Mais alguma coisa ou pode fechar?"
-
-ETAPA 3 — ENTREGA OU RETIRADA:
+ETAPA 2 — ENTREGA OU RETIRADA:
 - "Vai ser entrega ou retirada na loja?"
 - Se entrega: "Qual a cidade e bairro?" → verifique na lista ÁREAS DE ENTREGA e informe a taxa.
-- Se entrega em São Bento do Sul e o pedido tiver 5 ou mais unidades (somando as quantidades de todos os itens): informe "Boa notícia! Como seu pedido tem 5 itens ou mais, o frete para São Bento do Sul fica só R$ 5,00! 🎉" e use taxaEntrega = 5.00.
 - Se entrega: pergunte rua e número.
-- HORÁRIO DE ENTREGA: entregamos no horário que o cliente preferir, das 9h30 às 19h. Pergunte de forma natural: "Que horário fica melhor pra você receber? Entregamos das 9h30 às 19h 😊". Se o cliente pedir um horário fora dessa janela, explique gentilmente que só entregamos entre 9h30 e 19h e ofereça um horário dentro dela. Nunca prometa um horário exato de chegada — combine a janela/preferência e diga que a equipe confirma. Inclua o horário combinado no campo observacoes ao criar o pedido (ex: "Entrega preferida: 14h").
+- HORÁRIO DE ENTREGA: entregamos no horário que o cliente preferir, das 9h30 às 19h. Pergunte de forma natural: "Que horário fica melhor pra você receber? Entregamos das 9h30 às 19h 😊".
 
-ETAPA 4 — FORMA DE PAGAMENTO:
+ETAPA 3 — FORMA DE PAGAMENTO:
 - "Como vai preferir pagar?" → liste as opções disponíveis.
 - Se dinheiro: "Precisa de troco? Para quanto?"
 
-ETAPA 5 — RESUMO E CONFIRMAÇÃO (obrigatório antes de criar o pedido):
-Mostre o resumo COMPLETO:
-"Só para confirmar tudo certinho 😊
+ETAPA 4 — TRANSFERIR PARA EQUIPE:
+Depois de ter endereço e forma de pagamento, diga:
+"Perfeito! Já tenho todas as suas informações 😊 Vou te conectar com alguém da equipe pra escolherem juntos os pratos do seu pedido. Um momento!"
+E use a função transferir_para_humano.
 
-📦 *Pedido:*
-[lista de itens com preços]
-
-[entrega/retirada e endereço]
-💰 Taxa de entrega: R$ X,XX
-
-💳 Pagamento: [forma]
-💵 *Total: R$ X,XX*
-
-Confirma o pedido? ✅"
-
-ETAPA 6 — SÓ APÓS CONFIRMAÇÃO EXPLÍCITA ("sim", "confirma", "pode fazer", "fecha"):
-- Use a função criar_pedido.
-- NUNCA crie o pedido sem o cliente confirmar.
-- Se o cliente pedir qualquer alteração, volte para a etapa correspondente.
-
-REGRA DE SEGURANÇA:
-- Se qualquer dado estiver faltando ou duvidoso, pergunte antes de prosseguir.
-- Prefira errar por excesso de confirmação do que criar um pedido errado.
-- Se o cliente ficar confuso ou pedir para cancelar: "Sem problema! Pedido cancelado 😊 Posso te ajudar com mais alguma coisa?"`;
+EXCEÇÃO — REPETIR O ÚLTIMO PEDIDO:
+Se o cliente disser "quero o mesmo", "repetir", "o de sempre" E existir dados do último pedido no contexto acima:
+- Confirme: "Vou repetir seu último pedido: [itens]. Confirma? ✅"
+- Se confirmar, use criar_pedido normalmente (mesmos itens, endereço e pagamento de antes).
+- Se quiser alterar itens: transfira para humano como na ETAPA 4.`;
 
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
       historico = await appendMensagem(conversa.id, historico, { role: "user", content: texto });
@@ -2370,6 +2373,38 @@ REGRA DE SEGURANÇA:
               "Ops, não consegui identificar os itens do seu pedido 😅 Pode me dizer o que você vai querer?";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            return new Response("OK", { status: 200 });
+          }
+
+          // ── Trava: só IA cria pedido em caso de repetição ────────────────
+          // Se a IA chamou criar_pedido mas NÃO é repetição do último pedido,
+          // barra e transfere para humano. A regra: permitir apenas quando o
+          // cliente explicitamente pediu para repetir (detectamos nas mensagens
+          // recentes do histórico). Isso garante que mesmo se a IA desobedecer
+          // a instrução do system prompt, o pedido novo não é criado por ela.
+          const msgsRecentes = historico
+            .filter((m: any) => m.role === "user")
+            .slice(-5)
+            .map((m: any) => normalizarTexto(m.content ?? ""))
+            .join(" ");
+          const padraoRepetir = /(repet|mesmo|de sempre|o de sempre|igual ao ultimo|mesmo pedido|repetir)/;
+          const ehRepeticao = padraoRepetir.test(msgsRecentes);
+          if (!ehRepeticao) {
+            // Não é repetição: barra o pedido e transfere para humano.
+            await supabase
+              .from("whatsapp_conversas")
+              .update({ modo: "humano" })
+              .eq("id", conversa.id);
+            await registrarEvento("escalacao_humano", telefone, conversa.id, {
+              origem: "trava_pedido_novo_ia",
+              itens: args.itens.map((i: any) => i.nome),
+            });
+            const nomeCliente = clienteResult?.profile?.nome?.split(" ")[0] ?? null;
+            const msgTrava = nomeCliente
+              ? `${nomeCliente}, vou te conectar com nossa equipe pra finalizarem o pedido juntos! 😊 Um momento.`
+              : "Vou te conectar com nossa equipe pra finalizarem o pedido juntos! 😊 Um momento.";
+            await sendWhatsAppMessage(telefone, msgTrava);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msgTrava });
             return new Response("OK", { status: 200 });
           }
 
@@ -2682,6 +2717,33 @@ Em breve nossa equipe confirma o horário de entrega. Obrigada por escolher a Sa
           const msg = await consultarPedidoStatus(telefone, protocolo);
           await sendWhatsAppMessage(telefone, msg);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+        }
+
+        // ── Transferir para humano (pedido ou solicitação) ────────────────
+        else if (resultado.nome === "transferir_para_humano") {
+          await supabase
+            .from("whatsapp_conversas")
+            .update({ modo: "humano" })
+            .eq("id", conversa.id);
+          const resumo = resultado.args?.resumo ?? "";
+          await registrarEvento("escalacao_humano", telefone, conversa.id, {
+            origem: "transferir_para_humano",
+            motivo: resultado.args?.motivo ?? "",
+            resumo,
+          });
+          const nomeCliente = clienteResult?.profile?.nome?.split(" ")[0] ?? null;
+          const msg = nomeCliente
+            ? `Perfeito, ${nomeCliente}! 😊 Vou te conectar com alguém da equipe pra continuarem juntos. Um momento!`
+            : "Perfeito! 😊 Vou te conectar com alguém da equipe pra continuarem juntos. Um momento!";
+          await sendWhatsAppMessage(telefone, msg);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+          // Se houver resumo, salva como mensagem de sistema para a equipe ver.
+          if (resumo) {
+            await appendMensagem(conversa.id, historico, {
+              role: "system",
+              content: `[Resumo para equipe] ${resumo}`,
+            });
+          }
         }
       } else {
         // ── Resposta de texto normal ─────────────────────────────────────
