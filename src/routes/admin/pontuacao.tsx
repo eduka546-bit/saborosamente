@@ -23,7 +23,7 @@ function AdminPontuacaoPage() {
       const { data: orders } = await supabase
         .from("pedidos")
         .select("user_id, valor_total")
-        .neq("status", "Cancelado");
+        .neq("status", "cancelado");
       const map = new Map<string, number>();
       (orders ?? []).forEach((o: any) => {
         if (o.user_id)
