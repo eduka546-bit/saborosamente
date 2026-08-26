@@ -39,28 +39,6 @@ const SITE_URL = "saborosamente.vercel.app";
 // Mensagem padrão quando a OpenAI falha (timeout/erro transitório).
 const MSG_ERRO_TECNICO = "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏";
 
-// Desconto progressivo — deve espelhar src/lib/cart.tsx (PROGRESSIVE_DISCOUNT).
-// O desconto incide APENAS sobre marmitas; sopas e complementos contam na
-// quantidade total mas não recebem desconto.
-const FAIXAS_DESCONTO_PROGRESSIVO = [
-  { min: 20, desconto: 0.07 },
-  { min: 10, desconto: 0.05 },
-  { min: 5, desconto: 0.03 },
-];
-// "combo" cobre os Combos Prontos (já têm desconto no preço): contam na
-// quantidade mas não recebem desconto progressivo adicional.
-const CATEGORIAS_SEM_DESCONTO = ["sopa", "complemento", "combo"];
-
-function categoriaSemDesconto(categoria: string | null | undefined): boolean {
-  const c = String(categoria ?? "").toLowerCase();
-  return CATEGORIAS_SEM_DESCONTO.some((termo) => c.includes(termo));
-}
-
-// Retorna a porcentagem de desconto (0, 0.03, 0.05 ou 0.07) para uma quantidade total.
-function descontoProgressivoPorQuantidade(totalUnidades: number): number {
-  return FAIXAS_DESCONTO_PROGRESSIVO.find((f) => totalUnidades >= f.min)?.desconto ?? 0;
-}
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -414,13 +392,6 @@ async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
   return atualizado;
 }
 
-async function salvarPedidoEmAndamento(conversaId: string, pedido: any) {
-  await supabase
-    .from("whatsapp_conversas")
-    .update({ pedido_em_andamento: pedido })
-    .eq("id", conversaId);
-}
-
 // Registra um evento de observabilidade (escalação, falha de pedido, etc).
 // Best-effort: nunca deixa uma falha de log quebrar o fluxo do agente.
 async function registrarEvento(
@@ -500,29 +471,6 @@ function normalizarTexto(s: string | null | undefined): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
-}
-
-// Busca a taxa de entrega cadastrada para uma cidade/bairro em delivery_rates.
-// Retorna a taxa (number) se a área for atendida, ou null caso contrário.
-async function buscarTaxaEntrega(cidade: string, bairro: string): Promise<number | null> {
-  const { data: taxas, error } = await supabase
-    .from("delivery_rates")
-    .select("cidade, bairro, valor")
-    .eq("ativo", true);
-
-  if (error) {
-    console.error("buscarTaxaEntrega erro:", JSON.stringify(error));
-    return null;
-  }
-
-  const cidadeN = normalizarTexto(cidade);
-  const bairroN = normalizarTexto(bairro);
-
-  const match = (taxas ?? []).find(
-    (t: any) => normalizarTexto(t.cidade) === cidadeN && normalizarTexto(t.bairro) === bairroN,
-  );
-
-  return match ? Number(match.valor) : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -868,84 +816,6 @@ async function buscarClientePorCpf(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-async function criarPedidoNoBanco(pedidoDados: any): Promise<string | null> {
-  try {
-    const insertData: any = {
-      user_id: null,
-      nome_cliente: pedidoDados.nome,
-      telefone_cliente: pedidoDados.telefone,
-      email_cliente: pedidoDados.email ?? null,
-      metodo_entrega: pedidoDados.metodoEntrega,
-      metodo_pagamento: pedidoDados.pagamento,
-      observacao: pedidoDados.observacoes ?? null,
-      valor_total: pedidoDados.valorTotal,
-      taxa_entrega: pedidoDados.taxaEntrega ?? 0,
-      desconto_aplicado: pedidoDados.descontoAplicado ?? 0,
-      status: "preparando",
-      origem: "whatsapp",
-      horario_recebimento: "",
-    };
-
-    if (pedidoDados.metodoEntrega === "entrega") {
-      if (pedidoDados.cidade) insertData.endereco_cidade = pedidoDados.cidade;
-      if (pedidoDados.bairro) insertData.endereco_bairro = pedidoDados.bairro;
-      if (pedidoDados.endereco) insertData.endereco_rua = pedidoDados.endereco;
-    }
-
-    const { data: pedido, error: pedidoError } = await supabase
-      .from("pedidos")
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (pedidoError) {
-      console.error("Erro ao criar pedido:", JSON.stringify(pedidoError));
-      return null;
-    }
-
-    // Resolve produto_id por nome quando o UUID estiver faltando/inválido
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const itensResolvidos = await Promise.all(
-      pedidoDados.itens.map(async (item: any) => {
-        let produtoId = item.produto_id;
-
-        // Se não tiver UUID válido, busca pelo nome
-        if (!produtoId || !uuidRegex.test(produtoId)) {
-          const { data: prods } = await supabase
-            .from("produtos")
-            .select("id")
-            .ilike("nome", `%${item.nome}%`)
-            .eq("ativo", true)
-            .limit(1);
-          produtoId = prods?.[0]?.id ?? null;
-          console.log(`Produto resolvido por nome "${item.nome}": ${produtoId}`);
-        }
-
-        return {
-          pedido_id: pedido.id,
-          produto_id: produtoId,
-          quantidade: item.quantidade,
-          preco_unitario: item.preco_unitario,
-          observacao: item.peso ? `Peso: ${item.peso}` : null,
-        };
-      }),
-    );
-
-    const { error: itensError } = await supabase.from("pedido_itens").insert(itensResolvidos);
-
-    if (itensError) {
-      console.error("Erro ao criar itens:", JSON.stringify(itensError));
-      await supabase.from("pedidos").delete().eq("id", pedido.id);
-      return null;
-    }
-
-    return pedido.id;
-  } catch (e: any) {
-    console.error("criarPedidoNoBanco exception:", e.message);
-    return null;
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OpenAI — com function calling para ações estruturadas
@@ -2275,7 +2145,7 @@ Deno.serve(async (req: Request) => {
 
       // ── Busca contexto dinâmico em paralelo ──────────────────────────────
       const [
-        { texto: cardapioContexto, produtos },
+        { texto: cardapioContexto },
         entregasContexto,
         settingsContexto,
         { texto: arquivosContexto },
