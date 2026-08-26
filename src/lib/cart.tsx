@@ -434,7 +434,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const value = useMemo(() => {
+  const value = useMemo<CartContextValue>(() => {
     const detailed = lines.flatMap<CartLineDetailed>((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
 
@@ -503,12 +503,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQuantity,
       remove,
       clear,
+      exitIntentCoupon,
+      markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, add, setQuantity, remove, clear]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, add, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
 
   return (
     <>
-      <CartContext.Provider value={{ ...value, exitIntentCoupon, markConverted }}>
+      <CartContext.Provider value={value}>
         {children}
       </CartContext.Provider>
       <ExitIntentModal
