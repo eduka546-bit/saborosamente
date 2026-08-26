@@ -1,0 +1,2 @@
+insert rascunho -> 201 [{"id":"461521ba-d4d6-417e-904c-3009d2c90e22","cliente_nome":null,"cliente_email":null,"cliente_telefone":null,"endereco":null,"total":null,"status":"rascunho","itens":null,"created_at":"2026-08-26T23:32:21.810047+00:00","user_id":null,"email_cliente":null,"desconto_aplicado":0.00,"cupom_codigo":nul
+(teste apagado)

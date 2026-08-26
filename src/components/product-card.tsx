@@ -14,7 +14,7 @@ import { useCart } from "@/lib/cart";
 import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
-import { Link } from "@tanstack/react-router";
+import { ProductDetailModal } from "@/components/product-detail-modal";
 
 // Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
 // Combos Prontos são produtos normais com tamanho fixo
@@ -42,6 +42,7 @@ export interface ProductCardProps {
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add } = useCart();
   const [comboOpen, setComboOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const combo = isComboProduct(product);
 
   // ── Badges dinâmicas ──────────────────────────────────────────────
