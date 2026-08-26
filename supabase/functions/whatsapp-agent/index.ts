@@ -19,6 +19,10 @@ const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "saborosamente-webhook-2026";
+// App secret do app Meta, usado para validar a assinatura dos webhooks
+// (X-Hub-Signature-256). Opcional: se não estiver configurado, a verificação
+// é ignorada (degradação graciosa) para não derrubar quem ainda não cadastrou.
+const WHATSAPP_APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -1560,6 +1564,47 @@ Responda APENAS o JSON, sem explicações.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Segurança: verificação da assinatura do webhook (X-Hub-Signature-256)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A Meta assina cada POST de webhook com HMAC-SHA256 do corpo bruto, usando o
+// app secret. Validamos para garantir que a requisição veio mesmo da Meta e não
+// de alguém que descobriu a URL. Retorna true quando a assinatura confere ou
+// quando não há app secret configurado (degradação graciosa).
+async function verificarAssinaturaWebhook(assinatura: string | null, corpoBruto: string): Promise<boolean> {
+  // Sem app secret configurado: não bloqueia (mantém compatibilidade).
+  if (!WHATSAPP_APP_SECRET) return true;
+  // App secret configurado mas sem header de assinatura: rejeita.
+  if (!assinatura || !assinatura.startsWith("sha256=")) return false;
+
+  const esperadaHex = assinatura.slice("sha256=".length).trim().toLowerCase();
+
+  const chave = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(WHATSAPP_APP_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const assinaturaBuffer = await crypto.subtle.sign(
+    "HMAC",
+    chave,
+    new TextEncoder().encode(corpoBruto),
+  );
+  const calculadaHex = Array.from(new Uint8Array(assinaturaBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Comparação em tempo constante para evitar timing attacks.
+  if (calculadaHex.length !== esperadaHex.length) return false;
+  let diff = 0;
+  for (let i = 0; i < calculadaHex.length; i++) {
+    diff |= calculadaHex.charCodeAt(i) ^ esperadaHex.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Handler principal
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1581,9 +1626,29 @@ Deno.serve(async (req: Request) => {
   // ── Recebe mensagens (POST) ──────────────────────────────────────────────
   if (req.method === "POST") {
     try {
+      // Lê o corpo BRUTO (texto) antes de fazer parse: a verificação da
+      // assinatura precisa do payload exato como a Meta o assinou.
+      const corpoBruto = await req.text().catch(() => "");
+
+      // Verifica a assinatura HMAC do webhook (se o app secret estiver
+      // configurado). Assinatura inválida → 403 (não é a Meta chamando).
+      const assinaturaValida = await verificarAssinaturaWebhook(
+        req.headers.get("x-hub-signature-256"),
+        corpoBruto,
+      );
+      if (!assinaturaValida) {
+        console.error("Webhook com assinatura inválida — requisição rejeitada.");
+        return new Response("Forbidden", { status: 403 });
+      }
+
       // Parse do corpo dentro do try: um body inválido não deve derrubar a
       // função com 500 (o WhatsApp reenviaria o webhook). Respondemos 200.
-      const body = await req.json().catch(() => null);
+      let body: any = null;
+      try {
+        body = corpoBruto ? JSON.parse(corpoBruto) : null;
+      } catch {
+        body = null;
+      }
       if (!body) return new Response("OK", { status: 200 });
 
       const entry = body?.entry?.[0];
@@ -1596,6 +1661,57 @@ Deno.serve(async (req: Request) => {
       const msg = messages[0];
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
+
+      // ── Mensagens em lote ────────────────────────────────────────────────
+      // Raramente o WhatsApp entrega mais de uma mensagem no mesmo webhook
+      // (ex.: cliente manda "quero 3 marmitas" e "de frango" em bolhas seguidas
+      // e chegam juntas). O handler processa uma mensagem por vez, então, em vez
+      // de descartar as demais, juntamos o TEXTO das mensagens de texto extras
+      // na primeira — assim a IA lê tudo junto e nada se perde. Os ids das
+      // mensagens extras também são marcados na dedupe abaixo.
+      const idsExtras: string[] = [];
+      if (messages.length > 1) {
+        const textosExtras: string[] = [];
+        for (let i = 1; i < messages.length; i++) {
+          const extra = messages[i];
+          const textoExtra = extra?.text?.body?.trim();
+          if (textoExtra) textosExtras.push(textoExtra);
+          if (extra?.id) idsExtras.push(extra.id);
+        }
+        if (textosExtras.length > 0) {
+          const base = msg.text?.body ? `${msg.text.body}\n` : "";
+          msg.text = { ...(msg.text ?? {}), body: `${base}${textosExtras.join("\n")}` };
+        }
+      }
+
+      // ── Deduplicação (idempotência) ──────────────────────────────────────
+      // O WhatsApp reenvia o mesmo webhook se não receber 200 rápido. Como a
+      // resposta envolve chamada à IA (lenta), a mesma mensagem pode chegar 2x
+      // e gerar pedido/resposta duplicados. Marcamos o msg.id: se já existe,
+      // encerramos sem reprocessar. O PRIMARY KEY garante a corrida atômica.
+      if (msg.id) {
+        const { error: dedupeError } = await supabase
+          .from("whatsapp_mensagens_processadas")
+          .insert({ message_id: msg.id, telefone });
+        if (dedupeError) {
+          // Código 23505 = unique_violation → já processado. Ignora silenciosamente.
+          if (dedupeError.code === "23505") {
+            return new Response("OK", { status: 200 });
+          }
+          // Outro erro (ex.: tabela indisponível): loga e segue processando,
+          // para não deixar o cliente sem resposta por falha de infraestrutura.
+          console.error("Dedupe insert falhou (seguindo mesmo assim):", dedupeError.message);
+        }
+        // Marca os ids das mensagens extras do lote (best-effort): se o WhatsApp
+        // reenviar alguma separadamente, será reconhecida como já processada.
+        // Feito à parte para que uma violação aqui não afete a mensagem principal.
+        if (idsExtras.length > 0) {
+          const registrosExtras = idsExtras.map((id) => ({ message_id: id, telefone }));
+          await supabase
+            .from("whatsapp_mensagens_processadas")
+            .upsert(registrosExtras, { onConflict: "message_id", ignoreDuplicates: true });
+        }
+      }
 
       await sendTypingIndicator(telefone, msg.id);
 
@@ -2128,6 +2244,35 @@ REGRA DE SEGURANÇA:
               });
               return new Response("OK", { status: 200 });
             }
+          }
+
+          // ── Produtos válidos (servidor) ──────────────────────────────────
+          // Todo item precisa casar com um produto ativo do banco (por id ou
+          // nome). Se algum item não casar, o modelo alucinou um prato que não
+          // existe — não criamos o pedido (evita item órfão sem produto_id) e
+          // pedimos ao cliente para escolher do cardápio real.
+          const itensSemProduto = args.itens.filter(
+            (item: any) =>
+              !produtos.find(
+                (p: any) =>
+                  (item.produto_id && p.id === item.produto_id) ||
+                  (item.nome && normalizarTexto(p.nome) === normalizarTexto(item.nome)),
+              ),
+          );
+          if (itensSemProduto.length > 0) {
+            const nomesInvalidos = itensSemProduto
+              .map((item: any) => item.nome)
+              .filter(Boolean)
+              .join(", ");
+            const msg = nomesInvalidos
+              ? `Hmm, não encontrei *${nomesInvalidos}* no nosso cardápio atual 😅 Quer que eu te mostre as opções disponíveis pra escolher certinho?`
+              : "Hmm, não consegui identificar um dos itens no nosso cardápio atual 😅 Quer que eu te mostre as opções disponíveis?";
+            await sendWhatsAppMessage(telefone, msg);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
+            await registrarEvento("item_inexistente", telefone, conversa.id, {
+              itens: itensSemProduto.map((item: any) => item.nome ?? item.produto_id ?? "?"),
+            });
+            return new Response("OK", { status: 200 });
           }
 
           // Preço real: corrige preco_unitario de cada item usando o preço do
