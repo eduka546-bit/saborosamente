@@ -1,0 +1,2 @@
+STATUS=200
+BODY={"ok":true,"enviados":0,"motivo":"sem inscrições"}
