@@ -13,7 +13,12 @@ import { getTaxas } from "./taxas.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import { ExitIntentModal } from "@/components/exit-intent-modal";
-import { calcularDescontoProgressivo, calcularFrete } from "@/lib/combo-rules";
+import {
+  calcularFrete,
+  isNoDiscount,
+  precoMarmitaPorFaixa,
+  precoCheioMarmita,
+} from "@/lib/combo-rules";
 
 // Variável global para cache de produtos no lado do cliente
 let cachedProducts: any[] = [];
@@ -49,6 +54,8 @@ export interface CartLine {
 export interface CartLineDetailed extends CartLine {
   product: Product;
   subtotal: number;
+  /** Preço unitário cheio (sem desconto de faixa) — usado para exibir economia. */
+  precoCheio?: number;
 }
 
 interface CartContextValue {
@@ -435,28 +442,52 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   const value = useMemo<CartContextValue>(() => {
-    const detailed = lines.flatMap<CartLineDetailed>((line) => {
+    // Resolve os produtos das linhas (ignora os que ainda não carregaram)
+    const linhasResolvidas = lines.flatMap((line) => {
       const product = cachedProducts.find((p) => p.id === line.productId);
-
-      // Fallback para quando o produto ainda não carregou do servidor mas está no cache local/storage
-      if (!product) {
-        return [];
-      }
-
-      const isSopa = product.categoria?.toLowerCase().includes("sopa");
-      const price = isSopa
-        ? 18.0
-        : line.weight === "300g" && product.preco_300g
-          ? product.preco_300g
-          : line.weight === "400g" && product.preco_400g
-            ? product.preco_400g
-            : product.preco;
-
-      return [{ ...line, product, subtotal: price * line.quantity }];
+      return product ? [{ line, product }] : [];
     });
 
-    const subtotal = detailed.reduce((acc, l) => acc + l.subtotal, 0);
-    const count = detailed.reduce((acc, l) => acc + l.quantity, 0);
+    // Quantidade total do carrinho — define a faixa de preço das marmitas.
+    // Sopas e complementos CONTAM aqui, mas não recebem o preço de faixa.
+    const count = linhasResolvidas.reduce((acc, { line }) => acc + line.quantity, 0);
+
+    const detailed = linhasResolvidas.map<CartLineDetailed>(({ line, product }) => {
+      const categoria = product.categoria ?? "";
+      const isSopa = categoria.toLowerCase().includes("sopa");
+      const semDesconto = isNoDiscount(categoria);
+
+      // Preço "cheio" do item (sem desconto de faixa)
+      let precoCheio: number;
+      if (isSopa) {
+        precoCheio = 18.0;
+      } else if (semDesconto) {
+        // Complementos / combos prontos: preço próprio do produto por tamanho.
+        precoCheio =
+          line.weight === "300g" && product.preco_300g
+            ? product.preco_300g
+            : line.weight === "400g" && product.preco_400g
+              ? product.preco_400g
+              : product.preco;
+      } else {
+        // Marmita: preço cheio (faixa unitária) por tamanho.
+        precoCheio = precoCheioMarmita(line.weight) || product.preco;
+      }
+
+      // Preço efetivo pago pelo item — marmitas usam a faixa por quantidade total.
+      const precoEfetivo =
+        isSopa || semDesconto ? precoCheio : precoMarmitaPorFaixa(line.weight, count, precoCheio);
+
+      return {
+        ...line,
+        product,
+        subtotal: precoEfetivo * line.quantity,
+        precoCheio,
+      };
+    });
+
+    // Subtotal = soma dos preços CHEIOS (o desconto aparece separado).
+    const subtotal = detailed.reduce((acc, l) => acc + (l.precoCheio ?? 0) * l.quantity, 0);
 
     // Taxa base do frete: taxa específica do bairro selecionado, ou a padrão.
     let taxaBase = SHIPPING_FEE;
@@ -478,13 +509,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       fretePromoSBS: RULES.SBS_DISCOUNTED_SHIPPING,
     });
 
-    const discount = calcularDescontoProgressivo(
-      detailed.map((l) => ({
-        categoria: l.product.categoria ?? "",
-        subtotal: l.subtotal,
-        quantidade: l.quantity,
-      })),
-    );
+    // Total efetivo (já com preço de faixa nas marmitas).
+    const subtotalEfetivo = detailed.reduce((acc, l) => acc + l.subtotal, 0);
+    // Desconto = quanto o cliente economiza vs. preço cheio.
+    const discount = Math.max(0, subtotal - subtotalEfetivo);
 
     return {
       lines: detailed,

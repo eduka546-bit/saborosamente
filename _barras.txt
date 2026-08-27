@@ -1,6 +1,0 @@
-TD01 | codbarra col17=7892000020026 col18(P)=16.9 col19(M)=20.9 col20(G)=23.9
-TD02 | codbarra col17=7892000010089 col18(P)="" col19(M)="" col20(G)=""
-TD03 | codbarra col17=7892000020057 col18(P)="" col19(M)="" col20(G)=""
-TD04 | codbarra col17=7892000010386 col18(P)="" col19(M)="" col20(G)=""
-TD05 | codbarra col17=7892000020040 col18(P)="" col19(M)="" col20(G)=""
-TD06 | codbarra col17=7893000010178 col18(P)=16.9 col19(M)=20.9 col20(G)=23.9
