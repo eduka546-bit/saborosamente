@@ -1,0 +1,24 @@
+TD01 Tiras de Alcatra ao Molho
+  UNIT   P=16.9 M=20.9 G=23.9
+  5UN    P=16.5 M=20.5 G=23.5
+  10UN   P=15.9 M=19.9 G=22.9
+  20+    P=14.9 M=18.9 G=21.9
+
+TD02 Almôndegas ao Molho Sugo 
+  UNIT   P= M= G=
+  5UN    P= M= G=
+  10UN   P= M= G=
+  20+    P= M= G=
+
+TD03 Nhoque de Batata ao Molho
+  UNIT   P= M= G=
+  5UN    P= M= G=
+  10UN   P= M= G=
+  20+    P= M= G=
+
+TD04 Vaca Atolada (Carne de Pa
+  UNIT   P= M= G=
+  5UN    P= M= G=
+  10UN   P= M= G=
+  20+    P= M= G=
+
