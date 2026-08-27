@@ -18,7 +18,10 @@ import {
   isNoDiscount,
   precoMarmitaPorFaixa,
   precoCheioMarmita,
+  normalizarPrecosMarmita,
+  MARMITA_PRICE_TABLE,
 } from "@/lib/combo-rules";
+import { supabase } from "@/integrations/supabase/client";
 
 // Variável global para cache de produtos no lado do cliente
 let cachedProducts: any[] = [];
@@ -338,6 +341,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const taxas = serverTaxas || MOCK_TAXAS;
 
+  // Tabela de preços das marmitas — editável no admin (Parâmetros).
+  const { data: settingsPrecos } = useQuery({
+    queryKey: ["site-settings-precos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("parametros_loja").maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  const tabelaPrecos = normalizarPrecosMarmita(
+    (settingsPrecos as any)?.parametros_loja?.precos_marmita,
+  );
+
   const { data: serverProducts = [] } = useQuery({
     queryKey: ["public-products-cart"],
     queryFn: () => getPublicProducts(),
@@ -471,12 +487,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
               : product.preco;
       } else {
         // Marmita: preço cheio (faixa unitária) por tamanho.
-        precoCheio = precoCheioMarmita(line.weight) || product.preco;
+        precoCheio = precoCheioMarmita(line.weight, tabelaPrecos) || product.preco;
       }
 
       // Preço efetivo pago pelo item — marmitas usam a faixa por quantidade total.
       const precoEfetivo =
-        isSopa || semDesconto ? precoCheio : precoMarmitaPorFaixa(line.weight, count, precoCheio);
+        isSopa || semDesconto
+          ? precoCheio
+          : precoMarmitaPorFaixa(line.weight, count, precoCheio, tabelaPrecos);
 
       return {
         ...line,
@@ -534,7 +552,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       exitIntentCoupon,
       markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, add, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
 
   return (
     <>

@@ -1,0 +1,8 @@
+BUILD_OK=true
+er.func/_libs/recharts+[...].mjs                            706.33 kB Ôöé gzip: 146.91 kB
+
+[32mÔ£ô built in 1.14s[39m
+[36mi[39m Generated [36m.vercel/output/nitro.json[39m
+
+[90m[[90mnitro[90m][39m [32mÔêÜ[39m You can preview this build using [36mnpx vite preview[39m
+[90m[[90mnitro[90m][39m [32mÔêÜ[39m You can deploy this build using [36mnpx nitro deploy --prebuilt[39m

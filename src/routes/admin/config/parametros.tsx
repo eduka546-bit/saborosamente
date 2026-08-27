@@ -13,6 +13,12 @@ import {
   normalizarEntregaConfig,
   type EntregaConfig,
 } from "@/lib/entrega-config";
+import {
+  normalizarPrecosMarmita,
+  MARMITA_PRICE_TABLE,
+  type TabelaPrecosMarmita,
+  type TamanhoMarmita,
+} from "@/lib/combo-rules";
 
 export const Route = createFileRoute("/admin/config/parametros")({
   component: AdminConfigParametrosPage,
@@ -32,6 +38,7 @@ function AdminConfigParametrosPage() {
   const [params, setParams] = useState<any>(DEFAULT_PARAMS);
   const [entrega, setEntrega] = useState<EntregaConfig>(DEFAULT_ENTREGA_CONFIG);
   const [novoHorario, setNovoHorario] = useState("");
+  const [precos, setPrecos] = useState<TabelaPrecosMarmita>(MARMITA_PRICE_TABLE);
 
   const { isLoading } = useQuery({
     queryKey: ["config-parametros"],
@@ -40,13 +47,14 @@ function AdminConfigParametrosPage() {
       const pl = (data?.parametros_loja as any) ?? {};
       setParams({ ...DEFAULT_PARAMS, ...pl });
       setEntrega(normalizarEntregaConfig(pl.entrega));
+      setPrecos(normalizarPrecosMarmita(pl.precos_marmita));
       return data;
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...params, entrega };
+      const payload = { ...params, entrega, precos_marmita: precos };
       const { error } = await supabase
         .from("site_settings")
         .update({ parametros_loja: payload } as any)
@@ -56,6 +64,7 @@ function AdminConfigParametrosPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["config-parametros"] });
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["site-settings-precos"] });
       toast.success("Parâmetros salvos!");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
@@ -233,6 +242,60 @@ function AdminConfigParametrosPage() {
                   <Plus size={16} />
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Preços das marmitas por faixa (valem para TODAS as marmitas) */}
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-800">Preços das Marmitas</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Valor unitário por tamanho e faixa de quantidade. Vale para todas as marmitas.
+                Sopas e complementos não usam esta tabela.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    <th className="py-2 pr-2">Tamanho</th>
+                    <th className="py-2 px-1">Unitário</th>
+                    <th className="py-2 px-1">5+ un</th>
+                    <th className="py-2 px-1">10+ un</th>
+                    <th className="py-2 px-1">20+ un</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(["200g", "300g", "400g"] as TamanhoMarmita[]).map((tam) => {
+                    const rotulo = tam === "200g" ? "P (200g)" : tam === "300g" ? "M (300g)" : "G (400g)";
+                    return (
+                      <tr key={tam} className="border-t">
+                        <td className="py-2 pr-2 font-bold text-gray-700 whitespace-nowrap">
+                          {rotulo}
+                        </td>
+                        {(["unit", "t5", "t10", "t20"] as const).map((faixa) => (
+                          <td key={faixa} className="py-2 px-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={precos[tam][faixa]}
+                              onChange={(e) =>
+                                setPrecos((prev) => ({
+                                  ...prev,
+                                  [tam]: { ...prev[tam], [faixa]: Number(e.target.value) || 0 },
+                                }))
+                              }
+                              className="h-9 w-20 text-xs"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 

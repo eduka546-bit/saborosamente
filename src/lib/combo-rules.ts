@@ -52,12 +52,40 @@ export const PROGRESSIVE_DISCOUNT_TIERS = [
 //   20+     → "t20"
 // ─────────────────────────────────────────────────────────────────────────────
 export type TamanhoMarmita = "200g" | "300g" | "400g";
+export interface FaixaPrecos {
+  unit: number;
+  t5: number;
+  t10: number;
+  t20: number;
+}
+export type TabelaPrecosMarmita = Record<TamanhoMarmita, FaixaPrecos>;
 
-export const MARMITA_PRICE_TABLE: Record<TamanhoMarmita, { unit: number; t5: number; t10: number; t20: number }> = {
+// Tabela padrão (fallback). É editável no admin (aba Parâmetros) e sobrescreve
+// estes valores em runtime via site_settings.parametros_loja.precos_marmita.
+export const MARMITA_PRICE_TABLE: TabelaPrecosMarmita = {
   "200g": { unit: 16.9, t5: 16.5, t10: 15.9, t20: 14.9 },
   "300g": { unit: 20.9, t5: 20.5, t10: 19.9, t20: 18.9 },
   "400g": { unit: 23.9, t5: 22.9, t10: 21.9, t20: 20.9 },
 };
+
+// Valida/normaliza uma tabela vinda do banco, caindo no default por campo faltante.
+export function normalizarPrecosMarmita(raw: any): TabelaPrecosMarmita {
+  const num = (v: any, fallback: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+  const linha = (tam: TamanhoMarmita): FaixaPrecos => {
+    const src = raw?.[tam] ?? {};
+    const def = MARMITA_PRICE_TABLE[tam];
+    return {
+      unit: num(src.unit, def.unit),
+      t5: num(src.t5, def.t5),
+      t10: num(src.t10, def.t10),
+      t20: num(src.t20, def.t20),
+    };
+  };
+  return { "200g": linha("200g"), "300g": linha("300g"), "400g": linha("400g") };
+}
 
 // Normaliza o peso/tamanho para uma chave da tabela (P/M/G ou 200g/300g/400g).
 export function normalizarTamanho(peso?: string): TamanhoMarmita {
@@ -68,7 +96,7 @@ export function normalizarTamanho(peso?: string): TamanhoMarmita {
 }
 
 // Retorna a chave de faixa a partir da quantidade total de itens.
-export function faixaPorQuantidade(totalUnidades: number): "unit" | "t5" | "t10" | "t20" {
+export function faixaPorQuantidade(totalUnidades: number): keyof FaixaPrecos {
   if (totalUnidades >= 20) return "t20";
   if (totalUnidades >= 10) return "t10";
   if (totalUnidades >= 5) return "t5";
@@ -77,24 +105,27 @@ export function faixaPorQuantidade(totalUnidades: number): "unit" | "t5" | "t10"
 
 /**
  * Preço unitário de UMA marmita, dado o tamanho e a quantidade total do carrinho.
- * Usa a tabela de preços fixos por faixa. `precoCheioFallback` é usado quando o
- * tamanho não está na tabela (segurança).
+ * `tabela` permite injetar a tabela configurada no admin (default = MARMITA_PRICE_TABLE).
  */
 export function precoMarmitaPorFaixa(
   peso: string | undefined,
   totalUnidades: number,
   precoCheioFallback: number,
+  tabela: TabelaPrecosMarmita = MARMITA_PRICE_TABLE,
 ): number {
   const tam = normalizarTamanho(peso);
-  const linha = MARMITA_PRICE_TABLE[tam];
+  const linha = tabela[tam];
   if (!linha) return precoCheioFallback;
   return linha[faixaPorQuantidade(totalUnidades)];
 }
 
 // Preço unitário "cheio" (faixa unit) de uma marmita por tamanho.
-export function precoCheioMarmita(peso: string | undefined): number {
+export function precoCheioMarmita(
+  peso: string | undefined,
+  tabela: TabelaPrecosMarmita = MARMITA_PRICE_TABLE,
+): number {
   const tam = normalizarTamanho(peso);
-  return MARMITA_PRICE_TABLE[tam]?.unit ?? 0;
+  return tabela[tam]?.unit ?? 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
