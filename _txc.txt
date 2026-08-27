@@ -1,1 +1,1 @@
-TS_ERRORS=0
+TS=0

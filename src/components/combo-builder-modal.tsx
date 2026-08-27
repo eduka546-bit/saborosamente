@@ -11,6 +11,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { X, Plus, Minus, ShoppingCart, Info, Search, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
@@ -184,7 +185,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     .find((r) => r.min > totalQty);
   const currentRule = COMBO_RULES.find((r) => totalQty >= r.min);
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -492,4 +493,10 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
       </div>
     </div>
   );
+
+  // Renderiza via portal no body — escapa de qualquer ancestral com transform/
+  // filter/overflow (ex.: gradientes com blur do layout) que prendia o modal
+  // atrás do cabeçalho do site.
+  if (typeof document === "undefined") return null;
+  return createPortal(modalContent, document.body);
 }

@@ -1,1 +1,1 @@
-BUILD_OK=true
+BUILD=true

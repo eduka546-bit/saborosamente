@@ -1,7 +1,0 @@
-COMBOS (6):
-Combo Pratos Mais Vendidos - 5un | cat=null | preco=80 | peso=Refeições P/M/G
-Combo A Escolha - 05 A 09 Marmitas (3% Off) | cat=null | preco=82.5 | peso=5 a 9 Unidades
-Combo A Escolha - 10 A 19 Marmitas (7% Off) | cat=null | preco=159 | peso=10 a 19 Unidades
-Combo A Escolha - 20 Ou Mais+ Marmitas (12% Off) | cat=null | preco=298 | peso=20+ Unidades
-Combo Pratos Mais Vendidos - 10un | cat=null | preco=155 | peso=Refeições P/M/G
-Combo Pratos Mais Vendidos - 20un | cat=null | preco=290 | peso=Refeições P/M/G
