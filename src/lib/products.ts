@@ -39,6 +39,9 @@ export interface Product {
   tabela_nutricional_300g?: NutritionalInfo;
   tabela_nutricional_400g?: NutritionalInfo;
   informacao_nutricional?: string;
+  /** Selos de restrição exibidos no canto da foto. */
+  sem_gluten?: boolean;
+  sem_lactose?: boolean;
 }
 
 export const CATEGORIES: ProductCategory[] = ["Fitness", "Tradicional", "Vegetariana", "Low Carb"];

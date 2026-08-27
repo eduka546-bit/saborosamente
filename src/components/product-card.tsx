@@ -15,6 +15,7 @@ import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { ProductDetailModal } from "@/components/product-detail-modal";
+import { ProductSeals } from "@/components/product-seals";
 import {
   isNoDiscount,
   precoMarmitaPorFaixa,
@@ -278,6 +279,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               height={800}
               className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
+            <ProductSeals product={product} size={38} />
             {product.imagens && product.imagens.length > 0 && (
               <div className="absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-between px-2">
                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">

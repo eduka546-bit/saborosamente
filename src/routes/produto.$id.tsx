@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { OptimizedImage } from "@/components/optimized-image";
 import { isMarmita } from "@/lib/combo-rules";
+import { ProductSeals } from "@/components/product-seals";
 
 export const Route = createFileRoute("/produto/$id")({
   component: ProdutoPage,
@@ -192,6 +193,8 @@ function ProdutoPage() {
             <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun z-10">
               {product.categorias?.nome || "Marmita"}
             </Badge>
+
+            <ProductSeals product={product} size={54} />
 
             {/* Navegação */}
             {allImages.length > 1 && (

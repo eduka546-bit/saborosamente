@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
+import { ProductSeals } from "@/components/product-seals";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
@@ -102,6 +103,7 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
           {/* Imagem grande / galeria */}
           <div className="relative aspect-square w-full md:aspect-auto md:w-1/2 md:min-h-[500px] bg-muted overflow-hidden">
             <img src={currentImage} alt={product.nome} className="size-full object-cover" />
+            <ProductSeals product={product} size={52} />
             <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun z-10">
               {categoriaNome}
             </Badge>

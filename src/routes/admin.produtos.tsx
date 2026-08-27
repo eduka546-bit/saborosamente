@@ -112,6 +112,8 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         imagem_url: "",
         descricao: "",
         informacao_nutricional: "",
+        sem_gluten: false,
+        sem_lactose: false,
         tabela_nutricional: { kcal: "", carb: "", prot: "" },
         tabela_nutricional_300g: { kcal: "", carb: "", prot: "" },
         tabela_nutricional_400g: { kcal: "", carb: "", prot: "" },
@@ -824,18 +826,61 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       </div>
                     </TabsContent>
                     <TabsContent value="restricoes">
-                      <div className="space-y-4">
-                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
-                          Restrições (ex: Sem Glúten | Sem Lactose)
-                        </label>
-                        <Input
-                          value={formData.informacao_nutricional || ""}
-                          onChange={(e) =>
-                            setFormData({ ...formData, informacao_nutricional: e.target.value })
-                          }
-                          className="h-10 border-gray-200"
-                          placeholder="ex: Sem Glúten | Sem Lactose"
-                        />
+                      <div className="space-y-5">
+                        <div className="space-y-4">
+                          <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                            Restrições (ex: Sem Glúten | Sem Lactose)
+                          </label>
+                          <Input
+                            value={formData.informacao_nutricional || ""}
+                            onChange={(e) =>
+                              setFormData({ ...formData, informacao_nutricional: e.target.value })
+                            }
+                            className="h-10 border-gray-200"
+                            placeholder="ex: Sem Glúten | Sem Lactose"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                            Selos na foto do produto
+                          </label>
+                          <p className="text-[11px] text-gray-400">
+                            Quando ativados, aparecem no canto da imagem no cardápio.
+                          </p>
+                          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src="/selo-sem-gluten.png"
+                                alt="Sem Glúten"
+                                className="h-8 w-8 object-contain"
+                              />
+                              <span className="text-sm font-medium text-gray-700">Sem Glúten</span>
+                            </div>
+                            <Switch
+                              checked={!!formData.sem_gluten}
+                              onCheckedChange={(v) =>
+                                setFormData({ ...formData, sem_gluten: v })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src="/selo-sem-lactose.png"
+                                alt="Sem Lactose"
+                                className="h-8 w-8 object-contain"
+                              />
+                              <span className="text-sm font-medium text-gray-700">Sem Lactose</span>
+                            </div>
+                            <Switch
+                              checked={!!formData.sem_lactose}
+                              onCheckedChange={(v) =>
+                                setFormData({ ...formData, sem_lactose: v })
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
                   </Tabs>
