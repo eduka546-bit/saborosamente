@@ -80,8 +80,16 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
 
   useMemo(() => {
     if (product) {
+      // Normaliza `imagens` para SEMPRE ser um array. Alguns registros antigos
+      // guardaram como objeto { url } — o que quebrava `imagens.map(...)`.
+      const imagensNorm = Array.isArray(product.imagens)
+        ? product.imagens
+        : product.imagens && typeof product.imagens === "object"
+          ? [product.imagens]
+          : [];
       setFormData({
         ...product,
+        imagens: imagensNorm,
         preco_formatado: product.preco?.toFixed(2).replace(".", ",") || "0,00",
         preco_promocional_formatado: product.preco_promocional?.toFixed(2).replace(".", ",") || "",
         preco_custo_formatado: product.preco_custo?.toFixed(2).replace(".", ",") || "",
