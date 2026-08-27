@@ -1,0 +1,37 @@
+[categorias] id, nome, slug, ordem, created_at, visivel_no_filtro, ordem_filtro
+
+[produtos] id, nome, descricao, ingredientes, preco, peso, categoria, imagem_url, destaque, created_at, categoria_id, calorias, status, updated_at, informacao_nutricional, controle_estoque, estoque_atual, estoque_minimo, preco_promocional, is_destaque, is_novidade, frete_gratis, bloquear_cupom, codigo_integracao, preco_custo, preco_300g, preco_400g, tabela_nutricional, tabela_nutricional_300g, tabela_nutricional_400g, imagens, ativo, ordem, estoque, info_nutricional, restricoes, imagem_200g, imagem_300g, imagem_400g, rating
+
+[acompanhamentos] (vazia — sem colunas detectáveis)
+
+[embalagens] (vazia — sem colunas detectáveis)
+
+[entregadores] (vazia — sem colunas detectáveis)
+
+[unidades] (vazia — sem colunas detectáveis)
+
+[ouvidoria] (vazia — sem colunas detectáveis)
+
+[complemento_grupos] (vazia — sem colunas detectáveis)
+
+[complemento_itens] (vazia — sem colunas detectáveis)
+
+[cupons] id, codigo, tipo, valor, regra, validade, ativo, uso, created_at, max_uso, apenas_primeira_compra
+
+[automacoes] (vazia — sem colunas detectáveis)
+
+[faq] (vazia — sem colunas detectáveis)
+
+[site_settings] id, announcement_text, announcement_bg_color, announcement_text_color, nav_bg_color, nav_text_color, hero_image_url, profile_image_url, hero_features, created_at, updated_at, promo_banners, payment_methods, card_flags, meal_flags, logo_url, banner_url, banner_link, whatsapp, instagram, endereco, maps_url, footer_logo_url, footer_whatsapp, footer_instagram, footer_address_line1, footer_address_line2, footer_address_cep, footer_maps_url, footer_description, footer_credit, exit_intent_discount, cashback_percentual, cashback_validade_dias, cashback_minimo_uso, cashback_limite_desconto_pct, contato_whatsapp, contato_instagram, contato_email, config_impressao, popup_boas_vindas, parametros_loja, avisos_informativos, horarios_funcionamento, cashback_ativo
+
+[pedidos] id, cliente_nome, cliente_email, cliente_telefone, endereco, total, status, itens, created_at, user_id, email_cliente, desconto_aplicado, cupom_codigo, endereco_bairro, endereco_cidade, endereco_rua, endereco_numero, endereco_complemento, endereco_referencia, nome_cliente, telefone_cliente, metodo_entrega, horario_recebimento, metodo_pagamento, observacao, valor_total, taxa_entrega, troco, tipo_cartao, endereco_cep, updated_at, origem, avaliacao_enviada
+
+[profiles] id, nome, cpf, telefone, bairro, cidade, endereco, created_at, cep, numero, complemento, updated_at, codigo_indicacao, indicado_por
+
+[avaliacoes] (vazia — sem colunas detectáveis)
+
+[pontuacao] STATUS 404 — {"code":"PGRST205","details":null,"hint":null,"message":"Could not find the tabl
+[cashback_saldo] user_id, saldo, updated_at
+
+[cashback_transacoes] id, user_id, pedido_id, tipo, valor, descricao, expira_em, created_at
+
