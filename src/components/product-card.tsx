@@ -224,8 +224,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     <>
       <div onClick={() => setDetailOpen(true)}>
         <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50">
-          {/* Imagem — quadrada, sem arredondamento no topo */}
-          <div className="relative aspect-square overflow-hidden bg-muted">
+          {/* Imagem — sem arredondamento no topo */}
+          <div className="relative aspect-4/3 overflow-hidden bg-muted">
             <img
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
@@ -276,13 +276,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
+            <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
               {product.nome}
             </h3>
 
             {/* Seletor de peso */}
             {weights.length > 1 ? (
-              <div className="flex gap-1.5 flex-wrap">
+              <div className="flex gap-1.5">
                 {weights.map((w) => (
                   <button
                     key={w}

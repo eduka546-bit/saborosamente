@@ -43,6 +43,10 @@ export const RULES = {
   ],
 };
 
+// Adicionais por opção de marmita (pronta para consumo / garfo e faca).
+export const ADICIONAL_PRONTA = 1.0; // R$ por marmita
+export const ADICIONAL_GARFO_FACA = 1.0; // R$ por marmita
+
 // Re-exporta de combo-rules para uso no carrinho
 export { isNoDiscount } from "@/lib/combo-rules";
 
@@ -606,11 +610,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ? precoCheio
           : precoMarmitaPorFaixa(line.weight, count, precoCheio, tabelaPrecos);
 
+      // Adicional por opções: "Pronta para consumo" +R$1, "Garfo e faca" +R$1.
+      const adicionalOpcoes =
+        (line.opcoes?.consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
+        (line.opcoes?.garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
+
       return {
         ...line,
         product,
-        subtotal: precoEfetivo * line.quantity,
-        precoCheio,
+        subtotal: (precoEfetivo + adicionalOpcoes) * line.quantity,
+        precoCheio: precoCheio + adicionalOpcoes,
       };
     });
 
