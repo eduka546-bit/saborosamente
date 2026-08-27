@@ -343,7 +343,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {/* Card de desconto — fundo preto, quantidade e % em verde */}
             {podeTerDesconto &&
               (proximaFaixa ? (
-                <div className="mt-1.5 rounded-xl bg-neutral-900 px-3 py-2.5 text-center">
+                <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-bold text-white leading-tight">
                     Adicione mais{" "}
                     <span className="text-[#34d399]">
@@ -365,7 +365,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   </p>
                 </div>
               ) : (
-                <div className="mt-1.5 rounded-xl bg-[#086e45] px-3 py-2 text-center">
+                <div className="mt-1.5 rounded-lg bg-[#086e45] px-3 py-2 text-center">
                   <span className="text-[10px] font-black uppercase tracking-wide text-white">
                     ✓ Desconto máximo aplicado
                   </span>
