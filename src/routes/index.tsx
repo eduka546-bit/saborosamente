@@ -350,13 +350,29 @@ function Index() {
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      "w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200",
+                      "w-full px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200 flex items-center gap-2",
                       selectedCategory === cat
                         ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
                         : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
                     )}
                   >
-                    {cat}
+                    {cat === "Sem Glúten" && (
+                      <img
+                        src="/selo-sem-gluten.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="h-5 w-5 shrink-0 object-contain"
+                      />
+                    )}
+                    {cat === "Sem Lactose" && (
+                      <img
+                        src="/selo-sem-lactose.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="h-5 w-5 shrink-0 object-contain"
+                      />
+                    )}
+                    <span>{cat}</span>
                   </button>
                 ))
               )}
