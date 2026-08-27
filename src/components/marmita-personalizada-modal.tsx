@@ -196,7 +196,7 @@ export function MarmitaPersonalizadaModal({
         </div>
 
         {/* Tamanhos + limite de proteína por tamanho */}
-        <div className="bg-[#086e45]/5 border-b px-4 py-3 shrink-0 overflow-x-auto">
+        <div className="bg-[#086e45] border-b px-4 py-3 shrink-0 overflow-x-auto">
           <div className="flex gap-2 min-w-max">
             {config.tamanhos.map((t) => {
               const isAtual = tamanho?.sigla === t.sigla;
@@ -205,19 +205,19 @@ export function MarmitaPersonalizadaModal({
                 <div
                   key={t.sigla}
                   className={cn(
-                    "rounded-xl border px-3 py-2 text-center transition-all min-w-[92px]",
+                    "rounded-xl px-3 py-2 text-center transition-all min-w-[92px] border",
                     isAtual
-                      ? "border-[#086e45] bg-white shadow-sm"
-                      : "border-transparent bg-white/60",
+                      ? "border-white/60 bg-white/15 shadow-sm"
+                      : "border-white/20 bg-white/5",
                   )}
                 >
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-sm font-black text-[#086e45]">{t.sigla}</span>
-                    <span className="text-[10px] text-gray-400">{t.label}</span>
+                    <span className="text-sm font-black text-white">{t.sigla}</span>
+                    <span className="text-[10px] text-white/70">{t.label}</span>
                   </div>
-                  <div className="text-xs font-bold text-gray-700">{formatBRL(t.preco)}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">
-                    proteína até <span className="font-bold text-gray-500">{limProt}g</span>
+                  <div className="text-xs font-bold text-white">{formatBRL(t.preco)}</div>
+                  <div className="text-[10px] text-white/60 mt-0.5">
+                    proteína até <span className="font-bold text-white/90">{limProt}g</span>
                   </div>
                 </div>
               );

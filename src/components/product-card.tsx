@@ -5,9 +5,7 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
-  Flame,
   Gift,
-  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
@@ -15,7 +13,6 @@ import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { ProductDetailModal } from "@/components/product-detail-modal";
-import { ProductSeals } from "@/components/product-seals";
 import {
   isNoDiscount,
   precoMarmitaPorFaixa,
@@ -53,32 +50,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const combo = isComboProduct(product);
 
-  // ── Badges dinâmicas ──────────────────────────────────────────────
-  const getBadges = () => {
-    const badges: { label: string; color: string; icon: any }[] = [];
-
-    // Simulação: produtos com "melhor" ou categoria especial
-    if (
-      product.nome?.toLowerCase().includes("melhor") ||
-      product.nome?.toLowerCase().includes("destaque")
-    ) {
-      badges.push({ label: "Bestseller", color: "bg-tangerine", icon: TrendingUp });
-    }
-
-    // Simulação: produtos recentes (últimos adicionados)
-    if ((product.id as any) % 7 === 0) {
-      badges.push({ label: "Novo", color: "bg-accent", icon: Gift });
-    }
-
-    // Simulação: desconto (para produtos com preco_300g diferente)
-    if (product.preco_300g && product.preco_300g < product.preco * 0.9) {
-      badges.push({ label: "-10%", color: "bg-destructive", icon: Flame });
-    }
-
-    return badges.slice(0, 2); // Máximo 2 badges
-  };
-
-  const badges = getBadges();
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
     const hasSizes = product.preco_300g || product.preco_400g;
@@ -252,25 +223,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   return (
     <>
       <div onClick={() => setDetailOpen(true)}>
-        <article className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1">
-          {/* Badges container */}
-          <div className="absolute top-3 left-3 z-10 flex gap-2 flex-wrap">
-            {badges.map((badge, idx) => {
-              const BadgeIcon = badge.icon;
-              return (
-                <div
-                  key={idx}
-                  className={`${badge.color} text-white rounded-full px-3 py-1.5 text-[10px] font-black flex items-center gap-1.5 shadow-lg backdrop-blur-sm border border-white/30 animate-in fade-in slide-in-from-top-2 duration-500`}
-                  style={{ animationDelay: `${idx * 100}ms` }}
-                >
-                  <BadgeIcon className="size-3.5" />
-                  <span className="uppercase tracking-wide">{badge.label}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="relative aspect-4/3 overflow-hidden bg-muted group/thumb">
+        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50">
+          {/* Imagem — quadrada, sem arredondamento no topo */}
+          <div className="relative aspect-square overflow-hidden bg-muted">
             <img
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
@@ -279,9 +234,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               height={800}
               className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
-            <ProductSeals product={product} size={38} />
             {product.imagens && product.imagens.length > 0 && (
-              <div className="absolute inset-0 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-between px-2">
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-2">
                 <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
                   <ChevronLeft size={16} />
                 </div>
@@ -298,20 +252,35 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col gap-3 p-4">
-            {/* Category */}
-            <div className="flex items-center justify-end">
-              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
-                {product.categoria}
-              </span>
+          {/* Selos entre imagem e conteúdo (sobreposição na borda) */}
+          {(product.sem_gluten || product.sem_lactose) && (
+            <div className="flex justify-end gap-1.5 px-3 -mt-5 relative z-10">
+              {product.sem_gluten && (
+                <img
+                  src="/selo-sem-gluten.png"
+                  alt="Sem Glúten"
+                  title="Sem Glúten"
+                  className="h-10 w-10 object-contain drop-shadow-md rounded-full bg-white p-0.5"
+                />
+              )}
+              {product.sem_lactose && (
+                <img
+                  src="/selo-sem-lactose.png"
+                  alt="Sem Lactose"
+                  title="Sem Lactose"
+                  className="h-10 w-10 object-contain drop-shadow-md rounded-full bg-white p-0.5"
+                />
+              )}
             </div>
+          )}
 
-            <div>
-              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
-                {product.nome}
-              </h3>
-            </div>
+          {/* Conteúdo */}
+          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
+            <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
+              {product.nome}
+            </h3>
 
+            {/* Seletor de peso */}
             {weights.length > 1 ? (
               <div className="flex gap-1.5 flex-wrap">
                 {weights.map((w) => (
@@ -323,10 +292,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       setSelectedWeight(w);
                     }}
                     className={cn(
-                      "rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-all",
+                      "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all border",
                       selectedWeight === w
-                        ? "bg-gradient-brand text-white shadow-md scale-105"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:scale-105 border border-border/50",
+                        ? "bg-[#086e45] text-white border-[#086e45] shadow-sm"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
                     )}
                   >
                     {weightLabel(w)}
@@ -339,22 +308,25 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </p>
             )}
 
-            <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
+            {/* Preço + botão adicionar */}
+            <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
-                <span className="text-[9px] font-black text-muted-foreground uppercase">
-                  {selectedWeight ? `${selectedWeight}` : "PREÇO"}
-                </span>
+                {selectedWeight && (
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                    {selectedWeight}
+                  </span>
+                )}
                 {temDescontoAtivo ? (
                   <>
-                    <span className="text-xs font-bold text-muted-foreground/70 line-through leading-none">
+                    <span className="text-xs font-bold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-xl font-black text-[#0f7a43] leading-tight">
+                    <span className="text-xl font-black text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
+                  <span className="text-xl font-black text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -362,29 +334,37 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className={cn(
-                  "inline-flex size-9 items-center justify-center rounded-full text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg bg-primary hover:bg-primary/90",
-                )}
+                className="inline-flex size-9 items-center justify-center rounded-full bg-[#086e45] text-white transition-all hover:scale-110 active:scale-95 shadow-md"
               >
                 <Plus className="size-5" aria-hidden="true" />
               </button>
             </div>
 
-            {/* Cardzinho de incentivo/desconto (só marmitas).
-                Preto enquanto dá pra ganhar mais desconto (mostra quanto falta pro
-                próximo nível); verde só quando atinge o desconto máximo (20+). */}
+            {/* Card de desconto — fundo preto, % em tons de verde */}
             {podeTerDesconto &&
               (proximaFaixa ? (
-                <div className="mt-2 flex items-center justify-center rounded-xl bg-neutral-900 px-3 py-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-white text-center leading-tight">
+                <div className="mt-1.5 rounded-xl bg-neutral-900 px-3 py-2.5 text-center">
+                  <p className="text-[10px] font-bold text-white leading-tight">
                     Adicione mais {faltamParaDesconto}{" "}
-                    {faltamParaDesconto === 1 ? "unidade" : "unidades"} para{" "}
-                    {temDescontoAtivo ? "mais desconto" : "ganhar desconto"}
-                  </span>
+                    {faltamParaDesconto === 1 ? "unidade" : "unidades"}
+                  </p>
+                  <p className="text-[10px] font-bold text-white leading-tight">
+                    para ganhar{" "}
+                    {proximaFaixa === 5 && (
+                      <span className="text-[#86efac] font-black">3%</span>
+                    )}
+                    {proximaFaixa === 10 && (
+                      <span className="text-[#34d399] font-black">5%</span>
+                    )}
+                    {proximaFaixa === 20 && (
+                      <span className="text-[#059669] font-black">7%</span>
+                    )}{" "}
+                    de desconto!
+                  </p>
                 </div>
               ) : (
-                <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f7a43]/10 border border-[#0f7a43]/20 px-3 py-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-[#0f7a43] text-center">
+                <div className="mt-1.5 rounded-xl bg-[#086e45] px-3 py-2 text-center">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-white">
                     ✓ Desconto máximo aplicado
                   </span>
                 </div>
