@@ -7,6 +7,12 @@ const orderItemSchema = z.object({
   quantity: z.number(),
   weight: z.string().optional(),
   price: z.number(),
+  opcoes: z
+    .object({
+      consumo: z.enum(["pronta", "congelada"]),
+      garfoEFaca: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 const createOrderSchema = z.object({
@@ -150,13 +156,23 @@ export const createOrder = createServerFn({ method: "POST" })
     if (orderError) throw new Error(orderError.message);
 
     // 2. Criar os itens do pedido na tabela 'pedido_itens'
-    const itemsToInsert = data.items.map((item) => ({
-      pedido_id: order.id,
-      produto_id: item.productId,
-      quantidade: item.quantity,
-      preco_unitario: item.price,
-      observacao: item.weight ? `Peso: ${item.weight}` : null,
-    }));
+    const itemsToInsert = data.items.map((item) => {
+      const partes: string[] = [];
+      if (item.weight) partes.push(`Peso: ${item.weight}`);
+      if (item.opcoes) {
+        partes.push(item.opcoes.consumo === "pronta" ? "Pronta p/ consumo" : "Congelada");
+        if (item.opcoes.consumo === "pronta" && item.opcoes.garfoEFaca) {
+          partes.push("Garfo e faca");
+        }
+      }
+      return {
+        pedido_id: order.id,
+        produto_id: item.productId,
+        quantidade: item.quantity,
+        preco_unitario: item.price,
+        observacao: partes.length > 0 ? partes.join(" | ") : null,
+      };
+    });
 
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
 

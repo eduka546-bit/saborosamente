@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isMarmita } from "@/lib/combo-rules";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
@@ -39,9 +40,14 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
     weights.includes("300g") ? "300g" : weights[0] || "",
   );
 
+  // Opções (só marmitas): consumo pronta/congelada + garfo e faca.
+  const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
+  const [garfoEFaca, setGarfoEFaca] = useState(false);
+
   if (!product) return null;
 
   const categoriaNome = product.categorias?.nome || product.categoria || "Marmita";
+  const ehMarmita = isMarmita(product.nome, categoriaNome);
 
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
   const principal = product.imagem_url || product.imagem;
@@ -76,9 +82,15 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
   };
 
   const handleAddToCart = () => {
-    add(product.id, 1, selectedWeight);
+    const opcoes = ehMarmita
+      ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
+      : undefined;
+    add(product.id, 1, selectedWeight, opcoes);
+    const detalheOpcao = ehMarmita
+      ? ` — ${consumo === "pronta" ? "pronta para consumo" : "congelada"}`
+      : "";
     toast.success("Adicionado ao carrinho!", {
-      description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
+      description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}${detalheOpcao}`,
     });
     onClose();
   };
@@ -198,6 +210,54 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {ehMarmita && (
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="mb-2 font-bold text-foreground">Como você quer receber?</h4>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConsumo("congelada")}
+                        className={cn(
+                          "flex-1 rounded-xl border-2 py-3 text-sm font-bold transition-all",
+                          consumo === "congelada"
+                            ? "border-primary bg-primary/5 text-primary shadow-sm"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/30",
+                        )}
+                      >
+                        Congelada
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConsumo("pronta")}
+                        className={cn(
+                          "flex-1 rounded-xl border-2 py-3 text-sm font-bold transition-all",
+                          consumo === "pronta"
+                            ? "border-primary bg-primary/5 text-primary shadow-sm"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/30",
+                        )}
+                      >
+                        Pronta para consumo
+                      </button>
+                    </div>
+                  </div>
+
+                  {consumo === "pronta" && (
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-background p-3">
+                      <input
+                        type="checkbox"
+                        checked={garfoEFaca}
+                        onChange={(e) => setGarfoEFaca(e.target.checked)}
+                        className="size-4 accent-primary"
+                      />
+                      <span className="text-sm font-medium text-foreground">
+                        Quero garfo e faca
+                      </span>
+                    </label>
+                  )}
                 </div>
               )}
             </div>

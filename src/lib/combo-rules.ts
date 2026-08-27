@@ -25,6 +25,28 @@ export function isNoDiscount(categoria: string) {
 }
 
 /**
+ * Identifica se um produto é MARMITA (por exclusão).
+ * É marmita quando NÃO é sopa, NÃO é combo ("Monte/Escolha Você Mesmo" ou
+ * "Combo Pronto") e NÃO cai em NO_DISCOUNT_CATEGORIES (complemento etc.).
+ * Usado para decidir se as opções "Pronta para consumo / Congelada" aparecem.
+ */
+export function isMarmita(nome?: string, categoria?: string): boolean {
+  const cat = (categoria ?? "").toLowerCase();
+  const nm = (nome ?? "").toLowerCase();
+  const ehSopa = cat.includes("sopa") || nm.includes("sopa");
+  const ehCombo =
+    cat.includes("combo") ||
+    nm.includes("combo") ||
+    nm.includes("monte você mesmo") ||
+    nm.includes("monte voce mesmo") ||
+    nm.includes("escolha você mesmo") ||
+    nm.includes("escolha voce mesmo") ||
+    cat.includes("escolha você mesmo") ||
+    cat.includes("escolha voce mesmo");
+  return !ehSopa && !ehCombo && !isNoDiscount(cat);
+}
+
+/**
  * Quantas unidades um COMBO PRONTO representa na contagem total do carrinho.
  * Combos prontos ("Combo ... - 5un / 10un / 20un") têm preço fixo e NÃO recebem
  * desconto, mas contam como 5/10/20 itens para empurrar a faixa das marmitas avulsas.

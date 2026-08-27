@@ -20,6 +20,7 @@ import {
   precoMarmitaPorFaixa,
   precoCheioMarmita,
   faixaPorQuantidade,
+  isMarmita,
 } from "@/lib/combo-rules";
 
 // Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
@@ -150,6 +151,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     e?.stopPropagation();
     if (combo) {
       setComboOpen(true);
+      return;
+    }
+    // Marmitas precisam da escolha "pronta/congelada" (e garfo e faca).
+    // Abre o modal de detalhes para o cliente definir antes de adicionar.
+    if (isMarmita(product.nome, product.categorias?.nome || product.categoria)) {
+      setDetailOpen(true);
       return;
     }
     add(product.id, 1, selectedWeight);

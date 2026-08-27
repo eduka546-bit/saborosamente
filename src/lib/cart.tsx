@@ -49,10 +49,19 @@ export { isNoDiscount } from "@/lib/combo-rules";
 // Mantém também para compatibilidade interna
 export const NO_DISCOUNT_CATEGORIES = ["sopa", "sopas", "complemento", "complementos"];
 
+/** Opções por item — atualmente só para marmitas. */
+export interface CartItemOpcoes {
+  /** "pronta" (para consumo) ou "congelada". */
+  consumo: "pronta" | "congelada";
+  /** Só relevante quando consumo === "pronta". */
+  garfoEFaca?: boolean;
+}
+
 export interface CartLine {
   productId: string;
   quantity: number;
   weight?: string;
+  opcoes?: CartItemOpcoes;
 }
 
 export interface CartLineDetailed extends CartLine {
@@ -75,14 +84,28 @@ interface CartContextValue {
   exitIntentCoupon: string | null;
   setSelectedCity: (city: string) => void;
   setSelectedBairro: (bairro: string) => void;
-  add: (productId: string, quantity?: number, weight?: string) => void;
-  setQuantity: (productId: string, quantity: number, weight?: string) => void;
-  remove: (productId: string, weight?: string) => void;
+  add: (productId: string, quantity?: number, weight?: string, opcoes?: CartItemOpcoes) => void;
+  setQuantity: (
+    productId: string,
+    quantity: number,
+    weight?: string,
+    opcoes?: CartItemOpcoes,
+  ) => void;
+  remove: (productId: string, weight?: string, opcoes?: CartItemOpcoes) => void;
   clear: () => void;
   markConverted: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+// Compara opções por item para identificar a mesma linha no carrinho.
+// Duas marmitas iguais com opções diferentes (ex.: "congelada" vs "pronta")
+// são linhas distintas e não devem ser mescladas.
+function mesmaOpcao(a?: CartItemOpcoes, b?: CartItemOpcoes): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.consumo === b.consumo && Boolean(a.garfoEFaca) === Boolean(b.garfoEFaca);
+}
 
 function readStorage(): CartLine[] {
   try {
@@ -394,32 +417,49 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cachedProducts.find((p) => p.id === id);
   }, []);
 
-  const add = useCallback((productId: string, quantity = 1, weight?: string) => {
-    setLines((prev) => {
-      const existing = prev.find((l) => l.productId === productId && l.weight === weight);
-      if (existing) {
-        return prev.map((l) =>
-          l.productId === productId && l.weight === weight
-            ? { ...l, quantity: l.quantity + quantity }
-            : l,
+  const add = useCallback(
+    (productId: string, quantity = 1, weight?: string, opcoes?: CartItemOpcoes) => {
+      setLines((prev) => {
+        const existing = prev.find(
+          (l) => l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes),
         );
-      }
-      return [...prev, { productId, quantity, weight }];
-    });
-  }, []);
+        if (existing) {
+          return prev.map((l) =>
+            l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)
+              ? { ...l, quantity: l.quantity + quantity }
+              : l,
+          );
+        }
+        return [...prev, { productId, quantity, weight, opcoes }];
+      });
+    },
+    [],
+  );
 
-  const setQuantity = useCallback((productId: string, quantity: number, weight?: string) => {
+  const setQuantity = useCallback(
+    (productId: string, quantity: number, weight?: string, opcoes?: CartItemOpcoes) => {
+      setLines((prev) =>
+        quantity <= 0
+          ? prev.filter(
+              (l) =>
+                !(l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)),
+            )
+          : prev.map((l) =>
+              l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)
+                ? { ...l, quantity }
+                : l,
+            ),
+      );
+    },
+    [],
+  );
+
+  const remove = useCallback((productId: string, weight?: string, opcoes?: CartItemOpcoes) => {
     setLines((prev) =>
-      quantity <= 0
-        ? prev.filter((l) => !(l.productId === productId && l.weight === weight))
-        : prev.map((l) =>
-            l.productId === productId && l.weight === weight ? { ...l, quantity } : l,
-          ),
+      prev.filter(
+        (l) => !(l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)),
+      ),
     );
-  }, []);
-
-  const remove = useCallback((productId: string, weight?: string) => {
-    setLines((prev) => prev.filter((l) => !(l.productId === productId && l.weight === weight)));
   }, []);
 
   const clear = useCallback(() => setLines([]), []);

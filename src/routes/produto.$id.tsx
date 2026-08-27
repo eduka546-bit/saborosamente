@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { OptimizedImage } from "@/components/optimized-image";
+import { isMarmita } from "@/lib/combo-rules";
 
 export const Route = createFileRoute("/produto/$id")({
   component: ProdutoPage,
@@ -28,6 +29,8 @@ function ProdutoPage() {
   const { add } = useCart();
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
+  const [garfoEFaca, setGarfoEFaca] = useState(false);
 
   const {
     data: product,
@@ -104,6 +107,7 @@ function ProdutoPage() {
 
   // Preço
   const isSopa = product.categorias?.nome?.toLowerCase().includes("sopa");
+  const ehMarmita = isMarmita(product.nome, product.categorias?.nome || product.categoria);
   const currentPrice = isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
@@ -121,7 +125,10 @@ function ProdutoPage() {
         : product.tabela_nutricional;
 
   const handleAddToCart = () => {
-    add(product.id, 1, selectedWeight);
+    const opcoes = ehMarmita
+      ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
+      : undefined;
+    add(product.id, 1, selectedWeight, opcoes);
     toast.success("Adicionado ao carrinho!", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
     });
@@ -305,6 +312,55 @@ function ProdutoPage() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Opções (só marmitas): pronta/congelada + garfo e faca */}
+          {ehMarmita && (
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wide">
+                  Como você quer receber?
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConsumo("congelada")}
+                    className={cn(
+                      "rounded-xl border-2 py-4 text-sm font-bold transition-all",
+                      consumo === "congelada"
+                        ? "border-primary bg-primary/5 text-primary shadow-md"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/30",
+                    )}
+                  >
+                    Congelada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConsumo("pronta")}
+                    className={cn(
+                      "rounded-xl border-2 py-4 text-sm font-bold transition-all",
+                      consumo === "pronta"
+                        ? "border-primary bg-primary/5 text-primary shadow-md"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/30",
+                    )}
+                  >
+                    Pronta para consumo
+                  </button>
+                </div>
+              </div>
+
+              {consumo === "pronta" && (
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-background p-3">
+                  <input
+                    type="checkbox"
+                    checked={garfoEFaca}
+                    onChange={(e) => setGarfoEFaca(e.target.checked)}
+                    className="size-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium text-foreground">Quero garfo e faca</span>
+                </label>
+              )}
             </div>
           )}
 

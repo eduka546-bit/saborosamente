@@ -384,6 +384,7 @@ function Checkout() {
             quantity: l.quantity,
             weight: l.weight,
             price: l.subtotal / l.quantity,
+            opcoes: l.opcoes,
           })),
         },
       });

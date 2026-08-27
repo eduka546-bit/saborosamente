@@ -63,9 +63,9 @@ function Carrinho() {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           <ul className="space-y-4">
-            {lines.map(({ product, quantity, weight, subtotal: lineTotal }) => (
+            {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
-                key={product.id}
+                key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                 className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center"
               >
                 <img
@@ -81,12 +81,18 @@ function Carrinho() {
                   <p className="text-xs text-muted-foreground">
                     {weight || product.peso} • {formatBRL(product.preco)} cada
                   </p>
+                  {opcoes && (
+                    <p className="mt-0.5 text-[11px] font-medium text-primary">
+                      {opcoes.consumo === "pronta" ? "Pronta para consumo" : "Congelada"}
+                      {opcoes.consumo === "pronta" && opcoes.garfoEFaca ? " • com garfo e faca" : ""}
+                    </p>
+                  )}
                   <div className="mt-3 flex items-center gap-3">
                     <div className="flex items-center gap-1 rounded-full border border-border">
                       <button
                         type="button"
                         aria-label={`Diminuir quantidade de ${product.nome}`}
-                        onClick={() => setQuantity(product.id, quantity - 1, weight)}
+                        onClick={() => setQuantity(product.id, quantity - 1, weight, opcoes)}
                         className="grid size-8 place-items-center rounded-full hover:bg-secondary"
                       >
                         <Minus className="size-4" aria-hidden="true" />
@@ -95,7 +101,7 @@ function Carrinho() {
                       <button
                         type="button"
                         aria-label={`Aumentar quantidade de ${product.nome}`}
-                        onClick={() => setQuantity(product.id, quantity + 1, weight)}
+                        onClick={() => setQuantity(product.id, quantity + 1, weight, opcoes)}
                         className="grid size-8 place-items-center rounded-full hover:bg-secondary"
                       >
                         <Plus className="size-4" aria-hidden="true" />
@@ -103,7 +109,7 @@ function Carrinho() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => remove(product.id, weight)}
+                      onClick={() => remove(product.id, weight, opcoes)}
                       className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
                     >
                       <Trash2 className="size-3.5" aria-hidden="true" /> Remover
