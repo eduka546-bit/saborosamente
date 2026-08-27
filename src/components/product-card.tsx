@@ -15,6 +15,12 @@ import { useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { ProductDetailModal } from "@/components/product-detail-modal";
+import {
+  isNoDiscount,
+  precoMarmitaPorFaixa,
+  precoCheioMarmita,
+  faixaPorQuantidade,
+} from "@/lib/combo-rules";
 
 // Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
 // Combos Prontos são produtos normais com tamanho fixo
@@ -40,7 +46,7 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
-  const { add } = useCart();
+  const { add, count } = useCart();
   const [comboOpen, setComboOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const combo = isComboProduct(product);
@@ -330,6 +336,28 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <Plus className="size-5" aria-hidden="true" />
               </button>
             </div>
+
+            {/* Cardzinho de preço com desconto de faixa (só marmitas, quando há desconto ativo) */}
+            {(() => {
+              const categoria = product.categorias?.nome || product.categoria || "";
+              const isSopaCard = categoria.toLowerCase().includes("sopa");
+              if (combo || isSopaCard || isNoDiscount(categoria)) return null;
+              const faixa = faixaPorQuantidade(count);
+              if (faixa === "unit") return null; // sem desconto ativo (menos de 5 itens)
+              const cheio = precoCheioMarmita(selectedWeight) || currentPrice;
+              const precoFaixa = precoMarmitaPorFaixa(selectedWeight, count, cheio);
+              if (precoFaixa >= cheio) return null;
+              return (
+                <div className="mt-2 flex items-center justify-between rounded-xl bg-primary/10 border border-primary/20 px-3 py-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-wide text-primary/70 leading-tight">
+                    Seu preço
+                    <br />
+                    no combo
+                  </span>
+                  <span className="text-base font-black text-primary">{formatBRL(precoFaixa)}</span>
+                </div>
+              );
+            })()}
           </div>
         </article>
       </div>

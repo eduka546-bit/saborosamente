@@ -17,7 +17,13 @@ import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { COMBO_RULES, isNoDiscount, calcularTotaisCombo } from "@/lib/combo-rules";
+import {
+  COMBO_RULES,
+  isNoDiscount,
+  precoMarmitaPorFaixa,
+  precoCheioMarmita,
+  faixaPorQuantidade,
+} from "@/lib/combo-rules";
 
 export { COMBO_RULES };
 
@@ -73,18 +79,30 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     });
   }, [products, selectedCategory, search]);
 
-  // ── Totais ─────────────────────────────────────────────────────────────────
-  const { totalQty, subtotal, discountPct, discount, total } = useMemo(
-    () =>
-      calcularTotaisCombo(
-        items.map((i) => ({
-          categoria: i.categoria,
-          subtotal: i.preco * i.quantity,
-          quantidade: i.quantity,
-        })),
-      ),
-    [items],
-  );
+  // ── Totais (usa a tabela de preços por faixa — mesma lógica do carrinho) ────
+  const { totalQty, subtotal, discount, total } = useMemo(() => {
+    const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+    let subtotalCheio = 0;
+    let subtotalEfetivo = 0;
+    for (const i of items) {
+      const semDesc = isNoDiscount(i.categoria);
+      if (semDesc) {
+        subtotalCheio += i.preco * i.quantity;
+        subtotalEfetivo += i.preco * i.quantity;
+      } else {
+        const cheio = precoCheioMarmita(i.weight) || i.preco;
+        const efetivo = precoMarmitaPorFaixa(i.weight, totalQty, cheio);
+        subtotalCheio += cheio * i.quantity;
+        subtotalEfetivo += efetivo * i.quantity;
+      }
+    }
+    return {
+      totalQty,
+      subtotal: subtotalCheio,
+      discount: Math.max(0, subtotalCheio - subtotalEfetivo),
+      total: subtotalEfetivo,
+    };
+  }, [items]);
 
   // Early return APÓS todos os hooks
   if (!isOpen) return null;
@@ -153,7 +171,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
       add(item.productId, item.quantity, item.weight);
     });
     toast.success(`Combo adicionado!`, {
-      description: `${totalQty} itens${discountPct > 0 ? ` com ${(discountPct * 100).toFixed(0)}% OFF nas marmitas` : ""}`,
+      description: `${totalQty} itens${discount > 0 ? ` — você economiza ${formatBRL(discount)}` : ""}`,
     });
     onClose();
     setItems([]);
@@ -314,20 +332,35 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                         {weights.map((w) => {
                           const price = getPrice(product, w);
                           const qty = getQty(product.id, w);
+                          // Preço com desconto de faixa (tabela real), só para marmitas.
+                          const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
+                          const precoFaixa = noDiscount
+                            ? price
+                            : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
+                          const temDesconto = !noDiscount && precoFaixa < precoCheioW;
                           return (
                             <div key={w} className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-400 w-8 text-right font-bold">
+                              <span className="text-[10px] text-gray-400 w-7 text-right font-bold shrink-0">
                                 {w}
                               </span>
-                              <span className="text-xs font-bold text-[#086e45] w-16 text-right">
-                                {formatBRL(price)}
-                                {!noDiscount && currentRule && (
-                                  <span className="text-[9px] text-green-600 ml-0.5">
-                                    →{formatBRL(price * (1 - currentRule.discount))}
+                              {/* Coluna de preço — largura própria, sem invadir os botões */}
+                              <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
+                                {temDesconto ? (
+                                  <>
+                                    <span className="text-[9px] text-gray-400 line-through">
+                                      {formatBRL(precoCheioW)}
+                                    </span>
+                                    <span className="text-xs font-bold text-green-600">
+                                      {formatBRL(precoFaixa)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-bold text-[#086e45]">
+                                    {formatBRL(price)}
                                   </span>
                                 )}
                               </span>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={() => changeQty(product, w, -1)}
                                   disabled={qty === 0}
@@ -414,7 +447,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600 font-bold">
-                    <span>Desconto ({(discountPct * 100).toFixed(0)}% nas marmitas)</span>
+                    <span>Desconto nas marmitas</span>
                     <span>− {formatBRL(discount)}</span>
                   </div>
                 )}
