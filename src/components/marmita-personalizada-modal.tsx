@@ -20,6 +20,7 @@ import {
   type MarmitaGrupo,
   type MarmitaPersonalizadaConfig,
   tamanhoPorPeso,
+  limiteProteina,
 } from "@/lib/marmita-personalizada-config";
 
 interface MarmitaPersonalizadaModalProps {
@@ -60,7 +61,23 @@ export function MarmitaPersonalizadaModal({
 
   const tamanho = useMemo(() => tamanhoPorPeso(pesoTotal, config), [pesoTotal, config]);
   const acimaDoMax = pesoTotal > config.pesoMaximo;
-  const precoUnitario = tamanho?.preco ?? 0;
+
+  // Peso de proteína = soma das gramaturas do(s) grupo(s) cujo nome contém "prote".
+  const pesoProteina = useMemo(
+    () =>
+      selecionados
+        .filter((it) => it.grupo.toLowerCase().includes("prote"))
+        .reduce((s, it) => s + (it.gramatura || 0), 0),
+    [selecionados],
+  );
+
+  // Limite de proteína e excedente (60% do teto do tamanho atual).
+  const limiteProt = tamanho ? limiteProteina(tamanho, config) : 0;
+  const excedenteProteina = tamanho ? Math.max(0, pesoProteina - limiteProt) : 0;
+  const adicionalProteina = excedenteProteina * config.adicionalProteinaPorGrama;
+
+  const precoBase = tamanho?.preco ?? 0;
+  const precoUnitario = precoBase + adicionalProteina;
 
   // Early return após hooks
   if (!isOpen) return null;
@@ -130,6 +147,16 @@ export function MarmitaPersonalizadaModal({
       gramatura: s.gramatura,
     }));
 
+    // Se houve excedente de proteína, registra o adicional como um "item" da
+    // composição para aparecer na comanda/observação do pedido.
+    if (excedenteProteina > 0) {
+      itens.push({
+        grupo: "Adicional",
+        nome: `Excedente proteína ${excedenteProteina}g (+${formatBRL(adicionalProteina)})`,
+        gramatura: 0,
+      });
+    }
+
     addCustom(
       {
         label: `Marmita Personalizada (${tamanho.sigla})`,
@@ -166,6 +193,36 @@ export function MarmitaPersonalizadaModal({
           >
             <X size={18} />
           </button>
+        </div>
+
+        {/* Tamanhos + limite de proteína por tamanho */}
+        <div className="bg-[#086e45]/5 border-b px-4 py-3 shrink-0 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {config.tamanhos.map((t) => {
+              const isAtual = tamanho?.sigla === t.sigla;
+              const limProt = limiteProteina(t, config);
+              return (
+                <div
+                  key={t.sigla}
+                  className={cn(
+                    "rounded-xl border px-3 py-2 text-center transition-all min-w-[92px]",
+                    isAtual
+                      ? "border-[#086e45] bg-white shadow-sm"
+                      : "border-transparent bg-white/60",
+                  )}
+                >
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-sm font-black text-[#086e45]">{t.sigla}</span>
+                    <span className="text-[10px] text-gray-400">{t.label}</span>
+                  </div>
+                  <div className="text-xs font-bold text-gray-700">{formatBRL(t.preco)}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    proteína até <span className="font-bold text-gray-500">{limProt}g</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
@@ -314,14 +371,41 @@ export function MarmitaPersonalizadaModal({
                   </span>
                 </div>
               ) : tamanho ? (
-                <div className="flex items-center justify-between rounded-xl bg-[#086e45]/5 px-3 py-2">
-                  <span className="text-xs text-gray-500">
-                    {tamanho.label} — {tamanho.sigla}
-                  </span>
-                  <span className="text-lg font-black text-[#086e45]">
-                    {formatBRL(precoUnitario)}
-                  </span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between rounded-xl bg-[#086e45]/5 px-3 py-2">
+                    <span className="text-xs text-gray-500">
+                      {tamanho.label} — {tamanho.sigla}
+                    </span>
+                    <span className="text-lg font-black text-[#086e45]">
+                      {formatBRL(precoUnitario)}
+                    </span>
+                  </div>
+                  {/* Proteína: mostra uso e limite */}
+                  <div className="flex items-center justify-between text-[11px] text-gray-500 px-1">
+                    <span>Proteína</span>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        excedenteProteina > 0 ? "text-red-600" : "text-gray-600",
+                      )}
+                    >
+                      {pesoProteina}g / {limiteProt}g
+                    </span>
+                  </div>
+                  {/* Aviso vermelho — excedeu 60% de proteína */}
+                  {excedenteProteina > 0 && (
+                    <div className="flex items-start gap-2 bg-red-50 rounded-xl p-2.5 text-[11px] text-red-600 font-medium">
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                      <span>
+                        A proteína passou de {config.percentualMaxProteina}% do tamanho{" "}
+                        {tamanho.sigla} (máx {limiteProt}g). Excedente de{" "}
+                        <strong>{excedenteProteina}g</strong> ×{" "}
+                        {formatBRL(config.adicionalProteinaPorGrama)}/g ={" "}
+                        <strong>{formatBRL(adicionalProteina)}</strong> adicionados por marmita.
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="text-[11px] text-gray-400">
                   Escolha ingredientes e a gramatura para ver o preço.

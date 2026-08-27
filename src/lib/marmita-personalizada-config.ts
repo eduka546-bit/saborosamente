@@ -39,6 +39,10 @@ export interface MarmitaPersonalizadaConfig {
   pesoMaximo: number; // g
   avisoPrazo: string; // texto do aviso de entrega
   tamanhos: MarmitaTamanho[];
+  // Proteína pode ocupar no máximo X% do teto do tamanho (ex.: 60).
+  percentualMaxProteina: number;
+  // Adicional por grama de proteína que exceder o limite (ex.: 0.07).
+  adicionalProteinaPorGrama: number;
 }
 
 export const DEFAULT_MARMITA_CONFIG: MarmitaPersonalizadaConfig = {
@@ -55,6 +59,8 @@ export const DEFAULT_MARMITA_CONFIG: MarmitaPersonalizadaConfig = {
     { sigla: "G", label: "350 a 450g", pesoMin: 351, pesoMax: 450, preco: 26.9 },
     { sigla: "GG", label: "450 a 600g", pesoMin: 451, pesoMax: 600, preco: 29.9 },
   ],
+  percentualMaxProteina: 60,
+  adicionalProteinaPorGrama: 0.07,
 };
 
 // Normaliza a config vinda do banco caindo nos defaults por campo faltante.
@@ -81,6 +87,16 @@ export function normalizarMarmitaConfig(raw: any): MarmitaPersonalizadaConfig {
     return Number.isFinite(n) && n > 0 ? n : fb;
   };
 
+  // Percentual (aceita 0 explícito → desliga a regra; usa default só se ausente/ inválido)
+  const pctRaw = Number(cfg.percentualMaxProteina);
+  const percentualMaxProteina =
+    Number.isFinite(pctRaw) && pctRaw >= 0 && pctRaw <= 100
+      ? pctRaw
+      : d.percentualMaxProteina;
+  const addRaw = Number(cfg.adicionalProteinaPorGrama);
+  const adicionalProteinaPorGrama =
+    Number.isFinite(addRaw) && addRaw >= 0 ? addRaw : d.adicionalProteinaPorGrama;
+
   return {
     ativo: cfg.ativo !== undefined ? Boolean(cfg.ativo) : d.ativo,
     titulo: String(cfg.titulo ?? "").trim() || d.titulo,
@@ -89,7 +105,17 @@ export function normalizarMarmitaConfig(raw: any): MarmitaPersonalizadaConfig {
     pesoMaximo: num(cfg.pesoMaximo, d.pesoMaximo),
     avisoPrazo: String(cfg.avisoPrazo ?? "").trim() || d.avisoPrazo,
     tamanhos,
+    percentualMaxProteina,
+    adicionalProteinaPorGrama,
   };
+}
+
+// Limite de proteína (g) para um tamanho: percentualMaxProteina% do teto (pesoMax).
+export function limiteProteina(
+  tamanho: MarmitaTamanho,
+  cfg: MarmitaPersonalizadaConfig,
+): number {
+  return Math.round((tamanho.pesoMax * cfg.percentualMaxProteina) / 100);
 }
 
 // Retorna o tamanho correspondente a um peso total (g), ou null se acima do máximo.

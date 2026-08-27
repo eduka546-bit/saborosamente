@@ -185,7 +185,10 @@ export const createOrder = createServerFn({ method: "POST" })
       // e o nome próprio em nome_item (produto_id fica null).
       if (item.custom) {
         const comp = item.custom.itens
-          .map((i) => `${i.gramatura}g ${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`)
+          .map((i) => {
+            const g = i.gramatura > 0 ? `${i.gramatura}g ` : "";
+            return `${g}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`;
+          })
           .join(" + ");
         partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
         if (comp) partes.push(comp);

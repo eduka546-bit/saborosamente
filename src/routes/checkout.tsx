@@ -487,6 +487,28 @@ function Checkout() {
           breve entraremos em contato para confirmar.
         </p>
 
+        {/* Acompanhar pedido pelo WhatsApp */}
+        {(() => {
+          const protocolo = orderId.slice(0, 8).toUpperCase();
+          const whatsapp =
+            (siteSettings as any)?.contato_whatsapp ||
+            (siteSettings as any)?.footer_whatsapp ||
+            "5547991607757";
+          const msg = `Olá! Quero acompanhar meu pedido nº #${protocolo}`;
+          const waUrl = `https://wa.me/${String(whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`;
+          return (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-[#1ebe5b]"
+            >
+              <MessageCircle className="size-5" aria-hidden="true" />
+              Acompanhar pedido no WhatsApp
+            </a>
+          );
+        })()}
+
         {/* Modal de Feedback */}
         {!feedbackEnviado && (
           <div className="mt-8 bg-white border rounded-2xl p-6 text-left shadow-sm">
