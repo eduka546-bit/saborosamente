@@ -361,23 +361,24 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </button>
             </div>
 
-            {/* Cardzinho de incentivo/desconto (só marmitas) */}
+            {/* Cardzinho de incentivo/desconto (só marmitas).
+                Preto enquanto dá pra ganhar mais desconto (mostra quanto falta pro
+                próximo nível); verde só quando atinge o desconto máximo (20+). */}
             {podeTerDesconto &&
-              (temDescontoAtivo ? (
-                <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f7a43]/10 border border-[#0f7a43]/20 px-3 py-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-[#0f7a43] text-center">
-                    ✓ Desconto de combo aplicado
+              (proximaFaixa ? (
+                <div className="mt-2 flex items-center justify-center rounded-xl bg-neutral-900 px-3 py-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-white text-center leading-tight">
+                    Adicione mais {faltamParaDesconto}{" "}
+                    {faltamParaDesconto === 1 ? "unidade" : "unidades"} para{" "}
+                    {temDescontoAtivo ? "mais desconto" : "ganhar desconto"}
                   </span>
                 </div>
               ) : (
-                faltamParaDesconto > 0 && (
-                  <div className="mt-2 flex items-center justify-center rounded-xl bg-neutral-900 px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-white text-center leading-tight">
-                      Adicione mais {faltamParaDesconto}{" "}
-                      {faltamParaDesconto === 1 ? "unidade" : "unidades"} para ganhar desconto
-                    </span>
-                  </div>
-                )
+                <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f7a43]/10 border border-[#0f7a43]/20 px-3 py-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#0f7a43] text-center">
+                    ✓ Desconto máximo aplicado
+                  </span>
+                </div>
               ))}
           </div>
         </article>

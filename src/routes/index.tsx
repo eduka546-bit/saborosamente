@@ -458,9 +458,9 @@ function Index() {
                         {/* Mini discount tiers */}
                         <div className="flex flex-wrap gap-2 mt-3">
                           {[
-                            { qty: "6+", pct: "5%" },
-                            { qty: "10+", pct: "8%" },
-                            { qty: "15+", pct: "12%" },
+                            { qty: "5+", pct: "3%" },
+                            { qty: "10+", pct: "5%" },
+                            { qty: "20+", pct: "7%" },
                           ].map((tier) => (
                             <span
                               key={tier.qty}

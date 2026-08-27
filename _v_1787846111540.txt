@@ -1,0 +1,2 @@
+TS_ERRORS=0
+ BUILD_OK=true
