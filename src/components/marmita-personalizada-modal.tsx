@@ -177,12 +177,12 @@ export function MarmitaPersonalizadaModal({
   }
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-5xl max-h-[95vh] rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[#086e45] px-6 py-4 text-white flex items-center justify-between shrink-0">
+        <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl font-black">{config.titulo}</h2>
             <p className="text-sm text-white/75 mt-0.5">{config.descricao}</p>
@@ -227,7 +227,7 @@ export function MarmitaPersonalizadaModal({
 
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
           {/* Coluna esquerda — ingredientes */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 border-r">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 md:border-r">
             {grupos.map((grupo) => (
               <div key={grupo.id}>
                 <h3 className="text-sm font-black text-[#086e45] uppercase tracking-wider mb-2">
@@ -328,7 +328,7 @@ export function MarmitaPersonalizadaModal({
           </div>
 
           {/* Coluna direita — resumo / calculadora */}
-          <div className="w-full md:w-80 flex flex-col shrink-0">
+          <div className="w-full md:w-80 flex flex-col shrink-0 border-t md:border-t-0">
             {/* Calculadora de peso */}
             <div className="px-4 pt-4 pb-3 border-b space-y-3 shrink-0">
               <div className="flex items-center gap-2 text-sm font-black text-gray-700 uppercase tracking-wider">
@@ -414,7 +414,7 @@ export function MarmitaPersonalizadaModal({
             </div>
 
             {/* Composição escolhida */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
+            <div className="max-h-32 md:max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
               {selecionados.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="text-3xl mb-2">🍱</div>

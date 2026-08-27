@@ -197,14 +197,14 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   const currentRule = COMBO_RULES.find((r) => totalQty >= r.min);
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-5xl max-h-[95vh] rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[#086e45] px-6 py-4 text-white flex items-center justify-between shrink-0">
+        <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl font-black">{combo.nome}</h2>
             <p className="text-sm text-white/75 mt-0.5">
@@ -258,9 +258,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Coluna esquerda — catálogo */}
-          <div className="flex-1 flex flex-col overflow-hidden border-r">
+          <div className="flex-1 flex flex-col overflow-hidden md:border-r">
             {/* Busca e filtro */}
             <div className="px-4 pt-4 pb-3 space-y-3 shrink-0">
               <div className="relative">
@@ -412,7 +412,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
           </div>
 
           {/* Coluna direita — resumo */}
-          <div className="w-72 flex flex-col shrink-0">
+          <div className="w-full md:w-72 flex flex-col shrink-0 border-t md:border-t-0">
             <div className="px-4 pt-4 pb-2 border-b shrink-0">
               <h3 className="text-sm font-black text-gray-700 uppercase tracking-wider flex items-center gap-2">
                 <ShoppingCart size={14} /> Seu combo
@@ -421,7 +421,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
             </div>
 
             {/* Itens selecionados */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            <div className="max-h-32 md:max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {items.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="text-3xl mb-2">🍱</div>

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
+import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { ProductSeals } from "@/components/product-seals";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
-import { useCart } from "@/lib/cart";
+import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,7 @@ interface ProductDetailModalProps {
 // Modal de detalhes do produto — layout robusto (imagem grande + ficha completa),
 // abre por cima do catálogo sem trocar de página.
 export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailModalProps) {
-  const { add } = useCart();
+  const { add, count } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Tamanhos disponíveis
@@ -271,19 +272,50 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
             </div>
 
             <div className="mt-auto pt-6 border-t">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-muted-foreground">Valor</span>
-                  <span className="text-3xl font-black text-primary">
-                    {formatBRL(currentPrice)}
-                  </span>
-                </div>
-                {selectedWeight && (
-                  <Badge variant="secondary" className="font-bold">
-                    {selectedWeight}
-                  </Badge>
-                )}
-              </div>
+              {(() => {
+                // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
+                const semDesconto = isNoDiscount(categoriaNome);
+                const podeTerDesconto = ehMarmita && !semDesconto;
+                const precoCheio = podeTerDesconto
+                  ? precoCheioMarmita(selectedWeight) || currentPrice
+                  : currentPrice;
+                const precoComFaixa = podeTerDesconto
+                  ? precoMarmitaPorFaixa(selectedWeight, count, precoCheio)
+                  : currentPrice;
+                const adicional =
+                  (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
+                  (garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
+                const precoFinal = precoComFaixa + adicional;
+                const temDesconto = precoFinal < precoCheio + adicional || adicional > 0 || precoComFaixa < precoCheio;
+                const precoCheioTotal = precoCheio + adicional;
+
+                return (
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-muted-foreground">Valor</span>
+                      {precoComFaixa < precoCheio ? (
+                        <>
+                          <span className="text-sm font-bold text-muted-foreground line-through">
+                            {formatBRL(precoCheioTotal)}
+                          </span>
+                          <span className="text-3xl font-black text-[#086e45]">
+                            {formatBRL(precoFinal)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-3xl font-black text-primary">
+                          {formatBRL(precoFinal)}
+                        </span>
+                      )}
+                    </div>
+                    {selectedWeight && (
+                      <Badge variant="secondary" className="font-bold">
+                        {selectedWeight}
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })()}
 
               <Button
                 onClick={handleAddToCart}
