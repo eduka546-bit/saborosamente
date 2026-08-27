@@ -311,111 +311,109 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                       key={product.id}
                       className="rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all overflow-hidden"
                     >
-                      {/* Foto — clicável pra abrir grande */}
-                      <div
-                        className="relative w-full aspect-[3/2] bg-gray-100 cursor-pointer"
-                        onClick={() => setLightboxImg(product.imagem_url || product.imagem || "")}
-                      >
-                        {product.imagem_url || product.imagem ? (
-                          <img
-                            src={product.imagem_url || product.imagem}
-                            alt={product.nome}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
-                            📦
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-3 space-y-2">
-                        {/* Título */}
-                        <p className="text-sm font-bold text-gray-900 leading-tight">
-                          {product.nome}
-                        </p>
-
-                        {/* Descrição */}
-                        {product.descricao && (
-                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
-                            {product.descricao}
-                          </p>
-                        )}
-
-                        {/* Categoria / badge */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] text-gray-400 uppercase font-bold">{cat}</span>
-                          {noDiscount && (
-                            <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
-                              Preço fixo
-                            </span>
+                      <div className="flex gap-3 p-3">
+                        {/* Foto — thumbnail, clicável pra abrir grande */}
+                        <div
+                          className="h-16 w-16 rounded-xl overflow-hidden bg-gray-100 shrink-0 cursor-pointer"
+                          onClick={() => setLightboxImg(product.imagem_url || product.imagem || "")}
+                        >
+                          {product.imagem_url || product.imagem ? (
+                            <img
+                              src={product.imagem_url || product.imagem}
+                              alt={product.nome}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-gray-300 text-lg">
+                              📦
+                            </div>
                           )}
                         </div>
 
-                        {/* Tamanhos + controles */}
-                        <div className="space-y-1.5 pt-1">
-                          {weights.map((w) => {
-                            const price = getPrice(product, w);
-                            const qty = getQty(product.id, w);
-                            const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
-                            const precoFaixa = noDiscount
-                              ? price
-                              : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
-                            const temDesconto = !noDiscount && precoFaixa < precoCheioW;
-                            return (
-                              <div key={w} className="flex items-center gap-2">
-                                <span className="text-[11px] text-gray-500 w-9 font-bold shrink-0">
-                                  {w}
-                                </span>
-                                <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
-                                  {temDesconto ? (
-                                    <>
-                                      <span className="text-[9px] text-gray-400 line-through">
-                                        {formatBRL(precoCheioW)}
-                                      </span>
-                                      <span className="text-xs font-bold text-green-600">
-                                        {formatBRL(precoFaixa)}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs font-bold text-[#086e45]">
-                                      {formatBRL(price)}
-                                    </span>
-                                  )}
-                                </span>
-                                <div className="flex items-center gap-1 ml-auto shrink-0">
-                                  <button
-                                    onClick={() => changeQty(product, w, -1)}
-                                    disabled={qty === 0}
-                                    className={cn(
-                                      "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
-                                      qty > 0
-                                        ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
-                                        : "border-gray-200 text-gray-300 cursor-not-allowed",
-                                    )}
-                                  >
-                                    <Minus size={12} />
-                                  </button>
-                                  <span
-                                    className={cn(
-                                      "w-6 text-center text-sm font-black",
-                                      qty > 0 ? "text-[#086e45]" : "text-gray-300",
-                                    )}
-                                  >
-                                    {qty}
-                                  </span>
-                                  <button
-                                    onClick={() => changeQty(product, w, 1)}
-                                    className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
-                                  >
-                                    <Plus size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 leading-tight">
+                            {product.nome}
+                          </p>
+                          {product.descricao && (
+                            <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
+                              {product.descricao}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[9px] text-gray-400 uppercase font-bold">{cat}</span>
+                            {noDiscount && (
+                              <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
+                                Preço fixo
+                              </span>
+                            )}
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Tamanhos + controles */}
+                      <div className="px-3 pb-3 space-y-1.5">
+                        {weights.map((w) => {
+                          const price = getPrice(product, w);
+                          const qty = getQty(product.id, w);
+                          const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
+                          const precoFaixa = noDiscount
+                            ? price
+                            : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
+                          const temDesconto = !noDiscount && precoFaixa < precoCheioW;
+                          return (
+                            <div key={w} className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-500 w-9 font-bold shrink-0">
+                                {w}
+                              </span>
+                              <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
+                                {temDesconto ? (
+                                  <>
+                                    <span className="text-[9px] text-gray-400 line-through">
+                                      {formatBRL(precoCheioW)}
+                                    </span>
+                                    <span className="text-xs font-bold text-green-600">
+                                      {formatBRL(precoFaixa)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-bold text-[#086e45]">
+                                    {formatBRL(price)}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="flex items-center gap-1 ml-auto shrink-0">
+                                <button
+                                  onClick={() => changeQty(product, w, -1)}
+                                  disabled={qty === 0}
+                                  className={cn(
+                                    "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
+                                    qty > 0
+                                      ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
+                                      : "border-gray-200 text-gray-300 cursor-not-allowed",
+                                  )}
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span
+                                  className={cn(
+                                    "w-6 text-center text-sm font-black",
+                                    qty > 0 ? "text-[#086e45]" : "text-gray-300",
+                                  )}
+                                >
+                                  {qty}
+                                </span>
+                                <button
+                                  onClick={() => changeQty(product, w, 1)}
+                                  className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -433,8 +431,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
               </h3>
             </div>
 
-            {/* Itens selecionados */}
-            <div className="max-h-32 md:max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {/* Itens selecionados — escondido no mobile */}
+            <div className="hidden md:block max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {items.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="text-3xl mb-2">🍱</div>
