@@ -133,6 +133,19 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         ? product.tabela_nutricional_400g
         : product.tabela_nutricional;
 
+  // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
+  const categoriaCard = product.categorias?.nome || product.categoria || "";
+  const podeTerDesconto = !combo && !isSopa && !isNoDiscount(categoriaCard);
+  const precoCheioCard = podeTerDesconto ? precoCheioMarmita(selectedWeight) || currentPrice : currentPrice;
+  const precoFaixaCard = podeTerDesconto
+    ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard)
+    : currentPrice;
+  const temDescontoAtivo = podeTerDesconto && precoFaixaCard < precoCheioCard;
+  // Próxima faixa: quantas unidades faltam para o primeiro/próximo nível de desconto.
+  const PROXIMAS_FAIXAS = [5, 10, 20];
+  const proximaFaixa = PROXIMAS_FAIXAS.find((m) => count < m);
+  const faltamParaDesconto = proximaFaixa ? proximaFaixa - count : 0;
+
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (combo) {
@@ -322,9 +335,20 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <span className="text-[9px] font-black text-muted-foreground uppercase">
                   {selectedWeight ? `${selectedWeight}` : "PREÇO"}
                 </span>
-                <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
-                  {formatBRL(currentPrice)}
-                </span>
+                {temDescontoAtivo ? (
+                  <>
+                    <span className="text-xs font-bold text-muted-foreground/70 line-through leading-none">
+                      {formatBRL(precoCheioCard)}
+                    </span>
+                    <span className="text-xl font-black text-[#0f7a43] leading-tight">
+                      {formatBRL(precoFaixaCard)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
+                    {formatBRL(currentPrice)}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -337,27 +361,24 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </button>
             </div>
 
-            {/* Cardzinho de preço com desconto de faixa (só marmitas, quando há desconto ativo) */}
-            {(() => {
-              const categoria = product.categorias?.nome || product.categoria || "";
-              const isSopaCard = categoria.toLowerCase().includes("sopa");
-              if (combo || isSopaCard || isNoDiscount(categoria)) return null;
-              const faixa = faixaPorQuantidade(count);
-              if (faixa === "unit") return null; // sem desconto ativo (menos de 5 itens)
-              const cheio = precoCheioMarmita(selectedWeight) || currentPrice;
-              const precoFaixa = precoMarmitaPorFaixa(selectedWeight, count, cheio);
-              if (precoFaixa >= cheio) return null;
-              return (
-                <div className="mt-2 flex items-center justify-between rounded-xl bg-primary/10 border border-primary/20 px-3 py-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-wide text-primary/70 leading-tight">
-                    Seu preço
-                    <br />
-                    no combo
+            {/* Cardzinho de incentivo/desconto (só marmitas) */}
+            {podeTerDesconto &&
+              (temDescontoAtivo ? (
+                <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f7a43]/10 border border-[#0f7a43]/20 px-3 py-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-[#0f7a43] text-center">
+                    ✓ Desconto de combo aplicado
                   </span>
-                  <span className="text-base font-black text-primary">{formatBRL(precoFaixa)}</span>
                 </div>
-              );
-            })()}
+              ) : (
+                faltamParaDesconto > 0 && (
+                  <div className="mt-2 flex items-center justify-center rounded-xl bg-neutral-900 px-3 py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-white text-center leading-tight">
+                      Adicione mais {faltamParaDesconto}{" "}
+                      {faltamParaDesconto === 1 ? "unidade" : "unidades"} para ganhar desconto
+                    </span>
+                  </div>
+                )
+              ))}
           </div>
         </article>
       </div>
