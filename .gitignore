@@ -27,6 +27,9 @@ dist-ssr
 # Contém CRON_SECRET em texto — não versionar
 setup_cron_automacoes.sql
 
+# Arquivos temporários de trabalho (saída de tsc/build/db push)
+_*.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
