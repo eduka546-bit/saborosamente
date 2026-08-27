@@ -349,6 +349,9 @@ function ProdutoPage() {
                     )}
                   >
                     Pronta para consumo
+                    <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">
+                      +R$ 1,00
+                    </span>
                   </button>
                 </div>
               </div>
@@ -361,7 +364,12 @@ function ProdutoPage() {
                     onChange={(e) => setGarfoEFaca(e.target.checked)}
                     className="size-4 accent-primary"
                   />
-                  <span className="text-sm font-medium text-foreground">Quero garfo e faca</span>
+                  <span className="text-sm font-medium text-foreground">
+                    Quero garfo e faca
+                    <span className="text-[10px] font-medium text-muted-foreground ml-1">
+                      +R$ 1,00
+                    </span>
+                  </span>
                 </label>
               )}
             </div>
