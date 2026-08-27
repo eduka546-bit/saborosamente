@@ -250,29 +250,29 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <Info className="size-6" />
               </div>
             </div>
-          </div>
 
-          {/* Selos entre imagem e conteúdo (sobreposição na borda) */}
-          {(product.sem_gluten || product.sem_lactose) && (
-            <div className="flex justify-end gap-1.5 px-3 -mt-5 relative z-10">
-              {product.sem_gluten && (
-                <img
-                  src="/selo-sem-gluten.png"
-                  alt="Sem Glúten"
-                  title="Sem Glúten"
-                  className="h-10 w-10 object-contain drop-shadow-md rounded-full bg-white p-0.5"
-                />
-              )}
-              {product.sem_lactose && (
-                <img
-                  src="/selo-sem-lactose.png"
-                  alt="Sem Lactose"
-                  title="Sem Lactose"
-                  className="h-10 w-10 object-contain drop-shadow-md rounded-full bg-white p-0.5"
-                />
-              )}
-            </div>
-          )}
+            {/* Selos sem glúten / sem lactose — canto inferior direito da imagem, empilhados vertical */}
+            {(product.sem_gluten || product.sem_lactose) && (
+              <div className="absolute bottom-2 right-2 z-10 flex flex-col gap-1">
+                {product.sem_gluten && (
+                  <img
+                    src="/selo-sem-gluten.png"
+                    alt="Sem Glúten"
+                    title="Sem Glúten"
+                    className="h-9 w-9 object-contain drop-shadow-md"
+                  />
+                )}
+                {product.sem_lactose && (
+                  <img
+                    src="/selo-sem-lactose.png"
+                    alt="Sem Lactose"
+                    title="Sem Lactose"
+                    className="h-9 w-9 object-contain drop-shadow-md"
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
@@ -340,13 +340,15 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </button>
             </div>
 
-            {/* Card de desconto — fundo preto, % em tons de verde */}
+            {/* Card de desconto — fundo preto, quantidade e % em verde */}
             {podeTerDesconto &&
               (proximaFaixa ? (
                 <div className="mt-1.5 rounded-xl bg-neutral-900 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-bold text-white leading-tight">
-                    Adicione mais {faltamParaDesconto}{" "}
-                    {faltamParaDesconto === 1 ? "unidade" : "unidades"}
+                    Adicione mais{" "}
+                    <span className="text-[#34d399]">
+                      {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
+                    </span>
                   </p>
                   <p className="text-[10px] font-bold text-white leading-tight">
                     para ganhar{" "}
