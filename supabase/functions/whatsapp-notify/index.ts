@@ -86,62 +86,60 @@ async function isClienteRecorrente(user_id: string): Promise<boolean> {
   return (data?.length || 0) > 1;
 }
 
+// Textos padrão (fallback). Editáveis no admin em
+// site_settings.parametros_loja.mensagens_whatsapp. Placeholders: {nome} {protocolo} {link}
+const DEFAULT_MENSAGENS: Record<string, string> = {
+  novo_pedido:
+    "🍱 Olá, *{nome}*! Recebemos seu pedido *#{protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: {link}",
+  pagamento_confirmado:
+    "✅ Pagamento confirmado, *{nome}*! Seu pedido *#{protocolo}* foi confirmado.\n\nEstamos preparando com carinho 🍱\n\nAcompanhe: {link}",
+  preparando:
+    "🔥 *{nome}*, seu pedido *#{protocolo}* está sendo preparado agora com carinho 👨‍🍳\n\nTempo estimado: 30-45 min\n\nAcompanhe: {link}",
+  "saiu para entrega":
+    "🚚 *{nome}*, seu pedido *#{protocolo}* saiu para entrega agora! 🏃‍♂️\n\nRastreie em tempo real: {link}",
+  entregue:
+    "🎉 Pedido *#{protocolo}* entregue, *{nome}*!\n\nEsperamos que aprecie bastante 😋\n\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼",
+  cancelado:
+    "😔 Oi, *{nome}*. Infelizmente seu pedido *#{protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬",
+};
+
+function aplicarTemplate(
+  template: string,
+  vars: { nome: string; protocolo: string; link: string },
+): string {
+  return template
+    .replaceAll("{nome}", vars.nome)
+    .replaceAll("{protocolo}", vars.protocolo)
+    .replaceAll("{link}", vars.link);
+}
+
 /**
- * Gera mensagens personalizadas por status do pedido
+ * Gera mensagens personalizadas por status do pedido, usando os templates
+ * editáveis do admin (com fallback nos textos padrão).
  */
 function mensagemStatus(
   status: string,
   pedido: any,
   isRecorrente: boolean = false,
+  templates: Record<string, string> = {},
 ): { texto: string; tipo: "texto" | "pix" } | null {
   const protocolo = pedido.id.slice(0, 8).toUpperCase();
   const nome = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
   const linkRastreamento = `${VITE_SUPABASE_URL}/pedido?p=${protocolo}`;
 
-  switch (status) {
-    case "novo_pedido":
-      // Se é cliente recorrente, oferece desconto especial
-      const bonus = isRecorrente
-        ? "\n\n🎁 *Bônus recorrente desbloqueado!* Use código *VOLTA5* para 5% OFF"
-        : "";
-      return {
-        tipo: "texto",
-        texto: `🍱 Olá, *${nome}*! Recebemos seu pedido *#${protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: ${linkRastreamento}${bonus}`,
-      };
+  const template =
+    (typeof templates[status] === "string" && templates[status].trim()) ||
+    DEFAULT_MENSAGENS[status];
+  if (!template) return null;
 
-    case "pagamento_confirmado":
-      return {
-        tipo: "pix",
-        texto: `✅ Pagamento confirmado, *${nome}*! Seu pedido *#${protocolo}* foi confirmado.\n\nEstamos preparando com carinho 🍱\n\nAcompanhe: ${linkRastreamento}`,
-      };
+  let texto = aplicarTemplate(template, { nome, protocolo, link: linkRastreamento });
 
-    case "preparando":
-      return {
-        tipo: "texto",
-        texto: `🔥 *${nome}*, seu pedido *#${protocolo}* está sendo preparado agora com carinho 👨‍🍳\n\nTempo estimado: 30-45 min\n\nAcompanhe: ${linkRastreamento}`,
-      };
-
-    case "saiu para entrega":
-      return {
-        tipo: "texto",
-        texto: `🚚 *${nome}*, seu pedido *#${protocolo}* saiu para entrega agora! 🏃‍♂️\n\nRastreie em tempo real: ${linkRastreamento}`,
-      };
-
-    case "entregue":
-      return {
-        tipo: "texto",
-        texto: `🎉 Pedido *#${protocolo}* entregue, *${nome}*!\n\nEsperamos que aprecie bastante 😋\n\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼`,
-      };
-
-    case "cancelado":
-      return {
-        tipo: "texto",
-        texto: `😔 Oi, *${nome}*. Infelizmente seu pedido *#${protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬`,
-      };
-
-    default:
-      return null;
+  // Bônus para cliente recorrente no primeiro contato do pedido.
+  if (status === "novo_pedido" && isRecorrente) {
+    texto += "\n\n🎁 *Bônus recorrente desbloqueado!* Use código *VOLTA5* para 5% OFF";
   }
+
+  return { texto, tipo: status === "pagamento_confirmado" ? "pix" : "texto" };
 }
 
 Deno.serve(async (req) => {
@@ -186,7 +184,20 @@ Deno.serve(async (req) => {
     // Verifica se é cliente recorrente
     const isRecorrente = pedido.user_id ? await isClienteRecorrente(pedido.user_id) : false;
 
-    const mensagemObj = mensagemStatus(status_novo, pedido, isRecorrente);
+    // Templates editáveis no admin (site_settings.parametros_loja.mensagens_whatsapp)
+    let templates: Record<string, string> = {};
+    try {
+      const { data: settings } = await supabase
+        .from("site_settings")
+        .select("parametros_loja")
+        .maybeSingle();
+      const raw = (settings?.parametros_loja as any)?.mensagens_whatsapp;
+      if (raw && typeof raw === "object") templates = raw;
+    } catch (e) {
+      console.warn("Falha ao buscar templates de mensagens (usando defaults):", e);
+    }
+
+    const mensagemObj = mensagemStatus(status_novo, pedido, isRecorrente, templates);
     if (!mensagemObj) {
       return new Response(JSON.stringify({ ok: false, motivo: "sem mensagem para esse status" }), {
         status: 200,
