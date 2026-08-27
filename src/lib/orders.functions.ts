@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
 
 const orderItemSchema = z.object({
-  productId: z.string(),
+  productId: z.string().nullable().optional(),
   quantity: z.number(),
   weight: z.string().optional(),
   price: z.number(),
@@ -11,6 +11,22 @@ const orderItemSchema = z.object({
     .object({
       consumo: z.enum(["pronta", "congelada"]),
       garfoEFaca: z.boolean().optional(),
+    })
+    .optional(),
+  // Marmita personalizada (item sem produto de catálogo).
+  custom: z
+    .object({
+      label: z.string(),
+      tamanhoSigla: z.string(),
+      pesoTotal: z.number(),
+      itens: z.array(
+        z.object({
+          grupo: z.string(),
+          nome: z.string(),
+          modoPreparo: z.string().optional(),
+          gramatura: z.number(),
+        }),
+      ),
     })
     .optional(),
 });
@@ -165,14 +181,35 @@ export const createOrder = createServerFn({ method: "POST" })
           partes.push("Garfo e faca");
         }
       }
+      // Marmita personalizada: grava a composição na observação (sai na comanda)
+      // e o nome próprio em nome_item (produto_id fica null).
+      if (item.custom) {
+        const comp = item.custom.itens
+          .map((i) => `${i.gramatura}g ${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`)
+          .join(" + ");
+        partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
+        if (comp) partes.push(comp);
+      }
       return {
         pedido_id: order.id,
-        produto_id: item.productId,
+        produto_id: item.custom ? null : (item.productId ?? null),
+        nome_item: item.custom ? item.custom.label : null,
         quantidade: item.quantity,
         preco_unitario: item.price,
         observacao: partes.length > 0 ? partes.join(" | ") : null,
       };
     });
+
+    // Validação servidor: mínimo de unidades por combinação personalizada.
+    const minPersonalizada = 3;
+    const abaixoDoMinimo = data.items.some(
+      (i) => i.custom && i.quantity < minPersonalizada,
+    );
+    if (abaixoDoMinimo) {
+      throw new Error(
+        `Marmitas personalizadas exigem no mínimo ${minPersonalizada} unidades por combinação.`,
+      );
+    }
 
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
 

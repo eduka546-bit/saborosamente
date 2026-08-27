@@ -57,14 +57,34 @@ export interface CartItemOpcoes {
   garfoEFaca?: boolean;
 }
 
+/** Item escolhido dentro de uma marmita personalizada. */
+export interface CartCustomItem {
+  grupo: string;
+  nome: string;
+  modoPreparo?: string;
+  gramatura: number; // g
+}
+
+/** Marmita personalizada montada pelo cliente (não existe no catálogo). */
+export interface CartCustomMarmita {
+  label: string; // ex.: "Marmita Personalizada (M)"
+  tamanhoSigla: string; // "P" | "M" | "G" | "GG"
+  precoUnitario: number; // preço já calculado pela faixa de peso
+  pesoTotal: number; // g
+  itens: CartCustomItem[];
+}
+
 export interface CartLine {
   productId: string;
   quantity: number;
   weight?: string;
   opcoes?: CartItemOpcoes;
+  /** Presente apenas em marmitas personalizadas (item sem produto de catálogo). */
+  custom?: CartCustomMarmita;
 }
 
 export interface CartLineDetailed extends CartLine {
+  /** Produto do catálogo. Ausente em itens personalizados (custom). */
   product: Product;
   subtotal: number;
   /** Preço unitário cheio (sem desconto de faixa) — usado para exibir economia. */
@@ -85,6 +105,8 @@ interface CartContextValue {
   setSelectedCity: (city: string) => void;
   setSelectedBairro: (bairro: string) => void;
   add: (productId: string, quantity?: number, weight?: string, opcoes?: CartItemOpcoes) => void;
+  /** Adiciona uma marmita personalizada (item sem produto de catálogo). */
+  addCustom: (custom: CartCustomMarmita, quantity: number) => void;
   setQuantity: (
     productId: string,
     quantity: number,
@@ -105,6 +127,22 @@ function mesmaOpcao(a?: CartItemOpcoes, b?: CartItemOpcoes): boolean {
   if (!a && !b) return true;
   if (!a || !b) return false;
   return a.consumo === b.consumo && Boolean(a.garfoEFaca) === Boolean(b.garfoEFaca);
+}
+
+// Constrói um Product "sintético" para uma marmita personalizada, de modo que
+// o restante do carrinho (que espera line.product) funcione sem exceções.
+function customToProduct(custom: CartCustomMarmita): Product {
+  return {
+    id: "custom",
+    nome: custom.label,
+    descricao: custom.itens.map((i) => i.nome).join(", "),
+    ingredientes: [],
+    preco: custom.precoUnitario,
+    peso: `${custom.pesoTotal}g`,
+    categoria: "Marmita Personalizada" as any,
+    categorias: { nome: "Marmita Personalizada" },
+    imagem: "/icon-app.jpg",
+  } as Product;
 }
 
 function readStorage(): CartLine[] {
@@ -436,6 +474,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Marmita personalizada: cada combinação é uma linha única (id sintético).
+  const addCustom = useCallback((custom: CartCustomMarmita, quantity: number) => {
+    const uid =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : String(Date.now()) + Math.random().toString(36).slice(2);
+    setLines((prev) => [...prev, { productId: `custom:${uid}`, quantity, custom }]);
+  }, []);
+
   const setQuantity = useCallback(
     (productId: string, quantity: number, weight?: string, opcoes?: CartItemOpcoes) => {
       setLines((prev) =>
@@ -470,6 +517,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const detailedForHook = useMemo(
     () =>
       lines.flatMap((line) => {
+        // Marmita personalizada: dados vêm do próprio item, não do catálogo.
+        if (line.custom) {
+          const product = customToProduct(line.custom);
+          return [{ ...line, product, subtotal: line.custom.precoUnitario * line.quantity }];
+        }
         const product = cachedProducts.find((p) => p.id === line.productId);
         if (!product) return [];
         const price =
@@ -499,8 +551,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   const value = useMemo<CartContextValue>(() => {
-    // Resolve os produtos das linhas (ignora os que ainda não carregaram)
+    // Resolve os produtos das linhas (ignora os que ainda não carregaram).
+    // Marmitas personalizadas usam um Product sintético (customToProduct).
     const linhasResolvidas = lines.flatMap((line) => {
+      if (line.custom) return [{ line, product: customToProduct(line.custom) }];
       const product = cachedProducts.find((p) => p.id === line.productId);
       return product ? [{ line, product }] : [];
     });
@@ -509,12 +563,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Sopas e complementos CONTAM aqui, mas não recebem o preço de faixa.
     // Combos prontos contam como 5/10/20 unidades (unidadesDoItem), empurrando a
     // faixa das marmitas avulsas, mesmo sendo uma única linha no carrinho.
+    // Marmitas personalizadas contam a própria quantidade (1 un cada).
     const count = linhasResolvidas.reduce((acc, { line, product }) => {
-      const un = unidadesDoItem(product.nome, product.categoria);
+      const un = line.custom ? 1 : unidadesDoItem(product.nome, product.categoria);
       return acc + line.quantity * un;
     }, 0);
 
     const detailed = linhasResolvidas.map<CartLineDetailed>(({ line, product }) => {
+      // Marmita personalizada: preço fixo próprio, sem desconto de faixa.
+      if (line.custom) {
+        return {
+          ...line,
+          product,
+          subtotal: line.custom.precoUnitario * line.quantity,
+          precoCheio: line.custom.precoUnitario,
+        };
+      }
       const categoria = product.categoria ?? "";
       const isSopa = categoria.toLowerCase().includes("sopa");
       const semDesconto = isNoDiscount(categoria);
@@ -592,13 +656,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setSelectedBairro,
 
       add,
+      addCustom,
       setQuantity,
       remove,
       clear,
       exitIntentCoupon,
       markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
 
   return (
     <>

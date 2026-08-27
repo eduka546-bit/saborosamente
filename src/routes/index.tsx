@@ -22,10 +22,16 @@ import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { PromoCarousel } from "@/components/promo-carousel";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
+import { formatBRL } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useMemo } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
+import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
 import { COMBO_RULES } from "@/lib/combo-rules";
+import {
+  normalizarMarmitaConfig,
+  type MarmitaGrupo,
+} from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
 
 // Apenas "Combos Escolha Você Mesmo" são excluídos do catálogo e filtros
@@ -143,6 +149,7 @@ function Index() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
+  const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
@@ -181,6 +188,34 @@ function Index() {
     Array.isArray((settings as any)?.promo_banners) && (settings as any).promo_banners.length > 0
       ? (settings as any).promo_banners
       : [];
+
+  // ── Marmita Personalizada ─────────────────────────────────────────────────
+  const marmitaConfig = useMemo(
+    () => normalizarMarmitaConfig((settings as any)?.parametros_loja?.marmita_personalizada),
+    [settings],
+  );
+
+  const { data: marmitaGrupos = [] } = useQuery<MarmitaGrupo[]>({
+    queryKey: ["marmita-grupos"],
+    enabled: marmitaConfig.ativo,
+    queryFn: async () => {
+      const { data: grupos } = await supabase
+        .from("marmita_grupos")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      const { data: ings } = await supabase
+        .from("marmita_ingredientes")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      return (grupos ?? []).map((g: any) => ({
+        ...g,
+        ingredientes: (ings ?? []).filter((i: any) => i.grupo_id === g.id),
+      })) as MarmitaGrupo[];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -524,6 +559,57 @@ function Index() {
                   </div>
                 )}
 
+                {/* Marmita Personalizada — card */}
+                {selectedCategory === "Todas" && !searchTerm && marmitaConfig.ativo && (
+                  <div
+                    onClick={() => setMarmitaModalOpen(true)}
+                    className="cursor-pointer mb-8 rounded-2xl overflow-hidden relative group border border-[#086e45]/20"
+                  >
+                    <div className="absolute inset-0 bg-[#0b4f34]" />
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl group-hover:scale-110 transition-transform duration-700" />
+                      <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-lime/10 blur-2xl" />
+                    </div>
+
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5 px-6 md:px-8 py-6 md:py-8 text-white">
+                      <div className="text-center md:text-left flex-1">
+                        <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] mb-3">
+                          <ChefHat size={11} />
+                          Do seu jeito
+                        </div>
+                        <h2 className="text-xl md:text-2xl font-display font-black leading-tight">
+                          {marmitaConfig.titulo}
+                        </h2>
+                        <p className="mt-2 text-white/70 max-w-sm text-xs leading-relaxed">
+                          {marmitaConfig.descricao} Preço pelo tamanho, mínimo{" "}
+                          {marmitaConfig.minUnidades} unidades.
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {marmitaConfig.tamanhos.map((t) => (
+                            <span
+                              key={t.sigla}
+                              className="inline-flex items-center gap-1 bg-white/10 border border-white/15 rounded-md px-2 py-1 text-[10px] font-bold"
+                            >
+                              {t.sigla} → {formatBRL(t.preco)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMarmitaModalOpen(true);
+                        }}
+                        className="shrink-0 flex items-center gap-2 bg-sun text-sun-foreground font-bold px-6 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 text-sm"
+                      >
+                        <ChefHat size={16} />
+                        Montar Marmita
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Products Grid */}
                 <div className="space-y-8">
                   {selectedCategory === "Todas" ? (
@@ -602,6 +688,16 @@ function Index() {
                       imagem: p.imagem_url,
                     }))}
                 />
+
+                {/* Marmita Personalizada Modal */}
+                {marmitaConfig.ativo && (
+                  <MarmitaPersonalizadaModal
+                    isOpen={marmitaModalOpen}
+                    onClose={() => setMarmitaModalOpen(false)}
+                    grupos={marmitaGrupos}
+                    config={marmitaConfig}
+                  />
+                )}
               </>
             )}
           </div>

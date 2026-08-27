@@ -129,7 +129,7 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                 printReceipt({
                   ...order,
                   itens: (order.itens ?? []).map((i: any) => ({
-                    nome: i.produtos?.nome ?? i.nome ?? "Produto",
+                    nome: i.produtos?.nome ?? i.nome_item ?? i.nome ?? "Produto",
                     quantidade: i.quantidade,
                     preco_unitario: i.preco_unitario,
                     observacao: i.observacao,
@@ -508,7 +508,7 @@ function AdminOrdersPage() {
               const orderComItens = {
                 ...newOrder,
                 itens: (itens ?? []).map((i: any) => ({
-                  nome: nomesMap[i.produto_id] ?? "Produto",
+                  nome: nomesMap[i.produto_id] ?? i.nome_item ?? "Produto",
                   quantidade: i.quantidade,
                   preco_unitario: i.preco_unitario,
                   observacao: i.observacao,
@@ -666,7 +666,7 @@ function AdminOrdersPage() {
         ...pedido,
         itens: (pedido.itens ?? []).map((item: any) => ({
           ...item,
-          produtos: { nome: produtosMap[item.produto_id] ?? "Produto" },
+          produtos: { nome: produtosMap[item.produto_id] ?? item.nome_item ?? "Produto" },
         })),
       }));
     },
@@ -1129,7 +1129,7 @@ function AdminOrdersPage() {
                             printReceipt({
                               ...order,
                               itens: (order.itens ?? []).map((i: any) => ({
-                                nome: i.produtos?.nome ?? "Produto",
+                                nome: i.produtos?.nome ?? i.nome_item ?? "Produto",
                                 quantidade: i.quantidade,
                                 preco_unitario: i.preco_unitario,
                                 observacao: i.observacao,

@@ -246,6 +246,9 @@ function Checkout() {
   const datasEntrega = gerarDatasEntrega(entregaCfg);
   const HORARIOS_ENTREGA = entregaCfg.horarios;
 
+  // Há marmita personalizada no carrinho? (para o aviso de prazo)
+  const temMarmitaPersonalizada = lines.some((l) => l.custom);
+
   const paymentMethods = enabledOrDefault(siteSettings?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault(siteSettings?.card_flags, defaultCardFlags);
   const mealFlags = enabledOrDefault(siteSettings?.meal_flags, defaultMealFlags);
@@ -352,6 +355,15 @@ function Checkout() {
       return;
     }
 
+    // Marmita personalizada: mínimo de unidades por combinação.
+    const MIN_PERSONALIZADA = 3;
+    if (lines.some((l) => l.custom && l.quantity < MIN_PERSONALIZADA)) {
+      toast.error(
+        `Cada marmita personalizada precisa de no mínimo ${MIN_PERSONALIZADA} unidades.`,
+      );
+      return;
+    }
+
     try {
       // A validação do cupom (validade, limite de usos, primeira compra) e o
       // incremento de uso agora são feitos no servidor, dentro de createOrder —
@@ -380,11 +392,19 @@ function Checkout() {
           tipoCartao: selectedFlag || undefined,
           userId: session?.user?.id,
           items: lines.map((l) => ({
-            productId: l.product.id,
+            productId: l.custom ? null : l.product.id,
             quantity: l.quantity,
             weight: l.weight,
             price: l.subtotal / l.quantity,
             opcoes: l.opcoes,
+            custom: l.custom
+              ? {
+                  label: l.custom.label,
+                  tamanhoSigla: l.custom.tamanhoSigla,
+                  pesoTotal: l.custom.pesoTotal,
+                  itens: l.custom.itens,
+                }
+              : undefined,
           })),
         },
       });
@@ -734,6 +754,19 @@ function Checkout() {
               </label>
               <input id="complemento" className={fieldClass} {...register("complemento")} />
             </div>
+
+            {/* Aviso de prazo — marmitas personalizadas */}
+            {temMarmitaPersonalizada && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <span className="text-base leading-none">⏳</span>
+                <span>
+                  Seu pedido tem <strong>marmita(s) personalizada(s)</strong>. Você escolhe a data
+                  normalmente, mas esses itens precisam de cerca de <strong>1 semana</strong> de
+                  preparo e serão entregues na semana seguinte. Os demais itens saem na data/horário
+                  escolhidos.
+                </span>
+              </div>
+            )}
 
             {/* ── Data e horário de entrega (entrega programada) ────────────── */}
             <div className="grid gap-4 sm:grid-cols-2">

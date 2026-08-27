@@ -412,6 +412,11 @@ function AdminDashboard() {
                 { label: "Ver Pedidos", icon: ShoppingBag, href: "/admin/pedidos" },
                 { label: "Relatórios", icon: BarChart2, href: "/admin/relatorios" },
                 { label: "Entregas", icon: Truck, href: "/admin/config/taxas" },
+                {
+                  label: "Marmita Personalizada",
+                  icon: Utensils,
+                  href: "/admin/config/marmita-personalizada",
+                },
               ].map((item) => (
                 <Link
                   key={item.label}
