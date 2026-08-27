@@ -417,6 +417,11 @@ function AdminDashboard() {
                   icon: Utensils,
                   href: "/admin/config/marmita-personalizada",
                 },
+                {
+                  label: "Mensagens WhatsApp",
+                  icon: MessageCircle,
+                  href: "/admin/config/mensagens",
+                },
               ].map((item) => (
                 <Link
                   key={item.label}

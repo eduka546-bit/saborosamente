@@ -51,6 +51,7 @@ import { Route as AdminConfigHorariosRouteImport } from './routes/admin/config/h
 import { Route as AdminConfigImpressaoRouteImport } from './routes/admin/config/impressao'
 import { Route as AdminConfigInformativoRouteImport } from './routes/admin/config/informativo'
 import { Route as AdminConfigMarmitaPersonalizadaRouteImport } from './routes/admin/config/marmita-personalizada'
+import { Route as AdminConfigMensagensRouteImport } from './routes/admin/config/mensagens'
 import { Route as AdminConfigMesasRouteImport } from './routes/admin/config/mesas'
 import { Route as AdminConfigOrigemRouteImport } from './routes/admin/config/origem'
 import { Route as AdminConfigParametrosRouteImport } from './routes/admin/config/parametros'
@@ -288,6 +289,11 @@ const AdminConfigMarmitaPersonalizadaRoute =
     path: '/config/marmita-personalizada',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminConfigMensagensRoute = AdminConfigMensagensRouteImport.update({
+  id: '/config/mensagens',
+  path: '/config/mensagens',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminConfigMesasRoute = AdminConfigMesasRouteImport.update({
   id: '/config/mesas',
   path: '/config/mesas',
@@ -459,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
+  '/admin/config/mensagens': typeof AdminConfigMensagensRoute
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
@@ -525,6 +532,7 @@ export interface FileRoutesByTo {
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
+  '/admin/config/mensagens': typeof AdminConfigMensagensRoute
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
+  '/admin/config/mensagens': typeof AdminConfigMensagensRoute
   '/admin/config/mesas': typeof AdminConfigMesasRoute
   '/admin/config/origem': typeof AdminConfigOrigemRoute
   '/admin/config/parametros': typeof AdminConfigParametrosRoute
@@ -664,6 +673,7 @@ export interface FileRouteTypes {
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
+    | '/admin/config/mensagens'
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
@@ -730,6 +740,7 @@ export interface FileRouteTypes {
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
+    | '/admin/config/mensagens'
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
+    | '/admin/config/mensagens'
     | '/admin/config/mesas'
     | '/admin/config/origem'
     | '/admin/config/parametros'
@@ -1136,6 +1148,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigMarmitaPersonalizadaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/mensagens': {
+      id: '/admin/config/mensagens'
+      path: '/config/mensagens'
+      fullPath: '/admin/config/mensagens'
+      preLoaderRoute: typeof AdminConfigMensagensRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/config/mesas': {
       id: '/admin/config/mesas'
       path: '/config/mesas'
@@ -1369,6 +1388,7 @@ interface AdminRouteChildren {
   AdminConfigImpressaoRoute: typeof AdminConfigImpressaoRoute
   AdminConfigInformativoRoute: typeof AdminConfigInformativoRoute
   AdminConfigMarmitaPersonalizadaRoute: typeof AdminConfigMarmitaPersonalizadaRoute
+  AdminConfigMensagensRoute: typeof AdminConfigMensagensRoute
   AdminConfigMesasRoute: typeof AdminConfigMesasRoute
   AdminConfigOrigemRoute: typeof AdminConfigOrigemRoute
   AdminConfigParametrosRoute: typeof AdminConfigParametrosRoute
@@ -1420,6 +1440,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConfigImpressaoRoute: AdminConfigImpressaoRoute,
   AdminConfigInformativoRoute: AdminConfigInformativoRoute,
   AdminConfigMarmitaPersonalizadaRoute: AdminConfigMarmitaPersonalizadaRoute,
+  AdminConfigMensagensRoute: AdminConfigMensagensRoute,
   AdminConfigMesasRoute: AdminConfigMesasRoute,
   AdminConfigOrigemRoute: AdminConfigOrigemRoute,
   AdminConfigParametrosRoute: AdminConfigParametrosRoute,

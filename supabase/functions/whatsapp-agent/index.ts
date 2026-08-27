@@ -851,8 +851,121 @@ async function buscarClientePorCpf(
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenAI — com function calling para ações estruturadas
+// Resposta automática de acompanhamento de pedido (sem IA)
+// Detecta "quero acompanhar meu pedido nº #XXXX" e responde com os dados
+// completos do pedido (itens, endereço, status, horário) — sem fazer perguntas.
 // ─────────────────────────────────────────────────────────────────────────────
+
+async function responderAcompanhamentoPedido(
+  telefone: string,
+  texto: string,
+): Promise<boolean> {
+  // Detecta protocolo no texto: #XXXX (6-8 chars hex) ou só "XXXX" perto de
+  // palavras como "acompanhar/pedido/protocolo/nº".
+  const norm = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ehAcompanhamento =
+    norm.includes("acompanhar") ||
+    norm.includes("acompanhe") ||
+    norm.includes("meu pedido") ||
+    norm.includes("status do pedido") ||
+    norm.includes("onde esta meu pedido") ||
+    norm.includes("pedido saiu") ||
+    norm.includes("protocolo");
+
+  // Extrai protocolo (sequência hex de 6-8 chars após # ou sozinha)
+  const matchProto = texto.match(/#([0-9a-fA-F]{6,8})\b/) ||
+    (ehAcompanhamento ? texto.match(/\b([0-9a-fA-F]{6,8})\b/) : null);
+  const protocolo = matchProto?.[1] ?? null;
+
+  if (!ehAcompanhamento && !protocolo) return false;
+
+  try {
+    // Busca o pedido: por protocolo ou pelo telefone (pedido mais recente)
+    let query = supabase
+      .from("pedidos")
+      .select(
+        "id, status, created_at, metodo_entrega, metodo_pagamento, valor_total, taxa_entrega, horario_recebimento, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, nome_cliente",
+      )
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (protocolo) {
+      query = query.ilike("id", `${protocolo}%`);
+    } else {
+      const telNum = telefone.replace(/\D/g, "");
+      query = query.eq("telefone_cliente", telNum.startsWith("55") ? telNum : `55${telNum}`);
+    }
+
+    const { data: pedidos, error } = await query;
+    if (error || !pedidos?.length) return false;
+
+    const pedido = pedidos[0];
+    const proto = String(pedido.id).slice(0, 8).toUpperCase();
+    const statusMsg =
+      STATUS_PEDIDO_MSG[String(pedido.status).toLowerCase()] ??
+      `está com status: ${pedido.status}`;
+
+    // Busca itens do pedido
+    const { data: itens } = await supabase
+      .from("pedido_itens")
+      .select("quantidade, observacao, nome_item, produto_id")
+      .eq("pedido_id", pedido.id);
+
+    // Nomes dos produtos (itens com produto_id)
+    const produtoIds = (itens ?? []).map((i: any) => i.produto_id).filter(Boolean);
+    const nomesMap: Record<string, string> = {};
+    if (produtoIds.length > 0) {
+      const { data: prods } = await supabase
+        .from("produtos")
+        .select("id, nome")
+        .in("id", produtoIds);
+      (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
+    }
+
+    const itensTxt = (itens ?? [])
+      .map((i: any) => {
+        const nome = nomesMap[i.produto_id] ?? i.nome_item ?? "Item";
+        const obs = i.observacao ? ` (${i.observacao})` : "";
+        return `  • ${i.quantidade}x ${nome}${obs}`;
+      })
+      .join("\n");
+
+    // Monta endereço
+    const enderecoTxt =
+      pedido.metodo_entrega === "entrega" && pedido.endereco_rua
+        ? `${pedido.endereco_rua}${pedido.endereco_numero ? ", " + pedido.endereco_numero : ""}${pedido.endereco_bairro ? " — " + pedido.endereco_bairro : ""}${pedido.endereco_cidade ? ", " + pedido.endereco_cidade : ""}`
+        : pedido.metodo_entrega === "retirada"
+          ? "Retirada na loja"
+          : null;
+
+    const horario = pedido.horario_recebimento
+      ? `🕐 ${pedido.horario_recebimento}`
+      : null;
+
+    const valorFmt = Number(pedido.valor_total ?? 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+
+    const linhas = [
+      `Olá! 😊 Aqui estão as informações do seu pedido *#${proto}*:`,
+      "",
+      `📦 *Status:* ${statusMsg}`,
+    ];
+    if (itensTxt) { linhas.push("", `🍱 *Itens:*\n${itensTxt}`); }
+    if (enderecoTxt) { linhas.push("", `📍 *Entrega:* ${enderecoTxt}`); }
+    if (horario) { linhas.push("", horario); }
+    linhas.push("", `💳 *Pagamento:* ${pedido.metodo_pagamento ?? "não informado"}`);
+    linhas.push(`💰 *Total:* ${valorFmt}`);
+    linhas.push("", "Qualquer dúvida é só chamar! 🫶🏼");
+
+    await sendWhatsAppMessage(telefone, linhas.join("\n"));
+    return true;
+  } catch (e: any) {
+    console.error("responderAcompanhamentoPedido erro:", e?.message ?? e);
+    return false;
+  }
+}
 
 // NOTA: a função criar_pedido foi REMOVIDA de propósito. A IA nunca finaliza
 // pedidos — todo pedido é sempre transferido para um humano da equipe via
@@ -1935,6 +2048,21 @@ Deno.serve(async (req: Request) => {
         // Encerramos aqui para não gerar resposta duplicada da IA.
         if (autoDisparou) {
           await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+          return new Response("OK", { status: 200 });
+        }
+      }
+
+      // ── Intercepta "quero acompanhar meu pedido nº #XXXX" ────────────────
+      // Responde DIRETO com os dados completos do pedido, sem passar pela IA.
+      // Isso garante que o cliente já recebe todas as informações sem perguntas.
+      if (texto && !menuId) {
+        const respondeu = await responderAcompanhamentoPedido(telefone, texto);
+        if (respondeu) {
+          await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+          await appendMensagem(conversa.id, historico, {
+            role: "assistant",
+            content: "[Status do pedido enviado automaticamente]",
+          });
           return new Response("OK", { status: 200 });
         }
       }
