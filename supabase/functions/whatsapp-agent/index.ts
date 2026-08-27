@@ -659,6 +659,36 @@ async function getRespostaFixa(chave: string): Promise<string | null> {
   return titulo ? `*${titulo}*\n\n${conteudo}` : conteudo;
 }
 
+// Busca só o CONTEÚDO de uma resposta fixa (sem o título em negrito), usado nas
+// mensagens de menu (pedido, site, atendente, etc.). Substitui o placeholder
+// {nome} pelo primeiro nome do cliente; se não houver nome, remove o ", {nome}"
+// ou " {nome}" e limpa espaços/vírgulas soltos. Retorna null se não existir.
+async function getConteudoFixo(chave: string, primeiroNome?: string | null): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("agente_respostas_fixas")
+    .select("conteudo, ativo")
+    .eq("chave", chave)
+    .maybeSingle();
+  if (error) {
+    console.error("Erro ao buscar conteúdo fixo:", chave, JSON.stringify(error));
+    return null;
+  }
+  if (!data || data.ativo === false) return null;
+  let conteudo = String(data.conteudo ?? "").trim();
+  if (!conteudo) return null;
+  const nome = (primeiroNome ?? "").trim();
+  if (nome) {
+    conteudo = conteudo.replace(/\{nome\}/g, nome);
+  } else {
+    // Sem nome: remove ", {nome}" / " {nome}" / "{nome}" e limpa resíduos.
+    conteudo = conteudo
+      .replace(/,?\s*\{nome\}/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([!?.,])/g, "$1");
+  }
+  return conteudo;
+}
+
 // Busca módulos ativos do banco e monta o prompt base
 async function getModulosPrompt(): Promise<string> {
   const { data: modulos, error } = await supabase
@@ -1979,16 +2009,21 @@ Deno.serve(async (req: Request) => {
             await registrarEvento("escalacao_humano", telefone, conversa.id, {
               origem: "menu_atendente",
             });
-            const msg = primeiroNome
-              ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
-              : "Tudo bem! 😊 Vou te conectar com nossa equipe agora. Um momento!";
+            // Texto editável no admin (chave menu_atendente); fallback embutido.
+            const msg =
+              (await getConteudoFixo("menu_atendente", primeiroNome)) ??
+              (primeiroNome
+                ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
+                : "Tudo bem! 😊 Vou te conectar com nossa equipe agora. Um momento!");
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             return new Response("OK", { status: 200 });
           }
           case "menu_site": {
-            // Envia o link com https:// para o WhatsApp torná-lo clicável.
+            // Texto editável no admin (chave menu_site); fallback embutido.
+            // O link com https:// faz o WhatsApp torná-lo clicável.
             const siteMsg =
+              (await getConteudoFixo("menu_site", primeiroNome)) ??
               `🌐 Acesse nosso site para ver o cardápio completo, fazer pedidos e acompanhar entregas:\n\nhttps://${SITE_URL}`;
             await sendWhatsAppMessage(telefone, siteMsg);
             await appendMensagem(conversa.id, historico, {
@@ -2006,9 +2041,12 @@ Deno.serve(async (req: Request) => {
             });
             const cardapioEnviado = await enviarCardapioPrincipal(telefone);
             if (cardapioEnviado) {
+              // Mensagem que acompanha o PDF, editável no admin (menu_cardapio).
+              const cardapioMsg = await getConteudoFixo("menu_cardapio", primeiroNome);
+              if (cardapioMsg) await sendWhatsAppMessage(telefone, cardapioMsg);
               await appendMensagem(conversa.id, historico, {
                 role: "assistant",
-                content: "[Cardápio enviado]",
+                content: cardapioMsg ?? "[Cardápio enviado]",
               });
               await sendMenuInterativo(telefone);
               return new Response("OK", { status: 200 });
@@ -2026,9 +2064,12 @@ Deno.serve(async (req: Request) => {
             await registrarEvento("escalacao_humano", telefone, conversa.id, {
               origem: "menu_pedido",
             });
-            const msg = primeiroNome
-              ? `Perfeito, ${primeiroNome}! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!`
-              : "Perfeito! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!";
+            // Texto editável no admin (chave menu_pedido); fallback embutido.
+            const msg =
+              (await getConteudoFixo("menu_pedido", primeiroNome)) ??
+              (primeiroNome
+                ? `Perfeito, ${primeiroNome}! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!`
+                : "Perfeito! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!");
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             return new Response("OK", { status: 200 });

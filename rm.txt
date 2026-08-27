@@ -1,0 +1,9 @@
+﻿supabase : Initialising login role...
+No linha:1 caractere:145
++ ... "Machine"); supabase db query --linked -f add_respostas_menu.sql 2>&1 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Initialising login role...:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+EXIT=0
