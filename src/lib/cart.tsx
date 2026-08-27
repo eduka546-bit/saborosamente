@@ -19,6 +19,7 @@ import {
   precoMarmitaPorFaixa,
   precoCheioMarmita,
   normalizarPrecosMarmita,
+  unidadesDoItem,
   MARMITA_PRICE_TABLE,
 } from "@/lib/combo-rules";
 import { supabase } from "@/integrations/supabase/client";
@@ -466,7 +467,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Quantidade total do carrinho — define a faixa de preço das marmitas.
     // Sopas e complementos CONTAM aqui, mas não recebem o preço de faixa.
-    const count = linhasResolvidas.reduce((acc, { line }) => acc + line.quantity, 0);
+    // Combos prontos contam como 5/10/20 unidades (unidadesDoItem), empurrando a
+    // faixa das marmitas avulsas, mesmo sendo uma única linha no carrinho.
+    const count = linhasResolvidas.reduce((acc, { line, product }) => {
+      const un = unidadesDoItem(product.nome, product.categoria);
+      return acc + line.quantity * un;
+    }, 0);
 
     const detailed = linhasResolvidas.map<CartLineDetailed>(({ line, product }) => {
       const categoria = product.categoria ?? "";

@@ -24,6 +24,29 @@ export function isNoDiscount(categoria: string) {
   return NO_DISCOUNT_CATEGORIES.some((c) => categoria?.toLowerCase().includes(c));
 }
 
+/**
+ * Quantas unidades um COMBO PRONTO representa na contagem total do carrinho.
+ * Combos prontos ("Combo ... - 5un / 10un / 20un") têm preço fixo e NÃO recebem
+ * desconto, mas contam como 5/10/20 itens para empurrar a faixa das marmitas avulsas.
+ * Para qualquer outro produto, retorna 1 (contagem normal por unidade).
+ *
+ * Ex.: "Combo Pratos Mais Vendidos - 5un" → 5
+ *      "Combo A Escolha - 10 A 19 Marmitas" → 10
+ */
+export function unidadesDoItem(nome?: string, categoria?: string): number {
+  const texto = `${nome ?? ""} ${categoria ?? ""}`.toLowerCase();
+  const ehCombo = texto.includes("combo");
+  if (!ehCombo) return 1;
+  // "5un", "10 un", "10 a 19", "20+", "20 ou mais"
+  const mUn = texto.match(/(\d+)\s*un/);
+  if (mUn) return Math.max(1, parseInt(mUn[1], 10));
+  const mFaixa = texto.match(/(\d+)\s*a\s*\d+/); // "5 a 9", "10 a 19"
+  if (mFaixa) return Math.max(1, parseInt(mFaixa[1], 10));
+  const mMais = texto.match(/(\d+)\s*(\+|ou\s*mais)/); // "20+", "20 ou mais"
+  if (mMais) return Math.max(1, parseInt(mMais[1], 10));
+  return 1;
+}
+
 export function getComboDiscount(totalQty: number) {
   return (
     [...COMBO_RULES].sort((a, b) => b.min - a.min).find((rule) => totalQty >= rule.min) ?? null
