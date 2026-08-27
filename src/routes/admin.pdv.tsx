@@ -62,6 +62,10 @@ function AdminPDV() {
   const [troco, setTroco] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWeightPicker, setShowWeightPicker] = useState<any>(null); // product waiting for weight
+  // Identificação do cliente (opcional)
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [cliente, setCliente] = useState<any>(null);
+  const [buscandoCliente, setBuscandoCliente] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Foco automático no campo de busca
@@ -237,7 +241,9 @@ function AdminPDV() {
       const { data: order, error: orderError } = await supabase
         .from("pedidos")
         .insert({
-          nome_cliente: "Balcão",
+          user_id: cliente?.id ?? null,
+          nome_cliente: cliente?.nome ?? "Balcão",
+          telefone_cliente: cliente?.telefone ?? null,
           metodo_entrega: "retirada",
           metodo_pagamento: selectedPayment,
           valor_total: totalEfetivo,
@@ -275,7 +281,8 @@ function AdminPDV() {
       // 4. Imprimir cupom
       const orderParaImprimir = {
         id: order.id,
-        nome_cliente: "Balcão",
+        nome_cliente: cliente?.nome ?? "Balcão",
+        telefone_cliente: cliente?.telefone,
         created_at: order.created_at,
         status: "entregue",
         metodo_entrega: "retirada",
@@ -313,6 +320,8 @@ function AdminPDV() {
       setItems([]);
       setSelectedPayment("");
       setTroco("");
+      setCliente(null);
+      setClienteBusca("");
       searchRef.current?.focus();
     } catch (e: any) {
       toast.error("Erro: " + e.message);
@@ -464,6 +473,58 @@ function AdminPDV() {
 
           {/* Pagamento */}
           <div className="p-4 border-b space-y-2 flex-1 overflow-y-auto">
+            {/* Identificação do cliente (opcional) */}
+            <div className="mb-3 pb-3 border-b">
+              <p className="text-xs font-bold text-gray-400 uppercase mb-2">Cliente (opcional)</p>
+              {cliente ? (
+                <div className="flex items-center justify-between bg-[#086e45]/5 rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{cliente.nome}</p>
+                    <p className="text-[10px] text-gray-500">{cliente.telefone}</p>
+                  </div>
+                  <button
+                    onClick={() => setCliente(null)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={clienteBusca}
+                    onChange={(e) => setClienteBusca(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && clienteBusca.trim()) {
+                        e.preventDefault();
+                        setBuscandoCliente(true);
+                        const termo = clienteBusca.trim().replace(/\D/g, "");
+                        // Busca por telefone ou CPF
+                        const { data } = await supabase
+                          .from("profiles")
+                          .select("id, nome, telefone, cpf")
+                          .or(`telefone.ilike.%${termo}%,cpf.ilike.%${termo}%`)
+                          .limit(1)
+                          .maybeSingle();
+                        if (data) {
+                          setCliente(data);
+                          setClienteBusca("");
+                          toast.success(`Cliente: ${data.nome}`);
+                        } else {
+                          toast.error("Cliente não encontrado.");
+                        }
+                        setBuscandoCliente(false);
+                      }
+                    }}
+                    placeholder="Telefone ou CPF"
+                    className="flex-1 h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                    disabled={buscandoCliente}
+                  />
+                </div>
+              )}
+            </div>
+
             <p className="text-xs font-bold text-gray-400 uppercase">Pagamento</p>
             <div className="grid grid-cols-2 gap-2">
               {paymentMethods.map((m: any) => (
