@@ -118,7 +118,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         tabela_nutricional_300g: { kcal: "", carb: "", prot: "" },
         tabela_nutricional_400g: { kcal: "", carb: "", prot: "" },
         controle_estoque: false,
-        estoque_atual: 0,
+        estoque_200g: 0,
+        estoque_300g: 0,
+        estoque_400g: 0,
         estoque_minimo: 5,
         imagens: [],
       });
@@ -1182,20 +1184,47 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
-                        Quantidade em Estoque
+                        Estoque por Tamanho
                       </label>
-                      <Input
-                        type="number"
-                        value={formData.estoque_atual || 0}
-                        onChange={(e) =>
-                          setFormData({ ...formData, estoque_atual: parseInt(e.target.value) })
-                        }
-                        className="h-10 border-gray-200"
-                      />
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 block mb-1">200g</label>
+                          <Input
+                            type="number"
+                            value={formData.estoque_200g ?? 0}
+                            onChange={(e) =>
+                              setFormData({ ...formData, estoque_200g: parseInt(e.target.value) || 0 })
+                            }
+                            className="h-10 border-gray-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 block mb-1">300g</label>
+                          <Input
+                            type="number"
+                            value={formData.estoque_300g ?? 0}
+                            onChange={(e) =>
+                              setFormData({ ...formData, estoque_300g: parseInt(e.target.value) || 0 })
+                            }
+                            className="h-10 border-gray-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 block mb-1">400g</label>
+                          <Input
+                            type="number"
+                            value={formData.estoque_400g ?? 0}
+                            onChange={(e) =>
+                              setFormData({ ...formData, estoque_400g: parseInt(e.target.value) || 0 })
+                            }
+                            className="h-10 border-gray-200"
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
-                        Aviso de Estoque Baixo
+                        Aviso de Estoque Baixo (por tamanho)
                       </label>
                       <Input
                         type="number"

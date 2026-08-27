@@ -270,11 +270,12 @@ function AdminPDV() {
       const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
       if (itensError) throw new Error(itensError.message);
 
-      // 3. Decrementar estoque
+      // 3. Decrementar estoque (por tamanho)
       for (const item of recalculatedItems) {
         await supabase.rpc("decrementar_estoque", {
           p_produto_id: item.productId,
           p_qtd: item.quantity,
+          p_tamanho: item.weight,
         });
       }
 
