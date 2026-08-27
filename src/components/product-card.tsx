@@ -222,8 +222,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
-      <div onClick={() => setDetailOpen(true)}>
-        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50">
+      <div onClick={() => setDetailOpen(true)} className="h-full">
+        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50 h-full">
           {/* Imagem — sem arredondamento no topo */}
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
             <img
@@ -275,7 +275,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
+          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3 min-h-[220px]">
             <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
               {product.nome}
             </h3>
