@@ -321,9 +321,13 @@ function PerfilPage() {
 
   const handleRepeatOrder = (order: any) => {
     try {
-      // Adiciona cada item do pedido anterior ao carrinho
+      // Adiciona cada item do pedido anterior ao carrinho.
+      // O peso foi gravado em observacao como "Peso: 300g | ..." — extrai de lá.
       order.itens?.forEach((item: any) => {
-        add(item.produto_id, item.quantidade, item.peso);
+        const obs = item.observacao ?? "";
+        const matchPeso = obs.match(/Peso:\s*(\d+g)/i);
+        const weight = matchPeso ? matchPeso[1] : undefined;
+        add(item.produto_id, item.quantidade, weight);
       });
       toast.success("Pedido repetido!", {
         description: `${order.itens?.length || 0} item(ns) adicionados ao carrinho`,

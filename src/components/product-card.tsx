@@ -275,7 +275,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3 min-h-[220px]">
+          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
             <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
               {product.nome}
             </h3>
