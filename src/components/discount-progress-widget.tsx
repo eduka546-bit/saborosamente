@@ -1,17 +1,15 @@
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { ShoppingBag } from "lucide-react";
-
-import { RULES } from "@/lib/cart";
+import { formatBRL } from "@/lib/products";
+import { PROGRESSIVE_LABELS } from "@/lib/combo-rules";
 
 export function DiscountProgressWidget({ className }: { className?: string }) {
-  const { count } = useCart();
+  const { count, discount } = useCart();
 
-  const nextLevel = [...RULES.PROGRESSIVE_DISCOUNT]
-    .sort((a, b) => a.min - b.min)
-    .find((r) => count < r.min);
+  const nextLevel = [...PROGRESSIVE_LABELS].sort((a, b) => a.min - b.min).find((r) => count < r.min);
 
-  const currentLevel = [...RULES.PROGRESSIVE_DISCOUNT]
+  const currentLevel = [...PROGRESSIVE_LABELS]
     .sort((a, b) => b.min - a.min)
     .find((r) => count >= r.min);
 
@@ -22,9 +20,11 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
           <ShoppingBag size={14} />
-          {currentLevel
-            ? `Desconto Ativo: ${(currentLevel.discount * 100).toFixed(0)}%`
-            : "Desconto Progressivo"}
+          {currentLevel && discount > 0
+            ? `Você economiza ${formatBRL(discount)}`
+            : currentLevel
+              ? `Desconto Ativo: ${(currentLevel.discount * 100).toFixed(0)}%`
+              : "Desconto Progressivo"}
         </h3>
         <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
           {count} {count === 1 ? "item" : "itens"}
@@ -41,6 +41,7 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
           </div>
           <p className="text-[9px] font-bold text-primary/70 uppercase text-center">
             Adicione mais {nextLevel.min - count} para {(nextLevel.discount * 100).toFixed(0)}% OFF
+            nas marmitas
           </p>
         </div>
       ) : (

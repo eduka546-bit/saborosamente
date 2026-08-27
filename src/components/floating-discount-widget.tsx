@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { useCart, RULES } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
+import { PROGRESSIVE_LABELS } from "@/lib/combo-rules";
 import { ChevronRight, ShoppingBag, TrendingUp } from "lucide-react";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
@@ -16,11 +17,11 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
     );
   }
 
-  const currentLevel = [...RULES.PROGRESSIVE_DISCOUNT]
+  const currentLevel = [...PROGRESSIVE_LABELS]
     .sort((a, b) => b.min - a.min)
     .find((r) => count >= r.min);
 
-  const nextLevel = [...RULES.PROGRESSIVE_DISCOUNT]
+  const nextLevel = [...PROGRESSIVE_LABELS]
     .sort((a, b) => a.min - b.min)
     .find((r) => count < r.min);
 

@@ -97,6 +97,19 @@ export function precoCheioMarmita(peso: string | undefined): number {
   return MARMITA_PRICE_TABLE[tam]?.unit ?? 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Rótulo de % de economia por faixa (aproximado), derivado da própria tabela.
+// Como o preço é fixo por faixa, o % varia um pouco por tamanho; usamos a média
+// entre os tamanhos como rótulo aproximado exibido ao cliente ("~X% OFF").
+// ─────────────────────────────────────────────────────────────────────────────
+// Rótulos de % exibidos ao cliente (apenas informativos). Os PREÇOS cobrados
+// vêm de MARMITA_PRICE_TABLE; estes percentuais são só a comunicação visual.
+export const PROGRESSIVE_LABELS = [
+  { min: 5, discount: 0.03 },
+  { min: 10, discount: 0.05 },
+  { min: 20, discount: 0.07 },
+];
+
 export interface CartItemForCalc {
   categoria: string;
   subtotal: number;
