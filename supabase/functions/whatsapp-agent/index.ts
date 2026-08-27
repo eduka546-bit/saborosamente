@@ -132,6 +132,8 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
 async function sendMenuInterativo(to: string, saudacao?: string) {
   // Menu único com seções (funciona como "abas" numa mensagem só): Pedidos,
   // Dúvidas e Mais. A API do WhatsApp permite no máximo 10 itens no total.
+  // OBS: o title de cada row tem limite de 24 caracteres (emoji conta 2+); se
+  // um row passar, a lista inteira é rejeitada. Manter curto.
   const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
@@ -143,26 +145,24 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
       {
         title: "Pedidos",
         rows: [
-          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Falar com a equipe" },
           { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
+          { id: "duvida_descontos", title: "🏷️ Descontos", description: "Descubra como economizar" },
+          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Como fazer seu pedido" },
         ],
       },
       {
-        // OBS: title de cada row tem limite de 24 caracteres na API do WhatsApp.
         title: "Dúvidas",
         rows: [
-          { id: "duvida_entrega", title: "🚚 Entrega e frete", description: "Cidades, taxas e prazos" },
+          { id: "duvida_como_funciona", title: "📋 Como Funciona", description: "Marmitas, preparo, validade" },
+          { id: "duvida_entrega", title: "🚚 Entrega e mínimo", description: "Cidades, taxas e prazos" },
           { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
-          { id: "duvida_preparo", title: "🍲 Como preparar", description: "Tempo e modo de preparo" },
-          { id: "duvida_validade", title: "❄️ Validade", description: "Quanto tempo dura e guardar" },
-          { id: "duvida_minimo", title: "📦 Pedido mínimo", description: "Quantidade mínima" },
         ],
       },
       {
         title: "Mais",
         rows: [
-          { id: "menu_site", title: "🌐 Acessar o site", description: SITE_URL },
-          { id: "menu_atendente", title: "👤 Falar com atendente", description: "Falar com nossa equipe" },
+          { id: "menu_site", title: "🌐 Acessar o site", description: "www.saborosamente.com" },
+          { id: "menu_atendente", title: "👤 Falar com atendente", description: "Fale com nossa equipe" },
         ],
       },
     ],
@@ -171,43 +171,9 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   if (!menuEnviado) {
     await sendWhatsAppMessage(
       to,
-      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU 🍱\n\n*Pedidos*\n🛒 Fazer um pedido\n🍽️ Cardápio\n\n*Dúvidas*\n🚚 Entrega e frete\n💳 Pagamento\n🍲 Como preparar\n❄️ Validade\n📦 Pedido mínimo\n\n*Mais*\n🌐 Acessar o site\n👤 Falar com atendente\n\nÉ só me dizer o que você precisa.`,
+      `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU 🍱\n\n*Pedidos*\n🍽️ Cardápio\n🏷️ Descontos\n🛒 Fazer um pedido\n\n*Dúvidas*\n📋 Como Funciona\n🚚 Entrega e pedido mínimo\n💳 Formas de pagamento\n\n*Mais*\n🌐 Acessar o site\n👤 Falar com atendente\n\nÉ só me dizer o que você precisa.`,
     );
   }
-}
-
-// Envia o submenu de Dúvidas Frequentes, com uma opção para voltar ao menu
-// principal. Reutilizado ao abrir Dúvidas e após responder cada dúvida, para o
-// cliente encadear perguntas ou voltar sem se perder.
-async function sendMenuDuvidas(to: string): Promise<boolean> {
-  const enviado = await sendWhatsAppList(
-    to,
-    "❓ Dúvidas Frequentes",
-    "Escolha o assunto da sua dúvida 👇",
-    "Ver assuntos",
-    [
-      {
-        // OBS: title de cada row tem limite de 24 caracteres na API do WhatsApp
-        // (emoji conta como 2+). Se um row passar, a lista inteira é rejeitada.
-        title: "Tire suas dúvidas",
-        rows: [
-          { id: "duvida_entrega", title: "🚚 Entrega e frete", description: "Cidades, taxas e prazos" },
-          { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
-          { id: "duvida_preparo", title: "🍲 Como preparar", description: "Tempo e modo de preparo" },
-          { id: "duvida_validade", title: "❄️ Validade", description: "Quanto tempo dura e como guardar" },
-          { id: "duvida_minimo", title: "📦 Pedido mínimo", description: "Quantidade mínima" },
-          { id: "menu_voltar", title: "⬅️ Voltar", description: "Voltar ao menu principal" },
-        ],
-      },
-    ],
-  );
-  if (!enviado) {
-    await sendWhatsAppMessage(
-      to,
-      "❓ *Dúvidas Frequentes*\n\nSobre o que você quer saber?\n\n🚚 Entrega e frete\n💳 Formas de pagamento\n🍲 Como preparar\n❄️ Validade e armazenamento\n📦 Pedido mínimo\n\nOu escreva *menu* para voltar ao menu principal.",
-    );
-  }
-  return enviado;
 }
 
 function solicitouMenuPrincipal(texto: string): boolean {
@@ -225,11 +191,13 @@ function solicitouMenuPrincipal(texto: string): boolean {
 function identificarOpcaoMenu(texto: string): string | null {
   const opcoes: Record<string, string> = {
     "1": "menu_cardapio",
-    "2": "menu_pedido",
-    "3": "menu_recomenda",
-    "4": "menu_duvidas",
-    "5": "menu_site",
-    "6": "menu_atendente",
+    "2": "duvida_descontos",
+    "3": "menu_pedido",
+    "4": "duvida_como_funciona",
+    "5": "duvida_entrega",
+    "6": "duvida_pagamento",
+    "7": "menu_site",
+    "8": "menu_atendente",
   };
   return opcoes[texto.trim()] ?? null;
 }
@@ -2074,45 +2042,13 @@ Deno.serve(async (req: Request) => {
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
             return new Response("OK", { status: 200 });
           }
-          case "menu_recomenda": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content: "Me dê uma recomendação de prato",
-            });
-            break;
-          }
-          case "menu_duvidas": {
-            await sendMenuDuvidas(telefone);
-            await appendMensagem(conversa.id, historico, {
-              role: "assistant",
-              content: "[Menu dúvidas enviado]",
-            });
-            return new Response("OK", { status: 200 });
-          }
-          case "menu_voltar": {
-            // Volta do submenu de dúvidas para o menu principal.
-            await sendMenuInterativo(telefone);
-            await appendMensagem(conversa.id, historico, {
-              role: "assistant",
-              content: "[Menu principal enviado]",
-            });
-            return new Response("OK", { status: 200 });
-          }
-          case "duvida_entrega": {
-            await appendMensagem(conversa.id, historico, {
-              role: "user",
-              content:
-                "Como funciona a entrega e qual o frete? Liste todas as cidades que vocês entregam já com o valor a partir de quanto.",
-            });
-            break;
-          }
           // Dúvidas com resposta FIXA (texto pronto do banco, sem IA).
           // Se a resposta fixa não existir/estiver inativa, cai no fluxo da IA
           // (break) usando uma pergunta sintética como fallback.
+          case "duvida_como_funciona":
+          case "duvida_entrega":
           case "duvida_pagamento":
-          case "duvida_preparo":
-          case "duvida_validade":
-          case "duvida_minimo": {
+          case "duvida_descontos": {
             const respostaFixa = await getRespostaFixa(menuId);
             if (respostaFixa) {
               await sendWhatsAppMessage(telefone, respostaFixa);
@@ -2127,10 +2063,10 @@ Deno.serve(async (req: Request) => {
             }
             // Fallback: sem resposta fixa cadastrada → deixa a IA responder.
             const perguntasFallback: Record<string, string> = {
+              duvida_como_funciona: "Como preparo as marmitas e qual a validade?",
+              duvida_entrega: "Como funciona a entrega, o frete e o pedido mínimo?",
               duvida_pagamento: "Quais as formas de pagamento aceitas?",
-              duvida_preparo: "Como preparo as marmitas congeladas?",
-              duvida_validade: "Qual a validade e como armazenar as marmitas?",
-              duvida_minimo: "Tem pedido mínimo?",
+              duvida_descontos: "Vocês têm desconto por quantidade?",
             };
             await appendMensagem(conversa.id, historico, {
               role: "user",
