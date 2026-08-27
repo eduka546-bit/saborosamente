@@ -57,6 +57,31 @@ export async function creditarCashback(userId: string, pedidoId: string, valorPe
   });
 }
 
+/**
+ * Credita cashback de um pedido APENAS UMA VEZ (idempotente).
+ * Verifica se já existe transação "recebido" para o pedido antes de creditar —
+ * evita crédito duplicado se o status for alterado várias vezes para "entregue".
+ * Deve ser chamado quando o pedido é finalizado (status "entregue").
+ */
+export async function creditarCashbackSeElegivel(
+  userId: string,
+  pedidoId: string,
+  valorPedido: number,
+) {
+  if (!userId || !pedidoId) return;
+
+  // Já creditado? não faz de novo.
+  const { data: existente } = await supabase
+    .from("cashback_transacoes")
+    .select("id")
+    .eq("pedido_id", pedidoId)
+    .eq("tipo", "recebido")
+    .limit(1);
+  if (existente && existente.length > 0) return;
+
+  await creditarCashback(userId, pedidoId, valorPedido);
+}
+
 /** Usa cashback no pedido */
 export async function usarCashback(userId: string, pedidoId: string, valorUsado: number) {
   if (valorUsado <= 0) return;

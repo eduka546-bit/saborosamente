@@ -22,7 +22,6 @@ import { createOrder } from "@/lib/orders.functions";
 import {
   getCashbackConfig,
   getSaldo,
-  creditarCashback,
   usarCashback,
   calcularCashbackUtilizavel,
 } from "@/lib/cashback";
@@ -439,13 +438,11 @@ function Checkout() {
         /* falha ao notificar não deve bloquear a finalização do pedido */
       }
 
-      // Credita cashback ao usuário
-      if (session?.user?.id) {
-        await creditarCashback(session.user.id, order.id, finalTotal);
-        // Debita cashback usado se aplicou
-        if (cashbackDesconto > 0) {
-          await usarCashback(session.user.id, order.id, cashbackDesconto);
-        }
+      // Cashback: o CRÉDITO só acontece quando o pedido é finalizado (status
+      // "entregue"), feito no painel admin — pedidos não finalizados não geram
+      // cashback. Aqui apenas debitamos o cashback que o cliente optou por usar.
+      if (session?.user?.id && cashbackDesconto > 0) {
+        await usarCashback(session.user.id, order.id, cashbackDesconto);
       }
 
       toast.success("Pedido registrado!", {
