@@ -346,7 +346,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-bold text-white leading-tight">
                     Adicione mais{" "}
-                    <span className="text-[#34d399]">
+                    <span className={proximaFaixa === 5 ? "text-[#86efac]" : proximaFaixa === 10 ? "text-[#34d399]" : "text-[#059669]"}>
                       {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
                     </span>
                   </p>
