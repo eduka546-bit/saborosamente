@@ -60,14 +60,25 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   const [selectedCategory, setSelectedCategory] = useState("Todas");
 
   // ── Categorias disponíveis ────────────────────────────────────────────────
+  // Respeita a MESMA ordem definida no admin (ordem_filtro) — igual à home.
   const categories = useMemo(() => {
-    const cats = new Set<string>();
+    const ordemPorCategoria = new Map<string, number>();
     products.forEach((p: any) => {
       const cat = p.categorias?.nome || p.categoria || "";
-      // exclui categorias de combo dos filtros
-      if (cat && !cat.toLowerCase().includes("combo")) cats.add(cat);
+      if (!cat || cat.toLowerCase().includes("combo")) return;
+      // guarda a menor ordem_filtro vista para a categoria (fallback 999)
+      const ordem = Number(p.categorias?.ordem_filtro ?? 999);
+      if (!ordemPorCategoria.has(cat) || ordem < ordemPorCategoria.get(cat)!) {
+        ordemPorCategoria.set(cat, ordem);
+      }
     });
-    return ["Todas", ...Array.from(cats).sort()];
+    const ordenadas = Array.from(ordemPorCategoria.keys()).sort((a, b) => {
+      const oa = ordemPorCategoria.get(a)!;
+      const ob = ordemPorCategoria.get(b)!;
+      if (oa !== ob) return oa - ob;
+      return a.localeCompare(b); // desempate alfabético
+    });
+    return ["Todas", ...ordenadas];
   }, [products]);
 
   // ── Produtos filtrados ────────────────────────────────────────────────────
