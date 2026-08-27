@@ -409,6 +409,7 @@ function AdminDashboard() {
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: "Novo Produto", icon: Plus, href: "/admin/produtos" },
+                { label: "PDV / Caixa", icon: ShoppingBag, href: "/admin/pdv" },
                 { label: "Ver Pedidos", icon: ShoppingBag, href: "/admin/pedidos" },
                 { label: "Relatórios", icon: BarChart2, href: "/admin/relatorios" },
                 { label: "Entregas", icon: Truck, href: "/admin/config/taxas" },

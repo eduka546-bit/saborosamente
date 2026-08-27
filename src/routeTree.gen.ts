@@ -33,6 +33,7 @@ import { Route as AdminComplementosRouteImport } from './routes/admin/complement
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminEmbalagensRouteImport } from './routes/admin/embalagens'
 import { Route as AdminOuvidoriaRouteImport } from './routes/admin/ouvidoria'
+import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPontuacaoRouteImport } from './routes/admin/pontuacao'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
@@ -195,6 +196,11 @@ const AdminEmbalagensRoute = AdminEmbalagensRouteImport.update({
 const AdminOuvidoriaRoute = AdminOuvidoriaRouteImport.update({
   id: '/ouvidoria',
   path: '/ouvidoria',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPdvRoute = AdminPdvRouteImport.update({
+  id: '/pdv',
+  path: '/pdv',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
@@ -447,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -515,6 +522,7 @@ export interface FileRoutesByTo {
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
@@ -584,6 +592,7 @@ export interface FileRoutesById {
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -655,6 +664,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/embalagens'
     | '/admin/ouvidoria'
+    | '/admin/pdv'
     | '/admin/pedidos'
     | '/admin/pontuacao'
     | '/admin/produtos'
@@ -723,6 +733,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/embalagens'
     | '/admin/ouvidoria'
+    | '/admin/pdv'
     | '/admin/pontuacao'
     | '/admin/produtos'
     | '/admin/storage-cleanup'
@@ -791,6 +802,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/embalagens'
     | '/admin/ouvidoria'
+    | '/admin/pdv'
     | '/admin/pedidos'
     | '/admin/pontuacao'
     | '/admin/produtos'
@@ -1020,6 +1032,13 @@ declare module '@tanstack/react-router' {
       path: '/ouvidoria'
       fullPath: '/admin/ouvidoria'
       preLoaderRoute: typeof AdminOuvidoriaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pdv': {
+      id: '/admin/pdv'
+      path: '/pdv'
+      fullPath: '/admin/pdv'
+      preLoaderRoute: typeof AdminPdvRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pedidos': {
@@ -1372,6 +1391,7 @@ interface AdminRouteChildren {
   AdminCuponsRoute: typeof AdminCuponsRouteWithChildren
   AdminEmbalagensRoute: typeof AdminEmbalagensRoute
   AdminOuvidoriaRoute: typeof AdminOuvidoriaRoute
+  AdminPdvRoute: typeof AdminPdvRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminPontuacaoRoute: typeof AdminPontuacaoRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
@@ -1424,6 +1444,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCuponsRoute: AdminCuponsRouteWithChildren,
   AdminEmbalagensRoute: AdminEmbalagensRoute,
   AdminOuvidoriaRoute: AdminOuvidoriaRoute,
+  AdminPdvRoute: AdminPdvRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminPontuacaoRoute: AdminPontuacaoRoute,
   AdminProdutosRoute: AdminProdutosRoute,
