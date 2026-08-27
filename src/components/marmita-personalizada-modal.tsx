@@ -39,7 +39,7 @@ interface Selecao {
 }
 
 const GRAMATURA_PADRAO = 50; // g ao adicionar um ingrediente
-const PASSO_GRAMATURA = 25; // g por clique +/-
+const PASSO_GRAMATURA = 10; // g por clique +/-
 
 export function MarmitaPersonalizadaModal({
   isOpen,
