@@ -184,17 +184,34 @@ function Index() {
 
   const filteredProducts = useMemo(() => {
     let result = products;
-    if (selectedCategory !== "Todas") {
+    if (selectedCategory === "Sem Glúten") {
+      result = result.filter((p: any) => p.sem_gluten);
+    } else if (selectedCategory === "Sem Lactose") {
+      result = result.filter((p: any) => p.sem_lactose);
+    } else if (selectedCategory !== "Todas") {
       result = result.filter((p: any) => p.categorias?.nome === selectedCategory);
     }
     if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      result = result.filter(
-        (p: any) =>
-          p.nome?.toLowerCase().includes(search) ||
-          p.descricao?.toLowerCase().includes(search) ||
-          p.categorias?.nome?.toLowerCase().includes(search),
-      );
+      // Normaliza (remove acentos) para casar "gluten"/"glúten", "lactose" etc.
+      const norm = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      const search = norm(searchTerm);
+      // Termos de restrição: "sem gluten" / "sem lactose" (ou só "gluten"/"lactose").
+      const buscaSemGluten = search.includes("gluten");
+      const buscaSemLactose = search.includes("lactose");
+      result = result.filter((p: any) => {
+        if (buscaSemGluten && p.sem_gluten) return true;
+        if (buscaSemLactose && p.sem_lactose) return true;
+        return (
+          norm(p.nome).includes(search) ||
+          norm(p.descricao).includes(search) ||
+          norm(p.categorias?.nome).includes(search) ||
+          norm(p.informacao_nutricional).includes(search)
+        );
+      });
     }
     // Remove apenas "Combos Escolha Você Mesmo" do grid — Combos Prontos ficam
     return result
@@ -212,12 +229,17 @@ function Index() {
   }, [products, selectedCategory, searchTerm]);
 
   const categoriesWithProducts = useMemo(() => {
+    // Filtros especiais por selo de restrição (só se houver produtos com o selo).
+    const filtrosRestricao: string[] = [];
+    if (products.some((p: any) => p.sem_gluten)) filtrosRestricao.push("Sem Glúten");
+    if (products.some((p: any) => p.sem_lactose)) filtrosRestricao.push("Sem Lactose");
+
     // Se temos categorias ordenadas do banco, usa essa ordem
     if (orderedCategories.length > 0) {
       const withProducts = orderedCategories
         .map((c: any) => c.nome)
         .filter((nome: string) => products.some((p: any) => p.categorias?.nome === nome));
-      return ["Todas", ...withProducts];
+      return ["Todas", ...withProducts, ...filtrosRestricao];
     }
     // Fallback: ordem alfabética sem "Combos Escolha Você Mesmo"
     const set = new Set<string>();
@@ -227,7 +249,7 @@ function Index() {
         if (!isComboEscolhaVoceMesmo("", cat)) set.add(cat);
       }
     });
-    return ["Todas", ...Array.from(set).sort()];
+    return ["Todas", ...Array.from(set).sort(), ...filtrosRestricao];
   }, [products, orderedCategories]);
 
   return (
