@@ -329,92 +329,50 @@ export function MarmitaPersonalizadaModal({
 
           {/* Coluna direita — resumo / calculadora */}
           <div className="w-full md:w-80 flex flex-col shrink-0 border-t md:border-t-0">
-            {/* Calculadora de peso */}
-            <div className="px-4 pt-4 pb-3 border-b space-y-3 shrink-0">
-              <div className="flex items-center gap-2 text-sm font-black text-gray-700 uppercase tracking-wider">
-                <Scale size={16} /> Sua marmita
-              </div>
-
-              {/* Barra de peso */}
-              <div>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-2xl font-black text-[#086e45]">{pesoTotal}g</span>
-                  {tamanho && !acimaDoMax && (
-                    <span className="text-sm font-bold text-gray-500">
-                      Tamanho <span className="text-[#086e45]">{tamanho.sigla}</span>
-                    </span>
-                  )}
-                </div>
-                <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      acimaDoMax ? "bg-red-500" : "bg-[#086e45]",
-                    )}
-                    style={{
-                      width: `${Math.min(100, (pesoTotal / config.pesoMaximo) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-                  <span>0g</span>
-                  <span>máx {config.pesoMaximo}g</span>
-                </div>
-              </div>
-
-              {acimaDoMax ? (
-                <div className="flex items-start gap-2 bg-red-50 rounded-xl p-2.5 text-[11px] text-red-600 font-medium">
-                  <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                  <span>
-                    Passou do peso máximo ({config.pesoMaximo}g). Reduza a gramatura de algum
-                    ingrediente.
-                  </span>
-                </div>
-              ) : tamanho ? (
-                <>
-                  <div className="flex items-center justify-between rounded-xl bg-[#086e45]/5 px-3 py-2">
-                    <span className="text-xs text-gray-500">
-                      {tamanho.label} — {tamanho.sigla}
-                    </span>
-                    <span className="text-lg font-black text-[#086e45]">
-                      {formatBRL(precoUnitario)}
-                    </span>
-                  </div>
-                  {/* Proteína: mostra uso e limite */}
-                  <div className="flex items-center justify-between text-[11px] text-gray-500 px-1">
-                    <span>Proteína</span>
-                    <span
-                      className={cn(
-                        "font-bold",
-                        excedenteProteina > 0 ? "text-red-600" : "text-gray-600",
-                      )}
-                    >
-                      {pesoProteina}g / {limiteProt}g
-                    </span>
-                  </div>
-                  {/* Aviso vermelho — excedeu 60% de proteína */}
-                  {excedenteProteina > 0 && (
-                    <div className="flex items-start gap-2 bg-red-50 rounded-xl p-2.5 text-[11px] text-red-600 font-medium">
-                      <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                      <span>
-                        A proteína passou de {config.percentualMaxProteina}% do tamanho{" "}
-                        {tamanho.sigla} (máx {limiteProt}g). Excedente de{" "}
-                        <strong>{excedenteProteina}g</strong> ×{" "}
-                        {formatBRL(config.adicionalProteinaPorGrama)}/g ={" "}
-                        <strong>{formatBRL(adicionalProteina)}</strong> adicionados por marmita.
+            {/* Resumo compacto (mobile: barra + preço + quantidade + botão) */}
+            <div className="px-4 py-3 md:pt-4 md:pb-3 border-b space-y-2 md:space-y-3 shrink-0">
+              {/* Header + barra de peso */}
+              <div className="flex items-center gap-3">
+                <Scale size={14} className="text-gray-500 shrink-0 hidden md:block" />
+                <div className="flex-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-lg md:text-2xl font-black text-[#086e45]">{pesoTotal}g</span>
+                    {tamanho && !acimaDoMax && (
+                      <span className="text-xs font-bold text-gray-500">
+                        {tamanho.sigla} — {formatBRL(precoUnitario)}
                       </span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-[11px] text-gray-400">
-                  Escolha ingredientes e a gramatura para ver o preço.
+                    )}
+                  </div>
+                  <div className="h-1.5 md:h-2.5 w-full rounded-full bg-gray-100 overflow-hidden mt-1">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        acimaDoMax ? "bg-red-500" : "bg-[#086e45]",
+                      )}
+                      style={{
+                        width: `${Math.min(100, (pesoTotal / config.pesoMaximo) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {acimaDoMax && (
+                <p className="text-[10px] text-red-600 font-medium">
+                  Peso máximo {config.pesoMaximo}g excedido. Reduza a gramatura.
+                </p>
+              )}
+
+              {/* Proteína — só mostra se excedeu ou se está no desktop */}
+              {excedenteProteina > 0 && (
+                <p className="text-[10px] text-red-600 font-medium">
+                  Proteína excedeu {limiteProt}g (+{excedenteProteina}g = {formatBRL(adicionalProteina)}/un)
                 </p>
               )}
             </div>
 
-            {/* Composição escolhida */}
-            <div className="max-h-32 md:max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
+            {/* Composição — escondida no mobile, visível no desktop */}
+            <div className="hidden md:block max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
               {selecionados.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="text-3xl mb-2">🍱</div>
@@ -431,7 +389,6 @@ export function MarmitaPersonalizadaModal({
                         {s.nome}
                         {s.modoPreparo ? ` (${s.modoPreparo})` : ""}
                       </p>
-                      <p className="text-[10px] text-gray-400">{s.grupo}</p>
                     </div>
                   </div>
                 ))
@@ -439,51 +396,42 @@ export function MarmitaPersonalizadaModal({
             </div>
 
             {/* Quantidade + CTA */}
-            <div className="px-4 pb-4 pt-3 border-t space-y-3 shrink-0">
+            <div className="px-4 pb-3 md:pb-4 pt-2 md:pt-3 border-t space-y-2 md:space-y-3 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-500 uppercase">
-                  Quantidade{" "}
-                  <span className="text-gray-400 normal-case">(mín {config.minUnidades})</span>
+                <span className="text-[10px] md:text-xs font-bold text-gray-500 uppercase">
+                  Qtd <span className="text-gray-400 normal-case">(mín {config.minUnidades})</span>
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setQuantidade((q) => Math.max(config.minUnidades, q - 1))}
-                    className="h-8 w-8 rounded-full border border-[#086e45] text-[#086e45] flex items-center justify-center hover:bg-[#086e45] hover:text-white transition-all"
+                    className="h-7 w-7 md:h-8 md:w-8 rounded-full border border-[#086e45] text-[#086e45] flex items-center justify-center hover:bg-[#086e45] hover:text-white transition-all"
                   >
-                    <Minus size={13} />
+                    <Minus size={12} />
                   </button>
-                  <span className="w-8 text-center text-base font-black text-[#086e45]">
+                  <span className="w-7 text-center text-sm font-black text-[#086e45]">
                     {quantidade}
                   </span>
                   <button
                     type="button"
                     onClick={() => setQuantidade((q) => q + 1)}
-                    className="h-8 w-8 rounded-full bg-[#086e45] text-white flex items-center justify-center hover:bg-[#065a38] transition-colors"
+                    className="h-7 w-7 md:h-8 md:w-8 rounded-full bg-[#086e45] text-white flex items-center justify-center hover:bg-[#065a38] transition-colors"
                   >
-                    <Plus size={13} />
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
 
-              {precoUnitario > 0 && !acimaDoMax && (
-                <div className="flex justify-between font-black text-base text-gray-900 pt-1 border-t">
-                  <span>Total</span>
-                  <span className="text-[#086e45]">{formatBRL(precoUnitario * quantidade)}</span>
-                </div>
-              )}
-
-              {/* Aviso de prazo */}
-              <div className="flex items-start gap-2 bg-amber-50 rounded-xl p-2.5 text-[10px] text-amber-700">
-                <AlertTriangle size={12} className="shrink-0 mt-0.5" />
-                <span>{config.avisoPrazo}</span>
-              </div>
+              {/* Aviso de prazo — compacto no mobile */}
+              <p className="text-[9px] md:text-[10px] text-amber-700 leading-tight">
+                ⏳ Preparo em ~1 semana. Entrega na semana seguinte.
+              </p>
 
               <button
                 onClick={handleAdd}
                 disabled={selecionados.length === 0 || acimaDoMax || !tamanho}
                 className={cn(
-                  "w-full rounded-2xl py-3.5 text-sm font-black transition-all flex items-center justify-center gap-2",
+                  "w-full rounded-2xl py-3 md:py-3.5 text-sm font-black transition-all flex items-center justify-center gap-2",
                   selecionados.length > 0 && !acimaDoMax && tamanho
                     ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg hover:shadow-[#086e45]/30"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed",
