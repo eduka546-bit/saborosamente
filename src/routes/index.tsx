@@ -617,7 +617,7 @@ function Index() {
                 Ver Cardápio →
               </a>
               <a
-                href="https://wa.me/5547991507757?text=Olá! Gostaria de fazer um pedido."
+                href="https://wa.me/5547991607757?text=Olá! Gostaria de fazer um pedido."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-white/15 border border-white/20 text-white px-5 py-2.5 rounded-full font-bold text-xs hover:bg-white/25 transition-all duration-300"

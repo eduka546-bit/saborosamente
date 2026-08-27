@@ -1064,11 +1064,11 @@ function AdminSiteConfig() {
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>WhatsApp (com DDI, ex: 5547991507757)</Label>
+                <Label>WhatsApp (com DDI, ex: 5547991607757)</Label>
                 <Input
-                  value={formData.footer_whatsapp ?? "5547991507757"}
+                  value={formData.footer_whatsapp ?? "5547991607757"}
                   onChange={(e) => setFormData({ ...formData, footer_whatsapp: e.target.value })}
-                  placeholder="5547991507757"
+                  placeholder="5547991607757"
                 />
               </div>
               <div className="space-y-2">

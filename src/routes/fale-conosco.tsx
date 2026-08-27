@@ -40,7 +40,9 @@ function FaleConoscoPage() {
   });
 
   const whatsapp =
-    (settings as any)?.contato_whatsapp || (settings as any)?.footer_whatsapp || "5547991507757";
+    (settings as any)?.contato_whatsapp || (settings as any)?.footer_whatsapp || "5547991607757";
+  // Número secundário: atendimento humano / transferência
+  const whatsappHumano = (settings as any)?.contato_whatsapp_humano || "5547991507757";
   const instagram =
     (settings as any)?.contato_instagram ||
     (settings as any)?.footer_instagram ||
@@ -48,6 +50,12 @@ function FaleConoscoPage() {
   const email = (settings as any)?.contato_email || "";
 
   const waUrl = `https://wa.me/${whatsapp.replace(/\D/g, "")}?text=Olá! Gostaria de tirar uma dúvida.`;
+  const waHumanoUrl = `https://wa.me/${whatsappHumano.replace(/\D/g, "")}?text=Olá! Gostaria de falar com um atendente.`;
+
+  const formatWa = (n: string) => {
+    const d = n.replace(/\D/g, "").replace(/^55/, "");
+    return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : n;
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-14 space-y-12">
@@ -129,6 +137,23 @@ function FaleConoscoPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Opções de atendimento: bot x atendente humano */}
+      <div className="rounded-2xl border border-green-100 bg-green-50/60 p-4 text-sm text-gray-600">
+        <p className="font-semibold text-[#086e45] mb-1">Como funciona o atendimento?</p>
+        <p>
+          No WhatsApp principal{" "}
+          <a href={waUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#086e45] hover:underline">
+            {formatWa(whatsapp)}
+          </a>{" "}
+          você é atendido pela nossa assistente virtual (Saborosa), que tira dúvidas, mostra o
+          cardápio e registra pedidos na hora. Se preferir falar com um atendente,{" "}
+          <a href={waHumanoUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#086e45] hover:underline">
+            chame o {formatWa(whatsappHumano)}
+          </a>
+          .
+        </p>
       </div>
 
       {/* FAQ */}

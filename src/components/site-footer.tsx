@@ -77,7 +77,7 @@ export function SiteFooter() {
   const text = settings?.announcement_text_color || "#ffffff";
   const logoUrl =
     (settings as any)?.footer_logo_url || (settings as any)?.profile_image_url || LOGO_URL;
-  const whatsapp = (settings as any)?.footer_whatsapp || "5547991507757";
+  const whatsapp = (settings as any)?.footer_whatsapp || "5547991607757";
   const instagram = (settings as any)?.footer_instagram || "saborosamente.sbs";
   const addressLine1 = (settings as any)?.footer_address_line1 || "Rua Augusto Wunderwald, 7";
   const addressLine2 = (settings as any)?.footer_address_line2 || "Progresso — São Bento do Sul/SC";

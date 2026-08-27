@@ -19,7 +19,12 @@ function AdminFaqPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ pergunta: "", resposta: "" });
   const [editForm, setEditForm] = useState({ pergunta: "", resposta: "" });
-  const [contato, setContato] = useState({ whatsapp: "", instagram: "", email: "" });
+  const [contato, setContato] = useState({
+    whatsapp: "",
+    whatsappHumano: "",
+    instagram: "",
+    email: "",
+  });
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [savingContato, setSavingContato] = useState(false);
 
@@ -38,13 +43,14 @@ function AdminFaqPage() {
       const { data } = await supabase
         .from("site_settings")
         .select(
-          "id, contato_whatsapp, contato_instagram, contato_email, footer_whatsapp, footer_instagram",
+          "id, contato_whatsapp, contato_whatsapp_humano, contato_instagram, contato_email, footer_whatsapp, footer_instagram",
         )
         .maybeSingle();
       if (data) {
         setSettingsId(data.id);
         setContato({
           whatsapp: data.contato_whatsapp || data.footer_whatsapp || "",
+          whatsappHumano: (data as any).contato_whatsapp_humano || "",
           instagram: data.contato_instagram || data.footer_instagram || "",
           email: data.contato_email || "",
         });
@@ -101,6 +107,7 @@ function AdminFaqPage() {
       .from("site_settings")
       .update({
         contato_whatsapp: contato.whatsapp,
+        contato_whatsapp_humano: contato.whatsappHumano,
         contato_instagram: contato.instagram,
         contato_email: contato.email,
         footer_whatsapp: contato.whatsapp,
@@ -129,12 +136,24 @@ function AdminFaqPage() {
       {/* Links de contato */}
       <div className="bg-white rounded-2xl border p-6 space-y-4">
         <h3 className="font-bold text-gray-800">Links de Contato</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-gray-400">WhatsApp (com DDI)</Label>
+            <Label className="text-xs font-bold uppercase text-gray-400">
+              WhatsApp principal (bot, com DDI)
+            </Label>
             <Input
               value={contato.whatsapp}
               onChange={(e) => setContato({ ...contato, whatsapp: e.target.value })}
+              placeholder="5547991607757"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase text-gray-400">
+              WhatsApp atendente (transferência)
+            </Label>
+            <Input
+              value={contato.whatsappHumano}
+              onChange={(e) => setContato({ ...contato, whatsappHumano: e.target.value })}
               placeholder="5547991507757"
             />
           </div>
