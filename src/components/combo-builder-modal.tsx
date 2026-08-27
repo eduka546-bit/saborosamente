@@ -58,6 +58,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
   const [items, setItems] = useState<ComboItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   // ── Categorias disponíveis ────────────────────────────────────────────────
   // Respeita a MESMA ordem definida no admin (ordem_filtro) — igual à home.
@@ -294,7 +295,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
             </div>
 
             {/* Lista de produtos */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
               {filteredProducts.length === 0 ? (
                 <div className="py-12 text-center text-gray-400 text-sm">
                   Nenhum produto encontrado.
@@ -308,101 +309,113 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                   return (
                     <div
                       key={product.id}
-                      className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all"
+                      className="rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all overflow-hidden"
                     >
-                      {/* Imagem */}
-                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                      {/* Foto — clicável pra abrir grande */}
+                      <div
+                        className="relative w-full aspect-[3/2] bg-gray-100 cursor-pointer"
+                        onClick={() => setLightboxImg(product.imagem_url || product.imagem || "")}
+                      >
                         {product.imagem_url || product.imagem ? (
                           <img
                             src={product.imagem_url || product.imagem}
                             alt={product.nome}
-                            className="h-full w-full object-cover"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-2xl">
                             📦
                           </div>
                         )}
                       </div>
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                      <div className="p-3 space-y-2">
+                        {/* Título */}
+                        <p className="text-sm font-bold text-gray-900 leading-tight">
                           {product.nome}
                         </p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{cat}</p>
-                        {noDiscount && (
-                          <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
-                            Preço fixo
-                          </span>
-                        )}
-                      </div>
 
-                      {/* Tamanhos + controles */}
-                      <div className="flex flex-col gap-1.5 shrink-0">
-                        {weights.map((w) => {
-                          const price = getPrice(product, w);
-                          const qty = getQty(product.id, w);
-                          // Preço com desconto de faixa (tabela real), só para marmitas.
-                          const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
-                          const precoFaixa = noDiscount
-                            ? price
-                            : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
-                          const temDesconto = !noDiscount && precoFaixa < precoCheioW;
-                          return (
-                            <div key={w} className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-400 w-7 text-right font-bold shrink-0">
-                                {w}
-                              </span>
-                              {/* Coluna de preço — largura própria, sem invadir os botões */}
-                              <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
-                                {temDesconto ? (
-                                  <>
-                                    <span className="text-[9px] text-gray-400 line-through">
-                                      {formatBRL(precoCheioW)}
-                                    </span>
-                                    <span className="text-xs font-bold text-green-600">
-                                      {formatBRL(precoFaixa)}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-xs font-bold text-[#086e45]">
-                                    {formatBRL(price)}
-                                  </span>
-                                )}
-                              </span>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={() => changeQty(product, w, -1)}
-                                  disabled={qty === 0}
-                                  className={cn(
-                                    "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
-                                    qty > 0
-                                      ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
-                                      : "border-gray-200 text-gray-300 cursor-not-allowed",
-                                  )}
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span
-                                  className={cn(
-                                    "w-6 text-center text-sm font-black",
-                                    qty > 0 ? "text-[#086e45]" : "text-gray-300",
-                                  )}
-                                >
-                                  {qty}
+                        {/* Descrição */}
+                        {product.descricao && (
+                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
+                            {product.descricao}
+                          </p>
+                        )}
+
+                        {/* Categoria / badge */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] text-gray-400 uppercase font-bold">{cat}</span>
+                          {noDiscount && (
+                            <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
+                              Preço fixo
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Tamanhos + controles */}
+                        <div className="space-y-1.5 pt-1">
+                          {weights.map((w) => {
+                            const price = getPrice(product, w);
+                            const qty = getQty(product.id, w);
+                            const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
+                            const precoFaixa = noDiscount
+                              ? price
+                              : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
+                            const temDesconto = !noDiscount && precoFaixa < precoCheioW;
+                            return (
+                              <div key={w} className="flex items-center gap-2">
+                                <span className="text-[11px] text-gray-500 w-9 font-bold shrink-0">
+                                  {w}
                                 </span>
-                                <button
-                                  onClick={() => changeQty(product, w, 1)}
-                                  className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
-                                >
-                                  <Plus size={12} />
-                                </button>
+                                <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
+                                  {temDesconto ? (
+                                    <>
+                                      <span className="text-[9px] text-gray-400 line-through">
+                                        {formatBRL(precoCheioW)}
+                                      </span>
+                                      <span className="text-xs font-bold text-green-600">
+                                        {formatBRL(precoFaixa)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs font-bold text-[#086e45]">
+                                      {formatBRL(price)}
+                                    </span>
+                                  )}
+                                </span>
+                                <div className="flex items-center gap-1 ml-auto shrink-0">
+                                  <button
+                                    onClick={() => changeQty(product, w, -1)}
+                                    disabled={qty === 0}
+                                    className={cn(
+                                      "h-7 w-7 rounded-full flex items-center justify-center transition-all border text-sm",
+                                      qty > 0
+                                        ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
+                                        : "border-gray-200 text-gray-300 cursor-not-allowed",
+                                    )}
+                                  >
+                                    <Minus size={12} />
+                                  </button>
+                                  <span
+                                    className={cn(
+                                      "w-6 text-center text-sm font-black",
+                                      qty > 0 ? "text-[#086e45]" : "text-gray-300",
+                                    )}
+                                  >
+                                    {qty}
+                                  </span>
+                                  <button
+                                    onClick={() => changeQty(product, w, 1)}
+                                    className="h-7 w-7 rounded-full flex items-center justify-center bg-[#086e45] text-white hover:bg-[#065a38] transition-colors"
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   );
@@ -502,6 +515,26 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
           </div>
         </div>
       </div>
+
+      {/* Lightbox — foto ampliada */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={lightboxImg}
+            alt="Foto ampliada"
+            className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl"
+          />
+          <button
+            onClick={() => setLightboxImg(null)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
     </div>
   );
 
