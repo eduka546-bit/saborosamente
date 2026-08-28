@@ -218,6 +218,18 @@ export const createOrder = createServerFn({ method: "POST" })
 
     if (itemsError) throw new Error(itemsError.message);
 
+    // 2b. Decrementar estoque por tamanho (cada item que tem produto_id).
+    for (const item of data.items) {
+      if (item.productId && !item.custom) {
+        const tamanho = item.weight || "300g";
+        await supabase.rpc("decrementar_estoque", {
+          p_produto_id: item.productId,
+          p_qtd: item.quantity,
+          p_tamanho: tamanho,
+        }).catch((e: any) => console.error("Estoque decrement falhou:", e?.message));
+      }
+    }
+
     // 3. Incrementa o uso do cupom no servidor (após o pedido ser criado com sucesso),
     //    garantindo que o contador só sobe quando o pedido realmente existe.
     if (data.cupom) {
