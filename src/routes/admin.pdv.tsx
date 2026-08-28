@@ -148,7 +148,11 @@ function AdminPDV() {
     if (isEan) {
       const byEan = products.filter((p: any) => {
         const ean = (p.codigo_integracao ?? "").replace(/\s+/g, "").trim();
-        return ean === term || ean.includes(term) || term.includes(ean);
+        if (!ean) return false;
+        // Compara com e sem zeros à esquerda
+        const termClean = term.replace(/^0+/, "") || term;
+        const eanClean = ean.replace(/^0+/, "") || ean;
+        return ean === term || eanClean === termClean || ean.includes(term) || term.includes(ean);
       });
       if (byEan.length > 0) return byEan.slice(0, 10);
     }
