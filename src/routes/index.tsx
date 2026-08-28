@@ -384,7 +384,12 @@ function Index() {
                 categoriesWithProducts.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setTimeout(() => {
+                        document.getElementById("produtos-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 50);
+                    }}
                     className={cn(
                       "w-full px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200 flex items-center gap-2",
                       selectedCategory === cat
@@ -416,7 +421,7 @@ function Index() {
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full" id="produtos-grid">
             {/* Header com título e busca */}
             <div className="mb-5">
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
