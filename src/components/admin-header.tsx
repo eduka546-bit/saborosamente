@@ -56,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Cardápio", href: "/admin/produtos" },
       { label: "Combos Monte Você Mesmo", href: "/admin/combos" },
       { label: "Categorias", href: "/admin/categorias" },
+      { label: "Bebidas (PDV)", href: "/admin/bebidas" },
     ],
   },
   {
