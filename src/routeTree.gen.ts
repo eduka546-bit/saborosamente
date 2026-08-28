@@ -30,6 +30,7 @@ import { Route as AdminCashbackRouteImport } from './routes/admin/cashback'
 import { Route as AdminCategoriasRouteImport } from './routes/admin/categorias'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminCombosRouteImport } from './routes/admin/combos'
+import { Route as AdminCombosProntosRouteImport } from './routes/admin/combos-prontos'
 import { Route as AdminComplementosRouteImport } from './routes/admin/complementos'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminEmbalagensRouteImport } from './routes/admin/embalagens'
@@ -183,6 +184,11 @@ const AdminClientesRoute = AdminClientesRouteImport.update({
 const AdminCombosRoute = AdminCombosRouteImport.update({
   id: '/combos',
   path: '/combos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCombosProntosRoute = AdminCombosProntosRouteImport.update({
+  id: '/combos-prontos',
+  path: '/combos-prontos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminComplementosRoute = AdminComplementosRouteImport.update({
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/combos': typeof AdminCombosRoute
+  '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
@@ -533,6 +540,7 @@ export interface FileRoutesByTo {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/combos': typeof AdminCombosRoute
+  '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
@@ -605,6 +613,7 @@ export interface FileRoutesById {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/combos': typeof AdminCombosRoute
+  '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/embalagens': typeof AdminEmbalagensRoute
@@ -679,6 +688,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/combos'
+    | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/embalagens'
@@ -750,6 +760,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/combos'
+    | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/embalagens'
@@ -821,6 +832,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/combos'
+    | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/embalagens'
@@ -1035,6 +1047,13 @@ declare module '@tanstack/react-router' {
       path: '/combos'
       fullPath: '/admin/combos'
       preLoaderRoute: typeof AdminCombosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/combos-prontos': {
+      id: '/admin/combos-prontos'
+      path: '/combos-prontos'
+      fullPath: '/admin/combos-prontos'
+      preLoaderRoute: typeof AdminCombosProntosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/complementos': {
@@ -1426,6 +1445,7 @@ interface AdminRouteChildren {
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminClientesRoute: typeof AdminClientesRoute
   AdminCombosRoute: typeof AdminCombosRoute
+  AdminCombosProntosRoute: typeof AdminCombosProntosRoute
   AdminComplementosRoute: typeof AdminComplementosRoute
   AdminCuponsRoute: typeof AdminCuponsRouteWithChildren
   AdminEmbalagensRoute: typeof AdminEmbalagensRoute
@@ -1481,6 +1501,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminClientesRoute: AdminClientesRoute,
   AdminCombosRoute: AdminCombosRoute,
+  AdminCombosProntosRoute: AdminCombosProntosRoute,
   AdminComplementosRoute: AdminComplementosRoute,
   AdminCuponsRoute: AdminCuponsRouteWithChildren,
   AdminEmbalagensRoute: AdminEmbalagensRoute,
