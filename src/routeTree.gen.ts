@@ -38,6 +38,7 @@ import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPontuacaoRouteImport } from './routes/admin/pontuacao'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminRegistrarP10RouteImport } from './routes/admin.registrar-p10'
 import { Route as AdminStorageCleanupRouteImport } from './routes/admin/storage-cleanup'
 import { Route as PedidoIndexRouteImport } from './routes/pedido/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
@@ -222,6 +223,11 @@ const AdminPontuacaoRoute = AdminPontuacaoRouteImport.update({
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRegistrarP10Route = AdminRegistrarP10RouteImport.update({
+  id: '/registrar-p10',
+  path: '/registrar-p10',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminStorageCleanupRoute = AdminStorageCleanupRouteImport.update({
@@ -464,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -533,6 +540,7 @@ export interface FileRoutesByTo {
   '/admin/pdv': typeof AdminPdvRoute
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin': typeof AdminIndexRoute
@@ -605,6 +613,7 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -678,6 +687,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
     | '/produto/$id'
     | '/admin/'
@@ -747,6 +757,7 @@ export interface FileRouteTypes {
     | '/admin/pdv'
     | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
     | '/produto/$id'
     | '/admin'
@@ -818,6 +829,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/pontuacao'
     | '/admin/produtos'
+    | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
     | '/produto/$id'
     | '/admin/'
@@ -1079,6 +1091,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/admin/produtos'
       preLoaderRoute: typeof AdminProdutosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/registrar-p10': {
+      id: '/admin/registrar-p10'
+      path: '/registrar-p10'
+      fullPath: '/admin/registrar-p10'
+      preLoaderRoute: typeof AdminRegistrarP10RouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/storage-cleanup': {
@@ -1415,6 +1434,7 @@ interface AdminRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminPontuacaoRoute: typeof AdminPontuacaoRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
+  AdminRegistrarP10Route: typeof AdminRegistrarP10Route
   AdminStorageCleanupRoute: typeof AdminStorageCleanupRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminConfigAreaRoute: typeof AdminConfigAreaRoute
@@ -1469,6 +1489,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminPontuacaoRoute: AdminPontuacaoRoute,
   AdminProdutosRoute: AdminProdutosRoute,
+  AdminRegistrarP10Route: AdminRegistrarP10Route,
   AdminStorageCleanupRoute: AdminStorageCleanupRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminConfigAreaRoute: AdminConfigAreaRoute,

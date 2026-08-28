@@ -420,6 +420,7 @@ function AdminDashboard() {
                 { label: "Novo Produto", icon: Plus, href: "/admin/produtos" },
                 { label: "PDV / Caixa", icon: ShoppingBag, href: "/admin/pdv" },
                 { label: "Bebidas (PDV)", icon: Package, href: "/admin/bebidas" },
+                { label: "Estoque P10", icon: Package, href: "/admin/registrar-p10" },
                 { label: "Ver Pedidos", icon: ShoppingBag, href: "/admin/pedidos" },
                 { label: "Relatórios", icon: BarChart2, href: "/admin/relatorios" },
                 { label: "Entregas", icon: Truck, href: "/admin/config/taxas" },
