@@ -27,6 +27,7 @@ export const getPublicProducts = createServerFn({ method: "GET" }).handler(async
       .from("produtos")
       .select(`*, categorias (nome, ordem_filtro)`)
       .eq("ativo", true)
+      .eq("visivel_online", true)
       .order("categoria_id", { ascending: true }) // agrupa por categoria
       .order("ordem", { ascending: true }) // depois por ordem dentro da categoria
       .order("nome", { ascending: true }); // desempate por nome

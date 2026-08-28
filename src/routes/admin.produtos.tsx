@@ -1168,6 +1168,21 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 <div className="flex items-center justify-between p-4 border rounded-xl">
                   <div className="space-y-0.5">
                     <label className="text-sm font-semibold text-gray-700">
+                      Visível no site (loja online)
+                    </label>
+                    <p className="text-xs text-gray-500">Desmarque para produtos somente PDV (ex: bebidas)</p>
+                  </div>
+                  <Switch
+                    checked={formData.visivel_online !== false}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, visivel_online: checked })
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-xl">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-semibold text-gray-700">
                       Ativar Controle de Estoque
                     </label>
                     <p className="text-xs text-gray-500">Deduzir do saldo a cada venda</p>
