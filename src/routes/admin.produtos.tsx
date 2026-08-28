@@ -108,6 +108,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         preco_400g: null,
         preco_400g_formatado: "",
         categoria_id: categories[0]?.id || "",
+        tipo_produto: "marmita",
         status: "ativo",
         imagem_url: "",
         descricao: "",
@@ -602,6 +603,23 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                             {cat.nome}
                           </option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Tipo de Produto
+                      </label>
+                      <select
+                        className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20"
+                        value={formData.tipo_produto || "marmita"}
+                        onChange={(e) => setFormData({ ...formData, tipo_produto: e.target.value })}
+                      >
+                        <option value="marmita">Marmita (200g/300g/400g)</option>
+                        <option value="sopa">Sopa (400g único)</option>
+                        <option value="complemento">Complemento (150g único)</option>
+                        <option value="combo">Combo (sem estoque próprio)</option>
+                        <option value="bebida">Bebida (unidade, só PDV)</option>
                       </select>
                     </div>
                   </div>
@@ -1199,43 +1217,75 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
-                        Estoque por Tamanho
+                        Estoque
                       </label>
-                      <div className="grid grid-cols-3 gap-3">
+
+                      {(formData.tipo_produto || "marmita") === "marmita" ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">200g</label>
+                            <Input
+                              type="number"
+                              value={formData.estoque_200g ?? 0}
+                              onChange={(e) =>
+                                setFormData({ ...formData, estoque_200g: parseInt(e.target.value) || 0 })
+                              }
+                              className="h-10 border-gray-200"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">300g</label>
+                            <Input
+                              type="number"
+                              value={formData.estoque_300g ?? 0}
+                              onChange={(e) =>
+                                setFormData({ ...formData, estoque_300g: parseInt(e.target.value) || 0 })
+                              }
+                              className="h-10 border-gray-200"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">400g</label>
+                            <Input
+                              type="number"
+                              value={formData.estoque_400g ?? 0}
+                              onChange={(e) =>
+                                setFormData({ ...formData, estoque_400g: parseInt(e.target.value) || 0 })
+                              }
+                              className="h-10 border-gray-200"
+                            />
+                          </div>
+                        </div>
+                      ) : (formData.tipo_produto || "marmita") === "combo" ? (
+                        <p className="text-xs text-gray-400 italic">
+                          Combos não têm estoque próprio (o estoque é dos sabores individuais).
+                        </p>
+                      ) : (
                         <div>
-                          <label className="text-[10px] font-bold text-gray-500 block mb-1">200g</label>
+                          <label className="text-[10px] font-bold text-gray-500 block mb-1">
+                            {formData.tipo_produto === "sopa" ? "Unidades (400g)" :
+                             formData.tipo_produto === "complemento" ? "Unidades (150g)" :
+                             "Unidades"}
+                          </label>
                           <Input
                             type="number"
-                            value={formData.estoque_200g ?? 0}
-                            onChange={(e) =>
-                              setFormData({ ...formData, estoque_200g: parseInt(e.target.value) || 0 })
+                            value={
+                              formData.tipo_produto === "sopa"
+                                ? (formData.estoque_400g ?? 0)
+                                : (formData.estoque_200g ?? 0)
                             }
-                            className="h-10 border-gray-200"
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              if (formData.tipo_produto === "sopa") {
+                                setFormData({ ...formData, estoque_400g: val, estoque_200g: 0, estoque_300g: 0 });
+                              } else {
+                                setFormData({ ...formData, estoque_200g: val, estoque_300g: 0, estoque_400g: 0 });
+                              }
+                            }}
+                            className="h-10 border-gray-200 max-w-[120px]"
                           />
                         </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-gray-500 block mb-1">300g</label>
-                          <Input
-                            type="number"
-                            value={formData.estoque_300g ?? 0}
-                            onChange={(e) =>
-                              setFormData({ ...formData, estoque_300g: parseInt(e.target.value) || 0 })
-                            }
-                            className="h-10 border-gray-200"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-gray-500 block mb-1">400g</label>
-                          <Input
-                            type="number"
-                            value={formData.estoque_400g ?? 0}
-                            onChange={(e) =>
-                              setFormData({ ...formData, estoque_400g: parseInt(e.target.value) || 0 })
-                            }
-                            className="h-10 border-gray-200"
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">

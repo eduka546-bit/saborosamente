@@ -36,7 +36,7 @@ function AdminRelatoriosEstoquePage() {
       const { data, error } = await supabase
         .from("produtos")
         .select(
-          "id, nome, imagem_url, estoque_200g, estoque_300g, estoque_400g, estoque_minimo, controle_estoque, status, categorias(nome)",
+          "id, nome, imagem_url, tipo_produto, estoque_200g, estoque_300g, estoque_400g, estoque_minimo, controle_estoque, status, categorias(nome)",
         )
         .eq("controle_estoque", true)
         .order("nome");
@@ -144,10 +144,10 @@ function AdminRelatoriosEstoquePage() {
             <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
               <tr>
                 <th className="px-4 py-3">Produto</th>
-                <th className="px-4 py-3">Categoria</th>
-                <th className="px-4 py-3 text-center">200g</th>
+                <th className="px-4 py-3">Tipo</th>
+                <th className="px-4 py-3 text-center">200g / UN</th>
                 <th className="px-4 py-3 text-center">300g</th>
-                <th className="px-4 py-3 text-center">400g</th>
+                <th className="px-4 py-3 text-center">400g / UN</th>
                 <th className="px-4 py-3 text-center">Mín</th>
               </tr>
             </thead>
@@ -168,15 +168,33 @@ function AdminRelatoriosEstoquePage() {
                         <span className="font-semibold text-gray-900 text-xs">{p.nome}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{p.categorias?.nome ?? "—"}</td>
-                    <td className="px-4 py-3 text-center">
-                      <EstoqueCell valor={p.estoque_200g ?? 0} minimo={min} />
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      <span className="capitalize">{p.tipo_produto ?? "marmita"}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <EstoqueCell valor={p.estoque_300g ?? 0} minimo={min} />
+                      {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
+                        <EstoqueCell valor={p.estoque_200g ?? 0} minimo={min} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <EstoqueCell valor={p.estoque_400g ?? 0} minimo={min} />
+                      {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
+                        <EstoqueCell valor={p.estoque_300g ?? 0} minimo={min} />
+                      ) : p.tipo_produto === "complemento" || p.tipo_produto === "bebida" ? (
+                        <EstoqueCell valor={p.estoque_200g ?? 0} minimo={min} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
+                        <EstoqueCell valor={p.estoque_400g ?? 0} minimo={min} />
+                      ) : p.tipo_produto === "sopa" ? (
+                        <EstoqueCell valor={p.estoque_400g ?? 0} minimo={min} />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-400 text-xs">{min}</td>
                   </tr>
