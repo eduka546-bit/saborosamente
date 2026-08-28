@@ -345,6 +345,7 @@ function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("Todos");
+  const [filterOrigem, setFilterOrigem] = useState("Todos");
   const [filterDate, setFilterDate] = useState<"hoje" | "semana" | "mes" | "todos">("todos");
   const [filterMinValue, setFilterMinValue] = useState(0);
   const [filterMaxValue, setFilterMaxValue] = useState(99999);
@@ -745,6 +746,10 @@ function AdminOrdersPage() {
       // filtro de status
       const matchStatus = filterStatus === "Todos" || order.status === filterStatus;
 
+      // filtro de origem (site / pdv / pedidos10)
+      const matchOrigem =
+        filterOrigem === "Todos" || (order.origem ?? "site") === filterOrigem;
+
       // filtro de valor
       const matchValue = order.valor_total >= filterMinValue && order.valor_total <= filterMaxValue;
 
@@ -762,9 +767,9 @@ function AdminOrdersPage() {
           oDate.getMonth() === now.getMonth() && oDate.getFullYear() === now.getFullYear();
       }
 
-      return matchText && matchStatus && matchDate && matchValue;
+      return matchText && matchStatus && matchOrigem && matchDate && matchValue;
     });
-  }, [orders, searchTerm, filterStatus, filterDate, filterMinValue, filterMaxValue]);
+  }, [orders, searchTerm, filterStatus, filterOrigem, filterDate, filterMinValue, filterMaxValue]);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -959,7 +964,25 @@ function AdminOrdersPage() {
                 "cancelado",
               ].map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {s === "Todos" ? "Status: Todos" : s}
+                </option>
+              ))}
+            </select>
+
+            {/* filtro de origem */}
+            <select
+              value={filterOrigem}
+              onChange={(e) => setFilterOrigem(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 bg-white"
+            >
+              {[
+                { value: "Todos", label: "Origem: Todos" },
+                { value: "site", label: "🌐 Site" },
+                { value: "pdv", label: "🏪 PDV" },
+                { value: "pedidos10", label: "📱 Pedidos10" },
+              ].map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
