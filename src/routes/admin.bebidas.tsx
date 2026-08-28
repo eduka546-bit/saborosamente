@@ -21,8 +21,8 @@ function AdminBebidasPage() {
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ nome: "", preco: "", codigo_integracao: "", imagem_url: "" });
-  const [editForm, setEditForm] = useState({ nome: "", preco: "", codigo_integracao: "", imagem_url: "" });
+  const [form, setForm] = useState({ nome: "", preco: "", codigo_integracao: "", imagem_url: "", estoque: "" });
+  const [editForm, setEditForm] = useState({ nome: "", preco: "", codigo_integracao: "", imagem_url: "", estoque: "" });
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const editFileRef = useRef<HTMLInputElement>(null);
@@ -32,7 +32,7 @@ function AdminBebidasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, nome, preco, codigo_integracao, imagem_url, visivel_online")
+        .select("id, nome, preco, codigo_integracao, imagem_url, visivel_online, estoque_200g")
         .eq("visivel_online", false)
         .eq("ativo", true)
         .order("nome");
@@ -65,7 +65,9 @@ function AdminBebidasPage() {
         imagem_url: values.imagem_url || null,
         visivel_online: false,
         ativo: true,
-        controle_estoque: false,
+        tipo_produto: "bebida",
+        controle_estoque: true,
+        estoque_200g: Number(values.estoque) || 0,
       });
       if (error) throw error;
     },
@@ -88,6 +90,7 @@ function AdminBebidasPage() {
           preco: Number(values.preco.replace(",", ".")) || 0,
           codigo_integracao: values.codigo_integracao || null,
           imagem_url: values.imagem_url || null,
+          estoque_200g: Number(values.estoque) || 0,
         })
         .eq("id", id);
       if (error) throw error;
