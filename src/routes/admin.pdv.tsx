@@ -94,7 +94,7 @@ function AdminPDV() {
         .order("nome");
       return data ?? [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2, // Cache 2 min — atualiza rápido após edição de EAN
   });
 
   // Config de impressão
@@ -142,17 +142,20 @@ function AdminPDV() {
   // Busca produto por EAN ou nome
   const searchResults = useMemo(() => {
     if (!searchValue.trim()) return [];
-    const term = searchValue.trim().toLowerCase();
-    // Se é numérico, busca por EAN primeiro
+    const term = searchValue.trim().replace(/\s+/g, "");
+    // Se é numérico (4+ dígitos), busca por EAN
     const isEan = /^\d{4,}$/.test(term);
     if (isEan) {
-      const byEan = products.filter(
-        (p: any) => p.codigo_integracao && p.codigo_integracao.includes(term),
-      );
+      const byEan = products.filter((p: any) => {
+        const ean = (p.codigo_integracao ?? "").replace(/\s+/g, "").trim();
+        return ean === term || ean.includes(term) || term.includes(ean);
+      });
       if (byEan.length > 0) return byEan.slice(0, 10);
     }
+    // Busca por nome
+    const termLower = term.toLowerCase();
     return products
-      .filter((p: any) => p.nome?.toLowerCase().includes(term))
+      .filter((p: any) => p.nome?.toLowerCase().includes(termLower))
       .slice(0, 10);
   }, [searchValue, products]);
 
@@ -162,7 +165,7 @@ function AdminPDV() {
       handleSelectProduct(searchResults[0]);
       setSearchValue("");
     } else if (searchResults.length === 0 && searchValue.trim()) {
-      toast.error("Produto não encontrado.");
+      toast.error(`Produto não encontrado: "${searchValue.trim()}"`);
       setSearchValue("");
     }
   }, [searchResults, searchValue]);
