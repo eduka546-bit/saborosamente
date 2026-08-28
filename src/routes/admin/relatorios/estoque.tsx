@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle, Package } from "lucide-react";
+import { Loader2, AlertTriangle, Package, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/relatorios/estoque")({
@@ -57,13 +58,57 @@ function AdminRelatoriosEstoquePage() {
     (p.estoque_200g ?? 0) === 0 || (p.estoque_300g ?? 0) === 0 || (p.estoque_400g ?? 0) === 0,
   );
 
+  function imprimirEstoque(prods: any[]) {
+    const now = new Date();
+    const dataStr = now.toLocaleDateString("pt-BR");
+    const horaStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    const rows = prods.map((p: any) => {
+      const min = p.estoque_minimo ?? 5;
+      const fmt = (v: number) => {
+        if (v === 0) return `${v} ❌`;
+        if (v <= min) return `${v} ⚠️`;
+        return `${v}`;
+      };
+      return `<tr>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:11px;font-weight:600">${p.nome}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_200g ?? 0)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_300g ?? 0)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_400g ?? 0)}</td>
+      </tr>`;
+    }).join("");
+
+    const win = window.open("", "_blank", "width=600,height=800");
+    if (!win) { alert("Permita pop-ups."); return; }
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Estoque Saborosamente</title>
+      <style>@page{margin:10mm}body{font-family:sans-serif;font-size:12px;color:#111}
+      table{width:100%;border-collapse:collapse}th{background:#f5f5f5;padding:6px 8px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+      th:first-child{text-align:left}</style></head><body>
+      <h2 style="margin:0 0 4px">SABOROSAMENTE — Estoque</h2>
+      <p style="margin:0 0 12px;color:#666;font-size:11px">${dataStr} às ${horaStr} • ${prods.length} produtos</p>
+      <table><thead><tr><th>Produto</th><th>200g</th><th>300g</th><th>400g</th></tr></thead><tbody>${rows}</tbody></table>
+      <p style="margin-top:12px;font-size:9px;color:#999">⚠️ = estoque baixo | ❌ = sem estoque</p>
+      <script>window.onload=function(){window.print();setTimeout(function(){window.close()},1000)}</script>
+      </body></html>`);
+    win.document.close();
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#5850ec]">Estoque por Tamanho</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Produtos com controle de estoque ativo. ⚠️ = baixo, ❌ = sem estoque.
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-[#5850ec]">Estoque por Tamanho</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Produtos com controle de estoque ativo. ⚠️ = baixo, ❌ = sem estoque.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => imprimirEstoque(products)}
+        >
+          <Printer size={16} /> Imprimir
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
