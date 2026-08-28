@@ -54,7 +54,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Utensils,
     items: [
       { label: "Cardápio", href: "/admin/produtos" },
-      { label: "Combos Prontos (Sabores)", href: "/admin/combos-prontos" },
       { label: "Categorias", href: "/admin/categorias" },
       { label: "Bebidas (PDV)", href: "/admin/bebidas" },
     ],

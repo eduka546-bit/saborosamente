@@ -70,10 +70,11 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     weights.includes("300g") ? "300g" : weights[0] || "",
   );
 
-  // Para combos prontos, mostra P/M/G em vez de 200g/300g/400g
-  const isComboPronto = (product.categorias?.nome || product.categoria || "")
-    .toLowerCase()
-    .includes("combo pronto");
+  // Para combos prontos (não "Monte Você Mesmo"), abre modal de sabores
+  const isComboPronto = !combo && (
+    product.tipo_produto === "combo" ||
+    (product.categorias?.nome || product.categoria || "").toLowerCase().includes("combo pronto")
+  );
   const weightLabel = (w: string) => {
     if (!isComboPronto) return w;
     if (w === "200g") return "P";

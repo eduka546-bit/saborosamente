@@ -70,6 +70,84 @@ export const Route = createFileRoute("/admin/produtos")({
   ssr: false,
 });
 
+function SaboresComboEditor({ comboId }: { comboId?: string }) {
+  const queryClient = useQueryClient();
+
+  const { data: saboresAtivos = [] } = useQuery({
+    queryKey: ["combo-sabores-admin", comboId],
+    enabled: !!comboId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("combo_sabores")
+        .select("produto_id")
+        .eq("combo_id", comboId!)
+        .eq("ativo", true);
+      return (data ?? []).map((s: any) => s.produto_id);
+    },
+  });
+
+  const { data: produtos = [] } = useQuery({
+    queryKey: ["admin-produtos-sabores-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id, nome, categorias(nome)")
+        .eq("ativo", true)
+        .eq("visivel_online", true)
+        .order("nome");
+      return (data ?? []).filter((p: any) => {
+        const cat = (p.categorias?.nome ?? "").toLowerCase();
+        return !cat.includes("combo") && !cat.includes("complemento");
+      });
+    },
+  });
+
+  const toggle = async (produtoId: string, ativo: boolean) => {
+    if (!comboId) return;
+    if (ativo) {
+      await supabase
+        .from("combo_sabores")
+        .upsert({ combo_id: comboId, produto_id: produtoId, ativo: true }, { onConflict: "combo_id,produto_id" });
+    } else {
+      await supabase.from("combo_sabores").delete().eq("combo_id", comboId).eq("produto_id", produtoId);
+    }
+    queryClient.invalidateQueries({ queryKey: ["combo-sabores-admin", comboId] });
+  };
+
+  if (!comboId) {
+    return <p className="text-sm text-gray-400">Salve o produto primeiro para configurar os sabores.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">Selecione quais produtos ficam disponíveis como opção de sabor neste combo.</p>
+      <div className="space-y-1 max-h-[40vh] overflow-y-auto">
+        {produtos.map((p: any) => {
+          const ativo = saboresAtivos.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => toggle(p.id, !ativo)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-all text-left ${
+                ativo ? "border-green-200 bg-green-50" : "border-gray-100 hover:border-gray-200"
+              }`}
+            >
+              <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                ativo ? "border-green-500 bg-green-500 text-white" : "border-gray-300"
+              }`}>
+                {ativo && <span className="text-[10px]">✓</span>}
+              </div>
+              <span className="text-sm font-medium text-gray-900 truncate">{p.nome}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-gray-400">{saboresAtivos.length} sabores selecionados</p>
+    </div>
+  );
+}
+
 function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDelete }: any) {
   const [formData, setFormData] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -334,6 +412,14 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             >
               Complementos
             </TabsTrigger>
+            {(formData.tipo_produto === "combo") && (
+              <TabsTrigger
+                value="sabores"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
+              >
+                Sabores
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="disponibilidade"
               className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
@@ -954,6 +1040,12 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                 </div>
               </div>
             </TabsContent>
+
+            {formData.tipo_produto === "combo" && (
+              <TabsContent value="sabores" className="m-0 space-y-4">
+                <SaboresComboEditor comboId={product?.id} />
+              </TabsContent>
+            )}
 
             <TabsContent value="disponibilidade" className="m-0 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
