@@ -261,6 +261,36 @@ function AdminMarmitaPersonalizadaPage() {
                 onChange={(e) => setConfig((p) => ({ ...p, avisoPrazo: e.target.value }))}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Máx proteína (% do tamanho)
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={config.percentualMaxProteina}
+                  onChange={(e) =>
+                    setConfig((p) => ({ ...p, percentualMaxProteina: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Adicional por g excedente (R$)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={config.adicionalProteinaPorGrama}
+                  onChange={(e) =>
+                    setConfig((p) => ({ ...p, adicionalProteinaPorGrama: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+            </div>
           </div>
 
           {/* Tamanhos e preços */}

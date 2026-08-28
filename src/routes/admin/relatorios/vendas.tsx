@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -22,12 +22,14 @@ export const Route = createFileRoute("/admin/relatorios/vendas")({
 });
 
 function AdminRelatoriosVendasPage() {
+  const [filtroOrigem, setFiltroOrigem] = useState<"todos" | "site" | "pdv">("todos");
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["relatorio-vendas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("valor_total, created_at, status, metodo_pagamento")
+        .select("valor_total, created_at, status, metodo_pagamento, origem")
         .gte("created_at", subDays(new Date(), 30).toISOString())
         .order("created_at");
       if (error) throw error;
@@ -35,11 +37,16 @@ function AdminRelatoriosVendasPage() {
     },
   });
 
+  const filteredOrders = useMemo(() => {
+    if (filtroOrigem === "todos") return orders;
+    return orders.filter((o: any) => (o.origem ?? "site") === filtroOrigem);
+  }, [orders, filtroOrigem]);
+
   const chartData = useMemo(() => {
     const days = eachDayOfInterval({ start: subDays(new Date(), 29), end: new Date() });
     return days.map((day) => {
       const key = format(day, "yyyy-MM-dd");
-      const dayOrders = orders.filter(
+      const dayOrders = filteredOrders.filter(
         (o: any) => o.created_at.startsWith(key) && o.status !== "cancelado",
       );
       return {
@@ -48,18 +55,18 @@ function AdminRelatoriosVendasPage() {
         receita: dayOrders.reduce((s: number, o: any) => s + (o.valor_total ?? 0), 0),
       };
     });
-  }, [orders]);
+  }, [filteredOrders]);
 
   const byPayment = useMemo(() => {
     const map = new Map<string, number>();
-    orders
+    filteredOrders
       .filter((o: any) => o.status !== "cancelado")
       .forEach((o: any) => {
         const key = o.metodo_pagamento ?? "Não informado";
         map.set(key, (map.get(key) ?? 0) + 1);
       });
     return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [orders]);
+  }, [filteredOrders]);
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
@@ -68,6 +75,21 @@ function AdminRelatoriosVendasPage() {
         <p className="text-gray-500 text-sm mt-1">
           Evolução de pedidos e receita nos últimos 30 dias.
         </p>
+        <div className="flex gap-2 mt-3">
+          {(["todos", "site", "pdv"] as const).map((opt) => (
+            <button
+              key={opt}
+              onClick={() => setFiltroOrigem(opt)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                filtroOrigem === opt
+                  ? "bg-[#5850ec] text-white border-[#5850ec]"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-[#5850ec]/40"
+              }`}
+            >
+              {opt === "todos" ? "Todos" : opt === "site" ? "Site" : "PDV"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (

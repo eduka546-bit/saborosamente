@@ -86,7 +86,7 @@ function AdminPDV() {
     queryFn: async () => {
       const { data } = await supabase
         .from("produtos")
-        .select("id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, estoque_atual, controle_estoque, categorias(nome)")
+        .select("id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, estoque_200g, estoque_300g, estoque_400g, controle_estoque, categorias(nome)")
         .eq("ativo", true)
         .order("nome");
       return data ?? [];
@@ -174,6 +174,13 @@ function AdminPDV() {
   }
 
   function addItem(product: any, weight: string) {
+    // Alerta de estoque zero
+    const estoqueCol = weight === "200g" ? "estoque_200g" : weight === "400g" ? "estoque_400g" : "estoque_300g";
+    const estoque = (product as any)[estoqueCol] ?? 0;
+    if (product.controle_estoque && estoque <= 0) {
+      toast.error(`${product.nome} (${weight}) está sem estoque!`, { duration: 4000 });
+    }
+
     const cat = (product.categorias?.nome || "").toLowerCase();
     const semDesconto = isNoDiscount(cat);
     const preco = semDesconto

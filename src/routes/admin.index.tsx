@@ -125,7 +125,7 @@ function AdminDashboard() {
           .from("pedido_itens")
           .select("preco_unitario,quantidade")
           .gte("created_at", last30Days),
-        supabase.from("produtos").select("id,nome,estoque").lt("estoque", 5),
+        supabase.from("produtos").select("id,nome,estoque_200g,estoque_300g,estoque_400g,estoque_minimo").eq("controle_estoque", true),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
@@ -157,8 +157,17 @@ function AdminDashboard() {
       // KPIs
       const kpis = calculateKPIs(monthlyOrdersRes.data ?? [], allCustomersRes.data ?? []);
 
-      // Produtos com baixo estoque
-      const lowStockProducts = (lowStockRes.data ?? []).slice(0, 5);
+      // Produtos com baixo estoque (qualquer tamanho abaixo do mínimo)
+      const lowStockProducts = (lowStockRes.data ?? [])
+        .filter((p: any) => {
+          const min = p.estoque_minimo ?? 5;
+          return (
+            (p.estoque_200g ?? 0) <= min ||
+            (p.estoque_300g ?? 0) <= min ||
+            (p.estoque_400g ?? 0) <= min
+          );
+        })
+        .slice(0, 5);
 
       return {
         ordersToday: ordersTodayRes.count ?? 0,
@@ -617,7 +626,9 @@ function AdminDashboard() {
               {stats?.lowStockProducts.map((p: any) => (
                 <div key={p.id} className="flex justify-between items-center text-sm">
                   <span className="text-red-800">{p.nome}</span>
-                  <span className="font-bold text-red-600">{p.estoque} un.</span>
+                  <span className="font-bold text-red-600 text-xs">
+                    {p.estoque_200g ?? 0}/{p.estoque_300g ?? 0}/{p.estoque_400g ?? 0}
+                  </span>
                 </div>
               ))}
             </div>

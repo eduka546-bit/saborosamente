@@ -419,6 +419,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const tabelaPrecos = normalizarPrecosMarmita(
     (settingsPrecos as any)?.parametros_loja?.precos_marmita,
   );
+  // Acréscimos editáveis (pronta para consumo / garfo e faca).
+  const acrescimosDb = (settingsPrecos as any)?.parametros_loja?.acrescimos;
+  const adicionalPronta = Number(acrescimosDb?.pronta) || ADICIONAL_PRONTA;
+  const adicionalGarfo = Number(acrescimosDb?.garfoEFaca) || ADICIONAL_GARFO_FACA;
 
   const { data: serverProducts = [] } = useQuery({
     queryKey: ["public-products-cart"],
@@ -610,10 +614,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ? precoCheio
           : precoMarmitaPorFaixa(line.weight, count, precoCheio, tabelaPrecos);
 
-      // Adicional por opções: "Pronta para consumo" +R$1, "Garfo e faca" +R$1.
+      // Adicional por opções: "Pronta para consumo" +R$X, "Garfo e faca" +R$X.
       const adicionalOpcoes =
-        (line.opcoes?.consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
-        (line.opcoes?.garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
+        (line.opcoes?.consumo === "pronta" ? adicionalPronta : 0) +
+        (line.opcoes?.garfoEFaca ? adicionalGarfo : 0);
 
       return {
         ...line,

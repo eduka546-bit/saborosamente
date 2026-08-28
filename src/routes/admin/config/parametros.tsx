@@ -39,6 +39,7 @@ function AdminConfigParametrosPage() {
   const [entrega, setEntrega] = useState<EntregaConfig>(DEFAULT_ENTREGA_CONFIG);
   const [novoHorario, setNovoHorario] = useState("");
   const [precos, setPrecos] = useState<TabelaPrecosMarmita>(MARMITA_PRICE_TABLE);
+  const [acrescimos, setAcrescimos] = useState({ pronta: 1.0, garfoEFaca: 1.0 });
 
   const { isLoading } = useQuery({
     queryKey: ["config-parametros"],
@@ -48,13 +49,19 @@ function AdminConfigParametrosPage() {
       setParams({ ...DEFAULT_PARAMS, ...pl });
       setEntrega(normalizarEntregaConfig(pl.entrega));
       setPrecos(normalizarPrecosMarmita(pl.precos_marmita));
+      if (pl.acrescimos) {
+        setAcrescimos({
+          pronta: Number(pl.acrescimos.pronta) || 1.0,
+          garfoEFaca: Number(pl.acrescimos.garfoEFaca) || 1.0,
+        });
+      }
       return data;
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...params, entrega, precos_marmita: precos };
+      const payload = { ...params, entrega, precos_marmita: precos, acrescimos };
       const { error } = await supabase
         .from("site_settings")
         .update({ parametros_loja: payload } as any)
@@ -296,6 +303,46 @@ function AdminConfigParametrosPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Acréscimos por opção (pronta para consumo / garfo e faca) */}
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-800">Acréscimos por Opção</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Valor adicionado ao preço de cada marmita quando o cliente escolhe essas opções.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Pronta para consumo (R$)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={acrescimos.pronta}
+                  onChange={(e) =>
+                    setAcrescimos((prev) => ({ ...prev, pronta: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                  Garfo e faca (R$)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={acrescimos.garfoEFaca}
+                  onChange={(e) =>
+                    setAcrescimos((prev) => ({ ...prev, garfoEFaca: Number(e.target.value) || 0 }))
+                  }
+                />
+              </div>
             </div>
           </div>
 
