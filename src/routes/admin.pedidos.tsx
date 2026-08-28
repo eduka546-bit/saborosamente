@@ -932,6 +932,28 @@ function AdminOrdersPage() {
                       : "Ativar push"}
             </button>
           )}
+
+          {/* Botão excluir pedidos cancelados em massa */}
+          <button
+            onClick={async () => {
+              const cancelados = orders.filter((o: any) => o.status === "cancelado");
+              if (cancelados.length === 0) {
+                toast.info("Nenhum pedido cancelado para excluir.");
+                return;
+              }
+              if (!confirm(`Excluir ${cancelados.length} pedido(s) cancelado(s) permanentemente?`)) return;
+              for (const o of cancelados) {
+                await supabase.from("pedido_itens").delete().eq("pedido_id", o.id);
+                await supabase.from("pedidos").delete().eq("id", o.id);
+              }
+              queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+              toast.success(`${cancelados.length} pedido(s) cancelado(s) excluído(s).`);
+            }}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition-all bg-white text-red-500 border-red-200 hover:bg-red-50"
+          >
+            <Trash2 size={16} />
+            Excluir Cancelados
+          </button>
         </div>
       </div>
 
