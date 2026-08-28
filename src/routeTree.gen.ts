@@ -24,6 +24,7 @@ import { Route as AdminAcompanhamentosRouteImport } from './routes/admin/acompan
 import { Route as AdminAgenteRouteImport } from './routes/admin/agente'
 import { Route as AdminAutomacoesRouteImport } from './routes/admin/automacoes'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin/avaliacoes'
+import { Route as AdminBebidasRouteImport } from './routes/admin.bebidas'
 import { Route as AdminCampanhasRouteImport } from './routes/admin.campanhas'
 import { Route as AdminCashbackRouteImport } from './routes/admin/cashback'
 import { Route as AdminCategoriasRouteImport } from './routes/admin/categorias'
@@ -151,6 +152,11 @@ const AdminAutomacoesRoute = AdminAutomacoesRouteImport.update({
 const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
   id: '/avaliacoes',
   path: '/avaliacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBebidasRoute = AdminBebidasRouteImport.update({
+  id: '/bebidas',
+  path: '/bebidas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCampanhasRoute = AdminCampanhasRouteImport.update({
@@ -444,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/admin/agente': typeof AdminAgenteRoute
   '/admin/automacoes': typeof AdminAutomacoesRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -513,6 +520,7 @@ export interface FileRoutesByTo {
   '/admin/agente': typeof AdminAgenteRoute
   '/admin/automacoes': typeof AdminAutomacoesRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -583,6 +591,7 @@ export interface FileRoutesById {
   '/admin/agente': typeof AdminAgenteRoute
   '/admin/automacoes': typeof AdminAutomacoesRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -655,6 +664,7 @@ export interface FileRouteTypes {
     | '/admin/agente'
     | '/admin/automacoes'
     | '/admin/avaliacoes'
+    | '/admin/bebidas'
     | '/admin/campanhas'
     | '/admin/cashback'
     | '/admin/categorias'
@@ -724,6 +734,7 @@ export interface FileRouteTypes {
     | '/admin/agente'
     | '/admin/automacoes'
     | '/admin/avaliacoes'
+    | '/admin/bebidas'
     | '/admin/campanhas'
     | '/admin/cashback'
     | '/admin/categorias'
@@ -793,6 +804,7 @@ export interface FileRouteTypes {
     | '/admin/agente'
     | '/admin/automacoes'
     | '/admin/avaliacoes'
+    | '/admin/bebidas'
     | '/admin/campanhas'
     | '/admin/cashback'
     | '/admin/categorias'
@@ -969,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/avaliacoes'
       fullPath: '/admin/avaliacoes'
       preLoaderRoute: typeof AdminAvaliacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bebidas': {
+      id: '/admin/bebidas'
+      path: '/bebidas'
+      fullPath: '/admin/bebidas'
+      preLoaderRoute: typeof AdminBebidasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/campanhas': {
@@ -1382,6 +1401,7 @@ interface AdminRouteChildren {
   AdminAgenteRoute: typeof AdminAgenteRoute
   AdminAutomacoesRoute: typeof AdminAutomacoesRoute
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
+  AdminBebidasRoute: typeof AdminBebidasRoute
   AdminCampanhasRoute: typeof AdminCampanhasRoute
   AdminCashbackRoute: typeof AdminCashbackRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
@@ -1435,6 +1455,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAgenteRoute: AdminAgenteRoute,
   AdminAutomacoesRoute: AdminAutomacoesRoute,
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
+  AdminBebidasRoute: AdminBebidasRoute,
   AdminCampanhasRoute: AdminCampanhasRoute,
   AdminCashbackRoute: AdminCashbackRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
