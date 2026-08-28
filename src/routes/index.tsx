@@ -165,7 +165,7 @@ function Index() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categorias")
-        .select("id, nome, visivel_no_filtro, ordem_filtro")
+        .select("id, nome, descricao, visivel_no_filtro, ordem_filtro")
         .eq("visivel_no_filtro", true)
         .order("ordem_filtro", { ascending: true })
         .order("ordem", { ascending: true });
@@ -627,9 +627,15 @@ function Index() {
                       return (
                         <div key={category}>
                           {categoryIndex > 0 && <div className="my-6 border-t border-border/30" />}
-                          <h3 className="text-lg font-bold text-primary mb-4 uppercase tracking-wide">
+                          <h3 className="text-lg font-bold text-primary mb-1 uppercase tracking-wide">
                             {category}
                           </h3>
+                          {(() => {
+                            const catInfo = orderedCategories.find((c: any) => c.nome === category);
+                            return catInfo?.descricao ? (
+                              <p className="text-xs text-gray-400 mb-4">{catInfo.descricao}</p>
+                            ) : <div className="mb-4" />;
+                          })()}
                           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                             {categoryProducts.map((product: any) => (
                               <ProductCard
