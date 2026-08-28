@@ -200,7 +200,6 @@ export function MarmitaPersonalizadaModal({
           <div className="flex gap-2 min-w-max">
             {config.tamanhos.map((t) => {
               const isAtual = tamanho?.sigla === t.sigla;
-              const limProt = limiteProteina(t, config);
               return (
                 <div
                   key={t.sigla}
@@ -216,9 +215,6 @@ export function MarmitaPersonalizadaModal({
                     <span className="text-[10px] text-white/70">{t.label}</span>
                   </div>
                   <div className="text-xs font-bold text-white">{formatBRL(t.preco)}</div>
-                  <div className="text-[10px] text-white/60 mt-0.5">
-                    proteína até <span className="font-bold text-white/90">{limProt}g</span>
-                  </div>
                 </div>
               );
             })}
