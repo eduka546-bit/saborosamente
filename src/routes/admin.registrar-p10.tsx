@@ -27,88 +27,59 @@ interface ItemParseado {
 }
 
 function parsearTexto(texto: string): ItemParseado[] {
-  // Separa por vírgula ou quebra de linha
-  const partes = texto
-    .split(/[,\n]/)
+  const linhas = texto.split(/\n/).map((s) => s.trim()).filter(Boolean);
+  const items: ItemParseado[] = [];
+
+  // Detecta tamanho do cabeçalho (ex: "Tradicional M (300g)", "Combo 10 a 19 Unidades")
+  let tamanhoHeader = "300g"; // default
+  for (const linha of linhas) {
+    const tamMatch = linha.match(/\b[PpMmGg]\s*\((\d{3})g?\)/);
+    if (tamMatch) {
+      tamanhoHeader = `${tamMatch[1]}g`;
+      break;
+    }
+    // Formato "200g" / "300g" / "400g" solto na linha
+    const tamMatch2 = linha.match(/\b(200|300|400)\s*g\b/i);
+    if (tamMatch2 && !linha.match(/TD|SO|CO/i)) {
+      tamanhoHeader = `${tamMatch2[1]}g`;
+      break;
+    }
+  }
+
+  // Junta tudo em uma string e separa por vírgula, ponto ou quebra de linha
+  const textoCompleto = linhas.join(" ");
+  // Remove prefixos como "Sabor:", "Servir:", etc
+  const limpo = textoCompleto.replace(/^.*?Sabor:\s*/i, "").replace(/Servir:.*$/i, "");
+  const partes = limpo
+    .split(/[,.\n]/)
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const items: ItemParseado[] = [];
-
   for (const parte of partes) {
-    // Ignora linhas que não parecem item (ex: "Combo 10 a 19", "Servir:", "Sabor:")
-    if (/^(combo|servir|sabor)/i.test(parte) && !parte.match(/TD|SO|CO/i)) continue;
+    // Ignora linhas que não contêm código de produto
+    if (!parte.match(/TD|SO|CO/i)) continue;
 
-    // Padrão: [Nx] COD-Nome TAMANHOg
-    // Ex: "5x TD18-Patinho Moído á Bolonhesa com Arroz e Feijão 200g"
-    // Ex: "TD13 - Escondidinho de Patinho com Batata Inglesa e Queijo 400g"
-    const match = parte.match(
-      /^(\d+)\s*x\s*(TD|SO|CO)(\d+)\s*[-–]\s*(.+?)\s*(200|300|400)\s*g\s*$/i,
-    );
-    if (match) {
-      items.push({
-        quantidade: parseInt(match[1]),
-        codigo: `${match[2].toUpperCase()}${match[3]}`,
-        nome: match[4].trim(),
-        tamanho: `${match[5]}g`,
-        encontrado: false,
-      });
-      continue;
-    }
+    // Extrai quantidade (Nx no início, default 1)
+    const qtyMatch = parte.match(/^(\d+)\s*x\s*/i);
+    const quantidade = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+    const semQty = parte.replace(/^\d+\s*x\s*/i, "").trim();
 
-    // Sem quantidade (= 1 unidade)
-    const match2 = parte.match(
-      /^(TD|SO|CO)(\d+)\s*[-–]\s*(.+?)\s*(200|300|400)\s*g\s*$/i,
-    );
-    if (match2) {
-      items.push({
-        quantidade: 1,
-        codigo: `${match2[1].toUpperCase()}${match2[2]}`,
-        nome: match2[3].trim(),
-        tamanho: `${match2[4]}g`,
-        encontrado: false,
-      });
-      continue;
-    }
+    // Extrai código (TD13, SO05, CO04)
+    const codMatch = semQty.match(/(TD|SO|CO)(\d+)/i);
+    if (!codMatch) continue;
+    const codigo = `${codMatch[1].toUpperCase()}${codMatch[2]}`;
 
-    // Tenta formato mais solto (com "x" e código no meio)
-    const match3 = parte.match(/^(\d+)\s*x\s*(TD|SO|CO)(\d+)/i);
-    if (match3) {
-      // Extrai tamanho do final
-      const tamMatch = parte.match(/(200|300|400)\s*g/i);
-      const tamanho = tamMatch ? `${tamMatch[1]}g` : "300g";
-      const nomeRest = parte
-        .replace(/^\d+\s*x\s*/i, "")
-        .replace(/(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
-        .replace(/(200|300|400)\s*g/i, "")
-        .trim();
-      items.push({
-        quantidade: parseInt(match3[1]),
-        codigo: `${match3[2].toUpperCase()}${match3[3]}`,
-        nome: nomeRest || `Produto ${match3[2]}${match3[3]}`,
-        tamanho,
-        encontrado: false,
-      });
-      continue;
-    }
+    // Extrai tamanho do final do item (se existir), senão usa do header
+    const tamItemMatch = semQty.match(/(200|300|400)\s*g\s*$/i);
+    const tamanho = tamItemMatch ? `${tamItemMatch[1]}g` : tamanhoHeader;
 
-    // Sem quantidade, formato solto
-    const match4 = parte.match(/^(TD|SO|CO)(\d+)/i);
-    if (match4) {
-      const tamMatch = parte.match(/(200|300|400)\s*g/i);
-      const tamanho = tamMatch ? `${tamMatch[1]}g` : "300g";
-      const nomeRest = parte
-        .replace(/(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
-        .replace(/(200|300|400)\s*g/i, "")
-        .trim();
-      items.push({
-        quantidade: 1,
-        codigo: `${match4[1].toUpperCase()}${match4[2]}`,
-        nome: nomeRest || `Produto ${match4[1]}${match4[2]}`,
-        tamanho,
-        encontrado: false,
-      });
-    }
+    // Extrai nome (entre o código e o tamanho)
+    const nome = semQty
+      .replace(/^\s*(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
+      .replace(/(200|300|400)\s*g\s*$/i, "")
+      .trim() || `Produto ${codigo}`;
+
+    items.push({ quantidade, codigo, nome, tamanho, encontrado: false });
   }
 
   return items;
