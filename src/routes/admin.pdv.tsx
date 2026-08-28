@@ -61,7 +61,9 @@ function AdminPDV() {
   const [selectedPayment, setSelectedPayment] = useState("");
   const [troco, setTroco] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showWeightPicker, setShowWeightPicker] = useState<any>(null); // product waiting for weight
+  const [showWeightPicker, setShowWeightPicker] = useState<any>(null);
+  const [descontoManual, setDescontoManual] = useState(0);
+  const [acrescimoManual, setAcrescimoManual] = useState(0); // product waiting for weight
   // Identificação do cliente (opcional)
   const [clienteBusca, setClienteBusca] = useState("");
   const [cliente, setCliente] = useState<any>(null);
@@ -134,6 +136,7 @@ function AdminPDV() {
     [recalculatedItems],
   );
   const desconto = Math.max(0, subtotal - totalEfetivo);
+  const totalFinal = Math.max(0, totalEfetivo - descontoManual + acrescimoManual);
 
   // Busca produto por EAN ou nome
   const searchResults = useMemo(() => {
@@ -253,12 +256,16 @@ function AdminPDV() {
           telefone_cliente: cliente?.telefone ?? null,
           metodo_entrega: "retirada",
           metodo_pagamento: selectedPayment,
-          valor_total: totalEfetivo,
+          valor_total: totalFinal,
           taxa_entrega: 0,
-          desconto_aplicado: desconto,
+          desconto_aplicado: desconto + descontoManual,
           troco: troco || null,
           status: "entregue",
           origem: "pdv",
+          observacao: [
+            acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
+            descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
+          ].filter(Boolean).join(" | ") || null,
         })
         .select()
         .single();
@@ -295,9 +302,9 @@ function AdminPDV() {
         status: "entregue",
         metodo_entrega: "retirada",
         metodo_pagamento: selectedPayment,
-        valor_total: totalEfetivo,
+        valor_total: totalFinal,
         taxa_entrega: 0,
-        desconto_aplicado: desconto,
+        desconto_aplicado: desconto + descontoManual,
         troco: troco || undefined,
         itens: recalculatedItems.map((item) => ({
           nome: `${item.nome} (${item.weight})`,
@@ -321,13 +328,15 @@ function AdminPDV() {
       }
 
       toast.success("Venda finalizada!", {
-        description: `#${order.id.slice(0, 8).toUpperCase()} — ${formatBRL(totalEfetivo)}`,
+        description: `#${order.id.slice(0, 8).toUpperCase()} — ${formatBRL(totalFinal)}`,
       });
 
       // Reset
       setItems([]);
       setSelectedPayment("");
       setTroco("");
+      setDescontoManual(0);
+      setAcrescimoManual(0);
       setCliente(null);
       setClienteBusca("");
       searchRef.current?.focus();
@@ -473,9 +482,55 @@ function AdminPDV() {
                 <span>-{formatBRL(desconto)}</span>
               </div>
             )}
+
+            {/* Desconto / acréscimo manual */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase block mb-0.5">
+                  Desconto (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={descontoManual || ""}
+                  onChange={(e) => setDescontoManual(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  className="w-full h-8 px-2 rounded-lg border border-gray-200 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase block mb-0.5">
+                  Acréscimo (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={acrescimoManual || ""}
+                  onChange={(e) => setAcrescimoManual(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  className="w-full h-8 px-2 rounded-lg border border-gray-200 text-sm"
+                />
+              </div>
+            </div>
+
+            {descontoManual > 0 && (
+              <div className="flex justify-between text-sm text-green-600 font-bold">
+                <span>Desconto manual</span>
+                <span>-{formatBRL(descontoManual)}</span>
+              </div>
+            )}
+            {acrescimoManual > 0 && (
+              <div className="flex justify-between text-sm text-orange-600 font-bold">
+                <span>Acréscimo</span>
+                <span>+{formatBRL(acrescimoManual)}</span>
+              </div>
+            )}
+
             <div className="flex justify-between text-xl font-black pt-2 border-t">
               <span>TOTAL</span>
-              <span className="text-[#086e45]">{formatBRL(totalEfetivo)}</span>
+              <span className="text-[#086e45]">{formatBRL(totalFinal)}</span>
             </div>
           </div>
 
