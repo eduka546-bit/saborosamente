@@ -31,27 +31,53 @@ async function getToken(): Promise<string> {
     return cachedToken.token;
   }
 
-  const res = await fetch(`${OD_BASE_URL}/opendelivery/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: OD_CLIENT_ID,
-      client_secret: OD_CLIENT_SECRET,
-    }),
-  });
+  // Tenta múltiplos paths de autenticação (cada plataforma usa um diferente)
+  const tokenPaths = [
+    "/oauth/token",
+    "/opendelivery/oauth/token",
+    "/api/oauth/token",
+    "/v1/oauth/token",
+    "/auth/token",
+    "/api/v1/oauth/token",
+  ];
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Auth falhou (${res.status}): ${err}`);
+  for (const path of tokenPaths) {
+    const url = `${OD_BASE_URL}${path}`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: OD_CLIENT_ID,
+          client_secret: OD_CLIENT_SECRET,
+        }),
+      });
+
+      if (res.status === 404) continue; // path errado, tenta o próximo
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Auth falhou em ${path} (${res.status}): ${err}`);
+      }
+
+      const data = await res.json();
+      if (data.access_token) {
+        console.log(`✅ Auth OK via ${path}`);
+        cachedToken = {
+          token: data.access_token,
+          expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+        };
+        return cachedToken.token;
+      }
+    } catch (e: any) {
+      if (e.message?.includes("Auth falhou")) throw e;
+      // Network error no path, tenta próximo
+      continue;
+    }
   }
 
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
-  };
-  return cachedToken.token;
+  throw new Error(`Auth falhou: nenhum path de token funcionou na URL ${OD_BASE_URL}. Paths testados: ${tokenPaths.join(", ")}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
