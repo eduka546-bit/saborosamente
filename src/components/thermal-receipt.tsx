@@ -107,6 +107,7 @@ export function ThermalReceipt({ order }: ThermalReceiptProps) {
           {center("SABOROSAMENTE")}
           {center("Atacado de Refeicoes")}
           {center("e Sopas Congeladas")}
+          {center("CNPJ: 52.596.019/0001-46")}
           {SEP}
           {center(`PEDIDO #${seq}`)}
           {center(`${dateStr}  ${timeStr}`)}
@@ -204,6 +205,7 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     c("SABOROSAMENTE"),
     c("Atacado de Refeicoes"),
     c("e Sopas Congeladas"),
+    c("CNPJ: 52.596.019/0001-46"),
     sep,
     c(`PEDIDO #${seq}`),
     c(`${dateStr}  ${timeStr}`),

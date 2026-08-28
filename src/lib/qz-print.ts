@@ -124,6 +124,7 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const linhas = [
     c("SABOROSAMENTE"),
     c("Marmitas Congeladas Artesanais"),
+    c("CNPJ: 52.596.019/0001-46"),
     SEP,
     c(`PEDIDO #${seq}`),
     c(`${dateStr}  ${timeStr}`),

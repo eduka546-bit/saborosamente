@@ -22,6 +22,7 @@ import {
   Bell,
   FileText,
   Send,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -735,6 +736,22 @@ function AdminOrdersPage() {
     },
   });
 
+  const deleteOrder = useMutation({
+    mutationFn: async (id: string) => {
+      // Remove itens primeiro (cascadeia, mas por segurança)
+      await supabase.from("pedido_itens").delete().eq("pedido_id", id);
+      const { error } = await supabase.from("pedidos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Pedido excluído.");
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir: " + error.message);
+    },
+  });
+
   const filteredOrders = useMemo(() => {
     const now = new Date();
     return orders.filter((order: any) => {
@@ -1172,9 +1189,30 @@ function AdminOrdersPage() {
                             <DropdownMenuItem className="text-xs font-bold uppercase flex gap-2">
                               <Printer size={14} /> Imprimir Ticket
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-xs font-bold uppercase flex gap-2 text-red-600">
+                            <DropdownMenuItem
+                              className="text-xs font-bold uppercase flex gap-2 text-red-600"
+                              onClick={() =>
+                                updateOrderStatus.mutate({
+                                  id: order.id,
+                                  status: "cancelado",
+                                  statusAnterior: order.status,
+                                })
+                              }
+                            >
                               <XCircle size={14} /> Cancelar Pedido
                             </DropdownMenuItem>
+                            {order.status === "cancelado" && (
+                              <DropdownMenuItem
+                                className="text-xs font-bold uppercase flex gap-2 text-red-600 bg-red-50"
+                                onClick={() => {
+                                  if (confirm("Excluir permanentemente este pedido cancelado?")) {
+                                    deleteOrder.mutate(order.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 size={14} /> Excluir Pedido
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

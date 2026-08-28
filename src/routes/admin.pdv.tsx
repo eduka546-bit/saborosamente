@@ -63,7 +63,8 @@ function AdminPDV() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWeightPicker, setShowWeightPicker] = useState<any>(null);
   const [descontoManual, setDescontoManual] = useState(0);
-  const [acrescimoManual, setAcrescimoManual] = useState(0); // product waiting for weight
+  const [acrescimoManual, setAcrescimoManual] = useState(0);
+  const [imprimirCupom, setImprimirCupom] = useState(true); // product waiting for weight
   // Identificação do cliente (opcional)
   const [clienteBusca, setClienteBusca] = useState("");
   const [cliente, setCliente] = useState<any>(null);
@@ -293,38 +294,40 @@ function AdminPDV() {
         });
       }
 
-      // 4. Imprimir cupom
-      const orderParaImprimir = {
-        id: order.id,
-        nome_cliente: cliente?.nome ?? "Balcão",
-        telefone_cliente: cliente?.telefone,
-        created_at: order.created_at,
-        status: "entregue",
-        metodo_entrega: "retirada",
-        metodo_pagamento: selectedPayment,
-        valor_total: totalFinal,
-        taxa_entrega: 0,
-        desconto_aplicado: desconto + descontoManual,
-        troco: troco || undefined,
-        itens: recalculatedItems.map((item) => ({
-          nome: `${item.nome} (${item.weight})`,
-          quantidade: item.quantity,
-          preco_unitario: item.precoUnitario,
-          observacao: null,
-        })),
-      };
+      // 4. Imprimir cupom (se marcado)
+      if (imprimirCupom) {
+        const orderParaImprimir = {
+          id: order.id,
+          nome_cliente: cliente?.nome ?? "Balcão",
+          telefone_cliente: cliente?.telefone,
+          created_at: order.created_at,
+          status: "entregue",
+          metodo_entrega: "retirada",
+          metodo_pagamento: selectedPayment,
+          valor_total: totalFinal,
+          taxa_entrega: 0,
+          desconto_aplicado: desconto + descontoManual,
+          troco: troco || undefined,
+          itens: recalculatedItems.map((item) => ({
+            nome: `${item.nome} (${item.weight})`,
+            quantidade: item.quantity,
+            preco_unitario: item.precoUnitario,
+            observacao: null,
+          })),
+        };
 
-      const cfg = (configImpressao as any)?.config_impressao;
-      const ip = cfg?.impressora_ip;
-      const porta = Number(cfg?.impressora_porta ?? 9100);
-      const copias = Number(cfg?.copias ?? 1);
-      const papel = cfg?.tamanho_papel ?? "58mm";
+        const cfg = (configImpressao as any)?.config_impressao;
+        const ip = cfg?.impressora_ip;
+        const porta = Number(cfg?.impressora_porta ?? 9100);
+        const copias = Number(cfg?.copias ?? 1);
+        const papel = cfg?.tamanho_papel ?? "58mm";
 
-      if (ip) {
-        const ok = await imprimirTCP(orderParaImprimir, ip, porta, copias, papel);
-        if (!ok) printReceipt(orderParaImprimir);
-      } else {
-        printReceipt(orderParaImprimir);
+        if (ip) {
+          const ok = await imprimirTCP(orderParaImprimir, ip, porta, copias, papel);
+          if (!ok) printReceipt(orderParaImprimir);
+        } else {
+          printReceipt(orderParaImprimir);
+        }
       }
 
       toast.success("Venda finalizada!", {
@@ -624,7 +627,16 @@ function AdminPDV() {
           </div>
 
           {/* Botão finalizar */}
-          <div className="p-4 shrink-0">
+          <div className="p-4 shrink-0 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={imprimirCupom}
+                onChange={(e) => setImprimirCupom(e.target.checked)}
+                className="size-4 accent-[#086e45]"
+              />
+              <span className="text-xs font-bold text-gray-600">Imprimir cupom</span>
+            </label>
             <button
               onClick={finalizarVenda}
               disabled={isProcessing || recalculatedItems.length === 0 || !selectedPayment}
@@ -636,7 +648,7 @@ function AdminPDV() {
               )}
             >
               <Printer size={20} />
-              {isProcessing ? "Processando..." : "Finalizar e Imprimir"}
+              {isProcessing ? "Processando..." : "Finalizar Venda"}
             </button>
           </div>
         </div>
