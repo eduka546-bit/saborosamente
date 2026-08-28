@@ -23,6 +23,7 @@ import { PromoCarousel } from "@/components/promo-carousel";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
 import { formatBRL } from "@/lib/products";
+import { imgUrl } from "@/lib/image-proxy";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useMemo } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
@@ -636,12 +637,12 @@ function Index() {
                                 product={{
                                   ...product,
                                   categoria: product.categorias?.nome || "Marmita",
-                                  imagem: product.imagem_url,
+                                  imagem: imgUrl(product.imagem_url),
                                 }}
                                 allProducts={products.map((p: any) => ({
                                   ...p,
                                   categoria: p.categorias?.nome || "Marmita",
-                                  imagem: p.imagem_url,
+                                  imagem: imgUrl(p.imagem_url),
                                 }))}
                               />
                             ))}

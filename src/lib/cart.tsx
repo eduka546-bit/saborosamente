@@ -23,6 +23,7 @@ import {
   MARMITA_PRICE_TABLE,
 } from "@/lib/combo-rules";
 import { supabase } from "@/integrations/supabase/client";
+import { imgUrl } from "@/lib/image-proxy";
 
 // Variável global para cache de produtos no lado do cliente
 let cachedProducts: any[] = [];
@@ -435,7 +436,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cachedProducts = serverProducts.map((p) => ({
         ...p,
         categoria: p.categorias?.nome || "Marmita",
-        imagem: p.imagem_url,
+        imagem: imgUrl(p.imagem_url),
       }));
       // Forçar atualização do estado das linhas para que o useMemo recalcule os detalhes
       // agora que temos os produtos carregados

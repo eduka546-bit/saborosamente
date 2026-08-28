@@ -13,6 +13,7 @@ import { Link } from "@tanstack/react-router";
 import { OptimizedImage } from "@/components/optimized-image";
 import { isMarmita } from "@/lib/combo-rules";
 import { ProductSeals } from "@/components/product-seals";
+import { imgUrl } from "@/lib/image-proxy";
 
 export const Route = createFileRoute("/produto/$id")({
   component: ProdutoPage,
@@ -100,7 +101,7 @@ function ProdutoPage() {
   const rating = product.rating ?? ((product.id as any) % 2 === 0 ? 5.0 : 4.9);
 
   // Imagens
-  const allImages = [product.imagem_url];
+  const allImages = [imgUrl(product.imagem_url)];
   if (product.imagens && Array.isArray(product.imagens)) {
     allImages.push(...product.imagens);
   }

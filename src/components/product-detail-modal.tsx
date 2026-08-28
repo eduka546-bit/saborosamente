@@ -5,6 +5,7 @@ import { ProductSeals } from "@/components/product-seals";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
+import { imgUrl } from "@/lib/image-proxy";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,7 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
   const ehMarmita = isMarmita(product.nome, categoriaNome);
 
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
-  const principal = product.imagem_url || product.imagem;
+  const principal = imgUrl(product.imagem_url || product.imagem);
   const allImages = [principal, ...(Array.isArray(product.imagens) ? product.imagens : [])].filter(
     Boolean,
   );
