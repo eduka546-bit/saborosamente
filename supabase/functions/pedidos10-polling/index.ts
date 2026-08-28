@@ -34,50 +34,76 @@ async function getToken(): Promise<string> {
   // Tenta múltiplos paths de autenticação (cada plataforma usa um diferente)
   const tokenPaths = [
     "/oauth/token",
-    "/opendelivery/oauth/token",
     "/api/oauth/token",
     "/v1/oauth/token",
-    "/auth/token",
-    "/api/v1/oauth/token",
   ];
 
   for (const path of tokenPaths) {
     const url = `${OD_BASE_URL}${path}`;
-    try {
-      const res = await fetch(url, {
-        method: "POST",
+
+    // Tenta 2 formatos: body form-encoded e Basic Auth header
+    const attempts = [
+      // Formato 1: credenciais no body (mais comum)
+      {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           grant_type: "client_credentials",
           client_id: OD_CLIENT_ID,
           client_secret: OD_CLIENT_SECRET,
         }),
-      });
+      },
+      // Formato 2: Basic Auth no header (client_id:client_secret em base64)
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${btoa(`${OD_CLIENT_ID}:${OD_CLIENT_SECRET}`)}`,
+        },
+        body: new URLSearchParams({ grant_type: "client_credentials" }),
+      },
+      // Formato 3: JSON body
+      {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "client_credentials",
+          client_id: OD_CLIENT_ID,
+          client_secret: OD_CLIENT_SECRET,
+        }),
+      },
+    ];
 
-      if (res.status === 404) continue; // path errado, tenta o próximo
+    for (const attempt of attempts) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: attempt.headers,
+          body: attempt.body,
+        });
 
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Auth falhou em ${path} (${res.status}): ${err}`);
+        if (res.status === 404) break; // path errado, tenta próximo path
+        if (res.status === 401) continue; // credenciais rejeitadas nesse formato, tenta próximo formato
+
+        if (!res.ok) {
+          const err = await res.text();
+          console.error(`Auth ${path} (${res.status}): ${err}`);
+          continue;
+        }
+
+        const data = await res.json();
+        if (data.access_token) {
+          console.log(`✅ Auth OK via ${path}`);
+          cachedToken = {
+            token: data.access_token,
+            expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+          };
+          return cachedToken.token;
+        }
+      } catch (e: any) {
+        continue;
       }
-
-      const data = await res.json();
-      if (data.access_token) {
-        console.log(`✅ Auth OK via ${path}`);
-        cachedToken = {
-          token: data.access_token,
-          expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
-        };
-        return cachedToken.token;
-      }
-    } catch (e: any) {
-      if (e.message?.includes("Auth falhou")) throw e;
-      // Network error no path, tenta próximo
-      continue;
     }
   }
 
-  throw new Error(`Auth falhou: nenhum path de token funcionou na URL ${OD_BASE_URL}. Paths testados: ${tokenPaths.join(", ")}`);
+  throw new Error(`Auth falhou: credenciais rejeitadas. Verifique com o Pedidos10 se a integração está ativa. URL: ${OD_BASE_URL}/oauth/token`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
