@@ -10,9 +10,20 @@ export const Route = createFileRoute("/admin/relatorios/estoque")({
   component: AdminRelatoriosEstoquePage,
 });
 
-function EstoqueCell({ valor, minimo }: { valor: number; minimo: number }) {
-  const urgente = valor === 0;
-  const baixo = !urgente && valor <= minimo;
+function EstoqueCell({ valor, coluna, tipo }: { valor: number; coluna: "200g" | "300g" | "400g"; tipo?: string }) {
+  // Regras de alerta por coluna/tipo:
+  // 200g (marmitas): alerta ≤4, urgente ≤3
+  // 300g/400g (marmitas): alerta ≤7, urgente ≤5
+  // Sopas/Complementos/Bebidas: alerta ≤7, urgente ≤5
+  let limAlerta = 7;
+  let limUrgente = 5;
+  if (tipo === "marmita" && coluna === "200g") {
+    limAlerta = 4;
+    limUrgente = 3;
+  }
+
+  const urgente = valor <= limUrgente;
+  const baixo = !urgente && valor <= limAlerta;
   return (
     <span
       className={cn(
@@ -23,7 +34,7 @@ function EstoqueCell({ valor, minimo }: { valor: number; minimo: number }) {
       )}
     >
       {valor}
-      {urgente && <span title="Sem estoque">❌</span>}
+      {urgente && <span title="Urgente">❌</span>}
       {baixo && <span title="Estoque baixo">⚠️</span>}
     </span>
   );
@@ -45,18 +56,25 @@ function AdminRelatoriosEstoquePage() {
     },
   });
 
-  // Contadores
+  // Contadores — usa as novas regras fixas
   const comProblema = products.filter((p: any) => {
-    const min = p.estoque_minimo ?? 5;
-    return (
-      (p.estoque_200g ?? 0) <= min ||
-      (p.estoque_300g ?? 0) <= min ||
-      (p.estoque_400g ?? 0) <= min
-    );
+    const tipo = p.tipo_produto ?? "marmita";
+    if (tipo === "marmita") {
+      return (p.estoque_200g ?? 0) <= 4 || (p.estoque_300g ?? 0) <= 7 || (p.estoque_400g ?? 0) <= 7;
+    }
+    if (tipo === "sopa") return (p.estoque_400g ?? 0) <= 7;
+    if (tipo === "complemento" || tipo === "bebida") return (p.estoque_200g ?? 0) <= 7;
+    return false;
   });
-  const semEstoque = products.filter((p: any) =>
-    (p.estoque_200g ?? 0) === 0 || (p.estoque_300g ?? 0) === 0 || (p.estoque_400g ?? 0) === 0,
-  );
+  const semEstoque = products.filter((p: any) => {
+    const tipo = p.tipo_produto ?? "marmita";
+    if (tipo === "marmita") {
+      return (p.estoque_200g ?? 0) <= 3 || (p.estoque_300g ?? 0) <= 5 || (p.estoque_400g ?? 0) <= 5;
+    }
+    if (tipo === "sopa") return (p.estoque_400g ?? 0) <= 5;
+    if (tipo === "complemento" || tipo === "bebida") return (p.estoque_200g ?? 0) <= 5;
+    return false;
+  });
 
   function imprimirEstoque(prods: any[]) {
     const now = new Date();
@@ -64,17 +82,20 @@ function AdminRelatoriosEstoquePage() {
     const horaStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
     const rows = prods.map((p: any) => {
-      const min = p.estoque_minimo ?? 5;
-      const fmt = (v: number) => {
-        if (v === 0) return `${v} ❌`;
-        if (v <= min) return `${v} ⚠️`;
+      const tipo = p.tipo_produto ?? "marmita";
+      const fmt = (v: number, col: string) => {
+        let limAlerta = 7;
+        let limUrgente = 5;
+        if (tipo === "marmita" && col === "200g") { limAlerta = 4; limUrgente = 3; }
+        if (v <= limUrgente) return `${v} ❌`;
+        if (v <= limAlerta) return `${v} ⚠️`;
         return `${v}`;
       };
       return `<tr>
         <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:11px;font-weight:600">${p.nome}</td>
-        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_200g ?? 0)}</td>
-        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_300g ?? 0)}</td>
-        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_400g ?? 0)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_200g ?? 0, "200g")}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_300g ?? 0, "300g")}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${fmt(p.estoque_400g ?? 0, "400g")}</td>
       </tr>`;
     }).join("");
 
@@ -148,12 +169,10 @@ function AdminRelatoriosEstoquePage() {
                 <th className="px-4 py-3 text-center">200g / UN</th>
                 <th className="px-4 py-3 text-center">300g</th>
                 <th className="px-4 py-3 text-center">400g / UN</th>
-                <th className="px-4 py-3 text-center">Mín</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {products.map((p: any) => {
-                const min = p.estoque_minimo ?? 5;
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
@@ -173,30 +192,29 @@ function AdminRelatoriosEstoquePage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
-                        <EstoqueCell valor={p.estoque_200g ?? 0} minimo={min} />
+                        <EstoqueCell valor={p.estoque_200g ?? 0} coluna="200g" tipo="marmita" />
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
-                        <EstoqueCell valor={p.estoque_300g ?? 0} minimo={min} />
+                        <EstoqueCell valor={p.estoque_300g ?? 0} coluna="300g" tipo="marmita" />
                       ) : p.tipo_produto === "complemento" || p.tipo_produto === "bebida" ? (
-                        <EstoqueCell valor={p.estoque_200g ?? 0} minimo={min} />
+                        <EstoqueCell valor={p.estoque_200g ?? 0} coluna="300g" tipo={p.tipo_produto} />
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(p.tipo_produto === "marmita" || !p.tipo_produto) ? (
-                        <EstoqueCell valor={p.estoque_400g ?? 0} minimo={min} />
+                        <EstoqueCell valor={p.estoque_400g ?? 0} coluna="400g" tipo="marmita" />
                       ) : p.tipo_produto === "sopa" ? (
-                        <EstoqueCell valor={p.estoque_400g ?? 0} minimo={min} />
+                        <EstoqueCell valor={p.estoque_400g ?? 0} coluna="400g" tipo="sopa" />
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center text-gray-400 text-xs">{min}</td>
                   </tr>
                 );
               })}
