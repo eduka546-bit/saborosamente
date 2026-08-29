@@ -176,6 +176,13 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   }
 }
 
+// Reenvia o menu após um pequeno atraso, para o cliente ter tempo de ler a
+// resposta antes do menu aparecer (evita as duas mensagens grudadas).
+async function sendMenuComDelay(to: string) {
+  await new Promise((resolve) => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
+  await sendMenuInterativo(to);
+}
+
 function solicitouMenuPrincipal(texto: string): boolean {
   const normalizado = texto
     .trim()
@@ -2126,7 +2133,7 @@ Deno.serve(async (req: Request) => {
               role: "assistant",
               content: siteMsg,
             });
-            await sendMenuInterativo(telefone);
+            await sendMenuComDelay(telefone);
             return new Response("OK", { status: 200 });
           }
           case "menu_cardapio":
@@ -2144,7 +2151,7 @@ Deno.serve(async (req: Request) => {
                 role: "assistant",
                 content: cardapioMsg ?? "[Cardápio enviado]",
               });
-              await sendMenuInterativo(telefone);
+              await sendMenuComDelay(telefone);
               return new Response("OK", { status: 200 });
             }
             break;
@@ -2184,9 +2191,9 @@ Deno.serve(async (req: Request) => {
                 role: "assistant",
                 content: respostaFixa,
               });
-              // Reexibe o menu (único, com as seções) para o cliente escolher
-              // outra dúvida ou outra opção sem se perder.
-              await sendMenuInterativo(telefone);
+              // Reexibe o menu (único, com as seções) após um pequeno atraso,
+              // para o cliente ler a resposta antes de o menu aparecer.
+              await sendMenuComDelay(telefone);
               return new Response("OK", { status: 200 });
             }
             // Fallback: sem resposta fixa cadastrada → deixa a IA responder.
@@ -2406,7 +2413,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
 
           await sendWhatsAppMessage(telefone, resposta);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
-          await sendMenuInterativo(telefone);
+          await sendMenuComDelay(telefone);
         }
 
         // ── Consultar cashback ────────────────────────────────────────────
@@ -2529,7 +2536,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           // menu no meio de uma conversa que claramente continua.
           const perguntaAberta = /\?\s*$/.test(resposta.trim());
           if (!pedidoEmAndamento && !perguntaAberta) {
-            await sendMenuInterativo(telefone);
+            await sendMenuComDelay(telefone);
           }
         }
       }
