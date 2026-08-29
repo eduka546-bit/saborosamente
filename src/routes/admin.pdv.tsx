@@ -57,6 +57,9 @@ function AdminPDV() {
   const [showWeightPicker, setShowWeightPicker] = useState<any>(null);
   const [descontoManual, setDescontoManual] = useState(0);
   const [acrescimoManual, setAcrescimoManual] = useState(0);
+  // Origem da venda: "pdv" (Loja), "site" ou "pedidos10" (P10).
+  // Permite lançar manualmente pedidos de outros canais e classificá-los certo.
+  const [origemVenda, setOrigemVenda] = useState<"pdv" | "site" | "pedidos10">("pdv");
   const [imprimirCupom, setImprimirCupom] = useState(true); // product waiting for weight
   // Identificação do cliente (opcional)
   const [clienteBusca, setClienteBusca] = useState("");
@@ -284,7 +287,7 @@ function AdminPDV() {
           desconto_aplicado: desconto + descontoManual,
           troco: troco || null,
           status: "entregue",
-          origem: "pdv",
+          origem: origemVenda,
           observacao:
             [
               acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
@@ -367,6 +370,7 @@ function AdminPDV() {
       setTroco("");
       setDescontoManual(0);
       setAcrescimoManual(0);
+      setOrigemVenda("pdv");
       setCliente(null);
       setClienteBusca("");
       searchRef.current?.focus();
@@ -507,6 +511,36 @@ function AdminPDV() {
 
         {/* Coluna direita — totais + pagamento + finalizar */}
         <div className="w-80 bg-white border-l flex flex-col shrink-0">
+          {/* Origem da venda (Loja / Site / P10) */}
+          <div className="p-4 border-b">
+            <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1">
+              Origem da venda
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(
+                [
+                  { v: "pdv", label: "Loja" },
+                  { v: "site", label: "Site" },
+                  { v: "pedidos10", label: "P10" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setOrigemVenda(opt.v)}
+                  className={cn(
+                    "py-2 rounded-lg text-xs font-bold border transition-all",
+                    origemVenda === opt.v
+                      ? "bg-[#086e45] text-white border-[#086e45]"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Totais */}
           <div className="p-4 border-b space-y-2">
             <div className="flex justify-between text-sm text-gray-500">
