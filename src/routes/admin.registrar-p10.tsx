@@ -26,9 +26,55 @@ interface ItemParseado {
   encontrado: boolean;
 }
 
+// Extrai valores do rodapé do cupom P10: TOTAL PEDIDO e Tx. Entrega.
+// Aceita "1.234,56" (pt-BR) e "1234.56".
+function parseValorBR(s: string): number {
+  const limpo = s.replace(/[^\d.,]/g, "").trim();
+  if (!limpo) return 0;
+  // Se tem vírgula, assume pt-BR (ponto = milhar, vírgula = decimal).
+  if (limpo.includes(",")) {
+    return Number(limpo.replace(/\./g, "").replace(",", ".")) || 0;
+  }
+  return Number(limpo) || 0;
+}
+
+function extrairRodape(texto: string): { total: number; taxa: number } {
+  let total = 0;
+  let taxa = 0;
+  for (const linha of texto.split(/\n/)) {
+    const l = linha.trim();
+    if (/tx\.?\s*entrega|taxa\s*de?\s*entrega/i.test(l)) {
+      taxa = parseValorBR(l);
+    } else if (/total\s*pedido/i.test(l)) {
+      total = parseValorBR(l);
+    }
+  }
+  return { total, taxa };
+}
+
 function parsearTexto(texto: string): ItemParseado[] {
   const items: ItemParseado[] = [];
-  const linhas = texto.split(/\n/).map((s) => s.trim()).filter(Boolean);
+  const linhasBrutas = texto
+    .split(/\n/)
+    .map((s) => s.trim().replace(/^\*+\s*/, "").replace(/^[-–]\s*/, ""))
+    .filter(Boolean);
+
+  // Junta linhas de continuação: quando o nome do item quebra em várias linhas,
+  // a linha seguinte (sem código próprio) é anexada à linha com código anterior.
+  // Assim o tamanho ("300g") que ficou na 2ª linha entra no item certo.
+  const linhas: string[] = [];
+  for (const l of linhasBrutas) {
+    const temCodigo = /(TD|SO|CO)\d+/i.test(l);
+    const ehRodape = /total|tx\.?\s*entrega|f\.?\s*pagamento|troco|servir|consumir|deseja|escolha/i.test(l);
+    if (temCodigo) {
+      linhas.push(l);
+    } else if (linhas.length > 0 && !ehRodape && /(TD|SO|CO)\d+/i.test(linhas[linhas.length - 1])) {
+      // continuação do item anterior (parte do nome / tamanho)
+      linhas[linhas.length - 1] += " " + l;
+    } else {
+      linhas.push(l);
+    }
+  }
 
   let tamanhoAtual = "300g"; // default
 
@@ -90,6 +136,9 @@ function RegistrarP10Page() {
   const [items, setItems] = useState<ItemParseado[]>([]);
   const [processando, setProcessando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  // Valores do rodapé do cupom (editáveis antes de registrar).
+  const [valorTotal, setValorTotal] = useState("");
+  const [taxaEntrega, setTaxaEntrega] = useState("");
 
   // Busca produtos pra casar código com produto_id
   const { data: produtos = [] } = useQuery({
@@ -122,47 +171,91 @@ function RegistrarP10Page() {
     });
 
     setItems(matched);
+    // Pré-preenche total e taxa a partir do rodapé do cupom.
+    const { total, taxa } = extrairRodape(texto);
+    if (total > 0) setValorTotal(total.toFixed(2).replace(".", ","));
+    if (taxa > 0) setTaxaEntrega(taxa.toFixed(2).replace(".", ","));
     setConcluido(false);
   }
 
   async function handleProcessar() {
     setProcessando(true);
-    let ok = 0;
-    let falhou = 0;
+    try {
+      const total = valorTotal ? Number(valorTotal.replace(/\./g, "").replace(",", ".")) || 0 : 0;
+      const taxa = taxaEntrega ? Number(taxaEntrega.replace(/\./g, "").replace(",", ".")) || 0 : 0;
 
-    for (const item of items) {
-      if (!item.produtoId) {
-        falhou++;
-        continue;
+      // 1. Cria o pedido (origem pedidos10, pagamento P10, já entregue).
+      const { data: pedido, error: pedidoError } = await supabase
+        .from("pedidos")
+        .insert({
+          nome_cliente: "Pedidos10",
+          metodo_entrega: taxa > 0 ? "entrega" : "retirada",
+          metodo_pagamento: "P10",
+          valor_total: total,
+          taxa_entrega: taxa,
+          status: "entregue",
+          origem: "pedidos10",
+          observacao: "Lançado manualmente via Registrar Pedido P10",
+        })
+        .select()
+        .single();
+      if (pedidoError) throw new Error("Erro ao criar pedido: " + pedidoError.message);
+
+      // 2. Cria os itens do pedido (com produto_id quando identificado).
+      const itensInsert = items.map((item) => ({
+        pedido_id: pedido.id,
+        produto_id: item.produtoId ?? null,
+        nome_item: item.produtoId ? null : `${item.codigo} ${item.nome}`.trim(),
+        quantidade: item.quantidade,
+        preco_unitario: 0, // o valor real do pedido está em valor_total
+        observacao: `Peso: ${item.tamanho}`,
+      }));
+      if (itensInsert.length > 0) {
+        const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+        if (itensError) throw new Error("Erro ao criar itens: " + itensError.message);
       }
 
-      const { error } = await supabase.rpc("decrementar_estoque", {
-        p_produto_id: item.produtoId,
-        p_qtd: item.quantidade,
-        p_tamanho: item.tamanho,
-      });
+      // 3. Decrementa estoque de cada item identificado.
+      let ok = 0;
+      let falhou = 0;
+      for (const item of items) {
+        if (!item.produtoId) {
+          falhou++;
+          continue;
+        }
+        const { error } = await supabase.rpc("decrementar_estoque", {
+          p_produto_id: item.produtoId,
+          p_qtd: item.quantidade,
+          p_tamanho: item.tamanho,
+        });
+        if (error) {
+          console.error(`Erro ao decrementar ${item.codigo}:`, error.message);
+          falhou++;
+        } else {
+          ok++;
+        }
+      }
 
-      if (error) {
-        console.error(`Erro ao decrementar ${item.codigo}:`, error.message);
-        falhou++;
+      setConcluido(true);
+      if (falhou === 0) {
+        toast.success(`Pedido P10 registrado! ${ok} item(ns), estoque atualizado.`);
       } else {
-        ok++;
+        toast.warning(
+          `Pedido criado. ${ok} item(ns) baixaram o estoque, ${falhou} não encontrado(s).`,
+        );
       }
-    }
-
-    setProcessando(false);
-    setConcluido(true);
-
-    if (falhou === 0) {
-      toast.success(`Estoque atualizado! ${ok} item(ns) decrementados.`);
-    } else {
-      toast.warning(`${ok} OK, ${falhou} falhou(aram). Verifique os não encontrados.`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao registrar o pedido.");
+    } finally {
+      setProcessando(false);
     }
   }
 
   function handleLimpar() {
     setTexto("");
     setItems([]);
+    setValorTotal("");
+    setTaxaEntrega("");
     setConcluido(false);
   }
 
@@ -173,8 +266,8 @@ function RegistrarP10Page() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Registrar Pedido P10</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Cole o texto do pedido do Pedidos10. O sistema identifica os itens e decrementa o
-            estoque automaticamente.
+            Cole o texto do pedido do Pedidos10. O sistema cria o pedido (origem P10, pagamento
+            P10), lança no relatório e decrementa o estoque.
           </p>
         </div>
       </div>
@@ -235,10 +328,36 @@ function RegistrarP10Page() {
             ))}
           </div>
 
+          {/* Valores do pedido (puxados do rodapé do cupom, editáveis) */}
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
+                Total do pedido (R$)
+              </label>
+              <input
+                value={valorTotal}
+                onChange={(e) => setValorTotal(e.target.value)}
+                placeholder="0,00"
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
+                Taxa de entrega (R$)
+              </label>
+              <input
+                value={taxaEntrega}
+                onChange={(e) => setTaxaEntrega(e.target.value)}
+                placeholder="0,00"
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+              />
+            </div>
+          </div>
+
           {!concluido && (
             <Button
               onClick={handleProcessar}
-              disabled={processando || items.filter((i) => i.encontrado).length === 0}
+              disabled={processando}
               className="w-full bg-[#086e45] text-white mt-4"
             >
               {processando ? (
@@ -246,13 +365,13 @@ function RegistrarP10Page() {
               ) : (
                 <Package size={16} className="mr-2" />
               )}
-              Decrementar estoque ({items.filter((i) => i.encontrado).length} itens)
+              Registrar pedido P10 e baixar estoque
             </Button>
           )}
 
           {concluido && (
             <div className="text-center py-3 text-green-600 font-bold text-sm flex items-center justify-center gap-2">
-              <CheckCircle2 size={18} /> Estoque atualizado!
+              <CheckCircle2 size={18} /> Pedido P10 registrado e estoque atualizado!
             </div>
           )}
         </div>
