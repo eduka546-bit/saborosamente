@@ -64,12 +64,6 @@ function colunasDoTipo(tipo: Tipo): ("200g" | "300g" | "400g")[] {
   return []; // combo não tem estoque próprio
 }
 
-interface Alerta {
-  nome: string;
-  tamanho: string;
-  valor: number;
-}
-
 async function sendWhatsApp(to: string, text: string) {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
@@ -89,13 +83,6 @@ async function sendWhatsApp(to: string, text: string) {
     const err = await res.text();
     throw new Error(`WhatsApp API error: ${err}`);
   }
-}
-
-// Rótulo de tamanho para leitura humana (complemento/bebida contam em UN).
-function rotuloTamanho(tipo: Tipo, coluna: string): string {
-  if (tipo === "complemento" || tipo === "bebida") return "un";
-  if (tipo === "sopa") return "un"; // sopa é tamanho único
-  return coluna; // marmita mostra 200g/300g/400g
 }
 
 Deno.serve(async (req) => {
@@ -120,54 +107,79 @@ Deno.serve(async (req) => {
       .order("nome");
     if (error) throw error;
 
-    const urgentes: Alerta[] = [];
-    const baixos: Alerta[] = [];
+    // Marcador ao lado do valor conforme o nível de alerta.
+    const marca = (tipo: Tipo, col: "200g" | "300g" | "400g", valor: number): string => {
+      const n = nivel(tipo, col, valor);
+      if (n === "urgente") return `${valor} ❌`;
+      if (n === "baixo") return `${valor} ⚠️`;
+      return `${valor}`;
+    };
+
+    // Separa por seção (bebidas e combos ficam de fora).
+    const marmitas: string[] = [];
+    const sopas: string[] = [];
+    const complementos: string[] = [];
+    let totalUrgentes = 0;
+    let totalBaixos = 0;
 
     for (const p of produtos ?? []) {
       const tipo = (p.tipo_produto ?? "marmita") as Tipo;
+      if (tipo === "bebida" || tipo === "combo") continue;
+
+      const e200 = Number(p.estoque_200g ?? 0);
+      const e300 = Number(p.estoque_300g ?? 0);
+      const e400 = Number(p.estoque_400g ?? 0);
+
+      // Conta alertas (para o resumo do topo).
       for (const col of colunasDoTipo(tipo)) {
-        const valor =
-          col === "200g"
-            ? Number(p.estoque_200g ?? 0)
-            : col === "400g"
-              ? Number(p.estoque_400g ?? 0)
-              : Number(p.estoque_300g ?? 0);
-        const n = nivel(tipo, col, valor);
-        if (n === "ok") continue;
-        const alerta: Alerta = { nome: p.nome, tamanho: rotuloTamanho(tipo, col), valor };
-        if (n === "urgente") urgentes.push(alerta);
-        else baixos.push(alerta);
+        const v = col === "200g" ? e200 : col === "400g" ? e400 : e300;
+        const n = nivel(tipo, col, v);
+        if (n === "urgente") totalUrgentes++;
+        else if (n === "baixo") totalBaixos++;
+      }
+
+      if (tipo === "marmita") {
+        marmitas.push(
+          `• ${p.nome} - ${marca(tipo, "200g", e200)} / ${marca(tipo, "300g", e300)} / ${marca(tipo, "400g", e400)}`,
+        );
+      } else if (tipo === "sopa") {
+        sopas.push(`• ${p.nome} - ${marca(tipo, "400g", e400)}`);
+      } else if (tipo === "complemento") {
+        complementos.push(`• ${p.nome} - ${marca(tipo, "200g", e200)}`);
       }
     }
 
     const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
-    // Se não há nada em alerta, manda uma mensagem tranquilizadora curta.
-    if (urgentes.length === 0 && baixos.length === 0) {
-      await sendWhatsApp(
-        ADMIN_ALERT_PHONE,
-        `📦 *Estoque Saborosamente* — ${hoje}\n\n✅ Tudo certo! Nenhum item em nível de alerta hoje.`,
-      );
-      return new Response(JSON.stringify({ ok: true, urgentes: 0, baixos: 0 }), {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+    const partes: string[] = [
+      `📦 *ESTOQUE LOJA* — ${hoje}`,
+      `_(do lado o que tem de estoque)_`,
+      `⚠️ - Sabor Precisando  ❌ - Super Urgente`,
+    ];
+    if (marmitas.length > 0) {
+      partes.push(`\n*MARMITAS* _(200g / 300g / 400g)_\n${marmitas.join("\n")}`);
     }
-
-    const linha = (a: Alerta) => `• ${a.nome} ${a.tamanho} (${a.valor}${a.tamanho === "un" ? "" : ""})`;
-
-    const partes: string[] = [`📦 *Estoque Saborosamente* — ${hoje}`];
-    if (urgentes.length > 0) {
-      partes.push(`\n❌ *Super urgente* (${urgentes.length}):\n${urgentes.map(linha).join("\n")}`);
+    if (sopas.length > 0) {
+      partes.push(`\n*SOPAS*\n${sopas.join("\n")}`);
     }
-    if (baixos.length > 0) {
-      partes.push(`\n⚠️ *Precisando* (${baixos.length}):\n${baixos.map(linha).join("\n")}`);
+    if (complementos.length > 0) {
+      partes.push(`\n*COMPLEMENTOS*\n${complementos.join("\n")}`);
     }
-    partes.push(`\n_Reponha antes de acabar 😉_`);
+    if (totalUrgentes > 0 || totalBaixos > 0) {
+      partes.push(`\n_Resumo: ${totalUrgentes} urgente(s) ❌ · ${totalBaixos} baixo(s) ⚠️_`);
+    }
 
     await sendWhatsApp(ADMIN_ALERT_PHONE, partes.join("\n"));
 
     return new Response(
-      JSON.stringify({ ok: true, urgentes: urgentes.length, baixos: baixos.length }),
+      JSON.stringify({
+        ok: true,
+        marmitas: marmitas.length,
+        sopas: sopas.length,
+        complementos: complementos.length,
+        urgentes: totalUrgentes,
+        baixos: totalBaixos,
+      }),
       { headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (e: any) {
