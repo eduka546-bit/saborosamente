@@ -1,0 +1,2 @@
+[functions.estoque-alerta-diario]
+verify_jwt = false
