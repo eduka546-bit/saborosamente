@@ -43,17 +43,36 @@ function AdminRelatoriosSaboresPage() {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["relatorio-sabores", periodo],
     queryFn: async () => {
-      // Busca itens dos pedidos no período, com dados do pedido pai (origem/status)
-      // e o nome do produto. created_at fica no pedido pai.
+      // Busca itens dos pedidos no período, com dados do pedido pai (origem/status).
+      // O nome do produto NÃO é buscado por join (não há FK pedido_itens->produtos,
+      // o PostgREST recusa o embed) — resolvemos num segundo passo.
       const desde = subDays(new Date(), periodo).toISOString();
       const { data, error } = await supabase
         .from("pedido_itens")
         .select(
-          "quantidade, preco_unitario, observacao, nome_item, produtos(nome), pedidos!inner(created_at, status, origem)",
+          "quantidade, preco_unitario, observacao, nome_item, produto_id, pedidos!inner(created_at, status, origem)",
         )
         .gte("pedidos.created_at", desde);
       if (error) throw error;
-      return data as any[];
+
+      const ids = [
+        ...new Set((data ?? []).map((i: any) => i.produto_id).filter(Boolean)),
+      ];
+      const nomeMap: Record<string, string> = {};
+      if (ids.length > 0) {
+        const { data: prods } = await supabase
+          .from("produtos")
+          .select("id, nome")
+          .in("id", ids);
+        (prods ?? []).forEach((p: any) => {
+          nomeMap[p.id] = p.nome;
+        });
+      }
+
+      return (data ?? []).map((i: any) => ({
+        ...i,
+        produtos: i.produto_id ? { nome: nomeMap[i.produto_id] ?? null } : null,
+      }));
     },
   });
 

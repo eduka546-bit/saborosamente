@@ -97,16 +97,47 @@ function FechamentoDiarioPage() {
       // para não depender do fuso do servidor (SSR na Vercel roda em UTC).
       const inicio = new Date(`${data}T00:00:00-03:00`);
       const fim = new Date(inicio.getTime() + 24 * 60 * 60 * 1000); // +24h
+
+      // Não usamos join aninhado pedido_itens->produtos porque não há FK
+      // declarada (PostgREST recusa o embed). Buscamos os itens sem o join e,
+      // num segundo passo, o tipo_produto dos produtos referenciados.
       const { data: rows, error } = await supabase
         .from("pedidos")
         .select(
-          "id, created_at, status, valor_total, taxa_entrega, metodo_pagamento, origem, itens:pedido_itens(quantidade, produto_id, observacao, nome_item, produtos(tipo_produto))",
+          "id, created_at, status, valor_total, taxa_entrega, metodo_pagamento, origem, itens:pedido_itens(quantidade, produto_id, observacao, nome_item)",
         )
         .gte("created_at", inicio.toISOString())
         .lt("created_at", fim.toISOString())
         .order("created_at");
       if (error) throw error;
-      return rows as any[];
+
+      // Mapa produto_id -> tipo_produto (um único fetch dos produtos citados).
+      const ids = [
+        ...new Set(
+          (rows ?? []).flatMap((p: any) =>
+            (p.itens ?? []).map((i: any) => i.produto_id).filter(Boolean),
+          ),
+        ),
+      ];
+      const tipoMap: Record<string, string> = {};
+      if (ids.length > 0) {
+        const { data: prods } = await supabase
+          .from("produtos")
+          .select("id, tipo_produto")
+          .in("id", ids);
+        (prods ?? []).forEach((p: any) => {
+          tipoMap[p.id] = p.tipo_produto ?? "marmita";
+        });
+      }
+
+      // Injeta o tipo em cada item, no formato que o restante do código espera.
+      return (rows ?? []).map((p: any) => ({
+        ...p,
+        itens: (p.itens ?? []).map((i: any) => ({
+          ...i,
+          produtos: i.produto_id ? { tipo_produto: tipoMap[i.produto_id] ?? "marmita" } : null,
+        })),
+      }));
     },
   });
 
