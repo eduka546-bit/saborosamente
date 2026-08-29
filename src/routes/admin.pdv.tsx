@@ -35,6 +35,7 @@ import {
   precoCheioMarmita,
   isNoDiscount,
 } from "@/lib/combo-rules";
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import {
   enabledOrDefault,
   defaultPaymentMethods,
@@ -56,6 +57,7 @@ interface PdvItem {
 }
 
 function AdminPDV() {
+  const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<PdvItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
@@ -122,11 +124,11 @@ function AdminPDV() {
     return items.map((item) => {
       const semDesconto = isNoDiscount(item.categoria);
       if (semDesconto) return item;
-      const cheio = precoCheioMarmita(item.weight) || item.precoCheio;
-      const efetivo = precoMarmitaPorFaixa(item.weight, totalQty, cheio);
+      const cheio = precoCheioMarmita(item.weight, tabelaPrecos) || item.precoCheio;
+      const efetivo = precoMarmitaPorFaixa(item.weight, totalQty, cheio, tabelaPrecos);
       return { ...item, precoUnitario: efetivo, precoCheio: cheio };
     });
-  }, [items, totalQty]);
+  }, [items, totalQty, tabelaPrecos]);
 
   const subtotal = useMemo(
     () => recalculatedItems.reduce((s, i) => s + i.precoCheio * i.quantity, 0),

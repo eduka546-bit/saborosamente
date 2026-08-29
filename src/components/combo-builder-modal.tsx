@@ -25,6 +25,7 @@ import {
   precoCheioMarmita,
   faixaPorQuantidade,
 } from "@/lib/combo-rules";
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 
 export { COMBO_RULES };
 
@@ -55,6 +56,7 @@ interface ComboBuilderModalProps {
 
 export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBuilderModalProps) {
   const { add } = useCart();
+  const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<ComboItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -103,8 +105,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
         subtotalCheio += i.preco * i.quantity;
         subtotalEfetivo += i.preco * i.quantity;
       } else {
-        const cheio = precoCheioMarmita(i.weight) || i.preco;
-        const efetivo = precoMarmitaPorFaixa(i.weight, totalQty, cheio);
+        const cheio = precoCheioMarmita(i.weight, tabelaPrecos) || i.preco;
+        const efetivo = precoMarmitaPorFaixa(i.weight, totalQty, cheio, tabelaPrecos);
         subtotalCheio += cheio * i.quantity;
         subtotalEfetivo += efetivo * i.quantity;
       }
@@ -115,7 +117,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
       discount: Math.max(0, subtotalCheio - subtotalEfetivo),
       total: subtotalEfetivo,
     };
-  }, [items]);
+  }, [items, tabelaPrecos]);
 
   // Early return APÓS todos os hooks
   if (!isOpen) return null;
@@ -357,10 +359,10 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                         {weights.map((w) => {
                           const price = getPrice(product, w);
                           const qty = getQty(product.id, w);
-                          const precoCheioW = noDiscount ? price : precoCheioMarmita(w) || price;
+                          const precoCheioW = noDiscount ? price : precoCheioMarmita(w, tabelaPrecos) || price;
                           const precoFaixa = noDiscount
                             ? price
-                            : precoMarmitaPorFaixa(w, totalQty, precoCheioW);
+                            : precoMarmitaPorFaixa(w, totalQty, precoCheioW, tabelaPrecos);
                           const temDesconto = !noDiscount && precoFaixa < precoCheioW;
                           return (
                             <div key={w} className="flex items-center gap-2">

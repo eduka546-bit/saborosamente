@@ -21,6 +21,7 @@ import {
   faixaPorQuantidade,
   isMarmita,
 } from "@/lib/combo-rules";
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 
 // Apenas produtos "Monte Você Mesmo" abrem o ComboBuilderModal
 // Combos Prontos são produtos normais com tamanho fixo
@@ -47,6 +48,7 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add, count } = useCart();
+  const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [comboSaboresOpen, setComboSaboresOpen] = useState(false);
@@ -112,9 +114,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
   const categoriaCard = product.categorias?.nome || product.categoria || "";
   const podeTerDesconto = !combo && !isSopa && !isNoDiscount(categoriaCard);
-  const precoCheioCard = podeTerDesconto ? precoCheioMarmita(selectedWeight) || currentPrice : currentPrice;
+  const precoCheioCard = podeTerDesconto ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice : currentPrice;
   const precoFaixaCard = podeTerDesconto
-    ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard)
+    ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard, tabelaPrecos)
     : currentPrice;
   const temDescontoAtivo = podeTerDesconto && precoFaixaCard < precoCheioCard;
   // Próxima faixa: quantas unidades faltam para o primeiro/próximo nível de desconto.

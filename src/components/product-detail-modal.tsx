@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
@@ -22,6 +23,7 @@ interface ProductDetailModalProps {
 // abre por cima do catálogo sem trocar de página.
 export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailModalProps) {
   const { add, count } = useCart();
+  const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Tamanhos disponíveis
@@ -278,10 +280,10 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                 const semDesconto = isNoDiscount(categoriaNome);
                 const podeTerDesconto = ehMarmita && !semDesconto;
                 const precoCheio = podeTerDesconto
-                  ? precoCheioMarmita(selectedWeight) || currentPrice
+                  ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
                   : currentPrice;
                 const precoComFaixa = podeTerDesconto
-                  ? precoMarmitaPorFaixa(selectedWeight, count, precoCheio)
+                  ? precoMarmitaPorFaixa(selectedWeight, count, precoCheio, tabelaPrecos)
                   : currentPrice;
                 const adicional =
                   (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
