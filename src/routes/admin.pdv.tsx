@@ -21,12 +21,11 @@ import { formatBRL } from "@/lib/products";
 import { toast } from "sonner";
 import { imprimirTCP, imprimirComanda } from "@/lib/qz-print";
 import { printReceipt } from "@/components/thermal-receipt";
-import { precoMarmitaPorFaixa, precoCheioMarmita, isNoDiscount } from "@/lib/combo-rules";
+import { precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import {
   enabledOrDefault,
   defaultPaymentMethods,
-  defaultCardFlags,
   defaultMealFlags,
 } from "@/lib/payment-options";
 
@@ -43,6 +42,7 @@ interface PdvItem {
   precoUnitario: number; // preço efetivo (com desconto de faixa)
   precoCheio: number; // preço sem desconto
   categoria: string;
+  tipoProduto: string; // marmita | sopa | complemento | combo | bebida
 }
 
 function AdminPDV() {
@@ -90,7 +90,7 @@ function AdminPDV() {
       const { data } = await supabase
         .from("produtos")
         .select(
-          "id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, estoque_200g, estoque_300g, estoque_400g, controle_estoque, categorias(nome)",
+          "id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, tipo_produto, estoque_200g, estoque_300g, estoque_400g, controle_estoque, categorias(nome)",
         )
         .eq("ativo", true)
         .order("nome");
@@ -115,7 +115,6 @@ function AdminPDV() {
     (configImpressao as any)?.payment_methods,
     defaultPaymentMethods,
   );
-  const cardFlags = enabledOrDefault((configImpressao as any)?.card_flags, defaultCardFlags);
   const mealFlags = enabledOrDefault((configImpressao as any)?.meal_flags, defaultMealFlags);
 
   // Quantidade total (pra desconto progressivo)
@@ -128,8 +127,9 @@ function AdminPDV() {
   // Recalcula preços quando quantidade (ou faixa forçada) muda.
   const recalculatedItems = useMemo(() => {
     return items.map((item) => {
-      const semDesconto = isNoDiscount(item.categoria);
-      if (semDesconto) return item;
+      // Só marmita recalcula por faixa. Bebida/complemento/sopa/combo mantêm o
+      // preço fixo próprio definido ao adicionar.
+      if ((item.tipoProduto ?? "marmita") !== "marmita") return item;
       const cheio = precoCheioMarmita(item.weight, tabelaPrecos) || item.precoCheio;
       const efetivo = precoMarmitaPorFaixa(item.weight, qtyParaFaixa, cheio, tabelaPrecos);
       return { ...item, precoUnitario: efetivo, precoCheio: cheio };
@@ -200,7 +200,10 @@ function AdminPDV() {
     }
 
     const cat = (product.categorias?.nome || "").toLowerCase();
-    const semDesconto = isNoDiscount(cat);
+    const tipo = product.tipo_produto ?? "marmita";
+    // Só marmita tem preço por tamanho (200/300/400). Bebida, complemento, sopa
+    // e combo têm preço fixo próprio (product.preco) e não entram em faixa.
+    const semDesconto = tipo !== "marmita";
     const preco = semDesconto
       ? product.preco
       : weight === "200g"
@@ -228,6 +231,7 @@ function AdminPDV() {
           precoUnitario: preco,
           precoCheio: preco,
           categoria: cat,
+          tipoProduto: tipo,
         },
       ];
     });
@@ -260,9 +264,9 @@ function AdminPDV() {
       toast.error("Selecione a forma de pagamento.");
       return;
     }
-    // Cartão exige tipo (débito/crédito) e bandeira.
-    if (selectedPayment === "Cartão" && (!selectedCardType || !selectedFlag)) {
-      toast.error("Selecione o tipo de cartão e a bandeira.");
+    // Cartão exige apenas o tipo (débito/crédito) — sem bandeira.
+    if (selectedPayment === "Cartão" && !selectedCardType) {
+      toast.error("Selecione o tipo de cartão (débito ou crédito).");
       return;
     }
     // Alimentação exige a bandeira do vale.
@@ -274,7 +278,7 @@ function AdminPDV() {
     // Monta a descrição final do pagamento com o submenu escolhido.
     let metodoPagamentoFinal = selectedPayment;
     if (selectedPayment === "Cartão") {
-      metodoPagamentoFinal = `Cartão ${selectedCardType} - ${selectedFlag}`;
+      metodoPagamentoFinal = `Cartão ${selectedCardType}`;
     } else if (selectedPayment === "Alimentação") {
       metodoPagamentoFinal = `Alimentação - ${selectedFlag}`;
     }
@@ -746,24 +750,6 @@ function AdminPDV() {
                       )}
                     >
                       {tipo}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase pt-1">Bandeira</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {cardFlags.map((f) => (
-                    <button
-                      key={f.name}
-                      type="button"
-                      onClick={() => setSelectedFlag(f.name ?? "")}
-                      className={cn(
-                        "rounded-lg border-2 p-2 text-[11px] font-bold text-center transition-all",
-                        selectedFlag === f.name
-                          ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
-                          : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
-                      )}
-                    >
-                      {f.name}
                     </button>
                   ))}
                 </div>
