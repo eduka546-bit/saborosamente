@@ -91,16 +91,19 @@ function FechamentoDiarioPage() {
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["fechamento-diario", data],
     queryFn: async () => {
-      // Janela do dia selecionado (00:00–23:59 local → UTC).
-      const inicio = new Date(`${data}T00:00:00`);
-      const fim = new Date(`${data}T23:59:59.999`);
+      // Janela do dia selecionado no fuso de Brasília (UTC-3), convertida para UTC.
+      // O dia "29/08" em Brasília vai de 29/08 00:00-03 (=03:00Z) até
+      // 30/08 00:00-03 (=03:00Z do dia seguinte). Montamos com offset fixo -03:00
+      // para não depender do fuso do servidor (SSR na Vercel roda em UTC).
+      const inicio = new Date(`${data}T00:00:00-03:00`);
+      const fim = new Date(inicio.getTime() + 24 * 60 * 60 * 1000); // +24h
       const { data: rows, error } = await supabase
         .from("pedidos")
         .select(
           "id, created_at, status, valor_total, taxa_entrega, metodo_pagamento, origem, itens:pedido_itens(quantidade, produto_id, observacao, nome_item, produtos(tipo_produto))",
         )
         .gte("created_at", inicio.toISOString())
-        .lte("created_at", fim.toISOString())
+        .lt("created_at", fim.toISOString())
         .order("created_at");
       if (error) throw error;
       return rows as any[];
@@ -164,7 +167,11 @@ function FechamentoDiarioPage() {
         const d = new Date(p.created_at);
         return {
           id: p.id,
-          hora: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          hora: d.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "America/Sao_Paulo",
+          }),
           c150,
           m200,
           m300,
