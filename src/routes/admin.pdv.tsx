@@ -60,6 +60,10 @@ function AdminPDV() {
   // Origem da venda: "pdv" (Loja), "site" ou "pedidos10" (P10).
   // Permite lançar manualmente pedidos de outros canais e classificá-los certo.
   const [origemVenda, setOrigemVenda] = useState<"pdv" | "site" | "pedidos10">("pdv");
+  // Faixa de preço forçada (clientes recorrentes com preço de combo garantido).
+  // null = automática pela quantidade. Caso contrário, aplica a faixa escolhida
+  // independente da quantidade (a quantidade representativa define a faixa).
+  const [faixaForcada, setFaixaForcada] = useState<null | 5 | 10 | 20>(null);
   const [imprimirCupom, setImprimirCupom] = useState(true); // product waiting for weight
   // Identificação do cliente (opcional)
   const [clienteBusca, setClienteBusca] = useState("");
@@ -117,16 +121,20 @@ function AdminPDV() {
   // Quantidade total (pra desconto progressivo)
   const totalQty = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
 
-  // Recalcula preços quando quantidade muda (desconto progressivo)
+  // Quantidade que define a faixa de preço: a forçada (se houver) manda sempre;
+  // senão usa a quantidade real do carrinho.
+  const qtyParaFaixa = faixaForcada ?? totalQty;
+
+  // Recalcula preços quando quantidade (ou faixa forçada) muda.
   const recalculatedItems = useMemo(() => {
     return items.map((item) => {
       const semDesconto = isNoDiscount(item.categoria);
       if (semDesconto) return item;
       const cheio = precoCheioMarmita(item.weight, tabelaPrecos) || item.precoCheio;
-      const efetivo = precoMarmitaPorFaixa(item.weight, totalQty, cheio, tabelaPrecos);
+      const efetivo = precoMarmitaPorFaixa(item.weight, qtyParaFaixa, cheio, tabelaPrecos);
       return { ...item, precoUnitario: efetivo, precoCheio: cheio };
     });
-  }, [items, totalQty, tabelaPrecos]);
+  }, [items, qtyParaFaixa, tabelaPrecos]);
 
   const subtotal = useMemo(
     () => recalculatedItems.reduce((s, i) => s + i.precoCheio * i.quantity, 0),
@@ -371,6 +379,7 @@ function AdminPDV() {
       setDescontoManual(0);
       setAcrescimoManual(0);
       setOrigemVenda("pdv");
+      setFaixaForcada(null);
       setCliente(null);
       setClienteBusca("");
       searchRef.current?.focus();
@@ -539,6 +548,42 @@ function AdminPDV() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Faixa de preço (para clientes com preço de combo garantido) */}
+          <div className="p-4 border-b">
+            <label className="text-[9px] font-bold text-gray-400 uppercase block mb-1">
+              Faixa de preço
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {(
+                [
+                  { v: null, label: "Auto" },
+                  { v: 5, label: "5+" },
+                  { v: 10, label: "10+" },
+                  { v: 20, label: "20+" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={String(opt.v)}
+                  type="button"
+                  onClick={() => setFaixaForcada(opt.v)}
+                  className={cn(
+                    "py-2 rounded-lg text-xs font-bold border transition-all",
+                    faixaForcada === opt.v
+                      ? "bg-[#5850ec] text-white border-[#5850ec]"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-[#5850ec]/40",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {faixaForcada !== null && (
+              <p className="text-[10px] text-[#5850ec] font-semibold mt-1.5">
+                Preço fixado na faixa {faixaForcada}+ (independente da quantidade)
+              </p>
+            )}
           </div>
 
           {/* Totais */}
