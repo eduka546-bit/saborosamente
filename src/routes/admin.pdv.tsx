@@ -15,26 +15,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Search,
-  Plus,
-  Minus,
-  Trash2,
-  Printer,
-  ShoppingBag,
-  X,
-  Barcode,
-} from "lucide-react";
+import { Search, Plus, Minus, Trash2, Printer, ShoppingBag, X, Barcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
 import { toast } from "sonner";
 import { imprimirTCP, imprimirComanda } from "@/lib/qz-print";
 import { printReceipt } from "@/components/thermal-receipt";
-import {
-  precoMarmitaPorFaixa,
-  precoCheioMarmita,
-  isNoDiscount,
-} from "@/lib/combo-rules";
+import { precoMarmitaPorFaixa, precoCheioMarmita, isNoDiscount } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import {
   enabledOrDefault,
@@ -95,7 +82,9 @@ function AdminPDV() {
     queryFn: async () => {
       const { data } = await supabase
         .from("produtos")
-        .select("id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, estoque_200g, estoque_300g, estoque_400g, controle_estoque, categorias(nome)")
+        .select(
+          "id, nome, preco, preco_300g, preco_400g, codigo_integracao, categoria_id, estoque_200g, estoque_300g, estoque_400g, controle_estoque, categorias(nome)",
+        )
         .eq("ativo", true)
         .order("nome");
       return data ?? [];
@@ -166,9 +155,7 @@ function AdminPDV() {
     }
     // Busca por nome
     const termLower = term.toLowerCase();
-    return products
-      .filter((p: any) => p.nome?.toLowerCase().includes(termLower))
-      .slice(0, 10);
+    return products.filter((p: any) => p.nome?.toLowerCase().includes(termLower)).slice(0, 10);
   }, [searchValue, products]);
 
   // Ao submeter a busca (Enter no leitor) → se resultado único, adiciona direto
@@ -194,7 +181,8 @@ function AdminPDV() {
 
   function addItem(product: any, weight: string) {
     // Alerta de estoque zero
-    const estoqueCol = weight === "200g" ? "estoque_200g" : weight === "400g" ? "estoque_400g" : "estoque_300g";
+    const estoqueCol =
+      weight === "200g" ? "estoque_200g" : weight === "400g" ? "estoque_400g" : "estoque_300g";
     const estoque = (product as any)[estoqueCol] ?? 0;
     if (product.controle_estoque && estoque <= 0) {
       toast.error(`${product.nome} (${weight}) está sem estoque!`, { duration: 4000 });
@@ -240,7 +228,8 @@ function AdminPDV() {
       const item = prev.find((i) => i.productId === productId && i.weight === weight);
       if (!item) return prev;
       const newQty = item.quantity + delta;
-      if (newQty <= 0) return prev.filter((i) => !(i.productId === productId && i.weight === weight));
+      if (newQty <= 0)
+        return prev.filter((i) => !(i.productId === productId && i.weight === weight));
       return prev.map((i) =>
         i.productId === productId && i.weight === weight ? { ...i, quantity: newQty } : i,
       );
@@ -296,10 +285,13 @@ function AdminPDV() {
           troco: troco || null,
           status: "entregue",
           origem: "pdv",
-          observacao: [
-            acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
-            descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
-          ].filter(Boolean).join(" | ") || null,
+          observacao:
+            [
+              acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
+              descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
+            ]
+              .filter(Boolean)
+              .join(" | ") || null,
         })
         .select()
         .single();
@@ -394,7 +386,9 @@ function AdminPDV() {
           <h1 className="text-lg font-black">PDV Saborosamente</h1>
         </div>
         <div className="flex items-center gap-3 text-white/80 text-sm">
-          <span>{totalQty} {totalQty === 1 ? "item" : "itens"}</span>
+          <span>
+            {totalQty} {totalQty === 1 ? "item" : "itens"}
+          </span>
           <a href="/admin" className="text-white/60 hover:text-white text-xs underline">
             Voltar
           </a>
@@ -407,7 +401,10 @@ function AdminPDV() {
           {/* Busca */}
           <div className="p-4 border-b bg-white shrink-0">
             <div className="relative">
-              <Barcode size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Barcode
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 ref={searchRef}
                 type="text"
@@ -457,7 +454,9 @@ function AdminPDV() {
               <div className="flex flex-col items-center justify-center h-full text-gray-300">
                 <Barcode size={64} className="mb-4" />
                 <p className="text-lg font-bold">Bipe um produto para começar</p>
-                <p className="text-sm mt-1">O leitor de código de barras funciona automaticamente</p>
+                <p className="text-sm mt-1">
+                  O leitor de código de barras funciona automaticamente
+                </p>
               </div>
             ) : (
               recalculatedItems.map((item) => (

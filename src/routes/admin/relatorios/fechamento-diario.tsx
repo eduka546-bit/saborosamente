@@ -29,6 +29,32 @@ function extrairPeso(obs?: string | null): string | null {
   return m ? m[1].replace(/\s+/g, "") : null;
 }
 
+// Conta marmitas por tamanho dentro do texto de um item combo (Pedidos10),
+// onde a composição vem no nome/observação como:
+//   "TD01 ... 300g, TD02 ... 200g, 3x TD03 ... 300g, 2x TD04 ... 200g"
+// Cada trecho separado por vírgula tem um tamanho (200g/300g/400g) no fim e
+// pode ter um multiplicador "Nx" no início. Retorna {m200, m300, m400}.
+function contarTamanhosNoTexto(texto?: string | null): {
+  m200: number;
+  m300: number;
+  m400: number;
+} {
+  const out = { m200: 0, m300: 0, m400: 0 };
+  if (!texto) return out;
+  // Divide por vírgula; cada parte é uma marmita (ou N marmitas do mesmo sabor).
+  for (const parte of texto.split(/,|;/)) {
+    const mTam = parte.match(/(\d{3})\s*g/); // 200 / 300 / 400
+    if (!mTam) continue;
+    const mMult = parte.match(/(\d+)\s*x/i); // "3x", "5 x"
+    const qtd = mMult ? Math.max(1, parseInt(mMult[1], 10)) : 1;
+    const tam = mTam[1];
+    if (tam === "200") out.m200 += qtd;
+    else if (tam === "400") out.m400 += qtd;
+    else if (tam === "300") out.m300 += qtd;
+  }
+  return out;
+}
+
 function modoLabel(origem?: string): string {
   const o = (origem ?? "site").toLowerCase();
   if (o === "pdv") return "Loja";
@@ -71,7 +97,7 @@ function FechamentoDiarioPage() {
       const { data: rows, error } = await supabase
         .from("pedidos")
         .select(
-          "id, created_at, status, valor_total, taxa_entrega, metodo_pagamento, origem, itens:pedido_itens(quantidade, produto_id, observacao, produtos(tipo_produto))",
+          "id, created_at, status, valor_total, taxa_entrega, metodo_pagamento, origem, itens:pedido_itens(quantidade, produto_id, observacao, nome_item, produtos(tipo_produto))",
         )
         .gte("created_at", inicio.toISOString())
         .lte("created_at", fim.toISOString())
@@ -95,9 +121,33 @@ function FechamentoDiarioPage() {
         for (const it of p.itens ?? []) {
           const qtd = Number(it.quantidade ?? 0);
           const tipo = it.produtos?.tipo_produto ?? (it.produto_id ? "marmita" : "personalizada");
+          const textoComposicao = `${it.nome_item ?? ""} ${it.observacao ?? ""}`;
+          // Um item combo pode conter marmitas de vários tamanhos na composição
+          // (Pedidos10 grava tudo numa linha só). Detecta se há mais de uma
+          // gramatura no texto → trata como combo e conta cada marmita.
+          // Marmita personalizada: item sem produto_id cuja observação marca
+          // "PERSONALIZADA". Nunca é destrinchada como combo (as gramaturas no
+          // texto são dos ingredientes, não de marmitas por tamanho).
+          const ehPersonalizada =
+            !it.produto_id && /PERSONALIZADA/i.test(it.observacao ?? "");
 
-          if (!it.produto_id) {
+          const tamanhosNoTexto = ehPersonalizada
+            ? { m200: 0, m300: 0, m400: 0 }
+            : contarTamanhosNoTexto(textoComposicao);
+          const totalNoTexto =
+            tamanhosNoTexto.m200 + tamanhosNoTexto.m300 + tamanhosNoTexto.m400;
+          // Combo composto: produto marcado como combo, ou linha única (sem
+          // produto_id, típico do Pedidos10) com mais de uma marmita no texto.
+          const ehComboComposto =
+            !ehPersonalizada && (tipo === "combo" || (!it.produto_id && totalNoTexto > 1));
+
+          if (ehPersonalizada) {
             personalizadas += qtd;
+          } else if (ehComboComposto && totalNoTexto > 0) {
+            // Combo: soma as marmitas por tamanho extraídas do texto.
+            m200 += tamanhosNoTexto.m200;
+            m300 += tamanhosNoTexto.m300;
+            m400 += tamanhosNoTexto.m400;
           } else if (tipo === "complemento") {
             c150 += qtd;
           } else if (tipo === "sopa") {
@@ -108,7 +158,7 @@ function FechamentoDiarioPage() {
             else if (peso === "400g") m400 += qtd;
             else m300 += qtd; // default/300g quando não identificado
           }
-          // combo/bebida: não entram nas colunas de quantidade
+          // combo sem tamanhos detectáveis / bebida: não entram nas colunas
         }
 
         const d = new Date(p.created_at);
