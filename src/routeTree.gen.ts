@@ -17,6 +17,7 @@ import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as FaleConoscoRouteImport } from './routes/fale-conosco'
 import { Route as IndicarRouteImport } from './routes/indicar'
+import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -79,6 +80,7 @@ import { Route as AdminRelatoriosEstoqueRouteImport } from './routes/admin/relat
 import { Route as AdminRelatoriosFaturamentoRouteImport } from './routes/admin/relatorios/faturamento'
 import { Route as AdminRelatoriosInteligenciaRouteImport } from './routes/admin/relatorios/inteligencia'
 import { Route as AdminRelatoriosKpiRouteImport } from './routes/admin/relatorios/kpi'
+import { Route as AdminRelatoriosSaboresRouteImport } from './routes/admin/relatorios/sabores'
 import { Route as AdminRelatoriosVendasRouteImport } from './routes/admin/relatorios/vendas'
 
 const IndexRoute = IndexRouteImport.update({
@@ -119,6 +121,11 @@ const FaleConoscoRoute = FaleConoscoRouteImport.update({
 const IndicarRoute = IndicarRouteImport.update({
   id: '/indicar',
   path: '/indicar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusPedidosRoute = MeusPedidosRouteImport.update({
+  id: '/meus-pedidos',
+  path: '/meus-pedidos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -441,6 +448,11 @@ const AdminRelatoriosKpiRoute = AdminRelatoriosKpiRouteImport.update({
   path: '/relatorios/kpi',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRelatoriosSaboresRoute = AdminRelatoriosSaboresRouteImport.update({
+  id: '/relatorios/sabores',
+  path: '/relatorios/sabores',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRelatoriosVendasRoute = AdminRelatoriosVendasRouteImport.update({
   id: '/relatorios/vendas',
   path: '/relatorios/vendas',
@@ -456,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
@@ -514,6 +527,7 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
   '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
@@ -528,6 +542,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
@@ -585,6 +600,7 @@ export interface FileRoutesByTo {
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
   '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config': typeof AdminConfigIndexRoute
   '/admin/financeiro': typeof AdminFinanceiroIndexRoute
@@ -601,6 +617,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/privacidade': typeof PrivacidadeRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/admin/acompanhamentos': typeof AdminAcompanhamentosRoute
@@ -659,6 +676,7 @@ export interface FileRoutesById {
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
+  '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
   '/admin/relatorios/vendas': typeof AdminRelatoriosVendasRoute
   '/admin/config/': typeof AdminConfigIndexRoute
   '/admin/financeiro/': typeof AdminFinanceiroIndexRoute
@@ -676,6 +694,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/fale-conosco'
     | '/indicar'
+    | '/meus-pedidos'
     | '/privacidade'
     | '/perfil'
     | '/admin/acompanhamentos'
@@ -734,6 +753,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/faturamento'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/sabores'
     | '/admin/relatorios/vendas'
     | '/admin/config/'
     | '/admin/financeiro/'
@@ -748,6 +768,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/fale-conosco'
     | '/indicar'
+    | '/meus-pedidos'
     | '/privacidade'
     | '/perfil'
     | '/admin/acompanhamentos'
@@ -805,6 +826,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/faturamento'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/sabores'
     | '/admin/relatorios/vendas'
     | '/admin/config'
     | '/admin/financeiro'
@@ -820,6 +842,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/fale-conosco'
     | '/indicar'
+    | '/meus-pedidos'
     | '/privacidade'
     | '/_authenticated/perfil'
     | '/admin/acompanhamentos'
@@ -878,6 +901,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/faturamento'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
+    | '/admin/relatorios/sabores'
     | '/admin/relatorios/vendas'
     | '/admin/config/'
     | '/admin/financeiro/'
@@ -894,6 +918,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   FaleConoscoRoute: typeof FaleConoscoRoute
   IndicarRoute: typeof IndicarRoute
+  MeusPedidosRoute: typeof MeusPedidosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
@@ -956,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/indicar'
       fullPath: '/indicar'
       preLoaderRoute: typeof IndicarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-pedidos': {
+      id: '/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof MeusPedidosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -1392,6 +1424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosKpiRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/relatorios/sabores': {
+      id: '/admin/relatorios/sabores'
+      path: '/relatorios/sabores'
+      fullPath: '/admin/relatorios/sabores'
+      preLoaderRoute: typeof AdminRelatoriosSaboresRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/relatorios/vendas': {
       id: '/admin/relatorios/vendas'
       path: '/relatorios/vendas'
@@ -1484,6 +1523,7 @@ interface AdminRouteChildren {
   AdminRelatoriosFaturamentoRoute: typeof AdminRelatoriosFaturamentoRoute
   AdminRelatoriosInteligenciaRoute: typeof AdminRelatoriosInteligenciaRoute
   AdminRelatoriosKpiRoute: typeof AdminRelatoriosKpiRoute
+  AdminRelatoriosSaboresRoute: typeof AdminRelatoriosSaboresRoute
   AdminRelatoriosVendasRoute: typeof AdminRelatoriosVendasRoute
   AdminConfigIndexRoute: typeof AdminConfigIndexRoute
   AdminFinanceiroIndexRoute: typeof AdminFinanceiroIndexRoute
@@ -1540,6 +1580,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRelatoriosFaturamentoRoute: AdminRelatoriosFaturamentoRoute,
   AdminRelatoriosInteligenciaRoute: AdminRelatoriosInteligenciaRoute,
   AdminRelatoriosKpiRoute: AdminRelatoriosKpiRoute,
+  AdminRelatoriosSaboresRoute: AdminRelatoriosSaboresRoute,
   AdminRelatoriosVendasRoute: AdminRelatoriosVendasRoute,
   AdminConfigIndexRoute: AdminConfigIndexRoute,
   AdminFinanceiroIndexRoute: AdminFinanceiroIndexRoute,
@@ -1557,6 +1598,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   FaleConoscoRoute: FaleConoscoRoute,
   IndicarRoute: IndicarRoute,
+  MeusPedidosRoute: MeusPedidosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   ProdutoIdRoute: ProdutoIdRoute,

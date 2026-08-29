@@ -84,6 +84,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "KPI e indicadores", href: "/admin/relatorios/kpi" },
       { label: "Faturamento e evolução", href: "/admin/relatorios/faturamento" },
       { label: "Pedidos e Vendas", href: "/admin/relatorios/vendas" },
+      { label: "Sabores mais vendidos", href: "/admin/relatorios/sabores" },
       { label: "Clientes", href: "/admin/relatorios/clientes" },
       { label: "Estoque e produção", href: "/admin/relatorios/estoque" },
       { label: "Comunicação", href: "/admin/relatorios/comunicacao" },
