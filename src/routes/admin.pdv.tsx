@@ -39,6 +39,8 @@ import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import {
   enabledOrDefault,
   defaultPaymentMethods,
+  defaultCardFlags,
+  defaultMealFlags,
 } from "@/lib/payment-options";
 
 export const Route = createFileRoute("/admin/pdv")({
@@ -61,6 +63,8 @@ function AdminPDV() {
   const [items, setItems] = useState<PdvItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
+  const [selectedCardType, setSelectedCardType] = useState(""); // Débito | Crédito
+  const [selectedFlag, setSelectedFlag] = useState(""); // bandeira do cartão / vale
   const [troco, setTroco] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWeightPicker, setShowWeightPicker] = useState<any>(null);
@@ -105,7 +109,7 @@ function AdminPDV() {
     queryFn: async () => {
       const { data } = await supabase
         .from("site_settings")
-        .select("config_impressao, payment_methods")
+        .select("config_impressao, payment_methods, card_flags, meal_flags")
         .maybeSingle();
       return data;
     },
@@ -115,6 +119,8 @@ function AdminPDV() {
     (configImpressao as any)?.payment_methods,
     defaultPaymentMethods,
   );
+  const cardFlags = enabledOrDefault((configImpressao as any)?.card_flags, defaultCardFlags);
+  const mealFlags = enabledOrDefault((configImpressao as any)?.meal_flags, defaultMealFlags);
 
   // Quantidade total (pra desconto progressivo)
   const totalQty = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
@@ -253,6 +259,24 @@ function AdminPDV() {
     if (!selectedPayment) {
       toast.error("Selecione a forma de pagamento.");
       return;
+    }
+    // Cartão exige tipo (débito/crédito) e bandeira.
+    if (selectedPayment === "Cartão" && (!selectedCardType || !selectedFlag)) {
+      toast.error("Selecione o tipo de cartão e a bandeira.");
+      return;
+    }
+    // Alimentação exige a bandeira do vale.
+    if (selectedPayment === "Alimentação" && !selectedFlag) {
+      toast.error("Selecione a bandeira do vale-alimentação.");
+      return;
+    }
+
+    // Monta a descrição final do pagamento com o submenu escolhido.
+    let metodoPagamentoFinal = selectedPayment;
+    if (selectedPayment === "Cartão") {
+      metodoPagamentoFinal = `Cartão ${selectedCardType} - ${selectedFlag}`;
+    } else if (selectedPayment === "Alimentação") {
+      metodoPagamentoFinal = `Alimentação - ${selectedFlag}`;
     }
 
     setIsProcessing(true);
@@ -606,7 +630,12 @@ function AdminPDV() {
                 <button
                   key={m.label}
                   type="button"
-                  onClick={() => setSelectedPayment(m.label)}
+                  onClick={() => {
+                    setSelectedPayment(m.label);
+                    // Ao trocar de forma, limpa os submenus (tipo de cartão / bandeira).
+                    setSelectedCardType("");
+                    setSelectedFlag("");
+                  }}
                   className={cn(
                     "rounded-xl border-2 p-3 text-xs font-bold text-center transition-all",
                     selectedPayment === m.label
@@ -618,6 +647,72 @@ function AdminPDV() {
                 </button>
               ))}
             </div>
+
+            {/* Submenu: Cartão → Débito ou Crédito + bandeira */}
+            {selectedPayment === "Cartão" && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase">Tipo</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Débito", "Crédito"].map((tipo) => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => setSelectedCardType(tipo)}
+                      className={cn(
+                        "rounded-xl border-2 p-2 text-xs font-bold text-center transition-all",
+                        selectedCardType === tipo
+                          ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
+                          : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
+                      )}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase pt-1">Bandeira</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {cardFlags.map((f) => (
+                    <button
+                      key={f.name}
+                      type="button"
+                      onClick={() => setSelectedFlag(f.name ?? "")}
+                      className={cn(
+                        "rounded-lg border-2 p-2 text-[11px] font-bold text-center transition-all",
+                        selectedFlag === f.name
+                          ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
+                          : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
+                      )}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Submenu: Alimentação → bandeira do vale */}
+            {selectedPayment === "Alimentação" && (
+              <div className="mt-3 space-y-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase">Bandeira do vale</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {mealFlags.map((f) => (
+                    <button
+                      key={f.name}
+                      type="button"
+                      onClick={() => setSelectedFlag(f.name ?? "")}
+                      className={cn(
+                        "rounded-lg border-2 p-2 text-[11px] font-bold text-center transition-all",
+                        selectedFlag === f.name
+                          ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
+                          : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
+                      )}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {selectedPayment === "Dinheiro" && (
               <div className="mt-3">
