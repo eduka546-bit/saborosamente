@@ -235,6 +235,8 @@ function FechamentoDiarioPage() {
 
   const brl = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
   const dataFmt = new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR");
+  // Total geral de marmitas (todas as gramaturas somadas).
+  const totalMarmitas = totais.m200 + totais.m300 + totais.m400;
 
   function imprimir() {
     const linhasHtml = linhas
@@ -284,6 +286,12 @@ function FechamentoDiarioPage() {
           <td class="r">${brl(totais.taxa)}</td>
         </tr></tfoot>
       </table>
+      <p style="margin-top:10px;font-size:13px;font-weight:bold">
+        Total de marmitas: ${totalMarmitas}
+        <span style="font-weight:normal;color:#666;font-size:11px">
+          (200g: ${totais.m200} · 300g: ${totais.m300} · 400g: ${totais.m400})
+        </span>
+      </p>
       <script>window.onload=function(){window.print();setTimeout(function(){window.close()},1000)}</script>
       </body></html>`);
     win.document.close();
@@ -324,6 +332,31 @@ function FechamentoDiarioPage() {
           Nenhum pedido em {dataFmt}.
         </div>
       ) : (
+        <>
+        {/* Resumo do dia — destaque para o total de marmitas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="bg-[#5850ec] text-white rounded-xl p-4">
+            <p className="text-[11px] font-bold uppercase opacity-80">Total de marmitas</p>
+            <p className="text-3xl font-black mt-1">{totalMarmitas}</p>
+            <p className="text-[11px] opacity-80 mt-0.5">
+              200g: {totais.m200} · 300g: {totais.m300} · 400g: {totais.m400}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl border p-4">
+            <p className="text-[11px] font-bold uppercase text-gray-400">Sopas</p>
+            <p className="text-3xl font-black text-gray-700 mt-1">{totais.sopas}</p>
+          </div>
+          <div className="bg-white rounded-xl border p-4">
+            <p className="text-[11px] font-bold uppercase text-gray-400">Complementos (150g)</p>
+            <p className="text-3xl font-black text-gray-700 mt-1">{totais.c150}</p>
+          </div>
+          <div className="bg-white rounded-xl border p-4">
+            <p className="text-[11px] font-bold uppercase text-gray-400">Faturamento</p>
+            <p className="text-2xl font-black text-green-600 mt-1">{brl(totais.valor)}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{linhas.length} pedido(s)</p>
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
@@ -382,7 +415,18 @@ function FechamentoDiarioPage() {
               </tfoot>
             </table>
           </div>
+          {/* Total geral de marmitas, em destaque no rodapé da tabela */}
+          <div className="flex items-center justify-between px-4 py-3 bg-[#5850ec]/5 border-t">
+            <span className="text-xs font-bold uppercase text-gray-500">Total de marmitas</span>
+            <span className="text-lg font-black text-[#5850ec]">
+              {totalMarmitas}
+              <span className="text-xs font-semibold text-gray-400 ml-2">
+                (200g {totais.m200} · 300g {totais.m300} · 400g {totais.m400})
+              </span>
+            </span>
+          </div>
         </div>
+        </>
       )}
     </div>
   );
