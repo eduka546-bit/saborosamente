@@ -76,7 +76,7 @@ function AdminBebidasPage() {
       queryClient.invalidateQueries({ queryKey: ["pdv-products"] });
       toast.success("Bebida adicionada!");
       setIsAdding(false);
-      setForm({ nome: "", preco: "", codigo_integracao: "", imagem_url: "" });
+      setForm({ nome: "", preco: "", codigo_integracao: "", imagem_url: "", estoque: "" });
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
@@ -168,7 +168,7 @@ function AdminBebidasPage() {
                     onChange={(e) => setEditForm({ ...editForm, nome: e.target.value })}
                     placeholder="Nome"
                   />
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <Input
                       value={editForm.preco}
                       onChange={(e) => setEditForm({ ...editForm, preco: e.target.value })}
@@ -178,6 +178,13 @@ function AdminBebidasPage() {
                       value={editForm.codigo_integracao}
                       onChange={(e) => setEditForm({ ...editForm, codigo_integracao: e.target.value })}
                       placeholder="EAN"
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editForm.estoque}
+                      onChange={(e) => setEditForm({ ...editForm, estoque: e.target.value })}
+                      placeholder="Estoque (UN)"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -218,6 +225,7 @@ function AdminBebidasPage() {
                     <p className="text-xs text-gray-400">
                       R$ {Number(b.preco).toFixed(2).replace(".", ",")}
                       {b.codigo_integracao ? ` • EAN: ${b.codigo_integracao}` : ""}
+                      {` • Estoque: ${b.estoque_200g ?? 0} un`}
                     </p>
                   </div>
                   <div className="flex gap-1">
@@ -232,6 +240,7 @@ function AdminBebidasPage() {
                           preco: Number(b.preco).toFixed(2).replace(".", ","),
                           codigo_integracao: b.codigo_integracao ?? "",
                           imagem_url: b.imagem_url ?? "",
+                          estoque: String(b.estoque_200g ?? 0),
                         });
                       }}
                     >
@@ -277,6 +286,13 @@ function AdminBebidasPage() {
                 placeholder="Código EAN"
               />
             </div>
+            <Input
+              type="number"
+              min="0"
+              value={form.estoque}
+              onChange={(e) => setForm({ ...form, estoque: e.target.value })}
+              placeholder="Estoque inicial (UN)"
+            />
             <div className="flex items-center gap-3">
               {form.imagem_url && (
                 <img src={form.imagem_url} className="h-14 w-14 rounded-lg object-cover" alt="" />
