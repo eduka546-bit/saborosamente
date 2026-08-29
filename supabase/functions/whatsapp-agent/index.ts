@@ -129,11 +129,78 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
   await sendMenuInterativo(to, saudacao);
 }
 
+// Menu padrão embutido (fallback), usado se a tabela chatbot_menu vier vazia
+// ou der erro. É a estrutura atual com as 3 seções.
+const MENU_FALLBACK: { title: string; rows: { id: string; title: string; description?: string }[] }[] = [
+  {
+    title: "Pedidos",
+    rows: [
+      { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
+      { id: "duvida_descontos", title: "🏷️ Descontos", description: "Descubra como economizar" },
+      { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Como fazer seu pedido" },
+    ],
+  },
+  {
+    title: "Dúvidas",
+    rows: [
+      { id: "duvida_como_funciona", title: "📋 Como Funciona", description: "Marmitas, preparo, validade" },
+      { id: "duvida_entrega", title: "🚚 Entrega e mínimo", description: "Cidades, taxas e prazos" },
+      { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
+    ],
+  },
+  {
+    title: "Mais",
+    rows: [
+      { id: "menu_site", title: "🌐 Acessar o site", description: "www.saborosamente.com" },
+      { id: "menu_atendente", title: "👤 Falar com atendente", description: "Fale com nossa equipe" },
+    ],
+  },
+];
+
+// Monta as seções do menu a partir da tabela chatbot_menu (itens ativos,
+// ordenados). Se vier vazia ou der erro, retorna o menu padrão embutido.
+// Respeita os limites do WhatsApp: máx 10 itens no total e title com 24 chars.
+async function getMenuSecoes(): Promise<
+  { title: string; rows: { id: string; title: string; description?: string }[] }[]
+> {
+  const { data, error } = await supabase
+    .from("chatbot_menu")
+    .select("secao, secao_ordem, ordem, item_id, titulo, descricao, ativo")
+    .eq("ativo", true)
+    .order("secao_ordem")
+    .order("ordem");
+
+  if (error || !data?.length) {
+    if (error) console.error("getMenuSecoes erro:", JSON.stringify(error));
+    return MENU_FALLBACK;
+  }
+
+  // Agrupa por seção preservando a ordem de secao_ordem.
+  const secoesMap = new Map<
+    string,
+    { title: string; rows: { id: string; title: string; description?: string }[] }
+  >();
+  let total = 0;
+  for (const item of data as any[]) {
+    if (total >= 10) break; // limite do WhatsApp
+    const secao = String(item.secao ?? "Opções");
+    if (!secoesMap.has(secao)) secoesMap.set(secao, { title: secao.slice(0, 24), rows: [] });
+    secoesMap.get(secao)!.rows.push({
+      id: String(item.item_id),
+      title: String(item.titulo ?? "").slice(0, 24),
+      description: item.descricao ? String(item.descricao).slice(0, 72) : undefined,
+    });
+    total++;
+  }
+  const secoes = Array.from(secoesMap.values()).filter((s) => s.rows.length > 0);
+  return secoes.length > 0 ? secoes : MENU_FALLBACK;
+}
+
 async function sendMenuInterativo(to: string, saudacao?: string) {
-  // Menu único com seções (funciona como "abas" numa mensagem só): Pedidos,
-  // Dúvidas e Mais. A API do WhatsApp permite no máximo 10 itens no total.
-  // OBS: o title de cada row tem limite de 24 caracteres (emoji conta 2+); se
-  // um row passar, a lista inteira é rejeitada. Manter curto.
+  // Menu único com seções (funciona como "abas" numa mensagem só). Montado a
+  // partir da tabela chatbot_menu (editável no admin); cai no fallback embutido
+  // se a tabela estiver vazia/indisponível.
+  const secoes = await getMenuSecoes();
   const menuEnviado = await sendWhatsAppList(
     to,
     "SaborosaMente 🍱",
@@ -141,31 +208,7 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
       ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\nEscolha uma opção abaixo 👇`
       : "Escolha uma opção abaixo 👇",
     "Ver opções",
-    [
-      {
-        title: "Pedidos",
-        rows: [
-          { id: "menu_cardapio", title: "🍽️ Cardápio", description: "Ver pratos e preços" },
-          { id: "duvida_descontos", title: "🏷️ Descontos", description: "Descubra como economizar" },
-          { id: "menu_pedido", title: "🛒 Fazer um pedido", description: "Como fazer seu pedido" },
-        ],
-      },
-      {
-        title: "Dúvidas",
-        rows: [
-          { id: "duvida_como_funciona", title: "📋 Como Funciona", description: "Marmitas, preparo, validade" },
-          { id: "duvida_entrega", title: "🚚 Entrega e mínimo", description: "Cidades, taxas e prazos" },
-          { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
-        ],
-      },
-      {
-        title: "Mais",
-        rows: [
-          { id: "menu_site", title: "🌐 Acessar o site", description: "www.saborosamente.com" },
-          { id: "menu_atendente", title: "👤 Falar com atendente", description: "Fale com nossa equipe" },
-        ],
-      },
-    ],
+    secoes,
   );
 
   if (!menuEnviado) {

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FlowDiagram } from "@/components/flow-diagram";
+import { MenuChatbotEditor } from "@/components/menu-chatbot-editor";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/automacoes")({
@@ -524,6 +525,9 @@ function AutomacoesPage() {
           <Plus size={16} /> Nova automação
         </button>
       </div>
+
+      {/* Menu do Chatbot — editável, mostrado no topo de Automações */}
+      <MenuChatbotEditor />
 
       {/* Explicação rápida */}
       {automacoes.length === 0 && !isLoading && (
