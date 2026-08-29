@@ -110,7 +110,7 @@ export type TabelaPrecosMarmita = Record<TamanhoMarmita, FaixaPrecos>;
 export const MARMITA_PRICE_TABLE: TabelaPrecosMarmita = {
   "200g": { unit: 16.9, t5: 16.5, t10: 15.9, t20: 14.9 },
   "300g": { unit: 20.9, t5: 20.5, t10: 19.9, t20: 18.9 },
-  "400g": { unit: 23.9, t5: 22.9, t10: 21.9, t20: 20.9 },
+  "400g": { unit: 23.9, t5: 23.5, t10: 22.9, t20: 21.9 },
 };
 
 // Valida/normaliza uma tabela vinda do banco, caindo no default por campo faltante.
