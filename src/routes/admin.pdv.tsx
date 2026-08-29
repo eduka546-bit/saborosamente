@@ -289,7 +289,7 @@ function AdminPDV() {
           nome_cliente: cliente?.nome ?? "Balcão",
           telefone_cliente: cliente?.telefone ?? null,
           metodo_entrega: "retirada",
-          metodo_pagamento: selectedPayment,
+          metodo_pagamento: metodoPagamentoFinal,
           valor_total: totalFinal,
           taxa_entrega: 0,
           desconto_aplicado: desconto + descontoManual,
@@ -336,7 +336,7 @@ function AdminPDV() {
           created_at: order.created_at,
           status: "entregue",
           metodo_entrega: "retirada",
-          metodo_pagamento: selectedPayment,
+          metodo_pagamento: metodoPagamentoFinal,
           valor_total: totalFinal,
           taxa_entrega: 0,
           desconto_aplicado: desconto + descontoManual,
@@ -370,6 +370,8 @@ function AdminPDV() {
       // Reset
       setItems([]);
       setSelectedPayment("");
+      setSelectedCardType("");
+      setSelectedFlag("");
       setTroco("");
       setDescontoManual(0);
       setAcrescimoManual(0);

@@ -78,6 +78,7 @@ import { Route as AdminRelatoriosClientesRouteImport } from './routes/admin/rela
 import { Route as AdminRelatoriosComunicacaoRouteImport } from './routes/admin/relatorios/comunicacao'
 import { Route as AdminRelatoriosEstoqueRouteImport } from './routes/admin/relatorios/estoque'
 import { Route as AdminRelatoriosFaturamentoRouteImport } from './routes/admin/relatorios/faturamento'
+import { Route as AdminRelatoriosFechamentoDiarioRouteImport } from './routes/admin/relatorios/fechamento-diario'
 import { Route as AdminRelatoriosInteligenciaRouteImport } from './routes/admin/relatorios/inteligencia'
 import { Route as AdminRelatoriosKpiRouteImport } from './routes/admin/relatorios/kpi'
 import { Route as AdminRelatoriosSaboresRouteImport } from './routes/admin/relatorios/sabores'
@@ -437,6 +438,12 @@ const AdminRelatoriosFaturamentoRoute =
     path: '/relatorios/faturamento',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminRelatoriosFechamentoDiarioRoute =
+  AdminRelatoriosFechamentoDiarioRouteImport.update({
+    id: '/relatorios/fechamento-diario',
+    path: '/relatorios/fechamento-diario',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminRelatoriosInteligenciaRoute =
   AdminRelatoriosInteligenciaRouteImport.update({
     id: '/relatorios/inteligencia',
@@ -525,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/fechamento-diario': typeof AdminRelatoriosFechamentoDiarioRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
@@ -598,6 +606,7 @@ export interface FileRoutesByTo {
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/fechamento-diario': typeof AdminRelatoriosFechamentoDiarioRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
@@ -674,6 +683,7 @@ export interface FileRoutesById {
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
   '/admin/relatorios/faturamento': typeof AdminRelatoriosFaturamentoRoute
+  '/admin/relatorios/fechamento-diario': typeof AdminRelatoriosFechamentoDiarioRoute
   '/admin/relatorios/inteligencia': typeof AdminRelatoriosInteligenciaRoute
   '/admin/relatorios/kpi': typeof AdminRelatoriosKpiRoute
   '/admin/relatorios/sabores': typeof AdminRelatoriosSaboresRoute
@@ -751,6 +761,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
     | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/fechamento-diario'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
     | '/admin/relatorios/sabores'
@@ -824,6 +835,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
     | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/fechamento-diario'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
     | '/admin/relatorios/sabores'
@@ -899,6 +911,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
     | '/admin/relatorios/faturamento'
+    | '/admin/relatorios/fechamento-diario'
     | '/admin/relatorios/inteligencia'
     | '/admin/relatorios/kpi'
     | '/admin/relatorios/sabores'
@@ -1410,6 +1423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosFaturamentoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/relatorios/fechamento-diario': {
+      id: '/admin/relatorios/fechamento-diario'
+      path: '/relatorios/fechamento-diario'
+      fullPath: '/admin/relatorios/fechamento-diario'
+      preLoaderRoute: typeof AdminRelatoriosFechamentoDiarioRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/relatorios/inteligencia': {
       id: '/admin/relatorios/inteligencia'
       path: '/relatorios/inteligencia'
@@ -1521,6 +1541,7 @@ interface AdminRouteChildren {
   AdminRelatoriosComunicacaoRoute: typeof AdminRelatoriosComunicacaoRoute
   AdminRelatoriosEstoqueRoute: typeof AdminRelatoriosEstoqueRoute
   AdminRelatoriosFaturamentoRoute: typeof AdminRelatoriosFaturamentoRoute
+  AdminRelatoriosFechamentoDiarioRoute: typeof AdminRelatoriosFechamentoDiarioRoute
   AdminRelatoriosInteligenciaRoute: typeof AdminRelatoriosInteligenciaRoute
   AdminRelatoriosKpiRoute: typeof AdminRelatoriosKpiRoute
   AdminRelatoriosSaboresRoute: typeof AdminRelatoriosSaboresRoute
@@ -1578,6 +1599,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRelatoriosComunicacaoRoute: AdminRelatoriosComunicacaoRoute,
   AdminRelatoriosEstoqueRoute: AdminRelatoriosEstoqueRoute,
   AdminRelatoriosFaturamentoRoute: AdminRelatoriosFaturamentoRoute,
+  AdminRelatoriosFechamentoDiarioRoute: AdminRelatoriosFechamentoDiarioRoute,
   AdminRelatoriosInteligenciaRoute: AdminRelatoriosInteligenciaRoute,
   AdminRelatoriosKpiRoute: AdminRelatoriosKpiRoute,
   AdminRelatoriosSaboresRoute: AdminRelatoriosSaboresRoute,
