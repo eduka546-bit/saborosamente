@@ -43,10 +43,14 @@ function extrairRodape(texto: string): { total: number; taxa: number } {
   let taxa = 0;
   for (const linha of texto.split(/\n/)) {
     const l = linha.trim();
+    // "Tx. Entrega:   19,25"  ou  "Taxa de Entrega: 7,25"
     if (/tx\.?\s*entrega|taxa\s*de?\s*entrega/i.test(l)) {
-      taxa = parseValorBR(l);
+      const v = parseValorBR(l);
+      if (v > 0) taxa = v;
+    // "TOTAL PEDIDO:   69,05"  ou  "Total Pedido: 206,25"
     } else if (/total\s*pedido/i.test(l)) {
-      total = parseValorBR(l);
+      const v = parseValorBR(l);
+      if (v > 0) total = v;
     }
   }
   return { total, taxa };
@@ -54,77 +58,78 @@ function extrairRodape(texto: string): { total: number; taxa: number } {
 
 function parsearTexto(texto: string): ItemParseado[] {
   const items: ItemParseado[] = [];
-  const linhasBrutas = texto
+  const linhas = texto
     .split(/\n/)
-    .map((s) => s.trim().replace(/^\*+\s*/, "").replace(/^[-–]\s*/, ""))
+    .map((s) => s.trim())
     .filter(Boolean);
 
-  // Junta linhas de continuação: quando o nome do item quebra em várias linhas,
-  // a linha seguinte (sem código próprio) é anexada à linha com código anterior.
-  // Assim o tamanho ("300g") que ficou na 2ª linha entra no item certo.
-  const linhas: string[] = [];
-  for (const l of linhasBrutas) {
-    const temCodigo = /(TD|SO|CO)\d+/i.test(l);
-    const ehRodape = /total|tx\.?\s*entrega|f\.?\s*pagamento|troco|servir|consumir|deseja|escolha/i.test(l);
-    if (temCodigo) {
-      linhas.push(l);
-    } else if (linhas.length > 0 && !ehRodape && /(TD|SO|CO)\d+/i.test(linhas[linhas.length - 1])) {
-      // continuação do item anterior (parte do nome / tamanho)
-      linhas[linhas.length - 1] += " " + l;
-    } else {
-      linhas.push(l);
-    }
-  }
-
-  let tamanhoAtual = "300g"; // default
+  // Estado do item sendo montado (aguardando o código TD/SO/CO nas linhas seguintes)
+  let pendente: { quantidade: number; tamanho: string } | null = null;
+  let nomePendente = "";
 
   for (const linha of linhas) {
-    // Detecta header de tamanho: "Tradicional P (200g)", "Sopa (400g)", "Tamanho: 5 Refeições 200g P"
-    const headerTam = linha.match(/\b[PpMmGg]\s*\((\d{3})g?\)/) ||
-      linha.match(/\b(200|300|400)\s*g\b.*\b[PMG]\b/i) ||
-      linha.match(/\bSopa\s*\((\d{3})g?\)/i);
-    if (headerTam) {
-      const t = headerTam[1] || linha.match(/(200|300|400)/)?.[1];
-      if (t) tamanhoAtual = `${t}g`;
+    // Ignora separadores, cabeçalhos e rodapé
+    if (/^[-=]{4,}/.test(linha)) continue;
+    if (/^(qtd|descri|v\.uni|f\.\s*pag|troco|total\s*pago|total\s*a\s*pagar|servir|deseja|garfo|\+\+)/i.test(linha)) continue;
+    if (/^total\s*(itens|pedido|entrega)|tx\.?\s*entrega/i.test(linha)) continue;
+
+    // ── Linha de produto: começa com número de quantidade
+    // Ex.: "2    TRADICIONAL G (400G)   24,90  49,80"
+    //       "1    SOPA (400G)   18,00  18,00"
+    const linhaProduto = linha.match(/^(\d+)\s+(.+?)\s+\d[\d.,]+\s+\d[\d.,]+\s*$/);
+    if (linhaProduto) {
+      const qtd = parseInt(linhaProduto[1], 10);
+      const desc = linhaProduto[2].trim();
+      // Extrai tamanho da descrição ("400G", "300G", "200G")
+      const tamMatch = desc.match(/\b(200|300|400)\s*[gG]\b/);
+      const tamanho = tamMatch ? `${tamMatch[1]}g` : "300g";
+      pendente = { quantidade: qtd, tamanho };
+      nomePendente = "";
+      continue;
     }
 
-    // Ignora linhas sem código de produto
-    if (!linha.match(/(TD|SO|CO)\d+/i)) continue;
+    // ── Linha de sabor: começa com * e tem código TD/SO/CO
+    // Ex.: "* TD01- Tiras de Alcatra ao Molho"
+    if (pendente && /^\*?\s*(TD|SO|CO)\d+/i.test(linha)) {
+      const semAsterisco = linha.replace(/^\*+\s*/, "").trim();
+      const codMatch = semAsterisco.match(/(TD|SO|CO)(\d+)/i);
+      if (codMatch) {
+        const codigo = `${codMatch[1].toUpperCase()}${codMatch[2]}`;
+        // Extrai tamanho do próprio texto (pode sobrescrever o do header)
+        const tamNoText = semAsterisco.match(/\b(200|300|400)\s*g\b/i);
+        const tamanho = tamNoText ? `${tamNoText[1]}g` : pendente.tamanho;
+        const nome = semAsterisco
+          .replace(/(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
+          .replace(/\b(200|300|400)\s*g\b/i, "")
+          .trim() || `Produto ${codigo}`;
+        nomePendente = nome;
+        items.push({
+          quantidade: pendente.quantidade,
+          codigo,
+          nome,
+          tamanho,
+          encontrado: false,
+        });
+        // Mantém pendente pra continuar capturando mais sabores do mesmo item
+        // (ex.: "Combo 5" pode ter vários TD na mesma entrada)
+      }
+      continue;
+    }
 
-    // Ignora linhas que são só "Servir:", "Deseja Garfo", preços, etc
-    if (/^(Servir|Deseja|Escolha|\d+[,.]?\d*$)/i.test(linha)) continue;
+    // ── Continuação do nome (linha sem * e sem código, após um sabor)
+    // Ex.: "Madeira e Arroz com Brocolis"
+    if (pendente && nomePendente && !/^\*/.test(linha) && !/^(SABOR|SERVIR|DESEJA)/i.test(linha) && /(TD|SO|CO)\d+/i.test(linha) === false) {
+      // Atualiza o nome do último item adicionado
+      if (items.length > 0) {
+        items[items.length - 1].nome = (nomePendente + " " + linha).trim();
+        nomePendente = items[items.length - 1].nome;
+      }
+    }
 
-    // Extrai o conteúdo após "Sabor:" se existir
-    const conteudo = linha.replace(/^.*?Sabor:\s*/i, "").replace(/\.\s*$/, "");
-
-    // Separa por vírgula (pode ter vários itens na mesma linha)
-    const partes = conteudo.split(/,/).map((s) => s.trim()).filter(Boolean);
-
-    for (const parte of partes) {
-      if (!parte.match(/(TD|SO|CO)\d+/i)) continue;
-
-      // Extrai quantidade (Nx no início, default 1)
-      const qtyMatch = parte.match(/^(\d+)\s*x\s*/i);
-      const quantidade = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-      const semQty = parte.replace(/^\d+\s*x\s*/i, "").trim();
-
-      // Extrai código
-      const codMatch = semQty.match(/(TD|SO|CO)(\d+)/i);
-      if (!codMatch) continue;
-      const codigo = `${codMatch[1].toUpperCase()}${codMatch[2]}`;
-
-      // Extrai tamanho do final (se existir), senão usa header
-      const tamItemMatch = semQty.match(/(200|300|400)\s*g/i);
-      const tamanho = tamItemMatch ? `${tamItemMatch[1]}g` : tamanhoAtual;
-
-      // Extrai nome
-      const nome = semQty
-        .replace(/^\s*(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
-        .replace(/(200|300|400)\s*g\s*$/i, "")
-        .replace(/\d+\s*g\s*$/i, "") // remove tamanhos como 150g
-        .trim() || `Produto ${codigo}`;
-
-      items.push({ quantidade, codigo, nome, tamanho, encontrado: false });
+    // Se chegou numa nova linha de produto (número no início), reseta pendente
+    if (/^\d+\s+[A-Z]/i.test(linha) && !/^\d+[,.]/.test(linha)) {
+      pendente = null;
+      nomePendente = "";
     }
   }
 
