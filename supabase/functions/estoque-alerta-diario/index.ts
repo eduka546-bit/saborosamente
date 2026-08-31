@@ -28,9 +28,8 @@ const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
-// Número que recebe o alerta (formato E.164 sem "+", ex.: 5547997391514).
-// Configurável via secret; fallback no número do admin.
-const ADMIN_ALERT_PHONE = Deno.env.get("ADMIN_ALERT_PHONE") ?? "5547997391514";
+// Número fallback (usado se a lista do banco estiver vazia).
+const ADMIN_ALERT_PHONE_FALLBACK = Deno.env.get("ADMIN_ALERT_PHONE") ?? "5547997391514";
 const WHATSAPP_API_VERSION = "v20.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -107,6 +106,15 @@ Deno.serve(async (req) => {
       .order("nome");
     if (error) throw error;
 
+    // Busca a lista de números destinatários do banco.
+    // Fallback para o número padrão se a lista estiver vazia.
+    const { data: settings } = await supabase
+      .from("site_settings")
+      .select("parametros_loja")
+      .maybeSingle();
+    const listaBanco: string[] = (settings?.parametros_loja as any)?.alerta_estoque_numeros ?? [];
+    const destinatarios = listaBanco.length > 0 ? listaBanco : [ADMIN_ALERT_PHONE_FALLBACK];
+
     // Marcador ao lado do valor conforme o nível de alerta.
     const marca = (tipo: Tipo, col: "200g" | "300g" | "400g", valor: number): string => {
       const n = nivel(tipo, col, valor);
@@ -169,11 +177,13 @@ Deno.serve(async (req) => {
       partes.push(`\n_Resumo: ${totalUrgentes} urgente(s) ❌ · ${totalBaixos} baixo(s) ⚠️_`);
     }
 
-    await sendWhatsApp(ADMIN_ALERT_PHONE, partes.join("\n"));
+    // Envia para todos os destinatários em paralelo.
+    await Promise.all(destinatarios.map((tel) => sendWhatsApp(tel, partes.join("\n"))));
 
     return new Response(
       JSON.stringify({
         ok: true,
+        destinatarios: destinatarios.length,
         marmitas: marmitas.length,
         sopas: sopas.length,
         complementos: complementos.length,

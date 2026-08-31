@@ -142,11 +142,36 @@ function AdminDashboard() {
       );
 
       // Top produtos por quantidade vendida
+      // Resolve os nomes usando a query de produtos já existente (lowStockRes
+      // busca todos os produtos com controle_estoque; pra cobrir os demais,
+      // montamos um mapa a partir dos produtos retornados).
+      const nomesMap: Record<string, string> = {};
+      (lowStockRes.data ?? []).forEach((p: any) => {
+        nomesMap[p.id] = p.nome;
+      });
+
+      // Se algum produto não estava no lowStockRes, buscamos os restantes.
+      const idsTop = [
+        ...new Set(
+          (topProductsRes.data ?? []).map((i: any) => i.produto_id).filter(Boolean),
+        ),
+      ];
+      const idsAusentes = idsTop.filter((id) => !nomesMap[id]);
+      if (idsAusentes.length > 0) {
+        const { data: extraProds } = await supabase
+          .from("produtos")
+          .select("id, nome")
+          .in("id", idsAusentes);
+        (extraProds ?? []).forEach((p: any) => {
+          nomesMap[p.id] = p.nome;
+        });
+      }
+
       const countMap: Record<string, { nome: string; qty: number }> = {};
       (topProductsRes.data ?? []).forEach((i: any) => {
         const id = i.produto_id;
         if (!id) return;
-        if (!countMap[id]) countMap[id] = { nome: `Produto ${id.slice(0, 6)}`, qty: 0 };
+        if (!countMap[id]) countMap[id] = { nome: nomesMap[id] ?? `Produto ${id.slice(0, 6)}`, qty: 0 };
         countMap[id].qty += i.quantidade ?? 1;
       });
       const topProdutos = Object.values(countMap)

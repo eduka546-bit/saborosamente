@@ -45,6 +45,7 @@ import { Route as AdminStorageCleanupRouteImport } from './routes/admin/storage-
 import { Route as PedidoIndexRouteImport } from './routes/pedido/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'
+import { Route as AdminConfigAlertaEstoqueRouteImport } from './routes/admin/config/alerta-estoque'
 import { Route as AdminConfigAreaRouteImport } from './routes/admin/config/area'
 import { Route as AdminConfigBairrosRouteImport } from './routes/admin/config/bairros'
 import { Route as AdminConfigCashbackRouteImport } from './routes/admin/config/cashback'
@@ -264,6 +265,12 @@ const AdminConfigIndexRoute = AdminConfigIndexRouteImport.update({
   path: '/config/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigAlertaEstoqueRoute =
+  AdminConfigAlertaEstoqueRouteImport.update({
+    id: '/config/alerta-estoque',
+    path: '/config/alerta-estoque',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminConfigAreaRoute = AdminConfigAreaRouteImport.update({
   id: '/config/area',
   path: '/config/area',
@@ -502,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
   '/pedido/': typeof PedidoIndexRoute
+  '/admin/config/alerta-estoque': typeof AdminConfigAlertaEstoqueRoute
   '/admin/config/area': typeof AdminConfigAreaRoute
   '/admin/config/bairros': typeof AdminConfigBairrosRoute
   '/admin/config/cashback': typeof AdminConfigCashbackRoute
@@ -576,6 +584,7 @@ export interface FileRoutesByTo {
   '/produto/$id': typeof ProdutoIdRoute
   '/admin': typeof AdminIndexRoute
   '/pedido': typeof PedidoIndexRoute
+  '/admin/config/alerta-estoque': typeof AdminConfigAlertaEstoqueRoute
   '/admin/config/area': typeof AdminConfigAreaRoute
   '/admin/config/bairros': typeof AdminConfigBairrosRoute
   '/admin/config/cashback': typeof AdminConfigCashbackRoute
@@ -653,6 +662,7 @@ export interface FileRoutesById {
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
   '/pedido/': typeof PedidoIndexRoute
+  '/admin/config/alerta-estoque': typeof AdminConfigAlertaEstoqueRoute
   '/admin/config/area': typeof AdminConfigAreaRoute
   '/admin/config/bairros': typeof AdminConfigBairrosRoute
   '/admin/config/cashback': typeof AdminConfigCashbackRoute
@@ -731,6 +741,7 @@ export interface FileRouteTypes {
     | '/produto/$id'
     | '/admin/'
     | '/pedido/'
+    | '/admin/config/alerta-estoque'
     | '/admin/config/area'
     | '/admin/config/bairros'
     | '/admin/config/cashback'
@@ -805,6 +816,7 @@ export interface FileRouteTypes {
     | '/produto/$id'
     | '/admin'
     | '/pedido'
+    | '/admin/config/alerta-estoque'
     | '/admin/config/area'
     | '/admin/config/bairros'
     | '/admin/config/cashback'
@@ -881,6 +893,7 @@ export interface FileRouteTypes {
     | '/produto/$id'
     | '/admin/'
     | '/pedido/'
+    | '/admin/config/alerta-estoque'
     | '/admin/config/area'
     | '/admin/config/bairros'
     | '/admin/config/cashback'
@@ -1190,6 +1203,13 @@ declare module '@tanstack/react-router' {
       path: '/config'
       fullPath: '/admin/config/'
       preLoaderRoute: typeof AdminConfigIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/config/alerta-estoque': {
+      id: '/admin/config/alerta-estoque'
+      path: '/config/alerta-estoque'
+      fullPath: '/admin/config/alerta-estoque'
+      preLoaderRoute: typeof AdminConfigAlertaEstoqueRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/config/area': {
@@ -1516,6 +1536,7 @@ interface AdminRouteChildren {
   AdminRegistrarP10Route: typeof AdminRegistrarP10Route
   AdminStorageCleanupRoute: typeof AdminStorageCleanupRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminConfigAlertaEstoqueRoute: typeof AdminConfigAlertaEstoqueRoute
   AdminConfigAreaRoute: typeof AdminConfigAreaRoute
   AdminConfigBairrosRoute: typeof AdminConfigBairrosRoute
   AdminConfigCashbackRoute: typeof AdminConfigCashbackRoute
@@ -1574,6 +1595,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRegistrarP10Route: AdminRegistrarP10Route,
   AdminStorageCleanupRoute: AdminStorageCleanupRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminConfigAlertaEstoqueRoute: AdminConfigAlertaEstoqueRoute,
   AdminConfigAreaRoute: AdminConfigAreaRoute,
   AdminConfigBairrosRoute: AdminConfigBairrosRoute,
   AdminConfigCashbackRoute: AdminConfigCashbackRoute,
