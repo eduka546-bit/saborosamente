@@ -60,6 +60,9 @@ function AdminPDV() {
   // Origem da venda: "pdv" (Loja), "site" ou "pedidos10" (P10).
   // Permite lançar manualmente pedidos de outros canais e classificá-los certo.
   const [origemVenda, setOrigemVenda] = useState<"pdv" | "site" | "pedidos10">("pdv");
+  // Tamanho fixo: quando setado, marmitas entram direto nesse tamanho sem abrir picker.
+  // null = pede sempre (comportamento original). Sopas/complementos/bebidas ignoram isso.
+  const [tamanhoFixo, setTamanhoFixo] = useState<"200g" | "300g" | "400g" | null>(null);
   // Faixa de preço forçada (clientes recorrentes com preço de combo garantido).
   // null = automática pela quantidade. Caso contrário, aplica a faixa escolhida
   // independente da quantidade (a quantidade representativa define a faixa).
@@ -181,7 +184,21 @@ function AdminPDV() {
   }, [searchResults, searchValue]);
 
   function handleSelectProduct(product: any) {
+    const tipo = product.tipo_produto ?? "marmita";
+
+    // Sopas, complementos e bebidas têm tamanho único — entram direto sem picker.
+    if (tipo === "sopa") { addItem(product, "400g"); setSearchValue(""); return; }
+    if (tipo === "complemento" || tipo === "bebida") { addItem(product, "200g"); setSearchValue(""); return; }
+
     const hasSizes = product.preco_300g || product.preco_400g;
+
+    // Se há um tamanho fixo selecionado, usa direto — sem abrir picker.
+    if (tamanhoFixo) {
+      addItem(product, tamanhoFixo);
+      setSearchValue("");
+      return;
+    }
+
     if (hasSizes) {
       setShowWeightPicker(product);
     } else {
@@ -384,6 +401,7 @@ function AdminPDV() {
       setAcrescimoManual(0);
       setOrigemVenda("pdv");
       setFaixaForcada(null);
+      setTamanhoFixo(null);
       setCliente(null);
       setClienteBusca("");
       searchRef.current?.focus();
@@ -417,6 +435,35 @@ function AdminPDV() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Busca */}
           <div className="p-4 border-b bg-white shrink-0">
+            {/* Seletor de tamanho fixo — evita picker a cada bipagemitem */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[10px] font-bold uppercase text-gray-400 shrink-0">
+                Tamanho fixo:
+              </span>
+              {([null, "200g", "300g", "400g"] as const).map((t) => (
+                <button
+                  key={String(t)}
+                  type="button"
+                  onClick={() => {
+                    setTamanhoFixo(t);
+                    searchRef.current?.focus();
+                  }}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-bold border transition-all",
+                    tamanhoFixo === t
+                      ? "bg-[#086e45] text-white border-[#086e45]"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
+                  )}
+                >
+                  {t === null ? "Auto" : t}
+                </button>
+              ))}
+              {tamanhoFixo && (
+                <span className="text-[10px] text-[#086e45] font-semibold ml-1">
+                  Marmitas entram direto em {tamanhoFixo}
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Barcode
                 size={18}

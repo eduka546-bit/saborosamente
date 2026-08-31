@@ -129,14 +129,16 @@ function AdminDashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }),
       ]);
 
-      const monthlyRevenue = (monthlyOrdersRes.data ?? []).reduce(
-        (acc, o) => acc + (Number(o.valor_total) || 0),
-        0,
+      const monthlyRevenue = parseFloat(
+        (monthlyOrdersRes.data ?? [])
+          .reduce((acc, o) => acc + (Number(o.valor_total) || 0), 0)
+          .toFixed(2),
       );
 
-      const last7Revenue = (allOrdersLast7Res.data ?? []).reduce(
-        (acc, o) => acc + (Number(o.valor_total) || 0),
-        0,
+      const last7Revenue = parseFloat(
+        (allOrdersLast7Res.data ?? [])
+          .reduce((acc, o) => acc + (Number(o.valor_total) || 0), 0)
+          .toFixed(2),
       );
 
       // Top produtos por quantidade vendida
@@ -296,6 +298,7 @@ function AdminDashboard() {
             sub: "últimos 7 dias",
             icon: BarChart2,
             color: "bg-emerald-100 text-emerald-600",
+            isCurrency: true,
           },
           {
             label: "Vendas 30 Dias",
@@ -303,6 +306,7 @@ function AdminDashboard() {
             sub: "últimos 30 dias",
             icon: TrendingUp,
             color: "bg-blue-100 text-blue-600",
+            isCurrency: true,
           },
           {
             label: "Ticket Médio",
