@@ -54,6 +54,7 @@ import { Route as AdminConfigEntregadorRouteImport } from './routes/admin/config
 import { Route as AdminConfigExcecoesRouteImport } from './routes/admin/config/excecoes'
 import { Route as AdminConfigFaqRouteImport } from './routes/admin/config/faq'
 import { Route as AdminConfigHorariosRouteImport } from './routes/admin/config/horarios'
+import { Route as AdminConfigImportarClientesRouteImport } from './routes/admin/config/importar-clientes'
 import { Route as AdminConfigImpressaoRouteImport } from './routes/admin/config/impressao'
 import { Route as AdminConfigInformativoRouteImport } from './routes/admin/config/informativo'
 import { Route as AdminConfigMarmitaPersonalizadaRouteImport } from './routes/admin/config/marmita-personalizada'
@@ -312,6 +313,12 @@ const AdminConfigHorariosRoute = AdminConfigHorariosRouteImport.update({
   path: '/config/horarios',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigImportarClientesRoute =
+  AdminConfigImportarClientesRouteImport.update({
+    id: '/config/importar-clientes',
+    path: '/config/importar-clientes',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminConfigImpressaoRoute = AdminConfigImpressaoRouteImport.update({
   id: '/config/impressao',
   path: '/config/impressao',
@@ -518,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
   '/admin/config/faq': typeof AdminConfigFaqRoute
   '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/importar-clientes': typeof AdminConfigImportarClientesRoute
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
@@ -593,6 +601,7 @@ export interface FileRoutesByTo {
   '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
   '/admin/config/faq': typeof AdminConfigFaqRoute
   '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/importar-clientes': typeof AdminConfigImportarClientesRoute
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
@@ -671,6 +680,7 @@ export interface FileRoutesById {
   '/admin/config/excecoes': typeof AdminConfigExcecoesRoute
   '/admin/config/faq': typeof AdminConfigFaqRoute
   '/admin/config/horarios': typeof AdminConfigHorariosRoute
+  '/admin/config/importar-clientes': typeof AdminConfigImportarClientesRoute
   '/admin/config/impressao': typeof AdminConfigImpressaoRoute
   '/admin/config/informativo': typeof AdminConfigInformativoRoute
   '/admin/config/marmita-personalizada': typeof AdminConfigMarmitaPersonalizadaRoute
@@ -750,6 +760,7 @@ export interface FileRouteTypes {
     | '/admin/config/excecoes'
     | '/admin/config/faq'
     | '/admin/config/horarios'
+    | '/admin/config/importar-clientes'
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
@@ -825,6 +836,7 @@ export interface FileRouteTypes {
     | '/admin/config/excecoes'
     | '/admin/config/faq'
     | '/admin/config/horarios'
+    | '/admin/config/importar-clientes'
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
@@ -902,6 +914,7 @@ export interface FileRouteTypes {
     | '/admin/config/excecoes'
     | '/admin/config/faq'
     | '/admin/config/horarios'
+    | '/admin/config/importar-clientes'
     | '/admin/config/impressao'
     | '/admin/config/informativo'
     | '/admin/config/marmita-personalizada'
@@ -1268,6 +1281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigHorariosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/importar-clientes': {
+      id: '/admin/config/importar-clientes'
+      path: '/config/importar-clientes'
+      fullPath: '/admin/config/importar-clientes'
+      preLoaderRoute: typeof AdminConfigImportarClientesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/config/impressao': {
       id: '/admin/config/impressao'
       path: '/config/impressao'
@@ -1545,6 +1565,7 @@ interface AdminRouteChildren {
   AdminConfigExcecoesRoute: typeof AdminConfigExcecoesRoute
   AdminConfigFaqRoute: typeof AdminConfigFaqRoute
   AdminConfigHorariosRoute: typeof AdminConfigHorariosRoute
+  AdminConfigImportarClientesRoute: typeof AdminConfigImportarClientesRoute
   AdminConfigImpressaoRoute: typeof AdminConfigImpressaoRoute
   AdminConfigInformativoRoute: typeof AdminConfigInformativoRoute
   AdminConfigMarmitaPersonalizadaRoute: typeof AdminConfigMarmitaPersonalizadaRoute
@@ -1604,6 +1625,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConfigExcecoesRoute: AdminConfigExcecoesRoute,
   AdminConfigFaqRoute: AdminConfigFaqRoute,
   AdminConfigHorariosRoute: AdminConfigHorariosRoute,
+  AdminConfigImportarClientesRoute: AdminConfigImportarClientesRoute,
   AdminConfigImpressaoRoute: AdminConfigImpressaoRoute,
   AdminConfigInformativoRoute: AdminConfigInformativoRoute,
   AdminConfigMarmitaPersonalizadaRoute: AdminConfigMarmitaPersonalizadaRoute,
