@@ -15,7 +15,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Plus, Minus, Trash2, Printer, ShoppingBag, X, Barcode } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Printer, ShoppingBag, X, Barcode, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
 import { toast } from "sonner";
@@ -72,6 +72,7 @@ function AdminPDV() {
   const [clienteBusca, setClienteBusca] = useState("");
   const [cliente, setCliente] = useState<any>(null);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
+  const [sugestoesCliente, setSugestoesCliente] = useState<any[]>([]);
   // Cadastro rápido — aberto quando o cliente não é encontrado.
   const [cadastroRapido, setCadastroRapido] = useState<{ telefone: string } | null>(null);
   const [novoNome, setNovoNome] = useState("");
@@ -407,6 +408,7 @@ function AdminPDV() {
       setTamanhoFixo(null);
       setCliente(null);
       setClienteBusca("");
+      setSugestoesCliente([]);
       setCadastroRapido(null);
       setNovoNome("");
       searchRef.current?.focus();
@@ -725,39 +727,108 @@ function AdminPDV() {
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="relative">
                   <input
                     type="text"
                     value={clienteBusca}
-                    onChange={(e) => setClienteBusca(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && clienteBusca.trim()) {
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setClienteBusca(val);
+                      setCadastroRapido(null);
+                      setSugestoesCliente([]);
+                      if (val.trim().length < 2) return;
+                      setBuscandoCliente(true);
+                      const termo = val.trim();
+                      const soDigitos = termo.replace(/\D/g, "");
+                      // Busca por nome OU telefone/CPF (o que tiver dígitos suficientes)
+                      const filtros = [`nome.ilike.%${termo}%`];
+                      if (soDigitos.length >= 3) {
+                        filtros.push(`telefone.ilike.%${soDigitos}%`);
+                        filtros.push(`cpf.ilike.%${soDigitos}%`);
+                      }
+                      const { data } = await supabase
+                        .from("profiles")
+                        .select("id, nome, telefone, cpf")
+                        .or(filtros.join(","))
+                        .limit(5);
+                      setSugestoesCliente(data ?? []);
+                      setBuscandoCliente(false);
+                    }}
+                    onKeyDown={(e) => {
+                      // Enter sem sugestões abertas → tenta como antes (cadastro rápido)
+                      if (e.key === "Enter" && sugestoesCliente.length === 0 && clienteBusca.trim()) {
                         e.preventDefault();
-                        setBuscandoCliente(true);
-                        const termo = clienteBusca.trim().replace(/\D/g, "");
-                        // Busca por telefone ou CPF
-                        const { data } = await supabase
-                          .from("profiles")
-                          .select("id, nome, telefone, cpf")
-                          .or(`telefone.ilike.%${termo}%,cpf.ilike.%${termo}%`)
-                          .limit(1)
-                          .maybeSingle();
-                        if (data) {
-                          setCliente(data);
-                          setClienteBusca("");
-                          toast.success(`Cliente: ${data.nome}`);
-                        } else {
-                          // Abre mini-formulário de cadastro rápido com o número já preenchido.
+                        const soDigitos = clienteBusca.trim().replace(/\D/g, "");
+                        if (soDigitos.length >= 8) {
                           setCadastroRapido({ telefone: clienteBusca.trim() });
                           setNovoNome("");
+                          setSugestoesCliente([]);
                         }
-                        setBuscandoCliente(false);
+                      }
+                      if (e.key === "Escape") {
+                        setSugestoesCliente([]);
+                        setClienteBusca("");
                       }
                     }}
-                    placeholder="Telefone ou CPF"
-                    className="flex-1 h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                    placeholder="Nome, telefone ou CPF..."
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
                     disabled={buscandoCliente}
                   />
+                  {buscandoCliente && (
+                    <Loader2
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+                    />
+                  )}
+                  {/* Lista de sugestões */}
+                  {sugestoesCliente.length > 0 && (
+                    <div className="absolute z-20 top-10 left-0 right-0 bg-white border rounded-xl shadow-lg overflow-hidden">
+                      {sugestoesCliente.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setCliente(s);
+                            setClienteBusca("");
+                            setSugestoesCliente([]);
+                            toast.success(`Cliente: ${s.nome}`);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-[#086e45]/5 text-left border-b last:border-0"
+                        >
+                          <span className="text-sm font-semibold text-gray-900">{s.nome}</span>
+                          <span className="text-[10px] text-gray-400">{s.telefone ?? s.cpf ?? ""}</span>
+                        </button>
+                      ))}
+                      {/* Opção de cadastrar novo se não encontrou exatamente o que queria */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCadastroRapido({ telefone: clienteBusca.trim() });
+                          setNovoNome("");
+                          setSugestoesCliente([]);
+                        }}
+                        className="w-full px-3 py-2 text-[11px] text-[#086e45] font-semibold hover:bg-[#086e45]/5 text-left"
+                      >
+                        + Cadastrar novo cliente
+                      </button>
+                    </div>
+                  )}
+                  {/* Sem resultado e campo não vazio (>= 2 chars, sem sugestões, não buscando) */}
+                  {!buscandoCliente && clienteBusca.trim().length >= 2 && sugestoesCliente.length === 0 && !cadastroRapido && (
+                    <div className="absolute z-20 top-10 left-0 right-0 bg-white border rounded-xl shadow-lg overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCadastroRapido({ telefone: clienteBusca.trim() });
+                          setNovoNome("");
+                          setSugestoesCliente([]);
+                        }}
+                        className="w-full px-3 py-2 text-[11px] text-[#086e45] font-semibold hover:bg-[#086e45]/5 text-left"
+                      >
+                        Nenhum resultado — cadastrar novo cliente
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
