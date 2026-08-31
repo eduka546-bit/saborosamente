@@ -194,7 +194,13 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
       const tot = item.preco_unitario * item.quantidade;
       const prod = `${item.quantidade}x ${item.nome}`;
       const val = `R$ ${tot.toFixed(2)}`;
-      const line = prod + " ".repeat(Math.max(1, 32 - prod.length - val.length)) + val;
+      // Se o nome cabe em 32 colunas junto com o valor, alinha na mesma linha.
+      // Se não cabe, coloca o valor na linha seguinte alinhado à direita.
+      const gap = 32 - prod.length - val.length;
+      const line =
+        gap >= 1
+          ? prod + " ".repeat(gap) + val
+          : `${prod}\n${" ".repeat(Math.max(0, 32 - val.length))}${val}`;
       return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
     })
     .join("\n");
@@ -259,9 +265,9 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 10pt;
+      font-size: 12pt;
       font-weight: bold;
-      line-height: 1.4;
+      line-height: 1.5;
       width: 58mm;
       background: white;
       color: #000;
@@ -269,7 +275,8 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
       print-color-adjust: exact;
     }
     pre {
-      white-space: pre;
+      white-space: pre-wrap;
+      word-break: break-word;
       font-family: inherit;
       font-size: inherit;
       font-weight: inherit;

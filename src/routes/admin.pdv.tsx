@@ -72,6 +72,9 @@ function AdminPDV() {
   const [clienteBusca, setClienteBusca] = useState("");
   const [cliente, setCliente] = useState<any>(null);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
+  // Cadastro rápido — aberto quando o cliente não é encontrado.
+  const [cadastroRapido, setCadastroRapido] = useState<{ telefone: string } | null>(null);
+  const [novoNome, setNovoNome] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Foco automático no campo de busca
@@ -404,6 +407,8 @@ function AdminPDV() {
       setTamanhoFixo(null);
       setCliente(null);
       setClienteBusca("");
+      setCadastroRapido(null);
+      setNovoNome("");
       searchRef.current?.focus();
     } catch (e: any) {
       toast.error("Erro: " + e.message);
@@ -742,7 +747,9 @@ function AdminPDV() {
                           setClienteBusca("");
                           toast.success(`Cliente: ${data.nome}`);
                         } else {
-                          toast.error("Cliente não encontrado.");
+                          // Abre mini-formulário de cadastro rápido com o número já preenchido.
+                          setCadastroRapido({ telefone: clienteBusca.trim() });
+                          setNovoNome("");
                         }
                         setBuscandoCliente(false);
                       }
@@ -751,6 +758,76 @@ function AdminPDV() {
                     className="flex-1 h-9 px-3 rounded-lg border border-gray-200 text-sm"
                     disabled={buscandoCliente}
                   />
+                </div>
+              )}
+
+              {/* Mini-formulário de cadastro rápido */}
+              {cadastroRapido && (
+                <div className="mt-2 rounded-xl border border-[#086e45]/30 bg-[#086e45]/5 p-3 space-y-2">
+                  <p className="text-[11px] font-bold text-[#086e45]">
+                    Número não cadastrado. Quer salvar?
+                  </p>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    placeholder="Nome do cliente"
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && novoNome.trim()) {
+                        e.preventDefault();
+                        const tel = cadastroRapido.telefone.replace(/\D/g, "");
+                        const { data, error } = await supabase
+                          .from("profiles")
+                          .insert({ nome: novoNome.trim(), telefone: tel })
+                          .select()
+                          .single();
+                        if (error) {
+                          toast.error("Erro ao cadastrar: " + error.message);
+                          return;
+                        }
+                        setCliente(data);
+                        setClienteBusca("");
+                        setCadastroRapido(null);
+                        setNovoNome("");
+                        toast.success(`Cliente ${data.nome} cadastrado!`);
+                      }
+                      if (e.key === "Escape") {
+                        setCadastroRapido(null);
+                        setNovoNome("");
+                      }
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!novoNome.trim()) return;
+                        const tel = cadastroRapido.telefone.replace(/\D/g, "");
+                        const { data, error } = await supabase
+                          .from("profiles")
+                          .insert({ nome: novoNome.trim(), telefone: tel })
+                          .select()
+                          .single();
+                        if (error) { toast.error("Erro: " + error.message); return; }
+                        setCliente(data);
+                        setClienteBusca("");
+                        setCadastroRapido(null);
+                        setNovoNome("");
+                        toast.success(`Cliente ${data.nome} cadastrado!`);
+                      }}
+                      disabled={!novoNome.trim()}
+                      className="flex-1 h-8 rounded-lg bg-[#086e45] text-white text-xs font-bold disabled:opacity-50"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={() => { setCadastroRapido(null); setNovoNome(""); }}
+                      className="flex-1 h-8 rounded-lg border text-xs font-bold text-gray-500"
+                    >
+                      Pular
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
