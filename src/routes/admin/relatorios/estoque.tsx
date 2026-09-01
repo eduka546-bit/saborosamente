@@ -5,6 +5,7 @@ import { Loader2, AlertTriangle, Package, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { imgUrl } from "@/lib/image-proxy";
 
 export const Route = createFileRoute("/admin/relatorios/estoque")({
   component: AdminRelatoriosEstoquePage,
@@ -179,7 +180,7 @@ function AdminRelatoriosEstoquePage() {
                       <div className="flex items-center gap-2">
                         {p.imagem_url && (
                           <img
-                            src={p.imagem_url}
+                            src={imgUrl(p.imagem_url)}
                             className="h-7 w-7 rounded object-cover border"
                             alt=""
                           />

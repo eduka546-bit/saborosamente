@@ -13,6 +13,7 @@ import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { imgUrl } from "@/lib/image-proxy";
 
 interface ComboSaboresModalProps {
   isOpen: boolean;
@@ -169,7 +170,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                 >
                   {prod.imagem_url && (
                     <img
-                      src={prod.imagem_url}
+                      src={imgUrl(prod.imagem_url)}
                       alt={prod.nome}
                       className="h-12 w-12 rounded-lg object-cover shrink-0"
                     />

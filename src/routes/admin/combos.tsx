@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { COMBO_RULES } from "@/lib/combo-rules";
+import { imgUrl } from "@/lib/image-proxy";
 
 export const Route = createFileRoute("/admin/combos")({
   component: AdminCombosPage,
@@ -220,7 +221,7 @@ function AdminCombosPage() {
                     {/* Imagem */}
                     {combo.imagem_url && (
                       <img
-                        src={combo.imagem_url}
+                        src={imgUrl(combo.imagem_url)}
                         className="h-16 w-16 rounded-xl object-cover border shrink-0"
                         alt=""
                       />

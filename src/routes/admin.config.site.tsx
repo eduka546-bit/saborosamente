@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { imgUrl } from "@/lib/image-proxy";
 import {
   Save,
   Upload,
@@ -1182,7 +1183,7 @@ function AdminSiteConfig() {
               <div className="flex items-center gap-4">
                 {(formData.popup_boas_vindas as any)?.imagem_url && (
                   <img
-                    src={(formData.popup_boas_vindas as any).imagem_url}
+                    src={imgUrl((formData.popup_boas_vindas as any).imagem_url)}
                     alt="Preview popup"
                     className="h-20 w-32 object-cover rounded-xl border"
                   />

@@ -11,6 +11,7 @@ import { Loader2, Plus, Trash2, Edit3, Save, X, Wine } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { imgUrl } from "@/lib/image-proxy";
 
 export const Route = createFileRoute("/admin/bebidas")({
   component: AdminBebidasPage,
@@ -189,7 +190,7 @@ function AdminBebidasPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {editForm.imagem_url && (
-                      <img src={editForm.imagem_url} className="h-10 w-10 rounded object-cover" alt="" />
+                      <img src={imgUrl(editForm.imagem_url)} className="h-10 w-10 rounded object-cover" alt="" />
                     )}
                     <input
                       ref={editFileRef}
@@ -218,7 +219,7 @@ function AdminBebidasPage() {
               ) : (
                 <>
                   {b.imagem_url && (
-                    <img src={b.imagem_url} className="h-12 w-12 rounded-lg object-cover border" alt="" />
+                    <img src={imgUrl(b.imagem_url)} className="h-12 w-12 rounded-lg object-cover border" alt="" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900">{b.nome}</p>
@@ -295,7 +296,7 @@ function AdminBebidasPage() {
             />
             <div className="flex items-center gap-3">
               {form.imagem_url && (
-                <img src={form.imagem_url} className="h-14 w-14 rounded-lg object-cover" alt="" />
+                <img src={imgUrl(form.imagem_url)} className="h-14 w-14 rounded-lg object-cover" alt="" />
               )}
               <input
                 ref={fileRef}

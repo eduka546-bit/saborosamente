@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
+import { imgUrl } from "@/lib/image-proxy";
 import {
   Plus,
   Search,
@@ -465,7 +466,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center relative overflow-hidden group">
                     {formData.imagem_url ? (
                       <img
-                        src={formData.imagem_url}
+                        src={imgUrl(formData.imagem_url)}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
@@ -1593,7 +1594,7 @@ function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
       <span className="text-xs font-bold text-gray-300 w-6 text-right shrink-0">{idx + 1}</span>
       <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-100 shrink-0">
         {produto.imagem_url ? (
-          <img src={produto.imagem_url} alt={produto.nome} className="h-full w-full object-cover" />
+          <img src={imgUrl(produto.imagem_url)} alt={produto.nome} className="h-full w-full object-cover" />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">
             📦
@@ -1661,7 +1662,7 @@ function SortableProductRow({
         </div>
         <div className="h-12 w-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0">
           <img
-            src={product.imagem_url}
+            src={imgUrl(product.imagem_url)}
             alt={product.nome}
             className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
           />

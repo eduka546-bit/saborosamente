@@ -1,0 +1,202 @@
+﻿supabase : Initialising login role...
+No linha:1 caractere:145
++ ... "Machine"); supabase db query --linked --output-format json -f check_ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Initialising login role...:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "nome",
+    "data_type": "text"
+  },
+  {
+    "column_name": "descricao",
+    "data_type": "text"
+  },
+  {
+    "column_name": "ingredientes",
+    "data_type": "text"
+  },
+  {
+    "column_name": "preco",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "peso",
+    "data_type": "text"
+  },
+  {
+    "column_name": "categoria",
+    "data_type": "text"
+  },
+  {
+    "column_name": "imagem_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "destaque",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "categoria_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "calorias",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "status",
+    "data_type": "text"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "informacao_nutricional",
+    "data_type": "text"
+  },
+  {
+    "column_name": "controle_estoque",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "estoque_atual",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "estoque_minimo",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "preco_promocional",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "is_destaque",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "is_novidade",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "frete_gratis",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "bloquear_cupom",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "codigo_integracao",
+    "data_type": "text"
+  },
+  {
+    "column_name": "preco_custo",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "preco_300g",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "preco_400g",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "tabela_nutricional",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "tabela_nutricional_300g",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "tabela_nutricional_400g",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "imagens",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "ativo",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "ordem",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "estoque",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "info_nutricional",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "restricoes",
+    "data_type": "jsonb"
+  },
+  {
+    "column_name": "imagem_200g",
+    "data_type": "text"
+  },
+  {
+    "column_name": "imagem_300g",
+    "data_type": "text"
+  },
+  {
+    "column_name": "imagem_400g",
+    "data_type": "text"
+  },
+  {
+    "column_name": "rating",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "sem_gluten",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "sem_lactose",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "estoque_200g",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "estoque_300g",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "estoque_400g",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "visivel_online",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "tipo_produto",
+    "data_type": "text"
+  }
+]
+A new version of Supabase CLI is available: v2.116.0 (currently installed 
+v2.115.0)
+We recommend updating regularly for new features and bug fixes: 
+https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

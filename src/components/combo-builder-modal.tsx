@@ -26,6 +26,7 @@ import {
   faixaPorQuantidade,
 } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
+import { imgUrl } from "@/lib/image-proxy";
 
 export { COMBO_RULES };
 
@@ -321,7 +322,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                         >
                           {product.imagem_url || product.imagem ? (
                             <img
-                              src={product.imagem_url || product.imagem}
+                              src={imgUrl(product.imagem_url || product.imagem)}
                               alt={product.nome}
                               className="h-full w-full object-cover"
                               loading="lazy"

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, MessageCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { imgUrl } from "@/lib/image-proxy";
 
 const STORAGE_KEY = "saborosamente.welcome_popup_dismissed";
 
@@ -99,7 +100,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
         {config.imagem_url && (
           <div className="w-full aspect-[4/3] overflow-hidden rounded-t-3xl bg-gray-100">
             <img
-              src={config.imagem_url}
+              src={imgUrl(config.imagem_url)}
               alt="Popup de boas-vindas"
               className="w-full h-full object-cover"
             />
