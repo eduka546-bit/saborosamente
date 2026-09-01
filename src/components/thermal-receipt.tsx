@@ -169,7 +169,7 @@ ${order.endereco_cep ?? ""}`
  * Chamar após montar o componente no DOM.
  */
 export function printReceipt(order: ThermalReceiptProps["order"]) {
-  const win = window.open("", "_blank", "width=400,height=600");
+  const win = window.open("", "_blank", "width=400,height=700");
   if (!win) {
     alert("Permita pop-ups para imprimir a comanda.");
     return;
@@ -184,76 +184,24 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
 
-  const c = (t: string) => t.padStart(Math.floor((32 + t.length) / 2)).padEnd(32);
-  const r = (l: string, v: string) => l + " ".repeat(Math.max(1, 32 - l.length - v.length)) + v;
-  const sep = "─".repeat(32);
-  const thin = "·".repeat(32);
-
-  const itensLines = order.itens
-    .map((item) => {
-      const tot = item.preco_unitario * item.quantidade;
-      const prod = `${item.quantidade}x ${item.nome}`;
-      const val = `R$ ${tot.toFixed(2)}`;
-      // Se o nome cabe em 32 colunas junto com o valor, alinha na mesma linha.
-      // Se não cabe, coloca o valor na linha seguinte alinhado à direita.
-      const gap = 32 - prod.length - val.length;
-      const line =
-        gap >= 1
-          ? prod + " ".repeat(gap) + val
-          : `${prod}\n${" ".repeat(Math.max(0, 32 - val.length))}${val}`;
-      return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
-    })
-    .join("\n");
-
-  const body = [
-    c("SABOROSAMENTE"),
-    c("CNPJ: 52.596.019/0001-46"),
-    sep,
-    c(`PEDIDO #${seq}`),
-    c(`${dateStr}  ${timeStr}`),
-    sep,
-    "CLIENTE:",
-    order.nome_cliente,
-    order.telefone_cliente ?? "",
-    sep,
-    c(isDelivery ? "** DELIVERY **" : "** RETIRADA **"),
-    ...(isDelivery && order.endereco_rua
-      ? [
-          "ENTREGA:",
-          `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
-          `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
-          order.endereco_cep ?? "",
-        ]
-      : []),
-    sep,
-    "ITENS",
-    thin,
-    itensLines,
-    thin,
-    r("Subtotal:", `R$ ${subtotal.toFixed(2)}`),
-    r("Entrega:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
-    ...(desconto > 0
-      ? [
-          r(
-            `Desconto${order.cupom_codigo ? ` (${order.cupom_codigo})` : ""}:`,
-            `- R$ ${desconto.toFixed(2)}`,
-          ),
-        ]
-      : []),
-    sep,
-    r("TOTAL:", `R$ ${order.valor_total.toFixed(2)}`),
-    sep,
-    "PAGAMENTO:",
-    order.metodo_pagamento ?? "Nao informado",
-    ...(order.troco ? [`Troco para: R$ ${order.troco}`] : []),
-    ...(order.observacao ? [`\nOBS: ${order.observacao}`] : []),
-    sep,
-    c("Obrigado pela preferencia!"),
-    c("@saborosamente.sbs"),
-    " ",
-  ]
-    .filter((l) => l !== null && l !== undefined)
-    .join("\n");
+  // Linhas de itens — estilo P10: linha com qtd+desc+valor, obs abaixo com *
+  const itensHtml = order.itens.map((item) => {
+    const tot = (item.preco_unitario * item.quantidade).toFixed(2);
+    const uni = item.preco_unitario.toFixed(2);
+    // Extrai o sabor da observação ("Peso: 300g | TD01 - Nome" ou só "Peso: 300g")
+    const obs = item.observacao ?? "";
+    // Remove só o "Peso: XXXg" da observação pra não duplicar
+    const obsLimpa = obs.replace(/Peso:\s*\d+\s*g\s*\|?\s*/i, "").trim();
+    return `
+      <tr class="item-row">
+        <td class="qty">${item.quantidade}</td>
+        <td class="desc">${item.nome}</td>
+        <td class="uni">R$&nbsp;${uni}</td>
+        <td class="tot">R$&nbsp;${tot}</td>
+      </tr>
+      ${obsLimpa ? `<tr><td></td><td colspan="3" class="obs"> * ${obsLimpa}</td></tr>` : ""}
+    `;
+  }).join("");
 
   win.document.write(`<!DOCTYPE html>
 <html>
@@ -261,31 +209,102 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <meta charset="utf-8">
   <title>Comanda #${seq}</title>
   <style>
-    @page { margin: 2mm; size: 58mm auto; }
+    @page { margin: 3mm 2mm; size: 58mm auto; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 12pt;
+      font-size: 9pt;
       font-weight: bold;
-      line-height: 1.5;
-      width: 58mm;
-      background: white;
+      line-height: 1.4;
+      width: 54mm;
       color: #000;
+      background: white;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: inherit;
-      font-size: inherit;
-      font-weight: inherit;
-      color: #000;
-    }
+    .center { text-align: center; }
+    .sep { border-top: 1px dashed #000; margin: 3px 0; }
+    .sep-solid { border-top: 2px solid #000; margin: 3px 0; }
+    .label { font-size: 8pt; font-weight: normal; }
+    .big { font-size: 11pt; font-weight: bold; }
+    /* Tabela de itens */
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 7pt; font-weight: bold; border-bottom: 1px solid #000; padding: 1px 1px; }
+    .th-qty  { width: 8%;  text-align: center; }
+    .th-desc { width: 54%; text-align: left; }
+    .th-uni  { width: 19%; text-align: right; }
+    .th-tot  { width: 19%; text-align: right; }
+    .qty  { text-align: center; vertical-align: top; padding: 1px 1px; font-size: 9pt; }
+    .desc { text-align: left;   vertical-align: top; padding: 1px 2px; word-break: break-word; font-size: 9pt; }
+    .uni  { text-align: right;  vertical-align: top; padding: 1px 1px; white-space: nowrap; font-size: 8pt; }
+    .tot  { text-align: right;  vertical-align: top; padding: 1px 1px; white-space: nowrap; font-size: 9pt; }
+    .obs  { font-size: 8pt; font-weight: normal; padding: 0 2px 2px 4px; color: #000; }
+    /* Totais */
+    .totals { width: 100%; margin-top: 2px; }
+    .totals td { padding: 1px 1px; font-size: 9pt; }
+    .totals .lbl { text-align: left; font-weight: normal; }
+    .totals .val { text-align: right; white-space: nowrap; }
+    .totals .total-row td { font-size: 10pt; font-weight: bold; border-top: 1px solid #000; padding-top: 2px; }
   </style>
 </head>
 <body>
-<pre>${body}</pre>
+
+  <div class="center big">SABOROSAMENTE</div>
+  <div class="center label">CNPJ: 52.596.019/0001-46</div>
+  <div class="sep-solid"></div>
+
+  <div class="center big">PEDIDO #${seq}</div>
+  <div class="center label">${dateStr} - ${timeStr}</div>
+  <div class="sep"></div>
+
+  <div><span class="label">Cliente: </span>${order.nome_cliente}</div>
+  ${order.telefone_cliente ? `<div><span class="label">Fone: </span>${order.telefone_cliente}</div>` : ""}
+  <div class="sep"></div>
+
+  <div class="center big">${isDelivery ? "** ENTREGA EM CASA **" : "** RETIRADA **"}</div>
+  ${isDelivery && order.endereco_rua ? `
+    <div><span class="label">End.: </span>${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}</div>
+    <div><span class="label">Bairro: </span>${order.endereco_bairro ?? ""} - ${order.endereco_cidade ?? ""}</div>
+    ${order.endereco_cep ? `<div><span class="label">CEP: </span>${order.endereco_cep}</div>` : ""}
+  ` : ""}
+  <div class="sep"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="th-qty">Qtd</th>
+        <th class="th-desc">Descrição</th>
+        <th class="th-uni">V.Uni.</th>
+        <th class="th-tot">V.Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itensHtml}
+    </tbody>
+  </table>
+
+  <div class="sep"></div>
+
+  <table class="totals">
+    <tr><td class="lbl">Subtotal:</td><td class="val">R$ ${subtotal.toFixed(2)}</td></tr>
+    <tr><td class="lbl">Tx. Entrega:</td><td class="val">${entrega > 0 ? "R$ " + entrega.toFixed(2) : "GRATIS"}</td></tr>
+    ${desconto > 0 ? `<tr><td class="lbl">Desconto${order.cupom_codigo ? " (" + order.cupom_codigo + ")" : ""}:</td><td class="val">- R$ ${desconto.toFixed(2)}</td></tr>` : ""}
+    <tr class="total-row">
+      <td class="lbl">TOTAL PEDIDO:</td>
+      <td class="val">R$ ${order.valor_total.toFixed(2)}</td>
+    </tr>
+  </table>
+
+  <div class="sep"></div>
+  <div><span class="label">F. Pagto.: </span>${order.metodo_pagamento ?? "Nao informado"}</div>
+  ${order.troco ? `<div><span class="label">Troco para: </span>R$ ${order.troco}</div>` : ""}
+  ${order.observacao ? `<div class="sep"></div><div><span class="label">OBS: </span>${order.observacao}</div>` : ""}
+
+  <div class="sep-solid"></div>
+  <div class="center">Obrigado pela preferencia!</div>
+  <div class="center label">@saborosamente.sbs</div>
+  <br>
+
 <script>
   window.onload = function() {
     window.print();
