@@ -336,12 +336,14 @@ function AdminPDV() {
 
       if (orderError) throw new Error(orderError.message);
 
-      // 2. Inserir itens
+      // 2. Inserir itens — grava preco_unitario com o preço CHEIO (sem desconto de faixa)
+      // para que a tela de pedidos calcule corretamente:
+      // Subtotal (cheio) - desconto_aplicado = valor_total real.
       const itensInsert = recalculatedItems.map((item) => ({
         pedido_id: order.id,
         produto_id: item.productId,
         quantidade: item.quantity,
-        preco_unitario: item.precoUnitario,
+        preco_unitario: item.precoCheio,
         observacao: `Peso: ${item.weight}`,
       }));
 
