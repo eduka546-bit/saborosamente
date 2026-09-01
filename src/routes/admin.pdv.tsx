@@ -74,9 +74,11 @@ function AdminPDV() {
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [sugestoesCliente, setSugestoesCliente] = useState<any[]>([]);
   // Cadastro rápido — aberto quando o cliente não é encontrado.
-  const [cadastroRapido, setCadastroRapido] = useState<{ telefone: string } | null>(null);
+  const [cadastroRapido, setCadastroRapido] = useState<{ telefone: string; cpf?: string; email?: string; bairro?: string } | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const clienteBuscaRef = useRef<HTMLInputElement>(null);
+  const clienteDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Foco automático no campo de busca
   useEffect(() => {
@@ -729,6 +731,7 @@ function AdminPDV() {
               ) : (
                 <div className="relative">
                   <input
+                    ref={clienteBuscaRef}
                     type="text"
                     value={clienteBusca}
                     onChange={async (e) => {
@@ -736,23 +739,35 @@ function AdminPDV() {
                       setClienteBusca(val);
                       setCadastroRapido(null);
                       setSugestoesCliente([]);
+
+                      // Cancela busca anterior e agenda nova com debounce de 300ms
+                      if (clienteDebounceRef.current) clearTimeout(clienteDebounceRef.current);
                       if (val.trim().length < 2) return;
-                      setBuscandoCliente(true);
-                      const termo = val.trim();
-                      const soDigitos = termo.replace(/\D/g, "");
-                      // Busca por nome OU telefone/CPF (o que tiver dígitos suficientes)
-                      const filtros = [`nome.ilike.%${termo}%`];
-                      if (soDigitos.length >= 3) {
-                        filtros.push(`telefone.ilike.%${soDigitos}%`);
-                        filtros.push(`cpf.ilike.%${soDigitos}%`);
-                      }
-                      const { data } = await supabase
-                        .from("profiles")
-                        .select("id, nome, telefone, cpf")
-                        .or(filtros.join(","))
-                        .limit(5);
-                      setSugestoesCliente(data ?? []);
-                      setBuscandoCliente(false);
+
+                      clienteDebounceRef.current = setTimeout(async () => {
+                        setBuscandoCliente(true);
+                        const termo = val.trim();
+                        const soDigitos = termo.replace(/\D/g, "");
+                        const filtros = [`nome.ilike.%${termo}%`];
+                        if (soDigitos.length >= 3) {
+                          filtros.push(`telefone.ilike.%${soDigitos}%`);
+                          filtros.push(`cpf.ilike.%${soDigitos}%`);
+                          if (soDigitos.startsWith("55") && soDigitos.length > 4) {
+                            filtros.push(`telefone.ilike.%${soDigitos.slice(2)}%`);
+                          } else if (!soDigitos.startsWith("55")) {
+                            filtros.push(`telefone.ilike.%55${soDigitos}%`);
+                          }
+                        }
+                        const { data } = await supabase
+                          .from("profiles")
+                          .select("id, nome, telefone, cpf")
+                          .or(filtros.join(","))
+                          .limit(5);
+                        setSugestoesCliente(data ?? []);
+                        setBuscandoCliente(false);
+                        // Re-foca o input após a busca (re-render não tira mais)
+                        clienteBuscaRef.current?.focus();
+                      }, 300);
                     }}
                     onKeyDown={(e) => {
                       // Enter sem sugestões abertas → tenta como antes (cadastro rápido)
@@ -787,6 +802,7 @@ function AdminPDV() {
                         <button
                           key={s.id}
                           type="button"
+                          onMouseDown={(e) => e.preventDefault()} // evita blur no input
                           onClick={() => {
                             setCliente(s);
                             setClienteBusca("");
@@ -802,6 +818,7 @@ function AdminPDV() {
                       {/* Opção de cadastrar novo se não encontrou exatamente o que queria */}
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()} // evita blur no input
                         onClick={() => {
                           setCadastroRapido({ telefone: clienteBusca.trim() });
                           setNovoNome("");
@@ -818,6 +835,7 @@ function AdminPDV() {
                     <div className="absolute z-20 top-10 left-0 right-0 bg-white border rounded-xl shadow-lg overflow-hidden">
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()} // evita blur no input
                         onClick={() => {
                           setCadastroRapido({ telefone: clienteBusca.trim() });
                           setNovoNome("");
@@ -836,48 +854,100 @@ function AdminPDV() {
               {cadastroRapido && (
                 <div className="mt-2 rounded-xl border border-[#086e45]/30 bg-[#086e45]/5 p-3 space-y-2">
                   <p className="text-[11px] font-bold text-[#086e45]">
-                    Número não cadastrado. Quer salvar?
+                    Novo cliente — preencha os dados:
                   </p>
+                  {/* Nome */}
                   <input
                     autoFocus
                     type="text"
                     value={novoNome}
                     onChange={(e) => setNovoNome(e.target.value)}
-                    placeholder="Nome do cliente"
+                    placeholder="Nome completo *"
                     className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && novoNome.trim()) {
-                        e.preventDefault();
-                        const tel = cadastroRapido.telefone.replace(/\D/g, "");
-                        const { data, error } = await supabase
-                          .from("profiles")
-                          .insert({ nome: novoNome.trim(), telefone: tel })
-                          .select()
-                          .single();
-                        if (error) {
-                          toast.error("Erro ao cadastrar: " + error.message);
-                          return;
-                        }
-                        setCliente(data);
-                        setClienteBusca("");
-                        setCadastroRapido(null);
-                        setNovoNome("");
-                        toast.success(`Cliente ${data.nome} cadastrado!`);
-                      }
-                      if (e.key === "Escape") {
-                        setCadastroRapido(null);
-                        setNovoNome("");
-                      }
-                    }}
                   />
-                  <div className="flex gap-2">
+                  {/* Telefone (pré-preenchido, editável) */}
+                  <input
+                    type="text"
+                    value={cadastroRapido.telefone}
+                    onChange={(e) => setCadastroRapido({ ...cadastroRapido, telefone: e.target.value })}
+                    placeholder="Telefone"
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                  />
+                  {/* CPF */}
+                  <input
+                    type="text"
+                    value={cadastroRapido.cpf ?? ""}
+                    onChange={(e) => setCadastroRapido({ ...cadastroRapido, cpf: e.target.value })}
+                    placeholder="CPF (só números)"
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                  />
+                  {/* Email */}
+                  <input
+                    type="email"
+                    value={cadastroRapido.email ?? ""}
+                    onChange={(e) => setCadastroRapido({ ...cadastroRapido, email: e.target.value })}
+                    placeholder="E-mail"
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                  />
+                  {/* Bairro */}
+                  <input
+                    type="text"
+                    value={cadastroRapido.bairro ?? ""}
+                    onChange={(e) => setCadastroRapido({ ...cadastroRapido, bairro: e.target.value })}
+                    placeholder="Bairro"
+                    className="w-full h-9 px-3 rounded-lg border border-gray-200 text-sm"
+                  />
+                  <div className="flex gap-2 pt-1">
                     <button
                       onClick={async () => {
-                        if (!novoNome.trim()) return;
+                        if (!novoNome.trim()) { toast.error("Nome é obrigatório."); return; }
                         const tel = cadastroRapido.telefone.replace(/\D/g, "");
+                        const cpf = (cadastroRapido.cpf ?? "").replace(/\D/g, "") || null;
+                        const email = (cadastroRapido.email ?? "").trim() || null;
+                        const bairro = (cadastroRapido.bairro ?? "").trim() || null;
+
+                        // Usa a edge function pra criar com auth se tiver email+cpf
+                        if (email && cpf) {
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const res = await fetch(
+                              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/importar-cliente`,
+                              {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                  Authorization: `Bearer ${session?.access_token}`,
+                                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                },
+                                body: JSON.stringify({ email, cpf, nome: novoNome.trim(), telefone: tel, bairro: bairro ?? "" }),
+                              },
+                            );
+                            const json = await res.json();
+                            if (!json.ok) throw new Error(json.error);
+                            // Busca o profile recém-criado pelo CPF
+                            const { data: prof } = await supabase
+                              .from("profiles")
+                              .select("id, nome, telefone, cpf")
+                              .eq("cpf", cpf)
+                              .maybeSingle();
+                            if (prof) {
+                              setCliente(prof);
+                              setClienteBusca("");
+                              setCadastroRapido(null);
+                              setNovoNome("");
+                              toast.success(`Cliente ${prof.nome} cadastrado!`);
+                              return;
+                            }
+                          } catch (e: any) {
+                            toast.error("Erro ao criar conta: " + e.message);
+                            return;
+                          }
+                        }
+
+                        // Sem email/CPF: insere só em profiles (sem conta de acesso)
                         const { data, error } = await supabase
                           .from("profiles")
-                          .insert({ nome: novoNome.trim(), telefone: tel })
+                          .insert({ nome: novoNome.trim(), telefone: tel, cpf, bairro })
                           .select()
                           .single();
                         if (error) { toast.error("Erro: " + error.message); return; }
@@ -888,13 +958,13 @@ function AdminPDV() {
                         toast.success(`Cliente ${data.nome} cadastrado!`);
                       }}
                       disabled={!novoNome.trim()}
-                      className="flex-1 h-8 rounded-lg bg-[#086e45] text-white text-xs font-bold disabled:opacity-50"
+                      className="flex-1 h-9 rounded-lg bg-[#086e45] text-white text-xs font-bold disabled:opacity-50"
                     >
                       Salvar
                     </button>
                     <button
                       onClick={() => { setCadastroRapido(null); setNovoNome(""); }}
-                      className="flex-1 h-8 rounded-lg border text-xs font-bold text-gray-500"
+                      className="flex-1 h-9 rounded-lg border text-xs font-bold text-gray-500"
                     >
                       Pular
                     </button>
