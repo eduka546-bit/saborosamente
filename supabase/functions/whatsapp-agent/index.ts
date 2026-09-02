@@ -1514,6 +1514,101 @@ async function retomarPorResposta(
 // MODO TREINO — processa mensagens do admin como instruções para a IA
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Controle de estoque por chat (#estoque = substituir, #entrada = somar)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Extrai até 3 números de uma string (ignora emojis ❌⚠️, asteriscos, espaços).
+// Retorna [n1, n2, n3] onde n2/n3 podem ser null (tamanho único).
+function extrairNumeros(s: string): [number, number | null, number | null] {
+  // Remove emojis e caracteres especiais, mantém dígitos, "/" e espaços
+  const limpo = s.replace(/[^\d/\s]/gu, " ").trim();
+  const partes = limpo.split(/[\s/]+/).filter((p) => p.length > 0 && /^\d+$/.test(p));
+  const n = partes.map(Number);
+  return [n[0] ?? 0, n[1] ?? null, n[2] ?? null];
+}
+
+// Parseia a lista de estoque e aplica os UPDATEs no banco.
+// modo: "substituir" (SET) ou "somar" (estoque + X).
+// Retorna { atualizados, naoEncontrados }.
+async function processarListaEstoque(
+  linhas: string[],
+  modo: "substituir" | "somar",
+): Promise<{ atualizados: string[]; naoEncontrados: string[] }> {
+  const atualizados: string[] = [];
+  const naoEncontrados: string[] = [];
+
+  for (const linha of linhas) {
+    const l = linha.trim();
+    if (!l || l.startsWith("*ESTOQUE") || l.startsWith("*SOPAS") || l.startsWith("*COMPLEMENTOS") ||
+        l.startsWith("⚠️") || l.startsWith("❌") || l.startsWith("Sabor") ||
+        l.startsWith("*(") || l.length < 3) continue;
+
+    // Separa identificador (antes do último " - ") dos números (depois)
+    // Aceita: "* TD02 - 4/2/6", "TD02 - 4/2/6", "Alm. Sugo - 4/2/6", "SO06 - 15"
+    const sepIdx = l.lastIndexOf(" - ");
+    if (sepIdx === -1) continue;
+
+    const identificador = l.slice(0, sepIdx).replace(/^[*•\s]+/, "").trim();
+    const numeroParte = l.slice(sepIdx + 3);
+
+    const [n200, n300, n400] = extrairNumeros(numeroParte);
+    if (n200 === 0 && n300 === null && n400 === null) continue; // linha sem números úteis
+
+    // Monta a query de busca: tenta código (TDxx/SOxx/COxx) ou nome ILIKE
+    const codigoMatch = identificador.match(/^(TD|SO|CO)\d{1,2}/i);
+    const termoBusca = codigoMatch
+      ? `%${codigoMatch[0].toUpperCase()}%`
+      : `%${identificador.replace(/[*❌⚠️%_]/gu, "").trim()}%`;
+
+    // Busca o produto pra confirmar que existe
+    const { data: prods } = await supabase
+      .from("produtos")
+      .select("id, nome, estoque_200g, estoque_300g, estoque_400g")
+      .ilike("nome", termoBusca)
+      .eq("ativo", true)
+      .limit(1);
+
+    if (!prods?.length) {
+      naoEncontrados.push(identificador);
+      continue;
+    }
+
+    const prod = prods[0] as any;
+
+    // Monta os novos valores conforme o modo
+    let novo200: number, novo300: number, novo400: number;
+    if (modo === "substituir") {
+      novo200 = n200;
+      novo300 = n300 ?? 0;
+      novo400 = n400 ?? 0;
+    } else {
+      // somar: se tamanho único (só 1 número), soma em estoque_200g (complementos) ou
+      // estoque_400g (sopas — detecta pelo nome SO)
+      const ehSopa = /^SO/i.test(identificador) || /^SO/i.test(prod.nome);
+      if (n300 === null) {
+        // Tamanho único
+        novo200 = ehSopa ? (Number(prod.estoque_200g) || 0) : (Number(prod.estoque_200g) || 0) + n200;
+        novo300 = 0;
+        novo400 = ehSopa ? (Number(prod.estoque_400g) || 0) + n200 : (Number(prod.estoque_400g) || 0);
+      } else {
+        novo200 = (Number(prod.estoque_200g) || 0) + n200;
+        novo300 = (Number(prod.estoque_300g) || 0) + (n300 ?? 0);
+        novo400 = (Number(prod.estoque_400g) || 0) + (n400 ?? 0);
+      }
+    }
+
+    await supabase
+      .from("produtos")
+      .update({ estoque_200g: novo200, estoque_300g: novo300, estoque_400g: novo400, updated_at: new Date().toISOString() })
+      .eq("id", prod.id);
+
+    atualizados.push(`${prod.nome.split(" - ")[0]} → ${novo200}/${novo300}/${novo400}`);
+  }
+
+  return { atualizados, naoEncontrados };
+}
+
 async function processarModoTreino(
   telefone: string,
   texto: string,
@@ -1567,6 +1662,48 @@ async function processarModoTreino(
       telefone,
       "🧪 *Modo simulação ativado!*\n\nAgora vou responder como se fosse um cliente. Mande uma mensagem para testar.\n\n_Envie #sair para encerrar o treino._",
     );
+    return;
+  }
+
+  // Comando #estoque — atualiza estoque com os valores da lista (substitui)
+  if (textoLower.startsWith("#estoque")) {
+    const linhas = texto.split("\n").slice(1); // remove a linha do #estoque
+    if (!linhas.length) {
+      await sendWhatsAppMessage(
+        telefone,
+        "📦 *#estoque*\n\nMande a lista logo abaixo do comando, por exemplo:\n\n#estoque\nTD02 - 4/2/6\nSO06 - 15\n\nOs valores *substituem* o estoque atual.",
+      );
+      return;
+    }
+    await sendWhatsAppMessage(telefone, "⏳ Atualizando estoque...");
+    const { atualizados, naoEncontrados } = await processarListaEstoque(linhas, "substituir");
+    const resumo = [
+      `✅ *Estoque atualizado!* (${atualizados.length} produto${atualizados.length !== 1 ? "s" : ""})`,
+      ...atualizados.map((a) => `• ${a}`),
+      ...(naoEncontrados.length ? [`\n⚠️ *Não encontrados:*`, ...naoEncontrados.map((n) => `• ${n}`)] : []),
+    ].join("\n");
+    await sendWhatsAppMessage(telefone, resumo);
+    return;
+  }
+
+  // Comando #entrada — soma ao estoque atual (entrada de mercadoria)
+  if (textoLower.startsWith("#entrada")) {
+    const linhas = texto.split("\n").slice(1); // remove a linha do #entrada
+    if (!linhas.length) {
+      await sendWhatsAppMessage(
+        telefone,
+        "📥 *#entrada*\n\nMande a lista logo abaixo do comando, por exemplo:\n\n#entrada\nTD02 - 10/5/8\nSO06 - 15\n\nOs valores são *somados* ao estoque atual.\nAceita código (TD02) ou nome (Almôndegas).",
+      );
+      return;
+    }
+    await sendWhatsAppMessage(telefone, "⏳ Registrando entrada...");
+    const { atualizados, naoEncontrados } = await processarListaEstoque(linhas, "somar");
+    const resumo = [
+      `📥 *Entrada registrada!* (${atualizados.length} produto${atualizados.length !== 1 ? "s" : ""})`,
+      ...atualizados.map((a) => `• ${a}`),
+      ...(naoEncontrados.length ? [`\n⚠️ *Não encontrados:*`, ...naoEncontrados.map((n) => `• ${n}`)] : []),
+    ].join("\n");
+    await sendWhatsAppMessage(telefone, resumo);
     return;
   }
 
