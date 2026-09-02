@@ -12,16 +12,11 @@ import {
   ChevronDown,
   MessageSquare,
   Menu,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavGroup {
   label: string;
@@ -59,6 +54,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Estoque",
+    icon: Package,
+    items: [
+      { label: "Visualizar estoque", href: "/admin/relatorios/estoque" },
+      { label: "Atualizar estoque", href: "/admin/relatorios/estoque?acao=atualizar" },
+      { label: "Entrada de mercadoria", href: "/admin/relatorios/estoque?acao=entrada" },
+      { label: "Alerta de estoque", href: "/admin/config/alerta-estoque" },
+    ],
+  },
+  {
     label: "Cupons",
     icon: Ticket,
     items: [{ label: "Ver cupons", href: "/admin/cupons" }],
@@ -87,7 +92,6 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Sabores mais vendidos", href: "/admin/relatorios/sabores" },
       { label: "Fechamento diário", href: "/admin/relatorios/fechamento-diario" },
       { label: "Clientes", href: "/admin/relatorios/clientes" },
-      { label: "Estoque e produção", href: "/admin/relatorios/estoque" },
       { label: "Comunicação", href: "/admin/relatorios/comunicacao" },
       { label: "Inteligência de mercado", href: "/admin/relatorios/inteligencia" },
     ],
@@ -101,7 +105,6 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Cashback", href: "/admin/config/cashback-config" },
       { label: "Agente IA (WhatsApp)", href: "/admin/agente" },
       { label: "Respostas do Chatbot", href: "/admin/config/respostas" },
-      { label: "Alerta de Estoque", href: "/admin/config/alerta-estoque" },
       { label: "Importar Clientes", href: "/admin/config/importar-clientes" },
       { label: "Automações WhatsApp", href: "/admin/automacoes" },
       { label: "Unidades", href: "/admin/config/unidades" },

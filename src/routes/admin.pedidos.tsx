@@ -881,6 +881,15 @@ function AdminOrdersPage() {
             </span>
             <span className="text-xl font-black text-yellow-500">{stats.pendingCount}</span>
           </div>
+          {/* Atalho rápido para registrar pedido P10 */}
+          <a
+            href="/admin/registrar-p10"
+            className="bg-white px-4 py-3 rounded-xl border flex items-center gap-2 text-xs font-bold text-gray-600 hover:border-[#5850ec] hover:text-[#5850ec] transition-all"
+            title="Registrar Pedido P10"
+          >
+            <Package size={15} />
+            P10
+          </a>
           {/* Toggle de impressão automática */}
           <button
             onClick={() => {
