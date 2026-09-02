@@ -30,20 +30,25 @@ const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 // Número fallback (usado se a lista do banco estiver vazia).
 const ADMIN_ALERT_PHONE_FALLBACK = Deno.env.get("ADMIN_ALERT_PHONE") ?? "5547997391514";
-const WHATSAPP_API_VERSION = "v20.0";
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 type Tipo = "marmita" | "sopa" | "complemento" | "bebida" | "combo";
 
 // Retorna o nível de alerta de uma coluna de estoque conforme tipo/tamanho.
 // "urgente" (❌), "baixo" (⚠️) ou "ok".
-function nivel(tipo: Tipo, coluna: "200g" | "300g" | "400g", valor: number): "urgente" | "baixo" | "ok" {
+function nivel(
+  tipo: Tipo,
+  coluna: "200g" | "300g" | "400g",
+  valor: number,
+): "urgente" | "baixo" | "ok" {
   let limAlerta = 7;
   let limUrgente = 5;
   if (tipo === "marmita" && coluna === "200g") {
@@ -100,7 +105,9 @@ Deno.serve(async (req) => {
   try {
     const { data: produtos, error } = await supabase
       .from("produtos")
-      .select("nome, tipo_produto, estoque_200g, estoque_300g, estoque_400g, controle_estoque, ativo")
+      .select(
+        "nome, tipo_produto, estoque_200g, estoque_300g, estoque_400g, controle_estoque, ativo",
+      )
       .eq("controle_estoque", true)
       .eq("ativo", true)
       .order("nome");

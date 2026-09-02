@@ -10,7 +10,8 @@
  * Também pode ser chamado manualmente: POST /functions/v1/pedidos10-polling
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
+import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -300,6 +301,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authorization = await authorizeAdminOrService(req);
+    if (!authorization.ok) return authorizationError(authorization, corsHeaders);
+
     // 1. Autentica
     const token = await getToken();
 
@@ -360,15 +364,15 @@ Deno.serve(async (req) => {
     // 3. Confirma processamento dos eventos
     await acknowledgeEvents(token, eventIds);
 
-    return new Response(
-      JSON.stringify({ ok: true, events: events.length, processados }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
-    );
+    return new Response(JSON.stringify({ ok: true, events: events.length, processados }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   } catch (e: any) {
     console.error("pedidos10-polling error:", e.message);
-    return new Response(
-      JSON.stringify({ ok: false, error: e.message }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
-    );
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 });

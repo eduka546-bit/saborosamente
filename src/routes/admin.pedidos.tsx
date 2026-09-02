@@ -62,14 +62,10 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       // Notifica cliente via WhatsApp
       try {
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ pedido_id: order.id, status_novo: "pendente" }),
+        const { error } = await supabase.functions.invoke("whatsapp-notify", {
+          body: { pedido_id: order.id, status_novo: "pendente" },
         });
+        if (error) console.warn("Falha ao notificar WhatsApp:", error.message);
       } catch (e) {
         console.warn("Falha ao notificar WhatsApp:", e);
       }
@@ -711,18 +707,14 @@ function AdminOrdersPage() {
 
       // Notifica cliente via WhatsApp quando status muda
       try {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
+        const { error } = await supabase.functions.invoke("whatsapp-notify", {
+          body: {
             pedido_id: id,
             status_anterior: statusAnterior,
             status_novo: status,
-          }),
+          },
         });
+        if (error) console.warn("Notificação WhatsApp falhou:", error.message);
       } catch (e) {
         console.warn("Notificação WhatsApp falhou:", e);
       }
@@ -764,8 +756,7 @@ function AdminOrdersPage() {
       const matchStatus = filterStatus === "Todos" || order.status === filterStatus;
 
       // filtro de origem (site / pdv / pedidos10)
-      const matchOrigem =
-        filterOrigem === "Todos" || (order.origem ?? "site") === filterOrigem;
+      const matchOrigem = filterOrigem === "Todos" || (order.origem ?? "site") === filterOrigem;
 
       // filtro de valor
       const matchValue = order.valor_total >= filterMinValue && order.valor_total <= filterMaxValue;
@@ -950,7 +941,8 @@ function AdminOrdersPage() {
                 toast.info("Nenhum pedido cancelado para excluir.");
                 return;
               }
-              if (!confirm(`Excluir ${cancelados.length} pedido(s) cancelado(s) permanentemente?`)) return;
+              if (!confirm(`Excluir ${cancelados.length} pedido(s) cancelado(s) permanentemente?`))
+                return;
               for (const o of cancelados) {
                 await supabase.from("pedido_itens").delete().eq("pedido_id", o.id);
                 await supabase.from("pedidos").delete().eq("id", o.id);
@@ -1137,7 +1129,8 @@ function AdminOrdersPage() {
                           <button
                             className={cn(
                               "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2 border",
-                              statusBadgeColors[order.status] ?? "bg-gray-50 text-gray-600 border-gray-200",
+                              statusBadgeColors[order.status] ??
+                                "bg-gray-50 text-gray-600 border-gray-200",
                             )}
                           >
                             {order.status}

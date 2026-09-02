@@ -25,7 +25,7 @@ const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 // Segredo simples para autorizar o cron (a função tem verify_jwt = false).
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
-const WHATSAPP_API_VERSION = "v20.0";
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 // Limita quantas execuções processamos por tick para não estourar o tempo da função.
 const MAX_EXECUCOES_POR_TICK = 50;

@@ -205,9 +205,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
     // Validação servidor: mínimo de unidades por combinação personalizada.
     const minPersonalizada = 3;
-    const abaixoDoMinimo = data.items.some(
-      (i) => i.custom && i.quantity < minPersonalizada,
-    );
+    const abaixoDoMinimo = data.items.some((i) => i.custom && i.quantity < minPersonalizada);
     if (abaixoDoMinimo) {
       throw new Error(
         `Marmitas personalizadas exigem no mínimo ${minPersonalizada} unidades por combinação.`,
@@ -222,11 +220,12 @@ export const createOrder = createServerFn({ method: "POST" })
     for (const item of data.items) {
       if (item.productId && !item.custom) {
         const tamanho = item.weight || "300g";
-        await supabase.rpc("decrementar_estoque", {
+        const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
           p_produto_id: item.productId,
           p_qtd: item.quantity,
           p_tamanho: tamanho,
-        }).catch((e: any) => console.error("Estoque decrement falhou:", e?.message));
+        });
+        if (estoqueError) console.error("Estoque decrement falhou:", estoqueError.message);
       }
     }
 

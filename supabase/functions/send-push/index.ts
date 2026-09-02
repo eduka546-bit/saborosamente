@@ -6,8 +6,9 @@
 //   VAPID_PRIVATE_KEY  — chave privada VAPID (secreta)
 //   VAPID_SUBJECT      — opcional, "mailto:seu@email.com" (default abaixo)
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
 import webpush from "https://esm.sh/web-push@3.6.7";
+import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -30,6 +31,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authorization = await authorizeAdminOrService(req);
+    if (!authorization.ok) return authorizationError(authorization, corsHeaders);
+
     const { title, body, url, tag } = await req.json().catch(() => ({}));
 
     const payload = JSON.stringify({

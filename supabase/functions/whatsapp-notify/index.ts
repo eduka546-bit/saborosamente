@@ -1,10 +1,15 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
+import { authorizeAdminOrService } from "../_shared/authorization.ts";
 
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const VITE_SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL") || SUPABASE_URL;
+const SITE_URL = (Deno.env.get("SITE_URL") || "https://saborosamente.vercel.app").replace(
+  /\/$/,
+  "",
+);
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -17,7 +22,7 @@ const corsHeaders = {
  * Envia mensagem de texto via WhatsApp
  */
 async function sendWhatsApp(to: string, text: string) {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -33,9 +38,8 @@ async function sendWhatsApp(to: string, text: string) {
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("WhatsApp send error:", error);
-    throw new Error(`WhatsApp API error: ${error}`);
+    console.error("WhatsApp send error:", response.status);
+    throw new Error("Falha ao enviar mensagem pelo WhatsApp");
   }
 }
 
@@ -43,7 +47,7 @@ async function sendWhatsApp(to: string, text: string) {
  * Envia imagem (para QR Code do PIX)
  */
 async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string) {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -62,9 +66,8 @@ async function sendWhatsAppImage(to: string, imageUrl: string, caption?: string)
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("WhatsApp image send error:", error);
-    throw new Error(`WhatsApp API error: ${error}`);
+    console.error("WhatsApp image send error:", response.status);
+    throw new Error("Falha ao enviar imagem pelo WhatsApp");
   }
 }
 
@@ -125,7 +128,7 @@ function mensagemStatus(
 ): { texto: string; tipo: "texto" | "pix" } | null {
   const protocolo = pedido.id.slice(0, 8).toUpperCase();
   const nome = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
-  const linkRastreamento = `${VITE_SUPABASE_URL}/pedido?p=${protocolo}`;
+  const linkRastreamento = `${SITE_URL}/pedido?p=${protocolo}`;
 
   const template =
     (typeof templates[status] === "string" && templates[status].trim()) ||
@@ -145,10 +148,14 @@ function mensagemStatus(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const { pedido_id, status_anterior, status_novo, qr_code_pix, valor_total } = await req.json();
+  let notificationClaimed = false;
+  let claimedOrderId = "";
+  let claimedStatus = "";
 
-    if (!pedido_id || !status_novo) {
+  try {
+    const { pedido_id, status_novo, qr_code_pix, valor_total } = await req.json();
+
+    if (!/^[0-9a-f-]{36}$/i.test(String(pedido_id ?? "")) || typeof status_novo !== "string") {
       return new Response(JSON.stringify({ error: "pedido_id e status_novo são obrigatórios" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -158,7 +165,7 @@ Deno.serve(async (req) => {
     // Busca o pedido com informações do usuário
     const { data: pedido, error } = await supabase
       .from("pedidos")
-      .select("*, user_id, telefone_cliente, nome_cliente, status")
+      .select("*, user_id, telefone_cliente, nome_cliente, status, created_at, valor_total")
       .eq("id", pedido_id)
       .single();
 
@@ -167,6 +174,26 @@ Deno.serve(async (req) => {
         status: 404,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    // Chamadas administrativas podem notificar qualquer transição. No checkout
+    // anônimo, só aceitamos o primeiro contato de um pedido recém-criado e com
+    // o mesmo total, evitando transformar este endpoint em um disparador aberto.
+    const authorization = await authorizeAdminOrService(req);
+    if (!authorization.ok) {
+      const createdAt = new Date(pedido.created_at).getTime();
+      const ageMs = Date.now() - createdAt;
+      const allowedGuestStatus = ["novo_pedido", "pagamento_confirmado"].includes(status_novo);
+      const amountMatches =
+        Number.isFinite(Number(valor_total)) &&
+        Math.abs(Number(valor_total) - Number(pedido.valor_total)) < 0.01;
+
+      if (!allowedGuestStatus || ageMs < 0 || ageMs > 15 * 60 * 1000 || !amountMatches) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     const telefone = pedido.telefone_cliente;
@@ -205,11 +232,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { error: claimError } = await supabase.from("whatsapp_notificacoes_enviadas").insert({
+      pedido_id,
+      status: status_novo,
+    });
+    if (claimError?.code === "23505") {
+      return new Response(JSON.stringify({ ok: true, duplicada: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    if (claimError) throw new Error(`Falha ao registrar notificação: ${claimError.message}`);
+    notificationClaimed = true;
+    claimedOrderId = pedido_id;
+    claimedStatus = status_novo;
+
     // Envia mensagem
     await sendWhatsApp(telWA, mensagemObj.texto);
 
     // Se status é PIX confirmado, envia QR Code
-    if (status_novo === "pagamento_confirmado" && qr_code_pix) {
+    if (
+      status_novo === "pagamento_confirmado" &&
+      typeof qr_code_pix === "string" &&
+      /^https:\/\//i.test(qr_code_pix) &&
+      qr_code_pix.length <= 2048
+    ) {
       try {
         await sendWhatsAppImage(
           telWA,
@@ -242,10 +289,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log de sucesso
-    console.log(
-      `✅ Notificação WhatsApp enviada para ${telWA}: ${status_novo}${isRecorrente ? " [CLIENTE RECORRENTE]" : ""}`,
-    );
+    console.log(`Notificação WhatsApp enviada: ${status_novo}`);
 
     return new Response(
       JSON.stringify({
@@ -258,9 +302,18 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
-  } catch (e: any) {
-    console.error("whatsapp-notify error:", e.message);
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erro desconhecido";
+    console.error("whatsapp-notify error:", message);
+    if (notificationClaimed) {
+      const { error: releaseError } = await supabase
+        .from("whatsapp_notificacoes_enviadas")
+        .delete()
+        .eq("pedido_id", claimedOrderId)
+        .eq("status", claimedStatus);
+      if (releaseError) console.error("Falha ao liberar nova tentativa:", releaseError.message);
+    }
+    return new Response(JSON.stringify({ error: "Falha ao enviar notificação" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

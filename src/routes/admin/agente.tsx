@@ -50,22 +50,8 @@ async function sendManualMessage(
   text: string,
 ): Promise<{ ok: boolean; errorMsg?: string }> {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-send`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ to, text }),
-      },
-    );
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = body?.error?.error?.message ?? body?.error ?? JSON.stringify(body);
-      return { ok: false, errorMsg: String(detail) };
-    }
+    const { error } = await supabase.functions.invoke("whatsapp-send", { body: { to, text } });
+    if (error) return { ok: false, errorMsg: error.message };
     return { ok: true };
   } catch (e: any) {
     return { ok: false, errorMsg: e.message };

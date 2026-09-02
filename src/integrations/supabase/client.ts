@@ -1,22 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// URL e chave publicável podem existir no bundle do navegador. As variáveis
+// continuam tendo prioridade, mas estes fallbacks evitam depender de um .env
+// versionado (a service_role nunca deve aparecer aqui).
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || "https://lxcgbrovdmpjatywweiv.supabase.co";
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_g8rvhJQtps_agL3lH6amzg_ipC9OWpC";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase credentials missing. Data will be served from local mocks.");
-}
-
-export const supabase = createClient(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder",
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: "sb-lxcgbrovdmpjatywweiv-auth-token",
-      storage: typeof window !== "undefined" ? window.localStorage : undefined,
-    },
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: "sb-lxcgbrovdmpjatywweiv-auth-token",
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
   },
-);
+});
