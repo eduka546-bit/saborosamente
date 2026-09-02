@@ -27,8 +27,6 @@ const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-// Número fallback (usado se a lista do banco estiver vazia).
-const ADMIN_ALERT_PHONE_FALLBACK = Deno.env.get("ADMIN_ALERT_PHONE") ?? "5547997391514";
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -117,14 +115,25 @@ Deno.serve(async (req) => {
       .order("nome");
     if (error) throw error;
 
-    // Busca a lista de números destinatários do banco.
-    // Fallback para o número padrão se a lista estiver vazia.
+    // Envia exclusivamente para a lista configurada no painel.
     const { data: settings } = await supabase
       .from("site_settings")
       .select("parametros_loja")
       .maybeSingle();
-    const listaBanco: string[] = (settings?.parametros_loja as any)?.alerta_estoque_numeros ?? [];
-    const destinatarios = listaBanco.length > 0 ? listaBanco : [ADMIN_ALERT_PHONE_FALLBACK];
+    const listaBanco: unknown[] = Array.isArray((settings?.parametros_loja as any)?.alerta_estoque_numeros)
+      ? (settings?.parametros_loja as any).alerta_estoque_numeros
+      : [];
+    const destinatarios = [...new Set(
+      listaBanco
+        .map((telefone) => String(telefone).replace(/\D/g, ""))
+        .filter((telefone) => /^55\d{10,11}$/.test(telefone)),
+    )];
+    if (destinatarios.length === 0) {
+      return new Response(JSON.stringify({ error: "Nenhum destinatário válido configurado para alerta de estoque" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     // Marcador ao lado do valor conforme o nível de alerta.
     const marca = (tipo: Tipo, col: "200g" | "300g" | "400g", valor: number): string => {
