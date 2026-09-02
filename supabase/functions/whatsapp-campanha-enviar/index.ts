@@ -1,9 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
+import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -27,7 +29,7 @@ async function enviarMensagem(
   videoUrl: string | null,
   template?: { name: string; language: string; variaveis: string[] } | null,
 ): Promise<{ sucesso: boolean; erro?: string }> {
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
     Authorization: `Bearer ${WHATSAPP_TOKEN}`,
     "Content-Type": "application/json",
@@ -60,8 +62,6 @@ async function enviarMensagem(
       error?: { message?: string };
       messages?: { id: string }[];
     };
-    console.log(`Template para ${to}:`, JSON.stringify(resJson));
-
     if (res.ok) return { sucesso: true };
     return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar template" };
   }
@@ -115,7 +115,6 @@ async function enviarMensagem(
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
   const resJson = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-  console.log(`Texto para ${to}:`, JSON.stringify(resJson));
   if (res.ok) return { sucesso: true };
   return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar texto" };
 }
@@ -132,6 +131,9 @@ Deno.serve(async (req: Request) => {
   let campanha_id = "";
 
   try {
+    const authorization = await authorizeAdminOrService(req);
+    if (!authorization.ok) return authorizationError(authorization, CORS_HEADERS);
+
     const body = (await req.json()) as {
       campanha_id: string;
       contatos: string[];
@@ -145,19 +147,33 @@ Deno.serve(async (req: Request) => {
     campanha_id = body.campanha_id;
     const { contatos, mensagem, imagem_url, video_url, template } = body;
 
-    if (!campanha_id || !contatos || !mensagem) {
+    const contatosNormalizados = Array.isArray(contatos)
+      ? [...new Set(contatos.map((tel) => String(tel).replace(/\D/g, "")))]
+      : [];
+
+    if (
+      !/^[0-9a-f-]{36}$/i.test(campanha_id) ||
+      contatosNormalizados.length === 0 ||
+      contatosNormalizados.length > 500 ||
+      contatosNormalizados.some((tel) => !/^\d{10,15}$/.test(tel)) ||
+      typeof mensagem !== "string" ||
+      mensagem.trim().length === 0 ||
+      mensagem.length > 4096
+    ) {
       return new Response("Missing required fields", { status: 400, headers: CORS_HEADERS });
     }
 
     console.log(
-      `Iniciando campanha ${campanha_id} para ${contatos.length} contatos${template ? ` (template: ${template.name})` : ""}`,
+      `Iniciando campanha ${campanha_id} para ${contatosNormalizados.length} contatos${template ? ` (template: ${template.name})` : ""}`,
     );
 
     await supabase.from("campanhas_whatsapp").update({ status: "enviando" }).eq("id", campanha_id);
 
     await supabase
       .from("campanhas_whatsapp_envios")
-      .insert(contatos.map((tel: string) => ({ campanha_id, telefone: tel, status: "pendente" })));
+      .insert(
+        contatosNormalizados.map((tel) => ({ campanha_id, telefone: tel, status: "pendente" })),
+      );
 
     let enviados = 0;
     let falhados = 0;
@@ -165,8 +181,8 @@ Deno.serve(async (req: Request) => {
     let msgsEsteMinuto = 0;
     let inicioMinuto = Date.now();
 
-    for (let i = 0; i < contatos.length; i++) {
-      const telefone = contatos[i];
+    for (let i = 0; i < contatosNormalizados.length; i++) {
+      const telefone = contatosNormalizados[i];
 
       if (Date.now() - inicioMinuto > 60000) {
         msgsEsteMinuto = 0;
@@ -200,7 +216,7 @@ Deno.serve(async (req: Request) => {
           .update({ status: "falhou", erro_mensagem: resultado.erro })
           .eq("campanha_id", campanha_id)
           .eq("telefone", telefone);
-        console.warn(`Falha para ${telefone}: ${resultado.erro}`);
+        console.warn(`Falha em destinatário ${i + 1}: ${resultado.erro}`);
       }
     }
 
@@ -219,7 +235,13 @@ Deno.serve(async (req: Request) => {
     console.log(`Campanha finalizada: ${enviados} enviados, ${falhados} falhas, ${tempoTotal}s`);
 
     return new Response(
-      JSON.stringify({ success: true, enviados, falhados, total: contatos.length, tempoTotal }),
+      JSON.stringify({
+        success: true,
+        enviados,
+        falhados,
+        total: contatosNormalizados.length,
+        tempoTotal,
+      }),
       { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
     );
   } catch (e: unknown) {
@@ -227,11 +249,11 @@ Deno.serve(async (req: Request) => {
     console.error("Erro na campanha:", msg);
 
     if (campanha_id) {
-      await supabase
+      const { error: updateError } = await supabase
         .from("campanhas_whatsapp")
         .update({ status: "erro", updated_at: new Date().toISOString() })
-        .eq("id", campanha_id)
-        .catch(() => {});
+        .eq("id", campanha_id);
+      if (updateError) console.error("Falha ao marcar campanha com erro:", updateError.message);
     }
 
     return new Response(JSON.stringify({ error: msg }), {

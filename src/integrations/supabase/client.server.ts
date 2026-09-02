@@ -5,12 +5,13 @@ import { createClient } from "@supabase/supabase-js";
 // but for a reusable admin client we can export a factory or a lazy-loaded instance.
 
 export const getSupabaseAdmin = () => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SB_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SB_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error(
-      "Configuração administrativa do Supabase ausente (VITE_SUPABASE_URL ou SB_SERVICE_ROLE_KEY). Certifique-se de que a SB_SERVICE_ROLE_KEY foi adicionada aos segredos do projeto.",
+      "Configuração administrativa do Supabase ausente (SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY).",
     );
   }
 

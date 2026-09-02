@@ -1,20 +1,28 @@
+import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
+
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
-const WABA_ID = "1805105217027535";
+const WABA_ID = Deno.env.get("WHATSAPP_BUSINESS_ACCOUNT_ID") || "1805105217027535";
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
+      headers: corsHeaders,
     });
   }
 
   try {
-    const url = `https://graph.facebook.com/v20.0/${WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
+    const authorization = await authorizeAdminOrService(req);
+    if (!authorization.ok) return authorizationError(authorization, corsHeaders);
+
+    const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
@@ -23,9 +31,9 @@ Deno.serve(async (req: Request) => {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       console.error("Erro ao buscar templates:", JSON.stringify(err));
-      return new Response(JSON.stringify({ error: "Erro ao buscar templates", details: err }), {
-        status: 500,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      return new Response(JSON.stringify({ error: "Erro ao buscar templates" }), {
+        status: 502,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
@@ -74,14 +82,14 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ templates }), {
       status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     console.error("Erro:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Erro interno ao buscar templates" }), {
       status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 });

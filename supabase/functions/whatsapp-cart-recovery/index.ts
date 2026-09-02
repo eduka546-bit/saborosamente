@@ -1,9 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
+import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -15,7 +17,7 @@ const corsHeaders = {
 async function sendWhatsApp(to: string, text: string) {
   const tel = to.replace(/\D/g, "");
   const telWA = tel.startsWith("55") ? tel : `55${tel}`;
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
@@ -27,8 +29,7 @@ async function sendWhatsApp(to: string, text: string) {
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("sendWhatsApp error:", JSON.stringify(err));
+    console.error("sendWhatsApp error:", res.status);
     return false;
   }
   return true;
@@ -48,7 +49,17 @@ Deno.serve(async (req) => {
       body = await req.json();
     } catch (_) {}
 
+    const authorization = await authorizeAdminOrService(req);
+
     if (body.carrinho_id) {
+      if (!authorization.ok) return authorizationError(authorization, corsHeaders);
+      if (!/^[0-9a-f-]{36}$/i.test(String(body.carrinho_id))) {
+        return new Response(JSON.stringify({ error: "Carrinho inválido" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
       // Modo manual: envia para carrinho específico
       const { data: carrinho } = await supabase
         .from("carrinhos_abandonados")
@@ -68,6 +79,24 @@ Deno.serve(async (req) => {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
+    }
+
+    if (!authorization.ok) {
+      const cronSecret = req.headers.get("x-cron-secret") ?? "";
+      const { data: validCronSecret, error: cronSecretError } = await supabase.rpc(
+        "validate_edge_cron_secret",
+        {
+          p_name: "whatsapp-cart-recovery",
+          p_secret: cronSecret,
+        },
+      );
+      if (cronSecretError) console.error("Falha ao validar cron:", cronSecretError.message);
+      if (!validCronSecret) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // Modo automático: busca carrinhos abandonados há mais de 1h que ainda não foram notificados
@@ -97,9 +126,10 @@ Deno.serve(async (req) => {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (e: any) {
-    console.error("whatsapp-cart-recovery error:", e.message);
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erro desconhecido";
+    console.error("whatsapp-cart-recovery error:", message);
+    return new Response(JSON.stringify({ error: "Falha ao processar carrinhos" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

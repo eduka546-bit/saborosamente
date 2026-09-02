@@ -6,21 +6,10 @@ function getSessionId(): string {
   const key = "saborosamente.session_id";
   let id = typeof window !== "undefined" ? localStorage.getItem(key) : null;
   if (!id) {
-    id = `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    id = `sess_${crypto.randomUUID().replaceAll("-", "")}`;
     if (typeof window !== "undefined") localStorage.setItem(key, id);
   }
   return id;
-}
-
-// Gera cupom único — reutiliza se já foi gerado nessa sessão
-export function generateAbandonCoupon(): string {
-  const key = "saborosamente.abandon_coupon";
-  const existing = typeof window !== "undefined" ? localStorage.getItem(key) : null;
-  if (existing) return existing;
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-  const coupon = `VOLTA${suffix}`;
-  if (typeof window !== "undefined") localStorage.setItem(key, coupon);
-  return coupon;
 }
 
 interface UseAbandonedCartOptions {
@@ -54,11 +43,6 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       if (!hasCart) return;
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const user = session?.user ?? null;
-
         // Snapshot dos itens para o banco
         const itens = lines.map((l) => ({
           productId: l.productId,
@@ -70,29 +54,14 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
           imagem: l.product?.imagem_url ?? "",
         }));
 
-        const payload = {
-          session_id: sessionId.current,
-          user_id: user?.id ?? null,
-          email: user?.email ?? null,
-          itens,
-          valor_total: total,
-          status: "abandonado",
-          origem,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (dbIdRef.current) {
-          // Atualiza registro existente
-          await supabase.from("carrinhos_abandonados").update(payload).eq("id", dbIdRef.current);
-        } else {
-          // Cria novo registro
-          const { data } = await supabase
-            .from("carrinhos_abandonados")
-            .insert(payload)
-            .select("id")
-            .single();
-          if (data?.id) dbIdRef.current = data.id;
-        }
+        const { data, error } = await supabase.rpc("save_abandoned_cart", {
+          p_session_id: sessionId.current,
+          p_itens: itens,
+          p_valor_total: total,
+          p_origem: origem,
+        });
+        if (error) throw error;
+        if (typeof data === "string") dbIdRef.current = data;
       } catch (err) {
         console.warn("[AbandonedCart] erro ao salvar:", err);
       }
@@ -102,12 +71,12 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
 
   // ── Marca como convertido quando pedido é finalizado ─────────────────────
   const markConverted = useCallback(async () => {
-    if (!dbIdRef.current) return;
     try {
-      await supabase
-        .from("carrinhos_abandonados")
-        .update({ status: "convertido", convertido_em: new Date().toISOString() })
-        .eq("id", dbIdRef.current);
+      const { error } = await supabase.rpc("update_abandoned_cart_state", {
+        p_session_id: sessionId.current,
+        p_status: "convertido",
+      });
+      if (error) throw error;
       dbIdRef.current = null;
       exitFiredRef.current = false;
       // Limpa o cupom guardado para que próxima sessão gere um novo
@@ -119,29 +88,17 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     }
   }, []);
 
-  const saveCoupon = useCallback(async (cupom: string, discountPercent: number = 5) => {
-    try {
-      await supabase.from("cupons").insert({
-        codigo: cupom,
-        tipo: "Percentual",
-        valor: discountPercent,
-        regra: "Cupom de carrinho abandonado — uso único",
-        ativo: true,
-        uso: 0,
-        max_uso: 1,
-      });
-    } catch {
-      // Ignora se cupom já existir
+  const issueCoupon = useCallback(async () => {
+    const { data, error } = await supabase.rpc("issue_abandoned_cart_coupon", {
+      p_session_id: sessionId.current,
+    });
+    if (error) throw error;
+    const result = data as { codigo?: string; desconto?: number } | null;
+    if (!result?.codigo) throw new Error("Cupom não foi gerado");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("saborosamente.abandon_coupon", result.codigo);
     }
-    if (!dbIdRef.current) return;
-    try {
-      await supabase
-        .from("carrinhos_abandonados")
-        .update({ cupom_oferta: cupom, origem: "exit_intent" })
-        .eq("id", dbIdRef.current);
-    } catch {
-      /* falha silenciosa: vincular cupom ao carrinho é best-effort */
-    }
+    return { coupon: result.codigo, discountPercent: Number(result.desconto ?? 5) };
   }, []);
 
   // ── Auto-save depois de 3 min parado com carrinho ─────────────────────────
@@ -170,32 +127,20 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       if (exitFiredRef.current) return;
       exitFiredRef.current = true;
 
-      const coupon = generateAbandonCoupon();
-      couponRef.current = coupon;
-
-      // Busca o percentual configurado no banco
-      let discountPercent = 5; // fallback padrão
       try {
-        const { data } = await supabase
-          .from("site_settings")
-          .select("exit_intent_discount")
-          .maybeSingle();
-        if (data?.exit_intent_discount) {
-          discountPercent = Number(data.exit_intent_discount);
-        }
-      } catch {
-        /* usa o desconto padrão de 5% se a consulta falhar */
+        await saveToDb("exit_intent");
+        const { coupon, discountPercent } = await issueCoupon();
+        couponRef.current = coupon;
+        onExitIntent(coupon, discountPercent);
+      } catch (error) {
+        console.warn("[AbandonedCart] erro ao gerar cupom:", error);
+        exitFiredRef.current = false;
       }
-
-      await saveToDb("exit_intent");
-      await saveCoupon(coupon, discountPercent);
-
-      onExitIntent(coupon, discountPercent);
     };
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, [hasCart, saveToDb, saveCoupon, onExitIntent]);
+  }, [hasCart, saveToDb, issueCoupon, onExitIntent]);
 
   // ── beforeunload: salva se ainda tiver carrinho ───────────────────────────
   useEffect(() => {

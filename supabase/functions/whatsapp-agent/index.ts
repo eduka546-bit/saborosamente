@@ -32,7 +32,7 @@ const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
 const HANDOFF_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
 const OPENAI_TIMEOUT_MS = 25_000;
-const WHATSAPP_API_VERSION = "v20.0";
+const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 const MAX_TENTATIVAS_ENVIO = 2; // tentativas de reenvio de mídia ao WhatsApp
 const IMG_TRANSFORM = "width=800&quality=75"; // otimização de imagem do Supabase Storage
 const SITE_URL = "saborosamente.vercel.app";
@@ -131,7 +131,10 @@ async function sendMenuPrincipal(to: string, nomeCliente?: string) {
 
 // Menu padrão embutido (fallback), usado se a tabela chatbot_menu vier vazia
 // ou der erro. É a estrutura atual com as 3 seções.
-const MENU_FALLBACK: { title: string; rows: { id: string; title: string; description?: string }[] }[] = [
+const MENU_FALLBACK: {
+  title: string;
+  rows: { id: string; title: string; description?: string }[];
+}[] = [
   {
     title: "Pedidos",
     rows: [
@@ -143,8 +146,16 @@ const MENU_FALLBACK: { title: string; rows: { id: string; title: string; descrip
   {
     title: "Dúvidas",
     rows: [
-      { id: "duvida_como_funciona", title: "📋 Como Funciona", description: "Marmitas, preparo, validade" },
-      { id: "duvida_entrega", title: "🚚 Entrega e mínimo", description: "Cidades, taxas e prazos" },
+      {
+        id: "duvida_como_funciona",
+        title: "📋 Como Funciona",
+        description: "Marmitas, preparo, validade",
+      },
+      {
+        id: "duvida_entrega",
+        title: "🚚 Entrega e mínimo",
+        description: "Cidades, taxas e prazos",
+      },
       { id: "duvida_pagamento", title: "💳 Pagamento", description: "Pix, cartão, alimentação..." },
     ],
   },
@@ -152,7 +163,11 @@ const MENU_FALLBACK: { title: string; rows: { id: string; title: string; descrip
     title: "Mais",
     rows: [
       { id: "menu_site", title: "🌐 Acessar o site", description: "www.saborosamente.com" },
-      { id: "menu_atendente", title: "👤 Falar com atendente", description: "Fale com nossa equipe" },
+      {
+        id: "menu_atendente",
+        title: "👤 Falar com atendente",
+        description: "Fale com nossa equipe",
+      },
     ],
   },
 ];
@@ -681,7 +696,10 @@ async function getRespostaFixa(chave: string): Promise<string | null> {
 // mensagens de menu (pedido, site, atendente, etc.). Substitui o placeholder
 // {nome} pelo primeiro nome do cliente; se não houver nome, remove o ", {nome}"
 // ou " {nome}" e limpa espaços/vírgulas soltos. Retorna null se não existir.
-async function getConteudoFixo(chave: string, primeiroNome?: string | null): Promise<string | null> {
+async function getConteudoFixo(
+  chave: string,
+  primeiroNome?: string | null,
+): Promise<string | null> {
   const { data, error } = await supabase
     .from("agente_respostas_fixas")
     .select("conteudo, ativo")
@@ -886,7 +904,9 @@ async function buscarClientePorCpf(
   const telefoneCadastrado = String(profile.telefone ?? "").replace(/\D/g, "");
   if (telefone && !telefoneCadastrado) {
     await supabase.from("profiles").update({ telefone }).eq("id", profile.id);
-    console.log(`Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF (perfil sem telefone)`);
+    console.log(
+      `Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF (perfil sem telefone)`,
+    );
   } else if (telefone && !telefonesBatem(telefone, telefoneCadastrado)) {
     // Cadastro já pertence a outro número: reconhece para leitura mas não vincula.
     console.warn(
@@ -906,13 +926,13 @@ async function buscarClientePorCpf(
 // completos do pedido (itens, endereço, status, horário) — sem fazer perguntas.
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function responderAcompanhamentoPedido(
-  telefone: string,
-  texto: string,
-): Promise<boolean> {
+async function responderAcompanhamentoPedido(telefone: string, texto: string): Promise<boolean> {
   // Detecta protocolo no texto: #XXXX (6-8 chars hex) ou só "XXXX" perto de
   // palavras como "acompanhar/pedido/protocolo/nº".
-  const norm = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const norm = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   const ehAcompanhamento =
     norm.includes("acompanhar") ||
     norm.includes("acompanhe") ||
@@ -923,7 +943,8 @@ async function responderAcompanhamentoPedido(
     norm.includes("protocolo");
 
   // Extrai protocolo (sequência hex de 6-8 chars após # ou sozinha)
-  const matchProto = texto.match(/#([0-9a-fA-F]{6,8})\b/) ||
+  const matchProto =
+    texto.match(/#([0-9a-fA-F]{6,8})\b/) ||
     (ehAcompanhamento ? texto.match(/\b([0-9a-fA-F]{6,8})\b/) : null);
   const protocolo = matchProto?.[1] ?? null;
 
@@ -952,8 +973,7 @@ async function responderAcompanhamentoPedido(
     const pedido = pedidos[0];
     const proto = String(pedido.id).slice(0, 8).toUpperCase();
     const statusMsg =
-      STATUS_PEDIDO_MSG[String(pedido.status).toLowerCase()] ??
-      `está com status: ${pedido.status}`;
+      STATUS_PEDIDO_MSG[String(pedido.status).toLowerCase()] ?? `está com status: ${pedido.status}`;
 
     // Busca itens do pedido
     const { data: itens } = await supabase
@@ -969,7 +989,9 @@ async function responderAcompanhamentoPedido(
         .from("produtos")
         .select("id, nome")
         .in("id", produtoIds);
-      (prods ?? []).forEach((p: any) => { nomesMap[p.id] = p.nome; });
+      (prods ?? []).forEach((p: any) => {
+        nomesMap[p.id] = p.nome;
+      });
     }
 
     const itensTxt = (itens ?? [])
@@ -988,9 +1010,7 @@ async function responderAcompanhamentoPedido(
           ? "Retirada na loja"
           : null;
 
-    const horario = pedido.horario_recebimento
-      ? `🕐 ${pedido.horario_recebimento}`
-      : null;
+    const horario = pedido.horario_recebimento ? `🕐 ${pedido.horario_recebimento}` : null;
 
     const valorFmt = Number(pedido.valor_total ?? 0).toLocaleString("pt-BR", {
       style: "currency",
@@ -1002,9 +1022,15 @@ async function responderAcompanhamentoPedido(
       "",
       `📦 *Status:* ${statusMsg}`,
     ];
-    if (itensTxt) { linhas.push("", `🍱 *Itens:*\n${itensTxt}`); }
-    if (enderecoTxt) { linhas.push("", `📍 *Entrega:* ${enderecoTxt}`); }
-    if (horario) { linhas.push("", horario); }
+    if (itensTxt) {
+      linhas.push("", `🍱 *Itens:*\n${itensTxt}`);
+    }
+    if (enderecoTxt) {
+      linhas.push("", `📍 *Entrega:* ${enderecoTxt}`);
+    }
+    if (horario) {
+      linhas.push("", horario);
+    }
     linhas.push("", `💳 *Pagamento:* ${pedido.metodo_pagamento ?? "não informado"}`);
     linhas.push(`💰 *Total:* ${valorFmt}`);
     linhas.push("", "Qualquer dúvida é só chamar! 🫶🏼");
@@ -1105,11 +1131,13 @@ const FUNCTIONS_SCHEMA = [
       properties: {
         motivo: {
           type: "string",
-          description: "Motivo da transferência (ex: 'cliente quer escolher produtos com atendente', 'cliente solicitou humano')",
+          description:
+            "Motivo da transferência (ex: 'cliente quer escolher produtos com atendente', 'cliente solicitou humano')",
         },
         resumo: {
           type: "string",
-          description: "Resumo das informações já coletadas (nome, endereço, pagamento) para o atendente continuar de onde parou.",
+          description:
+            "Resumo das informações já coletadas (nome, endereço, pagamento) para o atendente continuar de onde parou.",
         },
       },
       required: ["motivo"],
@@ -1693,13 +1721,14 @@ async function baixarMidiaWhatsApp(
 // Transcreve um áudio do cliente usando o Whisper da OpenAI.
 async function transcreverAudio(buffer: ArrayBuffer, mime: string): Promise<string | null> {
   try {
-    const ext = mime.includes("mp4") || mime.includes("m4a")
-      ? "m4a"
-      : mime.includes("mpeg") || mime.includes("mp3")
-      ? "mp3"
-      : mime.includes("wav")
-      ? "wav"
-      : "ogg"; // WhatsApp normalmente manda voice como audio/ogg (opus)
+    const ext =
+      mime.includes("mp4") || mime.includes("m4a")
+        ? "m4a"
+        : mime.includes("mpeg") || mime.includes("mp3")
+          ? "mp3"
+          : mime.includes("wav")
+            ? "wav"
+            : "ogg"; // WhatsApp normalmente manda voice como audio/ogg (opus)
     const form = new FormData();
     form.append("file", new Blob([buffer], { type: mime }), `audio.${ext}`);
     form.append("model", "whisper-1");
@@ -1782,7 +1811,10 @@ async function analisarImagem(bytes: Uint8Array, mime: string): Promise<string |
 // app secret. Validamos para garantir que a requisição veio mesmo da Meta e não
 // de alguém que descobriu a URL. Retorna true quando a assinatura confere ou
 // quando não há app secret configurado (degradação graciosa).
-async function verificarAssinaturaWebhook(assinatura: string | null, corpoBruto: string): Promise<boolean> {
+async function verificarAssinaturaWebhook(
+  assinatura: string | null,
+  corpoBruto: string,
+): Promise<boolean> {
   // Sem app secret configurado: não bloqueia (mantém compatibilidade).
   if (!WHATSAPP_APP_SECRET) return true;
   // App secret configurado mas sem header de assinatura: rejeita.
@@ -2004,17 +2036,12 @@ Deno.serve(async (req: Request) => {
       if (conversa?.modo === "humano") {
         // Retorno automático ao bot: se o atendimento humano ficou inativo por
         // muito tempo, o bot reassume para não deixar o cliente sem resposta.
-        const ultimaAtividade = conversa?.ultima_msg
-          ? new Date(conversa.ultima_msg).getTime()
-          : 0;
+        const ultimaAtividade = conversa?.ultima_msg ? new Date(conversa.ultima_msg).getTime() : 0;
         const handoffExpirou =
           ultimaAtividade > 0 && Date.now() - ultimaAtividade > HANDOFF_TIMEOUT_MS;
 
         if (handoffExpirou) {
-          await supabase
-            .from("whatsapp_conversas")
-            .update({ modo: "bot" })
-            .eq("id", conversa.id);
+          await supabase.from("whatsapp_conversas").update({ modo: "bot" }).eq("id", conversa.id);
           conversa.modo = "bot";
           await registrarEvento("retorno_bot", telefone, conversa.id, {
             motivo: "timeout_handoff",
@@ -2062,10 +2089,7 @@ Deno.serve(async (req: Request) => {
         const respostaCliente = texto || menuId || "";
         // Passa um histórico com a resposta em memória (sem persistir ainda) para
         // que a condição por "mensagem" enxergue a resposta do cliente.
-        const historicoComResposta = [
-          ...historico,
-          { role: "user", content: respostaCliente },
-        ];
+        const historicoComResposta = [...historico, { role: "user", content: respostaCliente }];
         const retomou = await retomarPorResposta(
           telefone,
           respostaCliente,

@@ -1,0 +1,2 @@
+[functions.pedidos10-polling]
+verify_jwt = true

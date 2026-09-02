@@ -1,2 +1,2 @@
-# WhatsApp Campaign Send Function
-runtime = "deno"
+[functions.whatsapp-campanha-enviar]
+verify_jwt = true

@@ -26,6 +26,7 @@ export interface Product {
   preco: number;
   preco_300g?: number;
   preco_400g?: number;
+  tipo_produto?: "marmita" | "combo" | "sopa" | "complemento" | "bebida" | string;
   peso: string;
   categoria: ProductCategory;
   /** Categoria vinda do join do Supabase (tabela `categorias`). Opcional. */
