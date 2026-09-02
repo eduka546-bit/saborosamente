@@ -23,8 +23,6 @@ const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-// Segredo simples para autorizar o cron (a função tem verify_jwt = false).
-const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 // Limita quantas execuções processamos por tick para não estourar o tempo da função.
@@ -302,12 +300,13 @@ async function retomarExecucao(execucao: any): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  // Autorização simples: exige o header quando CRON_SECRET estiver configurado.
-  if (CRON_SECRET) {
-    const auth = req.headers.get("x-cron-secret") ?? "";
-    if (auth !== CRON_SECRET) {
-      return new Response("Forbidden", { status: 403 });
-    }
+  const cronSecret = req.headers.get("x-cron-secret") ?? "";
+  const { data: validCronSecret, error: cronSecretError } = await supabase.rpc(
+    "validate_edge_cron_secret",
+    { p_name: "whatsapp-automacoes-tick", p_secret: cronSecret },
+  );
+  if (cronSecretError || validCronSecret !== true) {
+    return new Response("Forbidden", { status: 403 });
   }
 
   const agora = new Date().toISOString();

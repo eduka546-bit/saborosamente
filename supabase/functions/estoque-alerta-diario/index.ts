@@ -27,7 +27,6 @@ const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 // Número fallback (usado se a lista do banco estiver vazia).
 const ADMIN_ALERT_PHONE_FALLBACK = Deno.env.get("ADMIN_ALERT_PHONE") ?? "5547997391514";
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
@@ -94,8 +93,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Autorização do cron (função é pública; o segredo é a barreira real).
-  if (CRON_SECRET && req.headers.get("x-cron-secret") !== CRON_SECRET) {
+  // O segredo é gerado no banco e apenas seu hash é validado pela função.
+  const cronSecret = req.headers.get("x-cron-secret") ?? "";
+  const { data: validCronSecret, error: cronSecretError } = await supabase.rpc(
+    "validate_edge_cron_secret",
+    { p_name: "estoque-alerta-diario", p_secret: cronSecret },
+  );
+  if (cronSecretError || validCronSecret !== true) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 403,
       headers: { "Content-Type": "application/json", ...corsHeaders },
