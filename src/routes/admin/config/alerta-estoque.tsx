@@ -1,6 +1,6 @@
 /**
  * Configuração do Alerta Diário de Estoque (WhatsApp).
- * Gerencia a lista de números que recebem o resumo de estoque às 19h.
+ * Gerencia a lista de números que recebem o resumo de estoque às 18h45.
  * Números são armazenados em site_settings.parametros_loja.alerta_estoque_numeros
  * como array de strings no formato E.164 sem "+" (ex.: "5547997391514").
  */
@@ -59,23 +59,24 @@ function AlertaEstoquePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("site_settings")
-        .select("parametros_loja")
+        .select("id, parametros_loja")
         .maybeSingle();
       const lista = (data?.parametros_loja as any)?.alerta_estoque_numeros;
-      return Array.isArray(lista) ? (lista as string[]) : ["5547997391514"];
+      return Array.isArray(lista) ? (lista as string[]) : [];
     },
   });
 
   async function salvarLista(lista: string[]) {
     const { data } = await supabase
       .from("site_settings")
-      .select("parametros_loja")
+      .select("id, parametros_loja")
       .maybeSingle();
+    if (!data?.id) throw new Error("Configuração da loja não encontrada.");
     const pl = (data?.parametros_loja as any) ?? {};
     const { error } = await supabase
       .from("site_settings")
       .update({ parametros_loja: { ...pl, alerta_estoque_numeros: lista } } as any)
-      .neq("id", "");
+      .eq("id", data.id);
     if (error) throw error;
   }
 
@@ -118,7 +119,7 @@ function AlertaEstoquePage() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Alerta de Estoque</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Números que recebem o resumo de estoque no WhatsApp todos os dias às 19h.
+            Números que recebem o resumo de estoque no WhatsApp todos os dias às 18h45.
           </p>
         </div>
       </div>
@@ -214,7 +215,7 @@ function AlertaEstoquePage() {
       </div>
 
       <p className="text-[11px] text-gray-400 mt-4 text-center">
-        O alerta é enviado automaticamente às 19h com o resumo completo de estoque
+        O alerta é enviado automaticamente às 18h45 com o resumo completo de estoque
         (marmitas, sopas e complementos), sem as bebidas.
       </p>
     </div>
