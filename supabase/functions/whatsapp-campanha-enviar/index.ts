@@ -49,6 +49,10 @@ async function enviarMensagem(
       if (!imagemUrl) return { sucesso: false, erro: "Este template exige uma imagem no cabeçalho." };
       components.push({ type: "header", parameters: [{ type: "image", image: { link: imagemUrl } }] });
     }
+    if (template.headerFormat === "VIDEO") {
+      if (!videoUrl) return { sucesso: false, erro: "Este template exige um vídeo no cabeçalho." };
+      components.push({ type: "header", parameters: [{ type: "video", video: { link: videoUrl } }] });
+    }
 
     const body = {
       messaging_product: "whatsapp",
