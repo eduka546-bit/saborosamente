@@ -171,17 +171,47 @@ Deno.serve(async (req: Request) => {
       return new Response("Missing required fields", { status: 400, headers: CORS_HEADERS });
     }
 
-    console.log(
-      `Iniciando campanha ${campanha_id} para ${contatosNormalizados.length} contatos${template ? ` (template: ${template.name})` : ""}`,
-    );
+    // Claim the campaign atomically. A second click/request must not start a
+    // concurrent sender for the same campaign.
+    const { data: campanhaIniciada, error: inicioError } = await supabase
+      .from("campanhas_whatsapp")
+      .update({ status: "enviando", updated_at: new Date().toISOString() })
+      .eq("id", campanha_id)
+      .in("status", ["rascunho", "pausada"])
+      .select("id")
+      .maybeSingle();
 
-    await supabase.from("campanhas_whatsapp").update({ status: "enviando" }).eq("id", campanha_id);
+    if (inicioError) throw inicioError;
+    if (!campanhaIniciada) {
+      return new Response(JSON.stringify({ error: "Esta campanha já está em andamento ou foi concluída." }), {
+        status: 409,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
-    await supabase
+    // On the first run, create the pending queue. On resume, use the queue
+    // already stored in the database and never recreate or resend it.
+    const { data: enviosExistentes, error: enviosError } = await supabase
       .from("campanhas_whatsapp_envios")
-      .insert(
-        contatosNormalizados.map((tel) => ({ campanha_id, telefone: tel, status: "pendente" })),
-      );
+      .select("telefone, status")
+      .eq("campanha_id", campanha_id);
+    if (enviosError) throw enviosError;
+
+    let contatosParaEnviar = contatosNormalizados;
+    if ((enviosExistentes?.length ?? 0) === 0) {
+      const { error: insertError } = await supabase
+        .from("campanhas_whatsapp_envios")
+        .insert(contatosNormalizados.map((telefone) => ({ campanha_id, telefone, status: "pendente" })));
+      if (insertError) throw insertError;
+    } else {
+      contatosParaEnviar = enviosExistentes
+        .filter((envio) => envio.status === "pendente")
+        .map((envio) => String(envio.telefone));
+    }
+
+    console.log(
+      `Iniciando campanha ${campanha_id} para ${contatosParaEnviar.length} contato(s) pendente(s)${template ? ` (template: ${template.name})` : ""}`,
+    );
 
     let enviados = 0;
     let falhados = 0;
@@ -189,8 +219,8 @@ Deno.serve(async (req: Request) => {
     let msgsEsteMinuto = 0;
     let inicioMinuto = Date.now();
 
-    for (let i = 0; i < contatosNormalizados.length; i++) {
-      const telefone = contatosNormalizados[i];
+    for (let i = 0; i < contatosParaEnviar.length; i++) {
+      const telefone = contatosParaEnviar[i];
 
       // Verifica a cada 5 envios se a campanha foi pausada pelo admin.
       if (i > 0 && i % 5 === 0) {
@@ -200,10 +230,8 @@ Deno.serve(async (req: Request) => {
           .eq("id", campanha_id)
           .single();
         if (campanhaAtual?.status === "pausada") {
-          console.log(`Campanha ${campanha_id} pausada pelo admin no contato ${i + 1}.`);
-          // Mantém status 'pausada' no banco e retorna resultado parcial.
           return new Response(
-            JSON.stringify({ success: false, pausada: true, enviados, falhados, pendentes: contatosNormalizados.length - i }),
+            JSON.stringify({ success: false, pausada: true, enviados, falhados, pendentes: contatosParaEnviar.length - i }),
             { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
           );
         }
@@ -247,11 +275,18 @@ Deno.serve(async (req: Request) => {
 
     const tempoTotal = Math.round((Date.now() - inicio) / 1000);
 
+    const { count: totalEnviados, error: countError } = await supabase
+      .from("campanhas_whatsapp_envios")
+      .select("id", { count: "exact", head: true })
+      .eq("campanha_id", campanha_id)
+      .eq("status", "enviado");
+    if (countError) throw countError;
+
     await supabase
       .from("campanhas_whatsapp")
       .update({
         status: "enviada",
-        contatos_enviados: enviados,
+        contatos_enviados: totalEnviados ?? enviados,
         contatos_falhados: falhados,
         updated_at: new Date().toISOString(),
       })
@@ -264,7 +299,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         enviados,
         falhados,
-        total: contatosNormalizados.length,
+        total: contatosParaEnviar.length,
         tempoTotal,
       }),
       { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
