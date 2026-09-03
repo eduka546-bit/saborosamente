@@ -108,6 +108,7 @@ function AdminCampaignPage() {
     body: "",
     footer: "",
     variableExamples: [] as string[],
+    buttons: [] as { type: "URL" | "PHONE_NUMBER" | "QUICK_REPLY"; text: string; url?: string; phone_number?: string }[],
   });
   const [imagemModelo, setImagemModelo] = useState<File | null>(null);
 
@@ -154,7 +155,7 @@ function AdminCampaignPage() {
     },
     onSuccess: async () => {
       toast.success("Template enviado para aprovação da Meta.");
-      setNovoTemplate({ name: "", category: "MARKETING", header: "", headerType: "NONE", body: "", footer: "", variableExamples: [] });
+      setNovoTemplate({ name: "", category: "MARKETING", header: "", headerType: "NONE", body: "", footer: "", variableExamples: [], buttons: [] });
       setImagemModelo(null);
       await refetchTemplates();
     },
@@ -1257,6 +1258,15 @@ function AdminCampaignPage() {
                     {template.header && <p className="text-xs font-semibold text-gray-600 mt-3">{template.header}</p>}
                     <p className="text-sm text-gray-700 whitespace-pre-wrap mt-2">{template.body}</p>
                     {template.footer && <p className="text-xs text-gray-400 mt-2">{template.footer}</p>}
+                    {template.buttons?.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {template.buttons.map((button: any, index: number) => (
+                          <span key={`${button.text}-${index}`} className="rounded-full border border-[#5850ec]/20 bg-[#5850ec]/5 px-2 py-1 text-xs font-medium text-[#5850ec]">
+                            {button.type === "URL" ? "↗" : button.type === "PHONE_NUMBER" ? "☎" : "↩"} {button.text}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>
@@ -1321,6 +1331,32 @@ function AdminCampaignPage() {
               <div>
                 <label className="text-xs font-bold text-gray-700">Rodapé (opcional)</label>
                 <Input value={novoTemplate.footer} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, footer: e.target.value }))} maxLength={60} className="mt-1" />
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-gray-700">Botões de ação</label>
+                    <p className="text-xs text-gray-400">Até 3 botões; no máximo 2 de link ou ligação.</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" disabled={novoTemplate.buttons.length >= 3} onClick={() => setNovoTemplate((draft) => ({ ...draft, buttons: [...draft.buttons, { type: "URL", text: "", url: "" }] }))}>+ Botão</Button>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {novoTemplate.buttons.map((button, index) => (
+                    <div key={index} className="rounded-md bg-gray-50 p-2 space-y-2">
+                      <div className="flex gap-2">
+                        <select value={button.type} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; const type = e.target.value as typeof button.type; buttons[index] = { type, text: buttons[index].text, ...(type === "URL" ? { url: "" } : type === "PHONE_NUMBER" ? { phone_number: "" } : {}) }; return { ...draft, buttons }; })} className="w-36 rounded border border-gray-200 px-2 py-1 text-xs">
+                          <option value="URL">Abrir link</option>
+                          <option value="PHONE_NUMBER">Ligar</option>
+                          <option value="QUICK_REPLY">Resposta rápida</option>
+                        </select>
+                        <Input value={button.text} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], text: e.target.value }; return { ...draft, buttons }; })} maxLength={25} placeholder="Texto do botão" required className="h-8 text-xs" />
+                        <button type="button" onClick={() => setNovoTemplate((draft) => ({ ...draft, buttons: draft.buttons.filter((_, position) => position !== index) }))} className="px-2 text-xs font-bold text-red-600">✕</button>
+                      </div>
+                      {button.type === "URL" && <Input value={button.url || ""} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], url: e.target.value }; return { ...draft, buttons }; })} placeholder="https://saborosamente.vercel.app/cardapio" required className="h-8 text-xs" />}
+                      {button.type === "PHONE_NUMBER" && <Input value={button.phone_number || ""} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], phone_number: e.target.value }; return { ...draft, buttons }; })} placeholder="+5547991607757" required className="h-8 text-xs" />}
+                    </div>
+                  ))}
+                </div>
               </div>
               <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">Envie marketing somente para contatos que aceitaram receber mensagens. O status final é definido pela Meta.</p>
               <Button type="submit" className="w-full bg-[#5850ec] hover:bg-[#4740c9]" disabled={criarTemplateMutation.isPending}>
