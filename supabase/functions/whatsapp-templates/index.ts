@@ -128,32 +128,36 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === "POST") {
       const requestBody = await req.json().catch(() => null) as { action?: string; template?: TemplateDraft } | null;
-      if (requestBody?.action !== "create" || !requestBody.template) {
+      // supabase.functions.invoke usa POST por padrão também nas leituras.
+      // POST sem action mantém compatibilidade e apenas lista os templates.
+      if (requestBody?.action && requestBody.action !== "create") {
         return validationError("Solicitação de template inválida.");
       }
+      if (requestBody?.action === "create") {
+        if (!requestBody.template) return validationError("Template inválido.");
+        const result = await buildTemplatePayload(requestBody.template);
+        if (!result.payload) return validationError(result.error || "Template inválido.");
 
-      const result = await buildTemplatePayload(requestBody.template);
-      if (!result.payload) return validationError(result.error || "Template inválido.");
+        const res = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify(result.payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const message = data?.error?.error_user_msg || data?.error?.message || "A Meta recusou o cadastro do template.";
+          console.error("Erro ao criar template:", JSON.stringify(data));
+          return new Response(JSON.stringify({ error: message }), {
+            status: 422,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
 
-      const res = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify(result.payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message = data?.error?.error_user_msg || data?.error?.message || "A Meta recusou o cadastro do template.";
-        console.error("Erro ao criar template:", JSON.stringify(data));
-        return new Response(JSON.stringify({ error: message }), {
-          status: 422,
+        return new Response(JSON.stringify({ template: data, message: "Template enviado para aprovação da Meta." }), {
+          status: 201,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
-
-      return new Response(JSON.stringify({ template: data, message: "Template enviado para aprovação da Meta." }), {
-        status: 201,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
     }
 
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
