@@ -575,7 +575,7 @@ function AdminCampaignPage() {
             imagem_url: imagemUrl,
             video_url: videoUrl,
             midia_tipo: tipo_midia,
-            status: "enviando",
+            status: "rascunho",
             contatos_total: contatosSelecionados.length,
             contatos_enviados: 0,
             contatos_falhados: 0,
@@ -2131,12 +2131,6 @@ function AdminCampaignPage() {
                               toast.info("Não há contatos pendentes para retomar.");
                               return;
                             }
-
-                            // Volta o status para 'enviando' antes de disparar
-                            await supabase
-                              .from("campanhas_whatsapp")
-                              .update({ status: "enviando" })
-                              .eq("id", campanha.id);
 
                             queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
                             toast.info(
