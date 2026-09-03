@@ -1033,6 +1033,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
     (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
   );
+  const somenteCampanha = conversa.somenteCampanha === true;
   const isHumano = conversa.modo === "humano";
 
   useEffect(() => {
@@ -1100,24 +1101,26 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
           </p>
           <p className={`text-xs ${t.textSub}`}>{conversa.telefone}</p>
         </div>
-        <button
-          onClick={() => onToggleModo(conversa.id, conversa.modo)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-            isHumano
-              ? "bg-[#00a884] text-white hover:bg-[#008f72]"
-              : "bg-[#f0a202] text-white hover:bg-[#d99200]"
-          }`}
-        >
-          {isHumano ? (
-            <>
-              <Zap size={11} /> IA responder
-            </>
-          ) : (
-            <>
-              <User size={11} /> Assumir
-            </>
-          )}
-        </button>
+        {!somenteCampanha && (
+          <button
+            onClick={() => onToggleModo(conversa.id, conversa.modo)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+              isHumano
+                ? "bg-[#00a884] text-white hover:bg-[#008f72]"
+                : "bg-[#f0a202] text-white hover:bg-[#d99200]"
+            }`}
+          >
+            {isHumano ? (
+              <>
+                <Zap size={11} /> IA responder
+              </>
+            ) : (
+              <>
+                <User size={11} /> Assumir
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Mensagens */}
@@ -1168,7 +1171,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
 
       {/* Input */}
       <div className={`px-3 py-3 shrink-0 ${t.chatInput}`}>
-        {!isHumano ? (
+        {somenteCampanha ? (
+          <div
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
+          >
+            <MessageCircle size={16} />
+            <span>Campanha enviada. Este contato ainda não respondeu.</span>
+          </div>
+        ) : !isHumano ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
           >
@@ -1221,7 +1231,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "ia" | "humano">("todos");
+  const [filterModo, setFilterModo] = useState<"todos" | "ia" | "humano" | "campanhas">("todos");
 
   const t = dark ? DARK : LIGHT;
 
@@ -1246,6 +1256,38 @@ function AdminAgentePage() {
       return data;
     },
     refetchInterval: 8000,
+  });
+
+  // A maioria dos destinatários de campanha ainda não tem uma conversa criada,
+  // pois não respondeu. Esta consulta os apresenta no painel sem criar dados
+  // artificiais nem mudar o histórico do WhatsApp.
+  const { data: enviosDeCampanha = [], isLoading: carregandoCampanhas } = useQuery({
+    queryKey: ["whatsapp-envios-campanhas-painel"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campanhas_whatsapp_envios")
+        .select("id, campanha_id, telefone, status, enviado_em, created_at")
+        .order("enviado_em", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 15_000,
+  });
+
+  const idsCampanhasPainel = [...new Set((enviosDeCampanha as any[]).map((envio) => envio.campanha_id))];
+  const { data: campanhasDoPainel = [] } = useQuery({
+    queryKey: ["whatsapp-campanhas-painel", idsCampanhasPainel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campanhas_whatsapp")
+        .select("id, nome, mensagem")
+        .in("id", idsCampanhasPainel);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: idsCampanhasPainel.length > 0,
+    staleTime: 60_000,
   });
 
   const toggleAgenteMutation = useMutation({
@@ -1306,8 +1348,30 @@ function AdminAgentePage() {
 
   const humanasCount = (conversas as any[]).filter((c) => c.modo === "humano").length;
 
-  const filtered = (conversas as any[]).filter((c) => {
-    const matchModo = filterModo === "todos" || c.modo === filterModo;
+  const telefonesComConversa = new Set(
+    (conversas as any[]).map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
+  );
+  const campanhasPorIdPainel = new Map(
+    (campanhasDoPainel as any[]).map((campanha) => [campanha.id, campanha]),
+  );
+  const campanhasSemResposta = (enviosDeCampanha as any[])
+    .filter((envio) => !telefonesComConversa.has(String(envio.telefone ?? "").replace(/\D/g, "")))
+    .map((envio) => ({
+      id: `campanha-${envio.id}`,
+      telefone: envio.telefone,
+      nome: campanhasPorIdPainel.get(envio.campanha_id)?.nome
+        ? `${campanhasPorIdPainel.get(envio.campanha_id).nome} · ${envio.telefone}`
+        : envio.telefone,
+      mensagens: [],
+      ultima_msg: envio.enviado_em ?? envio.created_at,
+      modo: "campanha",
+      somenteCampanha: true,
+      statusCampanha: envio.status,
+    }));
+
+  const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : (conversas as any[]);
+  const filtered = itensDaLista.filter((c: any) => {
+    const matchModo = filterModo === "todos" || filterModo === "campanhas" || c.modo === filterModo;
     const matchSearch =
       !search ||
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -1315,7 +1379,7 @@ function AdminAgentePage() {
     return matchModo && matchSearch;
   });
 
-  const activeConversa = (conversas as any[]).find((c) => c.id === activeId);
+  const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
 
   return (
     <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
@@ -1385,7 +1449,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className={`flex gap-2 px-3 py-2 shrink-0`}>
-          {(["todos", "humano", "ia"] as const).map((f) => (
+          {(["todos", "humano", "ia", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -1395,7 +1459,13 @@ function AdminAgentePage() {
                   : `${dark ? "bg-[#2a3942] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`
               }`}
             >
-              {f === "todos" ? "Tudo" : f === "humano" ? "👤 Você" : "🤖 IA"}
+              {f === "todos"
+                ? "Tudo"
+                : f === "humano"
+                  ? "👤 Você"
+                  : f === "ia"
+                    ? "🤖 IA"
+                    : `📣 Campanhas${carregandoCampanhas ? "" : ` (${campanhasSemResposta.length})`}`}
             </button>
           ))}
         </div>
@@ -1412,8 +1482,9 @@ function AdminAgentePage() {
             filtered.map((c: any) => {
               const isActive = activeId === c.id;
               const isHumano = c.modo === "humano";
+              const isCampanha = c.somenteCampanha === true;
               const lastMsg = c.mensagens?.at(-1);
-              const avatarColor = isHumano ? "bg-[#f0a202]" : "bg-[#00a884]";
+              const avatarColor = isCampanha ? "bg-[#5850ec]" : isHumano ? "bg-[#f0a202]" : "bg-[#00a884]";
 
               return (
                 <div
@@ -1442,8 +1513,9 @@ function AdminAgentePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className={`text-xs truncate ${t.textSub}`}>
-                        {lastMsg?.role === "assistant" ? "🤖 " : ""}
-                        {lastMsg?.content?.slice(0, 45) ?? ""}
+                        {isCampanha
+                          ? `📣 ${c.statusCampanha === "enviado" ? "Enviada" : c.statusCampanha}`
+                          : <>{lastMsg?.role === "assistant" ? "🤖 " : ""}{lastMsg?.content?.slice(0, 45) ?? ""}</>}
                       </p>
                       {isHumano && (
                         <span
