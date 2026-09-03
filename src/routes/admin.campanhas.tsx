@@ -36,7 +36,9 @@ function formatarMoeda(valor: number) {
 }
 
 function AdminCampaignPage() {
-  const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico" | "templates">("criar");
+  const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico" | "templates">(
+    "criar",
+  );
   const [nomesCampanha, setNomesCampanha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
@@ -109,7 +111,12 @@ function AdminCampaignPage() {
     body: "",
     footer: "",
     variableExamples: [] as string[],
-    buttons: [] as { type: "URL" | "PHONE_NUMBER" | "QUICK_REPLY"; text: string; url?: string; phone_number?: string }[],
+    buttons: [] as {
+      type: "URL" | "PHONE_NUMBER" | "QUICK_REPLY";
+      text: string;
+      url?: string;
+      phone_number?: string;
+    }[],
   });
   const [imagemModelo, setImagemModelo] = useState<File | null>(null);
   const [videoModelo, setVideoModelo] = useState<File | null>(null);
@@ -136,12 +143,17 @@ function AdminCampaignPage() {
       let sampleVideoUrl: string | undefined;
       if (novoTemplate.headerType === "IMAGE") {
         if (!imagemModelo) throw new Error("Escolha uma imagem de exemplo para o cabeçalho.");
-        if (!imagemModelo.type.match(/^image\/(jpeg|png)$/) || imagemModelo.size > 5 * 1024 * 1024) {
+        if (
+          !imagemModelo.type.match(/^image\/(jpeg|png)$/) ||
+          imagemModelo.size > 5 * 1024 * 1024
+        ) {
           throw new Error("Use uma imagem JPG ou PNG de até 5 MB.");
         }
         const extension = imagemModelo.type === "image/png" ? "png" : "jpg";
         const path = `template-sample-${Date.now()}-${crypto.randomUUID()}.${extension}`;
-        const { error: uploadError } = await supabase.storage.from("campanhas").upload(path, imagemModelo, { upsert: false, contentType: imagemModelo.type });
+        const { error: uploadError } = await supabase.storage
+          .from("campanhas")
+          .upload(path, imagemModelo, { upsert: false, contentType: imagemModelo.type });
         if (uploadError) throw uploadError;
         sampleImageUrl = supabase.storage.from("campanhas").getPublicUrl(path).data.publicUrl;
       }
@@ -151,16 +163,22 @@ function AdminCampaignPage() {
           throw new Error("Use um vídeo MP4 de até 16 MB.");
         }
         const path = `template-sample-${Date.now()}-${crypto.randomUUID()}.mp4`;
-        const { error: uploadError } = await supabase.storage.from("campanhas").upload(path, videoModelo, { upsert: false, contentType: videoModelo.type });
+        const { error: uploadError } = await supabase.storage
+          .from("campanhas")
+          .upload(path, videoModelo, { upsert: false, contentType: videoModelo.type });
         if (uploadError) throw uploadError;
         sampleVideoUrl = supabase.storage.from("campanhas").getPublicUrl(path).data.publicUrl;
       }
       const { data, error } = await supabase.functions.invoke("whatsapp-templates", {
         method: "POST",
-        body: { action: "create", template: { ...novoTemplate, language: "pt_BR", sampleImageUrl, sampleVideoUrl } },
+        body: {
+          action: "create",
+          template: { ...novoTemplate, language: "pt_BR", sampleImageUrl, sampleVideoUrl },
+        },
       });
       if (error) {
-        const response = error.context instanceof Response ? await error.context.json().catch(() => null) : null;
+        const response =
+          error.context instanceof Response ? await error.context.json().catch(() => null) : null;
         throw new Error(response?.error || error.message || "Não foi possível enviar o template.");
       }
       if (data?.error) throw new Error(data.error);
@@ -168,7 +186,16 @@ function AdminCampaignPage() {
     },
     onSuccess: async () => {
       toast.success("Template enviado para aprovação da Meta.");
-      setNovoTemplate({ name: "", category: "MARKETING", header: "", headerType: "NONE", body: "", footer: "", variableExamples: [], buttons: [] });
+      setNovoTemplate({
+        name: "",
+        category: "MARKETING",
+        header: "",
+        headerType: "NONE",
+        body: "",
+        footer: "",
+        variableExamples: [],
+        buttons: [],
+      });
       setImagemModelo(null);
       setVideoModelo(null);
       await refetchTemplates();
@@ -265,8 +292,10 @@ function AdminCampaignPage() {
           for (let i = 0; i < linha.length; i++) {
             const caractere = linha[i];
             if (caractere === '"') {
-              if (entreAspas && linha[i + 1] === '"') { valor += '"'; i++; }
-              else entreAspas = !entreAspas;
+              if (entreAspas && linha[i + 1] === '"') {
+                valor += '"';
+                i++;
+              } else entreAspas = !entreAspas;
             } else if (caractere === "," && !entreAspas) {
               colunas.push(valor.trim());
               valor = "";
@@ -494,10 +523,14 @@ function AdminCampaignPage() {
       }
 
       if (templateSelecionado.headerFormat === "IMAGE" && !imagemFile) {
-        throw new Error("Este template exige uma imagem no cabeçalho. Selecione-a em Upload de Mídia.");
+        throw new Error(
+          "Este template exige uma imagem no cabeçalho. Selecione-a em Upload de Mídia.",
+        );
       }
       if (templateSelecionado.headerFormat === "VIDEO" && !videoFile) {
-        throw new Error("Este template exige um vídeo no cabeçalho. Selecione-o em Upload de Mídia.");
+        throw new Error(
+          "Este template exige um vídeo no cabeçalho. Selecione-o em Upload de Mídia.",
+        );
       }
 
       let imagemUrl = null;
@@ -1260,38 +1293,74 @@ function AdminCampaignPage() {
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <h2 className="font-bold text-gray-900">Templates cadastrados na Meta</h2>
-                <p className="text-sm text-gray-500 mt-1">A aprovação costuma levar alguns minutos. Só templates aprovados podem iniciar conversas.</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  A aprovação costuma levar alguns minutos. Só templates aprovados podem iniciar
+                  conversas.
+                </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => refetchTemplates()} disabled={carregandoTemplates}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchTemplates()}
+                disabled={carregandoTemplates}
+              >
                 {carregandoTemplates ? "Atualizando..." : "Atualizar"}
               </Button>
             </div>
             {carregandoTemplates ? (
               <p className="text-sm text-gray-500 py-8 text-center">Consultando a Meta...</p>
             ) : templates.length === 0 ? (
-              <p className="text-sm text-gray-500 py-8 text-center">Nenhum template encontrado ainda.</p>
+              <p className="text-sm text-gray-500 py-8 text-center">
+                Nenhum template encontrado ainda.
+              </p>
             ) : (
               <div className="space-y-3">
                 {templates.map((template: any) => (
-                  <article key={`${template.name}-${template.language}`} className="rounded-lg border border-gray-200 p-4">
+                  <article
+                    key={`${template.name}-${template.language}`}
+                    className="rounded-lg border border-gray-200 p-4"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-bold text-sm text-gray-900">{template.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{template.category} · {template.language}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {template.category} · {template.language}
+                        </p>
                       </div>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        template.status === "APPROVED" ? "bg-green-100 text-green-700" :
-                        template.status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
-                      }`}>{template.status}</span>
+                      <span
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                          template.status === "APPROVED"
+                            ? "bg-green-100 text-green-700"
+                            : template.status === "PENDING"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {template.status}
+                      </span>
                     </div>
-                    {template.header && <p className="text-xs font-semibold text-gray-600 mt-3">{template.header}</p>}
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap mt-2">{template.body}</p>
-                    {template.footer && <p className="text-xs text-gray-400 mt-2">{template.footer}</p>}
+                    {template.header && (
+                      <p className="text-xs font-semibold text-gray-600 mt-3">{template.header}</p>
+                    )}
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap mt-2">
+                      {template.body}
+                    </p>
+                    {template.footer && (
+                      <p className="text-xs text-gray-400 mt-2">{template.footer}</p>
+                    )}
                     {template.buttons?.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {template.buttons.map((button: any, index: number) => (
-                          <span key={`${button.text}-${index}`} className="rounded-full border border-[#5850ec]/20 bg-[#5850ec]/5 px-2 py-1 text-xs font-medium text-[#5850ec]">
-                            {button.type === "URL" ? "↗" : button.type === "PHONE_NUMBER" ? "☎" : "↩"} {button.text}
+                          <span
+                            key={`${button.text}-${index}`}
+                            className="rounded-full border border-[#5850ec]/20 bg-[#5850ec]/5 px-2 py-1 text-xs font-medium text-[#5850ec]"
+                          >
+                            {button.type === "URL"
+                              ? "↗"
+                              : button.type === "PHONE_NUMBER"
+                                ? "☎"
+                                : "↩"}{" "}
+                            {button.text}
                           </span>
                         ))}
                       </div>
@@ -1304,23 +1373,58 @@ function AdminCampaignPage() {
 
           <section className="bg-white rounded-xl border p-6 h-fit">
             <h2 className="font-bold text-gray-900">Novo template</h2>
-            <p className="text-sm text-gray-500 mt-1 mb-5">Crie a versão de texto para enviar à aprovação da Meta.</p>
-            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); criarTemplateMutation.mutate(); }}>
+            <p className="text-sm text-gray-500 mt-1 mb-5">
+              Crie a versão de texto para enviar à aprovação da Meta.
+            </p>
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                criarTemplateMutation.mutate();
+              }}
+            >
               <div>
                 <label className="text-xs font-bold text-gray-700">Nome técnico</label>
-                <Input value={novoTemplate.name} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))} placeholder="oferta_semana_setembro" className="mt-1" required />
+                <Input
+                  value={novoTemplate.name}
+                  onChange={(e) =>
+                    setNovoTemplate((draft) => ({
+                      ...draft,
+                      name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"),
+                    }))
+                  }
+                  placeholder="oferta_semana_setembro"
+                  className="mt-1"
+                  required
+                />
                 <p className="text-xs text-gray-400 mt-1">Apenas minúsculas, números e _.</p>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-700">Categoria</label>
-                <select value={novoTemplate.category} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, category: e.target.value }))} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <select
+                  value={novoTemplate.category}
+                  onChange={(e) =>
+                    setNovoTemplate((draft) => ({ ...draft, category: e.target.value }))
+                  }
+                  className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
                   <option value="MARKETING">Marketing</option>
                   <option value="UTILITY">Utilidade</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-700">Cabeçalho</label>
-                <select value={novoTemplate.headerType} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, headerType: e.target.value, header: e.target.value === "TEXT" ? draft.header : "" }))} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <select
+                  value={novoTemplate.headerType}
+                  onChange={(e) =>
+                    setNovoTemplate((draft) => ({
+                      ...draft,
+                      headerType: e.target.value,
+                      header: e.target.value === "TEXT" ? draft.header : "",
+                    }))
+                  }
+                  className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
                   <option value="NONE">Sem cabeçalho</option>
                   <option value="TEXT">Texto</option>
                   <option value="IMAGE">Imagem</option>
@@ -1330,77 +1434,244 @@ function AdminCampaignPage() {
               {novoTemplate.headerType === "TEXT" && (
                 <div>
                   <label className="text-xs font-bold text-gray-700">Texto do cabeçalho</label>
-                  <Input value={novoTemplate.header} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, header: e.target.value }))} maxLength={60} className="mt-1" required />
+                  <Input
+                    value={novoTemplate.header}
+                    onChange={(e) =>
+                      setNovoTemplate((draft) => ({ ...draft, header: e.target.value }))
+                    }
+                    maxLength={60}
+                    className="mt-1"
+                    required
+                  />
                 </div>
               )}
               {novoTemplate.headerType === "IMAGE" && (
                 <div>
                   <label className="text-xs font-bold text-gray-700">Imagem de exemplo</label>
-                  <input ref={templateImageInputRef} type="file" accept="image/jpeg,image/png" onChange={(e) => setImagemModelo(e.target.files?.[0] || null)} className="hidden" />
-                  <button type="button" onClick={() => templateImageInputRef.current?.click()} className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]">
-                    {imagemModelo ? `✓ ${imagemModelo.name}` : "Selecionar imagem JPG ou PNG (até 5 MB)"}
+                  <input
+                    ref={templateImageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={(e) => setImagemModelo(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => templateImageInputRef.current?.click()}
+                    className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]"
+                  >
+                    {imagemModelo
+                      ? `✓ ${imagemModelo.name}`
+                      : "Selecionar imagem JPG ou PNG (até 5 MB)"}
                   </button>
-                  <p className="text-xs text-gray-400 mt-1">A Meta usa esta imagem apenas como amostra na aprovação. Na campanha, você escolhe a imagem que será enviada.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    A Meta usa esta imagem apenas como amostra na aprovação. Na campanha, você
+                    escolhe a imagem que será enviada.
+                  </p>
                 </div>
               )}
               {novoTemplate.headerType === "VIDEO" && (
                 <div>
                   <label className="text-xs font-bold text-gray-700">Vídeo de exemplo</label>
-                  <input ref={templateVideoInputRef} type="file" accept="video/mp4" onChange={(e) => setVideoModelo(e.target.files?.[0] || null)} className="hidden" />
-                  <button type="button" onClick={() => templateVideoInputRef.current?.click()} className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]">
+                  <input
+                    ref={templateVideoInputRef}
+                    type="file"
+                    accept="video/mp4"
+                    onChange={(e) => setVideoModelo(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => templateVideoInputRef.current?.click()}
+                    className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]"
+                  >
                     {videoModelo ? `✓ ${videoModelo.name}` : "Selecionar vídeo MP4 (até 16 MB)"}
                   </button>
-                  <p className="text-xs text-gray-400 mt-1">A Meta usa este vídeo como amostra na aprovação. Na campanha, você escolhe o vídeo que será enviado.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    A Meta usa este vídeo como amostra na aprovação. Na campanha, você escolhe o
+                    vídeo que será enviado.
+                  </p>
                 </div>
               )}
               <div>
                 <label className="text-xs font-bold text-gray-700">Mensagem</label>
-                <Textarea value={novoTemplate.body} onChange={(e) => {
-                  const body = e.target.value;
-                  const variables = [...body.matchAll(/\{\{(\d+)\}\}/g)];
-                  setNovoTemplate((draft) => ({ ...draft, body, variableExamples: variables.map((_, index) => draft.variableExamples[index] || "") }));
-                }} placeholder="Oi {{1}}! Temos novidades no cardápio desta semana." className="mt-1 min-h-32" required />
-                <p className="text-xs text-gray-400 mt-1">Use {"{{1}}"}, {"{{2}}"} em sequência para valores que serão preenchidos na campanha.</p>
+                <Textarea
+                  value={novoTemplate.body}
+                  onChange={(e) => {
+                    const body = e.target.value;
+                    const variables = [...body.matchAll(/\{\{(\d+)\}\}/g)];
+                    setNovoTemplate((draft) => ({
+                      ...draft,
+                      body,
+                      variableExamples: variables.map(
+                        (_, index) => draft.variableExamples[index] || "",
+                      ),
+                    }));
+                  }}
+                  placeholder="Oi {{1}}! Temos novidades no cardápio desta semana."
+                  className="mt-1 min-h-32"
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Use {"{{1}}"}, {"{{2}}"} em sequência para valores que serão preenchidos na
+                  campanha.
+                </p>
               </div>
               {novoTemplate.variableExamples.map((value, index) => (
                 <div key={index}>
-                  <label className="text-xs font-bold text-gray-700">Exemplo para {`{{${index + 1}}}`}</label>
-                  <Input value={value} onChange={(e) => setNovoTemplate((draft) => { const variableExamples = [...draft.variableExamples]; variableExamples[index] = e.target.value; return { ...draft, variableExamples }; })} placeholder={`Ex.: ${index === 0 ? "Ana" : "Cupom10"}`} className="mt-1" required />
+                  <label className="text-xs font-bold text-gray-700">
+                    Exemplo para {`{{${index + 1}}}`}
+                  </label>
+                  <Input
+                    value={value}
+                    onChange={(e) =>
+                      setNovoTemplate((draft) => {
+                        const variableExamples = [...draft.variableExamples];
+                        variableExamples[index] = e.target.value;
+                        return { ...draft, variableExamples };
+                      })
+                    }
+                    placeholder={`Ex.: ${index === 0 ? "Ana" : "Cupom10"}`}
+                    className="mt-1"
+                    required
+                  />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-bold text-gray-700">Rodapé (opcional)</label>
-                <Input value={novoTemplate.footer} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, footer: e.target.value }))} maxLength={60} className="mt-1" />
+                <Input
+                  value={novoTemplate.footer}
+                  onChange={(e) =>
+                    setNovoTemplate((draft) => ({ ...draft, footer: e.target.value }))
+                  }
+                  maxLength={60}
+                  className="mt-1"
+                />
               </div>
               <div className="rounded-lg border border-gray-200 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <label className="text-xs font-bold text-gray-700">Botões de ação</label>
-                    <p className="text-xs text-gray-400">Até 3 botões; no máximo 2 de link ou ligação.</p>
+                    <p className="text-xs text-gray-400">
+                      Até 3 botões; no máximo 2 de link ou ligação.
+                    </p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" disabled={novoTemplate.buttons.length >= 3} onClick={() => setNovoTemplate((draft) => ({ ...draft, buttons: [...draft.buttons, { type: "URL", text: "", url: "" }] }))}>+ Botão</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={novoTemplate.buttons.length >= 3}
+                    onClick={() =>
+                      setNovoTemplate((draft) => ({
+                        ...draft,
+                        buttons: [...draft.buttons, { type: "URL", text: "", url: "" }],
+                      }))
+                    }
+                  >
+                    + Botão
+                  </Button>
                 </div>
                 <div className="mt-3 space-y-3">
                   {novoTemplate.buttons.map((button, index) => (
                     <div key={index} className="rounded-md bg-gray-50 p-2 space-y-2">
                       <div className="flex gap-2">
-                        <select value={button.type} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; const type = e.target.value as typeof button.type; buttons[index] = { type, text: buttons[index].text, ...(type === "URL" ? { url: "" } : type === "PHONE_NUMBER" ? { phone_number: "" } : {}) }; return { ...draft, buttons }; })} className="w-36 rounded border border-gray-200 px-2 py-1 text-xs">
+                        <select
+                          value={button.type}
+                          onChange={(e) =>
+                            setNovoTemplate((draft) => {
+                              const buttons = [...draft.buttons];
+                              const type = e.target.value as typeof button.type;
+                              buttons[index] = {
+                                type,
+                                text: buttons[index].text,
+                                ...(type === "URL"
+                                  ? { url: "" }
+                                  : type === "PHONE_NUMBER"
+                                    ? { phone_number: "" }
+                                    : {}),
+                              };
+                              return { ...draft, buttons };
+                            })
+                          }
+                          className="w-36 rounded border border-gray-200 px-2 py-1 text-xs"
+                        >
                           <option value="URL">Abrir link</option>
                           <option value="PHONE_NUMBER">Ligar</option>
                           <option value="QUICK_REPLY">Resposta rápida</option>
                         </select>
-                        <Input value={button.text} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], text: e.target.value }; return { ...draft, buttons }; })} maxLength={25} placeholder="Texto do botão" required className="h-8 text-xs" />
-                        <button type="button" onClick={() => setNovoTemplate((draft) => ({ ...draft, buttons: draft.buttons.filter((_, position) => position !== index) }))} className="px-2 text-xs font-bold text-red-600">✕</button>
+                        <Input
+                          value={button.text}
+                          onChange={(e) =>
+                            setNovoTemplate((draft) => {
+                              const buttons = [...draft.buttons];
+                              buttons[index] = { ...buttons[index], text: e.target.value };
+                              return { ...draft, buttons };
+                            })
+                          }
+                          maxLength={25}
+                          placeholder="Texto do botão"
+                          required
+                          className="h-8 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNovoTemplate((draft) => ({
+                              ...draft,
+                              buttons: draft.buttons.filter((_, position) => position !== index),
+                            }))
+                          }
+                          className="px-2 text-xs font-bold text-red-600"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      {button.type === "URL" && <Input value={button.url || ""} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], url: e.target.value }; return { ...draft, buttons }; })} placeholder="https://saborosamente.vercel.app/cardapio" required className="h-8 text-xs" />}
-                      {button.type === "PHONE_NUMBER" && <Input value={button.phone_number || ""} onChange={(e) => setNovoTemplate((draft) => { const buttons = [...draft.buttons]; buttons[index] = { ...buttons[index], phone_number: e.target.value }; return { ...draft, buttons }; })} placeholder="+5547991607757" required className="h-8 text-xs" />}
+                      {button.type === "URL" && (
+                        <Input
+                          value={button.url || ""}
+                          onChange={(e) =>
+                            setNovoTemplate((draft) => {
+                              const buttons = [...draft.buttons];
+                              buttons[index] = { ...buttons[index], url: e.target.value };
+                              return { ...draft, buttons };
+                            })
+                          }
+                          placeholder="https://saborosamente.vercel.app/cardapio"
+                          required
+                          className="h-8 text-xs"
+                        />
+                      )}
+                      {button.type === "PHONE_NUMBER" && (
+                        <Input
+                          value={button.phone_number || ""}
+                          onChange={(e) =>
+                            setNovoTemplate((draft) => {
+                              const buttons = [...draft.buttons];
+                              buttons[index] = { ...buttons[index], phone_number: e.target.value };
+                              return { ...draft, buttons };
+                            })
+                          }
+                          placeholder="+5547991607757"
+                          required
+                          className="h-8 text-xs"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
-              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">Envie marketing somente para contatos que aceitaram receber mensagens. O status final é definido pela Meta.</p>
-              <Button type="submit" className="w-full bg-[#5850ec] hover:bg-[#4740c9]" disabled={criarTemplateMutation.isPending}>
-                {criarTemplateMutation.isPending ? "Enviando para a Meta..." : "Enviar para aprovação da Meta"}
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">
+                Envie marketing somente para contatos que aceitaram receber mensagens. O status
+                final é definido pela Meta.
+              </p>
+              <Button
+                type="submit"
+                className="w-full bg-[#5850ec] hover:bg-[#4740c9]"
+                disabled={criarTemplateMutation.isPending}
+              >
+                {criarTemplateMutation.isPending
+                  ? "Enviando para a Meta..."
+                  : "Enviar para aprovação da Meta"}
               </Button>
             </form>
           </section>
@@ -1715,10 +1986,15 @@ function AdminCampaignPage() {
                   <div className="mb-4 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                     <div className="flex items-center gap-2 font-semibold">
                       <CircleDollarSign size={16} />
-                      Estimativa Meta: {formatarMoeda(enviosCampanha.filter((e: any) => e.status === "enviado").length * TARIFA_MARKETING_BR)}
+                      Estimativa Meta:{" "}
+                      {formatarMoeda(
+                        enviosCampanha.filter((e: any) => e.status === "enviado").length *
+                          TARIFA_MARKETING_BR,
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-emerald-700">
-                      Template Marketing no Brasil: {formatarMoeda(TARIFA_MARKETING_BR)} por mensagem entregue. A fatura da Meta é o valor final.
+                      Template Marketing no Brasil: {formatarMoeda(TARIFA_MARKETING_BR)} por
+                      mensagem entregue. A fatura da Meta é o valor final.
                     </p>
                   </div>
 
@@ -1790,8 +2066,12 @@ function AdminCampaignPage() {
                       </span>
                       <span>📨 {campanha.contatos_total} contatos</span>
                       <span>✓ {campanha.contatos_enviados} enviados</span>
-                      <span className="font-medium text-emerald-700" title="Estimativa para templates de Marketing enviados ao Brasil. A Meta cobra somente as mensagens entregues.">
-                        💰 Estimativa: {formatarMoeda((campanha.contatos_enviados || 0) * TARIFA_MARKETING_BR)}
+                      <span
+                        className="font-medium text-emerald-700"
+                        title="Estimativa para templates de Marketing enviados ao Brasil. A Meta cobra somente as mensagens entregues."
+                      >
+                        💰 Estimativa:{" "}
+                        {formatarMoeda((campanha.contatos_enviados || 0) * TARIFA_MARKETING_BR)}
                       </span>
                       {campanha.contatos_falhados > 0 && (
                         <span className="text-red-600">
@@ -1815,19 +2095,99 @@ function AdminCampaignPage() {
                       <Eye size={12} className="inline mr-1" />
                       {campanhaDetalhes === campanha.id ? "Fechar" : "Ver"}
                     </button>
+
+                    {/* Botão Pausar — só aparece quando está enviando */}
+                    {campanha.status === "enviando" && (
+                      <button
+                        onClick={async () => {
+                          await supabase
+                            .from("campanhas_whatsapp")
+                            .update({ status: "pausada" })
+                            .eq("id", campanha.id);
+                          queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
+                          toast.success(
+                            "Campanha pausada. Os envios vão parar em até 5 mensagens.",
+                          );
+                        }}
+                        className="px-3 py-1 rounded text-xs font-bold border border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-all"
+                      >
+                        ⏸ Pausar
+                      </button>
+                    )}
+
+                    {/* Botão Retomar — só aparece quando está pausada ou com erro e tem pendentes */}
+                    {(campanha.status === "pausada" || campanha.status === "erro") && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            // Busca os contatos ainda pendentes desta campanha
+                            const { data: pendentes } = await supabase
+                              .from("campanhas_whatsapp_envios")
+                              .select("telefone")
+                              .eq("campanha_id", campanha.id)
+                              .eq("status", "pendente");
+
+                            if (!pendentes?.length) {
+                              toast.info("Não há contatos pendentes para retomar.");
+                              return;
+                            }
+
+                            // Volta o status para 'enviando' antes de disparar
+                            await supabase
+                              .from("campanhas_whatsapp")
+                              .update({ status: "enviando" })
+                              .eq("id", campanha.id);
+
+                            queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
+                            toast.info(
+                              `Retomando envio para ${pendentes.length} contatos pendentes...`,
+                            );
+
+                            // Re-invoca a edge function só com os pendentes
+                            const { error } = await supabase.functions.invoke(
+                              "whatsapp-campanha-enviar",
+                              {
+                                body: {
+                                  campanha_id: campanha.id,
+                                  contatos: pendentes.map((p: any) => p.telefone),
+                                  mensagem: campanha.mensagem,
+                                  imagem_url: campanha.imagem_url ?? null,
+                                  video_url: campanha.video_url ?? null,
+                                  midia_tipo: campanha.midia_tipo ?? "nenhuma",
+                                  template: campanha.template ?? null,
+                                },
+                              },
+                            );
+
+                            if (error) throw error;
+                            queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
+                            toast.success("Campanha retomada e finalizada!");
+                          } catch (e: any) {
+                            toast.error("Erro ao retomar: " + (e?.message ?? "Tente novamente."));
+                          }
+                        }}
+                        className="px-3 py-1 rounded text-xs font-bold border border-green-500 text-green-700 bg-green-50 hover:bg-green-100 transition-all"
+                      >
+                        ▶ Retomar
+                      </button>
+                    )}
+
                     <div
                       className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
                         campanha.status === "enviada"
                           ? "bg-green-100 text-green-700"
                           : campanha.status === "enviando"
                             ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
+                            : campanha.status === "pausada"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
                       }`}
                     >
                       {campanha.status === "enviada" && <CheckCircle2 size={14} />}
                       {campanha.status === "enviando" && (
                         <Clock size={14} className="animate-spin" />
                       )}
+                      {campanha.status === "pausada" && <span>⏸</span>}
                       {campanha.status === "erro" && <AlertCircle size={14} />}
                       {campanha.status.charAt(0).toUpperCase() + campanha.status.slice(1)}
                     </div>

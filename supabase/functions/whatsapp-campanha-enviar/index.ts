@@ -192,6 +192,23 @@ Deno.serve(async (req: Request) => {
     for (let i = 0; i < contatosNormalizados.length; i++) {
       const telefone = contatosNormalizados[i];
 
+      // Verifica a cada 5 envios se a campanha foi pausada pelo admin.
+      if (i > 0 && i % 5 === 0) {
+        const { data: campanhaAtual } = await supabase
+          .from("campanhas_whatsapp")
+          .select("status")
+          .eq("id", campanha_id)
+          .single();
+        if (campanhaAtual?.status === "pausada") {
+          console.log(`Campanha ${campanha_id} pausada pelo admin no contato ${i + 1}.`);
+          // Mantém status 'pausada' no banco e retorna resultado parcial.
+          return new Response(
+            JSON.stringify({ success: false, pausada: true, enviados, falhados, pendentes: contatosNormalizados.length - i }),
+            { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
+          );
+        }
+      }
+
       if (Date.now() - inicioMinuto > 60000) {
         msgsEsteMinuto = 0;
         inicioMinuto = Date.now();
