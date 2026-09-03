@@ -978,6 +978,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
+  const [salvandoNome, setSalvandoNome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
@@ -1040,6 +1043,48 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensagens.length]);
 
+  useEffect(() => {
+    setNomeEditado(conversa.nome || "");
+    setEditandoNome(false);
+  }, [conversa.id, conversa.nome]);
+
+  const salvarNome = async () => {
+    const nome = nomeEditado.trim();
+    if (!nome) return toast.error("Informe o nome do contato.");
+    if (nome === conversa.nome) return setEditandoNome(false);
+
+    setSalvandoNome(true);
+    try {
+      const telefones = [...new Set([String(conversa.telefone ?? ""), telefoneNormalizado])].filter(Boolean);
+      const { error: contatoError } = await supabase
+        .from("contatos_lista")
+        .update({ nome })
+        .in("telefone", telefones);
+      if (contatoError) throw contatoError;
+
+      // Conversas criadas manualmente também guardam o nome próprio, para que
+      // ele mude imediatamente na lista de chats.
+      if (!somenteCampanha) {
+        const { error: conversaError } = await supabase
+          .from("whatsapp_conversas")
+          .update({ nome })
+          .eq("id", conversa.id);
+        if (conversaError) throw conversaError;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] }),
+        queryClient.invalidateQueries({ queryKey: ["whatsapp-contatos-das-listas"] }),
+      ]);
+      setEditandoNome(false);
+      toast.success("Nome do contato atualizado.");
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível atualizar o nome.");
+    } finally {
+      setSalvandoNome(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!msgText.trim() || sending) return;
     setSending(true);
@@ -1096,9 +1141,49 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
           {getInitials(conversa.nome || conversa.telefone)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-sm leading-tight truncate ${t.text}`}>
-            {conversa.nome || "Desconhecido"}
-          </p>
+          {editandoNome ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={nomeEditado}
+                onChange={(event) => setNomeEditado(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && salvarNome()}
+                className={`h-7 max-w-[210px] rounded-md border px-2 text-sm font-semibold outline-none ${dark ? "border-[#54656f] bg-[#111b21] text-white" : "border-[#d1d7db] bg-white text-[#111b21]"}`}
+                placeholder="Nome do contato"
+              />
+              <button
+                onClick={salvarNome}
+                disabled={salvandoNome}
+                className="p-1 rounded-full text-[#00a884] disabled:opacity-50"
+                title="Salvar nome"
+              >
+                {salvandoNome ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              </button>
+              <button
+                onClick={() => {
+                  setNomeEditado(conversa.nome || "");
+                  setEditandoNome(false);
+                }}
+                className={`p-1 rounded-full ${t.textSub}`}
+                title="Cancelar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <p className={`font-semibold text-sm leading-tight truncate ${t.text}`}>
+                {conversa.nome || "Desconhecido"}
+              </p>
+              <button
+                onClick={() => setEditandoNome(true)}
+                className={`p-1 rounded-full hover:bg-black/5 ${t.textSub}`}
+                title="Editar nome do contato"
+              >
+                <Pencil size={13} />
+              </button>
+            </div>
+          )}
           <p className={`text-xs ${t.textSub}`}>{conversa.telefone}</p>
         </div>
         {!somenteCampanha && (
