@@ -19,6 +19,7 @@ type TemplateDraft = {
   header?: unknown;
   headerType?: unknown;
   sampleImageUrl?: unknown;
+  sampleVideoUrl?: unknown;
   body?: unknown;
   footer?: unknown;
   variableExamples?: unknown;
@@ -34,24 +35,25 @@ function validationError(message: string) {
   });
 }
 
-async function uploadTemplateSampleImage(imageUrl: string): Promise<{ handle?: string; error?: string }> {
+async function uploadTemplateSampleMedia(mediaUrl: string, expectedContentType: "image/jpeg" | "image/png" | "video/mp4"): Promise<{ handle?: string; error?: string }> {
   let url: URL;
   try {
-    url = new URL(imageUrl);
+    url = new URL(mediaUrl);
   } catch {
-    return { error: "URL da imagem inválida." };
+    return { error: "URL de mídia inválida." };
   }
   const allowedPrefix = `${SUPABASE_URL}/storage/v1/object/public/campanhas/`;
-  if (!SUPABASE_URL || !imageUrl.startsWith(allowedPrefix)) {
-    return { error: "A imagem precisa ser enviada pelo painel." };
+  if (!SUPABASE_URL || !mediaUrl.startsWith(allowedPrefix)) {
+    return { error: "A mídia precisa ser enviada pelo painel." };
   }
 
-  const imageResponse = await fetch(url);
-  if (!imageResponse.ok) return { error: "Não foi possível ler a imagem enviada." };
-  const contentType = (imageResponse.headers.get("content-type") || "").split(";")[0].toLowerCase();
-  const bytes = await imageResponse.arrayBuffer();
-  if (!new Set(["image/jpeg", "image/png"]).has(contentType) || bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) {
-    return { error: "Use uma imagem JPG ou PNG de até 5 MB." };
+  const mediaResponse = await fetch(url);
+  if (!mediaResponse.ok) return { error: "Não foi possível ler a mídia enviada." };
+  const contentType = (mediaResponse.headers.get("content-type") || "").split(";")[0].toLowerCase();
+  const bytes = await mediaResponse.arrayBuffer();
+  const maxBytes = expectedContentType === "video/mp4" ? 16 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (contentType !== expectedContentType || bytes.byteLength === 0 || bytes.byteLength > maxBytes) {
+    return { error: expectedContentType === "video/mp4" ? "Use um vídeo MP4 de até 16 MB." : "Use uma imagem JPG ou PNG de até 5 MB." };
   }
 
   const start = await fetch(
@@ -59,7 +61,7 @@ async function uploadTemplateSampleImage(imageUrl: string): Promise<{ handle?: s
     { method: "POST", headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
   );
   const startData = await start.json().catch(() => ({})) as { id?: string; error?: { message?: string } };
-  if (!start.ok || !startData.id) return { error: startData.error?.message || "A Meta não iniciou o upload da imagem." };
+  if (!start.ok || !startData.id) return { error: startData.error?.message || "A Meta não iniciou o upload da mídia." };
 
   const upload = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${startData.id}`, {
     method: "POST",
@@ -67,7 +69,7 @@ async function uploadTemplateSampleImage(imageUrl: string): Promise<{ handle?: s
     body: bytes,
   });
   const uploadData = await upload.json().catch(() => ({})) as { h?: string; error?: { message?: string } };
-  if (!upload.ok || !uploadData.h) return { error: uploadData.error?.message || "A Meta não aceitou a imagem de exemplo." };
+  if (!upload.ok || !uploadData.h) return { error: uploadData.error?.message || "A Meta não aceitou a mídia de exemplo." };
   return { handle: uploadData.h };
 }
 
@@ -76,8 +78,9 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   const category = draft.category === "MARKETING" || draft.category === "UTILITY" ? draft.category : "";
   const language = draft.language === "pt_BR" ? draft.language : "";
   const header = typeof draft.header === "string" ? draft.header.trim() : "";
-  const headerType = draft.headerType === "IMAGE" ? "IMAGE" : draft.headerType === "TEXT" ? "TEXT" : "NONE";
+  const headerType = draft.headerType === "IMAGE" ? "IMAGE" : draft.headerType === "VIDEO" ? "VIDEO" : draft.headerType === "TEXT" ? "TEXT" : "NONE";
   const sampleImageUrl = typeof draft.sampleImageUrl === "string" ? draft.sampleImageUrl.trim() : "";
+  const sampleVideoUrl = typeof draft.sampleVideoUrl === "string" ? draft.sampleVideoUrl.trim() : "";
   const body = typeof draft.body === "string" ? draft.body.trim() : "";
   const footer = typeof draft.footer === "string" ? draft.footer.trim() : "";
   const variableExamples = Array.isArray(draft.variableExamples)
@@ -99,6 +102,7 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   if (!body || body.length > 1024) return { error: "O corpo é obrigatório e deve ter no máximo 1024 caracteres." };
   if (headerType === "TEXT" && (!header || header.length > 60)) return { error: "O cabeçalho de texto é obrigatório e deve ter no máximo 60 caracteres." };
   if (headerType === "IMAGE" && !sampleImageUrl) return { error: "Envie a imagem de exemplo do cabeçalho." };
+  if (headerType === "VIDEO" && !sampleVideoUrl) return { error: "Envie o vídeo de exemplo do cabeçalho." };
   if (footer.length > 60) return { error: "O rodapé deve ter no máximo 60 caracteres." };
   if (buttons.length > 3) return { error: "Use no máximo 3 botões por template." };
   if (buttons.filter((button) => button.type === "URL" || button.type === "PHONE_NUMBER").length > 2) {
@@ -128,9 +132,14 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   const components: Record<string, unknown>[] = [];
   if (headerType === "TEXT") components.push({ type: "HEADER", format: "TEXT", text: header });
   if (headerType === "IMAGE") {
-    const image = await uploadTemplateSampleImage(sampleImageUrl);
+    const image = await uploadTemplateSampleMedia(sampleImageUrl, sampleImageUrl.endsWith(".png") ? "image/png" : "image/jpeg");
     if (!image.handle) return { error: image.error || "Não foi possível preparar a imagem." };
     components.push({ type: "HEADER", format: "IMAGE", example: { header_handle: [image.handle] } });
+  }
+  if (headerType === "VIDEO") {
+    const video = await uploadTemplateSampleMedia(sampleVideoUrl, "video/mp4");
+    if (!video.handle) return { error: video.error || "Não foi possível preparar o vídeo." };
+    components.push({ type: "HEADER", format: "VIDEO", example: { header_handle: [video.handle] } });
   }
   const bodyComponent: Record<string, unknown> = { type: "BODY", text: body };
   if (uniqueVariables.length) bodyComponent.example = { body_text: [variableExamples] };
