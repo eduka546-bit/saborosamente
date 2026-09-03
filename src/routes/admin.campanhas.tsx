@@ -51,6 +51,7 @@ function AdminCampaignPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const templateImageInputRef = useRef<HTMLInputElement>(null);
+  const templateVideoInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -111,6 +112,7 @@ function AdminCampaignPage() {
     buttons: [] as { type: "URL" | "PHONE_NUMBER" | "QUICK_REPLY"; text: string; url?: string; phone_number?: string }[],
   });
   const [imagemModelo, setImagemModelo] = useState<File | null>(null);
+  const [videoModelo, setVideoModelo] = useState<File | null>(null);
 
   // Query para buscar templates aprovados da Meta
   const {
@@ -131,6 +133,7 @@ function AdminCampaignPage() {
   const criarTemplateMutation = useMutation({
     mutationFn: async () => {
       let sampleImageUrl: string | undefined;
+      let sampleVideoUrl: string | undefined;
       if (novoTemplate.headerType === "IMAGE") {
         if (!imagemModelo) throw new Error("Escolha uma imagem de exemplo para o cabeçalho.");
         if (!imagemModelo.type.match(/^image\/(jpeg|png)$/) || imagemModelo.size > 5 * 1024 * 1024) {
@@ -142,9 +145,19 @@ function AdminCampaignPage() {
         if (uploadError) throw uploadError;
         sampleImageUrl = supabase.storage.from("campanhas").getPublicUrl(path).data.publicUrl;
       }
+      if (novoTemplate.headerType === "VIDEO") {
+        if (!videoModelo) throw new Error("Escolha um vídeo de exemplo para o cabeçalho.");
+        if (videoModelo.type !== "video/mp4" || videoModelo.size > 16 * 1024 * 1024) {
+          throw new Error("Use um vídeo MP4 de até 16 MB.");
+        }
+        const path = `template-sample-${Date.now()}-${crypto.randomUUID()}.mp4`;
+        const { error: uploadError } = await supabase.storage.from("campanhas").upload(path, videoModelo, { upsert: false, contentType: videoModelo.type });
+        if (uploadError) throw uploadError;
+        sampleVideoUrl = supabase.storage.from("campanhas").getPublicUrl(path).data.publicUrl;
+      }
       const { data, error } = await supabase.functions.invoke("whatsapp-templates", {
         method: "POST",
-        body: { action: "create", template: { ...novoTemplate, language: "pt_BR", sampleImageUrl } },
+        body: { action: "create", template: { ...novoTemplate, language: "pt_BR", sampleImageUrl, sampleVideoUrl } },
       });
       if (error) {
         const response = error.context instanceof Response ? await error.context.json().catch(() => null) : null;
@@ -157,6 +170,7 @@ function AdminCampaignPage() {
       toast.success("Template enviado para aprovação da Meta.");
       setNovoTemplate({ name: "", category: "MARKETING", header: "", headerType: "NONE", body: "", footer: "", variableExamples: [], buttons: [] });
       setImagemModelo(null);
+      setVideoModelo(null);
       await refetchTemplates();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -469,6 +483,9 @@ function AdminCampaignPage() {
 
       if (templateSelecionado.headerFormat === "IMAGE" && !imagemFile) {
         throw new Error("Este template exige uma imagem no cabeçalho. Selecione-a em Upload de Mídia.");
+      }
+      if (templateSelecionado.headerFormat === "VIDEO" && !videoFile) {
+        throw new Error("Este template exige um vídeo no cabeçalho. Selecione-o em Upload de Mídia.");
       }
 
       let imagemUrl = null;
@@ -1295,6 +1312,7 @@ function AdminCampaignPage() {
                   <option value="NONE">Sem cabeçalho</option>
                   <option value="TEXT">Texto</option>
                   <option value="IMAGE">Imagem</option>
+                  <option value="VIDEO">Vídeo</option>
                 </select>
               </div>
               {novoTemplate.headerType === "TEXT" && (
@@ -1311,6 +1329,16 @@ function AdminCampaignPage() {
                     {imagemModelo ? `✓ ${imagemModelo.name}` : "Selecionar imagem JPG ou PNG (até 5 MB)"}
                   </button>
                   <p className="text-xs text-gray-400 mt-1">A Meta usa esta imagem apenas como amostra na aprovação. Na campanha, você escolhe a imagem que será enviada.</p>
+                </div>
+              )}
+              {novoTemplate.headerType === "VIDEO" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Vídeo de exemplo</label>
+                  <input ref={templateVideoInputRef} type="file" accept="video/mp4" onChange={(e) => setVideoModelo(e.target.files?.[0] || null)} className="hidden" />
+                  <button type="button" onClick={() => templateVideoInputRef.current?.click()} className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]">
+                    {videoModelo ? `✓ ${videoModelo.name}` : "Selecionar vídeo MP4 (até 16 MB)"}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-1">A Meta usa este vídeo como amostra na aprovação. Na campanha, você escolhe o vídeo que será enviado.</p>
                 </div>
               )}
               <div>
