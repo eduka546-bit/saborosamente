@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminWhatsappAlerts } from "@/components/admin-whatsapp-alerts";
 
 export const Route = createFileRoute("/admin")({
   component: function AdminLayoutWrapper() {
@@ -88,6 +89,7 @@ function AdminLayout() {
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
+      <AdminWhatsappAlerts />
     </div>
   );
 }
