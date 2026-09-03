@@ -22,7 +22,10 @@ type TemplateDraft = {
   body?: unknown;
   footer?: unknown;
   variableExamples?: unknown;
+  buttons?: unknown;
 };
+
+type TemplateButton = { type: "URL" | "PHONE_NUMBER" | "QUICK_REPLY"; text: string; url?: string; phone_number?: string };
 
 function validationError(message: string) {
   return new Response(JSON.stringify({ error: message }), {
@@ -80,6 +83,14 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   const variableExamples = Array.isArray(draft.variableExamples)
     ? draft.variableExamples.map((value) => (typeof value === "string" ? value.trim() : ""))
     : [];
+  const buttons: TemplateButton[] = Array.isArray(draft.buttons)
+    ? draft.buttons.map((button) => ({
+      type: button?.type,
+      text: typeof button?.text === "string" ? button.text.trim() : "",
+      url: typeof button?.url === "string" ? button.url.trim() : undefined,
+      phone_number: typeof button?.phone_number === "string" ? button.phone_number.replace(/[^+\d]/g, "") : undefined,
+    })) as TemplateButton[]
+    : [];
 
   if (!/^[a-z0-9_]{3,512}$/.test(name)) {
     return { error: "Use um nome com 3 a 512 caracteres: letras minúsculas, números e _." };
@@ -89,6 +100,21 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   if (headerType === "TEXT" && (!header || header.length > 60)) return { error: "O cabeçalho de texto é obrigatório e deve ter no máximo 60 caracteres." };
   if (headerType === "IMAGE" && !sampleImageUrl) return { error: "Envie a imagem de exemplo do cabeçalho." };
   if (footer.length > 60) return { error: "O rodapé deve ter no máximo 60 caracteres." };
+  if (buttons.length > 3) return { error: "Use no máximo 3 botões por template." };
+  if (buttons.filter((button) => button.type === "URL" || button.type === "PHONE_NUMBER").length > 2) {
+    return { error: "A Meta permite no máximo 2 botões de ação (link ou ligação)." };
+  }
+  for (const button of buttons) {
+    if (!(["URL", "PHONE_NUMBER", "QUICK_REPLY"] as const).includes(button.type) || !button.text || button.text.length > 25) {
+      return { error: "Cada botão precisa ter um tipo e um texto de até 25 caracteres." };
+    }
+    if (button.type === "URL" && (!button.url || !/^https:\/\/\S+$/i.test(button.url))) {
+      return { error: "O botão de link precisa usar uma URL HTTPS válida." };
+    }
+    if (button.type === "PHONE_NUMBER" && (!button.phone_number || !/^\+\d{8,15}$/.test(button.phone_number))) {
+      return { error: "O botão de ligação precisa de um telefone com DDI, por exemplo +5547991607757." };
+    }
+  }
 
   const variables = [...body.matchAll(/\{\{(\d+)\}\}/g)].map((match) => Number(match[1]));
   const uniqueVariables = [...new Set(variables)].sort((a, b) => a - b);
@@ -110,6 +136,7 @@ async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: R
   if (uniqueVariables.length) bodyComponent.example = { body_text: [variableExamples] };
   components.push(bodyComponent);
   if (footer) components.push({ type: "FOOTER", text: footer });
+  if (buttons.length) components.push({ type: "BUTTONS", buttons });
 
   return { payload: { name, category, language, components } };
 }
@@ -128,32 +155,36 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === "POST") {
       const requestBody = await req.json().catch(() => null) as { action?: string; template?: TemplateDraft } | null;
-      if (requestBody?.action !== "create" || !requestBody.template) {
+      // supabase.functions.invoke usa POST por padrão também nas leituras.
+      // POST sem action mantém compatibilidade e apenas lista os templates.
+      if (requestBody?.action && requestBody.action !== "create") {
         return validationError("Solicitação de template inválida.");
       }
+      if (requestBody?.action === "create") {
+        if (!requestBody.template) return validationError("Template inválido.");
+        const result = await buildTemplatePayload(requestBody.template);
+        if (!result.payload) return validationError(result.error || "Template inválido.");
 
-      const result = await buildTemplatePayload(requestBody.template);
-      if (!result.payload) return validationError(result.error || "Template inválido.");
+        const res = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify(result.payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const message = data?.error?.error_user_msg || data?.error?.message || "A Meta recusou o cadastro do template.";
+          console.error("Erro ao criar template:", JSON.stringify(data));
+          return new Response(JSON.stringify({ error: message }), {
+            status: 422,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
 
-      const res = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify(result.payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message = data?.error?.error_user_msg || data?.error?.message || "A Meta recusou o cadastro do template.";
-        console.error("Erro ao criar template:", JSON.stringify(data));
-        return new Response(JSON.stringify({ error: message }), {
-          status: 422,
+        return new Response(JSON.stringify({ template: data, message: "Template enviado para aprovação da Meta." }), {
+          status: 201,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
-
-      return new Response(JSON.stringify({ template: data, message: "Template enviado para aprovação da Meta." }), {
-        status: 201,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
     }
 
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates?limit=100&fields=name,status,language,components,category`;
