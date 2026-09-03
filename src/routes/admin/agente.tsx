@@ -1193,6 +1193,24 @@ function AdminAgentePage() {
     refetchInterval: 8000,
   });
 
+  const toggleAgenteMutation = useMutation({
+    mutationFn: async (ativo: boolean) => {
+      if (!config?.id) throw new Error("Configuração da IA não encontrada.");
+      const { error } = await supabase
+        .from("agente_config")
+        .update({ ativo, updated_at: new Date().toISOString() })
+        .eq("id", config.id);
+      if (error) throw error;
+      return ativo;
+    },
+    onSuccess: (ativo) => {
+      setConfig((atual: any) => ({ ...atual, ativo }));
+      queryClient.invalidateQueries({ queryKey: ["agente-config"] });
+      toast.success(ativo ? "IA ligada: respostas automáticas ativadas." : "IA desligada: mensagens continuam no painel, sem resposta automática.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const toggleModoMutation = useMutation({
     mutationFn: async ({ id, modoAtual }: { id: string; modoAtual: string }) => {
       const novoModo = modoAtual === "humano" ? "ia" : "humano";
@@ -1264,6 +1282,14 @@ function AdminAgentePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => toggleAgenteMutation.mutate(!config?.ativo)}
+              disabled={!config || toggleAgenteMutation.isPending}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:opacity-50 ${config?.ativo ? "bg-[#00a884] text-white hover:bg-[#008f72]" : "bg-[#f0a202] text-white hover:bg-[#d88900]"}`}
+              title="Ligar ou desligar as respostas automáticas"
+            >
+              {config?.ativo ? "IA ligada" : "IA desligada"}
+            </button>
             {humanasCount > 0 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badgeHumano}`}>
                 {humanasCount}
