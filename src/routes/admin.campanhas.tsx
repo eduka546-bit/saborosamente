@@ -27,7 +27,7 @@ export const Route = createFileRoute("/admin/campanhas")({
 });
 
 function AdminCampaignPage() {
-  const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico">("criar");
+  const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico" | "templates">("criar");
   const [nomesCampanha, setNomesCampanha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
@@ -90,6 +90,14 @@ function AdminCampaignPage() {
   const [templateSelecionado, setTemplateSelecionado] = useState<any>(null);
   const [templateVariaveis, setTemplateVariaveis] = useState<string[]>([]);
   const [usarTemplate, setUsarTemplate] = useState(false);
+  const [novoTemplate, setNovoTemplate] = useState({
+    name: "",
+    category: "MARKETING",
+    header: "",
+    body: "",
+    footer: "",
+    variableExamples: [] as string[],
+  });
 
   // Query para buscar templates aprovados da Meta
   const {
@@ -105,6 +113,27 @@ function AdminCampaignPage() {
     },
     staleTime: 5 * 60_000,
     enabled: false, // Só busca quando o usuário quiser
+  });
+
+  const criarTemplateMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-templates", {
+        method: "POST",
+        body: { action: "create", template: { ...novoTemplate, language: "pt_BR" } },
+      });
+      if (error) {
+        const response = error.context instanceof Response ? await error.context.json().catch(() => null) : null;
+        throw new Error(response?.error || error.message || "Não foi possível enviar o template.");
+      }
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: async () => {
+      toast.success("Template enviado para aprovação da Meta.");
+      setNovoTemplate({ name: "", category: "MARKETING", header: "", body: "", footer: "", variableExamples: [] });
+      await refetchTemplates();
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   // Query para envios da campanha selecionada (tempo real)
@@ -566,6 +595,20 @@ function AdminCampaignPage() {
         >
           <Clock className="inline mr-2" size={18} />
           Histórico
+        </button>
+        <button
+          onClick={() => {
+            setTabAtivo("templates");
+            refetchTemplates();
+          }}
+          className={`px-6 py-3 font-bold text-sm uppercase tracking-wider transition-all border-b-2 ${
+            tabAtivo === "templates"
+              ? "border-[#5850ec] text-[#5850ec]"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <CheckCircle2 className="inline mr-2" size={18} />
+          Templates Meta
         </button>
       </div>
 
@@ -1147,6 +1190,94 @@ function AdminCampaignPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB: Templates Meta */}
+      {tabAtivo === "templates" && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="bg-white rounded-xl border p-6">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="font-bold text-gray-900">Templates cadastrados na Meta</h2>
+                <p className="text-sm text-gray-500 mt-1">A aprovação costuma levar alguns minutos. Só templates aprovados podem iniciar conversas.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => refetchTemplates()} disabled={carregandoTemplates}>
+                {carregandoTemplates ? "Atualizando..." : "Atualizar"}
+              </Button>
+            </div>
+            {carregandoTemplates ? (
+              <p className="text-sm text-gray-500 py-8 text-center">Consultando a Meta...</p>
+            ) : templates.length === 0 ? (
+              <p className="text-sm text-gray-500 py-8 text-center">Nenhum template encontrado ainda.</p>
+            ) : (
+              <div className="space-y-3">
+                {templates.map((template: any) => (
+                  <article key={`${template.name}-${template.language}`} className="rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-sm text-gray-900">{template.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{template.category} · {template.language}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        template.status === "APPROVED" ? "bg-green-100 text-green-700" :
+                        template.status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+                      }`}>{template.status}</span>
+                    </div>
+                    {template.header && <p className="text-xs font-semibold text-gray-600 mt-3">{template.header}</p>}
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap mt-2">{template.body}</p>
+                    {template.footer && <p className="text-xs text-gray-400 mt-2">{template.footer}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="bg-white rounded-xl border p-6 h-fit">
+            <h2 className="font-bold text-gray-900">Novo template</h2>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Crie a versão de texto para enviar à aprovação da Meta.</p>
+            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); criarTemplateMutation.mutate(); }}>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Nome técnico</label>
+                <Input value={novoTemplate.name} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))} placeholder="oferta_semana_setembro" className="mt-1" required />
+                <p className="text-xs text-gray-400 mt-1">Apenas minúsculas, números e _.</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Categoria</label>
+                <select value={novoTemplate.category} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, category: e.target.value }))} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                  <option value="MARKETING">Marketing</option>
+                  <option value="UTILITY">Utilidade</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Cabeçalho (opcional)</label>
+                <Input value={novoTemplate.header} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, header: e.target.value }))} maxLength={60} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700">Mensagem</label>
+                <Textarea value={novoTemplate.body} onChange={(e) => {
+                  const body = e.target.value;
+                  const variables = [...body.matchAll(/\{\{(\d+)\}\}/g)];
+                  setNovoTemplate((draft) => ({ ...draft, body, variableExamples: variables.map((_, index) => draft.variableExamples[index] || "") }));
+                }} placeholder="Oi {{1}}! Temos novidades no cardápio desta semana." className="mt-1 min-h-32" required />
+                <p className="text-xs text-gray-400 mt-1">Use {"{{1}}"}, {"{{2}}"} em sequência para valores que serão preenchidos na campanha.</p>
+              </div>
+              {novoTemplate.variableExamples.map((value, index) => (
+                <div key={index}>
+                  <label className="text-xs font-bold text-gray-700">Exemplo para {`{{${index + 1}}}`}</label>
+                  <Input value={value} onChange={(e) => setNovoTemplate((draft) => { const variableExamples = [...draft.variableExamples]; variableExamples[index] = e.target.value; return { ...draft, variableExamples }; })} placeholder={`Ex.: ${index === 0 ? "Ana" : "Cupom10"}`} className="mt-1" required />
+                </div>
+              ))}
+              <div>
+                <label className="text-xs font-bold text-gray-700">Rodapé (opcional)</label>
+                <Input value={novoTemplate.footer} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, footer: e.target.value }))} maxLength={60} className="mt-1" />
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-3">Envie marketing somente para contatos que aceitaram receber mensagens. O status final é definido pela Meta.</p>
+              <Button type="submit" className="w-full bg-[#5850ec] hover:bg-[#4740c9]" disabled={criarTemplateMutation.isPending}>
+                {criarTemplateMutation.isPending ? "Enviando para a Meta..." : "Enviar para aprovação da Meta"}
+              </Button>
+            </form>
+          </section>
         </div>
       )}
 
