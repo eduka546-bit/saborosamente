@@ -25,16 +25,20 @@ function mensagemAtual(conversa: Conversa) {
 
 function tocarAlerta(contexto: AudioContext | null) {
   if (!contexto || contexto.state !== "running") return;
-  const oscilador = contexto.createOscillator();
-  const ganho = contexto.createGain();
-  oscilador.type = "sine";
-  oscilador.frequency.setValueAtTime(880, contexto.currentTime);
-  ganho.gain.setValueAtTime(0.0001, contexto.currentTime);
-  ganho.gain.exponentialRampToValueAtTime(0.08, contexto.currentTime + 0.02);
-  ganho.gain.exponentialRampToValueAtTime(0.0001, contexto.currentTime + 0.22);
-  oscilador.connect(ganho).connect(contexto.destination);
-  oscilador.start();
-  oscilador.stop(contexto.currentTime + 0.24);
+  const inicio = contexto.currentTime;
+  [0, 0.34].forEach((atraso, indice) => {
+    const oscilador = contexto.createOscillator();
+    const ganho = contexto.createGain();
+    const inicioToque = inicio + atraso;
+    oscilador.type = "square";
+    oscilador.frequency.setValueAtTime(indice === 0 ? 1046 : 1318, inicioToque);
+    ganho.gain.setValueAtTime(0.0001, inicioToque);
+    ganho.gain.exponentialRampToValueAtTime(0.42, inicioToque + 0.015);
+    ganho.gain.exponentialRampToValueAtTime(0.0001, inicioToque + 0.28);
+    oscilador.connect(ganho).connect(contexto.destination);
+    oscilador.start(inicioToque);
+    oscilador.stop(inicioToque + 0.3);
+  });
 }
 
 export function AdminWhatsappAlerts() {
