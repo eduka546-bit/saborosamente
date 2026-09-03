@@ -1160,6 +1160,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
                   </span>
+                  {msg.deliveryStatus && (
+                    <span className="text-[10px] opacity-60">
+                      {msg.deliveryStatus === "enviado"
+                        ? "Enviado à Meta"
+                        : msg.deliveryStatus === "entregue"
+                          ? "Entregue"
+                          : msg.deliveryStatus === "lido"
+                            ? "Lido"
+                            : msg.deliveryStatus}
+                    </span>
+                  )}
                   {isOut && <CheckCheck size={12} className="opacity-50" />}
                 </div>
               </div>
@@ -1232,6 +1243,10 @@ function AdminAgentePage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [filterModo, setFilterModo] = useState<"todos" | "ia" | "humano" | "campanhas">("todos");
+  const [cidadeFiltro, setCidadeFiltro] = useState("todas");
+  const [showNovaConversa, setShowNovaConversa] = useState(false);
+  const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
+  const [salvandoNovaConversa, setSalvandoNovaConversa] = useState(false);
 
   const t = dark ? DARK : LIGHT;
 
@@ -1288,6 +1303,32 @@ function AdminAgentePage() {
     },
     enabled: idsCampanhasPainel.length > 0,
     staleTime: 60_000,
+  });
+
+  const { data: contatosDasListas = [] } = useQuery({
+    queryKey: ["whatsapp-contatos-das-listas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contatos_lista")
+        .select("id, telefone, nome, lista_id")
+        .limit(5000);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: listasDeContatos = [] } = useQuery({
+    queryKey: ["whatsapp-listas-de-contatos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("listas_contatos")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60_000,
   });
 
   const toggleAgenteMutation = useMutation({
@@ -1354,19 +1395,34 @@ function AdminAgentePage() {
   const campanhasPorIdPainel = new Map(
     (campanhasDoPainel as any[]).map((campanha) => [campanha.id, campanha]),
   );
-  const campanhasSemResposta = (enviosDeCampanha as any[])
+  const nomesPorTelefone = new Map(
+    (contatosDasListas as any[])
+      .filter((contato) => contato.nome?.trim())
+      .map((contato) => [String(contato.telefone ?? "").replace(/\D/g, ""), contato.nome.trim()]),
+  );
+  const cidadesPorTelefone = new Map(
+    (contatosDasListas as any[]).map((contato) => [
+      String(contato.telefone ?? "").replace(/\D/g, ""),
+      (listasDeContatos as any[]).find((lista) => lista.id === contato.lista_id)?.nome || "Sem cidade",
+    ]),
+  );
+  const enviosUnicosPorTelefone = new Map<string, any>();
+  for (const envio of enviosDeCampanha as any[]) {
+    const telefone = String(envio.telefone ?? "").replace(/\D/g, "");
+    if (telefone && !enviosUnicosPorTelefone.has(telefone)) enviosUnicosPorTelefone.set(telefone, envio);
+  }
+  const campanhasSemResposta = [...enviosUnicosPorTelefone.values()]
     .filter((envio) => !telefonesComConversa.has(String(envio.telefone ?? "").replace(/\D/g, "")))
     .map((envio) => ({
       id: `campanha-${envio.id}`,
       telefone: envio.telefone,
-      nome: campanhasPorIdPainel.get(envio.campanha_id)?.nome
-        ? `${campanhasPorIdPainel.get(envio.campanha_id).nome} · ${envio.telefone}`
-        : envio.telefone,
+      nome: nomesPorTelefone.get(String(envio.telefone ?? "").replace(/\D/g, "")) || envio.telefone,
       mensagens: [],
       ultima_msg: envio.enviado_em ?? envio.created_at,
       modo: "campanha",
       somenteCampanha: true,
       statusCampanha: envio.status,
+      cidade: cidadesPorTelefone.get(String(envio.telefone ?? "").replace(/\D/g, "")) || "Sem cidade",
     }));
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : (conversas as any[]);
@@ -1376,8 +1432,57 @@ function AdminAgentePage() {
       !search ||
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
       c.telefone?.includes(search);
-    return matchModo && matchSearch;
+    const cidade = c.cidade || cidadesPorTelefone.get(String(c.telefone ?? "").replace(/\D/g, "")) || "Sem cidade";
+    return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
   });
+
+  const iniciarConversa = async () => {
+    const telefone = novoContato.telefone.replace(/\D/g, "");
+    if (!telefone || telefone.length < 10) return toast.error("Informe um WhatsApp válido com DDD.");
+    if (!novoContato.listaId) return toast.error("Escolha a cidade/lista deste contato.");
+    setSalvandoNovaConversa(true);
+    try {
+      const contatoExistente = (contatosDasListas as any[]).find(
+        (contato) => String(contato.telefone ?? "").replace(/\D/g, "") === telefone,
+      );
+      if (contatoExistente) {
+        const { error } = await supabase
+          .from("contatos_lista")
+          .update({ nome: novoContato.nome.trim() || contatoExistente.nome, lista_id: novoContato.listaId })
+          .eq("id", contatoExistente.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("contatos_lista")
+          .insert({ telefone, nome: novoContato.nome.trim() || null, lista_id: novoContato.listaId });
+        if (error) throw error;
+      }
+
+      const existente = (conversas as any[]).find(
+        (conversa) => String(conversa.telefone ?? "").replace(/\D/g, "") === telefone,
+      );
+      let conversaId = existente?.id;
+      if (!conversaId) {
+        const { data, error } = await supabase
+          .from("whatsapp_conversas")
+          .insert({ telefone, nome: novoContato.nome.trim() || null, mensagens: [], modo: "humano", ultima_msg: new Date().toISOString() })
+          .select("id")
+          .single();
+        if (error) throw error;
+        conversaId = data.id;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-contatos-das-listas"] });
+      setActiveId(conversaId);
+      setShowNovaConversa(false);
+      setNovoContato({ nome: "", telefone: "", listaId: "" });
+      toast.success("Contato salvo. Você já pode escrever a primeira mensagem.");
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível salvar o contato.");
+    } finally {
+      setSalvandoNovaConversa(false);
+    }
+  };
 
   const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
 
@@ -1414,6 +1519,13 @@ function AdminAgentePage() {
                 {humanasCount}
               </span>
             )}
+            <button
+              onClick={() => setShowNovaConversa(true)}
+              className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}
+              title="Nova conversa"
+            >
+              <Plus size={19} />
+            </button>
             <button
               onClick={() => setDark(!dark)}
               className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}
@@ -1470,6 +1582,20 @@ function AdminAgentePage() {
           ))}
         </div>
 
+        <div className={`px-3 pb-2 shrink-0`}>
+          <select
+            value={cidadeFiltro}
+            onChange={(event) => setCidadeFiltro(event.target.value)}
+            className={`w-full rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarSearchInput} ${t.divider}`}
+          >
+            <option value="todas">Todas as cidades</option>
+            {(listasDeContatos as any[]).map((lista) => (
+              <option key={lista.id} value={lista.nome}>{lista.nome}</option>
+            ))}
+            <option value="Sem cidade">Sem cidade</option>
+          </select>
+        </div>
+
         {/* Lista de conversas */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
@@ -1514,7 +1640,7 @@ function AdminAgentePage() {
                     <div className="flex items-center justify-between">
                       <p className={`text-xs truncate ${t.textSub}`}>
                         {isCampanha
-                          ? `📣 ${c.statusCampanha === "enviado" ? "Enviada" : c.statusCampanha}`
+                          ? `📣 ${c.statusCampanha === "enviado" ? "Enviado à Meta" : c.statusCampanha === "entregue" ? "Entregue" : c.statusCampanha === "lido" ? "Lido" : c.statusCampanha}`
                           : <>{lastMsg?.role === "assistant" ? "🤖 " : ""}{lastMsg?.content?.slice(0, 45) ?? ""}</>}
                       </p>
                       {isHumano && (
@@ -1600,6 +1726,53 @@ function AdminAgentePage() {
               }
             />
           )}
+        </div>
+      )}
+
+      {showNovaConversa && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${t.sidebar} ${t.divider}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className={`font-bold ${t.text}`}>Nova conversa</p>
+                <p className={`text-xs mt-0.5 ${t.textSub}`}>Salve o contato e comece o atendimento.</p>
+              </div>
+              <button onClick={() => setShowNovaConversa(false)} className={`p-1 ${t.textSub}`}><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              <input
+                value={novoContato.nome}
+                onChange={(event) => setNovoContato((atual) => ({ ...atual, nome: event.target.value }))}
+                placeholder="Nome do contato"
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none ${t.sidebarSearchInput} ${t.divider}`}
+              />
+              <input
+                value={novoContato.telefone}
+                onChange={(event) => setNovoContato((atual) => ({ ...atual, telefone: event.target.value }))}
+                placeholder="WhatsApp com DDD"
+                inputMode="tel"
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none ${t.sidebarSearchInput} ${t.divider}`}
+              />
+              <select
+                value={novoContato.listaId}
+                onChange={(event) => setNovoContato((atual) => ({ ...atual, listaId: event.target.value }))}
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none ${t.sidebarSearchInput} ${t.divider}`}
+              >
+                <option value="">Selecione a cidade</option>
+                {(listasDeContatos as any[]).map((lista) => <option key={lista.id} value={lista.id}>{lista.nome}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => setShowNovaConversa(false)} className={`px-3 py-2 text-sm ${t.textSub}`}>Cancelar</button>
+              <button
+                onClick={iniciarConversa}
+                disabled={salvandoNovaConversa}
+                className="rounded-lg bg-[#00a884] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {salvandoNovaConversa ? "Salvando..." : "Salvar e conversar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
