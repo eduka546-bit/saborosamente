@@ -979,7 +979,60 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const mensagens: any[] = conversa.mensagens ?? [];
+  const mensagensDaConversa: any[] = conversa.mensagens ?? [];
+  const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
+
+  // As campanhas são guardadas em tabelas próprias. Ao trazer os envios para a
+  // conversa, o atendimento passa a exibir também o que a empresa enviou antes
+  // de o cliente responder — inclusive campanhas disparadas antes desta tela.
+  const { data: enviosDeCampanha = [] } = useQuery({
+    queryKey: ["whatsapp-campanhas-do-contato", telefoneNormalizado],
+    queryFn: async () => {
+      const telefones = [...new Set([String(conversa.telefone ?? ""), telefoneNormalizado])].filter(Boolean);
+      const { data, error } = await supabase
+        .from("campanhas_whatsapp_envios")
+        .select("campanha_id, status, enviado_em, created_at")
+        .in("telefone", telefones)
+        .order("enviado_em", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!telefoneNormalizado,
+    staleTime: 15_000,
+  });
+
+  const idsCampanhas = [...new Set(enviosDeCampanha.map((envio: any) => envio.campanha_id))];
+  const { data: campanhas = [] } = useQuery({
+    queryKey: ["whatsapp-campanhas-detalhes", idsCampanhas],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campanhas_whatsapp")
+        .select("id, nome, mensagem")
+        .in("id", idsCampanhas);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: idsCampanhas.length > 0,
+    staleTime: 60_000,
+  });
+
+  const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
+  const mensagensDeCampanha = (enviosDeCampanha as any[])
+    .map((envio) => {
+      const campanha = campanhasPorId.get(envio.campanha_id);
+      if (!campanha) return null;
+      return {
+        role: "assistant",
+        content: campanha.mensagem,
+        timestamp: envio.enviado_em ?? envio.created_at,
+        campaignName: campanha.nome || "Campanha",
+        deliveryStatus: envio.status,
+      };
+    })
+    .filter(Boolean);
+  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
+    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  );
   const isHumano = conversa.modo === "humano";
 
   useEffect(() => {
@@ -990,7 +1043,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
     if (!msgText.trim() || sending) return;
     setSending(true);
     try {
-      const novas = [...mensagens, { role: "assistant", content: msgText, manual: true }].slice(
+      const novas = [...mensagensDaConversa, { role: "assistant", content: msgText, manual: true }].slice(
         -30,
       );
       await supabase
@@ -1095,7 +1148,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   <p className="text-[9px] font-bold opacity-60 mb-0.5">👤 Você</p>
                 )}
                 {isOut && !isManual && (
-                  <p className="text-[9px] font-bold opacity-60 mb-0.5">🤖 Saborosa</p>
+                  <p className="text-[9px] font-bold opacity-60 mb-0.5">
+                    {msg.campaignName ? `📣 Campanha: ${msg.campaignName}` : "🤖 Saborosa"}
+                  </p>
                 )}
                 <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
