@@ -1956,8 +1956,6 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      await sendTypingIndicator(telefone, msg.id);
-
       // Captura ID da opção selecionada (lista interativa ou botão)
       const menuId =
         msg.interactive?.list_reply?.id ??
@@ -1970,6 +1968,26 @@ Deno.serve(async (req: Request) => {
         msg.interactive?.button_reply?.title ??
         msg.interactive?.list_reply?.title ??
         "";
+
+      // ── Chave global da IA ───────────────────────────────────────────────
+      // Com a IA pausada, a mensagem continua sendo registrada no painel,
+      // mas nenhum processamento, indicador de digitação ou resposta é enviado.
+      const { data: config } = await supabase
+        .from("agente_config")
+        .select("*")
+        .maybeSingle();
+      if (!config?.ativo) {
+        const conversaPausada = await getOrCreateConversa(telefone, nomeContato);
+        if (conversaPausada) {
+          await appendMensagem(conversaPausada.id, conversaPausada.mensagens ?? [], {
+            role: "user",
+            content: texto || menuId || `[${msg.type || "mensagem"} recebido]`,
+          });
+        }
+        return new Response("OK", { status: 200 });
+      }
+
+      await sendTypingIndicator(telefone, msg.id);
 
       // ── Mídia recebida do cliente ────────────────────────────────────────
       // Áudio → transcreve (Whisper). Imagem → analisa (visão), incluindo
@@ -2055,21 +2073,6 @@ Deno.serve(async (req: Request) => {
           });
           return new Response("OK", { status: 200 });
         }
-      }
-
-      // ── Busca config do agente ───────────────────────────────────────────
-      const { data: config } = await supabase
-        .from("agente_config")
-        .select("*")
-        .eq("ativo", true)
-        .maybeSingle();
-
-      if (!config) {
-        await sendWhatsAppMessage(
-          telefone,
-          "Olá! 😊 Nosso assistente está temporariamente indisponível. Entre em contato pelo WhatsApp normalmente.",
-        );
-        return new Response("OK", { status: 200 });
       }
 
       // ── MODO TREINO: processa mensagens do treinador como instruções ──────
