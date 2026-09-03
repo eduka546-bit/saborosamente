@@ -22,13 +22,24 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type ResultadoEnvio = { sucesso: boolean; erro?: string; metaMessageId?: string };
+
+async function resultadoDaMeta(res: Response, fallback: string): Promise<ResultadoEnvio> {
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string };
+    messages?: { id?: string }[];
+  };
+  if (res.ok) return { sucesso: true, metaMessageId: json.messages?.[0]?.id };
+  return { sucesso: false, erro: json.error?.message || fallback };
+}
+
 async function enviarMensagem(
   to: string,
   mensagem: string,
   imagemUrl: string | null,
   videoUrl: string | null,
   template?: { name: string; language: string; variaveis: string[]; headerFormat?: string | null } | null,
-): Promise<{ sucesso: boolean; erro?: string }> {
+): Promise<ResultadoEnvio> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
     Authorization: `Bearer ${WHATSAPP_TOKEN}`,
@@ -66,12 +77,7 @@ async function enviarMensagem(
     };
 
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-    const resJson = (await res.json().catch(() => ({}))) as {
-      error?: { message?: string };
-      messages?: { id: string }[];
-    };
-    if (res.ok) return { sucesso: true };
-    return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar template" };
+    return resultadoDaMeta(res, "Erro ao enviar template");
   }
 
   // Enviar vídeo com caption
@@ -83,7 +89,7 @@ async function enviarMensagem(
       video: { link: videoUrl, caption: mensagem },
     };
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-    if (res.ok) return { sucesso: true };
+    if (res.ok) return resultadoDaMeta(res, "Erro ao enviar vídeo");
 
     // Fallback para documento
     const bodyDoc = {
@@ -93,10 +99,7 @@ async function enviarMensagem(
       document: { link: videoUrl, caption: mensagem, filename: "video.mp4" },
     };
     const resDoc = await fetch(url, { method: "POST", headers, body: JSON.stringify(bodyDoc) });
-    if (resDoc.ok) return { sucesso: true };
-
-    const errDoc = (await resDoc.json().catch(() => ({}))) as { error?: { message?: string } };
-    return { sucesso: false, erro: errDoc.error?.message || "Erro ao enviar vídeo" };
+    return resultadoDaMeta(resDoc, "Erro ao enviar vídeo");
   }
 
   // Enviar imagem com caption
@@ -108,10 +111,7 @@ async function enviarMensagem(
       image: { link: imagemUrl, caption: mensagem },
     };
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-    if (res.ok) return { sucesso: true };
-
-    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-    return { sucesso: false, erro: err.error?.message || "Erro ao enviar imagem" };
+    return resultadoDaMeta(res, "Erro ao enviar imagem");
   }
 
   // Só texto (janela 24h)
@@ -122,9 +122,7 @@ async function enviarMensagem(
     text: { body: mensagem },
   };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-  const resJson = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-  if (res.ok) return { sucesso: true };
-  return { sucesso: false, erro: resJson.error?.message || "Erro ao enviar texto" };
+  return resultadoDaMeta(res, "Erro ao enviar texto");
 }
 
 Deno.serve(async (req: Request) => {
@@ -259,7 +257,11 @@ Deno.serve(async (req: Request) => {
         enviados++;
         await supabase
           .from("campanhas_whatsapp_envios")
-          .update({ status: "enviado", enviado_em: new Date().toISOString() })
+          .update({
+            status: "enviado",
+            enviado_em: new Date().toISOString(),
+            meta_message_id: resultado.metaMessageId ?? null,
+          })
           .eq("campanha_id", campanha_id)
           .eq("telefone", telefone);
       } else {
