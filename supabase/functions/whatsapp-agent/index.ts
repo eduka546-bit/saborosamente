@@ -1899,6 +1899,40 @@ Deno.serve(async (req: Request) => {
       const value = changes?.value;
       const messages = value?.messages;
 
+      // Eventos de status chegam em webhooks separados das mensagens recebidas.
+      // Associamos o id devolvido pela Meta ao envio da campanha para diferenciar
+      // "aceito pela Meta" de "entregue" e "lido" no painel.
+      const statuses = value?.statuses;
+      if (Array.isArray(statuses) && statuses.length > 0) {
+        for (const statusEvent of statuses) {
+          const statusMeta = statusEvent?.status;
+          const statusBanco =
+            statusMeta === "delivered"
+              ? "entregue"
+              : statusMeta === "read"
+                ? "lido"
+                : statusMeta === "failed"
+                  ? "falhou"
+                  : statusMeta === "sent"
+                    ? "enviado"
+                    : null;
+          if (!statusBanco || !statusEvent?.id) continue;
+          const atualizacao: Record<string, string> = { status: statusBanco };
+          if (statusBanco === "entregue") atualizacao.entregue_em = new Date().toISOString();
+          if (statusBanco === "lido") atualizacao.lida_em = new Date().toISOString();
+          if (statusBanco === "falhou") {
+            atualizacao.erro_mensagem =
+              statusEvent?.errors?.[0]?.title || statusEvent?.errors?.[0]?.message || "Falha informada pela Meta";
+          }
+          const { error: statusError } = await supabase
+            .from("campanhas_whatsapp_envios")
+            .update(atualizacao)
+            .eq("meta_message_id", statusEvent.id);
+          if (statusError) console.error("Falha ao atualizar status da campanha:", statusError.message);
+        }
+        return new Response("OK", { status: 200 });
+      }
+
       if (!messages?.length) return new Response("OK", { status: 200 });
 
       const msg = messages[0];
