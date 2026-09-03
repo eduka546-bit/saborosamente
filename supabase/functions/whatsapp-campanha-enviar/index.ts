@@ -27,7 +27,7 @@ async function enviarMensagem(
   mensagem: string,
   imagemUrl: string | null,
   videoUrl: string | null,
-  template?: { name: string; language: string; variaveis: string[] } | null,
+  template?: { name: string; language: string; variaveis: string[]; headerFormat?: string | null } | null,
 ): Promise<{ sucesso: boolean; erro?: string }> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
@@ -44,6 +44,10 @@ async function enviarMensagem(
         type: "body",
         parameters: template.variaveis.map((v) => ({ type: "text", text: v })),
       });
+    }
+    if (template.headerFormat === "IMAGE") {
+      if (!imagemUrl) return { sucesso: false, erro: "Este template exige uma imagem no cabeçalho." };
+      components.push({ type: "header", parameters: [{ type: "image", image: { link: imagemUrl } }] });
     }
 
     const body = {
@@ -141,7 +145,7 @@ Deno.serve(async (req: Request) => {
       imagem_url: string | null;
       video_url: string | null;
       midia_tipo: string;
-      template?: { name: string; language: string; variaveis: string[] } | null;
+      template?: { name: string; language: string; variaveis: string[]; headerFormat?: string | null } | null;
     };
 
     campanha_id = body.campanha_id;
