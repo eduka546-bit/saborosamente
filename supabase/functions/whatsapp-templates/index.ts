@@ -2,6 +2,8 @@ import { authorizationError, authorizeAdminOrService } from "../_shared/authoriz
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WABA_ID = Deno.env.get("WHATSAPP_BUSINESS_ACCOUNT_ID") || "1805105217027535";
+const META_APP_ID = Deno.env.get("META_APP_ID") || "1384177589788689";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const corsHeaders = {
@@ -15,6 +17,8 @@ type TemplateDraft = {
   category?: unknown;
   language?: unknown;
   header?: unknown;
+  headerType?: unknown;
+  sampleImageUrl?: unknown;
   body?: unknown;
   footer?: unknown;
   variableExamples?: unknown;
@@ -27,11 +31,50 @@ function validationError(message: string) {
   });
 }
 
-function buildTemplatePayload(draft: TemplateDraft): { payload?: Record<string, unknown>; error?: string } {
+async function uploadTemplateSampleImage(imageUrl: string): Promise<{ handle?: string; error?: string }> {
+  let url: URL;
+  try {
+    url = new URL(imageUrl);
+  } catch {
+    return { error: "URL da imagem inválida." };
+  }
+  const allowedPrefix = `${SUPABASE_URL}/storage/v1/object/public/campanhas/`;
+  if (!SUPABASE_URL || !imageUrl.startsWith(allowedPrefix)) {
+    return { error: "A imagem precisa ser enviada pelo painel." };
+  }
+
+  const imageResponse = await fetch(url);
+  if (!imageResponse.ok) return { error: "Não foi possível ler a imagem enviada." };
+  const contentType = (imageResponse.headers.get("content-type") || "").split(";")[0].toLowerCase();
+  const bytes = await imageResponse.arrayBuffer();
+  if (!new Set(["image/jpeg", "image/png"]).has(contentType) || bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) {
+    return { error: "Use uma imagem JPG ou PNG de até 5 MB." };
+  }
+
+  const start = await fetch(
+    `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${META_APP_ID}/uploads?file_length=${bytes.byteLength}&file_type=${encodeURIComponent(contentType)}`,
+    { method: "POST", headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
+  );
+  const startData = await start.json().catch(() => ({})) as { id?: string; error?: { message?: string } };
+  if (!start.ok || !startData.id) return { error: startData.error?.message || "A Meta não iniciou o upload da imagem." };
+
+  const upload = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${startData.id}`, {
+    method: "POST",
+    headers: { Authorization: `OAuth ${WHATSAPP_TOKEN}`, "file_offset": "0", "Content-Type": contentType },
+    body: bytes,
+  });
+  const uploadData = await upload.json().catch(() => ({})) as { h?: string; error?: { message?: string } };
+  if (!upload.ok || !uploadData.h) return { error: uploadData.error?.message || "A Meta não aceitou a imagem de exemplo." };
+  return { handle: uploadData.h };
+}
+
+async function buildTemplatePayload(draft: TemplateDraft): Promise<{ payload?: Record<string, unknown>; error?: string }> {
   const name = typeof draft.name === "string" ? draft.name.trim().toLowerCase() : "";
   const category = draft.category === "MARKETING" || draft.category === "UTILITY" ? draft.category : "";
   const language = draft.language === "pt_BR" ? draft.language : "";
   const header = typeof draft.header === "string" ? draft.header.trim() : "";
+  const headerType = draft.headerType === "IMAGE" ? "IMAGE" : draft.headerType === "TEXT" ? "TEXT" : "NONE";
+  const sampleImageUrl = typeof draft.sampleImageUrl === "string" ? draft.sampleImageUrl.trim() : "";
   const body = typeof draft.body === "string" ? draft.body.trim() : "";
   const footer = typeof draft.footer === "string" ? draft.footer.trim() : "";
   const variableExamples = Array.isArray(draft.variableExamples)
@@ -43,7 +86,8 @@ function buildTemplatePayload(draft: TemplateDraft): { payload?: Record<string, 
   }
   if (!category || !language) return { error: "Categoria ou idioma inválido." };
   if (!body || body.length > 1024) return { error: "O corpo é obrigatório e deve ter no máximo 1024 caracteres." };
-  if (header.length > 60) return { error: "O cabeçalho deve ter no máximo 60 caracteres." };
+  if (headerType === "TEXT" && (!header || header.length > 60)) return { error: "O cabeçalho de texto é obrigatório e deve ter no máximo 60 caracteres." };
+  if (headerType === "IMAGE" && !sampleImageUrl) return { error: "Envie a imagem de exemplo do cabeçalho." };
   if (footer.length > 60) return { error: "O rodapé deve ter no máximo 60 caracteres." };
 
   const variables = [...body.matchAll(/\{\{(\d+)\}\}/g)].map((match) => Number(match[1]));
@@ -56,7 +100,12 @@ function buildTemplatePayload(draft: TemplateDraft): { payload?: Record<string, 
   }
 
   const components: Record<string, unknown>[] = [];
-  if (header) components.push({ type: "HEADER", format: "TEXT", text: header });
+  if (headerType === "TEXT") components.push({ type: "HEADER", format: "TEXT", text: header });
+  if (headerType === "IMAGE") {
+    const image = await uploadTemplateSampleImage(sampleImageUrl);
+    if (!image.handle) return { error: image.error || "Não foi possível preparar a imagem." };
+    components.push({ type: "HEADER", format: "IMAGE", example: { header_handle: [image.handle] } });
+  }
   const bodyComponent: Record<string, unknown> = { type: "BODY", text: body };
   if (uniqueVariables.length) bodyComponent.example = { body_text: [variableExamples] };
   components.push(bodyComponent);
@@ -83,7 +132,7 @@ Deno.serve(async (req: Request) => {
         return validationError("Solicitação de template inválida.");
       }
 
-      const result = buildTemplatePayload(requestBody.template);
+      const result = await buildTemplatePayload(requestBody.template);
       if (!result.payload) return validationError(result.error || "Template inválido.");
 
       const res = await fetch(`https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WABA_ID}/message_templates`, {

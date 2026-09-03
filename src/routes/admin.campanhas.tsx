@@ -41,6 +41,7 @@ function AdminCampaignPage() {
   const [campanhaDetalhes, setCampanhaDetalhes] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const templateImageInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -94,10 +95,12 @@ function AdminCampaignPage() {
     name: "",
     category: "MARKETING",
     header: "",
+    headerType: "NONE",
     body: "",
     footer: "",
     variableExamples: [] as string[],
   });
+  const [imagemModelo, setImagemModelo] = useState<File | null>(null);
 
   // Query para buscar templates aprovados da Meta
   const {
@@ -117,9 +120,21 @@ function AdminCampaignPage() {
 
   const criarTemplateMutation = useMutation({
     mutationFn: async () => {
+      let sampleImageUrl: string | undefined;
+      if (novoTemplate.headerType === "IMAGE") {
+        if (!imagemModelo) throw new Error("Escolha uma imagem de exemplo para o cabeçalho.");
+        if (!imagemModelo.type.match(/^image\/(jpeg|png)$/) || imagemModelo.size > 5 * 1024 * 1024) {
+          throw new Error("Use uma imagem JPG ou PNG de até 5 MB.");
+        }
+        const extension = imagemModelo.type === "image/png" ? "png" : "jpg";
+        const path = `template-sample-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("campanhas").upload(path, imagemModelo, { upsert: false, contentType: imagemModelo.type });
+        if (uploadError) throw uploadError;
+        sampleImageUrl = supabase.storage.from("campanhas").getPublicUrl(path).data.publicUrl;
+      }
       const { data, error } = await supabase.functions.invoke("whatsapp-templates", {
         method: "POST",
-        body: { action: "create", template: { ...novoTemplate, language: "pt_BR" } },
+        body: { action: "create", template: { ...novoTemplate, language: "pt_BR", sampleImageUrl } },
       });
       if (error) {
         const response = error.context instanceof Response ? await error.context.json().catch(() => null) : null;
@@ -130,7 +145,8 @@ function AdminCampaignPage() {
     },
     onSuccess: async () => {
       toast.success("Template enviado para aprovação da Meta.");
-      setNovoTemplate({ name: "", category: "MARKETING", header: "", body: "", footer: "", variableExamples: [] });
+      setNovoTemplate({ name: "", category: "MARKETING", header: "", headerType: "NONE", body: "", footer: "", variableExamples: [] });
+      setImagemModelo(null);
       await refetchTemplates();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -441,6 +457,10 @@ function AdminCampaignPage() {
         throw new Error("Preencha todas as variáveis do template antes de enviar");
       }
 
+      if (templateSelecionado.headerFormat === "IMAGE" && !imagemFile) {
+        throw new Error("Este template exige uma imagem no cabeçalho. Selecione-a em Upload de Mídia.");
+      }
+
       let imagemUrl = null;
       let videoUrl = null;
 
@@ -508,6 +528,7 @@ function AdminCampaignPage() {
                   name: templateSelecionado.name,
                   language: templateSelecionado.language,
                   variaveis: templateVariaveis,
+                  headerFormat: templateSelecionado.headerFormat,
                 }
               : null,
         },
@@ -1250,9 +1271,29 @@ function AdminCampaignPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-700">Cabeçalho (opcional)</label>
-                <Input value={novoTemplate.header} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, header: e.target.value }))} maxLength={60} className="mt-1" />
+                <label className="text-xs font-bold text-gray-700">Cabeçalho</label>
+                <select value={novoTemplate.headerType} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, headerType: e.target.value, header: e.target.value === "TEXT" ? draft.header : "" }))} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                  <option value="NONE">Sem cabeçalho</option>
+                  <option value="TEXT">Texto</option>
+                  <option value="IMAGE">Imagem</option>
+                </select>
               </div>
+              {novoTemplate.headerType === "TEXT" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Texto do cabeçalho</label>
+                  <Input value={novoTemplate.header} onChange={(e) => setNovoTemplate((draft) => ({ ...draft, header: e.target.value }))} maxLength={60} className="mt-1" required />
+                </div>
+              )}
+              {novoTemplate.headerType === "IMAGE" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-700">Imagem de exemplo</label>
+                  <input ref={templateImageInputRef} type="file" accept="image/jpeg,image/png" onChange={(e) => setImagemModelo(e.target.files?.[0] || null)} className="hidden" />
+                  <button type="button" onClick={() => templateImageInputRef.current?.click()} className="w-full mt-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 hover:border-[#5850ec]">
+                    {imagemModelo ? `✓ ${imagemModelo.name}` : "Selecionar imagem JPG ou PNG (até 5 MB)"}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-1">A Meta usa esta imagem apenas como amostra na aprovação. Na campanha, você escolhe a imagem que será enviada.</p>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-bold text-gray-700">Mensagem</label>
                 <Textarea value={novoTemplate.body} onChange={(e) => {
