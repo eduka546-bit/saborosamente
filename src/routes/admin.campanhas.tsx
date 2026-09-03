@@ -256,26 +256,38 @@ function AdminCampaignPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const csv = event.target?.result as string;
-        const linhas = csv.split("\n").filter((l) => l.trim());
+        const csv = (event.target?.result as string).replace(/^\uFEFF/, "");
+        const linhas = csv.split(/\r?\n/).filter((l) => l.trim());
+        const lerColunas = (linha: string) => {
+          const colunas: string[] = [];
+          let valor = "";
+          let entreAspas = false;
+          for (let i = 0; i < linha.length; i++) {
+            const caractere = linha[i];
+            if (caractere === '"') {
+              if (entreAspas && linha[i + 1] === '"') { valor += '"'; i++; }
+              else entreAspas = !entreAspas;
+            } else if (caractere === "," && !entreAspas) {
+              colunas.push(valor.trim());
+              valor = "";
+            } else valor += caractere;
+          }
+          colunas.push(valor.trim());
+          return colunas;
+        };
 
-        // Remove header se houver
-        let contatos = linhas;
-        if (
-          linhas.length > 0 &&
-          (linhas[0].toLowerCase().includes("telefone") ||
-            linhas[0].toLowerCase().includes("phone"))
-        ) {
-          contatos = linhas.slice(1);
-        }
-
-        // Parse telefones (remove tudo que não é número)
-        const telefonesParsed = contatos
-          .map((l) => {
-            const match = l.match(/\d+/g);
-            return match ? match.join("") : "";
+        const cabecalho = lerColunas(linhas[0] || "").map((coluna) => coluna.toLowerCase());
+        const colunaTelefone = cabecalho.findIndex((coluna) =>
+          ["phone number", "telefone", "phone", "celular", "whatsapp"].includes(coluna),
+        );
+        const dados = colunaTelefone >= 0 ? linhas.slice(1) : linhas;
+        const telefonesParsed = dados
+          .map((linha) => {
+            const colunas = lerColunas(linha);
+            const candidato = colunaTelefone >= 0 ? colunas[colunaTelefone] : linha;
+            return (candidato || "").replace(/\D/g, "");
           })
-          .filter((t) => t.length >= 10 && t.length <= 15);
+          .filter((telefone) => telefone.length >= 10 && telefone.length <= 15);
 
         if (telefonesParsed.length === 0) {
           toast.error("Nenhum telefone válido encontrado no CSV");
