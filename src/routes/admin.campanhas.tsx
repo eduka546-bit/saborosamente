@@ -15,6 +15,7 @@ import {
   Trash2,
   Clock,
   Users,
+  CircleDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,14 @@ export const Route = createFileRoute("/admin/campanhas")({
   component: AdminCampaignPage,
   ssr: false,
 });
+
+// Tarifa de lista da Meta para template de Marketing entregue a destinatários
+// no Brasil. A cobrança efetiva continua sendo a apurada pela Meta.
+const TARIFA_MARKETING_BR = 0.3217;
+
+function formatarMoeda(valor: number) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function AdminCampaignPage() {
   const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico" | "templates">("criar");
@@ -1627,6 +1636,16 @@ function AdminCampaignPage() {
                     />
                   </div>
 
+                  <div className="mb-4 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <CircleDollarSign size={16} />
+                      Estimativa Meta: {formatarMoeda(enviosCampanha.filter((e: any) => e.status === "enviado").length * TARIFA_MARKETING_BR)}
+                    </div>
+                    <p className="mt-1 text-xs text-emerald-700">
+                      Template Marketing no Brasil: {formatarMoeda(TARIFA_MARKETING_BR)} por mensagem entregue. A fatura da Meta é o valor final.
+                    </p>
+                  </div>
+
                   {/* Lista de envios */}
                   <div className="max-h-64 overflow-y-auto space-y-1">
                     {enviosCampanha.map((envio: any, idx: number) => (
@@ -1695,6 +1714,9 @@ function AdminCampaignPage() {
                       </span>
                       <span>📨 {campanha.contatos_total} contatos</span>
                       <span>✓ {campanha.contatos_enviados} enviados</span>
+                      <span className="font-medium text-emerald-700" title="Estimativa para templates de Marketing enviados ao Brasil. A Meta cobra somente as mensagens entregues.">
+                        💰 Estimativa: {formatarMoeda((campanha.contatos_enviados || 0) * TARIFA_MARKETING_BR)}
+                      </span>
                       {campanha.contatos_falhados > 0 && (
                         <span className="text-red-600">
                           ✗ {campanha.contatos_falhados} falhados
