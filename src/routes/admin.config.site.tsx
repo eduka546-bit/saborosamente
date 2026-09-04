@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imgUrl } from "@/lib/image-proxy";
+import { optimizeImage } from "@/lib/image-optimizer";
 import {
   Save,
   Upload,
@@ -48,6 +49,15 @@ function AdminSiteConfig() {
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
   ];
+
+  /**
+   * Imagens de interface não precisam ser guardadas no tamanho original da câmera.
+   * WebP reduz transferência e armazenamento, preservando transparência para logos.
+   */
+  const prepararImagem = async (file: File, maxSize = 1600) => {
+    if (!file.type.startsWith("image/")) throw new Error("Selecione uma imagem válida.");
+    return optimizeImage(file, { maxWidth: maxSize, maxHeight: maxSize, quality: 82, format: "webp" });
+  };
 
   const {
     data: settings,
@@ -153,12 +163,12 @@ function AdminSiteConfig() {
   const handleImageUpload = async (file: File, field: string) => {
     try {
       setIsUploading((prev) => ({ ...prev, [field]: true }));
-      const fileExt = file.name.split(".").pop();
-      const fileName = `site_${field}_${Date.now()}.${fileExt}`;
+      const imagem = await prepararImagem(file);
+      const fileName = `site_${field}_${Date.now()}.webp`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images") // Usando o mesmo bucket já existente
-        .upload(fileName, file);
+        .upload(fileName, imagem, { cacheControl: "31536000", contentType: "image/webp" });
 
       if (uploadError) throw uploadError;
 
@@ -211,11 +221,11 @@ function AdminSiteConfig() {
     const key = `promo_${index}`;
     try {
       setIsUploading((prev) => ({ ...prev, [key]: true }));
-      const fileExt = file.name.split(".").pop();
-      const fileName = `site_promo_${index}_${Date.now()}.${fileExt}`;
+      const imagem = await prepararImagem(file, 1920);
+      const fileName = `site_promo_${index}_${Date.now()}.webp`;
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(fileName, file);
+        .upload(fileName, imagem, { cacheControl: "31536000", contentType: "image/webp" });
       if (uploadError) throw uploadError;
       const {
         data: { publicUrl },
@@ -237,12 +247,12 @@ function AdminSiteConfig() {
     const key = `payment_${type}_${index}`;
     try {
       setIsUploading((prev) => ({ ...prev, [key]: true }));
-      const fileExt = file.name.split(".").pop();
-      const fileName = `payment_${type}_${index}_${Date.now()}.${fileExt}`;
+      const imagem = await prepararImagem(file, 512);
+      const fileName = `payment_${type}_${index}_${Date.now()}.webp`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
-        .upload(fileName, file);
+        .upload(fileName, imagem, { cacheControl: "31536000", contentType: "image/webp" });
 
       if (uploadError) throw uploadError;
 
@@ -999,7 +1009,7 @@ function AdminSiteConfig() {
               <div className="relative group w-40 h-24 rounded-xl bg-[#086e45] flex items-center justify-center overflow-hidden border">
                 {formData.footer_logo_url || formData.profile_image_url ? (
                   <img
-                    src={formData.footer_logo_url || formData.profile_image_url}
+                    src={imgUrl(formData.footer_logo_url || formData.profile_image_url)}
                     className="w-full h-full object-contain p-2"
                     alt="Logo footer"
                   />
@@ -1021,11 +1031,11 @@ function AdminSiteConfig() {
                       if (!file) return;
                       setIsUploading((prev) => ({ ...prev, footer_logo: true }));
                       try {
-                        const ext = file.name.split(".").pop();
-                        const fileName = `footer_logo_${Date.now()}.${ext}`;
+                        const imagem = await prepararImagem(file, 512);
+                        const fileName = `footer_logo_${Date.now()}.webp`;
                         const { error: uploadError } = await supabase.storage
                           .from("product-images")
-                          .upload(fileName, file);
+                          .upload(fileName, imagem, { cacheControl: "31536000", contentType: "image/webp" });
                         if (uploadError) throw uploadError;
                         const {
                           data: { publicUrl },
@@ -1204,11 +1214,11 @@ function AdminSiteConfig() {
                       if (!file) return;
                       setIsUploading((prev) => ({ ...prev, popup_imagem: true }));
                       try {
-                        const ext = file.name.split(".").pop();
-                        const path = `popup_${Date.now()}.${ext}`;
+                        const imagem = await prepararImagem(file, 1200);
+                        const path = `popup_${Date.now()}.webp`;
                         const { error } = await supabase.storage
                           .from("product-images")
-                          .upload(path, file);
+                          .upload(path, imagem, { cacheControl: "31536000", contentType: "image/webp" });
                         if (error) throw error;
                         const {
                           data: { publicUrl },
