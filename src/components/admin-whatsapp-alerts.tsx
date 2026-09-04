@@ -88,7 +88,6 @@ export function AdminWhatsappAlerts() {
             body: mensagem.content.slice(0, 160),
             icon: "/favicon.png",
             tag: `whatsapp-${conversa.id}`,
-            renotify: true,
           });
         },
       )
