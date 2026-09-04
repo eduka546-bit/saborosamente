@@ -1,5 +1,5 @@
 import { ImgHTMLAttributes } from "react";
-import { getOptimizedImageUrl, generateSrcSet, generateSizes } from "@/lib/image-optimizer";
+import { generateSizes } from "@/lib/image-optimizer";
 
 interface OptimizedImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -18,7 +18,9 @@ interface OptimizedImageProps extends ImgHTMLAttributes<HTMLImageElement> {
 export function OptimizedImage({
   src,
   alt,
-  widths = [320, 640, 1024],
+  // Mantido por compatibilidade com chamadas existentes. Sem um serviço de
+  // transformação na origem, não geramos variantes artificiais de tamanho.
+  widths: _widths = [320, 640, 1024],
   priority = false,
   loading = priority ? "eager" : "lazy",
   sizes,
@@ -26,29 +28,21 @@ export function OptimizedImage({
   ...props
 }: OptimizedImageProps) {
   if (!src) return null;
+  void _widths;
 
-  const webpUrl = getOptimizedImageUrl(src, undefined, "webp");
-  const jpegUrl = getOptimizedImageUrl(src, undefined, "jpeg");
-  const srcSet = generateSrcSet(src, widths);
   const calculatedSizes = sizes || generateSizes();
 
-  return (
-    <picture>
-      {/* WebP para navegadores modernos */}
-      <source srcSet={srcSet} sizes={calculatedSizes} type="image/webp" />
-      {/* Fallback JPEG */}
-      <source srcSet={srcSet} sizes={calculatedSizes} type="image/jpeg" />
-      {/* Fallback para navegadores antigos */}
-      <img
-        src={jpegUrl}
-        alt={alt}
-        loading={loading}
-        sizes={calculatedSizes}
-        className={className}
-        width={props.width}
-        height={props.height}
-        {...props}
-      />
-    </picture>
-  );
+  // A URL pode apontar para uma imagem original (JPG/PNG) ou para WebP.
+  // Não declaramos formatos que não foram gerados de fato: isso evita que o
+  // navegador solicite a mesma imagem como se fosse mais de um formato.
+  return <img
+    src={src}
+    alt={alt}
+    loading={loading}
+    sizes={calculatedSizes}
+    className={className}
+    width={props.width}
+    height={props.height}
+    {...props}
+  />;
 }
