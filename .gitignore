@@ -20,6 +20,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Credenciais locais nunca devem entrar no histórico
+pw.txt
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
