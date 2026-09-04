@@ -160,8 +160,8 @@ function RootComponent() {
 
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
-    const admin = pathname.startsWith("/admin");
-    const login = pathname === "/admin-login";
+    const admin = pathname.startsWith("/admin") || pathname.startsWith("/cozinha");
+    const login = pathname === "/admin-login" || pathname === "/cozinha-login";
     setIsAdminPath(admin);
     setIsLoginPage(login);
     setMounted(true);
