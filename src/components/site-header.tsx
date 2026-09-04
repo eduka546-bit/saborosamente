@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { imgUrl } from "@/lib/image-proxy";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -350,8 +351,8 @@ export function SiteHeader() {
    * Enquanto a consulta ainda não respondeu, NÃO renderizamos a imagem padrão —
    * isso evitava o "flash" da capa original antes da capa atualizada aparecer.
    */
-  const heroDesktopSrc = settings?.hero_image_url;
-  const heroMobileSrc = settings?.hero_image_url;
+  const heroDesktopSrc = imgUrl(settings?.hero_image_url);
+  const heroMobileSrc = imgUrl(settings?.hero_image_url);
 
   return (
     <header className="relative z-[40] transition-all duration-300 pointer-events-none">
@@ -570,7 +571,7 @@ export function SiteHeader() {
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-[15%] z-[300] flex items-center justify-center pointer-events-none">
             <div className="size-[140px] md:size-[200px] rounded-full border-[2px] border-[#fff688] bg-[#086e45] shadow-2xl flex items-center justify-center overflow-hidden pointer-events-auto">
               <img
-                src={settings?.profile_image_url}
+                src={imgUrl(settings?.profile_image_url)}
                 className="w-full h-full object-cover"
                 alt="Profile"
               />
