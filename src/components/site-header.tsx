@@ -17,8 +17,7 @@ import { imgUrl } from "@/lib/image-proxy";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import bannerDesktopAsset from "@/assets/banner-desktop.jpg.asset.json";
-import bannerMobileAsset from "@/assets/banner-mobile.jpg.asset.json";
+import saborosamenteLogoAsset from "@/assets/saborosamente-logo.png.asset.json";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -332,7 +331,7 @@ export function SiteHeader() {
     staleTime: 1000 * 60 * 60,
   });
 
-  const { data: settings, isPending: isSettingsPending } = useQuery({
+  const { data: settings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
       const { data } = await supabase.from("site_settings").select("*").maybeSingle();
@@ -346,13 +345,7 @@ export function SiteHeader() {
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
 
-  /**
-   * Imagens do banner: sempre priorizamos o que foi enviado pelo painel admin.
-   * Enquanto a consulta ainda não respondeu, NÃO renderizamos a imagem padrão —
-   * isso evitava o "flash" da capa original antes da capa atualizada aparecer.
-   */
-  const heroDesktopSrc = imgUrl(settings?.hero_image_url);
-  const heroMobileSrc = imgUrl(settings?.hero_image_url);
+  const logoSrc = imgUrl(settings?.logo_url) || saborosamenteLogoAsset.url;
 
   return (
     <header className="relative z-[40] transition-all duration-300 pointer-events-none">
@@ -416,6 +409,10 @@ export function SiteHeader() {
             </nav>
           </SheetContent>
         </Sheet>
+
+        <Link to="/" className="hidden md:flex shrink-0 items-center mr-6" aria-label="SaborosaMente">
+          <img src={logoSrc} alt="SaborosaMente" className="h-12 w-44 object-contain object-left" />
+        </Link>
 
         {/* Navigation Links - Centered options */}
         <nav className="hidden flex-1 md:flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
@@ -515,69 +512,6 @@ export function SiteHeader() {
             </button>
           </CartSheet>
         </div>
-      </div>
-
-      {/* Hero / Cover Section */}
-      <div
-        className="relative w-full overflow-visible bg-[#086e45] pointer-events-auto"
-        style={{ backgroundColor: settings?.hero_bg_color || "#086e45" }}
-      >
-        {isSettingsPending ? (
-          /* Placeholder com a cor da marca enquanto as configurações carregam */
-          <div className="w-full aspect-[1920/240] max-md:aspect-[1000/360]" />
-        ) : settings?.hero_image_url ? (
-          <div className="relative w-full">
-            <picture className="w-full h-full">
-              {/* Se houver uma imagem mobile específica (podemos adicionar no futuro no banco), usamos ela, senão usamos a mesma */}
-              <img
-                src={heroDesktopSrc}
-                alt="Site Banner"
-                className="w-full h-full object-cover opacity-90"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-              />
-            </picture>
-
-            {/* Overlay for features matching the image style */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full max-w-7xl px-6 flex items-center justify-between gap-4">
-                {/* Left side text from print could be here, but we focus on badges */}
-                <div className="hidden lg:flex items-center gap-12 ml-auto">
-                  {(settings?.hero_features as any[] | undefined)?.map(
-                    (feature: any, i: number) => (
-                      <div key={i} className="flex flex-col items-center text-center text-white">
-                        <span className="text-[10px] font-bold opacity-80 uppercase leading-tight">
-                          {feature.label}
-                        </span>
-                        <span className="text-xl font-black">{feature.value}</span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="py-24 text-center text-white px-6">
-            <h1 className="text-4xl font-black uppercase tracking-tighter">
-              PRÁTICO & SAUDÁVEL & SABOROSO
-            </h1>
-          </div>
-        )}
-
-        {/* Centralized PFP/Logo that overlaps the next section */}
-        {settings?.profile_image_url && (
-          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-[15%] z-[300] flex items-center justify-center pointer-events-none">
-            <div className="size-[140px] md:size-[200px] rounded-full border-[2px] border-[#fff688] bg-[#086e45] shadow-2xl flex items-center justify-center overflow-hidden pointer-events-auto">
-              <img
-                src={imgUrl(settings?.profile_image_url)}
-                className="w-full h-full object-cover"
-                alt="Profile"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       <DeliveryAreasModal
