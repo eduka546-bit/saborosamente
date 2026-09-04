@@ -15,6 +15,8 @@ import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CozinhaRouteImport } from './routes/cozinha'
+import { Route as CozinhaLoginRouteImport } from './routes/cozinha-login'
 import { Route as FaleConoscoRouteImport } from './routes/fale-conosco'
 import { Route as IndicarRouteImport } from './routes/indicar'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
@@ -114,6 +116,16 @@ const CarrinhoRoute = CarrinhoRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CozinhaRoute = CozinhaRouteImport.update({
+  id: '/cozinha',
+  path: '/cozinha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CozinhaLoginRoute = CozinhaLoginRouteImport.update({
+  id: '/cozinha-login',
+  path: '/cozinha-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaleConoscoRoute = FaleConoscoRouteImport.update({
@@ -487,6 +499,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/cozinha': typeof CozinhaRoute
+  '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -564,6 +578,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/cozinha': typeof CozinhaRoute
+  '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -642,6 +658,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/cozinha': typeof CozinhaRoute
+  '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -722,6 +740,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/cozinha'
+    | '/cozinha-login'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -799,6 +819,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/cozinha'
+    | '/cozinha-login'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -876,6 +898,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/cozinha'
+    | '/cozinha-login'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -955,6 +979,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
+  CozinhaRoute: typeof CozinhaRoute
+  CozinhaLoginRoute: typeof CozinhaLoginRoute
   FaleConoscoRoute: typeof FaleConoscoRoute
   IndicarRoute: typeof IndicarRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
@@ -1006,6 +1032,20 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cozinha': {
+      id: '/cozinha'
+      path: '/cozinha'
+      fullPath: '/cozinha'
+      preLoaderRoute: typeof CozinhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cozinha-login': {
+      id: '/cozinha-login'
+      path: '/cozinha-login'
+      fullPath: '/cozinha-login'
+      preLoaderRoute: typeof CozinhaLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fale-conosco': {
@@ -1662,6 +1702,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
+  CozinhaRoute: CozinhaRoute,
+  CozinhaLoginRoute: CozinhaLoginRoute,
   FaleConoscoRoute: FaleConoscoRoute,
   IndicarRoute: IndicarRoute,
   MeusPedidosRoute: MeusPedidosRoute,
