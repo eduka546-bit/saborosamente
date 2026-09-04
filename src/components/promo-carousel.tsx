@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { imgUrl } from "@/lib/image-proxy";
 
 interface PromoBanner {
   image_url?: string;
@@ -51,7 +52,7 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   const content = (
     <div className="relative w-full h-full overflow-hidden rounded-xl group">
       <img
-        src={currentBanner.image_url}
+        src={imgUrl(currentBanner.image_url)}
         alt={currentBanner.alt || "Banner promocional"}
         loading="eager"
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
