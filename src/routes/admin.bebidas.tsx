@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { imgUrl } from "@/lib/image-proxy";
+import { optimizeImage } from "@/lib/image-optimizer";
 
 export const Route = createFileRoute("/admin/bebidas")({
   component: AdminBebidasPage,
@@ -43,10 +44,15 @@ function AdminBebidasPage() {
   });
 
   async function uploadImagem(file: File): Promise<string | null> {
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const path = `bebidas/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("produtos").upload(path, file, {
-      cacheControl: "3600",
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem válida.");
+      return null;
+    }
+    const imagem = await optimizeImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 82, format: "webp" });
+    const path = `bebidas/${Date.now()}.webp`;
+    const { error } = await supabase.storage.from("produtos").upload(path, imagem, {
+      cacheControl: "31536000",
+      contentType: "image/webp",
       upsert: false,
     });
     if (error) {
