@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Clock, Leaf, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { imgUrl } from "@/lib/image-proxy";
 import {
   defaultCardFlags,
   defaultMealFlags,
@@ -49,7 +50,7 @@ function LogoCard({ logo, name }: { logo?: string; name: string }) {
     <div title={name} className="group flex flex-col items-center gap-1.5">
       <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
         {logo ? (
-          <img src={logo} alt={name} loading="lazy" className="h-full w-full object-contain" />
+          <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
         ) : (
           <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">
             {name}
@@ -105,7 +106,7 @@ export function SiteFooter() {
           <div className="space-y-5 lg:col-span-1">
             <Link to="/" aria-label="Início" className="inline-block">
               <img
-                src={logoUrl}
+                src={imgUrl(logoUrl)}
                 alt="Saborosamente"
                 className="h-20 w-auto transition-transform duration-300 hover:scale-[1.03]"
                 style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}
