@@ -34,6 +34,30 @@ import {
   type MarmitaGrupo,
 } from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
+import heroMarmitas from "@/assets/hero-marmitas.jpg";
+
+const normalizeText = (value: unknown) =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const productText = (product: any) =>
+  normalizeText(
+    [
+      product.nome,
+      product.descricao,
+      product.ingredientes,
+      product.informacao_nutricional,
+      product.categorias?.nome,
+    ].join(" "),
+  );
+
+const nutritionValue = (product: any, field: "kcal" | "prot") => {
+  const raw = product.tabela_nutricional?.[field] ?? product[`tabela_nutricional_300g`]?.[field] ?? "";
+  const parsed = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 // Apenas "Combos Escolha Você Mesmo" são excluídos do catálogo e filtros
 // "Combos Prontos" aparecem normalmente
@@ -219,22 +243,31 @@ function Index() {
   });
 
   const filteredProducts = useMemo(() => {
-    let result = products;
+    let result = [...products];
     if (selectedCategory === "Sem Glúten") {
       result = result.filter((p: any) => p.sem_gluten);
     } else if (selectedCategory === "Sem Lactose") {
       result = result.filter((p: any) => p.sem_lactose);
+    } else if (selectedCategory === "Frango") {
+      result = result.filter((p: any) => /frango|ave|peito de frango/.test(productText(p)));
+    } else if (selectedCategory === "Carne bovina") {
+      result = result.filter((p: any) => /patinho|carne bovina|ac[eé]m|cox[aã]o|alcatra|mignon|carne mo[ií]da/.test(productText(p)));
+    } else if (selectedCategory === "Peixes") {
+      result = result.filter((p: any) => /peixe|salm[aã]o|til[aá]pia|atum/.test(productText(p)));
+    } else if (selectedCategory === "Vegetarianas") {
+      result = result.filter((p: any) => /vegetar|vegana|vegetal/.test(productText(p)));
+    } else if (selectedCategory === "Mais escolhidas") {
+      result = result.filter((p: any) => p.destaque);
+    } else if (selectedCategory === "Mais saudáveis") {
+      result = result.filter((p: any) => /fitness|low carb|integral|vegetar|vegana|leve/.test(productText(p)));
+    } else if (["Mais leves", "Mais calóricas", "Mais proteicas"].includes(selectedCategory)) {
+      // Estes filtros ordenam o cardápio pelos valores cadastrados na tabela nutricional.
     } else if (selectedCategory !== "Todas") {
       result = result.filter((p: any) => p.categorias?.nome === selectedCategory);
     }
     if (searchTerm) {
       // Normaliza (remove acentos) para casar "gluten"/"glúten", "lactose" etc.
-      const norm = (s: string) =>
-        (s || "")
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-      const search = norm(searchTerm);
+      const search = normalizeText(searchTerm);
       // Termos de restrição: "sem gluten" / "sem lactose" (ou só "gluten"/"lactose").
       const buscaSemGluten = search.includes("gluten");
       const buscaSemLactose = search.includes("lactose");
@@ -242,10 +275,7 @@ function Index() {
         if (buscaSemGluten && p.sem_gluten) return true;
         if (buscaSemLactose && p.sem_lactose) return true;
         return (
-          norm(p.nome).includes(search) ||
-          norm(p.descricao).includes(search) ||
-          norm(p.categorias?.nome).includes(search) ||
-          norm(p.informacao_nutricional).includes(search)
+          productText(p).includes(search)
         );
       });
     }
@@ -257,12 +287,27 @@ function Index() {
         return !isComboEscolhaVoceMesmo(nome, cat);
       })
       .sort((a: any, b: any) => {
+        if (selectedCategory === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
+        if (selectedCategory === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
+        if (selectedCategory === "Mais proteicas") return nutritionValue(b, "prot") - nutritionValue(a, "prot");
         const catOrdemA = a.categorias?.ordem_filtro ?? 999;
         const catOrdemB = b.categorias?.ordem_filtro ?? 999;
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
         return (a.ordem ?? 999) - (b.ordem ?? 999);
       });
   }, [products, selectedCategory, searchTerm]);
+
+  const quickFilters = [
+    "Mais escolhidas",
+    "Mais saudáveis",
+    "Mais leves",
+    "Mais calóricas",
+    "Mais proteicas",
+    "Frango",
+    "Carne bovina",
+    "Peixes",
+    "Vegetarianas",
+  ];
 
   const categoriesWithProducts = useMemo(() => {
     // Filtros especiais por selo de restrição (só se houver produtos com o selo).
@@ -288,6 +333,29 @@ function Index() {
     return ["Todas", ...Array.from(set).sort(), ...filtrosRestricao];
   }, [products, orderedCategories]);
 
+  const heroFeatures =
+    Array.isArray((settings as any)?.hero_features) && (settings as any).hero_features.length > 0
+      ? (settings as any).hero_features
+      : [
+          { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
+          { label: "VALIDADE NO", value: "CONGELADOR" },
+          { label: "INGREDIENTES", value: "DE VERDADE" },
+          { label: "SEM", value: "CONSERVANTES" },
+        ];
+
+  const abrirCardapio = (categoria = "Todas") => {
+    setSelectedCategory(categoria);
+    setSearchTerm("");
+    window.setTimeout(() => {
+      document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  const abrirCombosProntos = () => {
+    const categoria = categoriesWithProducts.find((item) => item.toLowerCase().includes("combo"));
+    abrirCardapio(categoria || "Todas");
+  };
+
   return (
     <>
       {/* Popup de boas-vindas */}
@@ -295,66 +363,52 @@ function Index() {
         <WelcomePopup config={settings.popup_boas_vindas as any} />
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          HERO SECTION — Premium Design
-      ═══════════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden pt-16 pb-4 md:pt-20 md:pb-6">
-        {/* Background orbs */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] rounded-full bg-gradient-to-br from-primary/6 via-lime/4 to-transparent blur-3xl" />
-        </div>
-
-        <div className="mx-auto max-w-4xl px-4">
-          {/* Heading */}
-          <div className="text-center mb-5">
-            <h1>
-              <span className="block text-2xl md:text-3xl font-pacifico leading-[1.2] text-foreground">
-                Comida de Verdade,
-              </span>
-              <span className="block mt-0.5 text-lg md:text-2xl font-mazzard font-black bg-gradient-brand bg-clip-text text-transparent leading-[1.2]">
-                Pronta Quando Você Quiser
-              </span>
-            </h1>
+      <section className="bg-[#fbfaf5] pb-8 pt-6 md:pb-12 md:pt-10">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
+            <div className="grid min-h-[430px] lg:grid-cols-[1.02fr_.98fr]">
+              <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-14">
+                <span className="mb-4 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
+                  Sabor e praticidade para sua rotina
+                </span>
+                <h1 className="max-w-xl font-display text-4xl font-black leading-[1.04] text-[#075636] md:text-5xl lg:text-6xl">
+                  Comida de verdade, pronta em até <span className="text-[#91b93a]">7 minutos</span>
+                </h1>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg">
+                  Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
+                </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <button onClick={() => abrirCardapio()} className="rounded-full bg-[#f6d83d] px-6 py-3 text-sm font-extrabold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Comprar agora</button>
+                  <button onClick={() => setMarmitaModalOpen(true)} className="rounded-full border-2 border-[#075636] px-6 py-3 text-sm font-extrabold text-[#075636] transition hover:bg-[#075636] hover:text-white">Montar minha marmita</button>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#315440]">
+                  <span className="inline-flex items-center gap-1.5"><Truck size={16} />Entrega regional</span>
+                  <span className="inline-flex items-center gap-1.5"><ShoppingBag size={16} />Retirada na loja</span>
+                </div>
+              </div>
+              <div className="relative min-h-[290px] overflow-hidden lg:min-h-full">
+                <img src={imgUrl((settings as any)?.hero_image_url) || heroMarmitas} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#f7f5ed]/55 via-transparent to-transparent lg:from-[#f7f5ed]/30" />
+              </div>
+            </div>
+            <div className="grid border-t border-[#e5e1d4] bg-[#fffef9] sm:grid-cols-2 lg:grid-cols-4">
+              {heroFeatures.slice(0, 4).map((feature: any, index: number) => {
+                const Icon = [Timer, Calendar, Leaf, ShieldCheck][index] ?? Sparkles;
+                return <div key={`${feature.label}-${index}`} className="flex items-center gap-3 px-5 py-4 lg:border-r lg:last:border-r-0 border-[#e5e1d4]"><Icon className="size-7 shrink-0 text-[#075636]" strokeWidth={1.5}/><p className="text-xs leading-tight text-[#526158]"><span className="block font-extrabold uppercase text-[#16442c]">{feature.label}</span><span>{feature.value}</span></p></div>;
+              })}
+            </div>
           </div>
-
-          {/* Promo Carousel */}
-          {promoBanners.filter((b) => b?.image_url).length > 0 && (
-            <PromoCarousel banners={promoBanners} />
-          )}
+          {promoBanners.filter((b) => b?.image_url).length > 0 && <div className="mt-6"><PromoCarousel banners={promoBanners} /></div>}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          COMO FUNCIONA — Steps Premium
-      ═══════════════════════════════════════════════════════════════════ */}
-      <section className="py-5 md:py-6">
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-            {[
-              { Icon: Timer, line1: "PRONTO EM ATÉ", line2: "7 MINUTOS" },
-              { Icon: ShieldCheck, line1: "6 MESES DE", line2: "VALIDADE", number: "6" },
-              { Icon: Leaf, line1: "TEMPEROS 100%", line2: "NATURAIS" },
-              { Icon: WheatOff, line1: "OPÇÕES SEM", line2: "GLÚTEN E LACTOSE" },
-              { Icon: ChefHat, line1: "CRIADAS POR", line2: "CHEFS E NUTRIS" },
-              { Icon: MapPin, line1: "ENTREGA", line2: "REGIONAL" },
-              { Icon: Truck, line1: "DELIVERY OU", line2: "RETIRADA" },
-              { Icon: Calendar, line1: "PEDIDOS", line2: "24H" },
-            ].map((card, i) => (
-              <div
-                key={i}
-                className="bg-primary rounded-xl p-3 flex flex-col items-center justify-center text-center gap-1.5 shadow-sm min-h-[90px]"
-              >
-                {card.number ? (
-                  <span className="text-3xl font-black text-white leading-none">{card.number}</span>
-                ) : (
-                  <card.Icon className="size-6 text-white" strokeWidth={1.5} />
-                )}
-                <div className="text-[8px] md:text-[9px] font-extrabold text-white/90 uppercase leading-tight tracking-wide">
-                  <div>{card.line1}</div>
-                  <div>{card.line2}</div>
-                </div>
-              </div>
-            ))}
+      <section className="bg-white py-10 md:py-14">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-6 text-center"><p className="text-sm font-semibold text-[#78922f]">SEU PEDIDO, DO SEU JEITO</p><h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Escolha como quer pedir</h2></div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <ChoiceCard icon={Gift} title="Combos prontos" text="Combinações práticas e saborosas para facilitar a rotina." action="Ver combos" tone="green" onClick={abrirCombosProntos} />
+            <ChoiceCard icon={ShoppingBag} title="Monte seu combo" text="Escolha suas favoritas e ganhe descontos por quantidade." action="Montar combo" tone="yellow" onClick={() => setComboModalOpen(true)} />
+            {marmitaConfig.ativo && <ChoiceCard icon={ChefHat} title="Marmita personalizada" text="Monte sua refeição com ingredientes e tamanhos do seu jeito." action="Pedir personalizada" tone="cream" onClick={() => setMarmitaModalOpen(true)} />}
           </div>
         </div>
       </section>
@@ -374,6 +428,16 @@ function Index() {
             </div>
 
             <DiscountProgressWidget className="mb-6" />
+
+            <div className="rounded-2xl border border-[#e6e5db] bg-[#fbfaf6] p-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#567044]">Encontre do seu jeito</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {quickFilters.map((filter) => (
+                  <button key={filter} onClick={() => setSelectedCategory(filter)} className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", selectedCategory === filter ? "border-[#075636] bg-[#075636] text-white" : "border-[#dbe3d5] bg-white text-[#315440] hover:border-[#075636]")}>{filter}</button>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">Use a busca para excluir ou localizar qualquer ingrediente.</p>
+            </div>
 
             <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-3 no-scrollbar">
               {isLoading ? (
@@ -508,114 +572,6 @@ function Index() {
               </div>
             ) : (
               <>
-                {/* Combo Banner — Premium */}
-                {selectedCategory === "Todas" && !searchTerm && (
-                  <div
-                    onClick={() => setComboModalOpen(true)}
-                    className="cursor-pointer mb-8 rounded-2xl overflow-hidden relative group"
-                  >
-                    {/* Background */}
-                    <div className="absolute inset-0 bg-gradient-brand opacity-95" />
-                    <div className="absolute inset-0 overflow-hidden">
-                      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
-                    </div>
-
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5 px-6 md:px-8 py-6 md:py-8 text-white">
-                      <div className="text-center md:text-left flex-1">
-                        <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] mb-3">
-                          <Gift size={11} />
-                          Desconto progressivo
-                        </div>
-                        <h2 className="text-xl md:text-2xl font-display font-black leading-tight">
-                          Monte seu Combo
-                        </h2>
-                        <p className="mt-2 text-white/70 max-w-sm text-xs leading-relaxed">
-                          Quanto mais marmitas, maior o desconto. Automático e sem código.
-                        </p>
-
-                        {/* Mini discount tiers */}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {[
-                            { qty: "5+", pct: "3%" },
-                            { qty: "10+", pct: "5%" },
-                            { qty: "20+", pct: "7%" },
-                          ].map((tier) => (
-                            <span
-                              key={tier.qty}
-                              className="inline-flex items-center gap-1 bg-white/10 border border-white/15 rounded-md px-2 py-1 text-[10px] font-bold"
-                            >
-                              {tier.qty} → {tier.pct} off
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setComboModalOpen(true);
-                        }}
-                        className="shrink-0 flex items-center gap-2 bg-sun text-sun-foreground font-bold px-6 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 text-sm"
-                      >
-                        <ShoppingBag size={16} />
-                        Montar Combo
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Marmita Personalizada — card */}
-                {selectedCategory === "Todas" && !searchTerm && marmitaConfig.ativo && (
-                  <div
-                    onClick={() => setMarmitaModalOpen(true)}
-                    className="cursor-pointer mb-8 rounded-2xl overflow-hidden relative group border border-[#086e45]/20"
-                  >
-                    <div className="absolute inset-0 bg-[#0b4f34]" />
-                    <div className="absolute inset-0 overflow-hidden">
-                      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-white/10 blur-2xl group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-lime/10 blur-2xl" />
-                    </div>
-
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5 px-6 md:px-8 py-6 md:py-8 text-white">
-                      <div className="text-center md:text-left flex-1">
-                        <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] mb-3">
-                          <ChefHat size={11} />
-                          Do seu jeito
-                        </div>
-                        <h2 className="text-xl md:text-2xl font-display font-black leading-tight">
-                          {marmitaConfig.titulo}
-                        </h2>
-                        <p className="mt-2 text-white/70 max-w-sm text-xs leading-relaxed">
-                          {marmitaConfig.descricao} Preço pelo tamanho, mínimo{" "}
-                          {marmitaConfig.minUnidades} unidades.
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {marmitaConfig.tamanhos.map((t) => (
-                            <span
-                              key={t.sigla}
-                              className="inline-flex items-center gap-1 bg-white/10 border border-white/15 rounded-md px-2 py-1 text-[10px] font-bold"
-                            >
-                              {t.sigla} → {formatBRL(t.preco)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMarmitaModalOpen(true);
-                        }}
-                        className="shrink-0 flex items-center gap-2 bg-sun text-sun-foreground font-bold px-6 py-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl active:scale-95 text-sm"
-                      >
-                        <ChefHat size={16} />
-                        Montar Marmita
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {/* Products Grid */}
                 <div className="space-y-8">
                   {selectedCategory === "Todas" ? (
@@ -778,5 +734,36 @@ function Index() {
         </div>
       </section>
     </>
+  );
+}
+
+function ChoiceCard({
+  icon: Icon,
+  title,
+  text,
+  action,
+  tone,
+  onClick,
+}: {
+  icon: typeof Gift;
+  title: string;
+  text: string;
+  action: string;
+  tone: "green" | "yellow" | "cream";
+  onClick: () => void;
+}) {
+  const styles = {
+    green: "border-[#dbe9d1] bg-[#f1f8ea] text-[#075636]",
+    yellow: "border-[#eee2ae] bg-[#fff9df] text-[#5a581a]",
+    cream: "border-[#eadfce] bg-[#fbf5ec] text-[#075636]",
+  }[tone];
+
+  return (
+    <article className={`flex min-h-52 flex-col rounded-3xl border p-6 ${styles}`}>
+      <div className="mb-5 grid size-12 place-items-center rounded-2xl bg-white/80 shadow-sm"><Icon size={25} strokeWidth={1.6} /></div>
+      <h3 className="font-display text-2xl font-black leading-tight">{title}</h3>
+      <p className="mt-2 max-w-xs text-sm leading-relaxed opacity-80">{text}</p>
+      <button onClick={onClick} className="mt-5 w-fit rounded-full bg-[#075636] px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white transition hover:bg-[#043b26]">{action}</button>
+    </article>
   );
 }
