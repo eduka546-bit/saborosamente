@@ -155,14 +155,17 @@ function RootComponent() {
   const router = useRouter();
   const pathname = router.state.location.pathname;
   const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isKitchenPath, setIsKitchenPath] = useState(false);
   const [isLoginPage, setIsLoginPage] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
-    const admin = pathname.startsWith("/admin") || pathname.startsWith("/cozinha");
+    const admin = pathname.startsWith("/admin");
+    const kitchen = pathname.startsWith("/cozinha");
     const login = pathname === "/admin-login" || pathname === "/cozinha-login";
     setIsAdminPath(admin);
+    setIsKitchenPath(kitchen);
     setIsLoginPage(login);
     setMounted(true);
   }, [pathname]);
@@ -193,16 +196,16 @@ function RootComponent() {
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          {isAdminPath ? !isLoginPage && <AdminHeader /> : <SiteHeader />}
+          {isAdminPath ? !isLoginPage && <AdminHeader /> : isKitchenPath ? null : <SiteHeader />}
 
           <main className="flex-1 relative z-10">
             <Outlet />
           </main>
 
-          {mounted && !isAdminPath && <SiteFooter />}
+          {mounted && !isAdminPath && !isKitchenPath && <SiteFooter />}
         </div>
         <Toaster position="top-right" closeButton={false} offset={20} />
-        {mounted && !isAdminPath && (
+        {mounted && !isAdminPath && !isKitchenPath && (
           <CartSheet>
             <FloatingDiscountWidget />
           </CartSheet>
