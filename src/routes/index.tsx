@@ -379,7 +379,7 @@ function Index() {
                   Sabor e praticidade para sua rotina
                 </span>
                 <h1 className="max-w-xl font-display text-4xl font-black leading-[1.04] text-[#075636] md:text-5xl lg:text-6xl">
-                  Comida de verdade, pronta em até <span className="text-[#91b93a]">7 minutos</span>
+                  Comida de verdade, pronta em até <span className="font-halimun text-[#91b93a]">7 minutos</span>
                 </h1>
                 <p className="mt-5 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg">
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
@@ -418,11 +418,38 @@ function Index() {
 
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 text-center"><p className="text-sm font-semibold text-[#78922f]">SEU PEDIDO, DO SEU JEITO</p><h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Escolha como quer pedir</h2></div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <ChoiceCard icon={Gift} title="Combos prontos" text="Combinações práticas e saborosas para facilitar a rotina." action="Ver combos" tone="green" onClick={abrirCombosProntos} />
-            <ChoiceCard icon={ShoppingBag} title="Monte seu combo" text="Escolha suas favoritas e ganhe descontos por quantidade." action="Montar combo" tone="yellow" onClick={() => setComboModalOpen(true)} />
-            {marmitaConfig.ativo && <ChoiceCard icon={ChefHat} title="Marmita personalizada" text="Monte sua refeição com ingredientes e tamanhos do seu jeito." action="Pedir personalizada" tone="cream" onClick={() => setMarmitaModalOpen(true)} />}
+          <div className="mb-7 text-center"><p className="font-bebas text-xl tracking-[.12em] text-[#78922f]">SEU PEDIDO, DO SEU JEITO</p><h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span></h2></div>
+          <div className="space-y-5">
+            <OrderChoiceBanner
+              icon={Gift}
+              badge="COMBINAÇÕES PRONTAS"
+              title="Combos Prontos"
+              text="Opções já montadas para você ter praticidade, sabor e economia na rotina."
+              action="Ver Combos"
+              chips={["Opções para toda a semana", "Escolha e receba"]}
+              tone="ready"
+              onClick={abrirCombosProntos}
+            />
+            <OrderChoiceBanner
+              icon={ShoppingBag}
+              badge="DESCONTO PROGRESSIVO"
+              title="Monte seu Combo"
+              text="Quanto mais marmitas, maior o desconto. Automático e sem código."
+              action="Montar Combo"
+              chips={["5+ → 3% off", "10+ → 5% off", "20+ → 7% off"]}
+              tone="combo"
+              onClick={() => setComboModalOpen(true)}
+            />
+            {marmitaConfig.ativo && <OrderChoiceBanner
+              icon={ChefHat}
+              badge="DO SEU JEITO"
+              title="Monte sua Marmita Personalizada"
+              text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
+              action="Montar Marmita"
+              chips={["P → R$ 18,90", "M → R$ 22,90", "G → R$ 26,90", "GG → R$ 29,90"]}
+              tone="personalizada"
+              onClick={() => setMarmitaModalOpen(true)}
+            />}
           </div>
         </div>
       </section>
@@ -798,33 +825,48 @@ function Index() {
   );
 }
 
-function ChoiceCard({
+function OrderChoiceBanner({
   icon: Icon,
+  badge,
   title,
   text,
   action,
+  chips,
   tone,
   onClick,
 }: {
   icon: typeof Gift;
+  badge: string;
   title: string;
   text: string;
   action: string;
-  tone: "green" | "yellow" | "cream";
+  chips: string[];
+  tone: "ready" | "combo" | "personalizada";
   onClick: () => void;
 }) {
   const styles = {
-    green: "border-[#dbe9d1] bg-[#f1f8ea] text-[#075636]",
-    yellow: "border-[#eee2ae] bg-[#fff9df] text-[#5a581a]",
-    cream: "border-[#eadfce] bg-[#fbf5ec] text-[#075636]",
+    ready: "from-[#0a5537] via-[#0c7448] to-[#7fac58]",
+    combo: "from-[#0a603d] via-[#167548] to-[#a8cb52]",
+    personalizada: "from-[#06452e] via-[#075b39] to-[#0d6b46]",
   }[tone];
 
   return (
-    <article className={`flex min-h-52 flex-col rounded-3xl border p-6 ${styles}`}>
-      <div className="mb-5 grid size-12 place-items-center rounded-2xl bg-white/80 shadow-sm"><Icon size={25} strokeWidth={1.6} /></div>
-      <h3 className="font-display text-2xl font-black leading-tight">{title}</h3>
-      <p className="mt-2 max-w-xs text-sm leading-relaxed opacity-80">{text}</p>
-      <button onClick={onClick} className="mt-5 w-fit rounded-full bg-[#075636] px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white transition hover:bg-[#043b26]">{action}</button>
+    <article className={`flex min-h-60 flex-col justify-center overflow-hidden rounded-[2rem] bg-gradient-to-r px-6 py-7 text-white shadow-soft md:min-h-56 md:px-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8 ${styles}`}>
+      <div className="max-w-2xl">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-base tracking-[.12em] text-white/95">
+          <Icon size={17} strokeWidth={1.8} />
+          {badge}
+        </div>
+        <h3 className="font-display text-3xl font-black leading-tight md:text-4xl">{title}</h3>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/80 md:text-base">{text}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {chips.map((chip) => <span key={chip} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/95">{chip}</span>)}
+        </div>
+      </div>
+      <button onClick={onClick} className="mt-7 inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-[#fff082] px-7 py-3.5 font-display text-base font-black text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white lg:mt-0">
+        <Icon size={19} strokeWidth={2} />
+        {action}
+      </button>
     </article>
   );
 }
