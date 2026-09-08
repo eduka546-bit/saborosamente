@@ -977,10 +977,29 @@ function ReceitaModal({
     [linhas, setLinhas] = useState<ReceitaLinha[]>(
       linhasIniciais.length
         ? linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x }))
-        : [receitaVazia()],
-    );
+        : [],
+    ),
+    [novoComponente, setNovoComponente] = useState("");
   const edit = (i: number, k: string, v: any) =>
     setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const nomeComponente = (x: ReceitaLinha) =>
+    x.ingrediente_id
+      ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.nome
+      : x.preparacao_id
+        ? preparacoes.find((a: any) => a.id === x.preparacao_id)?.nome
+        : "Componente";
+  const adicionarComponente = () => {
+    if (!novoComponente) return toast.error("Selecione um ingrediente ou preparação.");
+    const [tipo, id] = novoComponente.split(":");
+    if (linhas.some((x) => (tipo === "i" ? x.ingrediente_id === id : x.preparacao_id === id))) {
+      return toast.error("Esse componente já está na lista.");
+    }
+    setLinhas([
+      ...linhas,
+      { ...receitaVazia(), ingrediente_id: tipo === "i" ? id : null, preparacao_id: tipo === "p" ? id : null },
+    ]);
+    setNovoComponente("");
+  };
   const custo = (t: Tamanho) =>
     linhas.reduce(
       (s, x) =>
@@ -1030,87 +1049,48 @@ function ReceitaModal({
           </div>
         </div>
       </div>
-      <div className="mb-2 grid gap-2 px-3 text-xs font-bold uppercase tracking-wide text-[#62766b] md:grid-cols-[minmax(220px,1fr)_110px_110px_110px_140px_36px]">
-        <span>Ingrediente ou preparação</span>
-        <span>200 g</span>
-        <span>300 g</span>
-        <span>400 g</span>
-        <span>Personalizada</span>
-        <span />
-      </div>
-      {linhas.map((x, i) => (
-        <div key={i} className="mb-3 rounded-xl border border-[#dbe7dd] bg-white p-3">
-          <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_110px_110px_110px_140px_36px]">
-            <select
-              className={input}
-              value={
-                x.ingrediente_id
-                  ? `i:${x.ingrediente_id}`
-                  : x.preparacao_id
-                    ? `p:${x.preparacao_id}`
-                    : ""
-              }
-              onChange={(e) => {
-                const [tipo, id] = e.target.value.split(":");
-                edit(i, "ingrediente_id", tipo === "i" ? id : null);
-                edit(i, "preparacao_id", tipo === "p" ? id : null);
-              }}
-            >
-              <option value="">Componente</option>
-              <optgroup label="Ingredientes">
-                {ingredientes.map((a: any) => (
-                  <option key={a.id} value={`i:${a.id}`}>
-                    {a.nome}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Preparações prontas">
-                {preparacoes.map((a: any) => (
-                  <option key={a.id} value={`p:${a.id}`}>
-                    {a.nome}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-            {TAMANHOS.map((t) => (
-              <div key={t.id}>
-                <input
-                  className={input}
-                  type="number"
-                  placeholder="0 g"
-                  value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""}
-                  onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))}
-                />
-              </div>
-            ))}
-            <button
-              onClick={() => setLinhas(linhas.filter((_, j) => j !== i))}
-              className="font-bold text-red-500"
-            >
-              ×
-            </button>
-          </div>
-          <div className="mt-2 text-xs text-[#62766b]">
-            Rendimento/quebra:{" "}
-            <input
-              className="ml-1 w-20 rounded border px-1 py-0.5"
-              type="number"
-              step="0.01"
-              value={x.rendimento_quebra}
-              onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))}
-            />{" "}
-            <span className="ml-1">(1 = sem quebra)</span>
-          </div>
+      <section className="mb-6 rounded-2xl border border-[#dbe7dd] bg-[#fbfdfb] p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Lista de ingredientes</p>
+        <p className="mb-3 mt-1 text-sm text-[#62766b]">Escolha tudo que faz parte da receita. Molhos e purês prontos entram como preparação.</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <select className={input} value={novoComponente} onChange={(e) => setNovoComponente(e.target.value)}>
+            <option value="">Escolha um ingrediente ou preparação</option>
+            <optgroup label="Ingredientes">{ingredientes.map((a: any) => <option key={a.id} value={`i:${a.id}`}>{a.nome}</option>)}</optgroup>
+            <optgroup label="Preparações prontas">{preparacoes.map((a: any) => <option key={a.id} value={`p:${a.id}`}>{a.nome}</option>)}</optgroup>
+          </select>
+          <Botao onClick={adicionarComponente}><Plus size={17} />Adicionar</Botao>
         </div>
-      ))}
-      <button
-        onClick={() => setLinhas([...linhas, receitaVazia()])}
-        className="text-sm font-bold text-[#087443]"
-      >
-        + Adicionar componente
-      </button>
+        {!linhas.length ? (
+          <p className="mt-4 rounded-xl border border-dashed border-[#bed2c4] p-3 text-sm text-[#62766b]">Nenhum componente adicionado ainda.</p>
+        ) : (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {linhas.map((x, i) => <span key={i} className="inline-flex items-center gap-2 rounded-full bg-[#e0f2e7] px-3 py-1.5 text-sm font-bold text-[#075d37]">
+              {nomeComponente(x)}
+              <button aria-label={`Remover ${nomeComponente(x)}`} onClick={() => setLinhas(linhas.filter((_, j) => j !== i))} className="text-[#087443] hover:text-red-600">×</button>
+            </span>)}
+          </div>
+        )}
+      </section>
+      <section>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p>
+        <p className="mb-3 mt-1 text-sm text-[#62766b]">Informe a quantidade pronta que entra em cada tamanho de marmita.</p>
+        {!linhas.length ? <Vazio texto="Adicione os ingredientes acima para criar a lista de montagem." /> : (
+          <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]">
+            <div className="min-w-[800px]">
+              <div className="grid grid-cols-[minmax(210px,1fr)_105px_105px_105px_135px_115px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
+                <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Personalizada</span><span>Rendimento</span>
+              </div>
+              {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_105px_105px_105px_135px_115px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
+                <div><p className="font-bold">{nomeComponente(x)}</p><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
+                {TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" placeholder="0 g" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""} onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))} />)}
+                <div><input className={input} type="number" min="0.01" step="0.01" value={x.rendimento_quebra} onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))} /><p className="mt-1 text-[10px] text-[#62766b]">1 = sem quebra</p></div>
+              </div>)}
+            </div>
+          </div>
+        )}
+      </section>
       <div className="mt-4">
-        <Campo label="Modo de preparo">
+        <Campo label="3. Modo de montagem / preparo">
           <textarea
             className={`${input} min-h-24`}
             value={modo}
