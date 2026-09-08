@@ -395,7 +395,7 @@ function Index() {
               </div>
               <div className="relative min-h-[290px] overflow-hidden bg-[#087149] lg:min-h-full">
                 {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
-                  <PromoCarousel banners={promoBanners} className="h-full max-w-none" />
+                  <PromoCarousel banners={promoBanners} fill className="absolute inset-0 max-w-none" />
                 ) : (
                   <img src={imgUrl((settings as any)?.hero_image_url) || heroMarmitas} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
                 )}
