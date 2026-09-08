@@ -35,8 +35,11 @@ const TAMANHOS: { id: Tamanho; label: string }[] = [
   { id: "200", label: "200 g" },
   { id: "300", label: "300 g" },
   { id: "400", label: "400 g" },
-  { id: "personalizada", label: "Personalizada" },
 ];
+const labelGramatura = (gramatura: string) =>
+  gramatura === "personalizada"
+    ? "Personalizada"
+    : TAMANHOS.find((t) => t.id === gramatura)?.label || "400 g";
 const hoje = () => new Date().toISOString().slice(0, 10);
 const n = (v: unknown) => Number(v || 0);
 const valor = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -280,7 +283,7 @@ function CozinhaPage() {
                           <h3 className="font-bold">{pr?.nome}</h3>
                           <p className="text-sm text-[#62766b]">
                             {p.quantidade_planejada} unidades ·{" "}
-                            {TAMANHOS.find((t) => t.id === p.gramatura)?.label || "400 g"}
+                            {labelGramatura(p.gramatura)}
                           </p>
                         </div>
                         <span className="rounded-full bg-[#e0f2e7] px-3 py-1 text-xs font-bold text-[#087443]">
@@ -995,6 +998,7 @@ function ReceitaModal({
   salvar,
 }: any) {
   const [modo, setModo] = useState(receita?.modo_preparo || ""),
+    [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "resumo">("ingredientes"),
     [linhas, setLinhas] = useState<ReceitaLinha[]>(
       linhasIniciais.length
         ? linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x }))
@@ -1051,6 +1055,15 @@ function ReceitaModal({
               : 0),
       0,
     );
+  const peso = (t: Tamanho) =>
+    linhas.reduce((s, x) => s + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
+  const custoLinha = (x: ReceitaLinha, t: Tamanho) =>
+    (n(x[`gramas_${t}` as keyof ReceitaLinha]) / n(x.rendimento_quebra || 1)) *
+    (x.ingrediente_id
+      ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
+      : x.preparacao_id
+        ? custoPrep(x.preparacao_id)
+        : 0);
   return (
     <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
       <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]">
@@ -1076,19 +1089,25 @@ function ReceitaModal({
             Adicione cada item da montagem e informe o peso final que entra em cada tamanho de
             marmita.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {TAMANHOS.map((t) => (
-              <span
-                key={t.id}
-                className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]"
-              >
-                {t.label}: {valor(custo(t.id))}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
-      <section className="mb-6 rounded-2xl border border-[#dbe7dd] bg-[#fbfdfb] p-4">
+      <div className="mb-6 grid grid-cols-3 rounded-xl bg-[#e7eee8] p-1">
+        {[
+          ["ingredientes", "1. Ingredientes"],
+          ["montagem", "2. Montagem"],
+          ["resumo", "3. Custos e preparo"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setAbaFicha(id as typeof abaFicha)}
+            className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha === id ? "bg-white text-[#087443] shadow-sm" : "text-[#62766b]"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {abaFicha === "ingredientes" && <section className="rounded-2xl border border-[#dbe7dd] bg-[#fbfdfb] p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Lista de ingredientes</p>
         <p className="mb-3 mt-1 text-sm text-[#62766b]">Escolha tudo que faz parte da receita. Molhos e purês prontos entram como preparação.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -1150,27 +1169,55 @@ function ReceitaModal({
             </span>)}
           </div>
         )}
-      </section>
-      <section>
+      </section>}
+      {abaFicha === "montagem" && <section>
         <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p>
         <p className="mb-3 mt-1 text-sm text-[#62766b]">Informe a quantidade pronta que entra em cada tamanho de marmita.</p>
         {!linhas.length ? <Vazio texto="Adicione os ingredientes acima para criar a lista de montagem." /> : (
           <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]">
             <div className="min-w-[800px]">
-              <div className="grid grid-cols-[minmax(210px,1fr)_105px_105px_105px_135px_115px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
-                <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Personalizada</span><span>Rendimento</span>
+              <div className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
+                <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span>
               </div>
-              {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_105px_105px_105px_135px_115px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
+              {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
                 <div><p className="font-bold">{nomeComponente(x)}</p><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
                 {TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" placeholder="0 g" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""} onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))} />)}
-                <div><input className={input} type="number" min="0.01" step="0.01" value={x.rendimento_quebra} onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))} /><p className="mt-1 text-[10px] text-[#62766b]">1 = sem quebra</p></div>
               </div>)}
             </div>
           </div>
         )}
-      </section>
-      <div className="mt-4">
-        <Campo label="3. Modo de montagem / preparo">
+      </section>}
+      {abaFicha === "resumo" && <section>
+        <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo da ficha técnica</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {TAMANHOS.map((t) => (
+              <div key={t.id} className="rounded-xl bg-white p-3">
+                <p className="text-xs font-bold text-[#62766b]">{t.label}</p>
+                <p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id)} g</p>
+                <p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} em ingredientes</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        {!linhas.length ? <Vazio texto="Adicione ingredientes e informe a montagem para ver os custos." /> : (
+          <div className="mb-5 overflow-x-auto rounded-2xl border border-[#dbe7dd]">
+            <div className="min-w-[760px]">
+              <div className="grid grid-cols-[minmax(220px,1fr)_110px_130px_130px_130px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
+                <span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span>
+              </div>
+              {linhas.map((x, i) => {
+                const item = x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null;
+                return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_110px_130px_130px_130px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm">
+                  <span className="font-bold">{nomeComponente(x)}</span>
+                  <span>{item ? valor(n(item.custo_por_kg)) : "Calculado"}</span>
+                  {TAMANHOS.map((t) => <span key={t.id}>{n(x[`gramas_${t.id}` as keyof ReceitaLinha])} g · <b>{valor(custoLinha(x, t.id))}</b></span>)}
+                </div>;
+              })}
+            </div>
+          </div>
+        )}
+        <Campo label="Modo de montagem / preparo">
           <textarea
             className={`${input} min-h-24`}
             value={modo}
@@ -1178,7 +1225,7 @@ function ReceitaModal({
             placeholder="Ex.: colocar arroz, feijão, frango e finalizar com 50 g de molho pronto."
           />
         </Campo>
-      </div>
+      </section>}
       <div className="mt-5">
         <Botao onClick={() => salvar(modo, linhas)}>Salvar ficha técnica</Botao>
       </div>
