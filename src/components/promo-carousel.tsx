@@ -11,9 +11,10 @@ interface PromoBanner {
 
 interface PromoCarouselProps {
   banners: PromoBanner[];
+  className?: string;
 }
 
-export function PromoCarousel({ banners }: PromoCarouselProps) {
+export function PromoCarousel({ banners, className }: PromoCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
 
@@ -117,7 +118,7 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
   );
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className={cn("w-full max-w-3xl mx-auto", className)}>
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
