@@ -15,6 +15,7 @@ import {
   Plus,
   Salad,
   Store,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -65,6 +66,9 @@ function CozinhaPage() {
     qc = useQueryClient();
   const [ok, setOk] = useState(false),
     [aba, setAba] = useState<Aba>("producao"),
+    [dataProducao, setDataProducao] = useState(hoje()),
+    [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
+    [buscaProducao, setBuscaProducao] = useState(""),
     [modal, setModal] = useState<null | "producao" | "receita">(
       null,
     );
@@ -128,13 +132,13 @@ function CozinhaPage() {
     "ingrediente",
   );
   const { data: producoes = [] } = useQuery({
-    queryKey: ["coz-prod-dia"],
+    queryKey: ["coz-prod-dia", dataProducao],
     enabled: ok,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cozinha_producoes")
         .select("*")
-        .eq("data_producao", hoje())
+        .eq("data_producao", dataProducao)
         .order("created_at");
       if (error) throw error;
       return data ?? [];
@@ -211,6 +215,15 @@ function CozinhaPage() {
       .map(([id, x]) => ({ id, ...x, item: ing.get(id) }))
       .sort((a, b) => a.item.nome.localeCompare(b.item.nome));
   }, [producoes, produto, rec, itensRec, prep, itensPrep, ing]);
+  const producoesVisiveis = useMemo(
+    () =>
+      (producoes as any[]).filter((p) => {
+        const nome = String(produto.get(p.produto_id)?.nome || "").toLowerCase();
+        return (filtroProducao === "todos" || p.status === filtroProducao) &&
+          (!buscaProducao.trim() || nome.includes(buscaProducao.trim().toLowerCase()));
+      }),
+    [producoes, produto, filtroProducao, buscaProducao],
+  );
   const invalidar = (...keys: string[]) =>
     Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey: [queryKey] })));
   if (!ok)
@@ -269,8 +282,8 @@ function CozinhaPage() {
           {aba === "producao" && (
             <section>
               <Titulo
-                titulo="Lista de produção"
-                texto="Planeje quantidades por tamanho e acompanhe o preparo do dia."
+                titulo="Produção"
+                texto="Planeje, acompanhe e corrija a produção de qualquer dia."
                 acao={
                   <Botao onClick={() => abrir("producao")}>
                     <Plus size={18} />
@@ -278,11 +291,19 @@ function CozinhaPage() {
                   </Botao>
                 }
               />
-              {!(producoes as any[]).length ? (
-                <Vazio texto="Nenhuma marmita programada para hoje." />
+              <div className="mb-5 grid gap-3 rounded-2xl border border-[#dbe7dd] bg-white p-4 lg:grid-cols-[185px_1fr_auto]">
+                <Campo label="Dia da produção"><input className={input} type="date" value={dataProducao} onChange={(e) => setDataProducao(e.target.value)} /></Campo>
+                <Campo label="Buscar marmita"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, lasanha..." /></Campo>
+                <Campo label="Status"><select className={input} value={filtroProducao} onChange={(e) => setFiltroProducao(e.target.value as typeof filtroProducao)}><option value="todos">Todos os status</option><option value="planejada">Planejadas</option><option value="em_preparo">Em preparo</option><option value="concluida">Produzidas</option></select></Campo>
+              </div>
+              <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                {[["Planejadas", (producoes as any[]).filter((p) => p.status === "planejada").length, "bg-[#fff4d9] text-[#8b5a00]"], ["Em preparo", (producoes as any[]).filter((p) => p.status === "em_preparo").length, "bg-[#e8f1ff] text-[#175da8]"], ["Produzidas", (producoes as any[]).filter((p) => p.status === "concluida").length, "bg-[#e0f2e7] text-[#087443]"]].map(([label, quantidade, cor]) => <article key={String(label)} className={`rounded-xl p-3 ${cor}`}><p className="text-xs font-bold">{label}</p><p className="text-2xl font-black">{quantidade}</p></article>)}
+              </div>
+              {!(producoesVisiveis as any[]).length ? (
+                <Vazio texto="Nenhuma produção encontrada para estes filtros." />
               ) : (
                 <div className="grid gap-3">
-                  {(producoes as any[]).map((p) => {
+                  {(producoesVisiveis as any[]).map((p) => {
                     const pr = produto.get(p.produto_id);
                     return (
                       <article
@@ -338,9 +359,18 @@ function CozinhaPage() {
                             }}
                           >
                             <CheckCircle2 size={16} />
-                            Concluir
+                            Marcar como produzida
                           </Botao>
                         )}
+                        {p.status === "concluida" && <Botao leve onClick={async () => {
+                          const { error } = await supabase.from("cozinha_producoes").update({ status: "planejada", updated_at: new Date().toISOString() }).eq("id", p.id);
+                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Produção voltou para planejada."); }
+                        }}>Marcar como pendente</Botao>}
+                        <button aria-label={`Excluir ${pr?.nome || "produção"}`} onClick={async () => {
+                          if (!window.confirm(`Excluir o lançamento de ${pr?.nome || "produção"}?`)) return;
+                          const { error } = await supabase.from("cozinha_producoes").delete().eq("id", p.id);
+                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Lançamento excluído."); }
+                        }} className="rounded-xl p-2.5 text-red-600 hover:bg-red-50"><Trash2 size={18} /></button>
                       </article>
                     );
                   })}
@@ -556,14 +586,15 @@ function CozinhaPage() {
       {modal === "producao" && (
         <ProducaoModal
           marmitas={marmitas}
+          dataInicial={dataProducao}
           fechar={() => setModal(null)}
-          salvar={async (produtoId: string, qs: any, observacao: string) => {
+          salvar={async (produtoId: string, data: string, qs: any, observacao: string) => {
             if (!produtoId) return toast.error("Escolha a marmita.");
             const {
               data: { user },
             } = await supabase.auth.getUser();
             const linhas = TAMANHOS.filter((t) => n(qs[t.id]) > 0).map((t) => ({
-              data_producao: hoje(),
+              data_producao: data,
               produto_id: produtoId,
               gramatura: t.id,
               quantidade_planejada: n(qs[t.id]),
@@ -755,13 +786,17 @@ function Campo({ label, children }: any) {
     </label>
   );
 }
-function ProducaoModal({ marmitas, fechar, salvar }: any) {
+function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
   const [produto, setProduto] = useState(""),
+    [data, setData] = useState(dataInicial || hoje()),
     [q, setQ] = useState<any>({}),
     [obs, setObs] = useState("");
   return (
     <Janela titulo="Adicionar à produção" fechar={fechar}>
       <div className="grid gap-4">
+        <Campo label="Dia da produção">
+          <input className={input} type="date" value={data} onChange={(e) => setData(e.target.value)} />
+        </Campo>
         <Campo label="Marmita">
           <select className={input} value={produto} onChange={(e) => setProduto(e.target.value)}>
             <option value="">Selecione o sabor</option>
@@ -793,7 +828,7 @@ function ProducaoModal({ marmitas, fechar, salvar }: any) {
             placeholder="Opcional"
           />
         </Campo>
-        <Botao onClick={() => salvar(produto, q, obs)}>Adicionar produção</Botao>
+        <Botao onClick={() => salvar(produto, data, q, obs)}>Adicionar produção</Botao>
       </div>
     </Janela>
   );
