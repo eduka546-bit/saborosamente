@@ -96,7 +96,7 @@ function CozinhaPage() {
   const { data: produtos = [] } = useTableQuery(
     "coz-prod",
     "produtos",
-    "id,nome,imagem_url,imagem,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto",
+    "id,nome,imagem_url,imagens,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto",
     "nome",
   );
   const { data: ingredientes = [] } = useTableQuery("coz-ing", "cozinha_ingredientes", "*", "nome");
@@ -459,9 +459,9 @@ function CozinhaPage() {
                   return (
                     <article key={x.id} className="overflow-hidden rounded-2xl border bg-white">
                       <div className="h-36 bg-[#e9f1e8]">
-                        {x.imagem_url || x.imagem ? (
+                        {x.imagem_url || x.imagens?.[0] ? (
                           <img
-                            src={x.imagem_url || x.imagem}
+                            src={x.imagem_url || x.imagens?.[0]}
                             className="size-full object-cover"
                             alt=""
                           />
