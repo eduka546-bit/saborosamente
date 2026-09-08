@@ -12,9 +12,10 @@ interface PromoBanner {
 interface PromoCarouselProps {
   banners: PromoBanner[];
   className?: string;
+  fill?: boolean;
 }
 
-export function PromoCarousel({ banners, className }: PromoCarouselProps) {
+export function PromoCarousel({ banners, className, fill = false }: PromoCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
 
@@ -51,7 +52,7 @@ export function PromoCarousel({ banners, className }: PromoCarouselProps) {
   const currentBanner = filteredBanners[currentIndex];
 
   const content = (
-    <div className="relative w-full h-full overflow-hidden rounded-xl group">
+    <div className={cn("relative w-full h-full overflow-hidden group", fill ? "rounded-none" : "rounded-xl")}>
       <img
         src={imgUrl(currentBanner.image_url)}
         alt={currentBanner.alt || "Banner promocional"}
@@ -122,12 +123,12 @@ export function PromoCarousel({ banners, className }: PromoCarouselProps) {
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
-          className="block rounded-xl overflow-hidden shadow-soft border border-border/30 bg-card h-[180px] md:h-[220px]"
+          className={cn("block overflow-hidden bg-card h-[180px] md:h-[220px]", fill ? "h-full rounded-none border-0 shadow-none" : "rounded-xl shadow-soft border border-border/30")}
         >
           {content}
         </a>
       ) : (
-        <div className="block rounded-xl overflow-hidden shadow-soft border border-border/30 bg-card h-[180px] md:h-[220px]">
+        <div className={cn("block overflow-hidden bg-card h-[180px] md:h-[220px]", fill ? "h-full rounded-none border-0 shadow-none" : "rounded-xl shadow-soft border border-border/30")}>
           {content}
         </div>
       )}
