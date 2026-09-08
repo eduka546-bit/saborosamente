@@ -171,7 +171,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
@@ -242,28 +242,33 @@ function Index() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const quickFilters = [
+    "Mais escolhidas", "Mais saudáveis", "Mais leves", "Mais calóricas", "Mais proteicas",
+    "Frango", "Carne bovina", "Peixes", "Vegetarianas",
+  ];
+  const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
+  const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
+  const activeFiltersLabel = selectedFilters.length > 0 ? selectedFilters.join(" + ") : "Todos os Produtos";
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
-    if (selectedCategory === "Sem Glúten") {
-      result = result.filter((p: any) => p.sem_gluten);
-    } else if (selectedCategory === "Sem Lactose") {
-      result = result.filter((p: any) => p.sem_lactose);
-    } else if (selectedCategory === "Frango") {
-      result = result.filter((p: any) => /frango|ave|peito de frango/.test(productText(p)));
-    } else if (selectedCategory === "Carne bovina") {
-      result = result.filter((p: any) => /patinho|carne bovina|ac[eé]m|cox[aã]o|alcatra|mignon|carne mo[ií]da/.test(productText(p)));
-    } else if (selectedCategory === "Peixes") {
-      result = result.filter((p: any) => /peixe|salm[aã]o|til[aá]pia|atum/.test(productText(p)));
-    } else if (selectedCategory === "Vegetarianas") {
-      result = result.filter((p: any) => /vegetar|vegana|vegetal/.test(productText(p)));
-    } else if (selectedCategory === "Mais escolhidas") {
-      result = result.filter((p: any) => p.destaque);
-    } else if (selectedCategory === "Mais saudáveis") {
+    const selectedCategories = selectedFilters.filter((filter) => !quickFilters.includes(filter) && !restrictionFilters.includes(filter));
+    const selectedProteins = selectedFilters.filter((filter) => ["Frango", "Carne bovina", "Peixes", "Vegetarianas"].includes(filter));
+    if (selectedCategories.length > 0) result = result.filter((p: any) => selectedCategories.includes(p.categorias?.nome));
+    if (selectedProteins.length > 0) {
+      result = result.filter((p: any) => selectedProteins.some((filter) => {
+        const text = productText(p);
+        if (filter === "Frango") return /frango|ave|peito de frango/.test(text);
+        if (filter === "Carne bovina") return /patinho|carne bovina|ac[eé]m|cox[aã]o|alcatra|mignon|carne mo[ií]da/.test(text);
+        if (filter === "Peixes") return /peixe|salm[aã]o|til[aá]pia|atum/.test(text);
+        return /vegetar|vegana|vegetal/.test(text);
+      }));
+    }
+    if (selectedFilters.includes("Sem Glúten")) result = result.filter((p: any) => p.sem_gluten);
+    if (selectedFilters.includes("Sem Lactose")) result = result.filter((p: any) => p.sem_lactose);
+    if (selectedFilters.includes("Mais escolhidas")) result = result.filter((p: any) => p.destaque);
+    if (selectedFilters.includes("Mais saudáveis")) {
       result = result.filter((p: any) => /fitness|low carb|integral|vegetar|vegana|leve/.test(productText(p)));
-    } else if (["Mais leves", "Mais calóricas", "Mais proteicas"].includes(selectedCategory)) {
-      // Estes filtros ordenam o cardápio pelos valores cadastrados na tabela nutricional.
-    } else if (selectedCategory !== "Todas") {
-      result = result.filter((p: any) => p.categorias?.nome === selectedCategory);
     }
     if (searchTerm) {
       // Normaliza (remove acentos) para casar "gluten"/"glúten", "lactose" etc.
@@ -287,27 +292,16 @@ function Index() {
         return !isComboEscolhaVoceMesmo(nome, cat);
       })
       .sort((a: any, b: any) => {
-        if (selectedCategory === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
-        if (selectedCategory === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
-        if (selectedCategory === "Mais proteicas") return nutritionValue(b, "prot") - nutritionValue(a, "prot");
+        const activeSort = [...selectedFilters].reverse().find((filter) => sortFilters.includes(filter));
+        if (activeSort === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
+        if (activeSort === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
+        if (activeSort === "Mais proteicas") return nutritionValue(b, "prot") - nutritionValue(a, "prot");
         const catOrdemA = a.categorias?.ordem_filtro ?? 999;
         const catOrdemB = b.categorias?.ordem_filtro ?? 999;
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
         return (a.ordem ?? 999) - (b.ordem ?? 999);
       });
-  }, [products, selectedCategory, searchTerm]);
-
-  const quickFilters = [
-    "Mais escolhidas",
-    "Mais saudáveis",
-    "Mais leves",
-    "Mais calóricas",
-    "Mais proteicas",
-    "Frango",
-    "Carne bovina",
-    "Peixes",
-    "Vegetarianas",
-  ];
+  }, [products, selectedFilters, searchTerm]);
 
   const categoriesWithProducts = useMemo(() => {
     // Filtros especiais por selo de restrição (só se houver produtos com o selo).
@@ -333,18 +327,26 @@ function Index() {
     return ["Todas", ...Array.from(set).sort(), ...filtrosRestricao];
   }, [products, orderedCategories]);
 
-  const heroFeatures =
-    Array.isArray((settings as any)?.hero_features) && (settings as any).hero_features.length > 0
-      ? (settings as any).hero_features
-      : [
-          { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
-          { label: "VALIDADE NO", value: "CONGELADOR" },
-          { label: "INGREDIENTES", value: "DE VERDADE" },
-          { label: "SEM", value: "CONSERVANTES" },
-        ];
+  const menuCategories = categoriesWithProducts.filter(
+    (category) => !restrictionFilters.includes(category) && !quickFilters.includes(category),
+  );
+
+  const defaultHeroFeatures = [
+    { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
+    { label: "6 MESES DE", value: "VALIDADE" },
+    { label: "TEMPEROS 100%", value: "NATURAIS" },
+    { label: "OPÇÕES SEM", value: "GLÚTEN E LACTOSE" },
+    { label: "CRIADAS POR", value: "CHEFS E NUTRIS" },
+    { label: "ENTREGA", value: "REGIONAL" },
+    { label: "DELIVERY OU", value: "RETIRADA" },
+    { label: "PEDIDOS", value: "24H" },
+  ];
+  // Diferenciais definidos para a nova vitrine. Eles substituem o bloco antigo
+  // que ficava encaixado no rodapé do hero.
+  const heroFeatures = defaultHeroFeatures;
 
   const abrirCardapio = (categoria = "Todas") => {
-    setSelectedCategory(categoria);
+    setSelectedFilters(categoria === "Todas" ? [] : [categoria]);
     setSearchTerm("");
     window.setTimeout(() => {
       document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -354,6 +356,11 @@ function Index() {
   const abrirCombosProntos = () => {
     const categoria = categoriesWithProducts.find((item) => item.toLowerCase().includes("combo"));
     abrirCardapio(categoria || "Todas");
+  };
+
+  const toggleFilter = (filter: string) => {
+    if (filter === "Todas") return setSelectedFilters([]);
+    setSelectedFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
   };
 
   return (
@@ -386,19 +393,26 @@ function Index() {
                   <span className="inline-flex items-center gap-1.5"><ShoppingBag size={16} />Retirada na loja</span>
                 </div>
               </div>
-              <div className="relative min-h-[290px] overflow-hidden lg:min-h-full">
-                <img src={imgUrl((settings as any)?.hero_image_url) || heroMarmitas} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#f7f5ed]/55 via-transparent to-transparent lg:from-[#f7f5ed]/30" />
+              <div className="relative min-h-[290px] overflow-hidden bg-[#087149] lg:min-h-full">
+                {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
+                  <PromoCarousel banners={promoBanners} className="h-full max-w-none" />
+                ) : (
+                  <img src={imgUrl((settings as any)?.hero_image_url) || heroMarmitas} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
+                )}
               </div>
             </div>
-            <div className="grid border-t border-[#e5e1d4] bg-[#fffef9] sm:grid-cols-2 lg:grid-cols-4">
-              {heroFeatures.slice(0, 4).map((feature: any, index: number) => {
-                const Icon = [Timer, Calendar, Leaf, ShieldCheck][index] ?? Sparkles;
-                return <div key={`${feature.label}-${index}`} className="flex items-center gap-3 px-5 py-4 lg:border-r lg:last:border-r-0 border-[#e5e1d4]"><Icon className="size-7 shrink-0 text-[#075636]" strokeWidth={1.5}/><p className="text-xs leading-tight text-[#526158]"><span className="block font-extrabold uppercase text-[#16442c]">{feature.label}</span><span>{feature.value}</span></p></div>;
-              })}
-            </div>
           </div>
-          {promoBanners.filter((b) => b?.image_url).length > 0 && <div className="mt-6"><PromoCarousel banners={promoBanners} /></div>}
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            {heroFeatures.map((feature: any, index: number) => {
+              const Icon = [Timer, Calendar, Leaf, WheatOff, ChefHat, MapPin, Truck, ShoppingBag][index] ?? Sparkles;
+              return (
+                <div key={`${feature.label}-${index}`} className="flex min-h-28 flex-col items-center justify-center rounded-[1.35rem] bg-[#087149] px-2 py-4 text-center text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]">
+                  <Icon className="mb-2 size-6" strokeWidth={1.7} />
+                  <p className="text-[10px] font-extrabold leading-[1.2] uppercase tracking-tight"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -429,24 +443,44 @@ function Index() {
 
             <DiscountProgressWidget className="mb-6" />
 
-            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-3 no-scrollbar">
+            <div className="rounded-2xl border border-[#e6e5db] bg-[#fbfaf6] p-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#567044]">Encontre do seu jeito</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {quickFilters.map((filter) => {
+                  const selected = selectedFilters.includes(filter);
+                  return (
+                    <button
+                      key={filter}
+                      onClick={() => toggleFilter(filter)}
+                      aria-pressed={selected}
+                      className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", selected ? "border-[#075636] bg-[#075636] text-white" : "border-[#dbe3d5] bg-white text-[#315440] hover:border-[#075636]")}
+                    >
+                      {filter}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">Use a busca para excluir ou localizar qualquer ingrediente.</p>
+            </div>
+
+            <div className="space-y-2 max-h-[44vh] overflow-y-auto pr-3 no-scrollbar">
               {isLoading ? (
                 <div className="py-8 flex justify-center">
                   <Loader2 className="animate-spin text-primary/30" size={24} />
                 </div>
               ) : (
-                [...categoriesWithProducts, ...quickFilters.filter((filter) => !categoriesWithProducts.includes(filter))].map((cat) => (
+                menuCategories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => {
-                      setSelectedCategory(cat);
+                      toggleFilter(cat);
                       setTimeout(() => {
                         document.getElementById("produtos-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }, 50);
                     }}
                     className={cn(
                       "w-full px-4 py-3 rounded-lg font-mazzard text-sm font-bold transition-all border duration-200 flex items-center gap-2",
-                      selectedCategory === cat
+                      (cat === "Todas" ? selectedFilters.length === 0 : selectedFilters.includes(cat))
                         ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
                         : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
                     )}
@@ -472,6 +506,45 @@ function Index() {
                 ))
               )}
             </div>
+
+            {!isLoading && (
+              <div className="rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-[#78922f]">Do seu jeito</p>
+                    <h3 className="mt-0.5 font-display text-lg font-black text-[#075636]">Encontre suas favoritas</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
+                  </div>
+                  {selectedFilters.length > 0 && (
+                    <button onClick={() => setSelectedFilters([])} className="shrink-0 pt-1 text-xs font-bold text-[#075636] underline underline-offset-2">
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[...quickFilters, ...restrictionFilters].map((filter) => {
+                    const selected = selectedFilters.includes(filter);
+                    return (
+                      <button
+                        key={filter}
+                        onClick={() => toggleFilter(filter)}
+                        aria-pressed={selected}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-xs font-bold transition-all",
+                          selected
+                            ? "border-[#075636] bg-[#075636] text-white shadow-sm"
+                            : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
+                        )}
+                      >
+                        {filter === "Sem Glúten" && <WheatOff size={14} />}
+                        {filter === "Sem Lactose" && <span className="text-sm leading-none">🥛</span>}
+                        {filter}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Products Grid */}
@@ -483,14 +556,12 @@ function Index() {
                   <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
                     {searchTerm
                       ? `Buscando "${searchTerm}"`
-                      : selectedCategory === "Todas"
-                        ? "Todos os Produtos"
-                        : selectedCategory}
+                      : activeFiltersLabel}
                   </h1>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {searchTerm
                       ? `Encontramos ${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}.`
-                      : selectedCategory === "Todas"
+                      : selectedFilters.length === 0
                         ? `${filteredProducts.length} produtos disponíveis`
                         : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}`}
                   </p>
@@ -553,7 +624,7 @@ function Index() {
                 <button
                   onClick={() => {
                     setSearchTerm("");
-                    setSelectedCategory("Todas");
+                    setSelectedFilters([]);
                   }}
                   className="mt-4 text-sm font-bold text-primary hover:underline"
                 >
@@ -564,7 +635,7 @@ function Index() {
               <>
                 {/* Products Grid */}
                 <div className="space-y-8">
-                  {selectedCategory === "Todas" ? (
+                  {selectedFilters.length === 0 ? (
                     // Agrupar por categoria
                     Array.from(
                       new Map(
