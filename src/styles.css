@@ -13,9 +13,57 @@
 }
 
 @font-face {
-  font-family: "Mazzard Soft M";
-  src: url("/fonts/MazzardSoftM-Light.otf") format("opentype");
-  font-weight: 300;
+  font-family: "Mazzard Soft L";
+  src: url("/fonts/MazzardSoftL-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft L";
+  src: url("/fonts/MazzardSoftL-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft L";
+  src: url("/fonts/MazzardSoftL-Bold.otf") format("opentype");
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft H";
+  src: url("/fonts/MazzardSoftH-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft H";
+  src: url("/fonts/MazzardSoftH-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft H";
+  src: url("/fonts/MazzardSoftH-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mazzard Soft H";
+  src: url("/fonts/MazzardSoftH-Black.otf") format("opentype");
+  font-weight: 800 900;
   font-style: normal;
   font-display: swap;
 }
@@ -24,9 +72,9 @@
   /* Variáveis de fontes customizadas */
   :root {
     --font-mazzard:
-      "Mazzard Soft M", "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-mazzard-heading:
-      "Mazzard Soft H", "Mazzard Soft M", "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      "Mazzard Soft H", "Mazzard Soft L", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-bebas: "Bebas Neue", Impact, sans-serif;
     --font-pacifico: "Pacifico", cursive;
     --font-halimun: "Halimun", "Pacifico", cursive;
