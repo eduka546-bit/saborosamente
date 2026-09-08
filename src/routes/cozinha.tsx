@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque";
+type Aba = "producao" | "separar" | "marmitas" | "estoque";
 type Tamanho = "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -58,7 +58,7 @@ function CozinhaPage() {
     qc = useQueryClient();
   const [ok, setOk] = useState(false),
     [aba, setAba] = useState<Aba>("producao"),
-    [modal, setModal] = useState<null | "producao" | "ingrediente" | "preparacao" | "receita">(
+    [modal, setModal] = useState<null | "producao" | "receita">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -207,8 +207,6 @@ function CozinhaPage() {
   const abas: { id: Aba; label: string; icon: any }[] = [
     { id: "producao", label: "Produção", icon: ClipboardList },
     { id: "separar", label: "Separar hoje", icon: Salad },
-    { id: "ingredientes", label: "Ingredientes", icon: Package },
-    { id: "preparacoes", label: "Preparações", icon: CookingPot },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
     { id: "estoque", label: "Estoque", icon: Store },
   ];
@@ -634,6 +632,28 @@ function CozinhaPage() {
           preparacoes={preparacoes as any[]}
           custoIng={custoIng}
           custoPrep={custoPrep}
+          criarIngrediente={async (nome: string, custoPorKg: number, rendimento: number) => {
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const { data, error } = await supabase
+              .from("cozinha_ingredientes")
+              .insert({
+                nome: nome.trim(),
+                unidade_medida: "g",
+                custo_por_kg: custoPorKg,
+                rendimento_padrao: rendimento,
+                updated_by: user?.id,
+              })
+              .select()
+              .single();
+            if (error || !data) {
+              toast.error(error?.message || "Não foi possível criar o ingrediente.");
+              return null;
+            }
+            await invalidar("coz-ing");
+            return data;
+          }}
           fechar={() => setModal(null)}
           salvar={async (modo: string, linhas: any[]) => {
             const {
@@ -970,6 +990,7 @@ function ReceitaModal({
   preparacoes,
   custoIng,
   custoPrep,
+  criarIngrediente,
   fechar,
   salvar,
 }: any) {
@@ -979,7 +1000,10 @@ function ReceitaModal({
         ? linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x }))
         : [],
     ),
-    [novoComponente, setNovoComponente] = useState("");
+    [novoComponente, setNovoComponente] = useState(""),
+    [mostrarNovoIngrediente, setMostrarNovoIngrediente] = useState(false),
+    [novoIngrediente, setNovoIngrediente] = useState({ nome: "", custo: "", rendimento: "1" }),
+    [salvandoIngrediente, setSalvandoIngrediente] = useState(false);
   const edit = (i: number, k: string, v: any) =>
     setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   const nomeComponente = (x: ReceitaLinha) =>
@@ -999,6 +1023,21 @@ function ReceitaModal({
       { ...receitaVazia(), ingrediente_id: tipo === "i" ? id : null, preparacao_id: tipo === "p" ? id : null },
     ]);
     setNovoComponente("");
+  };
+  const salvarNovoIngrediente = async () => {
+    if (!novoIngrediente.nome.trim()) return toast.error("Informe o nome do ingrediente.");
+    setSalvandoIngrediente(true);
+    const criado = await criarIngrediente(
+      novoIngrediente.nome,
+      n(novoIngrediente.custo),
+      n(novoIngrediente.rendimento) || 1,
+    );
+    setSalvandoIngrediente(false);
+    if (!criado) return;
+    setLinhas([...linhas, { ...receitaVazia(), ingrediente_id: criado.id }]);
+    setNovoIngrediente({ nome: "", custo: "", rendimento: "1" });
+    setMostrarNovoIngrediente(false);
+    toast.success("Ingrediente criado e incluído nesta marmita.");
   };
   const custo = (t: Tamanho) =>
     linhas.reduce(
@@ -1060,6 +1099,47 @@ function ReceitaModal({
           </select>
           <Botao onClick={adicionarComponente}><Plus size={17} />Adicionar</Botao>
         </div>
+        <button
+          type="button"
+          onClick={() => setMostrarNovoIngrediente(!mostrarNovoIngrediente)}
+          className="mt-3 text-sm font-bold text-[#087443]"
+        >
+          {mostrarNovoIngrediente ? "− Fechar cadastro" : "+ Cadastrar ingrediente novo"}
+        </button>
+        {mostrarNovoIngrediente && (
+          <div className="mt-3 rounded-xl border border-[#cfe1d3] bg-white p-3">
+            <p className="mb-3 text-sm font-bold text-[#173a2d]">Novo ingrediente</p>
+            <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_150px_150px_auto]">
+              <input
+                className={input}
+                autoFocus
+                value={novoIngrediente.nome}
+                placeholder="Nome do ingrediente"
+                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, nome: e.target.value })}
+              />
+              <input
+                className={input}
+                type="number"
+                min="0"
+                step="0.01"
+                value={novoIngrediente.custo}
+                placeholder="Custo por kg"
+                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, custo: e.target.value })}
+              />
+              <input
+                className={input}
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={novoIngrediente.rendimento}
+                placeholder="Rendimento"
+                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, rendimento: e.target.value })}
+              />
+              <Botao onClick={salvarNovoIngrediente}>{salvandoIngrediente ? "Salvando..." : "Salvar e usar"}</Botao>
+            </div>
+            <p className="mt-2 text-xs text-[#62766b]">Rendimento 1 = sem quebra. O ingrediente ficará salvo para todas as próximas marmitas.</p>
+          </div>
+        )}
         {!linhas.length ? (
           <p className="mt-4 rounded-xl border border-dashed border-[#bed2c4] p-3 text-sm text-[#62766b]">Nenhum componente adicionado ainda.</p>
         ) : (
