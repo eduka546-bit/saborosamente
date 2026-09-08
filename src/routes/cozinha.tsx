@@ -702,7 +702,7 @@ function Botao({ children, onClick, leve = false }: any) {
 function Janela({ titulo, fechar, children }: any) {
   return (
     <div className="fixed inset-0 z-30 overflow-y-auto bg-black/45 p-4">
-      <div className="mx-auto my-4 w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
+      <div className="mx-auto my-4 w-full max-w-6xl rounded-2xl bg-white p-5 shadow-2xl">
         <div className="mb-5 flex justify-between">
           <h3 className="text-xl font-black">{titulo}</h3>
           <button onClick={fechar}>
@@ -995,19 +995,52 @@ function ReceitaModal({
     );
   return (
     <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {TAMANHOS.map((t) => (
-          <span
-            key={t.id}
-            className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]"
-          >
-            {t.label}: {valor(custo(t.id))}
-          </span>
-        ))}
+      <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]">
+        <div className="h-32 overflow-hidden rounded-xl bg-white">
+          {produto.imagem_url || produto.imagens?.[0] ? (
+            <img
+              src={produto.imagem_url || produto.imagens?.[0]}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <div className="grid size-full place-items-center text-[#087443]">
+              <ChefHat />
+            </div>
+          )}
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">
+            Monte a ficha técnica
+          </p>
+          <h4 className="mt-1 text-xl font-black">{produto.nome}</h4>
+          <p className="mt-2 text-sm text-[#527164]">
+            Adicione cada item da montagem e informe o peso final que entra em cada tamanho de
+            marmita.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {TAMANHOS.map((t) => (
+              <span
+                key={t.id}
+                className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]"
+              >
+                {t.label}: {valor(custo(t.id))}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mb-2 grid gap-2 px-3 text-xs font-bold uppercase tracking-wide text-[#62766b] md:grid-cols-[minmax(220px,1fr)_110px_110px_110px_140px_36px]">
+        <span>Ingrediente ou preparação</span>
+        <span>200 g</span>
+        <span>300 g</span>
+        <span>400 g</span>
+        <span>Personalizada</span>
+        <span />
       </div>
       {linhas.map((x, i) => (
-        <div key={i} className="mb-3 rounded-xl border p-3">
-          <div className="grid gap-2 md:grid-cols-[1fr_130px_40px]">
+        <div key={i} className="mb-3 rounded-xl border border-[#dbe7dd] bg-white p-3">
+          <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_110px_110px_110px_140px_36px]">
             <select
               className={input}
               value={
@@ -1039,13 +1072,17 @@ function ReceitaModal({
                 ))}
               </optgroup>
             </select>
-            <input
-              className={input}
-              type="number"
-              step="0.01"
-              value={x.rendimento_quebra}
-              onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))}
-            />
+            {TAMANHOS.map((t) => (
+              <div key={t.id}>
+                <input
+                  className={input}
+                  type="number"
+                  placeholder="0 g"
+                  value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""}
+                  onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))}
+                />
+              </div>
+            ))}
             <button
               onClick={() => setLinhas(linhas.filter((_, j) => j !== i))}
               className="font-bold text-red-500"
@@ -1053,17 +1090,16 @@ function ReceitaModal({
               ×
             </button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {TAMANHOS.map((t) => (
-              <Campo key={t.id} label={t.label}>
-                <input
-                  className={input}
-                  type="number"
-                  value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""}
-                  onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))}
-                />
-              </Campo>
-            ))}
+          <div className="mt-2 text-xs text-[#62766b]">
+            Rendimento/quebra:{" "}
+            <input
+              className="ml-1 w-20 rounded border px-1 py-0.5"
+              type="number"
+              step="0.01"
+              value={x.rendimento_quebra}
+              onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))}
+            />{" "}
+            <span className="ml-1">(1 = sem quebra)</span>
           </div>
         </div>
       ))}
@@ -1071,7 +1107,7 @@ function ReceitaModal({
         onClick={() => setLinhas([...linhas, receitaVazia()])}
         className="text-sm font-bold text-[#087443]"
       >
-        + Adicionar ingrediente ou preparação
+        + Adicionar componente
       </button>
       <div className="mt-4">
         <Campo label="Modo de preparo">
@@ -1079,7 +1115,7 @@ function ReceitaModal({
             className={`${input} min-h-24`}
             value={modo}
             onChange={(e) => setModo(e.target.value)}
-            placeholder="Sequência de montagem e observações"
+            placeholder="Ex.: colocar arroz, feijão, frango e finalizar com 50 g de molho pronto."
           />
         </Campo>
       </div>
