@@ -330,6 +330,9 @@ function Index() {
   const menuCategories = categoriesWithProducts.filter(
     (category) => !restrictionFilters.includes(category) && !quickFilters.includes(category),
   );
+  const availableRestrictionFilters = categoriesWithProducts.filter((category) =>
+    restrictionFilters.includes(category),
+  );
 
   const defaultHeroFeatures = [
     { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
@@ -470,108 +473,71 @@ function Index() {
 
             <DiscountProgressWidget className="mb-6" />
 
-            <div className="rounded-2xl border border-[#e6e5db] bg-[#fbfaf6] p-4">
-              <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#567044]">Encontre do seu jeito</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {quickFilters.map((filter) => {
+            <div className="rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-bebas text-base tracking-[.12em] text-[#78922f]">FILTROS</p>
+                  <h3 className="mt-0.5 font-display text-lg font-black text-[#075636]">Encontre suas favoritas</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
+                </div>
+                {selectedFilters.length > 0 && (
+                  <button onClick={() => setSelectedFilters([])} className="shrink-0 pt-1 text-xs font-bold text-[#075636] underline underline-offset-2">
+                    Limpar
+                  </button>
+                )}
+              </div>
+
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Preferências</p>
+              <div className="flex flex-wrap gap-2">
+                {[...quickFilters, ...availableRestrictionFilters].map((filter) => {
                   const selected = selectedFilters.includes(filter);
                   return (
                     <button
                       key={filter}
                       onClick={() => toggleFilter(filter)}
                       aria-pressed={selected}
-                      className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", selected ? "border-[#075636] bg-[#075636] text-white" : "border-[#dbe3d5] bg-white text-[#315440] hover:border-[#075636]")}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-xs font-bold transition-all",
+                        selected
+                          ? "border-[#075636] bg-[#075636] text-white shadow-sm"
+                          : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
+                      )}
                     >
+                      {filter === "Sem Glúten" && <WheatOff size={14} />}
+                      {filter === "Sem Lactose" && <span className="text-sm leading-none">🥛</span>}
                       {filter}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">Use a busca para excluir ou localizar qualquer ingrediente.</p>
-            </div>
 
-            <div className="space-y-2 max-h-[44vh] overflow-y-auto pr-3 no-scrollbar">
+              <div className="my-4 border-t border-[#cfe0c4]" />
+              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Categorias</p>
               {isLoading ? (
-                <div className="py-8 flex justify-center">
-                  <Loader2 className="animate-spin text-primary/30" size={24} />
-                </div>
+                <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/30" size={22} /></div>
               ) : (
-                menuCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      toggleFilter(cat);
-                      setTimeout(() => {
-                        document.getElementById("produtos-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 50);
-                    }}
-                    className={cn(
-                      "w-full px-4 py-3 rounded-lg font-mazzard text-sm font-bold transition-all border duration-200 flex items-center gap-2",
-                      (cat === "Todas" ? selectedFilters.length === 0 : selectedFilters.includes(cat))
-                        ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
-                        : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
-                    )}
-                  >
-                    {cat === "Sem Glúten" && (
-                      <img
-                        src="/selo-sem-gluten.png"
-                        alt=""
-                        aria-hidden="true"
-                        className="h-5 w-5 shrink-0 object-contain"
-                      />
-                    )}
-                    {cat === "Sem Lactose" && (
-                      <img
-                        src="/selo-sem-lactose.png"
-                        alt=""
-                        aria-hidden="true"
-                        className="h-5 w-5 shrink-0 object-contain"
-                      />
-                    )}
-                    <span>{cat}</span>
-                  </button>
-                ))
-              )}
-            </div>
-
-            {!isLoading && (
-              <div className="rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-extrabold uppercase tracking-[.12em] text-[#78922f]">Do seu jeito</p>
-                    <h3 className="mt-0.5 font-display text-lg font-black text-[#075636]">Encontre suas favoritas</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
-                  </div>
-                  {selectedFilters.length > 0 && (
-                    <button onClick={() => setSelectedFilters([])} className="shrink-0 pt-1 text-xs font-bold text-[#075636] underline underline-offset-2">
-                      Limpar
-                    </button>
-                  )}
-                </div>
                 <div className="flex flex-wrap gap-2">
-                  {[...quickFilters, ...restrictionFilters].map((filter) => {
-                    const selected = selectedFilters.includes(filter);
+                  {menuCategories.map((category) => {
+                    const selected = category === "Todas" ? selectedFilters.length === 0 : selectedFilters.includes(category);
                     return (
                       <button
-                        key={filter}
-                        onClick={() => toggleFilter(filter)}
+                        key={category}
+                        onClick={() => toggleFilter(category)}
                         aria-pressed={selected}
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-xs font-bold transition-all",
+                          "rounded-full border px-3 py-2 text-xs font-bold transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
-                            : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
+                            : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
                         )}
                       >
-                        {filter === "Sem Glúten" && <WheatOff size={14} />}
-                        {filter === "Sem Lactose" && <span className="text-sm leading-none">🥛</span>}
-                        {filter}
+                        {category}
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Products Grid */}
