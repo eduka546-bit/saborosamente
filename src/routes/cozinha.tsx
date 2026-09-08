@@ -29,6 +29,8 @@ type ReceitaLinha = {
   gramas_400: number;
   gramas_personalizada: number;
   rendimento_quebra: number;
+  operacao_producao: "direto" | "acrescentar" | "dividir";
+  fator_producao: number;
   observacao: string;
 };
 const TAMANHOS: { id: Tamanho; label: string }[] = [
@@ -53,6 +55,8 @@ const receitaVazia = (): ReceitaLinha => ({
   gramas_400: 0,
   gramas_personalizada: 0,
   rendimento_quebra: 1,
+  operacao_producao: "direto",
+  fator_producao: 1,
   observacao: "",
 });
 
@@ -157,13 +161,19 @@ function CozinhaPage() {
     itensRec = useMemo(() => agrupar(receitaItens as any[], "receita_id"), [receitaItens]);
   const custoIng = (x: any) =>
     x?.unidade_medida === "un" ? n(x.custo_por_unidade) : n(x?.custo_por_kg) / 1000;
+  const quantidadeCorreta = (gramas: number, linha: any) => {
+    const fator = n(linha?.fator_producao || 1);
+    if (linha?.operacao_producao === "acrescentar") return gramas * (1 + fator);
+    if (linha?.operacao_producao === "dividir") return gramas / fator;
+    return gramas;
+  };
   const custoPrep = (id: string) => {
     const p = prep.get(id);
     if (!p || !n(p.rendimento_final_g)) return 0;
     return (
       (itensPrep.get(id) || []).reduce(
         (s, l) =>
-          s + (n(l.quantidade) / n(l.rendimento_quebra || 1)) * custoIng(ing.get(l.ingrediente_id)),
+          s + n(l.quantidade) * n(ing.get(l.ingrediente_id)?.rendimento_padrao || 1) * custoIng(ing.get(l.ingrediente_id)),
         0,
       ) / n(p.rendimento_final_g)
     );
@@ -183,14 +193,14 @@ function CozinhaPage() {
       if (!prato || !r) return;
       const campo = `gramas_${p.gramatura || "400"}`;
       (itensRec.get(r.id) || []).forEach((l) => {
-        const qtd = (n(l[campo]) * n(p.quantidade_planejada)) / n(l.rendimento_quebra || 1);
-        if (l.ingrediente_id) add(l.ingrediente_id, qtd, prato.nome);
+        const qtd = quantidadeCorreta(n(l[campo]), l) * n(p.quantidade_planejada);
+        if (l.ingrediente_id) add(l.ingrediente_id, qtd * n(ing.get(l.ingrediente_id)?.rendimento_padrao || 1), prato.nome);
         if (l.preparacao_id) {
           const base = prep.get(l.preparacao_id);
           (itensPrep.get(l.preparacao_id) || []).forEach((x) =>
             add(
               x.ingrediente_id,
-              ((qtd / n(base?.rendimento_final_g)) * n(x.quantidade)) / n(x.rendimento_quebra || 1),
+              (qtd / n(base?.rendimento_final_g)) * n(x.quantidade) * n(ing.get(x.ingrediente_id)?.rendimento_padrao || 1),
               prato.nome,
             ),
           );
@@ -1043,11 +1053,18 @@ function ReceitaModal({
     setMostrarNovoIngrediente(false);
     toast.success("Ingrediente criado e incluído nesta marmita.");
   };
+  const quantidadeCorretaFicha = (gramas: number, linha: ReceitaLinha) => {
+    const fator = n(linha.fator_producao || 1);
+    if (linha.operacao_producao === "acrescentar") return gramas * (1 + fator);
+    if (linha.operacao_producao === "dividir") return gramas / fator;
+    return gramas;
+  };
   const custo = (t: Tamanho) =>
     linhas.reduce(
       (s, x) =>
         s +
-        (n(x[`gramas_${t}` as keyof ReceitaLinha]) / n(x.rendimento_quebra || 1)) *
+        quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x) *
+          n(x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.rendimento_padrao || 1 : 1) *
           (x.ingrediente_id
             ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
             : x.preparacao_id
@@ -1058,7 +1075,8 @@ function ReceitaModal({
   const peso = (t: Tamanho) =>
     linhas.reduce((s, x) => s + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
   const custoLinha = (x: ReceitaLinha, t: Tamanho) =>
-    (n(x[`gramas_${t}` as keyof ReceitaLinha]) / n(x.rendimento_quebra || 1)) *
+    quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x) *
+    n(x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.rendimento_padrao || 1 : 1) *
     (x.ingrediente_id
       ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
       : x.preparacao_id
@@ -1180,7 +1198,7 @@ function ReceitaModal({
                 <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span>
               </div>
               {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
-                <div><p className="font-bold">{nomeComponente(x)}</p><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
+                <div><p className="font-bold">{nomeComponente(x)}</p><div className="mt-1 flex gap-1"><select aria-label={`Regra de produção de ${nomeComponente(x)}`} className="w-2/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.operacao_producao} onChange={(e) => edit(i, "operacao_producao", e.target.value)}><option value="direto">P/G: direto</option><option value="acrescentar">P/G: + perda</option><option value="dividir">P/G: ÷ rendimento</option></select>{x.operacao_producao !== "direto" && <input aria-label={`Fator de produção de ${nomeComponente(x)}`} className="w-1/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" type="number" min="0.01" step="0.01" value={x.fator_producao || ""} onChange={(e) => edit(i, "fator_producao", n(e.target.value))} />}</div><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
                 {TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" placeholder="0 g" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""} onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))} />)}
               </div>)}
             </div>
