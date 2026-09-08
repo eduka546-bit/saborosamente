@@ -419,7 +419,7 @@ function Index() {
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-7 text-center"><p className="font-bebas text-xl tracking-[.12em] text-[#78922f]">SEU PEDIDO, DO SEU JEITO</p><h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span></h2></div>
-          <div className="space-y-5">
+          <div className="grid gap-5 md:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
               badge="COMBINAÇÕES PRONTAS"
@@ -851,19 +851,19 @@ function OrderChoiceBanner({
   }[tone];
 
   return (
-    <article className={`flex min-h-60 flex-col justify-center overflow-hidden rounded-[2rem] bg-gradient-to-r px-6 py-7 text-white shadow-soft md:min-h-56 md:px-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8 ${styles}`}>
-      <div className="max-w-2xl">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-base tracking-[.12em] text-white/95">
+    <article className={`flex min-h-[25rem] flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br px-6 py-7 text-white shadow-soft ${styles}`}>
+      <div>
+        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-sm tracking-[.1em] text-white/95">
           <Icon size={17} strokeWidth={1.8} />
           {badge}
         </div>
-        <h3 className="font-display text-3xl font-black leading-tight md:text-4xl">{title}</h3>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/80 md:text-base">{text}</p>
+        <h3 className="font-display text-2xl font-black leading-tight lg:text-3xl">{title}</h3>
+        <p className="mt-3 text-sm leading-relaxed text-white/80">{text}</p>
         <div className="mt-5 flex flex-wrap gap-2">
           {chips.map((chip) => <span key={chip} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/95">{chip}</span>)}
         </div>
       </div>
-      <button onClick={onClick} className="mt-7 inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-[#fff082] px-7 py-3.5 font-display text-base font-black text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white lg:mt-0">
+      <button onClick={onClick} className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#fff082] px-5 py-3 font-display text-sm font-black text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white">
         <Icon size={19} strokeWidth={2} />
         {action}
       </button>
