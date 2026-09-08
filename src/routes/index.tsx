@@ -461,7 +461,7 @@ function Index() {
       <section id="cardapio" className="mx-auto max-w-7xl px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Menu de Categorias - Sticky */}
-          <div className="w-full lg:w-80 lg:sticky lg:top-24 space-y-4 shrink-0">
+          <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
             <div className="space-y-3">
               <h2 className="text-2xl font-display font-black text-foreground leading-tight">
                 Nosso Cardápio
