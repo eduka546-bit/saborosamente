@@ -123,12 +123,24 @@ export function PromoCarousel({ banners, className, fill = false }: PromoCarouse
       {currentBanner.link ? (
         <a
           href={currentBanner.link}
-          className={cn("block overflow-hidden bg-card h-[180px] md:h-[220px]", fill ? "h-full rounded-none border-0 shadow-none" : "rounded-xl shadow-soft border border-border/30")}
+          className={cn(
+            "block overflow-hidden bg-card",
+            fill
+              ? "h-full rounded-none border-0 shadow-none"
+              : "h-[180px] rounded-xl border border-border/30 shadow-soft md:h-[220px]",
+          )}
         >
           {content}
         </a>
       ) : (
-        <div className={cn("block overflow-hidden bg-card h-[180px] md:h-[220px]", fill ? "h-full rounded-none border-0 shadow-none" : "rounded-xl shadow-soft border border-border/30")}>
+        <div
+          className={cn(
+            "block overflow-hidden bg-card",
+            fill
+              ? "h-full rounded-none border-0 shadow-none"
+              : "h-[180px] rounded-xl border border-border/30 shadow-soft md:h-[220px]",
+          )}
+        >
           {content}
         </div>
       )}
