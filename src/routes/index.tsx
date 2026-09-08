@@ -429,23 +429,13 @@ function Index() {
 
             <DiscountProgressWidget className="mb-6" />
 
-            <div className="rounded-2xl border border-[#e6e5db] bg-[#fbfaf6] p-4">
-              <p className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#567044]">Encontre do seu jeito</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {quickFilters.map((filter) => (
-                  <button key={filter} onClick={() => setSelectedCategory(filter)} className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", selectedCategory === filter ? "border-[#075636] bg-[#075636] text-white" : "border-[#dbe3d5] bg-white text-[#315440] hover:border-[#075636]")}>{filter}</button>
-                ))}
-              </div>
-              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">Use a busca para excluir ou localizar qualquer ingrediente.</p>
-            </div>
-
             <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-3 no-scrollbar">
               {isLoading ? (
                 <div className="py-8 flex justify-center">
                   <Loader2 className="animate-spin text-primary/30" size={24} />
                 </div>
               ) : (
-                categoriesWithProducts.map((cat) => (
+                [...categoriesWithProducts, ...quickFilters.filter((filter) => !categoriesWithProducts.includes(filter))].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => {
@@ -455,7 +445,7 @@ function Index() {
                       }, 50);
                     }}
                     className={cn(
-                      "w-full px-4 py-3 rounded-lg text-sm font-bold transition-all border duration-200 flex items-center gap-2",
+                      "w-full px-4 py-3 rounded-lg font-mazzard text-sm font-bold transition-all border duration-200 flex items-center gap-2",
                       selectedCategory === cat
                         ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
                         : "bg-card text-foreground border-border/30 hover:border-primary/50 hover:bg-primary/5",
