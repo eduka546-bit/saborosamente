@@ -880,9 +880,9 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
         <Campo label="Dia da produção">
           <input className={input} type="date" value={data} onChange={(e) => setData(e.target.value)} />
         </Campo>
-        <Campo label="Marmita">
+        <Campo label="Item de produção">
           <select className={input} value={produto} onChange={(e) => setProduto(e.target.value)}>
-            <option value="">Selecione o sabor</option>
+            <option value="">Selecione o item</option>
             {marmitas.map((x: any) => (
               <option key={x.id} value={x.id}>
                 {x.nome}
