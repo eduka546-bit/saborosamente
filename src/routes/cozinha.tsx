@@ -35,6 +35,7 @@ type ReceitaLinha = {
   fator_producao: number;
   observacao: string;
 };
+type MontagemLinha = { id?: string; nome: string; gramas_200: number; gramas_300: number; gramas_400: number; observacao: string };
 const TAMANHOS: { id: Tamanho; label: string }[] = [
   { id: "200", label: "200 g" },
   { id: "300", label: "300 g" },
@@ -126,6 +127,7 @@ function CozinhaPage() {
     "*",
     "ordem",
   );
+  const { data: montagemItens = [] } = useTableQuery("coz-montagem-itens", "cozinha_receita_montagem_itens", "*", "ordem");
   const { data: estoque = [] } = useTableQuery(
     "coz-estoque",
     "cozinha_estoque",
@@ -170,7 +172,8 @@ function CozinhaPage() {
       () => agrupar(preparacaoItens as any[], "preparacao_id"),
       [preparacaoItens],
     ),
-    itensRec = useMemo(() => agrupar(receitaItens as any[], "receita_id"), [receitaItens]);
+    itensRec = useMemo(() => agrupar(receitaItens as any[], "receita_id"), [receitaItens]),
+    itensMontagem = useMemo(() => agrupar(montagemItens as any[], "receita_id"), [montagemItens]);
   const custoIng = (x: any) =>
     x?.unidade_medida === "un" ? n(x.custo_por_unidade) : n(x?.custo_por_kg) / 1000;
   const quantidadeCorreta = (gramas: number, linha: any) => {
@@ -759,6 +762,7 @@ function CozinhaPage() {
           produto={edit}
           receita={rec.get(edit?.id)}
           linhasIniciais={itensRec.get(rec.get(edit?.id)?.id) || []}
+          montagemInicial={itensMontagem.get(rec.get(edit?.id)?.id) || []}
           ingredientes={ingredientes as any[]}
           preparacoes={preparacoes as any[]}
           custoIng={custoIng}
@@ -786,38 +790,27 @@ function CozinhaPage() {
             return data;
           }}
           fechar={() => setModal(null)}
-          salvar={async (modo: string, linhas: any[]) => {
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            const { data, error } = await supabase
-              .from("cozinha_receitas")
-              .upsert(
-                {
-                  produto_id: edit.id,
-                  ingredientes: [],
-                  modo_preparo: modo || null,
-                  updated_by: user?.id,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "produto_id" },
-              )
-              .select()
-              .single();
+          salvar={async (modo: string, linhas: any[], montagem: MontagemLinha[]) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, ingredientes: [], modo_preparo: modo || null, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
             if (error || !data) return toast.error(error?.message || "Erro ao salvar.");
-            await supabase.from("cozinha_receita_itens").delete().eq("receita_id", data.id);
-            const validas = linhas.filter((x) => x.ingrediente_id || x.preparacao_id);
+            const { error: apagarIngredientes } = await supabase.from("cozinha_receita_itens").delete().eq("receita_id", data.id);
+            if (apagarIngredientes) return toast.error(apagarIngredientes.message);
+            const validas = linhas.filter((x) => x.ingrediente_id);
             if (validas.length) {
-              const { error: e } = await supabase
-                .from("cozinha_receita_itens")
-                .insert(validas.map((x, i) => ({ ...x, receita_id: data.id, ordem: i })));
+              const { error: e } = await supabase.from("cozinha_receita_itens").insert(validas.map((x, i) => ({ ...x, preparacao_id: null, receita_id: data.id, ordem: i, operacao_producao: "direto", fator_producao: 1 })));
               if (e) return toast.error(e.message);
             }
-            invalidar("coz-rec", "coz-rec-itens");
-            setModal(null);
-            toast.success("Ficha técnica salva.");
-          }}
-        />
+            const { error: apagarMontagem } = await supabase.from("cozinha_receita_montagem_itens").delete().eq("receita_id", data.id);
+            if (apagarMontagem) return toast.error(apagarMontagem.message);
+            const final = montagem.filter((x) => x.nome.trim());
+            if (final.length) {
+              const { error: e } = await supabase.from("cozinha_receita_montagem_itens").insert(final.map((x, i) => ({ receita_id: data.id, nome: x.nome.trim(), gramas_200: n(x.gramas_200), gramas_300: n(x.gramas_300), gramas_400: n(x.gramas_400), observacao: x.observacao || null, ordem: i })));
+              if (e) return toast.error(e.message);
+            }
+            invalidar("coz-rec", "coz-rec-itens", "coz-montagem-itens");
+            setModal(null); toast.success("Ficha técnica salva.");
+          }}        />
       )}
     </div>
   );
@@ -1164,269 +1157,33 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
     </Janela>
   );
 }
-function ReceitaModal({
-  produto,
-  receita,
-  linhasIniciais,
-  ingredientes,
-  preparacoes,
-  custoIng,
-  custoPrep,
-  criarIngrediente,
-  fechar,
-  salvar,
-}: any) {
-  const [modo, setModo] = useState(receita?.modo_preparo || ""),
-    [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "resumo">("ingredientes"),
-    [linhas, setLinhas] = useState<ReceitaLinha[]>(
-      linhasIniciais.length
-        ? linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x }))
-        : [],
-    ),
-    [novoComponente, setNovoComponente] = useState(""),
-    [mostrarNovoIngrediente, setMostrarNovoIngrediente] = useState(false),
-    [novoIngrediente, setNovoIngrediente] = useState({ nome: "", custo: "", rendimento: "1" }),
-    [salvandoIngrediente, setSalvandoIngrediente] = useState(false);
-  const edit = (i: number, k: string, v: any) =>
-    setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  const nomeComponente = (x: ReceitaLinha) =>
-    x.ingrediente_id
-      ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.nome
-      : x.preparacao_id
-        ? preparacoes.find((a: any) => a.id === x.preparacao_id)?.nome
-        : "Componente";
-  const adicionarComponente = () => {
-    if (!novoComponente) return toast.error("Selecione um ingrediente ou preparação.");
-    const [tipo, id] = novoComponente.split(":");
-    if (linhas.some((x) => (tipo === "i" ? x.ingrediente_id === id : x.preparacao_id === id))) {
-      return toast.error("Esse componente já está na lista.");
-    }
-    setLinhas([
-      ...linhas,
-      { ...receitaVazia(), ingrediente_id: tipo === "i" ? id : null, preparacao_id: tipo === "p" ? id : null },
-    ]);
-    setNovoComponente("");
-  };
-  const salvarNovoIngrediente = async () => {
-    if (!novoIngrediente.nome.trim()) return toast.error("Informe o nome do ingrediente.");
-    setSalvandoIngrediente(true);
-    const criado = await criarIngrediente(
-      novoIngrediente.nome,
-      n(novoIngrediente.custo),
-      n(novoIngrediente.rendimento) || 1,
-    );
-    setSalvandoIngrediente(false);
-    if (!criado) return;
-    setLinhas([...linhas, { ...receitaVazia(), ingrediente_id: criado.id }]);
-    setNovoIngrediente({ nome: "", custo: "", rendimento: "1" });
-    setMostrarNovoIngrediente(false);
-    toast.success("Ingrediente criado e incluído nesta marmita.");
-  };
-  const quantidadeCorretaFicha = (gramas: number, linha: ReceitaLinha) => {
-    const fator = n(linha.fator_producao || 1);
-    if (linha.operacao_producao === "acrescentar") return gramas * (1 + fator);
-    if (linha.operacao_producao === "dividir") return gramas / fator;
-    return gramas;
-  };
-  const quantidadeComRendimentoFicha = (gramas: number, ingrediente: any) => {
-    if (ingrediente?.tipo_rendimento === "perda")
-      return gramas * (1 + n(ingrediente.quebra_percentual) / 100);
-    if (ingrediente?.tipo_rendimento === "ganho")
-      return gramas / n(ingrediente.fator_rendimento || 1);
-    return gramas;
-  };
-  const custo = (t: Tamanho) =>
-    linhas.reduce(
-      (s, x) =>
-        s +
-        quantidadeComRendimentoFicha(
-          quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
-          x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
-        ) *
-          (x.ingrediente_id
-            ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
-            : x.preparacao_id
-              ? custoPrep(x.preparacao_id)
-              : 0),
-      0,
-    );
-  const peso = (t: Tamanho) =>
-    linhas.reduce((s, x) => s + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
-  const custoLinha = (x: ReceitaLinha, t: Tamanho) =>
-    quantidadeComRendimentoFicha(
-      quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
-      x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
-    ) *
-    (x.ingrediente_id
-      ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
-      : x.preparacao_id
-        ? custoPrep(x.preparacao_id)
-        : 0);
-  return (
-    <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
-      <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]">
-        <div className="h-32 overflow-hidden rounded-xl bg-white">
-          {produto.imagem_url || produto.imagens?.[0] ? (
-            <img
-              src={produto.imagem_url || produto.imagens?.[0]}
-              alt=""
-              className="size-full object-cover"
-            />
-          ) : (
-            <div className="grid size-full place-items-center text-[#087443]">
-              <ChefHat />
-            </div>
-          )}
-        </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">
-            Monte a ficha técnica
-          </p>
-          <h4 className="mt-1 text-xl font-black">{produto.nome}</h4>
-          <p className="mt-2 text-sm text-[#527164]">
-            Adicione cada item da montagem e informe o peso final que entra em cada tamanho de
-            marmita.
-          </p>
-        </div>
-      </div>
-      <div className="mb-6 grid grid-cols-3 rounded-xl bg-[#e7eee8] p-1">
-        {[
-          ["ingredientes", "1. Ingredientes"],
-          ["montagem", "2. Montagem"],
-          ["resumo", "3. Custos e preparo"],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setAbaFicha(id as typeof abaFicha)}
-            className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha === id ? "bg-white text-[#087443] shadow-sm" : "text-[#62766b]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {abaFicha === "ingredientes" && <section className="rounded-2xl border border-[#dbe7dd] bg-[#fbfdfb] p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Lista de ingredientes</p>
-        <p className="mb-3 mt-1 text-sm text-[#62766b]">Escolha tudo que faz parte da receita. Molhos e purês prontos entram como preparação.</p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <select className={input} value={novoComponente} onChange={(e) => setNovoComponente(e.target.value)}>
-            <option value="">Escolha um ingrediente ou preparação</option>
-            <optgroup label="Ingredientes">{ingredientes.map((a: any) => <option key={a.id} value={`i:${a.id}`}>{a.nome}</option>)}</optgroup>
-            <optgroup label="Preparações prontas">{preparacoes.map((a: any) => <option key={a.id} value={`p:${a.id}`}>{a.nome}</option>)}</optgroup>
-          </select>
-          <Botao onClick={adicionarComponente}><Plus size={17} />Adicionar</Botao>
-        </div>
-        <button
-          type="button"
-          onClick={() => setMostrarNovoIngrediente(!mostrarNovoIngrediente)}
-          className="mt-3 text-sm font-bold text-[#087443]"
-        >
-          {mostrarNovoIngrediente ? "− Fechar cadastro" : "+ Cadastrar ingrediente novo"}
-        </button>
-        {mostrarNovoIngrediente && (
-          <div className="mt-3 rounded-xl border border-[#cfe1d3] bg-white p-3">
-            <p className="mb-3 text-sm font-bold text-[#173a2d]">Novo ingrediente</p>
-            <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_150px_150px_auto]">
-              <input
-                className={input}
-                autoFocus
-                value={novoIngrediente.nome}
-                placeholder="Nome do ingrediente"
-                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, nome: e.target.value })}
-              />
-              <input
-                className={input}
-                type="number"
-                min="0"
-                step="0.01"
-                value={novoIngrediente.custo}
-                placeholder="Custo por kg"
-                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, custo: e.target.value })}
-              />
-              <input
-                className={input}
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={novoIngrediente.rendimento}
-                placeholder="Rendimento"
-                onChange={(e) => setNovoIngrediente({ ...novoIngrediente, rendimento: e.target.value })}
-              />
-              <Botao onClick={salvarNovoIngrediente}>{salvandoIngrediente ? "Salvando..." : "Salvar e usar"}</Botao>
-            </div>
-            <p className="mt-2 text-xs text-[#62766b]">Rendimento 1 = sem quebra. O ingrediente ficará salvo para todas as próximas marmitas.</p>
-          </div>
-        )}
-        {!linhas.length ? (
-          <p className="mt-4 rounded-xl border border-dashed border-[#bed2c4] p-3 text-sm text-[#62766b]">Nenhum componente adicionado ainda.</p>
-        ) : (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {linhas.map((x, i) => <span key={i} className="inline-flex items-center gap-2 rounded-full bg-[#e0f2e7] px-3 py-1.5 text-sm font-bold text-[#075d37]">
-              {nomeComponente(x)}
-              <button aria-label={`Remover ${nomeComponente(x)}`} onClick={() => setLinhas(linhas.filter((_, j) => j !== i))} className="text-[#087443] hover:text-red-600">×</button>
-            </span>)}
-          </div>
-        )}
-      </section>}
-      {abaFicha === "montagem" && <section>
-        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p>
-        <p className="mb-3 mt-1 text-sm text-[#62766b]">Informe a quantidade pronta que entra em cada tamanho de marmita.</p>
-        {!linhas.length ? <Vazio texto="Adicione os ingredientes acima para criar a lista de montagem." /> : (
-          <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]">
-            <div className="min-w-[800px]">
-              <div className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
-                <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span>
-              </div>
-              {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
-                <div><p className="font-bold">{nomeComponente(x)}</p><div className="mt-1 flex gap-1"><select aria-label={`Regra de produção de ${nomeComponente(x)}`} className="w-2/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.operacao_producao} onChange={(e) => edit(i, "operacao_producao", e.target.value)}><option value="direto">P/G: direto</option><option value="acrescentar">P/G: + perda</option><option value="dividir">P/G: ÷ rendimento</option></select>{x.operacao_producao !== "direto" && <input aria-label={`Fator de produção de ${nomeComponente(x)}`} className="w-1/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" type="number" min="0.01" step="0.01" value={x.fator_producao || ""} onChange={(e) => edit(i, "fator_producao", n(e.target.value))} />}</div><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
-                {TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" placeholder="0 g" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""} onChange={(e) => edit(i, `gramas_${t.id}`, n(e.target.value))} />)}
-              </div>)}
-            </div>
-          </div>
-        )}
-      </section>}
-      {abaFicha === "resumo" && <section>
-        <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo da ficha técnica</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {TAMANHOS.map((t) => (
-              <div key={t.id} className="rounded-xl bg-white p-3">
-                <p className="text-xs font-bold text-[#62766b]">{t.label}</p>
-                <p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id)} g</p>
-                <p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} em ingredientes</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        {!linhas.length ? <Vazio texto="Adicione ingredientes e informe a montagem para ver os custos." /> : (
-          <div className="mb-5 overflow-x-auto rounded-2xl border border-[#dbe7dd]">
-            <div className="min-w-[760px]">
-              <div className="grid grid-cols-[minmax(220px,1fr)_110px_130px_130px_130px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
-                <span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span>
-              </div>
-              {linhas.map((x, i) => {
-                const item = x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null;
-                return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_110px_130px_130px_130px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm">
-                  <span className="font-bold">{nomeComponente(x)}</span>
-                  <span>{item ? valor(n(item.custo_por_kg)) : "Calculado"}</span>
-                  {TAMANHOS.map((t) => <span key={t.id}>{n(x[`gramas_${t.id}` as keyof ReceitaLinha])} g · <b>{valor(custoLinha(x, t.id))}</b></span>)}
-                </div>;
-              })}
-            </div>
-          </div>
-        )}
-        <Campo label="Modo de montagem / preparo">
-          <textarea
-            className={`${input} min-h-24`}
-            value={modo}
-            onChange={(e) => setModo(e.target.value)}
-            placeholder="Ex.: colocar arroz, feijão, frango e finalizar com 50 g de molho pronto."
-          />
-        </Campo>
-      </section>}
-      <div className="mt-5">
-        <Botao onClick={() => salvar(modo, linhas)}>Salvar ficha técnica</Botao>
-      </div>
-    </Janela>
-  );
+function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, custoIng, criarIngrediente, fechar, salvar }: any) {
+  const [modo, setModo] = useState(receita?.modo_preparo || "");
+  const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "resumo">("ingredientes");
+  const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, preparacao_id: null })));
+  const [montagem, setMontagem] = useState<MontagemLinha[]>(montagemInicial.map((x: any) => ({ id:x.id, nome:x.nome || "", gramas_200:n(x.gramas_200), gramas_300:n(x.gramas_300), gramas_400:n(x.gramas_400), observacao:x.observacao || "" })));
+  const [selecionado, setSelecionado] = useState("");
+  const [novo, setNovo] = useState(false);
+  const [novoD, setNovoD] = useState({ nome:"", custo:"", rendimento:"1" });
+  const nome = (x: ReceitaLinha) => ingredientes.find((a:any) => a.id === x.ingrediente_id)?.nome || "Ingrediente";
+  const editar = (i:number,k:string,v:any) => setLinhas(linhas.map((x,j) => j === i ? {...x,[k]:v}:x));
+  const editarMontagem = (i:number,k:string,v:any) => setMontagem(montagem.map((x,j) => j === i ? {...x,[k]:v}:x));
+  const addIngrediente = () => { if(!selecionado) return toast.error("Escolha um ingrediente."); if(linhas.some(x => x.ingrediente_id===selecionado)) return toast.error("Esse ingrediente já está na lista."); setLinhas([...linhas,{...receitaVazia(),ingrediente_id:selecionado}]); setSelecionado(""); };
+  const addNovo = async () => { if(!novoD.nome.trim()) return toast.error("Informe o nome."); const criado = await criarIngrediente(novoD.nome,n(novoD.custo),n(novoD.rendimento)||1); if(!criado) return; setLinhas([...linhas,{...receitaVazia(),ingrediente_id:criado.id}]); setNovoD({nome:"",custo:"",rendimento:"1"});setNovo(false); };
+  const qCorreta = (g:number, item:any) => item?.tipo_rendimento==="perda" ? g*(1+n(item.quebra_percentual)/100) : item?.tipo_rendimento==="ganho" ? g/n(item.fator_rendimento||1) : g;
+  const custoLinha = (x:ReceitaLinha,t:Tamanho) => qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));
+  const custo=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);
+  const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof ReceitaLinha]),0);
+  const novaMontagem=()=>({nome:"",gramas_200:0,gramas_300:0,gramas_400:0,observacao:""});
+  return <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
+    <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]"><div className="h-32 overflow-hidden rounded-xl bg-white">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt="" className="size-full object-cover" />:<div className="grid size-full place-items-center text-[#087443]"><ChefHat /></div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Monte a ficha técnica</p><h4 className="mt-1 text-xl font-black">{produto.nome}</h4><p className="mt-2 text-sm text-[#527164]">Ingredientes são a base de custo e produção. Em Montagem, registre somente o que entra pronto na embalagem.</p></div></div>
+    <div className="mb-6 grid grid-cols-3 rounded-xl bg-[#e7eee8] p-1">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["resumo","3. Custos e preparo"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAbaFicha(id as typeof abaFicha)} className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha===id?"bg-white text-[#087443] shadow-sm":"text-[#62766b]"}`}>{label}</button>)}</div>
+    {abaFicha==="ingredientes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Ingredientes da receita</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Informe as quantidades por tamanho. Perdas e ganhos são aplicados automaticamente na lista de produção.</p><div className="flex flex-col gap-2 sm:flex-row"><select className={input} value={selecionado} onChange={e=>setSelecionado(e.target.value)}><option value="">Escolha um ingrediente</option>{ingredientes.map((x:any)=><option key={x.id} value={x.id}>{x.nome}</option>)}</select><Botao onClick={addIngrediente}><Plus size={17}/>Adicionar ingrediente</Botao></div><button type="button" onClick={()=>setNovo(!novo)} className="mt-3 text-sm font-bold text-[#087443]">{novo?"− Fechar cadastro":"+ Cadastrar ingrediente novo"}</button>{novo&&<div className="mt-3 grid gap-2 rounded-xl border border-[#cfe1d3] bg-white p-3 md:grid-cols-[1fr_150px_150px_auto]"><input className={input} value={novoD.nome} placeholder="Nome" onChange={e=>setNovoD({...novoD,nome:e.target.value})}/><input className={input} type="number" value={novoD.custo} placeholder="Custo/kg" onChange={e=>setNovoD({...novoD,custo:e.target.value})}/><input className={input} type="number" value={novoD.rendimento} placeholder="Rendimento" onChange={e=>setNovoD({...novoD,rendimento:e.target.value})}/><Botao onClick={addNovo}>Salvar e usar</Botao></div>}
+    {!linhas.length?<Vazio texto="Nenhum ingrediente adicionado ainda."/>:<TabelaCabecalho titulo="Ingrediente">{linhas.map((x,i)=><div key={i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><b>{nome(x)}</b><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setLinhas(linhas.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho>}</section>}
+    {abaFicha==="montagem" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Cadastre somente os componentes prontos que entram na marmita: por exemplo, frango empanado, molho, arroz e brócolis.</p><Botao onClick={()=>setMontagem([...montagem,novaMontagem()])}><Plus size={17}/>Adicionar componente pronto</Botao>{!montagem.length?<div className="mt-4"><Vazio texto="Nenhum componente pronto cadastrado." /></div>:<div className="mt-4"><TabelaCabecalho titulo="Componente pronto">{montagem.map((x,i)=><div key={x.id||i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><input className={input} value={x.nome} placeholder="Ex.: Frango empanado americano" onChange={e=>editarMontagem(i,"nome",e.target.value)}/><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editarMontagem(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof MontagemLinha])||""} placeholder="0 g" onChange={e=>editarMontagem(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setMontagem(montagem.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho></div>}</section>}
+    {abaFicha==="resumo" && <section><div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo dos ingredientes</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{TAMANHOS.map(t=><div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id)} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} em ingredientes</p></div>)}</div></div>{!linhas.length?<Vazio texto="Adicione ingredientes para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha}/>}<div className="mt-5"><Campo label="Modo de montagem / preparo"><textarea className={`${input} min-h-24`} value={modo} onChange={e=>setModo(e.target.value)} placeholder="Ex.: coloque arroz, frango, molho e finalize com brócolis."/></Campo></div></section>}
+    <div className="mt-5"><Botao onClick={()=>salvar(modo,linhas,montagem)}>Salvar ficha técnica</Botao></div>
+  </Janela>;
 }
+function TabelaCabecalho({titulo,children}:any){return <div className="mt-4 overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>{titulo}</span><span>200 g</span><span>300 g</span><span>400 g</span><span/></div>{children}</div></div>}
+function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}
