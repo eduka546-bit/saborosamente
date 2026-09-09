@@ -36,9 +36,9 @@ type ReceitaLinha = {
   observacao: string;
 };
 const TAMANHOS: { id: Tamanho; label: string }[] = [
+  { id: "200", label: "200 g" },
   { id: "300", label: "300 g" },
   { id: "400", label: "400 g" },
-  { id: "200", label: "200 g" },
 ];
 const labelGramatura = (gramatura: string) =>
   gramatura === "personalizada"
@@ -1375,7 +1375,7 @@ function ReceitaModal({
           <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]">
             <div className="min-w-[800px]">
               <div className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
-                <span>Componente</span><span>300 g</span><span>400 g</span><span>200 g</span>
+                <span>Componente</span><span>200 g</span><span>300 g</span><span>400 g</span>
               </div>
               {linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(210px,1fr)_120px_120px_120px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3">
                 <div><p className="font-bold">{nomeComponente(x)}</p><div className="mt-1 flex gap-1"><select aria-label={`Regra de produção de ${nomeComponente(x)}`} className="w-2/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.operacao_producao} onChange={(e) => edit(i, "operacao_producao", e.target.value)}><option value="direto">P/G: direto</option><option value="acrescentar">P/G: + perda</option><option value="dividir">P/G: ÷ rendimento</option></select>{x.operacao_producao !== "direto" && <input aria-label={`Fator de produção de ${nomeComponente(x)}`} className="w-1/3 rounded border border-[#dbe7dd] px-2 py-1 text-xs" type="number" min="0.01" step="0.01" value={x.fator_producao || ""} onChange={(e) => edit(i, "fator_producao", n(e.target.value))} />}</div><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação (opcional)" onChange={(e) => edit(i, "observacao", e.target.value)} /></div>
@@ -1402,7 +1402,7 @@ function ReceitaModal({
           <div className="mb-5 overflow-x-auto rounded-2xl border border-[#dbe7dd]">
             <div className="min-w-[760px]">
               <div className="grid grid-cols-[minmax(220px,1fr)_110px_130px_130px_130px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]">
-                <span>Ingrediente</span><span>Custo/kg</span><span>300 g</span><span>400 g</span><span>200 g</span>
+                <span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span>
               </div>
               {linhas.map((x, i) => {
                 const item = x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null;
