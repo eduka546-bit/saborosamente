@@ -223,6 +223,16 @@ function CozinhaPage() {
       .map(([id, x]) => ({ id, ...x, item: ing.get(id) }))
       .sort((a, b) => a.item.nome.localeCompare(b.item.nome));
   }, [producoes, produto, rec, itensRec, prep, itensPrep, ing]);
+  const alertasEstoquePlanejado = useMemo(
+    () =>
+      separar
+        .filter((x) => {
+          const saldo = (estoque as any[]).find((e) => e.ingrediente_id === x.id);
+          return n(saldo?.quantidade_atual) < n(x.quantidade);
+        })
+        .map((x) => x.item.nome),
+    [separar, estoque],
+  );
   const producoesVisiveis = useMemo(
     () =>
       (producoes as any[]).filter((p) => {
@@ -358,6 +368,11 @@ function CozinhaPage() {
                         {p.status !== "concluida" && (
                           <Botao
                             onClick={async () => {
+                              if (alertasEstoquePlanejado.length) {
+                                toast.warning(
+                                  `Atenção: estoque insuficiente para ${alertasEstoquePlanejado.join(", ")}. A produção será registrada mesmo assim.`,
+                                );
+                              }
                               const { error } = await supabase.rpc("concluir_producao_cozinha", {
                                 p_producao_id: p.id,
                               } as any);
