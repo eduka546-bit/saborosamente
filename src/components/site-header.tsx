@@ -17,7 +17,6 @@ import { imgUrl } from "@/lib/image-proxy";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import saborosamenteLogoAsset from "@/assets/saborosamente-logo.png.asset.json";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -345,7 +344,7 @@ export function SiteHeader() {
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
 
-  const logoSrc = imgUrl(settings?.logo_url) || saborosamenteLogoAsset.url;
+  const logoSrc = imgUrl(settings?.logo_url) || "/icon-app.jpg";
 
   return (
     <header className="relative z-[40] transition-all duration-300 pointer-events-none">
