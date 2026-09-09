@@ -369,11 +369,12 @@ function CozinhaPage() {
                           </Botao>
                         )}
                         {p.status === "concluida" && <Botao leve onClick={async () => {
-                          const { error } = await supabase.from("cozinha_producoes").update({ status: "planejada", updated_at: new Date().toISOString() }).eq("id", p.id);
-                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Produção voltou para planejada."); }
+                          const { error } = await supabase.rpc("reverter_conclusao_producao_cozinha", { p_producao_id: p.id } as any);
+                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia", "coz-estoque-marmitas"); toast.success("Produção voltou para planejada e o saldo da cozinha foi corrigido."); }
                         }}>Marcar como pendente</Botao>}
                         <button aria-label={`Excluir ${pr?.nome || "produção"}`} onClick={async () => {
                           if (!window.confirm(`Excluir o lançamento de ${pr?.nome || "produção"}?`)) return;
+                          if (p.status === "concluida") return toast.error("Antes de excluir, marque esta produção como pendente para corrigir o estoque.");
                           const { error } = await supabase.from("cozinha_producoes").delete().eq("id", p.id);
                           if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Lançamento excluído."); }
                         }} className="rounded-xl p-2.5 text-red-600 hover:bg-red-50"><Trash2 size={18} /></button>
