@@ -69,7 +69,7 @@ function CozinhaPage() {
     [dataProducao, setDataProducao] = useState(hoje()),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "receita">(
+    [modal, setModal] = useState<null | "producao" | "receita" | "transferencia">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -130,6 +130,11 @@ function CozinhaPage() {
     "cozinha_estoque",
     "*",
     "ingrediente",
+  );
+  const { data: estoqueMarmitas = [] } = useTableQuery(
+    "coz-estoque-marmitas",
+    "cozinha_estoque_marmitas",
+    "*",
   );
   const { data: producoes = [] } = useQuery({
     queryKey: ["coz-prod-dia", dataProducao],
@@ -223,6 +228,10 @@ function CozinhaPage() {
           (!buscaProducao.trim() || nome.includes(buscaProducao.trim().toLowerCase()));
       }),
     [producoes, produto, filtroProducao, buscaProducao],
+  );
+  const estoqueMarmitasPorProduto = useMemo(
+    () => porId(estoqueMarmitas as any[]),
+    [estoqueMarmitas],
   );
   const invalidar = (...keys: string[]) =>
     Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey: [queryKey] })));
@@ -345,17 +354,14 @@ function CozinhaPage() {
                         {p.status !== "concluida" && (
                           <Botao
                             onClick={async () => {
-                              const dados: any = {
-                                status: "concluida",
-                                quantidade_produzida: p.quantidade_planejada,
-                                updated_at: new Date().toISOString(),
-                              };
-                              const { error } = await supabase
-                                .from("cozinha_producoes")
-                                .update(dados)
-                                .eq("id", p.id);
+                              const { error } = await supabase.rpc("concluir_producao_cozinha", {
+                                p_producao_id: p.id,
+                              } as any);
                               if (error) toast.error(error.message);
-                              else invalidar("coz-prod-dia");
+                              else {
+                                invalidar("coz-prod-dia", "coz-estoque-marmitas");
+                                toast.success("Produção concluída e adicionada ao estoque da cozinha.");
+                              }
                             }}
                           >
                             <CheckCircle2 size={16} />
@@ -565,18 +571,29 @@ function CozinhaPage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(estoque as any[]).map((x) => (
-                    <article key={x.id} className="rounded-2xl border bg-white p-4">
-                      <h3 className="font-bold">{x.ingrediente}</h3>
-                      <p className="mt-2 font-black text-[#087443]">
-                        {x.quantidade_atual} {x.unidade}
-                      </p>
-                      <p className="text-xs text-[#62766b]">
-                        Mínimo: {x.quantidade_minima} {x.unidade}
-                      </p>
-                    </article>
-                  ))}
+                <div className="grid gap-6">
+                  <div>
+                    <h3 className="mb-1 text-lg font-black">Marmitas prontas na cozinha</h3>
+                    <p className="mb-3 text-sm text-[#62766b]">Transfira daqui para somar automaticamente no estoque da loja.</p>
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {marmitas.map((x: any) => {
+                        const saldo = estoqueMarmitasPorProduto.get(x.id);
+                        return <article key={x.id} className="rounded-2xl border bg-white p-4">
+                          <h4 className="font-bold">{x.nome}</h4>
+                          <p className="mt-2 text-sm text-[#62766b]">{saldo?.estoque_200g || 0} · 200 g &nbsp; {saldo?.estoque_300g || 0} · 300 g &nbsp; {saldo?.estoque_400g || 0} · 400 g</p>
+                          <div className="mt-3"><Botao leve onClick={() => abrir("transferencia", x)}>Transferir para loja</Botao></div>
+                        </article>;
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="mb-1 text-lg font-black">Ingredientes da cozinha</h3>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {(estoque as any[]).map((x) => (
+                        <article key={x.id} className="rounded-2xl border bg-white p-4"><h4 className="font-bold">{x.ingrediente}</h4><p className="mt-2 font-black text-[#087443]">{x.quantidade_atual} {x.unidade}</p><p className="text-xs text-[#62766b]">Mínimo: {x.quantidade_minima} {x.unidade}</p></article>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </section>
@@ -609,6 +626,24 @@ function CozinhaPage() {
               setModal(null);
               toast.success("Produção adicionada.");
             }
+          }}
+        />
+      )}
+      {modal === "transferencia" && (
+        <TransferenciaEstoqueModal
+          produto={edit}
+          saldo={estoqueMarmitasPorProduto.get(edit?.id)}
+          fechar={() => setModal(null)}
+          salvar={async (tamanho: string, quantidade: number) => {
+            const { error } = await supabase.rpc("transferir_cozinha_para_loja", {
+              p_produto_id: edit.id,
+              p_tamanho: tamanho,
+              p_quantidade: quantidade,
+            } as any);
+            if (error) return toast.error(error.message);
+            invalidar("coz-estoque-marmitas", "coz-prod");
+            setModal(null);
+            toast.success("Transferência concluída. Estoque da loja atualizado.");
           }}
         />
       )}
@@ -829,6 +864,27 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
           />
         </Campo>
         <Botao onClick={() => salvar(produto, data, q, obs)}>Adicionar produção</Botao>
+      </div>
+    </Janela>
+  );
+}
+function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
+  const [tamanho, setTamanho] = useState<"200" | "300" | "400">("300");
+  const [quantidade, setQuantidade] = useState("");
+  const disponivel = n(saldo?.[`estoque_${tamanho}g`]);
+  return (
+    <Janela titulo={`Transferir para loja — ${produto?.nome || "Marmita"}`} fechar={fechar}>
+      <div className="grid gap-4">
+        <p className="text-sm text-[#62766b]">A quantidade sairá da cozinha e será adicionada automaticamente ao estoque da loja.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e) => setTamanho(e.target.value as typeof tamanho)}><option value="200">200 g</option><option value="300">300 g</option><option value="400">400 g</option></select></Campo>
+          <Campo label={`Quantidade disponível: ${disponivel}`}><input className={input} type="number" min="1" max={disponivel} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} placeholder="0" /></Campo>
+        </div>
+        <Botao onClick={() => {
+          const qtd = n(quantidade);
+          if (!qtd || qtd > disponivel) return toast.error("Informe uma quantidade disponível na cozinha.");
+          salvar(tamanho, qtd);
+        }}>Transferir para loja</Botao>
       </div>
     </Janela>
   );
