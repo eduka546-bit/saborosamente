@@ -179,6 +179,13 @@ function CozinhaPage() {
     if (linha?.operacao_producao === "dividir") return gramas / fator;
     return gramas;
   };
+  const quantidadeComRendimento = (gramas: number, ingrediente: any) => {
+    if (ingrediente?.tipo_rendimento === "perda")
+      return gramas * (1 + n(ingrediente.quebra_percentual) / 100);
+    if (ingrediente?.tipo_rendimento === "ganho")
+      return gramas / n(ingrediente.fator_rendimento || 1);
+    return gramas;
+  };
   const custoPrep = (id: string) => {
     const p = prep.get(id);
     if (!p || !n(p.rendimento_final_g)) return 0;
@@ -206,13 +213,13 @@ function CozinhaPage() {
       const campo = `gramas_${p.gramatura || "400"}`;
       (itensRec.get(r.id) || []).forEach((l) => {
         const qtd = quantidadeCorreta(n(l[campo]), l) * n(p.quantidade_planejada);
-        if (l.ingrediente_id) add(l.ingrediente_id, qtd * n(ing.get(l.ingrediente_id)?.rendimento_padrao || 1), prato.nome);
+        if (l.ingrediente_id) add(l.ingrediente_id, quantidadeComRendimento(qtd, ing.get(l.ingrediente_id)), prato.nome);
         if (l.preparacao_id) {
           const base = prep.get(l.preparacao_id);
           (itensPrep.get(l.preparacao_id) || []).forEach((x) =>
             add(
               x.ingrediente_id,
-              (qtd / n(base?.rendimento_final_g)) * n(x.quantidade) * n(ing.get(x.ingrediente_id)?.rendimento_padrao || 1),
+              quantidadeComRendimento((qtd / n(base?.rendimento_final_g)) * n(x.quantidade), ing.get(x.ingrediente_id)),
               prato.nome,
             ),
           );
@@ -1210,8 +1217,10 @@ function ReceitaModal({
     linhas.reduce(
       (s, x) =>
         s +
-        quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x) *
-          n(x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.rendimento_padrao || 1 : 1) *
+        quantidadeComRendimento(
+          quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
+          x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
+        ) *
           (x.ingrediente_id
             ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
             : x.preparacao_id
@@ -1222,8 +1231,10 @@ function ReceitaModal({
   const peso = (t: Tamanho) =>
     linhas.reduce((s, x) => s + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
   const custoLinha = (x: ReceitaLinha, t: Tamanho) =>
-    quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x) *
-    n(x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id)?.rendimento_padrao || 1 : 1) *
+    quantidadeComRendimento(
+      quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
+      x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
+    ) *
     (x.ingrediente_id
       ? custoIng(ingredientes.find((a: any) => a.id === x.ingrediente_id))
       : x.preparacao_id
