@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   BookOpen,
+  BarChart3,
   CheckCircle2,
   ChefHat,
   ClipboardList,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "separar" | "marmitas" | "estoque";
+type Aba = "producao" | "separar" | "marmitas" | "estoque" | "relatorio";
 type Tamanho = "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -69,7 +70,7 @@ function CozinhaPage() {
     [dataProducao, setDataProducao] = useState(hoje()),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "receita" | "transferencia">(
+    [modal, setModal] = useState<null | "producao" | "receita" | "transferencia" | "ajuste-estoque">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -136,6 +137,8 @@ function CozinhaPage() {
     "cozinha_estoque_marmitas",
     "*",
   );
+  const { data: transferencias = [] } = useTableQuery("coz-transferencias", "cozinha_transferencias_estoque", "*", "created_at");
+  const { data: movimentosIngredientes = [] } = useTableQuery("coz-movimentos-ingredientes", "cozinha_movimentacoes_ingredientes", "*", "created_at");
   const { data: producoes = [] } = useQuery({
     queryKey: ["coz-prod-dia", dataProducao],
     enabled: ok,
@@ -244,6 +247,7 @@ function CozinhaPage() {
     { id: "separar", label: "Separar hoje", icon: Salad },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
     { id: "estoque", label: "Estoque", icon: Store },
+    { id: "relatorio", label: "Relatórios", icon: BarChart3 },
   ];
   const abrir = (tipo: any, item?: any) => {
     setEdit(item || null);
@@ -589,14 +593,29 @@ function CozinhaPage() {
                   </div>
                   <div>
                     <h3 className="mb-1 text-lg font-black">Ingredientes da cozinha</h3>
+                    {(estoque as any[]).filter((x) => n(x.quantidade_atual) <= n(x.quantidade_minima)).length > 0 && <p className="mb-3 rounded-xl bg-[#fff4d9] px-3 py-2 text-sm font-bold text-[#8b5a00]">{(estoque as any[]).filter((x) => n(x.quantidade_atual) <= n(x.quantidade_minima)).length} ingrediente(s) no estoque mínimo ou abaixo.</p>}
                     <div className="grid gap-3 md:grid-cols-2">
                       {(estoque as any[]).map((x) => (
-                        <article key={x.id} className="rounded-2xl border bg-white p-4"><h4 className="font-bold">{x.ingrediente}</h4><p className="mt-2 font-black text-[#087443]">{x.quantidade_atual} {x.unidade}</p><p className="text-xs text-[#62766b]">Mínimo: {x.quantidade_minima} {x.unidade}</p></article>
+                        <article key={x.id} className="rounded-2xl border bg-white p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="font-bold">{x.ingrediente}</h4><p className={`mt-2 font-black ${n(x.quantidade_atual) <= n(x.quantidade_minima) ? "text-[#b45309]" : "text-[#087443]"}`}>{x.quantidade_atual} {x.unidade}</p><p className="text-xs text-[#62766b]">Mínimo: {x.quantidade_minima} {x.unidade}</p></div><Botao leve onClick={() => abrir("ajuste-estoque", x)}>Ajustar</Botao></div></article>
                       ))}
                     </div>
                   </div>
                 </div>
               )}
+            </section>
+          )}
+          {aba === "relatorio" && (
+            <section>
+              <Titulo titulo="Relatório diário" texto="Acompanhe a produção, transferências e consumo do dia selecionado." />
+              <div className="mb-5 grid gap-3 sm:grid-cols-3">
+                <article className="rounded-2xl bg-[#e0f2e7] p-4"><p className="text-xs font-bold">Produzidas</p><p className="mt-1 text-2xl font-black">{(producoes as any[]).filter((p) => p.status === "concluida").reduce((s, p) => s + n(p.quantidade_produzida), 0)}</p></article>
+                <article className="rounded-2xl bg-[#e8f1ff] p-4"><p className="text-xs font-bold">Transferidas para a loja</p><p className="mt-1 text-2xl font-black">{(transferencias as any[]).filter((t) => String(t.created_at).slice(0,10) === dataProducao).reduce((s, t) => s + n(t.quantidade), 0)}</p></article>
+                <article className="rounded-2xl bg-[#fff4d9] p-4"><p className="text-xs font-bold">Alertas de ingrediente</p><p className="mt-1 text-2xl font-black">{(estoque as any[]).filter((x) => n(x.quantidade_atual) <= n(x.quantidade_minima)).length}</p></article>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="rounded-2xl border bg-white p-4"><h3 className="font-black">Transferências para a loja</h3><div className="mt-3 grid gap-2">{(transferencias as any[]).filter((t) => String(t.created_at).slice(0,10) === dataProducao).length ? (transferencias as any[]).filter((t) => String(t.created_at).slice(0,10) === dataProducao).map((t) => <div key={t.id} className="flex justify-between rounded-xl bg-[#f4f7f4] p-3 text-sm"><span>{produto.get(t.produto_id)?.nome || "Marmita"} · {labelGramatura(t.tamanho)}</span><b>{t.quantidade} un</b></div>) : <p className="text-sm text-[#62766b]">Nenhuma transferência neste dia.</p>}</div></div>
+                <div className="rounded-2xl border bg-white p-4"><h3 className="font-black">Últimos consumos de ingredientes</h3><div className="mt-3 grid gap-2">{(movimentosIngredientes as any[]).filter((m) => m.tipo === "consumo_producao" && String(m.created_at).slice(0,10) === dataProducao).length ? (movimentosIngredientes as any[]).filter((m) => m.tipo === "consumo_producao" && String(m.created_at).slice(0,10) === dataProducao).map((m) => <div key={m.id} className="flex justify-between rounded-xl bg-[#f4f7f4] p-3 text-sm"><span>{ing.get(m.ingrediente_id)?.nome || "Ingrediente"}</span><b>{Math.abs(n(m.quantidade)).toLocaleString("pt-BR")} g</b></div>) : <p className="text-sm text-[#62766b]">Nenhum consumo registrado neste dia.</p>}</div></div>
+              </div>
             </section>
           )}
         </main>
@@ -648,6 +667,11 @@ function CozinhaPage() {
           }}
         />
       )}
+      {modal === "ajuste-estoque" && <AjusteEstoqueModal item={edit} fechar={() => setModal(null)} salvar={async (quantidade: number, minimo: number, observacao: string) => {
+        const { error } = await supabase.rpc("ajustar_estoque_ingrediente", { p_ingrediente_id: edit.ingrediente_id, p_quantidade: quantidade, p_minimo: minimo, p_observacao: observacao || null } as any);
+        if (error) return toast.error(error.message);
+        invalidar("coz-estoque", "coz-movimentos-ingredientes"); setModal(null); toast.success("Estoque do ingrediente atualizado.");
+      }} />}
       {modal === "ingrediente" && (
         <IngredienteModal
           item={edit}
@@ -889,6 +913,22 @@ function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
       </div>
     </Janela>
   );
+}
+function AjusteEstoqueModal({ item, fechar, salvar }: any) {
+  const [quantidade, setQuantidade] = useState(String(item?.quantidade_atual ?? 0));
+  const [minimo, setMinimo] = useState(String(item?.quantidade_minima ?? 0));
+  const [observacao, setObservacao] = useState("");
+  return <Janela titulo={`Ajustar estoque — ${item?.ingrediente || "Ingrediente"}`} fechar={fechar}>
+    <div className="grid gap-4">
+      <p className="text-sm text-[#62766b]">Informe o saldo atual contado e o mínimo para receber alerta.</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo label={`Saldo atual (${item?.unidade || "g"})`}><input className={input} type="number" min="0" step="0.001" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} /></Campo>
+        <Campo label={`Estoque mínimo (${item?.unidade || "g"})`}><input className={input} type="number" min="0" step="0.001" value={minimo} onChange={(e) => setMinimo(e.target.value)} /></Campo>
+      </div>
+      <Campo label="Observação"><input className={input} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Ex.: conferência de estoque" /></Campo>
+      <Botao onClick={() => salvar(n(quantidade), n(minimo), observacao)}>Salvar ajuste</Botao>
+    </div>
+  </Janela>;
 }
 function IngredienteModal({ item, fechar, salvar }: any) {
   const [d, setD] = useState<any>({

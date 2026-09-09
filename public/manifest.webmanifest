@@ -1,8 +1,8 @@
 {
-  "name": "Saborosamente Admin",
-  "short_name": "SBS Admin",
-  "description": "Painel administrativo da Saborosamente — pedidos, atendimento e agente WhatsApp.",
-  "start_url": "/admin",
+  "name": "SaborosaMente",
+  "short_name": "SaborosaMente",
+  "description": "Acesse a loja, administração ou cozinha da SaborosaMente.",
+  "start_url": "/acesso",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

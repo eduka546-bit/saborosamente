@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "SBS Admin" },
+      { name: "apple-mobile-web-app-title", content: "SaborosaMente" },
     ],
     links: [
       {
@@ -156,6 +156,7 @@ function RootComponent() {
   const pathname = router.state.location.pathname;
   const [isAdminPath, setIsAdminPath] = useState(false);
   const [isKitchenPath, setIsKitchenPath] = useState(false);
+  const [isAccessPath, setIsAccessPath] = useState(false);
   const [isLoginPage, setIsLoginPage] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -163,9 +164,10 @@ function RootComponent() {
   useEffect(() => {
     const admin = pathname.startsWith("/admin");
     const kitchen = pathname.startsWith("/cozinha");
-    const login = pathname === "/admin-login" || pathname === "/cozinha-login";
+    const login = pathname === "/admin-login" || pathname === "/cozinha-login" || pathname === "/acesso";
     setIsAdminPath(admin);
     setIsKitchenPath(kitchen);
+    setIsAccessPath(pathname === "/acesso");
     setIsLoginPage(login);
     setMounted(true);
   }, [pathname]);
@@ -196,16 +198,16 @@ function RootComponent() {
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
           </div>
 
-          {isAdminPath ? !isLoginPage && <AdminHeader /> : isKitchenPath ? null : <SiteHeader />}
+          {isAdminPath ? !isLoginPage && <AdminHeader /> : isKitchenPath || isAccessPath ? null : <SiteHeader />}
 
           <main className="flex-1 relative z-10">
             <Outlet />
           </main>
 
-          {mounted && !isAdminPath && !isKitchenPath && <SiteFooter />}
+          {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && <SiteFooter />}
         </div>
         <Toaster position="top-right" closeButton={false} offset={20} />
-        {mounted && !isAdminPath && !isKitchenPath && (
+        {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && (
           <CartSheet>
             <FloatingDiscountWidget />
           </CartSheet>
