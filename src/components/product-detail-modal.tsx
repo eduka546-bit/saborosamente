@@ -3,7 +3,7 @@ import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
-import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
@@ -48,6 +48,7 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
   // Opções (só marmitas): consumo pronta/congelada + garfo e faca.
   const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
   const [garfoEFaca, setGarfoEFaca] = useState(false);
+  const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
 
   if (!product) return null;
 
@@ -219,6 +220,8 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                 </div>
               )}
 
+              <TabelaNutricionalExpansivel valores={currentNutritional} aberta={tabelaNutricionalAberta} aoAlternar={() => setTabelaNutricionalAberta((aberta) => !aberta)} />
+
               {ehMarmita && (
                 <div className="space-y-3">
                   <div>
@@ -333,4 +336,25 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
       </DialogContent>
     </Dialog>
   );
+}
+
+function TabelaNutricionalExpansivel({ valores, aberta, aoAlternar }: { valores: any; aberta: boolean; aoAlternar: () => void }) {
+  if (!valores?.kcal) return null;
+  const linhas = [
+    ["Valor energético", `${valores.kcal} kcal`], ["Carboidratos totais", `${valores.carb ?? 0} g`],
+    ["Proteínas", `${valores.prot ?? 0} g`], ["Gorduras totais", `${valores.gorduras_totais ?? 0} g`],
+    ["Gorduras saturadas", `${valores.gorduras_saturadas ?? 0} g`], ["Gorduras trans", `${valores.gorduras_trans ?? 0} g`],
+    ["Fibra alimentar", `${valores.fibra ?? 0} g`], ["Sódio", `${valores.sodio ?? 0} mg`],
+  ];
+  return <section className="overflow-hidden rounded-2xl border border-border bg-background">
+    <button type="button" onClick={aoAlternar} className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-foreground">Tabela nutricional<ChevronDown className={cn("size-5 transition-transform", aberta && "rotate-180")} /></button>
+    {aberta && <div className="border-t border-border px-4 pb-4 pt-3">
+      <div className="overflow-hidden rounded-lg border border-foreground/20 text-xs">
+        <div className="border-b border-foreground/20 py-2 text-center font-black uppercase">Informação nutricional</div>
+        <p className="border-b border-foreground/20 px-3 py-2">Porção: {valores.porcao_g || "—"} g</p>
+        {linhas.map(([rotulo, valor]) => <div key={rotulo} className="grid grid-cols-[1fr_auto] border-b border-foreground/20 last:border-b-0"><span className="px-3 py-2">{rotulo}</span><b className="border-l border-foreground/20 px-3 py-2">{valor}</b></div>)}
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">Valores calculados para o tamanho selecionado.</p>
+    </div>}
+  </section>;
 }
