@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "separar" | "marmitas" | "estoque" | "relatorio";
+type Aba = "producao" | "separar" | "ingredientes" | "marmitas" | "estoque" | "relatorio";
 type Tamanho = "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -70,7 +70,7 @@ function CozinhaPage() {
     [dataProducao, setDataProducao] = useState(hoje()),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "receita" | "transferencia" | "ajuste-estoque">(
+    [modal, setModal] = useState<null | "producao" | "ingrediente" | "receita" | "transferencia" | "ajuste-estoque">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -262,6 +262,7 @@ function CozinhaPage() {
   const abas: { id: Aba; label: string; icon: any }[] = [
     { id: "producao", label: "Produção", icon: ClipboardList },
     { id: "separar", label: "Separar hoje", icon: Salad },
+    { id: "ingredientes", label: "Ingredientes", icon: Package },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
     { id: "estoque", label: "Estoque", icon: Store },
     { id: "relatorio", label: "Relatórios", icon: BarChart3 },
@@ -470,7 +471,11 @@ function CozinhaPage() {
                       <p className="mt-1 text-xs text-[#62766b]">
                         Último pago:{" "}
                         {x.ultimo_valor_pago == null ? "—" : valor(n(x.ultimo_valor_pago))} ·
-                        rendimento {Math.round(n(x.rendimento_padrao) * 100)}%
+                        {x.tipo_rendimento === "perda"
+                          ? `Perda: ${n(x.quebra_percentual)}%`
+                          : x.tipo_rendimento === "ganho"
+                            ? `Ganho: ×${n(x.fator_rendimento)}`
+                            : "Sem perda ou ganho"}
                       </p>
                     </article>
                   ))
@@ -957,6 +962,9 @@ function IngredienteModal({ item, fechar, salvar }: any) {
     nome: item?.nome || "",
     unidade_medida: item?.unidade_medida || "g",
     rendimento_padrao: String(item?.rendimento_padrao ?? 1),
+    tipo_rendimento: item?.tipo_rendimento || "nenhum",
+    quebra_percentual: String(item?.quebra_percentual ?? 0),
+    fator_rendimento: String(item?.fator_rendimento ?? 1),
     custo_por_kg: String(item?.custo_por_kg ?? 0),
     custo_por_unidade: String(item?.custo_por_unidade ?? 0),
     ultimo_valor_pago: item?.ultimo_valor_pago == null ? "" : String(item.ultimo_valor_pago),
@@ -984,15 +992,19 @@ function IngredienteModal({ item, fechar, salvar }: any) {
             <option value="un">Unidade</option>
           </select>
         </Campo>
-        <Campo label="Rendimento padrão">
-          <input
-            className={input}
-            type="number"
-            step="0.01"
-            value={d.rendimento_padrao}
-            onChange={(e) => set("rendimento_padrao", e.target.value)}
-          />
+        <Campo label="Perda ou ganho">
+          <select className={input} value={d.tipo_rendimento} onChange={(e) => set("tipo_rendimento", e.target.value)}>
+            <option value="nenhum">Sem perda ou ganho</option>
+            <option value="perda">Perda percentual</option>
+            <option value="ganho">Ganho por multiplicador</option>
+          </select>
         </Campo>
+        {d.tipo_rendimento === "perda" && <Campo label="Perda (%)">
+          <input className={input} type="number" min="0" step="0.01" value={d.quebra_percentual} onChange={(e) => set("quebra_percentual", e.target.value)} />
+        </Campo>}
+        {d.tipo_rendimento === "ganho" && <Campo label="Ganho (×)">
+          <input className={input} type="number" min="0.01" step="0.01" value={d.fator_rendimento} onChange={(e) => set("fator_rendimento", e.target.value)} />
+        </Campo>}
         <Campo label="Último valor pago">
           <input
             className={input}
@@ -1028,6 +1040,9 @@ function IngredienteModal({ item, fechar, salvar }: any) {
             salvar({
               ...d,
               rendimento_padrao: n(d.rendimento_padrao),
+              tipo_rendimento: d.tipo_rendimento,
+              quebra_percentual: d.tipo_rendimento === "perda" ? n(d.quebra_percentual) : 0,
+              fator_rendimento: d.tipo_rendimento === "ganho" ? n(d.fator_rendimento) || 1 : 1,
               custo_por_kg: n(d.custo_por_kg),
               custo_por_unidade: n(d.custo_por_unidade),
               ultimo_valor_pago: d.ultimo_valor_pago === "" ? null : n(d.ultimo_valor_pago),
