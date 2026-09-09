@@ -155,7 +155,10 @@ function CozinhaPage() {
     },
   });
   const marmitas = useMemo(
-    () => (produtos as any[]).filter((p) => p.tipo_produto === "marmita" || !p.tipo_produto),
+    () =>
+      (produtos as any[]).filter((p) =>
+        ["marmita", "sopa", "complemento"].includes(p.tipo_produto || "marmita"),
+      ),
     [produtos],
   );
   const porId = (lista: any[]) => new Map(lista.map((x) => [x.id, x]));
@@ -327,7 +330,7 @@ function CozinhaPage() {
               />
               <div className="mb-5 grid gap-3 rounded-2xl border border-[#dbe7dd] bg-white p-4 lg:grid-cols-[185px_1fr_auto]">
                 <Campo label="Dia da produção"><input className={input} type="date" value={dataProducao} onChange={(e) => setDataProducao(e.target.value)} /></Campo>
-                <Campo label="Buscar marmita"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, lasanha..." /></Campo>
+                <Campo label="Buscar item"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, sopa, lasanha..." /></Campo>
                 <Campo label="Status"><select className={input} value={filtroProducao} onChange={(e) => setFiltroProducao(e.target.value as typeof filtroProducao)}><option value="todos">Todos os status</option><option value="planejada">Planejadas</option><option value="em_preparo">Em preparo</option><option value="concluida">Produzidas</option></select></Campo>
               </div>
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
@@ -531,8 +534,8 @@ function CozinhaPage() {
           {aba === "marmitas" && (
             <section>
               <Titulo
-                titulo="Marmitas e fichas técnicas"
-                texto="Escolha o sabor, veja a foto e informe as gramas de cada componente por tamanho."
+                titulo="Itens de produção e fichas técnicas"
+                texto="Escolha refeições, sopas ou complementos e informe as gramas de cada componente por tamanho."
               />
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {marmitas.map((x: any) => {
@@ -577,7 +580,7 @@ function CozinhaPage() {
             <section>
               <Titulo
                 titulo="Estoque geral"
-                texto="Saldo de marmitas prontas e ingredientes da cozinha."
+                texto="Saldo de refeições, sopas, complementos e ingredientes da cozinha."
               />
               <div className="mb-5 inline-flex rounded-xl bg-[#e7eee8] p-1">
                 <button
@@ -656,7 +659,7 @@ function CozinhaPage() {
           dataInicial={dataProducao}
           fechar={() => setModal(null)}
           salvar={async (produtoId: string, data: string, qs: any, observacao: string) => {
-            if (!produtoId) return toast.error("Escolha a marmita.");
+            if (!produtoId) return toast.error("Escolha o item de produção.");
             const {
               data: { user },
             } = await supabase.auth.getUser();
