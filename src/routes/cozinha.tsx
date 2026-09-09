@@ -962,6 +962,17 @@ function IngredienteModal({ item, fechar, salvar }: any) {
     custo_por_unidade: String(item?.custo_por_unidade ?? 0),
     ultimo_valor_pago: item?.ultimo_valor_pago == null ? "" : String(item.ultimo_valor_pago),
     observacao: item?.observacao || "",
+    calorias_100g: item?.calorias_100g == null ? "" : String(item.calorias_100g),
+    carboidratos_100g: item?.carboidratos_100g == null ? "" : String(item.carboidratos_100g),
+    proteinas_100g: item?.proteinas_100g == null ? "" : String(item.proteinas_100g),
+    gorduras_totais_100g: item?.gorduras_totais_100g == null ? "" : String(item.gorduras_totais_100g),
+    gorduras_saturadas_100g: item?.gorduras_saturadas_100g == null ? "" : String(item.gorduras_saturadas_100g),
+    gorduras_trans_100g: item?.gorduras_trans_100g == null ? "" : String(item.gorduras_trans_100g),
+    fibra_100g: item?.fibra_100g == null ? "" : String(item.fibra_100g),
+    sodio_mg_100g: item?.sodio_mg_100g == null ? "" : String(item.sodio_mg_100g),
+    contem_gluten: Boolean(item?.contem_gluten),
+    contem_lactose: Boolean(item?.contem_lactose),
+    alergenos_confirmados: Boolean(item?.alergenos_confirmados),
   });
   const set = (k: string, v: string) => setD({ ...d, [k]: v });
   return (
@@ -1026,6 +1037,18 @@ function IngredienteModal({ item, fechar, salvar }: any) {
           />
         </Campo>
       </div>
+      <div className="mt-5 rounded-2xl border border-[#dbe7dd] bg-[#f7fbf7] p-4">
+        <p className="text-sm font-black text-[#173a2d]">Informação nutricional por 100 g</p>
+        <p className="mb-3 text-xs text-[#62766b]">Preencha conforme a embalagem ou ficha do fornecedor. A marmita será calculada automaticamente pelas gramas da receita.</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[["calorias_100g","KCAL"],["carboidratos_100g","Carboidratos (g)"],["proteinas_100g","Proteínas (g)"],["gorduras_totais_100g","Gorduras totais (g)"],["gorduras_saturadas_100g","Gorduras saturadas (g)"],["gorduras_trans_100g","Gorduras trans (g)"],["fibra_100g","Fibra (g)"],["sodio_mg_100g","Sódio (mg)"]].map(([campo,label]) => <Campo key={campo} label={label}><input className={input} type="number" min="0" step="0.01" value={d[campo]} onChange={(e) => set(campo, e.target.value)} /></Campo>)}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-5 text-sm font-bold">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={d.contem_gluten} onChange={(e) => setD({ ...d, contem_gluten: e.target.checked })} />Contém glúten</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={d.contem_lactose} onChange={(e) => setD({ ...d, contem_lactose: e.target.checked })} />Contém lactose</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={d.alergenos_confirmados} onChange={(e) => setD({ ...d, alergenos_confirmados: e.target.checked })} />Restrições conferidas</label>
+        </div>
+      </div>
       <div className="mt-5">
         <Botao
           onClick={() => {
@@ -1039,6 +1062,17 @@ function IngredienteModal({ item, fechar, salvar }: any) {
               custo_por_kg: n(d.custo_por_kg),
               custo_por_unidade: n(d.custo_por_unidade),
               ultimo_valor_pago: d.ultimo_valor_pago === "" ? null : n(d.ultimo_valor_pago),
+              calorias_100g: d.calorias_100g === "" ? null : n(d.calorias_100g),
+              carboidratos_100g: d.carboidratos_100g === "" ? null : n(d.carboidratos_100g),
+              proteinas_100g: d.proteinas_100g === "" ? null : n(d.proteinas_100g),
+              gorduras_totais_100g: d.gorduras_totais_100g === "" ? null : n(d.gorduras_totais_100g),
+              gorduras_saturadas_100g: d.gorduras_saturadas_100g === "" ? null : n(d.gorduras_saturadas_100g),
+              gorduras_trans_100g: d.gorduras_trans_100g === "" ? null : n(d.gorduras_trans_100g),
+              fibra_100g: d.fibra_100g === "" ? null : n(d.fibra_100g),
+              sodio_mg_100g: d.sodio_mg_100g === "" ? null : n(d.sodio_mg_100g),
+              contem_gluten: Boolean(d.contem_gluten),
+              contem_lactose: Boolean(d.contem_lactose),
+              alergenos_confirmados: Boolean(d.alergenos_confirmados),
             });
           }}
         >
