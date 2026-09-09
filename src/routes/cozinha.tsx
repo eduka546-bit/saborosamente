@@ -1228,11 +1228,18 @@ function ReceitaModal({
     if (linha.operacao_producao === "dividir") return gramas / fator;
     return gramas;
   };
+  const quantidadeComRendimentoFicha = (gramas: number, ingrediente: any) => {
+    if (ingrediente?.tipo_rendimento === "perda")
+      return gramas * (1 + n(ingrediente.quebra_percentual) / 100);
+    if (ingrediente?.tipo_rendimento === "ganho")
+      return gramas / n(ingrediente.fator_rendimento || 1);
+    return gramas;
+  };
   const custo = (t: Tamanho) =>
     linhas.reduce(
       (s, x) =>
         s +
-        quantidadeComRendimento(
+        quantidadeComRendimentoFicha(
           quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
           x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
         ) *
@@ -1246,7 +1253,7 @@ function ReceitaModal({
   const peso = (t: Tamanho) =>
     linhas.reduce((s, x) => s + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
   const custoLinha = (x: ReceitaLinha, t: Tamanho) =>
-    quantidadeComRendimento(
+    quantidadeComRendimentoFicha(
       quantidadeCorretaFicha(n(x[`gramas_${t}` as keyof ReceitaLinha]), x),
       x.ingrediente_id ? ingredientes.find((a: any) => a.id === x.ingrediente_id) : null,
     ) *
