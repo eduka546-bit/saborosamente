@@ -1,0 +1,80 @@
+name: Add campaign metrics panel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch campaign panel
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('src/routes/admin.campanhas.tsx')
+          s = path.read_text()
+
+          old_import = '''  Users,\n  CircleDollarSign,\n} from "lucide-react";'''
+          new_import = '''  Users,\n  CircleDollarSign,\n  CheckCheck,\n  MessageCircle,\n  MousePointerClick,\n} from "lucide-react";'''
+          if old_import not in s:
+              raise SystemExit('import marker not found')
+          s = s.replace(old_import, new_import, 1)
+
+          old_query = '''  const { data: enviosCampanha = [], refetch: refetchEnvios } = useQuery({\n    queryKey: ["envios-campanha", campanhaDetalhes],\n    queryFn: async () => {\n      if (!campanhaDetalhes) return [];\n      const { data } = await supabase\n        .from("campanhas_whatsapp_envios")\n        .select("*")\n        .eq("campanha_id", campanhaDetalhes)\n        .order("created_at");\n      return data || [];\n    },\n    enabled: !!campanhaDetalhes,\n    refetchInterval: campanhaDetalhes ? 3000 : false, // Atualiza a cada 3s\n  });'''
+          new_query = old_query + '''\n\n  const { data: metricasCampanha = null } = useQuery({\n    queryKey: ["metricas-campanha", campanhaDetalhes],\n    queryFn: async () => {\n      if (!campanhaDetalhes) return null;\n      const { data, error } = await supabase.functions.invoke("whatsapp-campanha-metricas", {\n        body: { campanha_id: campanhaDetalhes },\n      });\n      if (error) throw error;\n      return data || null;\n    },\n    enabled: !!campanhaDetalhes,\n    refetchInterval: campanhaDetalhes ? 10000 : false,\n  });'''
+          if old_query not in s:
+              raise SystemExit('envios query marker not found')
+          s = s.replace(old_query, new_query, 1)
+
+          old_insert = '''            midia_tipo: tipo_midia,\n            status: "rascunho",'''
+          new_insert = '''            midia_tipo: tipo_midia,\n            template_name: usarTemplate && templateSelecionado ? templateSelecionado.name : null,\n            status: "rascunho",'''
+          if old_insert not in s:
+              raise SystemExit('campaign insert marker not found')
+          s = s.replace(old_insert, new_insert, 1)
+
+          old_return = '''  return (\n    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">'''
+          new_return = '''  const enviadosDetalhes = enviosCampanha.filter((e: any) =>\n    ["enviado", "entregue", "lido"].includes(e.status),\n  ).length;\n  const entreguesDetalhes = enviosCampanha.filter((e: any) =>\n    Boolean(e.entregue_em) || ["entregue", "lido"].includes(e.status),\n  ).length;\n  const lidosDetalhes = enviosCampanha.filter((e: any) =>\n    Boolean(e.lida_em) || e.status === "lido",\n  ).length;\n  const responderamDetalhes = enviosCampanha.filter((e: any) => Boolean(e.respondeu_em)).length;\n  const cliquesUrlDetalhes =\n    metricasCampanha?.meta?.uniqueUrlClicks ?? metricasCampanha?.meta?.urlClicks ?? null;\n  const interacoesDetalhes =\n    responderamDetalhes +\n    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0) +\n    Number(metricasCampanha?.meta?.uniqueQuickReplyClicks ?? 0);\n\n  return (\n    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">'''
+          if old_return not in s:
+              raise SystemExit('return marker not found')
+          s = s.replace(old_return, new_return, 1)
+
+          old_header = '''                        {enviosCampanha.filter((e: any) => e.status === "enviado").length}/\n                        {enviosCampanha.length} enviados'''
+          new_header = '''                        {enviadosDetalhes}/{enviosCampanha.length} enviados'''
+          if old_header not in s:
+              raise SystemExit('detail header marker not found')
+          s = s.replace(old_header, new_header, 1)
+
+          old_width = '''                          enviosCampanha.length > 0\n                            ? `${(enviosCampanha.filter((e: any) => e.status === "enviado").length / enviosCampanha.length) * 100}%`\n                            : "0%",'''
+          new_width = '''                          enviosCampanha.length > 0\n                            ? `${(entreguesDetalhes / enviosCampanha.length) * 100}%`\n                            : "0%",'''
+          if old_width not in s:
+              raise SystemExit('progress marker not found')
+          s = s.replace(old_width, new_width, 1)
+
+          old_progress = '''                  {/* Barra de progresso */}\n                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">'''
+          new_progress = '''                  {/* Métricas da campanha */}\n                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">\n                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">\n                      <div className="flex items-center gap-2 text-blue-700 text-xs font-bold">\n                        <Send size={15} /> Enviados\n                      </div>\n                      <div className="text-2xl font-black text-blue-900 mt-1">{enviadosDetalhes}</div>\n                    </div>\n                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">\n                      <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold">\n                        <CheckCheck size={15} /> Recebidos\n                      </div>\n                      <div className="text-2xl font-black text-emerald-900 mt-1">{entreguesDetalhes}</div>\n                    </div>\n                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">\n                      <div className="flex items-center gap-2 text-violet-700 text-xs font-bold">\n                        <Eye size={15} /> Lidos\n                      </div>\n                      <div className="text-2xl font-black text-violet-900 mt-1">{lidosDetalhes}</div>\n                    </div>\n                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">\n                      <div className="flex items-center gap-2 text-amber-700 text-xs font-bold">\n                        <MessageCircle size={15} /> Responderam\n                      </div>\n                      <div className="text-2xl font-black text-amber-900 mt-1">{responderamDetalhes}</div>\n                    </div>\n                    <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">\n                      <div className="flex items-center gap-2 text-pink-700 text-xs font-bold">\n                        <MousePointerClick size={15} /> Cliques / interações\n                      </div>\n                      <div className="text-2xl font-black text-pink-900 mt-1">{cliquesUrlDetalhes ?? "—"}</div>\n                      <div className="text-[10px] text-pink-700 mt-0.5">\n                        Interações totais: {interacoesDetalhes}\n                      </div>\n                    </div>\n                  </div>\n\n                  {metricasCampanha?.meta_error && (\n                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">\n                      Métricas de clique da Meta: {metricasCampanha.meta_error}\n                    </div>\n                  )}\n\n                  {/* Barra de progresso */}\n                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">'''
+          if old_progress not in s:
+              raise SystemExit('progress insertion marker not found')
+          s = s.replace(old_progress, new_progress, 1)
+
+          path.write_text(s)
+          print('patched campaign panel')
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/admin.campanhas.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: show campaign engagement metrics"
+          git push
