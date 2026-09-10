@@ -63,3 +63,8 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m 'chore: integrate whatsapp media and dedupe campaigns'
           git push
+      - name: Deploy WhatsApp agent to Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          npx --yes supabase@latest functions deploy whatsapp-agent --project-ref lxcgbrovdmpjatywweiv
