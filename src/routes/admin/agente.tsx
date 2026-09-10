@@ -972,6 +972,59 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
   );
 }
 
+// Renderiza mídia recebida do WhatsApp usando URL assinada do bucket privado.
+function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [erro, setErro] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    const path = msg?.media_path;
+    if (!path) return () => { ativo = false; };
+
+    supabase.storage
+      .from("whatsapp-midias")
+      .createSignedUrl(path, 60 * 60)
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        if (error || !data?.signedUrl) setErro(true);
+        else setUrl(data.signedUrl);
+      });
+
+    return () => { ativo = false; };
+  }, [msg?.media_path]);
+
+  if (!msg?.media_path) return null;
+  if (erro) {
+    return <div className={`text-xs opacity-60 mt-1 ${dark ? "text-[#8696a0]" : "text-[#667781]"}`}>Mídia indisponível</div>;
+  }
+  if (!url) {
+    return <div className={`text-xs opacity-60 mt-1 ${dark ? "text-[#8696a0]" : "text-[#667781]"}`}>Carregando mídia…</div>;
+  }
+
+  const tipo = String(msg.media_type || "").toLowerCase();
+  const mime = String(msg.mime_type || "").toLowerCase();
+
+  if (tipo === "image" || mime.startsWith("image/")) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="block mt-1">
+        <img src={url} alt="Imagem recebida" className="max-w-full max-h-[360px] rounded-xl object-contain cursor-pointer" loading="lazy" />
+      </a>
+    );
+  }
+
+  if (tipo === "audio" || tipo === "voice" || mime.startsWith("audio/")) {
+    return <audio className="w-full min-w-[240px] mt-1" controls preload="metadata" src={url} />;
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15 transition-colors">
+      <FileText size={18} />
+      <span className="text-xs font-semibold">Abrir documento</span>
+    </a>
+  );
+}
+
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const t = dark ? DARK : LIGHT;
@@ -1240,7 +1293,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                     {msg.campaignName ? `📣 Campanha: ${msg.campaignName}` : "🤖 Saborosa"}
                   </p>
                 )}
-                <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                {msg.content && !msg.media_path && (
+                  <span className="whitespace-pre-wrap break-words">{msg.content}</span>
+                )}
+                {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
