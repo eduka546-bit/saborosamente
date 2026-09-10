@@ -677,8 +677,7 @@ function AdminCampaignPage() {
     metricasCampanha?.meta?.uniqueUrlClicks ?? metricasCampanha?.meta?.urlClicks ?? null;
   const interacoesDetalhes =
     responderamDetalhes +
-    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0) +
-    Number(metricasCampanha?.meta?.uniqueQuickReplyClicks ?? 0);
+    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0);
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
@@ -2065,8 +2064,7 @@ function AdminCampaignPage() {
                       <CircleDollarSign size={16} />
                       Estimativa Meta:{" "}
                       {formatarMoeda(
-                        enviosCampanha.filter((e: any) => e.status === "enviado").length *
-                          TARIFA_MARKETING_BR,
+                        entreguesDetalhes * TARIFA_MARKETING_BR,
                       )}
                     </div>
                     <p className="mt-1 text-xs text-emerald-700">
@@ -2095,7 +2093,13 @@ function AdminCampaignPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {envio.status === "enviado" && (
-                            <span className="text-xs font-bold text-green-700">✓ Enviado</span>
+                            <span className="text-xs font-bold text-blue-700">✓ Enviado</span>
+                          )}
+                          {(envio.status === "entregue" || envio.status === "lido") && (
+                            <span className="text-xs font-bold text-green-700">✓✓ Recebido</span>
+                          )}
+                          {envio.status === "lido" && (
+                            <span className="text-xs font-bold text-violet-700">✓✓ Lido</span>
                           )}
                           {envio.status === "falhou" && (
                             <span
