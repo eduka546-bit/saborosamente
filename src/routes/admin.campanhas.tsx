@@ -16,6 +16,9 @@ import {
   Clock,
   Users,
   CircleDollarSign,
+  CheckCheck,
+  MessageCircle,
+  MousePointerClick,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,6 +220,20 @@ function AdminCampaignPage() {
     },
     enabled: !!campanhaDetalhes,
     refetchInterval: campanhaDetalhes ? 3000 : false, // Atualiza a cada 3s
+  });
+
+  const { data: metricasCampanha = null } = useQuery({
+    queryKey: ["metricas-campanha", campanhaDetalhes],
+    queryFn: async () => {
+      if (!campanhaDetalhes) return null;
+      const { data, error } = await supabase.functions.invoke("whatsapp-campanha-metricas", {
+        body: { campanha_id: campanhaDetalhes },
+      });
+      if (error) throw error;
+      return data || null;
+    },
+    enabled: !!campanhaDetalhes,
+    refetchInterval: campanhaDetalhes ? 10000 : false,
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -575,6 +592,7 @@ function AdminCampaignPage() {
             imagem_url: imagemUrl,
             video_url: videoUrl,
             midia_tipo: tipo_midia,
+            template_name: usarTemplate && templateSelecionado ? templateSelecionado.name : null,
             status: "rascunho",
             contatos_total: contatosSelecionados.length,
             contatos_enviados: 0,
@@ -644,6 +662,23 @@ function AdminCampaignPage() {
       setEnviando(false);
     }
   };
+
+  const enviadosDetalhes = enviosCampanha.filter((e: any) =>
+    ["enviado", "entregue", "lido"].includes(e.status),
+  ).length;
+  const entreguesDetalhes = enviosCampanha.filter((e: any) =>
+    Boolean(e.entregue_em) || ["entregue", "lido"].includes(e.status),
+  ).length;
+  const lidosDetalhes = enviosCampanha.filter((e: any) =>
+    Boolean(e.lida_em) || e.status === "lido",
+  ).length;
+  const responderamDetalhes = enviosCampanha.filter((e: any) => Boolean(e.respondeu_em)).length;
+  const cliquesUrlDetalhes =
+    metricasCampanha?.meta?.uniqueUrlClicks ?? metricasCampanha?.meta?.urlClicks ?? null;
+  const interacoesDetalhes =
+    responderamDetalhes +
+    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0) +
+    Number(metricasCampanha?.meta?.uniqueQuickReplyClicks ?? 0);
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
@@ -1958,8 +1993,7 @@ function AdminCampaignPage() {
                     <h3 className="font-bold text-gray-800">Envios em Tempo Real</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
-                        {enviosCampanha.filter((e: any) => e.status === "enviado").length}/
-                        {enviosCampanha.length} enviados
+                        {enviadosDetalhes}/{enviosCampanha.length} enviados
                       </span>
                       <button
                         onClick={() => setCampanhaDetalhes(null)}
@@ -1970,6 +2004,49 @@ function AdminCampaignPage() {
                     </div>
                   </div>
 
+                  {/* Métricas da campanha */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <div className="flex items-center gap-2 text-blue-700 text-xs font-bold">
+                        <Send size={15} /> Enviados
+                      </div>
+                      <div className="text-2xl font-black text-blue-900 mt-1">{enviadosDetalhes}</div>
+                    </div>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold">
+                        <CheckCheck size={15} /> Recebidos
+                      </div>
+                      <div className="text-2xl font-black text-emerald-900 mt-1">{entreguesDetalhes}</div>
+                    </div>
+                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+                      <div className="flex items-center gap-2 text-violet-700 text-xs font-bold">
+                        <Eye size={15} /> Lidos
+                      </div>
+                      <div className="text-2xl font-black text-violet-900 mt-1">{lidosDetalhes}</div>
+                    </div>
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                      <div className="flex items-center gap-2 text-amber-700 text-xs font-bold">
+                        <MessageCircle size={15} /> Responderam
+                      </div>
+                      <div className="text-2xl font-black text-amber-900 mt-1">{responderamDetalhes}</div>
+                    </div>
+                    <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
+                      <div className="flex items-center gap-2 text-pink-700 text-xs font-bold">
+                        <MousePointerClick size={15} /> Cliques / interações
+                      </div>
+                      <div className="text-2xl font-black text-pink-900 mt-1">{cliquesUrlDetalhes ?? "—"}</div>
+                      <div className="text-[10px] text-pink-700 mt-0.5">
+                        Interações totais: {interacoesDetalhes}
+                      </div>
+                    </div>
+                  </div>
+
+                  {metricasCampanha?.meta_error && (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Métricas de clique da Meta: {metricasCampanha.meta_error}
+                    </div>
+                  )}
+
                   {/* Barra de progresso */}
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
                     <div
@@ -1977,7 +2054,7 @@ function AdminCampaignPage() {
                       style={{
                         width:
                           enviosCampanha.length > 0
-                            ? `${(enviosCampanha.filter((e: any) => e.status === "enviado").length / enviosCampanha.length) * 100}%`
+                            ? `${(entreguesDetalhes / enviosCampanha.length) * 100}%`
                             : "0%",
                       }}
                     />
