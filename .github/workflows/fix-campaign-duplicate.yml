@@ -1,0 +1,76 @@
+name: Fix campaign duplicate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-campaign-duplicate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch campaign merge
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/admin/agente.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''  const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
+  const mensagensDeCampanha = (enviosDeCampanha as any[])
+    .map((envio) => {
+      const campanha = campanhasPorId.get(envio.campanha_id);
+      if (!campanha) return null;
+      return {
+        role: "assistant",
+        content: campanha.mensagem,
+        timestamp: envio.enviado_em ?? envio.created_at,
+        campaignName: campanha.nome || "Campanha",
+        deliveryStatus: envio.status,
+      };
+    })
+    .filter(Boolean);
+  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
+    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  );
+  const somenteCampanha = conversa.somenteCampanha === true;'''
+          new = '''  const somenteCampanha = conversa.somenteCampanha === true;
+  // Para conversas normais, as campanhas já estão salvas em whatsapp_conversas.
+  // Rebuscá-las da tabela de envios causaria a mesma campanha aparecer duas vezes.
+  // Mantemos a consulta apenas para os contatos virtuais que ainda não responderam.
+  const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
+  const mensagensDeCampanha = somenteCampanha
+    ? (enviosDeCampanha as any[])
+        .map((envio) => {
+          const campanha = campanhasPorId.get(envio.campanha_id);
+          if (!campanha) return null;
+          return {
+            role: "assistant",
+            content: campanha.mensagem,
+            timestamp: envio.enviado_em ?? envio.created_at,
+            campaignName: campanha.nome || "Campanha",
+            deliveryStatus: envio.status,
+          };
+        })
+        .filter(Boolean)
+    : [];
+  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
+    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  );'''
+          if old not in s:
+              raise SystemExit('Trecho da mesclagem de campanhas não encontrado')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          print('Patch aplicado')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/admin/agente.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: prevent campaign messages from rendering twice'
+          git push
