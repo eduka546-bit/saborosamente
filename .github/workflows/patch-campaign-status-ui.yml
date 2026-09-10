@@ -1,0 +1,44 @@
+name: Fix campaign status UI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/admin.campanhas.tsx')
+          s = p.read_text()
+          old = '''                        enviosCampanha.filter((e: any) => e.status === "enviado").length *\n                          TARIFA_MARKETING_BR,'''
+          new = '''                        entreguesDetalhes * TARIFA_MARKETING_BR,'''
+          if old not in s:
+              raise SystemExit('cost marker not found')
+          s = s.replace(old, new, 1)
+          old = '''                          {envio.status === "enviado" && (\n                            <span className="text-xs font-bold text-green-700">✓ Enviado</span>\n                          )}'''
+          new = '''                          {envio.status === "enviado" && (\n                            <span className="text-xs font-bold text-blue-700">✓ Enviado</span>\n                          )}\n                          {(envio.status === "entregue" || envio.status === "lido") && (\n                            <span className="text-xs font-bold text-green-700">✓✓ Recebido</span>\n                          )}\n                          {envio.status === "lido" && (\n                            <span className="text-xs font-bold text-violet-700">✓✓ Lido</span>\n                          )}'''
+          if old not in s:
+              raise SystemExit('status marker not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('''    responderamDetalhes +\n    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0) +\n    Number(metricasCampanha?.meta?.uniqueQuickReplyClicks ?? 0);''','''    responderamDetalhes +\n    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0);''',1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/admin.campanhas.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: show delivered and read campaign statuses"
+          git push
