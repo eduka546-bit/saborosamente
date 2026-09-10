@@ -17,11 +17,49 @@ jobs:
       - uses: actions/checkout@v4
       - name: Patch WhatsApp media
         run: python3 .github/scripts/patch_whatsapp_media.py
+      - name: Remove duplicate campaign rendering
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/admin/agente.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''  const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
+  const mensagensDeCampanha = (enviosDeCampanha as any[])
+    .map((envio) => {
+      const campanha = campanhasPorId.get(envio.campanha_id);
+      if (!campanha) return null;
+      return {
+        role: "assistant",
+        content: campanha.mensagem,
+        timestamp: envio.enviado_em ?? envio.created_at,
+        campaignName: campanha.nome || "Campanha",
+        deliveryStatus: envio.status,
+      };
+    })
+    .filter(Boolean);
+  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
+    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  );
+  const somenteCampanha = conversa.somenteCampanha === true;'''
+          new = '''  const somenteCampanha = conversa.somenteCampanha === true;
+  const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
+  const mensagensDeCampanha = somenteCampanha ? (enviosDeCampanha as any[]).map((envio) => {
+    const campanha = campanhasPorId.get(envio.campanha_id);
+    if (!campanha) return null;
+    return { role: "assistant", content: campanha.mensagem, timestamp: envio.enviado_em ?? envio.created_at, campaignName: campanha.nome || "Campanha", deliveryStatus: envio.status };
+  }).filter(Boolean) : [];
+  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
+    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  );'''
+          if old in s:
+              s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add supabase/functions/whatsapp-agent/index.ts src/routes/admin/agente.tsx .github/scripts/patch_whatsapp_media.py
           git diff --cached --quiet && exit 0
-          git commit -m 'chore: integrate whatsapp media'
+          git commit -m 'chore: integrate whatsapp media and dedupe campaigns'
           git push
