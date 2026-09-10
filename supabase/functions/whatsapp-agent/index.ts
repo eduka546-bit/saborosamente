@@ -1719,6 +1719,32 @@ async function baixarMidiaWhatsApp(
 }
 
 // Transcreve um áudio do cliente usando o Whisper da OpenAI.
+async function salvarMidiaRecebida(
+  telefone: string,
+  messageId: string | undefined,
+  mediaId: string,
+  midia: { bytes: Uint8Array; mime: string },
+): Promise<{ path: string; mime: string } | null> {
+  try {
+    const mime = midia.mime || "application/octet-stream";
+    const ext = (mime.split('/')[1] || 'bin').split(';')[0].replace(/[^a-zA-Z0-9]/g, '') || 'bin';
+    const telefoneLimpo = String(telefone).replace(/\D/g, '') || 'desconhecido';
+    const idArquivo = messageId || mediaId;
+    const path = `${telefoneLimpo}/${Date.now()}-${idArquivo}.${ext}`;
+    const { error } = await supabase.storage
+      .from('whatsapp-midias')
+      .upload(path, midia.bytes, { contentType: mime, upsert: false });
+    if (error) {
+      console.error('Falha ao salvar mídia recebida:', error.message);
+      return null;
+    }
+    return { path, mime };
+  } catch (e: any) {
+    console.error('salvarMidiaRecebida exception:', e?.message ?? e);
+    return null;
+  }
+}
+
 async function transcreverAudio(buffer: ArrayBuffer, mime: string): Promise<string | null> {
   try {
     const ext =
@@ -2013,15 +2039,33 @@ Deno.serve(async (req: Request) => {
       if (!config?.ativo) {
         const conversaPausada = await getOrCreateConversa(telefone, nomeContato);
         if (conversaPausada) {
+          let midiaPausada: any = null;
+          const mediaIdPausada =
+            msg.type === "image" ? msg.image?.id :
+            (msg.type === "audio" || msg.type === "voice") ? (msg.audio?.id ?? msg.voice?.id) :
+            msg.type === "document" ? msg.document?.id : null;
+          if (mediaIdPausada) {
+            const baixada = await baixarMidiaWhatsApp(mediaIdPausada);
+            if (baixada) midiaPausada = await salvarMidiaRecebida(telefone, msg.id, mediaIdPausada, baixada);
+          }
+          const conteudoPausado = texto || menuId || `[${msg.type || "mensagem"} recebido]`;
           await appendMensagem(conversaPausada.id, conversaPausada.mensagens ?? [], {
             role: "user",
-            content: texto || menuId || `[${msg.type || "mensagem"} recebido]`,
+            content: conteudoPausado,
+            ...(midiaPausada ? {
+              media_path: midiaPausada.path,
+              media_type: msg.type,
+              mime_type: midiaPausada.mime,
+              whatsapp_media_id: mediaIdPausada,
+            } : {}),
           });
         }
         return new Response("OK", { status: 200 });
       }
 
       await sendTypingIndicator(telefone, msg.id);
+
+      let mediaAnexo: any = null;
 
       // ── Mídia recebida do cliente ────────────────────────────────────────
       // Áudio → transcreve (Whisper). Imagem → analisa (visão), incluindo
@@ -2036,6 +2080,7 @@ Deno.serve(async (req: Request) => {
         if ((msg.type === "audio" || msg.type === "voice") && !emAtendimentoHumano) {
           const mediaId = msg.audio?.id ?? msg.voice?.id;
           const midia = mediaId ? await baixarMidiaWhatsApp(mediaId) : null;
+          if (mediaId && midia) mediaAnexo = await salvarMidiaRecebida(telefone, msg.id, mediaId, midia);
           const transcricao = midia ? await transcreverAudio(midia.buffer, midia.mime) : null;
           if (transcricao) {
             // Prefixo discreto ajuda a IA a saber que veio de um áudio.
@@ -2051,6 +2096,7 @@ Deno.serve(async (req: Request) => {
           const mediaId = msg.image?.id;
           const legendaCliente = msg.image?.caption?.trim();
           const midia = mediaId ? await baixarMidiaWhatsApp(mediaId) : null;
+          if (mediaId && midia) mediaAnexo = await salvarMidiaRecebida(telefone, msg.id, mediaId, midia);
           const descricao = midia ? await analisarImagem(midia.bytes, midia.mime) : null;
           if (descricao) {
             // Monta um texto que descreve a imagem para a IA responder no fluxo.
@@ -2429,7 +2475,16 @@ E use a função transferir_para_humano.
 REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação — nem para repetir um pedido anterior, nem para "o de sempre". Todo e qualquer pedido é sempre finalizado por um humano da equipe. Se o cliente quiser repetir o último pedido, colete/confirme os dados e use transferir_para_humano, incluindo no resumo que ele quer repetir o último pedido.`;
 
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
-      historico = await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+      historico = await appendMensagem(conversa.id, historico, {
+        role: "user",
+        content: texto,
+        ...(mediaAnexo ? {
+          media_path: mediaAnexo.path,
+          media_type: msg.type,
+          mime_type: mediaAnexo.mime,
+          whatsapp_media_id: msg.type === "image" ? msg.image?.id : (msg.audio?.id ?? msg.voice?.id),
+        } : {}),
+      });
 
       // ── Chama OpenAI ─────────────────────────────────────────────────────
       const resultado = await chamarOpenAI(systemPrompt, historico, pedidoEmAndamento);
