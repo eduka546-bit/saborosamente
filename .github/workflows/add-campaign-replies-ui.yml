@@ -1,0 +1,39 @@
+name: Add campaign replies UI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch campaign replies UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/admin.campanhas.tsx')
+          s=p.read_text()
+          s=s.replace('  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);', '  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);\n  const [respostasCampanha, setRespostasCampanha] = useState<any[]>([]);\n  const [mostrarRespostas, setMostrarRespostas] = useState(false);')
+          marker='  const cliquesUrlDetalhes =\n'
+          insert='''  const carregarRespostasCampanha = async (campanhaId: string) => {\n    const { data, error } = await supabase\n      .from("campanhas_whatsapp_envios")\n      .select("id, telefone, respondeu_em, interagiu_em")\n      .eq("campanha_id", campanhaId)\n      .not("respondeu_em", "is", null)\n      .order("respondeu_em", { ascending: false });\n    if (!error) { setRespostasCampanha(data || []); setMostrarRespostas(true); }\n  };\n\n'''
+          if marker in s and 'carregarRespostasCampanha' not in s:
+              s=s.replace(marker, insert+marker, 1)
+          old='''<div className="text-2xl font-bold">{responderamDetalhes}</div>'''
+          new='''<button type="button" onClick={() => carregarRespostasCampanha(campanha.id)} className="text-left hover:opacity-80 transition-opacity">\n  <div className="text-2xl font-bold underline decoration-dotted underline-offset-4">{responderamDetalhes}</div>\n</button>'''
+          if old in s: s=s.replace(old,new,1)
+          marker2='''      {selectedCampaign && ('''
+          modal='''      {mostrarRespostas && selectedCampaign && (\n        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setMostrarRespostas(false)}>\n          <div className="w-full max-w-lg rounded-2xl bg-background p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>\n            <div className="mb-4 flex items-center justify-between">\n              <div><h3 className="text-lg font-bold">Clientes que responderam</h3><p className="text-sm text-muted-foreground">{respostasCampanha.length} cliente(s) identificado(s)</p></div>\n              <button type="button" onClick={() => setMostrarRespostas(false)} className="rounded-full p-2 hover:bg-muted"><X size={18}/></button>\n            </div>\n            <div className="max-h-[60vh] space-y-2 overflow-y-auto">\n              {respostasCampanha.length === 0 ? <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma resposta encontrada.</div> : respostasCampanha.map((r) => (\n                <div key={r.id} className="flex items-center justify-between gap-3 rounded-xl border p-3">\n                  <div><div className="font-semibold">{r.telefone}</div><div className="text-xs text-muted-foreground">Respondeu em {new Date(r.respondeu_em).toLocaleString("pt-BR")}</div></div>\n                  <button type="button" className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground" onClick={() => { setMostrarRespostas(false); window.location.href = `/admin/agente?telefone=${encodeURIComponent(r.telefone)}`; }}>Abrir conversa</button>\n                </div>\n              ))}\n            </div>\n          </div>\n        </div>\n      )}\n\n'''
+          if marker2 in s and 'Clientes que responderam' not in s:
+              s=s.replace(marker2, modal+marker2,1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/admin.campanhas.tsx
+          git diff --cached --quiet || git commit -m 'feat: quick access to campaign replies'
+          git push
