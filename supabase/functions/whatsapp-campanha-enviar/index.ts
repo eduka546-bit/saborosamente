@@ -11,6 +11,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const DELAY_MS = 2000;
 const MAX_POR_MINUTO = 30;
+const BATCH_SIZE = 20;
+const FUNCTION_NAME = "whatsapp-campanha-enviar";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +25,21 @@ async function sleep(ms: number) {
 }
 
 type ResultadoEnvio = { sucesso: boolean; erro?: string; metaMessageId?: string };
+
+type CampanhaPayload = {
+  campanha_id: string;
+  contatos: string[];
+  mensagem: string;
+  imagem_url: string | null;
+  video_url: string | null;
+  midia_tipo: string;
+  template?: {
+    name: string;
+    language: string;
+    variaveis: string[];
+    headerFormat?: string | null;
+  } | null;
+};
 
 async function resultadoDaMeta(res: Response, fallback: string): Promise<ResultadoEnvio> {
   const json = (await res.json().catch(() => ({}))) as {
@@ -38,7 +55,7 @@ async function enviarMensagem(
   mensagem: string,
   imagemUrl: string | null,
   videoUrl: string | null,
-  template?: { name: string; language: string; variaveis: string[]; headerFormat?: string | null } | null,
+  template?: CampanhaPayload["template"],
 ): Promise<ResultadoEnvio> {
   const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const headers = {
@@ -46,10 +63,8 @@ async function enviarMensagem(
     "Content-Type": "application/json",
   };
 
-  // Envio por template (alcança qualquer número)
   if (template) {
-    const components = [];
-
+    const components = [] as Record<string, unknown>[];
     if (template.variaveis.length > 0) {
       components.push({
         type: "body",
@@ -64,7 +79,6 @@ async function enviarMensagem(
       if (!videoUrl) return { sucesso: false, erro: "Este template exige um vídeo no cabeçalho." };
       components.push({ type: "header", parameters: [{ type: "video", video: { link: videoUrl } }] });
     }
-
     const body = {
       messaging_product: "whatsapp",
       to,
@@ -75,23 +89,14 @@ async function enviarMensagem(
         components: components.length > 0 ? components : undefined,
       },
     };
-
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     return resultadoDaMeta(res, "Erro ao enviar template");
   }
 
-  // Enviar vídeo com caption
   if (videoUrl) {
-    const body = {
-      messaging_product: "whatsapp",
-      to,
-      type: "video",
-      video: { link: videoUrl, caption: mensagem },
-    };
+    const body = { messaging_product: "whatsapp", to, type: "video", video: { link: videoUrl, caption: mensagem } };
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     if (res.ok) return resultadoDaMeta(res, "Erro ao enviar vídeo");
-
-    // Fallback para documento
     const bodyDoc = {
       messaging_product: "whatsapp",
       to,
@@ -102,37 +107,146 @@ async function enviarMensagem(
     return resultadoDaMeta(resDoc, "Erro ao enviar vídeo");
   }
 
-  // Enviar imagem com caption
   if (imagemUrl) {
-    const body = {
-      messaging_product: "whatsapp",
-      to,
-      type: "image",
-      image: { link: imagemUrl, caption: mensagem },
-    };
+    const body = { messaging_product: "whatsapp", to, type: "image", image: { link: imagemUrl, caption: mensagem } };
     const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
     return resultadoDaMeta(res, "Erro ao enviar imagem");
   }
 
-  // Só texto (janela 24h)
-  const body = {
-    messaging_product: "whatsapp",
-    to,
-    type: "text",
-    text: { body: mensagem },
-  };
+  const body = { messaging_product: "whatsapp", to, type: "text", text: { body: mensagem } };
   const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
   return resultadoDaMeta(res, "Erro ao enviar texto");
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
+async function agendarProximoLote(payload: CampanhaPayload) {
+  const { campanha_id } = payload;
+  const { data: pendentes, error } = await supabase
+    .from("campanhas_whatsapp_envios")
+    .select("id")
+    .eq("campanha_id", campanha_id)
+    .eq("status", "pendente")
+    .limit(1);
+  if (error) throw error;
+
+  if ((pendentes?.length ?? 0) > 0) {
+    const nextUrl = `${SUPABASE_URL}/functions/v1/${FUNCTION_NAME}`;
+    const response = await fetch(nextUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`Falha ao iniciar próximo lote: ${response.status} ${detail}`);
+    }
+    return;
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+  const [{ count: totalEnviados }, { count: totalFalhados }] = await Promise.all([
+    supabase.from("campanhas_whatsapp_envios").select("id", { count: "exact", head: true }).eq("campanha_id", campanha_id).eq("status", "enviado"),
+    supabase.from("campanhas_whatsapp_envios").select("id", { count: "exact", head: true }).eq("campanha_id", campanha_id).eq("status", "falhou"),
+  ]);
+
+  const { data: estado } = await supabase
+    .from("campanhas_whatsapp")
+    .select("status")
+    .eq("id", campanha_id)
+    .single();
+  if (estado?.status === "pausada") return;
+
+  await supabase
+    .from("campanhas_whatsapp")
+    .update({
+      status: "enviada",
+      contatos_enviados: totalEnviados ?? 0,
+      contatos_falhados: totalFalhados ?? 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", campanha_id);
+
+  console.log(`Campanha ${campanha_id} finalizada: ${totalEnviados ?? 0} enviados, ${totalFalhados ?? 0} falhas.`);
+}
+
+async function processarLote(payload: CampanhaPayload) {
+  const { campanha_id, mensagem, imagem_url, video_url, template } = payload;
+
+  const { data: estado, error: estadoError } = await supabase
+    .from("campanhas_whatsapp")
+    .select("status")
+    .eq("id", campanha_id)
+    .single();
+  if (estadoError) throw estadoError;
+  if (estado?.status === "pausada") return;
+
+  const { data: pendentes, error: pendentesError } = await supabase
+    .from("campanhas_whatsapp_envios")
+    .select("id, telefone")
+    .eq("campanha_id", campanha_id)
+    .eq("status", "pendente")
+    .order("created_at")
+    .limit(BATCH_SIZE);
+  if (pendentesError) throw pendentesError;
+
+  if (!pendentes || pendentes.length === 0) {
+    await agendarProximoLote(payload);
+    return;
   }
+
+  let msgsEsteMinuto = 0;
+  let inicioMinuto = Date.now();
+
+  for (let i = 0; i < pendentes.length; i++) {
+    const { id: envioId, telefone } = pendentes[i];
+
+    if (i > 0 && i % 5 === 0) {
+      const { data: estadoAtual } = await supabase
+        .from("campanhas_whatsapp")
+        .select("status")
+        .eq("id", campanha_id)
+        .single();
+      if (estadoAtual?.status === "pausada") return;
+    }
+
+    if (Date.now() - inicioMinuto > 60000) {
+      msgsEsteMinuto = 0;
+      inicioMinuto = Date.now();
+    }
+    if (msgsEsteMinuto >= MAX_POR_MINUTO) {
+      const espera = Math.max(0, 60000 - (Date.now() - inicioMinuto));
+      await sleep(espera + 500);
+      msgsEsteMinuto = 0;
+      inicioMinuto = Date.now();
+    }
+
+    if (i > 0) await sleep(DELAY_MS);
+
+    const resultado = await enviarMensagem(String(telefone), mensagem, imagem_url, video_url, template);
+    msgsEsteMinuto++;
+
+    if (resultado.sucesso) {
+      await supabase
+        .from("campanhas_whatsapp_envios")
+        .update({ status: "enviado", enviado_em: new Date().toISOString(), meta_message_id: resultado.metaMessageId ?? null, erro_mensagem: null })
+        .eq("id", envioId);
+    } else {
+      await supabase
+        .from("campanhas_whatsapp_envios")
+        .update({ status: "falhou", erro_mensagem: resultado.erro })
+        .eq("id", envioId);
+      console.warn(`Falha no envio ${envioId}: ${resultado.erro}`);
+    }
+  }
+
+  await agendarProximoLote(payload);
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   let campanha_id = "";
 
@@ -140,19 +254,9 @@ Deno.serve(async (req: Request) => {
     const authorization = await authorizeAdminOrService(req);
     if (!authorization.ok) return authorizationError(authorization, CORS_HEADERS);
 
-    const body = (await req.json()) as {
-      campanha_id: string;
-      contatos: string[];
-      mensagem: string;
-      imagem_url: string | null;
-      video_url: string | null;
-      midia_tipo: string;
-      template?: { name: string; language: string; variaveis: string[]; headerFormat?: string | null } | null;
-    };
-
+    const body = (await req.json()) as CampanhaPayload;
     campanha_id = body.campanha_id;
-    const { contatos, mensagem, imagem_url, video_url, template } = body;
-
+    const { contatos, mensagem } = body;
     const contatosNormalizados = Array.isArray(contatos)
       ? [...new Set(contatos.map((tel) => String(tel).replace(/\D/g, "")))]
       : [];
@@ -166,161 +270,77 @@ Deno.serve(async (req: Request) => {
       mensagem.trim().length === 0 ||
       mensagem.length > 4096
     ) {
-      return new Response("Missing required fields", { status: 400, headers: CORS_HEADERS });
+      return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
     }
 
-    // Claim the campaign atomically. A second click/request must not start a
-    // concurrent sender for the same campaign.
-    const { data: campanhaIniciada, error: inicioError } = await supabase
+    const { data: campanhaAtual, error: campanhaAtualError } = await supabase
       .from("campanhas_whatsapp")
-      .update({ status: "enviando", updated_at: new Date().toISOString() })
+      .select("status")
       .eq("id", campanha_id)
-      .in("status", ["rascunho", "pausada"])
-      .select("id")
-      .maybeSingle();
+      .single();
+    if (campanhaAtualError) throw campanhaAtualError;
 
-    if (inicioError) throw inicioError;
-    if (!campanhaIniciada) {
-      return new Response(JSON.stringify({ error: "Esta campanha já está em andamento ou foi concluída." }), {
-        status: 409,
-        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
+    // A primeira chamada assume a campanha. As chamadas internas continuam uma campanha já em andamento.
+    if (campanhaAtual.status === "rascunho" || campanhaAtual.status === "pausada") {
+      const { data: campanhaIniciada, error: inicioError } = await supabase
+        .from("campanhas_whatsapp")
+        .update({ status: "enviando", updated_at: new Date().toISOString() })
+        .eq("id", campanha_id)
+        .in("status", ["rascunho", "pausada"])
+        .select("id")
+        .maybeSingle();
+      if (inicioError) throw inicioError;
+      if (!campanhaIniciada) {
+        return new Response(JSON.stringify({ error: "Esta campanha já está em andamento ou foi concluída." }), { status: 409, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+      }
+    } else if (campanhaAtual.status !== "enviando") {
+      return new Response(JSON.stringify({ error: "Esta campanha já está concluída ou em erro." }), { status: 409, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
     }
 
-    // On the first run, create the pending queue. On resume, use the queue
-    // already stored in the database and never recreate or resend it.
-    const { data: enviosExistentes, error: enviosError } = await supabase
+    const { count: quantidadeFila } = await supabase
       .from("campanhas_whatsapp_envios")
-      .select("telefone, status")
+      .select("id", { count: "exact", head: true })
       .eq("campanha_id", campanha_id);
-    if (enviosError) throw enviosError;
 
-    let contatosParaEnviar = contatosNormalizados;
-    if ((enviosExistentes?.length ?? 0) === 0) {
+    if ((quantidadeFila ?? 0) === 0) {
       const { error: insertError } = await supabase
         .from("campanhas_whatsapp_envios")
         .insert(contatosNormalizados.map((telefone) => ({ campanha_id, telefone, status: "pendente" })));
       if (insertError) throw insertError;
-    } else {
-      contatosParaEnviar = enviosExistentes
-        .filter((envio) => envio.status === "pendente")
-        .map((envio) => String(envio.telefone));
     }
 
-    console.log(
-      `Iniciando campanha ${campanha_id} para ${contatosParaEnviar.length} contato(s) pendente(s)${template ? ` (template: ${template.name})` : ""}`,
-    );
+    const payload: CampanhaPayload = { ...body, contatos: contatosNormalizados };
 
-    let enviados = 0;
-    let falhados = 0;
-    const inicio = Date.now();
-    let msgsEsteMinuto = 0;
-    let inicioMinuto = Date.now();
-
-    for (let i = 0; i < contatosParaEnviar.length; i++) {
-      const telefone = contatosParaEnviar[i];
-
-      // Verifica a cada 5 envios se a campanha foi pausada pelo admin.
-      if (i > 0 && i % 5 === 0) {
-        const { data: campanhaAtual } = await supabase
+    // Retorna imediatamente ao navegador. O processamento ocorre em lotes de 20,
+    // e cada lote dispara a próxima invocação para não ficar preso no timeout HTTP.
+    EdgeRuntime.waitUntil(
+      processarLote(payload).catch(async (error) => {
+        const msg = error instanceof Error ? error.message : "Erro desconhecido";
+        console.error("Erro no processamento da campanha:", msg);
+        await supabase
           .from("campanhas_whatsapp")
-          .select("status")
+          .update({ status: "erro", updated_at: new Date().toISOString() })
           .eq("id", campanha_id)
-          .single();
-        if (campanhaAtual?.status === "pausada") {
-          return new Response(
-            JSON.stringify({ success: false, pausada: true, enviados, falhados, pendentes: contatosParaEnviar.length - i }),
-            { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
-          );
-        }
-      }
-
-      if (Date.now() - inicioMinuto > 60000) {
-        msgsEsteMinuto = 0;
-        inicioMinuto = Date.now();
-      }
-
-      if (msgsEsteMinuto >= MAX_POR_MINUTO) {
-        const espera = 60000 - (Date.now() - inicioMinuto);
-        console.log(`Rate limit: aguardando ${espera}ms`);
-        await sleep(espera + 500);
-        msgsEsteMinuto = 0;
-        inicioMinuto = Date.now();
-      }
-
-      if (i > 0) await sleep(DELAY_MS);
-
-      const resultado = await enviarMensagem(telefone, mensagem, imagem_url, video_url, template);
-      msgsEsteMinuto++;
-
-      if (resultado.sucesso) {
-        enviados++;
-        await supabase
-          .from("campanhas_whatsapp_envios")
-          .update({
-            status: "enviado",
-            enviado_em: new Date().toISOString(),
-            meta_message_id: resultado.metaMessageId ?? null,
-          })
-          .eq("campanha_id", campanha_id)
-          .eq("telefone", telefone);
-      } else {
-        falhados++;
-        await supabase
-          .from("campanhas_whatsapp_envios")
-          .update({ status: "falhou", erro_mensagem: resultado.erro })
-          .eq("campanha_id", campanha_id)
-          .eq("telefone", telefone);
-        console.warn(`Falha em destinatário ${i + 1}: ${resultado.erro}`);
-      }
-    }
-
-    const tempoTotal = Math.round((Date.now() - inicio) / 1000);
-
-    const { count: totalEnviados, error: countError } = await supabase
-      .from("campanhas_whatsapp_envios")
-      .select("id", { count: "exact", head: true })
-      .eq("campanha_id", campanha_id)
-      .eq("status", "enviado");
-    if (countError) throw countError;
-
-    await supabase
-      .from("campanhas_whatsapp")
-      .update({
-        status: "enviada",
-        contatos_enviados: totalEnviados ?? enviados,
-        contatos_falhados: falhados,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", campanha_id);
-
-    console.log(`Campanha finalizada: ${enviados} enviados, ${falhados} falhas, ${tempoTotal}s`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        enviados,
-        falhados,
-        total: contatosParaEnviar.length,
-        tempoTotal,
+          .eq("status", "enviando");
       }),
-      { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 200 },
     );
+
+    return new Response(JSON.stringify({ success: true, campanha_id, status: "enviando", background: true }), {
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      status: 202,
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Erro desconhecido";
     console.error("Erro na campanha:", msg);
 
     if (campanha_id) {
-      const { error: updateError } = await supabase
+      await supabase
         .from("campanhas_whatsapp")
         .update({ status: "erro", updated_at: new Date().toISOString() })
-        .eq("id", campanha_id);
-      if (updateError) console.error("Falha ao marcar campanha com erro:", updateError.message);
+        .eq("id", campanha_id)
+        .neq("status", "enviada");
     }
 
-    return new Response(JSON.stringify({ error: msg }), {
-      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: msg }), { headers: { "Content-Type": "application/json", ...CORS_HEADERS }, status: 500 });
   }
 });
