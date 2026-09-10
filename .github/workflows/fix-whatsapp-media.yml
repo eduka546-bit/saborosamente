@@ -13,7 +13,6 @@ permissions:
 jobs:
   patch:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, 'chore: integrate whatsapp media') }}
     steps:
       - uses: actions/checkout@v4
       - name: Patch WhatsApp media
