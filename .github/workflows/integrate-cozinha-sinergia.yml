@@ -1,0 +1,32 @@
+name: Integrate Cozinha Synergy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Apply integration
+        run: python .github/scripts/integrate_cozinha_sinergia.py
+      - name: Commit integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git add src/routes/cozinha.tsx
+          git commit -m 'feat(cozinha): integrate production synergy suggestions'
+          git push
