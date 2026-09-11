@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProducaoSinergia";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -333,6 +334,15 @@ function CozinhaPage() {
                 <Campo label="Buscar item"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, sopa, lasanha..." /></Campo>
                 <Campo label="Status"><select className={input} value={filtroProducao} onChange={(e) => setFiltroProducao(e.target.value as typeof filtroProducao)}><option value="todos">Todos os status</option><option value="planejada">Planejadas</option><option value="em_preparo">Em preparo</option><option value="concluida">Produzidas</option></select></Campo>
               </div>
+              <SugestoesProducaoSinergia
+                dataProducao={dataProducao}
+                producoes={producoes as any[]}
+                produtos={produtos as any[]}
+                receitas={receitas as any[]}
+                receitaItens={receitaItens as any[]}
+                ingredientes={ingredientes as any[]}
+                estoqueMarmitas={estoqueMarmitas as any[]}
+              />
               <div className="mb-5 grid gap-3 sm:grid-cols-3">
                 {[["Planejadas", (producoes as any[]).filter((p) => p.status === "planejada").length, "bg-[#fff4d9] text-[#8b5a00]"], ["Em preparo", (producoes as any[]).filter((p) => p.status === "em_preparo").length, "bg-[#e8f1ff] text-[#175da8]"], ["Produzidas", (producoes as any[]).filter((p) => p.status === "concluida").length, "bg-[#e0f2e7] text-[#087443]"]].map(([label, quantidade, cor]) => <article key={String(label)} className={`rounded-xl p-3 ${cor}`}><p className="text-xs font-bold">{label}</p><p className="text-2xl font-black">{quantidade}</p></article>)}
               </div>
