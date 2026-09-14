@@ -1,6 +1,6 @@
 name: Fix ficha preparations PR
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
 permissions:
   contents: write
@@ -12,6 +12,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          persist-credentials: true
       - name: Remove duplicated preparation sections
         run: |
           python - <<'PY'
@@ -26,10 +28,9 @@ jobs:
               keep=blocks[0]
               s=re.sub(pattern,'',s,flags=re.S)
               anchor='    {abaFicha==="resumo" && <section>'
-              if anchor in s:
-                  s=s.replace(anchor,keep+'\n'+anchor,1)
-              else:
+              if anchor not in s:
                   raise SystemExit('costs anchor not found')
+              s=s.replace(anchor,keep+'\n'+anchor,1)
               p.write_text(s,encoding='utf-8')
           PY
           git diff --check
