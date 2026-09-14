@@ -1,1 +1,1 @@
-trigger synchronize target workflow
+trigger clean ficha preparation pass
