@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   BookOpen,
   BarChart3,
+  Barcode,
   CheckCircle2,
   ChefHat,
   ClipboardList,
@@ -305,6 +306,13 @@ function CozinhaPage() {
       </header>
       <div className="mx-auto grid max-w-7xl md:grid-cols-[220px_1fr]">
         <aside className="border-b bg-white p-3 md:min-h-[calc(100vh-65px)] md:border-b-0 md:border-r">
+          <Link
+            to="/cozinha/etiquetas"
+            className="mb-2 flex w-full items-center gap-3 rounded-xl bg-[#fff4d9] px-3 py-2.5 text-sm font-bold text-[#8b5a00] hover:bg-[#ffe9b8]"
+          >
+            <Barcode size={18} />
+            Etiquetas
+          </Link>
           {abas.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
