@@ -1,1 +1,1 @@
-trigger synchronize 3
+trigger synchronize target workflow
