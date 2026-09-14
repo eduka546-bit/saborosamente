@@ -1,1 +1,1 @@
-Production redeploy trigger after restoring the last known-good build.
+Production redeploy trigger after restoring the last known-good build - final stable redeploy.
