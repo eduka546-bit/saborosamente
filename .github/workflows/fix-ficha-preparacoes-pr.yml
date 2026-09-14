@@ -19,11 +19,17 @@ jobs:
           import re
           p=Path('src/routes/cozinha.tsx')
           s=p.read_text(encoding='utf-8')
-          pattern=r'\n    \{abaFicha==="preparacoes" && <section>.*?</section>\}'
+          pattern=r'\{abaFicha==="preparacoes" && <section>.*?</section>\}'
           blocks=re.findall(pattern,s,re.S)
           print('preparation blocks:',len(blocks))
           if len(blocks)>1:
-              s=re.sub(pattern, lambda m: blocks[0], s, flags=re.S)
+              keep=blocks[0]
+              s=re.sub(pattern,'',s,flags=re.S)
+              anchor='    {abaFicha==="resumo" && <section>'
+              if anchor in s:
+                  s=s.replace(anchor,keep+'\n'+anchor,1)
+              else:
+                  raise SystemExit('costs anchor not found')
               p.write_text(s,encoding='utf-8')
           PY
           git diff --check
