@@ -1,1 +1,1 @@
-trigger synchronize 2
+trigger synchronize 3
