@@ -5,7 +5,7 @@ path = Path('src/routes/cozinha.tsx')
 s = path.read_text(encoding='utf-8')
 
 # One-time cleanup for the ficha modal: keep exactly one Preparações block.
-pattern = r'\n    \{abaFicha===\\"preparacoes\\" && <section>.*?</section>\}'
+pattern = r'\n    \{abaFicha==="preparacoes" && <section>.*?</section>\}'
 blocks = re.findall(pattern, s, re.S)
 if len(blocks) > 1:
     s = re.sub(pattern, lambda m: blocks[0], s, flags=re.S)
