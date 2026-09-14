@@ -5,7 +5,7 @@ import { ArrowLeft, Barcode, Edit3, Plus, Printer, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/cozinha/etiquetas")({ component: EtiquetasPage, ssr: false });
+export const Route = createFileRoute("/cozinha/etiquetas")({ component: EtiquetasManager, ssr: false });
 
 type Etiqueta = {
   id: string;
@@ -29,7 +29,7 @@ const nutritionKeys = [
   ["gorduras", "Gorduras totais (g)"], ["fibra", "Fibra alimentar (g)"], ["sodio", "Sódio (mg)"],
 ] as const;
 
-function EtiquetasPage() {
+export function EtiquetasManager() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [authorized, setAuthorized] = useState(false);
