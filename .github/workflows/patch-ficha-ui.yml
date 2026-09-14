@@ -1,0 +1,37 @@
+name: patch-ficha-ui
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor == 'eduka546-bit'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/cozinha.tsx')
+          s=p.read_text()
+          old='const custoLinha = (x:ReceitaLinha,t:Tamanho) => qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));'
+          new='const custoLinha = (x:ReceitaLinha,t:Tamanho) => x.preparacao_id ? n(x[`gramas_${t}` as keyof ReceitaLinha]) * custoPrep(x.preparacao_id) : qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));'
+          s=s.replace(old,new)
+          old='function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'
+          new='function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente</span><span>Custo</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{x.preparacao_id ? valor(custoPrep(x.preparacao_id))+' / g' : item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'
+          s=s.replace(old,new)
+          old='<p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id)} g</p>'
+          new='<p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g</p>'
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/cozinha.tsx
+          git commit -m 'fix(fichas): format preparation costs and weights' || true
+          git push
+          git rm .github/workflows/patch-ficha-ui.yml || true
+          git commit -m 'chore: remove temporary ficha ui workflow' || true
+          git push || true
