@@ -10,28 +10,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch
+      - name: Patch ficha preparations
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('src/routes/cozinha.tsx')
-          s=p.read_text()
-          old='const custoLinha = (x:ReceitaLinha,t:Tamanho) => qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));'
-          new='const custoLinha = (x:ReceitaLinha,t:Tamanho) => x.preparacao_id ? n(x[`gramas_${t}` as keyof ReceitaLinha]) * custoPrep(x.preparacao_id) : qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));'
-          s=s.replace(old,new)
-          old='function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'
-          new='function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente</span><span>Custo</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{x.preparacao_id ? valor(custoPrep(x.preparacao_id))+' / g' : item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'
-          s=s.replace(old,new)
-          old='<p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id)} g</p>'
-          new='<p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g</p>'
-          s=s.replace(old,new)
-          p.write_text(s)
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('type Aba = "producao" | "separar" | "ingredientes" | "marmitas" | "estoque" | "relatorio" | "etiquetas";', 'type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "relatorio" | "etiquetas";', 1)
+          s=s.replace('{ id: "ingredientes", label: "Ingredientes", icon: Package },\n    { id: "marmitas", label: "Marmitas", icon: BookOpen },', '{ id: "ingredientes", label: "Ingredientes", icon: Package },\n    { id: "preparacoes", label: "Preparações", icon: CookingPot },\n    { id: "marmitas", label: "Marmitas", icon: BookOpen },', 1)
+          s=s.replace('const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "resumo">("ingredientes");', 'const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "preparacoes" | "resumo">("ingredientes");', 1)
+          s=s.replace('<div className="mb-6 grid grid-cols-3 rounded-xl bg-[#e7eee8] p-1">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["resumo","3. Custos e preparo"]].map(([id,label])=', '<div className="mb-6 grid grid-cols-4 rounded-xl bg-[#e7eee8] p-1">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["preparacoes","3. Preparações"],["resumo","4. Custos"]].map(([id,label])=', 1)
+          marker='    {abaFicha==="resumo" && <section>'
+          assert marker in s
+          prep='''    {abaFicha==="preparacoes" && <section><div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações desta ficha</p><p className="mt-1 text-sm text-[#62766b]">Veja cada preparação usada nesta marmita, com rendimento, ingredientes e o modo de preparo individual.</p></div><span className="rounded-full bg-[#e8f3eb] px-3 py-1.5 text-xs font-black text-[#087443]">{Array.isArray(receita?.preparacoes) ? receita.preparacoes.length : 0} preparação(ões)</span></div>{!Array.isArray(receita?.preparacoes) || !receita.preparacoes.length ? <Vazio texto="Nenhuma preparação vinculada a esta ficha."/> : <div className="grid gap-4">{receita.preparacoes.map((ref:any) => { const p=preparacoes.find((x:any)=>x.id===ref.id); const itens=p ? (itensPrep.get(p.id)||[]) : []; return <article key={ref.id || ref.nome} className="rounded-2xl border border-[#dbe7dd] bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-lg font-black">{p?.nome || ref.nome || "Preparação"}</h3><p className="mt-1 text-sm text-[#62766b]">Rendimento: {n(p?.rendimento_final_g) > 0 ? `${n(p.rendimento_final_g).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g` : "não informado"}</p></div><span className="rounded-full bg-[#edf5e6] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#087443]">Preparação</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes</p>{!itens.length ? <p className="mt-2 text-sm text-[#62766b]">Nenhum ingrediente cadastrado.</p> : <div className="mt-2 grid gap-2">{itens.map((x:any)=><div key={x.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{ing.get(x.ingrediente_id)?.nome || "Ingrediente"}</span><b>{n(x.quantidade).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g</b></div>)}</div>}</div><div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line text-sm leading-6 text-[#355445]">{p?.modo_preparo || "Modo de preparo não informado."}</div>{p?.observacao && <p className="mt-3 border-t border-[#dbe7dd] pt-3 text-xs text-[#62766b]"><b>Observação:</b> {p.observacao}</p>}</div></div></article>})}</div>}</section>'''
+          s=s.replace(marker,prep+marker,1)
+          s=s.replace('<div className="mt-5"><Campo label="Modo de montagem / preparo"><textarea className={`${input} min-h-24`} value={modo} onChange={e=>setModo(e.target.value)} placeholder="Ex.: coloque arroz, frango, molho e finalize com brócolis."/></Campo></div>','',1)
+          p.write_text(s,encoding='utf-8')
           PY
+          git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/routes/cozinha.tsx
-          git commit -m 'fix(fichas): format preparation costs and weights' || true
-          git push
-          git rm .github/workflows/patch-ficha-ui.yml || true
-          git commit -m 'chore: remove temporary ficha ui workflow' || true
+          git commit -m 'feat(fichas): separar preparacoes em aba propria' || true
           git push || true
