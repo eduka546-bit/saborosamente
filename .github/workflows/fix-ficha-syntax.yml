@@ -1,0 +1,48 @@
+name: fix ficha syntax
+on:
+  push:
+    branches: [fix/ficha-preparacoes-clean2]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Simplify preparation tab JSX
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/cozinha.tsx')
+          s=p.read_text(encoding='utf-8')
+          marker='    {abaFicha==="preparacoes" && <section>'
+          start=s.find(marker)
+          end=s.find('    {abaFicha==="resumo" && <section>', start if start>=0 else 0)
+          prep='''    {abaFicha==="preparacoes" && <section>
+      <div className="mb-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações desta ficha</p><p className="mt-1 text-sm text-[#62766b]">Cada preparação aparece separadamente com rendimento, ingredientes e modo de preparo.</p></div>
+      {!Array.isArray(receita?.preparacoes) || !receita.preparacoes.length ? <Vazio texto="Nenhuma preparação vinculada a esta ficha."/> : <div className="grid gap-4">
+        {receita.preparacoes.map((ref:any) => (
+          <article key={ref.id || ref.nome} className="rounded-2xl border border-[#dbe7dd] bg-white p-5">
+            <h3 className="text-lg font-black">{preparacoes.find((x:any)=>x.id===ref.id)?.nome || ref.nome || "Preparação"}</h3>
+            <p className="mt-1 text-sm text-[#62766b]">Rendimento: {n(preparacoes.find((x:any)=>x.id===ref.id)?.rendimento_final_g)>0 ? `${n(preparacoes.find((x:any)=>x.id===ref.id)?.rendimento_final_g).toLocaleString("pt-BR",{maximumFractionDigits:3})} g` : "não informado"}</p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes</p>{!(itensPrep.get(ref.id)||[]).length ? <p className="mt-2 text-sm text-[#62766b]">Nenhum ingrediente cadastrado.</p> : <div className="mt-2 grid gap-2">{(itensPrep.get(ref.id)||[]).map((x:any)=><div key={x.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{ing.get(x.ingrediente_id)?.nome || "Ingrediente"}</span><b>{n(x.quantidade).toLocaleString("pt-BR",{maximumFractionDigits:3})} g</b></div>)}</div>}</div>
+              <div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line text-sm leading-6 text-[#355445]">{preparacoes.find((x:any)=>x.id===ref.id)?.modo_preparo || "Modo de preparo não informado."}</div></div>
+            </div>
+          </article>
+        ))}
+      </div>}
+    </section>\n'''
+          if start>=0 and end>start:s=s[:start]+prep+s[end:]
+          p.write_text(s,encoding='utf-8')
+          PY
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/cozinha.tsx
+          git commit -m 'fix(fichas): simplify preparation tab JSX'
+          git rm .github/workflows/fix-ficha-syntax.yml
+          git commit -m 'chore: remove syntax fix workflow'
+          git push
