@@ -664,7 +664,7 @@ function CozinhaPage() {
               </div>
             </section>
           )}
-        </main>
+          {aba === "etiquetas" && <EtiquetasManager />}\n        </main>
       </div>
       {modal === "producao" && (
         <ProducaoModal
