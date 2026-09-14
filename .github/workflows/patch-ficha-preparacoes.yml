@@ -1,0 +1,231 @@
+name: Patch ficha preparacoes
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          old = 'type Aba = "producao" | "separar" | "ingredientes" | "marmitas" | "estoque" | "relatorio" | "etiquetas";'
+          new = 'type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "relatorio" | "etiquetas";'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = '{ id: "ingredientes", label: "Ingredientes", icon: Package },\n    { id: "marmitas", label: "Marmitas", icon: BookOpen },'
+          new = '{ id: "ingredientes", label: "Ingredientes", icon: Package },\n    { id: "preparacoes", label: "Preparações", icon: CookingPot },\n    { id: "marmitas", label: "Marmitas", icon: BookOpen },'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          start = s.index('function ReceitaModal(')
+          end = s.index('function TabelaCabecalho(', start)
+
+          func = r'''function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], custoIng, criarIngrediente, fechar, salvar }: any) {
+  const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "preparacoes" | "custos">("ingredientes");
+  const [linhas, setLinhas] = useState<ReceitaLinha[]>(
+    linhasIniciais.map((x: any) => ({
+      ...receitaVazia(),
+      ...x,
+      ingrediente_id: x.ingrediente_id || null,
+      preparacao_id: x.preparacao_id || null,
+    })),
+  );
+  const [montagem, setMontagem] = useState<MontagemLinha[]>(
+    montagemInicial.map((x: any) => ({
+      id: x.id,
+      nome: x.nome || "",
+      gramas_200: n(x.gramas_200),
+      gramas_300: n(x.gramas_300),
+      gramas_400: n(x.gramas_400),
+      observacao: x.observacao || "",
+    })),
+  );
+  const [selecionado, setSelecionado] = useState("");
+  const [preparacoesSelecionadas, setPreparacoesSelecionadas] = useState<string[]>(() => {
+    const ids = [
+      ...(Array.isArray(receita?.preparacoes) ? receita.preparacoes.map((x: any) => x.id).filter(Boolean) : []),
+      ...linhasIniciais.map((x: any) => x.preparacao_id).filter(Boolean),
+    ];
+    return [...new Set(ids)];
+  });
+  const [novo, setNovo] = useState(false);
+  const [novoD, setNovoD] = useState({ nome: "", custo: "", rendimento: "1" });
+
+  const nome = (x: ReceitaLinha) =>
+    x.preparacao_id
+      ? preparacoes.find((a: any) => a.id === x.preparacao_id)?.nome || "Preparação"
+      : ingredientes.find((a: any) => a.id === x.ingrediente_id)?.nome || "Ingrediente";
+  const editar = (i: number, k: string, v: any) =>
+    setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const editarMontagem = (i: number, k: string, v: any) =>
+    setMontagem(montagem.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const addComponente = () => {
+    if (!selecionado) return toast.error("Escolha um ingrediente ou preparação.");
+    const [tipo, id] = selecionado.split(":");
+    if (tipo === "p" && linhas.some((x) => x.preparacao_id === id)) return toast.error("Essa preparação já está na ficha.");
+    if (tipo === "i" && linhas.some((x) => x.ingrediente_id === id)) return toast.error("Esse ingrediente já está na ficha.");
+    setLinhas([
+      ...linhas,
+      {
+        ...receitaVazia(),
+        ingrediente_id: tipo === "i" ? id : null,
+        preparacao_id: tipo === "p" ? id : null,
+      },
+    ]);
+    if (tipo === "p") setPreparacoesSelecionadas((atual) => [...new Set([...atual, id])]);
+    setSelecionado("");
+  };
+  const addNovo = async () => {
+    if (!novoD.nome.trim()) return toast.error("Informe o nome.");
+    const criado = await criarIngrediente(novoD.nome, n(novoD.custo), n(novoD.rendimento) || 1);
+    if (!criado) return;
+    setLinhas([...linhas, { ...receitaVazia(), ingrediente_id: criado.id }]);
+    setNovoD({ nome: "", custo: "", rendimento: "1" });
+    setNovo(false);
+  };
+  const removerLinha = (i: number) => {
+    const removida = linhas[i];
+    setLinhas(linhas.filter((_, j) => j !== i));
+    if (removida?.preparacao_id) {
+      setPreparacoesSelecionadas((atual) => atual.filter((id) => id !== removida.preparacao_id));
+    }
+  };
+  const removerPreparacao = (id: string) => {
+    setPreparacoesSelecionadas((atual) => atual.filter((x) => x !== id));
+    setLinhas((atual) => atual.filter((x) => x.preparacao_id !== id));
+  };
+  const qCorreta = (g: number, item: any) =>
+    item?.tipo_rendimento === "perda"
+      ? g * (1 + n(item.quebra_percentual) / 100)
+      : item?.tipo_rendimento === "ganho"
+        ? g / n(item.fator_rendimento || 1)
+        : g;
+  const custoLinha = (x: ReceitaLinha, t: Tamanho) => {
+    if (x.preparacao_id) {
+      const p = preparacoes.find((a: any) => a.id === x.preparacao_id);
+      return n(p?.rendimento_final_g) > 0 ? n(x[`gramas_${t}` as keyof ReceitaLinha]) * n(custoPrep(x.preparacao_id)) : 0;
+    }
+    const item = ingredientes.find((a: any) => a.id === x.ingrediente_id);
+    return qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]), item) * custoIng(item);
+  };
+  const custo = (t: Tamanho) => linhas.reduce((a, x) => a + custoLinha(x, t), 0);
+  const peso = (t: Tamanho) => linhas.reduce((a, x) => a + n(x[`gramas_${t}` as keyof ReceitaLinha]), 0);
+  const novaMontagem = () => ({ nome: "", gramas_200: 0, gramas_300: 0, gramas_400: 0, observacao: "" });
+  const preparacoesDaFicha = preparacoes.filter((p: any) => preparacoesSelecionadas.includes(p.id));
+
+  return (
+    <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
+      <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]">
+        <div className="h-32 overflow-hidden rounded-xl bg-white">
+          {produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center text-[#087443]"><ChefHat /></div>}
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Monte a ficha técnica</p>
+          <h4 className="mt-1 text-xl font-black">{produto.nome}</h4>
+          <p className="mt-2 text-sm text-[#527164]">Ingredientes são a base de custo e produção. Em Montagem, registre somente o que entra pronto na embalagem.</p>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-4 rounded-xl bg-[#e7eee8] p-1">
+        {[["ingredientes", "1. Ingredientes"], ["montagem", "2. Montagem"], ["preparacoes", "3. Preparações"], ["custos", "4. Custos"]].map(([id, label]) => <button key={id} type="button" onClick={() => setAbaFicha(id as typeof abaFicha)} className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha === id ? "bg-white text-[#087443] shadow-sm" : "text-[#62766b]"}`}>{label}</button>)}
+      </div>
+
+      {abaFicha === "ingredientes" && (
+        <section>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Ingredientes da receita</p>
+          <p className="mb-3 mt-1 text-sm text-[#62766b]">Informe as quantidades por tamanho. Perdas e ganhos são aplicados automaticamente na lista de produção.</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select className={input} value={selecionado} onChange={(e) => setSelecionado(e.target.value)}>
+              <option value="">Escolha ingrediente ou preparação</option>
+              <optgroup label="Ingredientes">{ingredientes.map((x: any) => <option key={`i:${x.id}`} value={`i:${x.id}`}>{x.nome}</option>)}</optgroup>
+              <optgroup label="Preparações prontas">{preparacoes.map((x: any) => <option key={`p:${x.id}`} value={`p:${x.id}`}>{x.nome}</option>)}</optgroup>
+            </select>
+            <Botao onClick={addComponente}><Plus size={17} />Adicionar componente</Botao>
+          </div>
+          <button type="button" onClick={() => setNovo(!novo)} className="mt-3 text-sm font-bold text-[#087443]">{novo ? "− Fechar cadastro" : "+ Cadastrar ingrediente novo"}</button>
+          {novo && <div className="mt-3 grid gap-2 rounded-xl border border-[#cfe1d3] bg-white p-3 md:grid-cols-[1fr_150px_150px_auto]"><input className={input} value={novoD.nome} placeholder="Nome" onChange={(e) => setNovoD({ ...novoD, nome: e.target.value })} /><input className={input} type="number" value={novoD.custo} placeholder="Custo/kg" onChange={(e) => setNovoD({ ...novoD, custo: e.target.value })} /><input className={input} type="number" value={novoD.rendimento} placeholder="Rendimento" onChange={(e) => setNovoD({ ...novoD, rendimento: e.target.value })} /><Botao onClick={addNovo}>Salvar e usar</Botao></div>}
+          {!linhas.length ? <Vazio texto="Nenhum ingrediente ou preparação adicionado ainda." /> : <TabelaCabecalho titulo="Componente">{linhas.map((x, i) => <div key={i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><b>{nome(x)}</b><span className="ml-2 rounded-full bg-[#e8f3eb] px-2 py-0.5 text-[10px] font-bold text-[#087443]">{x.preparacao_id ? "PREPARAÇÃO" : "INGREDIENTE"}</span><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação" onChange={(e) => editar(i, "observacao", e.target.value)} /></div>{TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha]) || ""} placeholder="0 g" onChange={(e) => editar(i, `gramas_${t.id}`, n(e.target.value))} />)}<button onClick={() => removerLinha(i)} className="p-2 text-red-600"><Trash2 size={17} /></button></div>)}</TabelaCabecalho>}
+        </section>
+      )}
+
+      {abaFicha === "montagem" && (
+        <section>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p>
+          <p className="mb-3 mt-1 text-sm text-[#62766b]">Cadastre somente os componentes prontos que entram na marmita: por exemplo, frango empanado, molho, arroz e brócolis.</p>
+          <Botao onClick={() => setMontagem([...montagem, novaMontagem()])}><Plus size={17} />Adicionar componente pronto</Botao>
+          {!montagem.length ? <div className="mt-4"><Vazio texto="Nenhum componente pronto cadastrado." /></div> : <div className="mt-4"><TabelaCabecalho titulo="Componente pronto">{montagem.map((x, i) => <div key={x.id || i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><input className={input} value={x.nome} placeholder="Ex.: Frango empanado americano" onChange={(e) => editarMontagem(i, "nome", e.target.value)} /><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao || ""} placeholder="Observação" onChange={(e) => editarMontagem(i, "observacao", e.target.value)} /></div>{TAMANHOS.map((t) => <input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof MontagemLinha]) || ""} placeholder="0 g" onChange={(e) => editarMontagem(i, `gramas_${t.id}`, n(e.target.value))} />)}<button onClick={() => setMontagem(montagem.filter((_, j) => j !== i))} className="p-2 text-red-600"><Trash2 size={17} /></button></div>)}</TabelaCabecalho></div>}
+        </section>
+      )}
+
+      {abaFicha === "preparacoes" && (
+        <section>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações desta ficha</p>
+              <p className="mt-1 text-sm text-[#62766b]">Aqui ficam somente as preparações realmente usadas nesta marmita. Cada preparação mantém seus ingredientes, rendimento e modo de preparo.</p>
+            </div>
+            <span className="rounded-full bg-[#e8f3eb] px-3 py-1.5 text-xs font-black text-[#087443]">{preparacoesDaFicha.length} preparação(ões)</span>
+          </div>
+          <div className="mb-4 rounded-xl border border-[#cfe1d3] bg-[#f7fbf7] p-3 text-sm text-[#527164]"><b>Regra:</b> uma preparação interna não precisa ser cadastrada novamente como preparação da ficha. Ex.: <b>Vaca Atolada</b> pode usar molho sugo no próprio modo de preparo, mas a ficha continua tendo apenas a preparação <b>Vaca atolada</b>.</div>
+          {!preparacoesDaFicha.length ? <Vazio texto="Nenhuma preparação vinculada a esta ficha. Adicione uma preparação na aba Ingredientes." /> : <div className="grid gap-4">{preparacoesDaFicha.map((p: any) => { const itens = itensPrep.get(p.id) || []; return <article key={p.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-black text-[#173a2d]">{p.nome}</h3><span className="rounded-full bg-[#edf5e6] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#087443]">Preparação</span></div><p className="mt-1 text-sm text-[#62766b]">Rendimento: {n(p.rendimento_final_g) > 0 ? `${n(p.rendimento_final_g).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g` : "não informado"}</p></div><Botao leve onClick={() => removerPreparacao(p.id)}><Trash2 size={15} />Remover da ficha</Botao></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes da preparação</p>{!itens.length ? <p className="mt-2 text-sm text-[#62766b]">Nenhum ingrediente cadastrado.</p> : <div className="mt-2 grid gap-2">{itens.map((x: any) => <div key={x.id} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{ing.get(x.ingrediente_id)?.nome || "Ingrediente"}</span><b>{n(x.quantidade).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g</b></div>)}</div>}</div><div className="rounded-xl bg-[#f7fbf7] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line text-sm leading-6 text-[#355445]">{p.modo_preparo || "Modo de preparo não informado."}</div>{p.observacao && <p className="mt-3 border-t border-[#dbe7dd] pt-3 text-xs text-[#62766b]"><b>Observação:</b> {p.observacao}</p>}</div></div></article>; })}</div>}
+        </section>
+      )}
+
+      {abaFicha === "custos" && (
+        <section>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">4. Custos da ficha</p>
+          <p className="mb-4 mt-1 text-sm text-[#62766b]">O custo considera os ingredientes e, quando houver rendimento cadastrado, as preparações prontas usadas na ficha.</p>
+          <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><div className="grid gap-2 sm:grid-cols-3">{TAMANHOS.map((t) => <div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{peso(t.id).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))}</p></div>)}</div></div>
+          {!linhas.length ? <Vazio texto="Adicione componentes para ver os custos." /> : <TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} />}
+        </section>
+      )}
+
+      <div className="mt-5"><Botao onClick={() => salvar(receita?.modo_preparo || "", linhas, montagem, preparacoesSelecionadas)}>Salvar ficha técnica</Botao></div>
+    </Janela>
+  );
+}
+'''
+          s = s[:start] + func + s[end:]
+
+          old = 'function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Ingrediente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{item?valor(n(item.custo_por_kg)):"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'
+          new = '''function TabelaCustos({linhas,ingredientes,nome,custoLinha}:any){return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente</span><span>Tipo</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{linhas.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{x.preparacao_id?"Preparação":item?"Ingrediente":"—"}</span>{TAMANHOS.map(t=><span key={t.id}>{n(x[`gramas_${t.id}`])} g · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>}'''
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'salvar={async (modo: string, linhas: any[], montagem: MontagemLinha[]) => {'
+          new = 'salvar={async (modo: string, linhas: any[], montagem: MontagemLinha[], preparacoesSelecionadas: string[] = []) => {'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, ingredientes: [], modo_preparo: modo || null, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();'
+          new = 'const preparacoesJson = preparacoesSelecionadas.map((id) => { const p = (preparacoes as any[]).find((x) => x.id === id); return p ? { id: p.id, nome: p.nome } : null; }).filter(Boolean);\n            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, ingredientes: [], modo_preparo: modo || null, preparacoes: preparacoesJson, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Check diff
+        run: |
+          git diff --check
+          git diff -- src/routes/cozinha.tsx | sed -n '1,300p'
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx .github/workflows/patch-ficha-preparacoes.yml
+          git commit -m "feat(fichas): separar preparacoes em aba propria" || exit 0
+          git rm .github/workflows/patch-ficha-preparacoes.yml
+          git commit -m "chore: remove one-time ficha patch workflow"
+          git push
