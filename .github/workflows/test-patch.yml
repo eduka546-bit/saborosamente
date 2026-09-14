@@ -4,4 +4,4 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: echo workflow-ok
+      - run: echo workflow-ok-v2
