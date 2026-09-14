@@ -1,0 +1,42 @@
+name: patch-ficha-modal
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch ficha modal
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/cozinha.tsx')
+          s=p.read_text()
+          replacements=[
+          ('''            const validas = linhas.filter((x) => x.ingrediente_id);\n            if (validas.length) {\n              const { error: e } = await supabase.from("cozinha_receita_itens").insert(validas.map((x, i) => ({ ...x, preparacao_id: null, receita_id: data.id, ordem: i, operacao_producao: "direto", fator_producao: 1 })));''', '''            const validas = linhas.filter((x) => x.ingrediente_id || x.preparacao_id);\n            if (validas.length) {\n              const { error: e } = await supabase.from("cozinha_receita_itens").insert(validas.map((x, i) => ({ ...x, receita_id: data.id, ordem: i, operacao_producao: x.operacao_producao || "direto", fator_producao: n(x.fator_producao || 1) })));'''),
+          ('''function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, custoIng, criarIngrediente, fechar, salvar }: any) {''','''function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], custoIng, criarIngrediente, fechar, salvar }: any) {'''),
+          ('''  const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, preparacao_id: null })));''','''  const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, ingrediente_id: x.ingrediente_id || null, preparacao_id: x.preparacao_id || null })));'''),
+          ('''  const nome = (x: ReceitaLinha) => ingredientes.find((a:any) => a.id === x.ingrediente_id)?.nome || "Ingrediente";\n  const editar = (i:number,k:string,v:any) => setLinhas(linhas.map((x,j) => j === i ? {...x,[k]:v}:x));\n  const editarMontagem = (i:number,k:string,v:any) => setMontagem(montagem.map((x,j) => j === i ? {...x,[k]:v}:x));\n  const addIngrediente = () => { if(!selecionado) return toast.error("Escolha um ingrediente."); if(linhas.some(x => x.ingrediente_id===selecionado)) return toast.error("Esse ingrediente já está na lista."); setLinhas([...linhas,{...receitaVazia(),ingrediente_id:selecionado}]); setSelecionado(""); };''','''  const nome = (x: ReceitaLinha) => x.preparacao_id ? (preparacoes.find((a:any) => a.id === x.preparacao_id)?.nome || "Preparação") : (ingredientes.find((a:any) => a.id === x.ingrediente_id)?.nome || "Ingrediente");\n  const editar = (i:number,k:string,v:any) => setLinhas(linhas.map((x,j) => j === i ? {...x,[k]:v}:x));\n  const editarMontagem = (i:number,k:string,v:any) => setMontagem(montagem.map((x,j) => j === i ? {...x,[k]:v}:x));\n  const addComponente = () => { if(!selecionado) return toast.error("Escolha um ingrediente ou preparação."); const [tipo,id] = selecionado.split(":"); if(tipo === "p" && linhas.some(x => x.preparacao_id === id)) return toast.error("Essa preparação já está na ficha."); if(tipo === "i" && linhas.some(x => x.ingrediente_id === id)) return toast.error("Esse ingrediente já está na ficha."); setLinhas([...linhas,{...receitaVazia(),ingrediente_id:tipo === "i" ? id : null,preparacao_id:tipo === "p" ? id : null}]); setSelecionado(""); };'''),
+          ('''<div className="flex flex-col gap-2 sm:flex-row"><select className={input} value={selecionado} onChange={e=>setSelecionado(e.target.value)}><option value="">Escolha um ingrediente</option>{ingredientes.map((x:any)=><option key={x.id} value={x.id}>{x.nome}</option>)}</select><Botao onClick={addIngrediente}><Plus size={17}/>Adicionar ingrediente</Botao></div>''','''<div className="flex flex-col gap-2 sm:flex-row"><select className={input} value={selecionado} onChange={e=>setSelecionado(e.target.value)}><option value="">Escolha ingrediente ou preparação</option><optgroup label="Ingredientes">{ingredientes.map((x:any)=><option key={`i:${x.id}`} value={`i:${x.id}`}>{x.nome}</option>)}</optgroup><optgroup label="Preparações prontas">{preparacoes.map((x:any)=><option key={`p:${x.id}`} value={`p:${x.id}`}>{x.nome}</option>)}</optgroup></select><Botao onClick={addComponente}><Plus size={17}/>Adicionar componente</Botao></div>'''),
+          ('''<div><b>{nome(x)}</b><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,`gramas_${t.id}`,n(e.target.value))}/>)}''','''<div><b>{nome(x)}</b><span className="ml-2 rounded-full bg-[#e8f3eb] px-2 py-0.5 text-[10px] font-bold text-[#087443]">{x.preparacao_id ? "PREPARAÇÃO" : "INGREDIENTE"}</span><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,`gramas_${t.id}`,n(e.target.value))}/>)}''')]
+          for old,new in replacements:
+              if old not in s:
+                  raise SystemExit('anchor not found: '+old[:80])
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/routes/cozinha.tsx
+          git commit -m "fix(fichas): preserve and select preparations in recipe modal"
+          git push
+          rm -f .github/workflows/patch-ficha-modal.yml
+          git add .github/workflows/patch-ficha-modal.yml
+          git commit -m "chore: remove temporary ficha patch workflow"
+          git push
