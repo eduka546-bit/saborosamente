@@ -1,0 +1,26 @@
+from pathlib import Path
+
+p = Path('src/routes/cozinha.tsx')
+s = p.read_text()
+
+s = s.replace('import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProducaoSinergia";\n', 'import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProducaoSinergia";\nimport { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";\n', 1)
+s = s.replace('type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "relatorio" | "etiquetas";', 'type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";', 1)
+s = s.replace('  const { data: ingredientes = [] } = useTableQuery("coz-ing", "cozinha_ingredientes", "*", "nome");', '  const { data: ingredientes = [] } = useTableQuery("coz-ing", "cozinha_ingredientes", "*", "nome");\n  const { data: embalagens = [] } = useTableQuery("coz-embalagens", "cozinha_embalagens", "*", "nome");', 1)
+s = s.replace('    { id: "estoque", label: "Estoque", icon: Store },\n    { id: "relatorio", label: "Relatórios", icon: BarChart3 },', '    { id: "estoque", label: "Estoque", icon: Store },\n    { id: "embalagens", label: "Embalagens", icon: Package },\n    { id: "relatorio", label: "Relatórios", icon: BarChart3 },', 1)
+s = s.replace('          {aba === "etiquetas" && <EtiquetasManager />}', '          {aba === "embalagens" && <EmbalagensManager />}\n          {aba === "etiquetas" && <EtiquetasManager />}', 1)
+s = s.replace('          preparacoes={preparacoes as any[]}\n          itensPreparacao={itensPrep}', '          preparacoes={preparacoes as any[]}\n          embalagens={embalagens as any[]}\n          itensPreparacao={itensPrep}', 1)
+s = s.replace('function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], itensPreparacao, custoIng, custoPrep, criarIngrediente, fechar, salvar }: any) {', 'function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], embalagens = [], itensPreparacao, custoIng, custoPrep, criarIngrediente, fechar, salvar }: any) {', 1)
+
+old = '''  const custo=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);\n  const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof ReceitaLinha]),0);'''
+new = '''  const custoIngredientes=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);\n  const custoEmbalagem=(t:Tamanho)=>{\n    const etiqueta = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);\n    const categoria = produto?.tipo_produto === "sopa" ? "sopa" : `marmita_${t}`;\n    const embalagem = embalagens.find((x:any)=>x.categoria === categoria && x.ativo !== false);\n    return n(embalagem?.custo_unitario) + n(etiqueta?.custo_unitario);\n  };\n  const custo=(t:Tamanho)=>custoIngredientes(t)+custoEmbalagem(t);\n  const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof ReceitaLinha]),0);'''
+if old not in s:
+    raise SystemExit('bloco custo não encontrado')
+s = s.replace(old, new, 1)
+
+old_ui = '''{abaFicha==="custos" && <section><div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{TAMANHOS.map(t=><div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{formatarGramas(peso(t.id))} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} de custo</p></div>)}</div></div>{!linhas.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarGramas={formatarGramas}/>}</section>}'''
+new_ui = '''{abaFicha==="custos" && <section><div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{TAMANHOS.map(t=><div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{formatarGramas(peso(t.id))} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} de custo total</p><p className="mt-1 text-xs text-[#62766b]">Ingredientes {valor(custoIngredientes(t.id))} · Embalagem + etiqueta {valor(custoEmbalagem(t.id))}</p></div>)}</div></div>{!linhas.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarGramas={formatarGramas}/>}</section>}'''
+if old_ui not in s:
+    raise SystemExit('bloco UI custos não encontrado')
+s = s.replace(old_ui, new_ui, 1)
+
+p.write_text(s)
