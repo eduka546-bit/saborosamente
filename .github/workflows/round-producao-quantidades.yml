@@ -1,0 +1,72 @@
+name: Round producao quantities
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/round-producao-quantidades.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar arredondamento
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          old = 'const n = (v: unknown) => Number(v || 0);\n'
+          new = '''const n = (v: unknown) => Number(v || 0);\nconst arredondarProducao = (v: unknown, unidade: "g" | "un" = "g") => {\n  const valor = Math.max(0, n(v));\n  if (!(valor > 0)) return 0;\n  const inteiro = Math.floor(valor);\n  const fracao = valor - inteiro;\n  const arredondado = fracao <= 0.2 + Number.EPSILON ? inteiro : inteiro + 1;\n  return unidade === "un" ? Math.max(1, arredondado) : arredondado;\n};\n'''
+          if old not in s:
+            raise SystemExit('helper n nao encontrado')
+          s = s.replace(old, new, 1)
+
+          # Separar hoje: sempre exibir número inteiro em g/un.
+          s = s.replace(
+            '`${x.quantidade.toLocaleString("pt-BR")} un`',
+            '`${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un`'
+          )
+          s = s.replace(
+            '`${(x.quantidade / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`',
+            '`${arredondarProducao(x.quantidade, "g").toLocaleString("pt-BR")} g`'
+          )
+
+          # Fichas do dia e individuais: peso sempre em gramas inteiras.
+          s = s.replace(
+            'const formatPeso = (g: number) => g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g`;',
+            'const formatPeso = (g: number) => `${arredondarProducao(g, "g").toLocaleString("pt-BR")} g`;'
+          )
+
+          # Quantidades calculadas dentro das preparações da ficha de produção.
+          s = s.replace(
+            'const g = n(item.quantidade) * fator;\n      return { tipo: "peso", valor: g, exibicao: formatPeso(g) };',
+            'const g = arredondarProducao(n(item.quantidade) * fator, "g");\n      return { tipo: "peso", valor: g, exibicao: formatPeso(g) };'
+          )
+          s = s.replace(
+            'const un = n(item.quantidade) * fator;\n    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${semNumero ? ` ${semNumero}` : " un"}` };',
+            'const un = arredondarProducao(n(item.quantidade) * fator, "un");\n    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}` };'
+          )
+
+          # Total a separar no dia.
+          s = s.replace(
+            '`${x.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} un`',
+            '`${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un`'
+          )
+
+          # Ficha de montagem: valores por marmita também inteiros.
+          s = s.replace(
+            'const fmt = (v: unknown) => n(v) > 0 ? `${n(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g` : "—";',
+            'const fmt = (v: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : "—";'
+          )
+
+          p.write_text(s)
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/round-producao-quantidades.yml
+          git commit -m "fix(cozinha): arredondar gramaturas e unidades na producao"
+          git push
