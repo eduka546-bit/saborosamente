@@ -1,0 +1,116 @@
+name: Fix separar producao
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-separar-producao.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch cozinha
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          start = s.index('  const separar = useMemo(() => {')
+          end = s.index('  const alertasEstoquePlanejado = useMemo(', start)
+          novo = '''  const separar = useMemo(() => {
+    const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any }>();
+    const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
+    const mesmo = (a: unknown, b: unknown) => {
+      const na = normalizar(a), nb = normalizar(b);
+      if (!na || !nb) return false;
+      if (na.includes(nb) || nb.includes(na)) return true;
+      const ta = tokens(a), tb = tokens(b);
+      return ta.some((x) => tb.includes(x));
+    };
+    const unidadeItemPreparacao = (item: any): "g" | "un" => {
+      const texto = String(item?.quantidade_texto || "").trim();
+      if (/\\bkg\\b|\\bgr\\b|grama|\\bg\\b|ml|litro|litros/i.test(texto)) return "g";
+      if (texto && /^\\s*[\\d.,]+/.test(texto)) return "un";
+      return ing.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
+    };
+    const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un") => {
+      const item = ing.get(id);
+      if (!item || !Number.isFinite(q) || q <= 0) return;
+      const chave = `${id}:${unidade}`;
+      const atual = mapa.get(chave) || { id, quantidade: 0, pratos: [], unidade, item };
+      atual.quantidade += q;
+      if (!atual.pratos.includes(nomePrato)) atual.pratos.push(nomePrato);
+      mapa.set(chave, atual);
+    };
+    (producoes as any[]).forEach((p) => {
+      const prato = produto.get(p.produto_id), r = rec.get(p.produto_id);
+      if (!prato || !r) return;
+      const campo = `gramas_${p.gramatura || "400"}`;
+      const multiplicador = n(p.quantidade_planejada);
+      const linhasReceita = itensRec.get(r.id) || [];
+      const montagemReceita = itensMontagem.get(r.id) || [];
+      const idsPreparacoes = Array.from(new Set([
+        ...(Array.isArray(r.preparacoes) ? r.preparacoes.map((x: any) => x?.id).filter(Boolean) : []),
+        ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
+      ]));
+      const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
+
+      if (montagemReceita.length) {
+        montagemReceita.forEach((m: any) => {
+          const prontoPorUnidade = n(m[campo]);
+          if (!(prontoPorUnidade > 0)) return;
+          const prontoTotal = prontoPorUnidade * multiplicador;
+          const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+          if (preparacao) {
+            const itens = itensPrep.get(preparacao.id) || [];
+            const rendimentoInformado = n(preparacao.rendimento_final_g);
+            const rendimentoBase = rendimentoInformado > 0
+              ? rendimentoInformado
+              : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+            if (!(rendimentoBase > 0)) return;
+            const fator = prontoTotal / rendimentoBase;
+            itens.forEach((item: any) => {
+              const qtdBase = n(item.quantidade);
+              if (!(qtdBase > 0)) return;
+              add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
+            });
+            return;
+          }
+          const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
+          if (!ingrediente) return;
+          const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+          const bruto = unidade === "g" ? quantidadeComRendimento(prontoTotal, ingrediente) : prontoTotal;
+          add(ingrediente.id, bruto, prato.nome, unidade);
+        });
+        return;
+      }
+
+      // Fallback para fichas antigas sem montagem cadastrada.
+      linhasReceita.forEach((linha: any) => {
+        if (!linha.ingrediente_id) return;
+        const ingrediente = ing.get(linha.ingrediente_id);
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+        add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+      });
+    });
+    return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
+  }, [producoes, produto, rec, itensRec, itensMontagem, prep, itensPrep, ing, ingredientes]);
+'''
+          s = s[:start] + novo + s[end:]
+          s = s.replace('x.item.unidade_medida === "un"', 'x.unidade === "un"')
+          p.write_text(s)
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/fix-separar-producao.yml
+          git commit -m "fix(cozinha): calcular separacao pela montagem e preparacoes"
+          git push
