@@ -58,6 +58,16 @@ const arredondarProducao = (v: unknown, unidade: "g" | "un" = "g") => {
   const arredondado = fracao <= 0.2 + Number.EPSILON ? inteiro : inteiro + 1;
   return unidade === "un" ? Math.max(1, arredondado) : arredondado;
 };
+const normalizarRegraCozinha = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const ehQB = (v: unknown) => /^(q\.?b\.?|qb|quanto baste|a gosto)$/i.test(normalizarRegraCozinha(v));
+const textoCozinha = (v: unknown) => ehQB(v) ? "a gosto" : String(v || "").trim();
+const ehMicroIngrediente = (nome: unknown) => /(^|\b)(sal|salsinha|cebolinha|cheiro verde|tempero|pimenta|oregano|alho em po|paprica|noz moscada)(\b|$)/i.test(normalizarRegraCozinha(nome));
+const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" = "g", nome: unknown = "") => {
+  const qtd = Math.max(0, n(v));
+  if (unidade === "un") return `${arredondarProducao(qtd, "un").toLocaleString("pt-BR")} un`;
+  if (ehMicroIngrediente(nome) && qtd > 0 && qtd < 1) return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g`;
+  return `${arredondarProducao(qtd, "g").toLocaleString("pt-BR")} g`;
+};
 const valor = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const input =
   "w-full rounded-lg border border-[#cbd8ce] bg-white p-2.5 text-sm outline-none focus:border-[#087443]";
@@ -215,7 +225,7 @@ function CozinhaPage() {
     );
   };
   const separar = useMemo(() => {
-  const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any }>();
+  const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any; qb: boolean }>();
   const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
   const mesmo = (a: unknown, b: unknown) => {
@@ -231,12 +241,13 @@ function CozinhaPage() {
     if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
     return ing.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
   };
-  const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un") => {
+  const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un", qb = false) => {
     const item = ing.get(id);
-    if (!item || !Number.isFinite(q) || q <= 0) return;
+    if (!item || !Number.isFinite(q) || (q <= 0 && !qb)) return;
     const chave = `${id}:${unidade}`;
-    const atual = mapa.get(chave) || { id, quantidade: 0, pratos: [], unidade, item };
-    atual.quantidade += q;
+    const atual = mapa.get(chave) || { id, quantidade: 0, pratos: [], unidade, item, qb: false };
+    if (!qb) atual.quantidade += q;
+    atual.qb = atual.qb || qb;
     if (!atual.pratos.includes(nomePrato)) atual.pratos.push(nomePrato);
     mapa.set(chave, atual);
   };
@@ -265,6 +276,10 @@ function CozinhaPage() {
           if (!(rendimentoBase > 0)) return;
           const fator = prontoTotal / rendimentoBase;
           itens.forEach((item: any) => {
+            if (ehQB(item.quantidade_texto)) {
+              add(item.ingrediente_id, 0, prato.nome, unidadeItemPreparacao(item), true);
+              return;
+            }
             const qtdBase = n(item.quantidade);
             if (!(qtdBase > 0)) return;
             add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
@@ -294,6 +309,7 @@ function CozinhaPage() {
     () =>
       separar
         .filter((x) => {
+          if (x.qb) return false;
           const saldo = (estoque as any[]).find((e) => e.ingrediente_id === x.id);
           return n(saldo?.quantidade_atual) < n(x.quantidade);
         })
@@ -510,9 +526,7 @@ function CozinhaPage() {
                     <article key={x.id} className="rounded-2xl border bg-white p-4">
                       <h3 className="font-bold">{x.item.nome}</h3>
                       <p className="mt-2 text-2xl font-black text-[#087443]">
-                        {x.unidade === "un"
-                          ? `${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un`
-                          : `${arredondarProducao(x.quantidade, "g").toLocaleString("pt-BR")} g`}
+                        {x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}
                       </p>
                       <p className="mt-2 text-xs text-[#62766b]">
                         Usado em: {x.pratos.join(" · ")}
@@ -1069,8 +1083,8 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       <div className="rounded-2xl bg-[#f4f7f4] p-4"><p className="text-xs font-bold uppercase text-[#527164]">Sabores</p><p className="mt-1 text-2xl font-black text-[#173a2d]">{pratos.length}</p></div>
       <div className="rounded-2xl bg-[#f4f7f4] p-4"><p className="text-xs font-bold uppercase text-[#527164]">Itens para separar</p><p className="mt-1 text-2xl font-black text-[#173a2d]">{(separar as any[]).length}</p></div>
     </div>
-    {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">{pratos.map((x: any) => <article key={x.produto.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-black">{x.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">{TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-sm font-black text-[#087443]">{x.total} un</span></div>{x.montagemTotal.length > 0 && <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#527164]">Montagem total deste prato</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{x.montagemTotal.map((m: any, i: number) => <div key={`${m.nome}-${i}`} className="rounded-xl bg-[#f4f8f4] px-3 py-2"><div className="flex justify-between gap-3 text-sm"><span>{m.nome}</span><b>{formatPeso(m.total)}</b></div>{m.observacao && <p className="mt-1 text-xs text-[#62766b]">{m.observacao}</p>}</div>)}</div></div>}</article>)}</div>}
-    {(separar as any[]).length > 0 && <div className="mt-6 rounded-2xl border border-[#cfe1d3] bg-[#f5faf3] p-4"><h3 className="font-black">Total a separar no dia</h3><p className="mt-1 text-sm text-[#62766b]">Consolidado de todas as produções lançadas para esta data.</p><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{(separar as any[]).map((x: any) => <div key={`${x.id}-${x.unidade}`} className="flex justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm"><span>{x.item?.nome}</span><b>{x.unidade === "un" ? `${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un` : formatPeso(x.quantidade)}</b></div>)}</div></div>}
+    {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">{pratos.map((x: any) => <article key={x.produto.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-black">{x.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">{TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-sm font-black text-[#087443]">{x.total} un</span></div>{x.montagemTotal.length > 0 && <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#527164]">Montagem total deste prato</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{x.montagemTotal.map((m: any, i: number) => <div key={`${m.nome}-${i}`} className="rounded-xl bg-[#f4f8f4] px-3 py-2"><div className="flex justify-between gap-3 text-sm"><span>{m.nome}</span><b>{m.total > 0 ? formatPeso(m.total) : (ehQB(m.observacao) ? "a gosto" : textoCozinha(m.observacao))}</b></div>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div>)}</div></div>}</article>)}</div>}
+    {(separar as any[]).length > 0 && <div className="mt-6 rounded-2xl border border-[#cfe1d3] bg-[#f5faf3] p-4"><h3 className="font-black">Total a separar no dia</h3><p className="mt-1 text-sm text-[#62766b]">Consolidado de todas as produções lançadas para esta data.</p><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{(separar as any[]).map((x: any) => <div key={`${x.id}-${x.unidade}`} className="flex justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm"><span>{x.item?.nome}</span><b>{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</b></div>)}</div></div>}
   </Janela>;
 }
 
@@ -1078,10 +1092,10 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
   const q = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
   (producoes as any[]).forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR");
-  const fmt = (v: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : "—";
+  const fmt = (v: unknown, observacao?: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : (ehQB(observacao) ? "a gosto" : "—");
   return <Janela titulo={`Ficha de montagem — ${produto.nome}`} fechar={fechar}>
     <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Montagem por tamanho</p><p className="mt-1 text-sm text-[#527164]">Referência para montar cada marmita individualmente. Produção de {dataFmt}: {TAMANHOS.filter(t => q[t.id] > 0).map(t => `${q[t.id]}×${t.label}`).join(" + ") || "nenhuma quantidade lançada"}.</p></div>
-    {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{m.nome}</b>{m.observacao && <p className="mt-1 text-xs text-[#62766b]">{m.observacao}</p>}</div><span>{fmt(m.gramas_200)}</span><span>{fmt(m.gramas_300)}</span><span>{fmt(m.gramas_400)}</span></div>)}</div></div>}
+    {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{fmt(m.gramas_200, m.observacao)}</span><span>{fmt(m.gramas_300, m.observacao)}</span><span>{fmt(m.gramas_400, m.observacao)}</span></div>)}</div></div>}
     <div className="mt-5 grid gap-3 sm:grid-cols-3">{TAMANHOS.map(t => <div key={t.id} className="rounded-xl bg-[#f4f7f4] p-3"><p className="text-xs font-bold text-[#62766b]">Produzir {t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{q[t.id]} un</p></div>)}</div>
   </Janela>;
 }
@@ -1108,13 +1122,16 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const formatPeso = (g: number) => `${arredondarProducao(g, "g").toLocaleString("pt-BR")} g`;
   const interpretar = (item: any, fator: number) => {
     const texto = String(item.quantidade_texto || "").trim();
-    if (!n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: texto || "QB" };
+    const ingrediente = porId.get(item.ingrediente_id) as any;
+    if (ehQB(texto) || !n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: ehQB(texto) || !texto ? "a gosto" : textoCozinha(texto) };
     const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
     if (peso) {
-      const g = arredondarProducao(n(item.quantidade) * fator, "g");
+      const bruto = n(item.quantidade) * fator;
+      if (ehMicroIngrediente(ingrediente?.nome) && bruto > 0 && bruto < 1) return { tipo: "peso", valor: bruto, exibicao: formatarQuantidadeProducao(bruto, "g", ingrediente?.nome) };
+      const g = arredondarProducao(bruto, "g");
       return { tipo: "peso", valor: g, exibicao: formatPeso(g) };
     }
-    const semNumero = texto.replace(/^\s*[\d.,]+\s*/i, "").trim();
+    const semNumero = textoCozinha(texto.replace(/^\s*[\d.,]+\s*/i, "").trim());
     const un = arredondarProducao(n(item.quantidade) * fator, "un");
     return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}` };
   };
@@ -1159,7 +1176,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </div>
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">1. Montagem total</p>
-        <div className="grid gap-2 md:grid-cols-2">{montagemTotal.length ? montagemTotal.map((m: any) => <div key={m.id || m.nome} className="flex items-center justify-between gap-3 rounded-xl border border-[#dbe7dd] bg-white p-3"><span className="font-bold">{m.nome}</span><b className="text-[#087443]">{m.total > 0 ? formatPeso(m.total) : (m.observacao || "QB")}</b></div>) : <Vazio texto="Montagem ainda não cadastrada para esta ficha."/>}</div>
+        <div className="grid gap-2 md:grid-cols-2">{montagemTotal.length ? montagemTotal.map((m: any) => <div key={m.id || m.nome} className="flex items-center justify-between gap-3 rounded-xl border border-[#dbe7dd] bg-white p-3"><span className="font-bold">{m.nome}</span><b className="text-[#087443]">{m.total > 0 ? formatPeso(m.total) : (ehQB(m.observacao) || !m.observacao ? "a gosto" : textoCozinha(m.observacao))}</b></div>) : <Vazio texto="Montagem ainda não cadastrada para esta ficha."/>}</div>
       </section>
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">2. Preparações proporcionais</p>
@@ -1171,7 +1188,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
       <section className="rounded-2xl bg-[#173a2d] p-4 text-white">
         <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Total a separar</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="mt-1 text-lg font-black">{[x.peso > 0 ? formatPeso(x.peso) : "", x.unidades > 0 ? `${x.unidades.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} un` : "", ...x.textos].filter(Boolean).join(" · ")}</p></div>)}</div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="mt-1 text-lg font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ")}</p></div>)}</div>
       </section>
     </div>
   </Janela>;
