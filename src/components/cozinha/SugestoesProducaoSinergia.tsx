@@ -165,7 +165,8 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
     produtos
       .filter((p) => ["marmita", "sopa", "complemento"].includes(p.tipo_produto || "marmita") && p.ativo !== false && !planejadosIds.has(p.id))
       .forEach((p) => {
-        tamanhos.forEach(({ id: tamanho }) => {
+        const tamanhosDoProduto = p.tipo_produto === "sopa" ? tamanhos.filter(({ id }) => id === "400") : tamanhos;
+        tamanhosDoProduto.forEach(({ id: tamanho }) => {
           const perfil = perfilProduto(p.id, tamanho);
           const mesmaProteina = !!perfil.proteina && proteinasBase.has(perfil.proteina.id);
           const mesmoCarbo = !!perfil.carboidrato && carbosBase.has(perfil.carboidrato.id);
@@ -208,7 +209,8 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
 
   async function adicionarSelecionada() {
     if (!selecionada) return;
-    const escolhas = tamanhos.map(({ id }) => ({ tamanho: id, quantidade: Math.max(0, Math.floor(n(quantidades[id]))) })).filter((x) => x.quantidade > 0);
+    const tamanhosPermitidos = selecionada.produto?.tipo_produto === "sopa" ? tamanhos.filter(({ id }) => id === "400") : tamanhos;
+    const escolhas = tamanhosPermitidos.map(({ id }) => ({ tamanho: id, quantidade: Math.max(0, Math.floor(n(quantidades[id]))) })).filter((x) => x.quantidade > 0);
     if (!escolhas.length) return toast.error("Informe ao menos uma quantidade.");
     setAdicionando(true);
     try {
@@ -267,7 +269,7 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
     {selecionada && <div className="fixed inset-0 z-[80] grid place-items-center bg-black/45 p-4" onClick={() => setSelecionada(null)}>
       <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Adicionar por sinergia</p><h3 className="mt-1 text-xl font-black text-[#173a2d]">{selecionada.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">Escolha quantas unidades produzir de cada tamanho.</p></div><button onClick={() => setSelecionada(null)} className="rounded-lg p-2 text-[#62766b] hover:bg-[#f3f6f3]"><X size={20}/></button></div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">{tamanhos.map((t) => {
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">{(selecionada?.produto?.tipo_produto === "sopa" ? tamanhos.filter(({ id }) => id === "400") : tamanhos).map((t) => {
           const detalhe = selecionada.tamanhos[t.id];
           return <label key={t.id} className="rounded-xl border border-[#dbe7dd] bg-[#f7f9f6] p-3"><span className="text-sm font-black text-[#173a2d]">{t.label}</span><input type="number" min="0" step="1" value={quantidades[t.id]} onChange={(e) => setQuantidades((q) => ({ ...q, [t.id]: e.target.value }))} placeholder="0" className="mt-2 w-full rounded-lg border border-[#cbd8ce] bg-white p-2.5 text-sm outline-none focus:border-[#087443]"/><span className="mt-2 block text-[11px] text-[#62766b]">{detalhe ? `Estoque ${detalhe.estoque} un · média ${detalhe.mediaDia.toFixed(1)}/dia` : "Sem sugestão específica para este tamanho"}</span></label>;
         })}</div>
