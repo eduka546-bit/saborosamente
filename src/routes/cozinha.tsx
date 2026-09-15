@@ -209,36 +209,85 @@ function CozinhaPage() {
   const separar = useMemo(() => {
     const mapa = new Map<string, { quantidade: number; pratos: string[] }>();
     const add = (id: string, q: number, nome: string) => {
-      if (!ing.get(id)) return;
+      if (!ing.get(id) || !Number.isFinite(q) || q <= 0) return;
       const atual = mapa.get(id) || { quantidade: 0, pratos: [] };
       atual.quantidade += q;
       if (!atual.pratos.includes(nome)) atual.pratos.push(nome);
       mapa.set(id, atual);
+    };
+    const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
+    const pareceMesmoComponente = (a: unknown, b: unknown) => {
+      const na = normalizar(a), nb = normalizar(b);
+      if (!na || !nb) return false;
+      if (na.includes(nb) || nb.includes(na)) return true;
+      const ta = tokens(a), tb = tokens(b);
+      return ta.some((x) => tb.includes(x));
     };
     (producoes as any[]).forEach((p) => {
       const prato = produto.get(p.produto_id),
         r = rec.get(p.produto_id);
       if (!prato || !r) return;
       const campo = `gramas_${p.gramatura || "400"}`;
-      (itensRec.get(r.id) || []).forEach((l) => {
-        const qtd = quantidadeCorreta(n(l[campo]), l) * n(p.quantidade_planejada);
-        if (l.ingrediente_id) add(l.ingrediente_id, quantidadeComRendimento(qtd, ing.get(l.ingrediente_id)), prato.nome);
-        if (l.preparacao_id) {
-          const base = prep.get(l.preparacao_id);
-          (itensPrep.get(l.preparacao_id) || []).forEach((x) =>
-            add(
-              x.ingrediente_id,
-              quantidadeComRendimento((qtd / n(base?.rendimento_final_g)) * n(x.quantidade), ing.get(x.ingrediente_id)),
-              prato.nome,
-            ),
-          );
+      const multiplicador = n(p.quantidade_planejada);
+      const linhasReceita = itensRec.get(r.id) || [];
+      const montagemReceita = itensMontagem.get(r.id) || [];
+      const idsPreparacoes = Array.from(new Set([
+        ...(Array.isArray(r.preparacoes) ? r.preparacoes.map((x: any) => x?.id).filter(Boolean) : []),
+        ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
+      ]));
+      const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
+      const totalReceita = linhasReceita.reduce((soma: number, linha: any) => soma + n(linha[campo]), 0);
+      const totalMontagem = montagemReceita.reduce((soma: number, linha: any) => soma + n(linha[campo]), 0);
+      const receitaEhLoteBase = totalMontagem > 0 && totalReceita > totalMontagem * 2;
+
+      idsPreparacoes.forEach((preparacaoId: any) => {
+        const preparacao = prep.get(preparacaoId);
+        const itens = itensPrep.get(preparacaoId) || [];
+        if (!preparacao || !itens.length) return;
+        let fatorLote = 0;
+        if (!receitaEhLoteBase) {
+          const ancora = itens.find((item: any) => {
+            const ingrediente = ing.get(item.ingrediente_id);
+            if (!ingrediente || ingrediente.unidade_medida === "un" || n(item.quantidade) <= 0) return false;
+            return linhasReceita.some((linha: any) => linha.ingrediente_id === item.ingrediente_id && n(linha[campo]) > 0);
+          });
+          if (ancora) {
+            const linhaAncora = linhasReceita.find((linha: any) => linha.ingrediente_id === ancora.ingrediente_id);
+            fatorLote = quantidadeCorreta(n(linhaAncora?.[campo]), linhaAncora) / n(ancora.quantidade);
+          }
+        }
+        if (!(fatorLote > 0)) {
+          const componenteMontagem = montagemReceita.find((m: any) => pareceMesmoComponente(m.nome, preparacao.nome));
+          const rendimento = n(preparacao.rendimento_final_g);
+          if (componenteMontagem && rendimento > 0) fatorLote = n(componenteMontagem[campo]) / rendimento;
+          else if (receitaEhLoteBase && rendimento > 0 && totalMontagem > 0) fatorLote = totalMontagem / rendimento;
+        }
+        if (!(fatorLote > 0)) return;
+        itens.forEach((item: any) => {
+          const qtd = n(item.quantidade) * fatorLote * multiplicador;
+          add(item.ingrediente_id, quantidadeComRendimento(qtd, ing.get(item.ingrediente_id)), prato.nome);
+        });
+      });
+
+      const nomesPreparacoes = prepsVinculadas.map((x: any) => x.nome);
+      const montagemDireta = montagemReceita.filter((m: any) => !nomesPreparacoes.some((nome: string) => pareceMesmoComponente(m.nome, nome)));
+      linhasReceita.forEach((linha: any) => {
+        if (linha.ingrediente_id) {
+          const ingrediente = ing.get(linha.ingrediente_id);
+          const deveSomarDireto = !idsPreparacoes.length || montagemDireta.some((m: any) => pareceMesmoComponente(ingrediente?.nome, m.nome));
+          if (deveSomarDireto) {
+            const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+            add(linha.ingrediente_id, quantidadeComRendimento(qtd, ingrediente), prato.nome);
+          }
         }
       });
     });
     return [...mapa]
       .map(([id, x]) => ({ id, ...x, item: ing.get(id) }))
+      .filter((x) => x.item)
       .sort((a, b) => a.item.nome.localeCompare(b.item.nome));
-  }, [producoes, produto, rec, itensRec, prep, itensPrep, ing]);
+  }, [producoes, produto, rec, itensRec, itensMontagem, prep, itensPrep, ing]);
   const alertasEstoquePlanejado = useMemo(
     () =>
       separar
@@ -506,7 +555,7 @@ function CozinhaPage() {
             <section>
               <Titulo
                 titulo="Preparações"
-                texto="Molhos, purês e bases prontas. A marmita usa somente a quantidade pronta."
+                texto="Molhos, purês e bases: cada cadastro representa uma receita-base que escala proporcionalmente na produção."
                 acao={
                   <Botao onClick={() => abrir("preparacao")}>
                     <Plus size={18} />
@@ -524,8 +573,7 @@ function CozinhaPage() {
                         <div>
                           <h3 className="font-bold">{x.nome}</h3>
                           <p className="mt-1 text-sm text-[#087443]">
-                            Rendimento: {n(x.rendimento_final_g)} g ·{" "}
-                            {valor(custoPrep(x.id) * 1000)}/kg
+                            Receita-base proporcional · {(itensPrep.get(x.id) || []).length} ingrediente(s)
                           </p>
                         </div>
                         <button onClick={() => abrir("preparacao", x)} className="text-[#087443]">
@@ -664,7 +712,8 @@ function CozinhaPage() {
               </div>
             </section>
           )}
-          {aba === "etiquetas" && <EtiquetasManager />}\n        </main>
+          {aba === "etiquetas" && <EtiquetasManager />}
+        </main>
       </div>
       {modal === "producao" && (
         <ProducaoModal
@@ -809,17 +858,21 @@ function CozinhaPage() {
           fechar={() => setModal(null)}
           salvar={async (linhas: any[], montagem: MontagemLinha[]) => {
             const { data: { user } } = await supabase.auth.getUser();
+            const preparacoesExistentes = Array.isArray(rec.get(edit?.id)?.preparacoes) ? rec.get(edit?.id)?.preparacoes : [];
             const preparacoesFicha = Array.from(
               new Map(
-                linhas
-                  .filter((x) => x.preparacao_id)
-                  .map((x) => [
-                    x.preparacao_id,
-                    {
-                      id: x.preparacao_id,
-                      nome: (preparacoes as any[]).find((p) => p.id === x.preparacao_id)?.nome || "Preparação",
-                    },
-                  ]),
+                [
+                  ...preparacoesExistentes.map((p: any) => [p.id, p]),
+                  ...linhas
+                    .filter((x) => x.preparacao_id)
+                    .map((x) => [
+                      x.preparacao_id,
+                      {
+                        id: x.preparacao_id,
+                        nome: (preparacoes as any[]).find((p) => p.id === x.preparacao_id)?.nome || "Preparação",
+                      },
+                    ]),
+                ].filter(([id]) => id),
               ).values(),
             );
             const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, ingredientes: [], modo_preparo: null, preparacoes: preparacoesFicha, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
@@ -1140,7 +1193,7 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
             onChange={(e) => setD({ ...d, nome: e.target.value })}
           />
         </Campo>
-        <Campo label="Rendimento final (g)">
+        <Campo label="Rendimento de referência (g)">
           <input
             className={input}
             type="number"
@@ -1149,7 +1202,8 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
           />
         </Campo>
       </div>
-      <p className="mb-2 mt-5 text-sm font-bold">Ingredientes da preparação</p>
+      <p className="mb-2 mt-5 text-sm font-bold">Ingredientes da receita-base</p>
+      <p className="mb-3 text-xs text-[#62766b]">Cadastre aqui o lote de referência. Na produção, todas as quantidades são reduzidas ou aumentadas na mesma proporção.</p>
       {linhas.map((x, i) => (
         <div
           key={i}
@@ -1211,7 +1265,7 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
         <Botao
           onClick={() => {
             if (!d.nome || !n(d.rendimento_final_g))
-              return toast.error("Informe nome e rendimento.");
+              return toast.error("Informe nome e rendimento de referência.");
             salvar({ ...d, rendimento_final_g: n(d.rendimento_final_g) }, linhas);
           }}
         >
@@ -1240,15 +1294,19 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const custo=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);
   const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof ReceitaLinha]),0);
   const novaMontagem=()=>({nome:"",gramas_200:0,gramas_300:0,gramas_400:0,observacao:""});
-  const preparacoesFicha = linhas.filter((x) => x.preparacao_id).map((x) => preparacoes.find((p:any) => p.id === x.preparacao_id)).filter(Boolean);
+  const idsPreparacoesFicha = Array.from(new Set([
+    ...(Array.isArray(receita?.preparacoes) ? receita.preparacoes.map((p:any) => p?.id).filter(Boolean) : []),
+    ...linhas.filter((x) => x.preparacao_id).map((x) => x.preparacao_id).filter(Boolean),
+  ]));
+  const preparacoesFicha = idsPreparacoesFicha.map((id) => preparacoes.find((p:any) => p.id === id)).filter(Boolean);
   const formatarGramas = (v: unknown) => n(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
   return <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
     <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]"><div className="h-32 overflow-hidden rounded-xl bg-white">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt="" className="size-full object-cover" />:<div className="grid size-full place-items-center text-[#087443]"><ChefHat /></div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Monte a ficha técnica</p><h4 className="mt-1 text-xl font-black">{produto.nome}</h4><p className="mt-2 text-sm text-[#527164]">Ingredientes são a base de custo e produção. Em Montagem, registre somente o que entra pronto na embalagem.</p></div></div>
     <div className="mb-6 grid grid-cols-2 rounded-xl bg-[#e7eee8] p-1 sm:grid-cols-4">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["preparacoes","3. Preparações"],["custos","4. Custos"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAbaFicha(id as typeof abaFicha)} className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha===id?"bg-white text-[#087443] shadow-sm":"text-[#62766b]"}`}>{label}</button>)}</div>
-    {abaFicha==="ingredientes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Ingredientes da receita</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Informe as quantidades por tamanho. Perdas e ganhos são aplicados automaticamente na lista de produção.</p>{Array.isArray(receita?.preparacoes) && receita.preparacoes.length>0 && <div className="mb-4 rounded-xl border border-[#cfe1d3] bg-[#f5faf3] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Preparações desta ficha</p><div className="mt-2 flex flex-wrap gap-2">{receita.preparacoes.map((p:any)=><span key={p.id || p.nome} className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-[#355445] shadow-sm">{p.nome}</span>)}</div><p className="mt-2 text-xs text-[#62766b]">As preparações ficam vinculadas à ficha e podem ser usadas na produção pelo seletor abaixo.</p></div>}<div className="flex flex-col gap-2 sm:flex-row"><select className={input} value={selecionado} onChange={e=>setSelecionado(e.target.value)}><option value="">Escolha ingrediente ou preparação</option><optgroup label="Ingredientes">{ingredientes.map((x:any)=><option key={`i:${x.id}`} value={`i:${x.id}`}>{x.nome}</option>)}</optgroup><optgroup label="Preparações prontas">{preparacoes.map((x:any)=><option key={`p:${x.id}`} value={`p:${x.id}`}>{x.nome}</option>)}</optgroup></select><Botao onClick={addComponente}><Plus size={17}/>Adicionar componente</Botao></div><button type="button" onClick={()=>setNovo(!novo)} className="mt-3 text-sm font-bold text-[#087443]">{novo?"− Fechar cadastro":"+ Cadastrar ingrediente novo"}</button>{novo&&<div className="mt-3 grid gap-2 rounded-xl border border-[#cfe1d3] bg-white p-3 md:grid-cols-[1fr_150px_150px_auto]"><input className={input} value={novoD.nome} placeholder="Nome" onChange={e=>setNovoD({...novoD,nome:e.target.value})}/><input className={input} type="number" value={novoD.custo} placeholder="Custo/kg" onChange={e=>setNovoD({...novoD,custo:e.target.value})}/><input className={input} type="number" value={novoD.rendimento} placeholder="Rendimento" onChange={e=>setNovoD({...novoD,rendimento:e.target.value})}/><Botao onClick={addNovo}>Salvar e usar</Botao></div>}
+    {abaFicha==="ingredientes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Ingredientes da receita</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Informe as quantidades por tamanho. Perdas e ganhos são aplicados automaticamente na lista de produção.</p>{Array.isArray(receita?.preparacoes) && receita.preparacoes.length>0 && <div className="mb-4 rounded-xl border border-[#cfe1d3] bg-[#f5faf3] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Preparações desta ficha</p><div className="mt-2 flex flex-wrap gap-2">{receita.preparacoes.map((p:any)=><span key={p.id || p.nome} className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-[#355445] shadow-sm">{p.nome}</span>)}</div><p className="mt-2 text-xs text-[#62766b]">As preparações ficam vinculadas à ficha e são escaladas proporcionalmente na produção.</p></div>}<div className="flex flex-col gap-2 sm:flex-row"><select className={input} value={selecionado} onChange={e=>setSelecionado(e.target.value)}><option value="">Escolha ingrediente ou preparação</option><optgroup label="Ingredientes">{ingredientes.map((x:any)=><option key={`i:${x.id}`} value={`i:${x.id}`}>{x.nome}</option>)}</optgroup><optgroup label="Preparações prontas">{preparacoes.map((x:any)=><option key={`p:${x.id}`} value={`p:${x.id}`}>{x.nome}</option>)}</optgroup></select><Botao onClick={addComponente}><Plus size={17}/>Adicionar componente</Botao></div><button type="button" onClick={()=>setNovo(!novo)} className="mt-3 text-sm font-bold text-[#087443]">{novo?"− Fechar cadastro":"+ Cadastrar ingrediente novo"}</button>{novo&&<div className="mt-3 grid gap-2 rounded-xl border border-[#cfe1d3] bg-white p-3 md:grid-cols-[1fr_150px_150px_auto]"><input className={input} value={novoD.nome} placeholder="Nome" onChange={e=>setNovoD({...novoD,nome:e.target.value})}/><input className={input} type="number" value={novoD.custo} placeholder="Custo/kg" onChange={e=>setNovoD({...novoD,custo:e.target.value})}/><input className={input} type="number" value={novoD.rendimento} placeholder="Rendimento" onChange={e=>setNovoD({...novoD,rendimento:e.target.value})}/><Botao onClick={addNovo}>Salvar e usar</Botao></div>}
     {!linhas.length?<Vazio texto="Nenhum ingrediente adicionado ainda."/>:<TabelaCabecalho titulo="Ingrediente">{linhas.map((x,i)=><div key={i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><b>{nome(x)}</b><span className="ml-2 rounded-full bg-[#e8f3eb] px-2 py-0.5 text-[10px] font-bold text-[#087443]">{x.preparacao_id ? "PREPARAÇÃO" : "INGREDIENTE"}</span><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setLinhas(linhas.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho>}</section>}
     {abaFicha==="montagem" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Cadastre somente os componentes prontos que entram na marmita: por exemplo, frango empanado, molho, arroz e brócolis.</p><Botao onClick={()=>setMontagem([...montagem,novaMontagem()])}><Plus size={17}/>Adicionar componente pronto</Botao>{!montagem.length?<div className="mt-4"><Vazio texto="Nenhum componente pronto cadastrado." /></div>:<div className="mt-4"><TabelaCabecalho titulo="Componente pronto">{montagem.map((x,i)=><div key={x.id||i} className="grid grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3"><div><input className={input} value={x.nome} placeholder="Ex.: Frango empanado americano" onChange={e=>editarMontagem(i,"nome",e.target.value)}/><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editarMontagem(i,"observacao",e.target.value)}/></div>{TAMANHOS.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof MontagemLinha])||""} placeholder="0 g" onChange={e=>editarMontagem(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setMontagem(montagem.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho></div>}</section>}
-    {abaFicha==="preparacoes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações vinculadas</p><p className="mb-4 mt-1 text-sm text-[#62766b]">Cada preparação mostra seu rendimento, ingredientes e modo de preparo próprio.</p>{!preparacoesFicha.length?<Vazio texto="Nenhuma preparação vinculada a esta ficha."/>:<div className="grid gap-4">{preparacoesFicha.map((preparacao:any)=>{const itens=itensPreparacao.get(preparacao.id)||[];return <article key={preparacao.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-black text-[#173a2d]">{preparacao.nome}</h3><p className="mt-1 text-sm text-[#62766b]">Rendimento: <b className="text-[#087443]">{formatarGramas(preparacao.rendimento_final_g)} g</b></p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">{valor(n(custoPrep(preparacao.id)) * 1000)}/kg</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Ingredientes</p>{!itens.length?<p className="mt-2 text-sm text-[#62766b]">Ingredientes não informados.</p>:<div className="mt-2 grid gap-2">{itens.map((item:any)=><div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{ingredientes.find((ingrediente:any)=>ingrediente.id===item.ingrediente_id)?.nome||"Ingrediente"}</span><b>{item.quantidade_texto||`${formatarGramas(item.quantidade)} g`}</b></div>)}</div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line rounded-xl border border-[#e2ebe3] bg-white p-3 text-sm leading-relaxed text-[#355445]">{preparacao.modo_preparo||"Modo de preparo não informado."}</div></div></div></article>})}</div>}</section>}
+    {abaFicha==="preparacoes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações vinculadas</p><p className="mb-4 mt-1 text-sm text-[#62766b]">Cada preparação mostra sua receita-base, ingredientes e modo de preparo. Na produção, o lote é reduzido ou aumentado mantendo a mesma proporção.</p>{!preparacoesFicha.length?<Vazio texto="Nenhuma preparação vinculada a esta ficha."/>:<div className="grid gap-4">{preparacoesFicha.map((preparacao:any)=>{const itens=itensPreparacao.get(preparacao.id)||[];return <article key={preparacao.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-black text-[#173a2d]">{preparacao.nome}</h3><p className="mt-1 text-sm text-[#62766b]">Receita-base proporcional conforme as quantidades abaixo.</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">BASE PROPORCIONAL</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Ingredientes</p>{!itens.length?<p className="mt-2 text-sm text-[#62766b]">Ingredientes não informados.</p>:<div className="mt-2 grid gap-2">{itens.map((item:any)=><div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{ingredientes.find((ingrediente:any)=>ingrediente.id===item.ingrediente_id)?.nome||"Ingrediente"}</span><b>{item.quantidade_texto||`${formatarGramas(item.quantidade)} g`}</b></div>)}</div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line rounded-xl border border-[#e2ebe3] bg-white p-3 text-sm leading-relaxed text-[#355445]">{preparacao.modo_preparo||"Modo de preparo não informado."}</div></div></div></article>})}</div>}</section>}
     {abaFicha==="custos" && <section><div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{TAMANHOS.map(t=><div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{formatarGramas(peso(t.id))} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} de custo</p></div>)}</div></div>{!linhas.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarGramas={formatarGramas}/>}</section>}
     <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem)}>Salvar ficha técnica</Botao></div>
   </Janela>;
