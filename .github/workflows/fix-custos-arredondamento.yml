@@ -1,0 +1,54 @@
+name: Fix custos e arredondamento
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-custos-arredondamento.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir custos e exibição
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+
+          # Garante que a ficha técnica receba as embalagens.
+          marker = '          preparacoes={preparacoes as any[]}\n          itensPreparacao={itensPrep}\n          custoIng={custoIng}'
+          replacement = '          preparacoes={preparacoes as any[]}\n          embalagens={embalagens as any[]}\n          itensPreparacao={itensPrep}\n          custoIng={custoIng}'
+          if marker in s:
+              s = s.replace(marker, replacement, 1)
+          elif '          preparacoes={preparacoes as any[]}\n          embalagens={embalagens as any[]}\n          itensPreparacao={itensPrep}\n          custoIng={custoIng}' not in s:
+              raise SystemExit('não foi possível localizar a chamada da ReceitaModal')
+
+          old = '  const formatarGramas = (v: unknown) => n(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 });'
+          new = '''  const formatarGramas = (v: unknown) => arredondarProducao(v, "g").toLocaleString("pt-BR");\n  const formatarQuantidadeCusto = (v: unknown, itemNome: unknown = "", unidade: "g" | "un" = "g") => {\n    const qtd = Math.max(0, n(v));\n    if (unidade === "un") return formatarQuantidadeProducao(qtd, "un", itemNome);\n    return formatarQuantidadeProducao(qtd, "g", itemNome);\n  };'''
+          if old not in s:
+              raise SystemExit('formatarGramas não encontrado')
+          s = s.replace(old, new, 1)
+
+          old_call = '<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarGramas={formatarGramas}/>'
+          new_call = '<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarQuantidadeCusto={formatarQuantidadeCusto}/>'
+          if old_call not in s:
+              raise SystemExit('chamada TabelaCustos não encontrada')
+          s = s.replace(old_call, new_call, 1)
+
+          start = s.index('function TabelaCustos(')
+          old_func = s[start:]
+          # TabelaCustos é a última função do arquivo no estado atual.
+          new_func = '''function TabelaCustos({linhas,ingredientes,nome,custoLinha,custoPrep,formatarQuantidadeCusto}:any){\n  const visiveis = linhas.filter((x:any) => !x.preparacao_id || TAMANHOS.some(t => n(x[`gramas_${t.id}`]) > 0));\n  return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[700px]"><div className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente</span><span>Custo/kg</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{visiveis.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);const custoKg=x.preparacao_id?valor(n(custoPrep(x.preparacao_id))*1000):item?valor(n(item.custo_por_kg)):"—";const unidade=item?.unidade_medida === "un" ? "un" : "g";return <div key={i} className="grid grid-cols-[minmax(220px,1fr)_100px_125px_125px_125px] gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm"><b>{nome(x)}</b><span>{custoKg}</span>{TAMANHOS.map(t=>{const qtd=n(x[`gramas_${t.id}`]);return <span key={t.id}>{formatarQuantidadeCusto(qtd,nome(x),unidade)} · <b>{valor(custoLinha(x,t.id))}</b></span>})}</div>})}</div></div>}\n'''
+          s = s[:start] + new_func
+          p.write_text(s)
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/fix-custos-arredondamento.yml
+          git commit -m "fix(cozinha): arredondar custos e incluir embalagens"
+          git push
