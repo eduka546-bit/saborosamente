@@ -207,87 +207,81 @@ function CozinhaPage() {
     );
   };
   const separar = useMemo(() => {
-    const mapa = new Map<string, { quantidade: number; pratos: string[] }>();
-    const add = (id: string, q: number, nome: string) => {
-      if (!ing.get(id) || !Number.isFinite(q) || q <= 0) return;
-      const atual = mapa.get(id) || { quantidade: 0, pratos: [] };
-      atual.quantidade += q;
-      if (!atual.pratos.includes(nome)) atual.pratos.push(nome);
-      mapa.set(id, atual);
-    };
-    const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
-    const pareceMesmoComponente = (a: unknown, b: unknown) => {
-      const na = normalizar(a), nb = normalizar(b);
-      if (!na || !nb) return false;
-      if (na.includes(nb) || nb.includes(na)) return true;
-      const ta = tokens(a), tb = tokens(b);
-      return ta.some((x) => tb.includes(x));
-    };
-    (producoes as any[]).forEach((p) => {
-      const prato = produto.get(p.produto_id),
-        r = rec.get(p.produto_id);
-      if (!prato || !r) return;
-      const campo = `gramas_${p.gramatura || "400"}`;
-      const multiplicador = n(p.quantidade_planejada);
-      const linhasReceita = itensRec.get(r.id) || [];
-      const montagemReceita = itensMontagem.get(r.id) || [];
-      const idsPreparacoes = Array.from(new Set([
-        ...(Array.isArray(r.preparacoes) ? r.preparacoes.map((x: any) => x?.id).filter(Boolean) : []),
-        ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
-      ]));
-      const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
-      const totalReceita = linhasReceita.reduce((soma: number, linha: any) => soma + n(linha[campo]), 0);
-      const totalMontagem = montagemReceita.reduce((soma: number, linha: any) => soma + n(linha[campo]), 0);
-      const receitaEhLoteBase = totalMontagem > 0 && totalReceita > totalMontagem * 2;
-
-      idsPreparacoes.forEach((preparacaoId: any) => {
-        const preparacao = prep.get(preparacaoId);
-        const itens = itensPrep.get(preparacaoId) || [];
-        if (!preparacao || !itens.length) return;
-        let fatorLote = 0;
-        if (!receitaEhLoteBase) {
-          const ancora = itens.find((item: any) => {
-            const ingrediente = ing.get(item.ingrediente_id);
-            if (!ingrediente || ingrediente.unidade_medida === "un" || n(item.quantidade) <= 0) return false;
-            return linhasReceita.some((linha: any) => linha.ingrediente_id === item.ingrediente_id && n(linha[campo]) > 0);
+  const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any }>();
+  const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
+  const mesmo = (a: unknown, b: unknown) => {
+    const na = normalizar(a), nb = normalizar(b);
+    if (!na || !nb) return false;
+    if (na.includes(nb) || nb.includes(na)) return true;
+    const ta = tokens(a), tb = tokens(b);
+    return ta.some((x) => tb.includes(x));
+  };
+  const unidadeItemPreparacao = (item: any): "g" | "un" => {
+    const texto = String(item?.quantidade_texto || "").trim();
+    if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return "g";
+    if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
+    return ing.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
+  };
+  const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un") => {
+    const item = ing.get(id);
+    if (!item || !Number.isFinite(q) || q <= 0) return;
+    const chave = `${id}:${unidade}`;
+    const atual = mapa.get(chave) || { id, quantidade: 0, pratos: [], unidade, item };
+    atual.quantidade += q;
+    if (!atual.pratos.includes(nomePrato)) atual.pratos.push(nomePrato);
+    mapa.set(chave, atual);
+  };
+  (producoes as any[]).forEach((p) => {
+    const prato = produto.get(p.produto_id), r = rec.get(p.produto_id);
+    if (!prato || !r) return;
+    const campo = `gramas_${p.gramatura || "400"}`;
+    const multiplicador = n(p.quantidade_planejada);
+    const linhasReceita = itensRec.get(r.id) || [];
+    const montagemReceita = itensMontagem.get(r.id) || [];
+    const idsPreparacoes = Array.from(new Set([
+      ...(Array.isArray(r.preparacoes) ? r.preparacoes.map((x: any) => x?.id).filter(Boolean) : []),
+      ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
+    ]));
+    const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
+    if (montagemReceita.length) {
+      montagemReceita.forEach((m: any) => {
+        const prontoPorUnidade = n(m[campo]);
+        if (!(prontoPorUnidade > 0)) return;
+        const prontoTotal = prontoPorUnidade * multiplicador;
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+        if (preparacao) {
+          const itens = itensPrep.get(preparacao.id) || [];
+          const rendimentoInformado = n(preparacao.rendimento_final_g);
+          const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+          if (!(rendimentoBase > 0)) return;
+          const fator = prontoTotal / rendimentoBase;
+          itens.forEach((item: any) => {
+            const qtdBase = n(item.quantidade);
+            if (!(qtdBase > 0)) return;
+            add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
           });
-          if (ancora) {
-            const linhaAncora = linhasReceita.find((linha: any) => linha.ingrediente_id === ancora.ingrediente_id);
-            fatorLote = quantidadeCorreta(n(linhaAncora?.[campo]), linhaAncora) / n(ancora.quantidade);
-          }
+          return;
         }
-        if (!(fatorLote > 0)) {
-          const componenteMontagem = montagemReceita.find((m: any) => pareceMesmoComponente(m.nome, preparacao.nome));
-          const rendimento = n(preparacao.rendimento_final_g);
-          if (componenteMontagem && rendimento > 0) fatorLote = n(componenteMontagem[campo]) / rendimento;
-          else if (receitaEhLoteBase && rendimento > 0 && totalMontagem > 0) fatorLote = totalMontagem / rendimento;
-        }
-        if (!(fatorLote > 0)) return;
-        itens.forEach((item: any) => {
-          const qtd = n(item.quantidade) * fatorLote * multiplicador;
-          add(item.ingrediente_id, quantidadeComRendimento(qtd, ing.get(item.ingrediente_id)), prato.nome);
-        });
+        const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const bruto = unidade === "g" ? quantidadeComRendimento(prontoTotal, ingrediente) : prontoTotal;
+        add(ingrediente.id, bruto, prato.nome, unidade);
       });
-
-      const nomesPreparacoes = prepsVinculadas.map((x: any) => x.nome);
-      const montagemDireta = montagemReceita.filter((m: any) => !nomesPreparacoes.some((nome: string) => pareceMesmoComponente(m.nome, nome)));
-      linhasReceita.forEach((linha: any) => {
-        if (linha.ingrediente_id) {
-          const ingrediente = ing.get(linha.ingrediente_id);
-          const deveSomarDireto = !idsPreparacoes.length || montagemDireta.some((m: any) => pareceMesmoComponente(ingrediente?.nome, m.nome));
-          if (deveSomarDireto) {
-            const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
-            add(linha.ingrediente_id, quantidadeComRendimento(qtd, ingrediente), prato.nome);
-          }
-        }
-      });
+      return;
+    }
+    linhasReceita.forEach((linha: any) => {
+      if (!linha.ingrediente_id) return;
+      const ingrediente = ing.get(linha.ingrediente_id);
+      if (!ingrediente) return;
+      const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+      const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+      add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
     });
-    return [...mapa]
-      .map(([id, x]) => ({ id, ...x, item: ing.get(id) }))
-      .filter((x) => x.item)
-      .sort((a, b) => a.item.nome.localeCompare(b.item.nome));
-  }, [producoes, produto, rec, itensRec, itensMontagem, prep, itensPrep, ing]);
+  });
+  return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
+}, [producoes, produto, rec, itensRec, itensMontagem, prep, itensPrep, ing, ingredientes]);
   const alertasEstoquePlanejado = useMemo(
     () =>
       separar
@@ -498,7 +492,7 @@ function CozinhaPage() {
                     <article key={x.id} className="rounded-2xl border bg-white p-4">
                       <h3 className="font-bold">{x.item.nome}</h3>
                       <p className="mt-2 text-2xl font-black text-[#087443]">
-                        {x.item.unidade_medida === "un"
+                        {x.unidade === "un"
                           ? `${x.quantidade.toLocaleString("pt-BR")} un`
                           : `${(x.quantidade / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`}
                       </p>
