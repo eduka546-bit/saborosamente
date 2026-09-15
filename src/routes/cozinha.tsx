@@ -74,7 +74,7 @@ function CozinhaPage() {
     [dataProducao, setDataProducao] = useState(hoje()),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
+    [modal, setModal] = useState<null | "producao" | "ficha-producao" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -423,6 +423,10 @@ function CozinhaPage() {
                               ? "Em preparo"
                               : "Planejada"}
                         </span>
+                        <Botao leve onClick={() => abrir("ficha-producao", pr)}>
+                          <BookOpen size={16} />
+                          Ver ficha da produção
+                        </Botao>
                         {p.status === "planejada" && (
                           <Botao
                             leve
@@ -744,6 +748,19 @@ function CozinhaPage() {
           }}
         />
       )}
+      {modal === "ficha-producao" && edit && (
+        <FichaProducaoModal
+          produto={edit}
+          dataProducao={dataProducao}
+          producoes={(producoes as any[]).filter((p) => p.produto_id === edit.id)}
+          receita={rec.get(edit.id)}
+          montagem={itensMontagem.get(rec.get(edit.id)?.id) || []}
+          preparacoes={preparacoes as any[]}
+          itensPreparacao={itensPrep}
+          ingredientes={ingredientes as any[]}
+          fechar={() => setModal(null)}
+        />
+      )}
       {modal === "transferencia" && (
         <TransferenciaEstoqueModal
           produto={edit}
@@ -995,6 +1012,96 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
       </div>
     </Janela>
   );
+}
+function FichaProducaoModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, itensPreparacao, ingredientes, fechar }: any) {
+  const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
+  const mesmo = (a: unknown, b: unknown) => {
+    const na = normalizar(a), nb = normalizar(b);
+    if (!na || !nb) return false;
+    if (na.includes(nb) || nb.includes(na)) return true;
+    const ta = tokens(a), tb = tokens(b);
+    return ta.some((x) => tb.includes(x));
+  };
+  const porId = new Map((ingredientes as any[]).map((x: any) => [x.id, x]));
+  const quantidades = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
+  (producoes as any[]).forEach((p: any) => { if (quantidades[p.gramatura] != null) quantidades[p.gramatura] += n(p.quantidade_planejada); });
+  const montagemTotal = (montagem as any[]).map((m: any) => ({
+    ...m,
+    total: n(m.gramas_200) * quantidades["200"] + n(m.gramas_300) * quantidades["300"] + n(m.gramas_400) * quantidades["400"],
+  })).filter((m: any) => m.total > 0 || m.observacao);
+  const idsPreps = Array.from(new Set((Array.isArray(receita?.preparacoes) ? receita.preparacoes : []).map((p: any) => p?.id).filter(Boolean)));
+  const preps = idsPreps.map((id: any) => (preparacoes as any[]).find((p: any) => p.id === id)).filter(Boolean);
+  const formatPeso = (g: number) => g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g`;
+  const interpretar = (item: any, fator: number) => {
+    const texto = String(item.quantidade_texto || "").trim();
+    if (!n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: texto || "QB" };
+    const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
+    if (peso) {
+      const g = n(item.quantidade) * fator;
+      return { tipo: "peso", valor: g, exibicao: formatPeso(g) };
+    }
+    const semNumero = texto.replace(/^\s*[\d.,]+\s*/i, "").trim();
+    const un = n(item.quantidade) * fator;
+    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${semNumero ? ` ${semNumero}` : " un"}` };
+  };
+  const preparacoesCalculadas = preps.map((prep: any) => {
+    const componente = montagemTotal.find((m: any) => mesmo(m.nome, prep.nome));
+    const pronto = n(componente?.total);
+    const fator = n(prep.rendimento_final_g) > 0 ? pronto / n(prep.rendimento_final_g) : 0;
+    const itens = (itensPreparacao.get(prep.id) || []).map((item: any) => ({
+      ...item,
+      ingrediente: porId.get(item.ingrediente_id),
+      calculado: interpretar(item, fator),
+    }));
+    return { prep, componente, pronto, fator, itens };
+  }).filter((x: any) => x.pronto > 0 || x.itens.length);
+  const nomesPrep = preps.map((p: any) => p.nome);
+  const montagemDireta = montagemTotal.filter((m: any) => !nomesPrep.some((nome: string) => mesmo(m.nome, nome)));
+  const diretos = montagemDireta.map((m: any) => {
+    const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
+    let bruto = m.total;
+    if (ingrediente?.tipo_rendimento === "perda") bruto = m.total * (1 + n(ingrediente.quebra_percentual) / 100);
+    if (ingrediente?.tipo_rendimento === "ganho") bruto = m.total / n(ingrediente.fator_rendimento || 1);
+    return { montagem: m, ingrediente, bruto };
+  });
+  const totais = new Map<string, { nome: string; peso: number; unidades: number; textos: string[] }>();
+  const addTotal = (id: string, nome: string, tipo: string, valor: number, exibicao?: string) => {
+    const atual = totais.get(id) || { nome, peso: 0, unidades: 0, textos: [] };
+    if (tipo === "peso") atual.peso += valor;
+    else if (tipo === "un") atual.unidades += valor;
+    else if (exibicao && !atual.textos.includes(exibicao)) atual.textos.push(exibicao);
+    totais.set(id, atual);
+  };
+  preparacoesCalculadas.forEach((pc: any) => pc.itens.forEach((item: any) => addTotal(item.ingrediente_id, item.ingrediente?.nome || "Ingrediente", item.calculado.tipo, item.calculado.valor, item.calculado.exibicao)));
+  diretos.forEach((d: any) => { if (d.ingrediente) addTotal(d.ingrediente.id, d.ingrediente.nome, "peso", d.bruto); });
+  const listaSeparar = Array.from(totais.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  const resumo = TAMANHOS.filter((t) => quantidades[t.id] > 0).map((t) => `${quantidades[t.id]}×${t.label}`).join(" + ");
+  return <Janela titulo={`Ficha de produção — ${produto.nome}`} fechar={fechar}>
+    <div className="grid gap-5">
+      <div className="rounded-2xl bg-[#edf5e6] p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Produção consolidada do dia {String(dataProducao).split("-").reverse().join("/")}</p>
+        <h4 className="mt-1 text-xl font-black">{resumo || "Sem quantidade planejada"}</h4>
+        <p className="mt-1 text-sm text-[#527164]">A ficha abaixo soma todas as linhas deste prato no dia e recalcula montagem, preparações e ingredientes automaticamente.</p>
+      </div>
+      <section>
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">1. Montagem total</p>
+        <div className="grid gap-2 md:grid-cols-2">{montagemTotal.length ? montagemTotal.map((m: any) => <div key={m.id || m.nome} className="flex items-center justify-between gap-3 rounded-xl border border-[#dbe7dd] bg-white p-3"><span className="font-bold">{m.nome}</span><b className="text-[#087443]">{m.total > 0 ? formatPeso(m.total) : (m.observacao || "QB")}</b></div>) : <Vazio texto="Montagem ainda não cadastrada para esta ficha."/>}</div>
+      </section>
+      <section>
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">2. Preparações proporcionais</p>
+        <div className="grid gap-4">{preparacoesCalculadas.length ? preparacoesCalculadas.map((pc: any) => <article key={pc.prep.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h4 className="text-lg font-black">{pc.prep.nome}</h4><p className="text-sm text-[#62766b]">Produzir <b className="text-[#087443]">{pc.pronto ? formatPeso(pc.pronto) : "conforme necessidade"}</b>{pc.fator > 0 ? ` · escala ${pc.fator.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}× da receita-base` : ""}</p></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Ingredientes recalculados</p><div className="grid gap-2">{pc.itens.map((item: any) => <div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.calculado.exibicao}</b></div>)}</div></div><div><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Modo de preparo</p><div className="whitespace-pre-line rounded-xl border border-[#e2ebe3] p-3 text-sm leading-relaxed text-[#355445]">{pc.prep.modo_preparo || "Modo de preparo não informado."}</div></div></div></article>) : <Vazio texto="Nenhuma preparação vinculada foi encontrada para a montagem deste prato."/>}</div>
+      </section>
+      <section>
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">3. Ingredientes diretos / rendimento</p>
+        <div className="grid gap-2 md:grid-cols-2">{diretos.length ? diretos.map((d: any) => <div key={d.montagem.id || d.montagem.nome} className="rounded-xl border border-[#dbe7dd] bg-white p-3"><div className="flex justify-between gap-3"><span className="font-bold">{d.montagem.nome}</span><b className="text-[#087443]">{formatPeso(d.bruto)}</b></div><p className="mt-1 text-xs text-[#62766b]">Montagem pronta: {formatPeso(d.montagem.total)}{d.ingrediente?.tipo_rendimento === "ganho" ? ` · dividido por ×${n(d.ingrediente.fator_rendimento)}` : d.ingrediente?.tipo_rendimento === "perda" ? ` · +${n(d.ingrediente.quebra_percentual)}% de perda` : ""}</p></div>) : <p className="text-sm text-[#62766b]">Todos os componentes da montagem estão dentro de preparações.</p>}</div>
+      </section>
+      <section className="rounded-2xl bg-[#173a2d] p-4 text-white">
+        <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Total a separar</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="mt-1 text-lg font-black">{[x.peso > 0 ? formatPeso(x.peso) : "", x.unidades > 0 ? `${x.unidades.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} un` : "", ...x.textos].filter(Boolean).join(" · ")}</p></div>)}</div>
+      </section>
+    </div>
+  </Janela>;
 }
 function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
   const [tamanho, setTamanho] = useState<"200" | "300" | "400">("300");
