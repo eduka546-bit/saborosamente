@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChefHat, Sparkles, TrendingUp } from "lucide-react";
+import { Check, ChefHat, ChevronDown, Sparkles, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -38,6 +38,7 @@ const CHAVES_CARBO = ["arroz", "batata", "batata doce", "mandioca", "aipim", "ma
 export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, receitas, receitaItens, ingredientes, estoqueMarmitas }: Props) {
   const qc = useQueryClient();
   const [adicionando, setAdicionando] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const receitaPorProduto = useMemo(() => new Map(receitas.map((r) => [r.produto_id, r])), [receitas]);
   const itensPorReceita = useMemo(() => {
     const map = new Map<string, any[]>();
@@ -189,13 +190,24 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
   }
 
   if (!sugestoes.length) return null;
-  return <div className="mb-5 rounded-2xl border border-[#cfe3d5] bg-[#f2faf5] p-4 md:p-5">
-    <div className="mb-4 flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#087443] text-white"><Sparkles size={20} /></div><div><h2 className="font-black text-[#173a2d]">Sinergias de produção</h2><p className="text-sm text-[#62766b]">Alta = mesma proteína e mesmo carboidrato. Média = apenas um dos dois. Sinergias baixas não são exibidas.</p></div></div>
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sugestoes.map((s) => { const key = `${s.produto.id}-${s.tamanho}`; return <article key={key} className="rounded-xl border border-[#dbe7dd] bg-white p-4">
-      <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{s.produto.nome}</h3><div className="mt-1 flex gap-2"><span className={`rounded-full px-2 py-1 text-[11px] font-bold ${s.nivel === "alta" ? "bg-[#e0f2e7] text-[#087443]" : "bg-[#fff4d9] text-[#8b5a00]"}`}>Sinergia {s.nivel}</span><span className="rounded-full bg-[#eef2ef] px-2 py-1 text-[11px] font-bold">{tamanhos.find((x) => x.id === s.tamanho)?.label}</span></div></div><TrendingUp size={17} className="text-[#087443]" /></div>
-      <p className="mt-3 text-sm text-[#52695f]">{s.motivo}</p>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-lg bg-[#f7f6f0] p-2"><span className="text-[#62766b]">Estoque {s.tamanho}g</span><strong className="block text-sm">{s.estoque.toLocaleString("pt-BR")} un</strong></div><div className="rounded-lg bg-[#f7f6f0] p-2"><span className="text-[#62766b]">Média/dia</span><strong className="block text-sm">{s.mediaDia.toFixed(1)} un</strong></div></div>
-      <div className="mt-3 flex items-center justify-between gap-2"><p className="text-sm font-bold text-[#087443]">Sugestão: +{s.sugerida} un</p><button onClick={() => adicionar(s)} disabled={adicionando === key} className="inline-flex items-center gap-1.5 rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{adicionando === key ? <Check size={14} /> : <ChefHat size={14} />}{adicionando === key ? "Adicionando..." : "Adicionar"}</button></div>
-    </article>; })}</div>
+  return <div className="mb-5 overflow-hidden rounded-2xl border border-[#cfe3d5] bg-[#f2faf5]">
+    <button type="button" onClick={() => setAberto((v) => !v)} aria-expanded={aberto} className="flex w-full items-center justify-between gap-4 p-4 text-left md:p-5">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#087443] text-white"><Sparkles size={20} /></div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-[#173a2d]">Sinergias de produção</h2><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-[#087443]">{sugestoes.length} sugestão{sugestoes.length === 1 ? "" : "ões"}</span></div>
+          <p className="mt-1 text-sm text-[#62766b]">Alta = mesma proteína e mesmo carboidrato. Média = apenas um dos dois.</p>
+        </div>
+      </div>
+      <ChevronDown size={22} className={`shrink-0 text-[#087443] transition-transform ${aberto ? "rotate-180" : ""}`} />
+    </button>
+    {aberto && <div className="border-t border-[#dbe7dd] p-4 md:p-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sugestoes.map((s) => { const key = `${s.produto.id}-${s.tamanho}`; return <article key={key} className="rounded-xl border border-[#dbe7dd] bg-white p-4">
+        <div className="flex items-start justify-between gap-3"><div><h3 className="font-bold">{s.produto.nome}</h3><div className="mt-1 flex gap-2"><span className={`rounded-full px-2 py-1 text-[11px] font-bold ${s.nivel === "alta" ? "bg-[#e0f2e7] text-[#087443]" : "bg-[#fff4d9] text-[#8b5a00]"}`}>Sinergia {s.nivel}</span><span className="rounded-full bg-[#eef2ef] px-2 py-1 text-[11px] font-bold">{tamanhos.find((x) => x.id === s.tamanho)?.label}</span></div></div><TrendingUp size={17} className="text-[#087443]" /></div>
+        <p className="mt-3 text-sm text-[#52695f]">{s.motivo}</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-lg bg-[#f7f6f0] p-2"><span className="text-[#62766b]">Estoque {s.tamanho}g</span><strong className="block text-sm">{s.estoque.toLocaleString("pt-BR")} un</strong></div><div className="rounded-lg bg-[#f7f6f0] p-2"><span className="text-[#62766b]">Média/dia</span><strong className="block text-sm">{s.mediaDia.toFixed(1)} un</strong></div></div>
+        <div className="mt-3 flex items-center justify-between gap-2"><p className="text-sm font-bold text-[#087443]">Sugestão: +{s.sugerida} un</p><button onClick={() => adicionar(s)} disabled={adicionando === key} className="inline-flex items-center gap-1.5 rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{adicionando === key ? <Check size={14} /> : <ChefHat size={14} />}{adicionando === key ? "Adicionando..." : "Adicionar"}</button></div>
+      </article>; })}</div>
+    </div>}
   </div>;
 }
