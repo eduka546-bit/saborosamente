@@ -50,6 +50,14 @@ const labelGramatura = (gramatura: string) =>
     : TAMANHOS.find((t) => t.id === gramatura)?.label || "400 g";
 const hoje = () => new Date().toISOString().slice(0, 10);
 const n = (v: unknown) => Number(v || 0);
+const arredondarProducao = (v: unknown, unidade: "g" | "un" = "g") => {
+  const valor = Math.max(0, n(v));
+  if (!(valor > 0)) return 0;
+  const inteiro = Math.floor(valor);
+  const fracao = valor - inteiro;
+  const arredondado = fracao <= 0.2 + Number.EPSILON ? inteiro : inteiro + 1;
+  return unidade === "un" ? Math.max(1, arredondado) : arredondado;
+};
 const valor = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const input =
   "w-full rounded-lg border border-[#cbd8ce] bg-white p-2.5 text-sm outline-none focus:border-[#087443]";
@@ -503,8 +511,8 @@ function CozinhaPage() {
                       <h3 className="font-bold">{x.item.nome}</h3>
                       <p className="mt-2 text-2xl font-black text-[#087443]">
                         {x.unidade === "un"
-                          ? `${x.quantidade.toLocaleString("pt-BR")} un`
-                          : `${(x.quantidade / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`}
+                          ? `${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un`
+                          : `${arredondarProducao(x.quantidade, "g").toLocaleString("pt-BR")} g`}
                       </p>
                       <p className="mt-2 text-xs text-[#62766b]">
                         Usado em: {x.pratos.join(" · ")}
@@ -1052,7 +1060,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const montagemTotal = montagem.map((m: any) => ({ nome: m.nome, total: n(m.gramas_200) * q["200"] + n(m.gramas_300) * q["300"] + n(m.gramas_400) * q["400"], observacao: m.observacao || "" })).filter((m: any) => m.total > 0 || m.observacao);
     return { produto, q, montagemTotal, total: q["200"] + q["300"] + q["400"] };
   }).filter((x: any) => x.produto).sort((a: any, b: any) => a.produto.nome.localeCompare(b.produto.nome));
-  const formatPeso = (g: number) => g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g`;
+  const formatPeso = (g: number) => `${arredondarProducao(g, "g").toLocaleString("pt-BR")} g`;
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR");
   const totalMarmitas = pratos.reduce((s: number, x: any) => s + x.total, 0);
   return <Janela titulo={`Ficha de produção do dia — ${dataFmt}`} fechar={fechar}>
@@ -1062,7 +1070,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       <div className="rounded-2xl bg-[#f4f7f4] p-4"><p className="text-xs font-bold uppercase text-[#527164]">Itens para separar</p><p className="mt-1 text-2xl font-black text-[#173a2d]">{(separar as any[]).length}</p></div>
     </div>
     {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">{pratos.map((x: any) => <article key={x.produto.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-black">{x.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">{TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-sm font-black text-[#087443]">{x.total} un</span></div>{x.montagemTotal.length > 0 && <div className="mt-4"><p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#527164]">Montagem total deste prato</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{x.montagemTotal.map((m: any, i: number) => <div key={`${m.nome}-${i}`} className="rounded-xl bg-[#f4f8f4] px-3 py-2"><div className="flex justify-between gap-3 text-sm"><span>{m.nome}</span><b>{formatPeso(m.total)}</b></div>{m.observacao && <p className="mt-1 text-xs text-[#62766b]">{m.observacao}</p>}</div>)}</div></div>}</article>)}</div>}
-    {(separar as any[]).length > 0 && <div className="mt-6 rounded-2xl border border-[#cfe1d3] bg-[#f5faf3] p-4"><h3 className="font-black">Total a separar no dia</h3><p className="mt-1 text-sm text-[#62766b]">Consolidado de todas as produções lançadas para esta data.</p><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{(separar as any[]).map((x: any) => <div key={`${x.id}-${x.unidade}`} className="flex justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm"><span>{x.item?.nome}</span><b>{x.unidade === "un" ? `${x.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} un` : formatPeso(x.quantidade)}</b></div>)}</div></div>}
+    {(separar as any[]).length > 0 && <div className="mt-6 rounded-2xl border border-[#cfe1d3] bg-[#f5faf3] p-4"><h3 className="font-black">Total a separar no dia</h3><p className="mt-1 text-sm text-[#62766b]">Consolidado de todas as produções lançadas para esta data.</p><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{(separar as any[]).map((x: any) => <div key={`${x.id}-${x.unidade}`} className="flex justify-between gap-3 rounded-xl bg-white px-3 py-2 text-sm"><span>{x.item?.nome}</span><b>{x.unidade === "un" ? `${arredondarProducao(x.quantidade, "un").toLocaleString("pt-BR")} un` : formatPeso(x.quantidade)}</b></div>)}</div></div>}
   </Janela>;
 }
 
@@ -1070,7 +1078,7 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
   const q = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
   (producoes as any[]).forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR");
-  const fmt = (v: unknown) => n(v) > 0 ? `${n(v).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g` : "—";
+  const fmt = (v: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : "—";
   return <Janela titulo={`Ficha de montagem — ${produto.nome}`} fechar={fechar}>
     <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Montagem por tamanho</p><p className="mt-1 text-sm text-[#527164]">Referência para montar cada marmita individualmente. Produção de {dataFmt}: {TAMANHOS.filter(t => q[t.id] > 0).map(t => `${q[t.id]}×${t.label}`).join(" + ") || "nenhuma quantidade lançada"}.</p></div>
     {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{m.nome}</b>{m.observacao && <p className="mt-1 text-xs text-[#62766b]">{m.observacao}</p>}</div><span>{fmt(m.gramas_200)}</span><span>{fmt(m.gramas_300)}</span><span>{fmt(m.gramas_400)}</span></div>)}</div></div>}
@@ -1097,18 +1105,18 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   })).filter((m: any) => m.total > 0 || m.observacao);
   const idsPreps = Array.from(new Set((Array.isArray(receita?.preparacoes) ? receita.preparacoes : []).map((p: any) => p?.id).filter(Boolean)));
   const preps = idsPreps.map((id: any) => (preparacoes as any[]).find((p: any) => p.id === id)).filter(Boolean);
-  const formatPeso = (g: number) => g >= 1000 ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} g`;
+  const formatPeso = (g: number) => `${arredondarProducao(g, "g").toLocaleString("pt-BR")} g`;
   const interpretar = (item: any, fator: number) => {
     const texto = String(item.quantidade_texto || "").trim();
     if (!n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: texto || "QB" };
     const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
     if (peso) {
-      const g = n(item.quantidade) * fator;
+      const g = arredondarProducao(n(item.quantidade) * fator, "g");
       return { tipo: "peso", valor: g, exibicao: formatPeso(g) };
     }
     const semNumero = texto.replace(/^\s*[\d.,]+\s*/i, "").trim();
-    const un = n(item.quantidade) * fator;
-    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${semNumero ? ` ${semNumero}` : " un"}` };
+    const un = arredondarProducao(n(item.quantidade) * fator, "un");
+    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}` };
   };
   const preparacoesCalculadas = preps.map((prep: any) => {
     const componente = montagemTotal.find((m: any) => mesmo(m.nome, prep.nome));
