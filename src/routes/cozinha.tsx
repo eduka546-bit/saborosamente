@@ -81,7 +81,7 @@ const imprimirElemento = (id: string, titulo: string) => {
   const janela = window.open("", "_blank", "width=1000,height=800");
   if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
-    @page{size:A4;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:10px;line-height:1.28}h1,h2,h3,h4,p{margin-top:0;margin-bottom:3px}button{display:none!important}.grid{display:grid;gap:4px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2,.gap-3,.gap-4,.gap-5{gap:4px}.mb-2,.mb-3,.mb-4,.mb-5{margin-bottom:5px}.mt-1,.mt-2,.mt-3,.mt-4{margin-top:4px}.p-3,.p-4{padding:6px}.px-3{padding-left:6px;padding-right:6px}.py-1,.py-2{padding-top:3px;padding-bottom:3px}.rounded-xl,.rounded-2xl{border-radius:5px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3}.bg-\[\#173a2d\]{background:#fff!important;color:#173a2d!important;border:1px solid #173a2d}.text-white,.text-white\/70{color:#173a2d!important}.text-\[\#087443\]{color:#087443}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:8.5px}.text-sm{font-size:10px}.text-lg{font-size:12px}.text-xl{font-size:14px}.text-2xl{font-size:16px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}.page-break-before{break-before:page;page-break-before:always}[data-screen-only]{display:none!important}.print-only{display:block!important}.sm\:grid-cols-2,.md\:grid-cols-2,.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3,.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}img{max-width:100%}
+    @page{size:A4;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:10.2px;line-height:1.32}h1,h2,h3,h4,p{margin-top:0;margin-bottom:3px}button{display:none!important}.grid{display:grid;gap:4px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2,.gap-3,.gap-4,.gap-5{gap:4px}.mb-2,.mb-3,.mb-4,.mb-5{margin-bottom:5px}.mt-1,.mt-2,.mt-3,.mt-4{margin-top:4px}.p-3,.p-4{padding:6px}.px-3{padding-left:6px;padding-right:6px}.py-1,.py-2{padding-top:3px;padding-bottom:3px}.rounded-xl,.rounded-2xl{border-radius:5px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3}.bg-\[\#173a2d\]{background:#fff!important;color:#173a2d!important;border:1px solid #173a2d}.text-white,.text-white\/70{color:#173a2d!important}.text-\[\#087443\]{color:#087443}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:9px}.text-sm{font-size:10.2px}.text-lg{font-size:12.5px}.text-xl{font-size:17px}.text-2xl{font-size:19px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}.page-break-before{break-before:page;page-break-before:always}[data-screen-only]{display:none!important}.print-only{display:block!important}.sm\:grid-cols-2,.md\:grid-cols-2,.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3,.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}img{max-width:100%}
   </style></head><body>${elemento.innerHTML}</body></html>`);
   janela.document.close();
   janela.focus();
@@ -1397,25 +1397,31 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
 
       <section>
-        <div className="mb-3 grid gap-4" style={{ gridTemplateColumns: "170px 1fr", alignItems: "start" }}>
-          <div className="rounded-xl border border-[#dbe7dd] bg-white p-2" style={{ width: "170px", overflow: "hidden" }}>{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{ width: "154px", height: "116px", objectFit: "contain", borderRadius: "8px", display: "block", margin: "0 auto" }} /> : <div className="grid place-items-center" style={{ height: "116px" }}><ChefHat size={34} /></div>}</div>
-          <div>
-            <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
-            <h3 className="mt-1 text-lg font-black">{produto.nome}</h3>
-            <p className="mt-1 text-xs text-[#62766b]">Use a foto ao lado como referência visual do prato pronto. A tabela abaixo define exatamente quanto colocar de cada componente em uma unidade.</p>
-            <div className="mt-3 rounded-xl bg-[#f4f7f4] p-3">
-              <p className="text-xs font-black uppercase text-[#173a2d]">Antes de fechar a embalagem</p>
-              <p className="mt-1 text-sm">☐ Conferir o tamanho da marmita.</p>
-              <p className="text-sm">☐ Pesar cada componente conforme a coluna correta.</p>
-              <p className="text-sm">☐ Conferir visualmente a disposição dos alimentos pela foto.</p>
-              <p className="text-sm">☐ Conferir peso e apresentação final antes de tampar.</p>
-            </div>
-          </div>
+        <div className="mb-3">
+          <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
+          <h3 className="mt-1 text-xl font-black">{produto.nome}</h3>
+          <p className="mt-1 text-sm text-[#62766b]">Use a coluna correta para cada tamanho. A foto ampliada abaixo é a referência visual final da montagem.</p>
         </div>
         {!(montagem as any[]).length ? <Vazio texto="Montagem ainda não cadastrada para esta ficha." /> : <div className="rounded-2xl border border-[#dbe7dd] bg-white">
-          <div className="grid gap-2 bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px", alignItems: "center" }}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-          {(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid items-center gap-2 border-t border-[#e2ebe3] px-3 py-2 text-sm" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px" }}><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{n(m.gramas_200) > 0 ? `${arredondarProducao(m.gramas_200, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_300) > 0 ? `${arredondarProducao(m.gramas_300, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_400) > 0 ? `${arredondarProducao(m.gramas_400, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span></div>)}
+          <div className="grid gap-2 bg-[#173a2d] px-3 py-2 text-xs font-bold uppercase text-white" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px", alignItems: "center" }}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+          {(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid items-center gap-2 border-t border-[#e2ebe3] px-3 py-2 text-sm" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px" }}><div><b>{`${i + 1}. ${m.nome}`}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{n(m.gramas_200) > 0 ? `${arredondarProducao(m.gramas_200, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_300) > 0 ? `${arredondarProducao(m.gramas_300, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_400) > 0 ? `${arredondarProducao(m.gramas_400, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span></div>)}
         </div>}
+        <div className="mt-4 rounded-xl bg-[#f4f7f4] p-3">
+          <p className="text-sm font-black uppercase text-[#173a2d]">Checklist antes de tampar</p>
+          <p className="mt-1 text-sm">☐ Conferir o tamanho da embalagem antes de começar.</p>
+          <p className="text-sm">☐ Pesar cada componente individualmente pela coluna correta.</p>
+          <p className="text-sm">☐ Respeitar a ordem dos componentes mostrada na tabela.</p>
+          <p className="text-sm">☐ Conferir o peso total da marmita antes de fechar.</p>
+          <p className="text-sm">☐ Comparar visualmente o resultado com a foto de referência.</p>
+        </div>
+        <div className="mt-4" style={{ textAlign: "center", breakInside: "avoid", pageBreakInside: "avoid" }}>
+          <div style={{ width: "90%", margin: "0 auto 8px", borderTop: "1px solid #dbe7dd" }} />
+          <p className="text-sm font-black uppercase text-[#087443]">Referência visual da montagem final</p>
+          <div style={{ width: "100%", margin: "8px auto 0", textAlign: "center" }}>
+            {produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{ width: "82%", maxWidth: "560px", height: "auto", maxHeight: "360px", objectFit: "contain", objectPosition: "center center", display: "block", margin: "0 auto", borderRadius: "10px" }} /> : <div className="grid place-items-center" style={{ height: "220px" }}><ChefHat size={48} /></div>}
+          </div>
+          <p className="mt-2 text-sm font-bold text-[#087443]">Foto ampliada e centralizada para facilitar a conferência visual do produto pronto.</p>
+        </div>
       </section>
     </div>
   </Janela>;
