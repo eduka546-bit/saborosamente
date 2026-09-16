@@ -1,4 +1,4 @@
-name: Fix embalagens receita
+name: Fix separacao ingredientes
 on:
   push:
     branches: [main]
@@ -11,28 +11,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Corrigir prop de embalagens
+      - name: Corrigir fallback da separacao
         shell: python
         run: |
           from pathlib import Path
           p = Path('src/routes/cozinha.tsx')
           s = p.read_text()
-          old = '''          ingredientes={ingredientes as any[]}
-          preparacoes={preparacoes as any[]}
-          itensPreparacao={itensPrep}'''
-          new = '''          ingredientes={ingredientes as any[]}
-          preparacoes={preparacoes as any[]}
-          embalagens={embalagens as any[]}
-          itensPreparacao={itensPrep}'''
+          old = '''    if (montagemReceita.length) {
+      montagemReceita.forEach((m: any) => {
+        const prontoPorUnidade = n(m[campo]);
+        if (!(prontoPorUnidade > 0)) return;
+        const prontoTotal = prontoPorUnidade * multiplicador;
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));'''
+          new = '''    const fallbackDireto = montagemReceita.length && montagemReceita.some((m: any) => {
+      if (!(n(m[campo]) > 0)) return false;
+      const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+      if (preparacao) {
+        const itens = itensPrep.get(preparacao.id) || [];
+        const rendimentoInformado = n(preparacao.rendimento_final_g);
+        const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+        return !(rendimentoBase > 0) || !itens.some((item: any) => n(item.quantidade) > 0 || ehQB(item.quantidade_texto));
+      }
+      return !(ingredientes as any[]).some((x: any) => mesmo(x.nome, m.nome));
+    });
+    if (fallbackDireto) {
+      linhasReceita.forEach((linha: any) => {
+        if (!linha.ingrediente_id) return;
+        const ingrediente = ing.get(linha.ingrediente_id);
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+        add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+      });
+      return;
+    }
+    if (montagemReceita.length) {
+      montagemReceita.forEach((m: any) => {
+        const prontoPorUnidade = n(m[campo]);
+        if (!(prontoPorUnidade > 0)) return;
+        const prontoTotal = prontoPorUnidade * multiplicador;
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));'''
           if old not in s:
-              raise SystemExit('trecho da ReceitaModal não encontrado')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
+              raise SystemExit('trecho da separacao nao encontrado')
+          p.write_text(s.replace(old, new, 1))
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/routes/cozinha.tsx
           git rm .github/workflows/fix-embalagens-receita.yml
-          git commit -m "fix(cozinha): aplicar embalagem e etiqueta no custo"
+          git commit -m "fix(cozinha): garantir ingredientes completos na separacao"
           git push
