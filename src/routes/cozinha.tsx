@@ -1211,10 +1211,12 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         </div>
         {!pratos.length ? <Vazio texto="Nenhuma montagem disponível para este dia." /> : <div className="grid gap-4">
           {pratos.map((x: any) => <article key={`impressao-montagem-${x.produto.id}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="mb-2 grid gap-3 md:grid-cols-[120px_1fr_auto] md:items-center">
+              <div className="rounded-xl bg-[#f4f7f4] p-1">{x.produto.imagem_url || x.produto.imagens?.[0] ? <img src={x.produto.imagem_url || x.produto.imagens?.[0]} alt={x.produto.nome} style={{ width: "100%", height: "82px", objectFit: "cover", borderRadius: "6px" }} /> : <div className="grid place-items-center" style={{ height: "82px" }}><ChefHat size={24} /></div>}</div>
               <div>
                 <h3 className="font-black">{x.produto.nome}</h3>
                 <p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p>
+                <p className="mt-1 text-xs text-[#62766b]">Use a foto como referência de apresentação e siga a coluna do tamanho correto na tabela.</p>
               </div>
               <b className="text-[#087443]">{x.total} un</b>
             </div>
@@ -1313,9 +1315,21 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     <div className="mb-4 flex justify-end"><Botao leve onClick={() => imprimirElemento("ficha-producao-produto-impressao", `Ficha de produção — ${produto.nome}`)}>Imprimir ficha</Botao></div>
     <div id="ficha-producao-produto-impressao" className="grid gap-5">
       <div className="rounded-2xl bg-[#edf5e6] p-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Produção consolidada do dia {String(dataProducao).split("-").reverse().join("/")}</p>
-        <h4 className="mt-1 text-xl font-black">{resumo || "Sem quantidade planejada"}</h4>
-        <p className="mt-1 text-sm text-[#527164]">A ficha abaixo soma todas as linhas deste prato no dia e recalcula montagem, preparações e ingredientes automaticamente.</p>
+        <div className="grid gap-4 md:grid-cols-[190px_1fr]">
+          <div className="rounded-xl bg-white p-2">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{ width: "100%", height: "135px", objectFit: "cover", borderRadius: "8px" }} /> : <div className="grid place-items-center" style={{ height: "135px" }}><ChefHat size={34} /></div>}</div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Produção consolidada do dia {String(dataProducao).split("-").reverse().join("/")}</p>
+            <h4 className="mt-1 text-xl font-black">{produto.nome}</h4>
+            <p className="mt-1 text-lg font-black text-[#087443]">{resumo || "Sem quantidade planejada"}</p>
+            <div className="mt-3 rounded-xl bg-white p-3">
+              <p className="text-xs font-black uppercase text-[#173a2d]">Sequência para a cozinha</p>
+              <p className="mt-1 text-sm"><b>1.</b> Separe os ingredientes nas quantidades totais indicadas.</p>
+              <p className="text-sm"><b>2.</b> Faça cada preparação seguindo o modo de preparo e a quantidade recalculada.</p>
+              <p className="text-sm"><b>3.</b> Confira os ingredientes diretos e os rendimentos antes de montar.</p>
+              <p className="text-sm"><b>4.</b> Monte cada marmita exatamente pela tabela de 200 g, 300 g e 400 g e use a foto como referência visual.</p>
+            </div>
+          </div>
+        </div>
       </div>
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">1. Montagem total</p>
@@ -1335,12 +1349,20 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
 
       <section className="page-break-before">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 grid gap-4 md:grid-cols-[190px_1fr]">
+          <div className="rounded-xl border border-[#dbe7dd] bg-white p-2">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{ width: "100%", height: "145px", objectFit: "cover", borderRadius: "8px" }} /> : <div className="grid place-items-center" style={{ height: "145px" }}><ChefHat size={34} /></div>}</div>
           <div>
             <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
-            <p className="text-xs text-[#62766b]">Referência de montagem de cada unidade de 200 g, 300 g e 400 g.</p>
+            <h3 className="mt-1 text-lg font-black">{produto.nome}</h3>
+            <p className="mt-1 text-xs text-[#62766b]">Use a foto ao lado como referência visual do prato pronto. A tabela abaixo define exatamente quanto colocar de cada componente em uma unidade.</p>
+            <div className="mt-3 rounded-xl bg-[#f4f7f4] p-3">
+              <p className="text-xs font-black uppercase text-[#173a2d]">Antes de fechar a embalagem</p>
+              <p className="mt-1 text-sm">☐ Conferir o tamanho da marmita.</p>
+              <p className="text-sm">☐ Pesar cada componente conforme a coluna correta.</p>
+              <p className="text-sm">☐ Conferir visualmente a disposição dos alimentos pela foto.</p>
+              <p className="text-sm">☐ Conferir peso e apresentação final antes de tampar.</p>
+            </div>
           </div>
-          <b className="text-xs text-[#173a2d]">{produto.nome}</b>
         </div>
         {!(montagem as any[]).length ? <Vazio texto="Montagem ainda não cadastrada para esta ficha." /> : <div className="rounded-2xl border border-[#dbe7dd] bg-white">
           <div className="grid grid-cols-[minmax(180px,1fr)_90px_90px_90px] gap-2 bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
