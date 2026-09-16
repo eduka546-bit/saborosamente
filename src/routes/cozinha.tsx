@@ -1316,6 +1316,16 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     if (ingrediente?.tipo_rendimento === "ganho") bruto = m.total / n(ingrediente.fator_rendimento || 1);
     return { montagem: m, ingrediente, bruto };
   });
+  const idsEmPreparacoes = new Set(preparacoesCalculadas.flatMap((pc: any) => pc.itens.map((item: any) => item.ingrediente_id).filter(Boolean)));
+  const idsDiretosMontagem = new Set(diretos.map((d: any) => d.ingrediente?.id).filter(Boolean));
+  const ingredientesSemVinculo = (itensReceita as any[])
+    .filter((x: any) => x.ingrediente_id && !idsEmPreparacoes.has(x.ingrediente_id) && !idsDiretosMontagem.has(x.ingrediente_id))
+    .map((x: any) => ({
+      ...x,
+      ingrediente: porId.get(x.ingrediente_id),
+      total: n(x.gramas_200) * n(quantidades["200"]) + n(x.gramas_300) * n(quantidades["300"]) + n(x.gramas_400) * n(quantidades["400"]),
+    }))
+    .filter((x: any) => x.total > 0);
   const totais = new Map<string, { nome: string; peso: number; unidades: number; textos: string[] }>();
   const addTotal = (id: string, nome: string, tipo: string, valor: number, exibicao?: string) => {
     const atual = totais.get(id) || { nome, peso: 0, unidades: 0, textos: [] };
@@ -1367,13 +1377,18 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">2. Preparações proporcionais</p>
         <div className="grid gap-4">{preparacoesCalculadas.length ? preparacoesCalculadas.map((pc: any) => <article key={pc.prep.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h4 className="text-lg font-black">{pc.prep.nome}</h4><p className="text-sm text-[#62766b]">Produzir <b className="text-[#087443]">{pc.pronto ? formatPeso(pc.pronto) : "conforme necessidade"}</b>{pc.fator > 0 ? ` · escala ${pc.fator.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}× da receita-base` : ""}</p></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Ingredientes recalculados</p><div className="grid gap-2">{pc.itens.map((item: any) => <div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.pendente ? (/\d/.test(String(item.quantidade_texto || "")) ? textoCozinha(item.quantidade_texto) : "QB · a gosto") : item.calculado.exibicao}</b></div>)}</div></div><div><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Modo de preparo</p><div className="whitespace-pre-line rounded-xl border border-[#e2ebe3] p-3 text-sm leading-relaxed text-[#355445]">{pc.prep.modo_preparo || "Modo de preparo não informado."}</div></div></div></article>) : <Vazio texto="Nenhuma preparação vinculada foi encontrada para a montagem deste prato."/>}</div>
       </section>
+      {ingredientesSemVinculo.length > 0 && <section className="rounded-2xl border border-[#f0cf67] bg-[#fff9e8] p-3">
+        <p className="text-sm font-black uppercase text-[#6f4b00]">Atenção — ingredientes da receita ainda sem vínculo de execução</p>
+        <p className="mt-1 text-xs text-[#6f4b00]">Estes itens constam com quantidade na ficha, mas ainda não estão ligados a uma preparação nem a um componente da montagem. <b>Não omitir.</b></p>
+        <div className="mt-2 grid gap-1 sm:grid-cols-2">{ingredientesSemVinculo.map((x: any) => <div key={x.id} className="rounded-lg bg-white px-2 py-1.5 text-xs"><div className="flex justify-between gap-2"><b>{x.ingrediente?.nome || "Ingrediente"}</b><b>{formatarQuantidadeProducao(x.total, "g", x.ingrediente?.nome)}</b></div><p className="mt-1 text-xs text-[#62766b]">200 g: {n(x.gramas_200) > 0 ? `${arredondarProducao(x.gramas_200, "g")} g` : "QB"} · 300 g: {n(x.gramas_300) > 0 ? `${arredondarProducao(x.gramas_300, "g")} g` : "QB"} · 400 g: {n(x.gramas_400) > 0 ? `${arredondarProducao(x.gramas_400, "g")} g` : "QB"}</p></div>)}</div>
+      </section>}
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">3. Ingredientes diretos / rendimento</p>
         <div className="grid gap-2 md:grid-cols-2">{diretos.length ? diretos.map((d: any) => <div key={d.montagem.id || d.montagem.nome} className="rounded-xl border border-[#dbe7dd] bg-white p-3"><div className="flex justify-between gap-3"><span className="font-bold">{d.montagem.nome}</span><b className="text-[#087443]">{formatPeso(d.bruto)}</b></div><p className="mt-1 text-xs text-[#62766b]">Montagem pronta: {formatPeso(d.montagem.total)}{d.ingrediente?.tipo_rendimento === "ganho" ? ` · dividido por ×${n(d.ingrediente.fator_rendimento)}` : d.ingrediente?.tipo_rendimento === "perda" ? ` · +${n(d.ingrediente.quebra_percentual)}% de perda` : ""}</p></div>) : <p className="text-sm text-[#62766b]">Todos os componentes da montagem estão dentro de preparações.</p>}</div>
       </section>
       <section className="rounded-2xl bg-[#173a2d] p-4 text-white">
         <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Ingredientes necessários / total a separar</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">{listaSeparar.map((x: any) => <div key={x.nome} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="text-right text-sm font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ") || "a gosto"}</p></div>)}</div>
+        <div className="mt-2 grid gap-1 sm:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="flex items-center justify-between gap-2 rounded-lg bg-white/10 px-2 py-1.5"><p className="text-xs font-bold">{x.nome}</p><p className="text-right text-xs font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ") || "a gosto"}</p></div>)}</div>
       </section>
 
       <section className="page-break-before">
