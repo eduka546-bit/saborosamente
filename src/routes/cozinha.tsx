@@ -1178,8 +1178,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(separar as any[]).map((x: any) => <article key={`${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
-            <p className="font-black text-[#173a2d]">{x.item?.nome}</p>
-            <p className="mt-2 text-xl font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p>
+            <div className="flex items-center justify-between gap-3"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="text-right text-lg font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p></div>
             {x.pratos?.length > 0 && <p className="mt-2 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}
           </article>)}
         </div>
@@ -1197,7 +1196,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       <section className="mt-5">
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">Ingredientes necessários do dia</p>
         {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="mt-2 text-xl font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p>{x.pratos?.length > 0 && <p className="mt-2 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
+          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-3"><div className="flex items-center justify-between gap-3"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="text-right text-sm font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p></div>{x.pratos?.length > 0 && <p className="mt-1 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
         </div>}
       </section>
     </div>
@@ -1306,7 +1305,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
       <section className="rounded-2xl bg-[#173a2d] p-4 text-white">
         <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Ingredientes necessários / total a separar</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="mt-1 text-lg font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ")}</p></div>)}</div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">{listaSeparar.map((x: any) => <div key={x.nome} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="text-right text-sm font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ") || "a gosto"}</p></div>)}</div>
       </section>
     </div>
   </Janela>;
