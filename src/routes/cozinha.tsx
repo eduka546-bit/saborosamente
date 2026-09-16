@@ -1194,45 +1194,67 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
 
     <div className="hidden print-only">
       <section>
-        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Produção do dia</p>
-        {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">
-          {pratos.map((x: any) => <article key={`impressao-prod-${x.produto.id}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex justify-between gap-3"><div><h3 className="font-black">{x.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">{TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><b className="text-[#087443]">{x.total} un</b></div></article>)}
-        </div>}
-      </section>
-      <section className="mt-5">
-        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Ingredientes necessários do dia</p>
-        {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-3"><div className="flex items-center justify-between gap-3"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="text-right text-sm font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p></div>{x.pratos?.length > 0 && <p className="mt-1 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-black text-[#087443]">SaborosaMente — Ficha operacional da cozinha</p>
+            <h2 className="mt-1 text-2xl font-black text-[#173a2d]">Produção do dia</h2>
+            <p className="mt-1 text-sm text-[#62766b]">{dataFmt}</p>
+          </div>
+          <div className="grid gap-1" style={{gridTemplateColumns:"repeat(3,110px)"}}>
+            <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Unidades</p><p className="mt-1 text-xl font-black text-[#087443]">{totalDia}</p></div>
+            <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Produtos</p><p className="mt-1 text-xl font-black text-[#087443]">{pratos.length}</p></div>
+            <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Ingredientes</p><p className="mt-1 text-xl font-black text-[#087443]">{(separar as any[]).length}</p></div>
+          </div>
+        </div>
+
+        <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Produção planejada</p>
+        {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia."/> : <div className="rounded-xl border border-[#dbe7dd] bg-white">
+          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold uppercase text-white" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><span>Produto</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
+          {pratos.map((x:any)=><div key={`dia-prod-${x.produto.id}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><b>{x.produto.nome}</b><span>{x.q["200"] || "—"}</span><span>{x.q["300"] || "—"}</span><span>{x.q["400"] || "—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
         </div>}
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
-            <p className="text-xs text-[#62766b]">Quantidade de cada componente pronto em uma marmita de 200 g, 300 g e 400 g.</p>
-          </div>
-          <b className="text-xs text-[#173a2d]">{dataFmt}</b>
-        </div>
-        {!pratos.length ? <Vazio texto="Nenhuma montagem disponível para este dia." /> : <div className="grid gap-4">
-          {pratos.map((x: any) => <article key={`impressao-montagem-${x.produto.id}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
-            <div className="mb-2 grid gap-3" style={{ gridTemplateColumns: "105px 1fr 55px", alignItems: "center" }}>
-              <div className="rounded-xl bg-[#f4f7f4] p-1" style={{ width: "105px", overflow: "hidden" }}>{x.produto.imagem_url || x.produto.imagens?.[0] ? <img src={x.produto.imagem_url || x.produto.imagens?.[0]} alt={x.produto.nome} style={{ width: "97px", height: "70px", objectFit: "contain", borderRadius: "6px", display: "block", margin: "0 auto" }} /> : <div className="grid place-items-center" style={{ height: "70px" }}><ChefHat size={24} /></div>}</div>
-              <div>
-                <h3 className="font-black">{x.produto.nome}</h3>
-                <p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p>
-                <p className="mt-1 text-xs text-[#62766b]">Use a foto como referência de apresentação e siga a coluna do tamanho correto na tabela.</p>
-              </div>
-              <b className="text-[#087443]">{x.total} un</b>
-            </div>
-            {!(x.montagem as any[]).length ? <p className="text-xs text-[#62766b]">Montagem ainda não cadastrada para esta ficha.</p> : <div className="border rounded-xl">
-              <div className="grid gap-2 bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px", alignItems: "center" }}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-              {(x.montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid items-center gap-2 border-t border-[#e2ebe3] px-3 py-2 text-sm" style={{ gridTemplateColumns: "minmax(220px,1fr) 90px 90px 90px" }}><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{n(m.gramas_200) > 0 ? `${arredondarProducao(m.gramas_200, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_300) > 0 ? `${arredondarProducao(m.gramas_300, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_400) > 0 ? `${arredondarProducao(m.gramas_400, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span></div>)}
-            </div>}
-          </article>)}
+      <section className="mt-4">
+        <p className="mb-2 text-lg font-black uppercase text-[#087443]">2. Ingredientes necessários do dia</p>
+        <p className="mb-2 text-sm text-[#62766b]">Separe estas quantidades antes de iniciar. Os códigos mostram em quais pratos cada ingrediente será usado.</p>
+        {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia."/> : <div className="rounded-xl border border-[#dbe7dd] bg-white">
+          <div className="grid bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]" style={{gridTemplateColumns:"minmax(250px,1fr) 120px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
+          {(separar as any[]).map((x:any)=>{
+            const codigos=(x.pratos || []).map((nome:string)=>{ const m=String(nome).match(/\b([A-Z]{2}\d{2})\b/); return m ? m[1] : nome; });
+            return <div key={`dia-ing-${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 120px 1fr"}}><b>{x.item?.nome}</b><b className="text-[#087443]">{x.qb ? "QB · a gosto" : formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b><span className="text-xs text-[#62766b]">{codigos.join(" · ") || "—"}</span></div>;
+          })}
         </div>}
       </section>
-    </div>
+
+      <section className="page-break-before">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div><p className="text-sm font-black uppercase text-[#087443]">3. Montagem por tamanho</p><h2 className="mt-1 text-xl font-black text-[#173a2d]">Referência de montagem do dia</h2><p className="mt-1 text-sm text-[#62766b]">Siga a coluna do tamanho correto. Cada bloco mostra quanto vai de cada componente em uma unidade.</p></div>
+          <b className="text-sm text-[#173a2d]">{dataFmt}</b>
+        </div>
+        {!pratos.length ? <Vazio texto="Nenhuma montagem disponível para este dia."/> : <div className="grid gap-4">
+          {pratos.map((x:any)=>{
+            const montagem=(x.montagem || []) as any[];
+            const exatos=(tamanho:"200"|"300"|"400")=>{
+              const chave=`gramas_${tamanho}`;
+              const vals=montagem.map((m:any)=>n(m[chave])>0?arredondarProducao(m[chave],"g"):0);
+              const idxs=vals.map((v:number,i:number)=>v>0?i:-1).filter((i:number)=>i>=0);
+              if(idxs.length){const soma=vals.reduce((a:number,b:number)=>a+b,0); vals[idxs[idxs.length-1]]=Math.max(0,vals[idxs[idxs.length-1]]+n(tamanho)-soma);}
+              return vals;
+            };
+            const v200=exatos("200"),v300=exatos("300"),v400=exatos("400");
+            return <article key={`dia-mont-${x.produto.id}`} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div><h3 className="text-lg font-black">{x.produto.nome}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p></div>
+                <b className="text-right text-[#087443]">{x.total} un</b>
+              </div>
+              {!montagem.length ? <p className="text-sm text-[#62766b]">Montagem ainda não cadastrada para esta ficha.</p> : <div className="rounded-xl border border-[#dbe7dd]">
+                <div className="grid bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+                {montagem.map((m:any,idx:number)=><div key={m.id || idx} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{v200[idx]>0?`${v200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v300[idx]>0?`${v300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v400[idx]>0?`${v400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+              </div>}
+            </article>;
+          })}
+        </div>}
+      </section>
     </div>
   </Janela>;
 }
