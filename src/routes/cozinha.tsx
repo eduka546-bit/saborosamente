@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProducaoSinergia";
 import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
+import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { EtiquetasManager } from "./cozinha.etiquetas";
 import { toast } from "sonner";
 import {
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
+type Aba = "producao" | "demanda" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
 type Tamanho = "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -390,6 +391,7 @@ function CozinhaPage() {
     );
   const abas: { id: Aba; label: string; icon: any }[] = [
     { id: "producao", label: "Produção", icon: ClipboardList },
+    { id: "demanda", label: "Demanda", icon: BarChart3 },
     { id: "separar", label: "Separar hoje", icon: Salad },
     { id: "ingredientes", label: "Ingredientes", icon: Package },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
@@ -441,6 +443,7 @@ function CozinhaPage() {
           ))}
         </aside>
         <main className="p-4 md:p-8">
+          {aba === "demanda" && <DemandaProducao />}
           {aba === "producao" && (
             <section>
               <Titulo
