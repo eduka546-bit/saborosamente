@@ -1,0 +1,32 @@
+name: Compactar impressao fichas
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/compactar-impressao-fichas.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compactar layout de impressao
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          old = '''    @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:12px}h1,h2,h3,h4,p{margin-top:0}button{display:none!important}.grid{display:grid;gap:10px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-5{gap:20px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.p-3{padding:12px}.p-4{padding:16px}.px-3{padding-left:12px;padding-right:12px}.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}.rounded-xl,.rounded-2xl{border-radius:8px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\\[\\#edf5e6\\],.bg-\\[\\#f4f7f4\\],.bg-\\[\\#f4f8f4\\]{background:#f3f7f3}.bg-\\[\\#173a2d\\]{background:#fff!important;color:#173a2d!important;border:2px solid #173a2d}.text-white,.text-white\\/70{color:#173a2d!important}.text-\\[\\#087443\\]{color:#087443}.text-\\[\\#527164\\],.text-\\[\\#62766b\\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:10px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-xl{font-size:18px}.text-2xl{font-size:22px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article,section{break-inside:avoid;page-break-inside:avoid}[data-screen-only]{display:none!important}.print-only{display:block!important}img{max-width:100%}'''
+          new = '''    @page{size:A4;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:9px;line-height:1.2}h1,h2,h3,h4,p{margin-top:0;margin-bottom:3px}button{display:none!important}.grid{display:grid;gap:4px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2,.gap-3,.gap-4,.gap-5{gap:4px}.mb-2,.mb-3,.mb-4,.mb-5{margin-bottom:5px}.mt-1,.mt-2,.mt-3,.mt-4{margin-top:4px}.p-3,.p-4{padding:6px}.px-3{padding-left:6px;padding-right:6px}.py-1,.py-2{padding-top:3px;padding-bottom:3px}.rounded-xl,.rounded-2xl{border-radius:5px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\\[\\#edf5e6\\],.bg-\\[\\#f4f7f4\\],.bg-\\[\\#f4f8f4\\]{background:#f3f7f3}.bg-\\[\\#173a2d\\]{background:#fff!important;color:#173a2d!important;border:1px solid #173a2d}.text-white,.text-white\\/70{color:#173a2d!important}.text-\\[\\#087443\\]{color:#087443}.text-\\[\\#527164\\],.text-\\[\\#62766b\\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:8px}.text-sm{font-size:9px}.text-lg{font-size:11px}.text-xl{font-size:13px}.text-2xl{font-size:15px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}[data-screen-only]{display:none!important}.print-only{display:block!important}.sm\\:grid-cols-2,.md\\:grid-cols-2,.lg\\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\\:grid-cols-3,.lg\\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}img{max-width:100%}'''
+          if old not in s:
+              raise SystemExit('css de impressao nao encontrado')
+          p.write_text(s.replace(old, new, 1))
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/compactar-impressao-fichas.yml
+          git commit -m "fix(cozinha): compactar fichas para impressao"
+          git push
