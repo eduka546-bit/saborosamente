@@ -16,6 +16,7 @@ type EtapaConfig = {
   ativo: boolean;
   texto: string;
   template_meta: string;
+  template_aprovado: boolean;
 };
 
 type Config = {
@@ -30,21 +31,25 @@ const DEFAULT_CONFIG: Config = {
     ativo: true,
     texto: "✅ Oii, *{nome}*! Seu pedido *#{protocolo}* foi recebido e confirmado com sucesso.\n\nSaborosaMente 🍱",
     template_meta: "pedido_confirmado",
+    template_aprovado: false,
   },
   saiu_entrega: {
     ativo: true,
     texto: "🚚 Oii, *{nome}*! Seu pedido *#{protocolo}* saiu para entrega e já está a caminho.\n\nSaborosaMente 🍱",
     template_meta: "pedido_saiu_entrega",
+    template_aprovado: false,
   },
   pronto_retirada: {
     ativo: true,
     texto: "🛍️ Oii, *{nome}*! Seu pedido *#{protocolo}* já está pronto para retirada na loja.\n\nSaborosaMente 🍱",
     template_meta: "pedido_pronto_retirada",
+    template_aprovado: false,
   },
   feedback: {
     ativo: true,
     texto: "Oii, *{nome}*! 😊 Seu pedido *#{protocolo}* foi finalizado.\n\nQueremos muito saber como foi sua experiência com a SaborosaMente 💚\nSe puder, conta pra gente por aqui mesmo o que achou do pedido, dos pratos e do atendimento.\n\nSeu feedback ajuda bastante a gente a melhorar cada vez mais. 🫶🏼\n\nSaborosaMente 🍱",
     template_meta: "feedback_pedido",
+    template_aprovado: false,
   },
 };
 
@@ -149,15 +154,25 @@ function WhatsAppNotificacoesPage() {
                   className="mt-1 w-full rounded-xl border px-3 py-2 text-sm resize-y outline-none focus:ring-2 focus:ring-[#5850ec]/20 disabled:bg-gray-50 disabled:text-gray-400"
                 />
 
-                <div className="mt-4">
-                  <label className="text-xs font-bold uppercase text-gray-400">Nome do template Utility na Meta</label>
-                  <Input
-                    value={item.template_meta}
-                    onChange={(e) => setEtapa(etapa.key, { template_meta: e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_") })}
-                    placeholder="ex: pedido_confirmado"
-                    disabled={!item.ativo}
-                    className="mt-1"
-                  />
+                <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-gray-400">Nome do template Utility na Meta</label>
+                    <Input
+                      value={item.template_meta}
+                      onChange={(e) => setEtapa(etapa.key, { template_meta: e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_") })}
+                      placeholder="ex: pedido_confirmado"
+                      disabled={!item.ativo}
+                      className="mt-1"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold text-gray-600">
+                    <Switch
+                      checked={item.template_aprovado}
+                      onCheckedChange={(template_aprovado) => setEtapa(etapa.key, { template_aprovado })}
+                      disabled={!item.ativo}
+                    />
+                    Template aprovado
+                  </label>
                 </div>
               </div>
             );

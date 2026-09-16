@@ -43,6 +43,57 @@ async function sendWhatsApp(to: string, text: string) {
   }
 }
 
+
+async function sendWhatsAppTemplate(to: string, templateName: string, nome: string, protocolo: string) {
+  const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: "pt_BR" },
+        components: [{
+          type: "body",
+          parameters: [
+            { type: "text", text: nome },
+            { type: "text", text: protocolo },
+          ],
+        }],
+      },
+    }),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    console.error("WhatsApp template error:", response.status, body);
+    throw new Error("Falha ao enviar template pelo WhatsApp");
+  }
+}
+
+async function janela24hAberta(telefone: string): Promise<boolean> {
+  const digits = telefone.replace(/\D/g, "");
+  const semPais = digits.startsWith("55") ? digits.slice(2) : digits;
+  const comPais = digits.startsWith("55") ? digits : `55${digits}`;
+  const variantes = [...new Set([digits, semPais, comPais])].filter(Boolean);
+  const { data } = await supabase
+    .from("whatsapp_conversas")
+    .select("mensagens,ultima_msg")
+    .in("telefone", variantes)
+    .order("ultima_msg", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return false;
+  const mensagens = Array.isArray(data.mensagens) ? data.mensagens : [];
+  const ultimaDoCliente = [...mensagens].reverse().find((m: any) => m?.role === "user" || m?.direction === "in");
+  const ts = ultimaDoCliente?.timestamp ?? ultimaDoCliente?.created_at ?? data.ultima_msg;
+  if (!ts) return false;
+  const diff = Date.now() - new Date(ts).getTime();
+  return Number.isFinite(diff) && diff >= 0 && diff <= 24 * 60 * 60 * 1000;
+}
+
 /**
  * Envia imagem (para QR Code do PIX)
  */
@@ -217,22 +268,46 @@ Deno.serve(async (req) => {
 
     // Templates editáveis no admin (site_settings.parametros_loja.mensagens_whatsapp)
     let templates: Record<string, string> = {};
+    let notificacoesConfig: any = {};
     try {
       const { data: settings } = await supabase
         .from("site_settings")
         .select("parametros_loja")
         .maybeSingle();
-      const raw = (settings?.parametros_loja as any)?.mensagens_whatsapp;
+      const parametros = (settings?.parametros_loja as any) ?? {};
+      const raw = parametros.mensagens_whatsapp;
       if (raw && typeof raw === "object") templates = raw;
+      notificacoesConfig = parametros.whatsapp_notificacoes ?? {};
     } catch (e) {
       console.warn("Falha ao buscar templates de mensagens (usando defaults):", e);
     }
 
     const metodoEntrega = String(pedido.metodo_entrega ?? "").toLowerCase();
-    const statusMensagem =
-      status_novo === "saiu para entrega" && metodoEntrega === "retirada"
-        ? "pronto para retirada"
-        : status_novo;
+    let statusMensagem = status_novo;
+    if (["pendente", "pagamento_confirmado"].includes(status_novo)) statusMensagem = "pendente";
+    if (status_novo === "saiu para entrega" && metodoEntrega === "retirada") statusMensagem = "pronto para retirada";
+
+    const configKey =
+      statusMensagem === "pendente" ? "confirmado" :
+      statusMensagem === "saiu para entrega" ? "saiu_entrega" :
+      statusMensagem === "pronto para retirada" ? "pronto_retirada" :
+      statusMensagem === "entregue" ? "feedback" : null;
+
+    // O fluxo operacional acordado nao envia aviso de preparacao. Outros status
+    // legados continuam sem disparo automatico, exceto cancelamento se ja configurado.
+    if (statusMensagem === "preparando") {
+      return new Response(JSON.stringify({ ok: true, ignorada: true, motivo: "status sem notificacao" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const etapaConfig = configKey ? notificacoesConfig?.[configKey] : null;
+    if (etapaConfig?.ativo === false) {
+      return new Response(JSON.stringify({ ok: true, ignorada: true, motivo: "notificacao desativada" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    if (etapaConfig?.texto && typeof etapaConfig.texto === "string") templates[statusMensagem] = etapaConfig.texto;
 
     const mensagemObj = mensagemStatus(statusMensagem, pedido, isRecorrente, templates);
     if (!mensagemObj) {
@@ -257,8 +332,27 @@ Deno.serve(async (req) => {
     claimedOrderId = pedido_id;
     claimedStatus = statusMensagem;
 
-    // Envia mensagem
-    await sendWhatsApp(telWA, mensagemObj.texto);
+    // Dentro de 24h: texto normal. Fora da janela: somente template Utility
+    // explicitamente marcado como aprovado no Admin.
+    const protocoloEnvio = pedido.id.slice(0, 8).toUpperCase();
+    const nomeEnvio = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
+    const janelaAberta = await janela24hAberta(telWA);
+    const templateMeta = String(etapaConfig?.template_meta ?? "").trim();
+    const templateAprovado = etapaConfig?.template_aprovado === true;
+
+    if (janelaAberta || !configKey) {
+      await sendWhatsApp(telWA, mensagemObj.texto);
+    } else if (templateMeta && templateAprovado) {
+      await sendWhatsAppTemplate(telWA, templateMeta, nomeEnvio, protocoloEnvio);
+    } else {
+      // Libera o claim para que o envio possa ser tentado novamente depois que
+      // o template for aprovado/configurado.
+      await supabase.from("whatsapp_notificacoes_enviadas").delete().eq("pedido_id", pedido_id).eq("status", statusMensagem);
+      notificationClaimed = false;
+      return new Response(JSON.stringify({ ok: false, aguardando_template: true, status: statusMensagem }), {
+        status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     // Se status é PIX confirmado, envia QR Code
     if (

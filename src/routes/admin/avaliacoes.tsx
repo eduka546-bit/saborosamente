@@ -16,17 +16,18 @@ function AdminAvaliacoesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("avaliacoes")
-        .select("*, pedidos(nome_cliente, created_at)")
+        .select("*, pedidos(id, nome_cliente, created_at)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
+  const notas = useMemo(() => data.filter((a: any) => Number.isInteger(a.nota) && a.nota >= 1 && a.nota <= 5), [data]);
   const media = useMemo(() => {
-    if (!data.length) return 0;
-    return data.reduce((s: number, a: any) => s + (a.nota ?? 0), 0) / data.length;
-  }, [data]);
+    if (!notas.length) return 0;
+    return notas.reduce((s: number, a: any) => s + Number(a.nota), 0) / notas.length;
+  }, [notas]);
 
   if (isLoading)
     return (
@@ -65,7 +66,7 @@ function AdminAvaliacoesPage() {
                   />
                 ))}
               </div>
-              <p className="text-sm text-gray-500 mt-1">{data.length} avaliações</p>
+              <p className="text-sm text-gray-500 mt-1">{data.length} feedbacks · {notas.length} com nota</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -79,25 +80,22 @@ function AdminAvaliacoesPage() {
                     <p className="font-bold text-sm text-gray-900">
                       {av.pedidos?.nome_cliente ?? "Cliente"}
                     </p>
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star
-                          key={n}
-                          size={14}
-                          className={
-                            n <= (av.nota ?? 0)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-200"
-                          }
-                        />
-                      ))}
-                    </div>
+                    {av.nota ? (
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} size={14} className={n <= av.nota ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase rounded-full bg-green-50 text-green-700 px-2 py-1">Feedback escrito</span>
+                    )}
                   </div>
                   {av.comentario && (
                     <p className="text-sm text-gray-600 italic">"{av.comentario}"</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    {format(new Date(av.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  <p className="text-xs text-gray-400 mt-2">
+                    {av.pedido_id ? `Pedido #${String(av.pedido_id).slice(0, 8).toUpperCase()} · ` : ""}
+                    {format(new Date(av.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </p>
                 </div>
               </div>
