@@ -1038,6 +1038,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
+  const somenteCampanha = conversa.somenteCampanha === true;
+  const isHumano = conversa.modo === "humano";
 
   // Contexto comercial do cliente: ajuda quem assume a conversa sem precisar
   // abrir outra tela para descobrir se é cliente recorrente, quanto já comprou
@@ -1048,7 +1050,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       if (!telefoneBusca) return [];
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id,status,valor_total,created_at,nome_cliente,cliente_nome")
+        .select("id,status,valor_total,total,created_at,nome_cliente,cliente_nome")
         .or(`cliente_telefone.ilike.%${telefoneBusca}%,telefone_cliente.ilike.%${telefoneBusca}%`)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -1063,10 +1065,53 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
     (p: any) => String(p.status ?? "").toLowerCase() !== "cancelado",
   );
   const totalGastoCliente = pedidosValidos.reduce(
-    (soma: number, p: any) => soma + Number(p.valor_total || 0),
+    (soma: number, p: any) => soma + Number(p.valor_total ?? p.total ?? 0),
     0,
   );
   const ultimoPedidoCliente = pedidosValidos[0] ?? null;
+
+  // Contexto de recuperação: se o cliente deixou um carrinho recentemente,
+  // quem assumir o atendimento já enxerga isso sem sair da conversa.
+  const { data: carrinhosCliente = [] } = useQuery({
+    queryKey: ["whatsapp-carrinhos-cliente", telefoneNormalizado],
+    queryFn: async () => {
+      if (!telefoneNormalizado) return [];
+      const semPais = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
+      const comPais = telefoneNormalizado.startsWith("55") ? telefoneNormalizado : `55${telefoneNormalizado}`;
+      const telefones = [...new Set([telefoneNormalizado, semPais, comPais])].filter(Boolean);
+      const { data, error } = await supabase
+        .from("carrinhos_abandonados")
+        .select("id,status,itens,valor_total,created_at,updated_at,convertido_em,cupom_oferta")
+        .in("telefone", telefones)
+        .order("updated_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!telefoneNormalizado && !somenteCampanha,
+    staleTime: 30_000,
+  });
+
+  const carrinhoAtivo = (carrinhosCliente as any[]).find(
+    (c: any) => !c.convertido_em && String(c.status ?? "").toLowerCase() === "abandonado",
+  ) ?? null;
+  const carrinhoItensQtd = Array.isArray(carrinhoAtivo?.itens) ? carrinhoAtivo.itens.length : 0;
+
+  const pedidoEmAndamento =
+    conversa.pedido_em_andamento &&
+    typeof conversa.pedido_em_andamento === "object" &&
+    Object.keys(conversa.pedido_em_andamento).length > 0
+      ? conversa.pedido_em_andamento
+      : null;
+
+  // Quando a IA transfere para uma pessoa, ela já grava um resumo como mensagem
+  // de sistema. Reaproveitamos esse texto como briefing fixo para a equipe.
+  const resumoEquipeRaw = [...mensagensDaConversa]
+    .reverse()
+    .find((m: any) => m?.role === "system" && String(m?.content ?? "").startsWith("[Resumo para equipe]"));
+  const resumoEquipe = resumoEquipeRaw
+    ? String(resumoEquipeRaw.content).replace(/^\[Resumo para equipe\]\s*/, "").trim()
+    : "";
 
   // As campanhas são guardadas em tabelas próprias. Ao trazer os envios para a
   // conversa, o atendimento passa a exibir também o que a empresa enviou antes
@@ -1119,8 +1164,6 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
     (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
   );
-  const somenteCampanha = conversa.somenteCampanha === true;
-  const isHumano = conversa.modo === "humano";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1308,6 +1351,37 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
           </button>
         )}
       </div>
+
+      {!somenteCampanha && (isHumano || pedidoEmAndamento || carrinhoAtivo || resumoEquipe) && (
+        <div className={`mx-3 mt-2 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isHumano && (
+              <span className="rounded-full bg-[#f0a202] px-2 py-0.5 text-[10px] font-bold text-white">👤 Atendimento humano</span>
+            )}
+            {pedidoEmAndamento && (
+              <span title={JSON.stringify(pedidoEmAndamento)} className="rounded-full bg-[#00a884] px-2 py-0.5 text-[10px] font-bold text-white">🛒 Pedido em andamento</span>
+            )}
+            {carrinhoAtivo && (
+              <span className="rounded-full bg-[#6c5ce7] px-2 py-0.5 text-[10px] font-bold text-white">
+                🧺 Carrinho abandonado · R$ {Number(carrinhoAtivo.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
+          {resumoEquipe && (
+            <p className={`mt-1.5 text-[11px] leading-relaxed ${t.text}`}><strong>Resumo da IA:</strong> {resumoEquipe}</p>
+          )}
+          {pedidoEmAndamento && !resumoEquipe && (
+            <p className={`mt-1.5 text-[11px] ${t.textSub}`}>A IA já coletou dados deste pedido. Passe o mouse sobre “Pedido em andamento” para consultar o estado salvo e continue de onde ela parou.</p>
+          )}
+          {carrinhoAtivo && (
+            <p className={`mt-1 text-[11px] ${t.textSub}`}>
+              Carrinho de {new Date(carrinhoAtivo.updated_at || carrinhoAtivo.created_at).toLocaleDateString("pt-BR")}
+              {carrinhoItensQtd > 0 ? ` · ${carrinhoItensQtd} ${carrinhoItensQtd === 1 ? "item" : "itens"}` : ""}
+              {carrinhoAtivo.cupom_oferta ? ` · cupom ${carrinhoAtivo.cupom_oferta}` : ""}.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Mensagens */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
