@@ -78,7 +78,7 @@ const imprimirElemento = (id: string, titulo: string) => {
   const janela = window.open("", "_blank", "width=1000,height=800");
   if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
-    @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:12px}h1,h2,h3,h4,p{margin-top:0}button{display:none!important}.grid{display:grid;gap:10px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-5{gap:20px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.p-3{padding:12px}.p-4{padding:16px}.px-3{padding-left:12px;padding-right:12px}.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}.rounded-xl,.rounded-2xl{border-radius:8px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3}.bg-\[\#173a2d\]{background:#fff!important;color:#173a2d!important;border:2px solid #173a2d}.text-white,.text-white\/70{color:#173a2d!important}.text-\[\#087443\]{color:#087443}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:10px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-xl{font-size:18px}.text-2xl{font-size:22px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article,section{break-inside:avoid;page-break-inside:avoid}img{max-width:100%}
+    @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:12px}h1,h2,h3,h4,p{margin-top:0}button{display:none!important}.grid{display:grid;gap:10px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-5{gap:20px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.p-3{padding:12px}.p-4{padding:16px}.px-3{padding-left:12px;padding-right:12px}.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}.rounded-xl,.rounded-2xl{border-radius:8px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3}.bg-\[\#173a2d\]{background:#fff!important;color:#173a2d!important;border:2px solid #173a2d}.text-white,.text-white\/70{color:#173a2d!important}.text-\[\#087443\]{color:#087443}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:10px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-xl{font-size:18px}.text-2xl{font-size:22px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article,section{break-inside:avoid;page-break-inside:avoid}[data-screen-only]{display:none!important}.print-only{display:block!important}img{max-width:100%}
   </style></head><body>${elemento.innerHTML}</body></html>`);
   janela.document.close();
   janela.focus();
@@ -1146,6 +1146,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       </button>
     </div>
 
+    <div data-screen-only>
     {abaDia === "producao" && (
       !pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">
         {pratos.map((x: any) => <article key={x.produto.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
@@ -1184,6 +1185,22 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         </div>
       </div>
     )}
+    </div>
+
+    <div className="hidden print-only">
+      <section>
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Produção do dia</p>
+        {!pratos.length ? <Vazio texto="Nenhuma produção lançada neste dia." /> : <div className="grid gap-4">
+          {pratos.map((x: any) => <article key={`impressao-prod-${x.produto.id}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex justify-between gap-3"><div><h3 className="font-black">{x.produto.nome}</h3><p className="mt-1 text-sm text-[#62766b]">{TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><b className="text-[#087443]">{x.total} un</b></div></article>)}
+        </div>}
+      </section>
+      <section className="mt-5">
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Ingredientes necessários do dia</p>
+        {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="mt-2 text-xl font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p>{x.pratos?.length > 0 && <p className="mt-2 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
+        </div>}
+      </section>
+    </div>
     </div>
   </Janela>;
 }
@@ -1288,7 +1305,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <div className="grid gap-2 md:grid-cols-2">{diretos.length ? diretos.map((d: any) => <div key={d.montagem.id || d.montagem.nome} className="rounded-xl border border-[#dbe7dd] bg-white p-3"><div className="flex justify-between gap-3"><span className="font-bold">{d.montagem.nome}</span><b className="text-[#087443]">{formatPeso(d.bruto)}</b></div><p className="mt-1 text-xs text-[#62766b]">Montagem pronta: {formatPeso(d.montagem.total)}{d.ingrediente?.tipo_rendimento === "ganho" ? ` · dividido por ×${n(d.ingrediente.fator_rendimento)}` : d.ingrediente?.tipo_rendimento === "perda" ? ` · +${n(d.ingrediente.quebra_percentual)}% de perda` : ""}</p></div>) : <p className="text-sm text-[#62766b]">Todos os componentes da montagem estão dentro de preparações.</p>}</div>
       </section>
       <section className="rounded-2xl bg-[#173a2d] p-4 text-white">
-        <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Total a separar</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Ingredientes necessários / total a separar</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="mt-1 text-lg font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ")}</p></div>)}</div>
       </section>
     </div>
