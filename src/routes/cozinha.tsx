@@ -1206,7 +1206,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         </div>}
       </section>
 
-      <section className="page-break-before">
+      <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
@@ -1273,6 +1273,11 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     const texto = String(item.quantidade_texto || "").trim();
     const ingrediente = porId.get(item.ingrediente_id) as any;
     if (ehQB(texto) || !n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: ehQB(texto) || !texto ? "a gosto" : textoCozinha(texto) };
+    const volumeLitros = /\blitro(s)?\b|\bl\b/i.test(texto);
+    if (volumeLitros) {
+      const litros = (n(item.quantidade) * fator) / 1000;
+      return { tipo: "texto", valor: 0, exibicao: `${litros.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} L` };
+    }
     const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
     if (peso) {
       const bruto = n(item.quantidade) * fator;
@@ -1391,7 +1396,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <div className="mt-2 grid gap-1 sm:grid-cols-3">{listaSeparar.map((x: any) => <div key={x.nome} className="flex items-center justify-between gap-2 rounded-lg bg-white/10 px-2 py-1.5"><p className="text-xs font-bold">{x.nome}</p><p className="text-right text-xs font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ") || "a gosto"}</p></div>)}</div>
       </section>
 
-      <section className="page-break-before">
+      <section>
         <div className="mb-3 grid gap-4" style={{ gridTemplateColumns: "170px 1fr", alignItems: "start" }}>
           <div className="rounded-xl border border-[#dbe7dd] bg-white p-2" style={{ width: "170px", overflow: "hidden" }}>{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{ width: "154px", height: "116px", objectFit: "contain", borderRadius: "8px", display: "block", margin: "0 auto" }} /> : <div className="grid place-items-center" style={{ height: "116px" }}><ChefHat size={34} /></div>}</div>
           <div>
