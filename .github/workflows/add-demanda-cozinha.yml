@@ -1,0 +1,65 @@
+name: Integrar demanda na cozinha
+on:
+  push:
+    paths:
+      - '.github/workflows/add-demanda-cozinha.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Aplicar patch
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          imp = 'import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";\n'
+          novo_imp = imp + 'import { DemandaProducao } from "@/components/cozinha/DemandaProducao";\n'
+          if 'DemandaProducao' not in s:
+              if imp not in s:
+                  raise SystemExit('âncora de import não encontrada')
+              s = s.replace(imp, novo_imp, 1)
+
+          tipo = 'type Aba = "producao" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";'
+          tipo_novo = 'type Aba = "producao" | "demanda" | "separar" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";'
+          if tipo in s:
+              s = s.replace(tipo, tipo_novo, 1)
+
+          aba = '    { id: "producao", label: "Produção", icon: ClipboardList },\n'
+          aba_nova = aba + '    { id: "demanda", label: "Demanda", icon: BarChart3 },\n'
+          if '{ id: "demanda", label: "Demanda"' not in s:
+              if aba not in s:
+                  raise SystemExit('âncora de aba não encontrada')
+              s = s.replace(aba, aba_nova, 1)
+
+          main = '        <main className="p-4 md:p-8">\n          {aba === "producao" && ('
+          main_novo = '        <main className="p-4 md:p-8">\n          {aba === "demanda" && <DemandaProducao />}\n          {aba === "producao" && ('
+          if '{aba === "demanda" && <DemandaProducao />}' not in s:
+              if main not in s:
+                  raise SystemExit('âncora de render não encontrada')
+              s = s.replace(main, main_novo, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "feat(cozinha): integrar demanda ao planejamento" || true
+          git push origin main
+      - name: Remover workflow temporário
+        run: |
+          git pull --rebase origin main
+          rm -f .github/workflows/add-demanda-cozinha.yml
+          git add .github/workflows/add-demanda-cozinha.yml
+          git commit -m "chore: remover workflow temporário de demanda"
+          git push origin main
