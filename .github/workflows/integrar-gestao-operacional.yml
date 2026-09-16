@@ -1,0 +1,43 @@
+name: Integrar gestao operacional
+on:
+  push:
+    paths:
+      - '.github/workflows/integrar-gestao-operacional.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrar aba de gestão
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          s = s.replace('import { ListaCompras } from "@/components/cozinha/ListaCompras";\n', 'import { ListaCompras } from "@/components/cozinha/ListaCompras";\nimport { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";\n', 1)
+          s = s.replace('type Aba = "producao" | "demanda" | "separar" | "compras" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";', 'type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";', 1)
+          nav = '    { id: "compras", label: "Lista de compras", icon: Package },\n'
+          if nav not in s:
+              raise SystemExit('nav compras nao encontrado')
+          s = s.replace(nav, nav + '    { id: "gestao", label: "Gestão operacional", icon: Store },\n', 1)
+          bloco = '''          {aba === "compras" && (\n            <ListaCompras\n              dataProducao={dataProducao}\n              necessidades={separar}\n              estoque={estoque as any[]}\n            />\n          )}'''
+          if bloco not in s:
+              raise SystemExit('bloco compras nao encontrado')
+          s = s.replace(bloco, bloco + '\n          {aba === "gestao" && <GestaoOperacional />}', 1)
+          p.write_text(s)
+      - name: Commit funcional
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "feat(cozinha): integrar lotes perdas fornecedores e compras"
+          git push
+      - name: Remover workflows temporários
+        run: |
+          git pull --rebase
+          git rm .github/workflows/integrar-gestao-operacional.yml
+          if [ -f .github/workflows/fix-separacao-ingredientes.yml ]; then git rm .github/workflows/fix-separacao-ingredientes.yml; fi
+          git commit -m "chore: limpar workflows temporários" || true
+          git push
