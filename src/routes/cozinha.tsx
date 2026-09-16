@@ -1333,6 +1333,20 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <p className="text-xs font-bold uppercase tracking-wide text-white/70">4. Ingredientes necessários / total a separar</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{listaSeparar.map((x: any) => <div key={x.nome} className="flex items-center justify-between gap-3 rounded-xl bg-white/10 p-3"><p className="text-sm font-bold">{x.nome}</p><p className="text-right text-sm font-black">{[x.peso > 0 ? formatarQuantidadeProducao(x.peso, "g", x.nome) : "", x.unidades > 0 ? formatarQuantidadeProducao(x.unidades, "un", x.nome) : "", ...x.textos.map((t: string) => textoCozinha(t))].filter(Boolean).join(" · ") || "a gosto"}</p></div>)}</div>
       </section>
+
+      <section className="page-break-before">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
+            <p className="text-xs text-[#62766b]">Referência de montagem de cada unidade de 200 g, 300 g e 400 g.</p>
+          </div>
+          <b className="text-xs text-[#173a2d]">{produto.nome}</b>
+        </div>
+        {!(montagem as any[]).length ? <Vazio texto="Montagem ainda não cadastrada para esta ficha." /> : <div className="rounded-2xl border border-[#dbe7dd] bg-white">
+          <div className="grid grid-cols-[minmax(180px,1fr)_90px_90px_90px] gap-2 bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+          {(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(180px,1fr)_90px_90px_90px] items-center gap-2 border-t border-[#e2ebe3] px-3 py-2 text-sm"><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{n(m.gramas_200) > 0 ? `${arredondarProducao(m.gramas_200, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_300) > 0 ? `${arredondarProducao(m.gramas_300, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_400) > 0 ? `${arredondarProducao(m.gramas_400, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span></div>)}
+        </div>}
+      </section>
     </div>
   </Janela>;
 }
