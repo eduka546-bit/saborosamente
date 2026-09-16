@@ -12,12 +12,15 @@ s = s.replace(
     '.text-xs{font-size:9px}.text-sm{font-size:10.2px}.text-lg{font-size:12.5px}.text-xl{font-size:17px}.text-2xl{font-size:19px}'
 )
 
-start = '''      <section>\n        <div className="mb-3 grid gap-4" style={{ gridTemplateColumns: "170px 1fr", alignItems: "start" }}>'''
-end = '''      </section>\n    </div>\n  </Janela>;'''
-i = s.find(start)
+marker = 'style={{ gridTemplateColumns: "170px 1fr", alignItems: "start" }}'
+pos = s.find(marker)
+if pos < 0:
+    raise SystemExit('bloco da montagem individual não encontrado')
+i = s.rfind('      <section>', 0, pos)
 if i < 0:
-    raise SystemExit('inicio da montagem individual não encontrado')
-j = s.find(end, i)
+    raise SystemExit('início da seção de montagem não encontrado')
+end = '''      </section>\n    </div>\n  </Janela>;'''
+j = s.find(end, pos)
 if j < 0:
     raise SystemExit('fim da montagem individual não encontrado')
 
