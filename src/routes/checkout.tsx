@@ -386,6 +386,25 @@ function Checkout() {
       });
 
       setOrderId(order.id);
+
+      // Carrinho abandonado: ao finalizar um pedido, marca a sessão como convertida
+      // antes de limpar o carrinho para não deixar uma venda concluída aparecendo como perdida.
+      try {
+        const abandonedSessionId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("saborosamente.session_id")
+            : null;
+        if (abandonedSessionId) {
+          await supabase.rpc("update_abandoned_cart_state", {
+            p_session_id: abandonedSessionId,
+            p_status: "convertido",
+          });
+          localStorage.removeItem("saborosamente.abandon_coupon");
+        }
+      } catch (err) {
+        console.warn("[Checkout] não foi possível marcar carrinho como convertido:", err);
+      }
+
       clear();
 
       // Notifica cliente via WhatsApp — confirmação do pedido
