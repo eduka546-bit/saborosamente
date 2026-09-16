@@ -1037,6 +1037,36 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
+  const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
+
+  // Contexto comercial do cliente: ajuda quem assume a conversa sem precisar
+  // abrir outra tela para descobrir se é cliente recorrente, quanto já comprou
+  // e qual foi o último pedido.
+  const { data: pedidosCliente = [] } = useQuery({
+    queryKey: ["whatsapp-contexto-cliente", telefoneBusca],
+    queryFn: async () => {
+      if (!telefoneBusca) return [];
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("id,status,valor_total,created_at,nome_cliente,cliente_nome")
+        .or(`cliente_telefone.ilike.%${telefoneBusca}%,telefone_cliente.ilike.%${telefoneBusca}%`)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!telefoneBusca && !somenteCampanha,
+    staleTime: 30_000,
+  });
+
+  const pedidosValidos = (pedidosCliente as any[]).filter(
+    (p: any) => String(p.status ?? "").toLowerCase() !== "cancelado",
+  );
+  const totalGastoCliente = pedidosValidos.reduce(
+    (soma: number, p: any) => soma + Number(p.valor_total || 0),
+    0,
+  );
+  const ultimoPedidoCliente = pedidosValidos[0] ?? null;
 
   // As campanhas são guardadas em tabelas próprias. Ao trazer os envios para a
   // conversa, o atendimento passa a exibir também o que a empresa enviou antes
@@ -1238,6 +1268,24 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
             </div>
           )}
           <p className={`text-xs ${t.textSub}`}>{conversa.telefone}</p>
+          {!somenteCampanha && pedidosValidos.length > 0 && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}>
+                {pedidosValidos.length} {pedidosValidos.length === 1 ? "pedido" : "pedidos"}
+              </span>
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}>
+                R$ {totalGastoCliente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              {ultimoPedidoCliente && (
+                <span
+                  title={`Último pedido: ${new Date(ultimoPedidoCliente.created_at).toLocaleString("pt-BR")} · ${ultimoPedidoCliente.status}`}
+                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}
+                >
+                  Último: {new Date(ultimoPedidoCliente.created_at).toLocaleDateString("pt-BR")}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         {!somenteCampanha && (
           <button
