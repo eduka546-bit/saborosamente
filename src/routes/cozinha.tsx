@@ -85,7 +85,11 @@ const imprimirElemento = (id: string, titulo: string) => {
   </style></head><body>${elemento.innerHTML}</body></html>`);
   janela.document.close();
   janela.focus();
-  setTimeout(() => { janela.print(); janela.close(); }, 250);
+  const imagens = Array.from(janela.document.images);
+  const prontas = imagens.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); }));
+  Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {
+    setTimeout(() => { janela.print(); janela.close(); }, 150);
+  });
 };
 const receitaVazia = (): ReceitaLinha => ({
   ingrediente_id: null,
@@ -825,6 +829,7 @@ function CozinhaPage() {
           preparacoes={preparacoes as any[]}
           embalagens={embalagens as any[]}
           itensPreparacao={itensPrep}
+          itensReceita={itensRec.get(rec.get(edit.id)?.id) || []}
           ingredientes={ingredientes as any[]}
           fechar={() => setModal(null)}
         />
@@ -1244,7 +1249,7 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
   </Janela>;
 }
 
-function FichaProducaoModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, itensPreparacao, ingredientes, fechar }: any) {
+function FichaProducaoModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, itensPreparacao, itensReceita = [], ingredientes, fechar }: any) {
   const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
   const mesmo = (a: unknown, b: unknown) => {
@@ -1279,15 +1284,27 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     const un = arredondarProducao(n(item.quantidade) * fator, "un");
     return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}` };
   };
+  const totalReceitaPorIngrediente = new Map<string, number>();
+  (itensReceita as any[]).filter((x: any) => x.ingrediente_id).forEach((x: any) => {
+    const total = n(x.gramas_200) * n(quantidades["200"]) + n(x.gramas_300) * n(quantidades["300"]) + n(x.gramas_400) * n(quantidades["400"]);
+    if (total > 0) totalReceitaPorIngrediente.set(x.ingrediente_id, (totalReceitaPorIngrediente.get(x.ingrediente_id) || 0) + total);
+  });
+
   const preparacoesCalculadas = preps.map((prep: any) => {
     const componente = montagemTotal.find((m: any) => mesmo(m.nome, prep.nome));
     const pronto = n(componente?.total);
     const fator = n(prep.rendimento_final_g) > 0 ? pronto / n(prep.rendimento_final_g) : 0;
-    const itens = (itensPreparacao.get(prep.id) || []).map((item: any) => ({
-      ...item,
-      ingrediente: porId.get(item.ingrediente_id),
-      calculado: interpretar(item, fator),
-    }));
+    const itens = (itensPreparacao.get(prep.id) || []).map((item: any) => {
+      const ingrediente = porId.get(item.ingrediente_id);
+      const fallbackExato = n(totalReceitaPorIngrediente.get(item.ingrediente_id));
+      const calculadoBase = interpretar(item, fator);
+      const usarFallback = !(n(prep.rendimento_final_g) > 0) || !(n(item.quantidade) > 0) || calculadoBase.tipo === "texto" || !(n(calculadoBase.valor) > 0);
+      const calculado = usarFallback && fallbackExato > 0
+        ? { tipo: "peso", valor: fallbackExato, exibicao: formatarQuantidadeProducao(fallbackExato, "g", ingrediente?.nome) }
+        : calculadoBase;
+      const pendente = usarFallback && !(fallbackExato > 0) && !(n(calculadoBase.valor) > 0);
+      return { ...item, ingrediente, calculado, pendente };
+    });
     return { prep, componente, pronto, fator, itens };
   }).filter((x: any) => x.pronto > 0 || x.itens.length);
   const nomesPrep = preps.map((p: any) => p.nome);
@@ -1307,8 +1324,19 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     else if (exibicao && !atual.textos.includes(exibicao)) atual.textos.push(exibicao);
     totais.set(id, atual);
   };
-  preparacoesCalculadas.forEach((pc: any) => pc.itens.forEach((item: any) => addTotal(item.ingrediente_id, item.ingrediente?.nome || "Ingrediente", item.calculado.tipo, item.calculado.valor, item.calculado.exibicao)));
-  diretos.forEach((d: any) => { if (d.ingrediente) addTotal(d.ingrediente.id, d.ingrediente.nome, "peso", d.bruto); });
+  if ((itensReceita as any[]).some((x: any) => x.ingrediente_id && totalReceitaPorIngrediente.get(x.ingrediente_id))) {
+    totalReceitaPorIngrediente.forEach((qtd: number, ingredienteId: string) => {
+      const ingrediente = porId.get(ingredienteId);
+      if (ingrediente) addTotal(ingredienteId, ingrediente.nome, "peso", qtd);
+    });
+  } else {
+    preparacoesCalculadas.forEach((pc: any) => pc.itens.forEach((item: any) => addTotal(item.ingrediente_id, item.ingrediente?.nome || "Ingrediente", item.calculado.tipo, item.calculado.valor, item.calculado.exibicao)));
+  }
+  diretos.forEach((d: any) => {
+    if (!d.ingrediente) return;
+    totais.delete(d.ingrediente.id);
+    addTotal(d.ingrediente.id, d.ingrediente.nome, "peso", d.bruto);
+  });
   const listaSeparar = Array.from(totais.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   const resumo = TAMANHOS.filter((t) => quantidades[t.id] > 0).map((t) => `${quantidades[t.id]}×${t.label}`).join(" + ");
   return <Janela titulo={`Ficha de produção — ${produto.nome}`} fechar={fechar}>
@@ -1322,9 +1350,9 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
             <h4 className="mt-1 text-xl font-black">{produto.nome}</h4>
             <p className="mt-1 text-lg font-black text-[#087443]">{resumo || "Sem quantidade planejada"}</p>
             <div className="mt-3 rounded-xl bg-white p-3">
-              <p className="text-xs font-black uppercase text-[#173a2d]">Sequência para a cozinha</p>
+              <p className="text-xs font-black uppercase text-[#173a2d]">ORDEM DE PRODUÇÃO — siga nesta sequência</p>
               <p className="mt-1 text-sm"><b>1.</b> Separe os ingredientes nas quantidades totais indicadas.</p>
-              <p className="text-sm"><b>2.</b> Faça cada preparação seguindo o modo de preparo e a quantidade recalculada.</p>
+              <p className="text-sm"><b>2.</b> Faça cada preparação usando as quantidades exatas impressas abaixo. Se aparecer ⚠ CADASTRAR QUANTIDADE, não improvise: corrija a ficha antes de produzir.</p>
               <p className="text-sm"><b>3.</b> Confira os ingredientes diretos e os rendimentos antes de montar.</p>
               <p className="text-sm"><b>4.</b> Monte cada marmita exatamente pela tabela de 200 g, 300 g e 400 g e use a foto como referência visual.</p>
             </div>
@@ -1337,7 +1365,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">2. Preparações proporcionais</p>
-        <div className="grid gap-4">{preparacoesCalculadas.length ? preparacoesCalculadas.map((pc: any) => <article key={pc.prep.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h4 className="text-lg font-black">{pc.prep.nome}</h4><p className="text-sm text-[#62766b]">Produzir <b className="text-[#087443]">{pc.pronto ? formatPeso(pc.pronto) : "conforme necessidade"}</b>{pc.fator > 0 ? ` · escala ${pc.fator.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}× da receita-base` : ""}</p></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Ingredientes recalculados</p><div className="grid gap-2">{pc.itens.map((item: any) => <div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.calculado.exibicao}</b></div>)}</div></div><div><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Modo de preparo</p><div className="whitespace-pre-line rounded-xl border border-[#e2ebe3] p-3 text-sm leading-relaxed text-[#355445]">{pc.prep.modo_preparo || "Modo de preparo não informado."}</div></div></div></article>) : <Vazio texto="Nenhuma preparação vinculada foi encontrada para a montagem deste prato."/>}</div>
+        <div className="grid gap-4">{preparacoesCalculadas.length ? preparacoesCalculadas.map((pc: any) => <article key={pc.prep.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h4 className="text-lg font-black">{pc.prep.nome}</h4><p className="text-sm text-[#62766b]">Produzir <b className="text-[#087443]">{pc.pronto ? formatPeso(pc.pronto) : "conforme necessidade"}</b>{pc.fator > 0 ? ` · escala ${pc.fator.toLocaleString("pt-BR", { maximumFractionDigits: 3 })}× da receita-base` : ""}</p></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Ingredientes recalculados</p><div className="grid gap-2">{pc.itens.map((item: any) => <div key={item.id} className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.pendente ? `⚠ CADASTRAR QUANTIDADE${item.quantidade_texto ? ` · referência: ${textoCozinha(item.quantidade_texto)}` : ""}` : item.calculado.exibicao}</b></div>)}</div></div><div><p className="mb-2 text-xs font-bold uppercase text-[#527164]">Modo de preparo</p><div className="whitespace-pre-line rounded-xl border border-[#e2ebe3] p-3 text-sm leading-relaxed text-[#355445]">{pc.prep.modo_preparo || "Modo de preparo não informado."}</div></div></div></article>) : <Vazio texto="Nenhuma preparação vinculada foi encontrada para a montagem deste prato."/>}</div>
       </section>
       <section>
         <p className="mb-3 text-sm font-black uppercase text-[#087443]">3. Ingredientes diretos / rendimento</p>
