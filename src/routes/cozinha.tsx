@@ -72,6 +72,18 @@ const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" = "g", nome:
 const valor = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const input =
   "w-full rounded-lg border border-[#cbd8ce] bg-white p-2.5 text-sm outline-none focus:border-[#087443]";
+const imprimirElemento = (id: string, titulo: string) => {
+  const elemento = document.getElementById(id);
+  if (!elemento) return toast.error("Não foi possível preparar a ficha para impressão.");
+  const janela = window.open("", "_blank", "width=1000,height=800");
+  if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
+  janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
+    @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:12px}h1,h2,h3,h4,p{margin-top:0}button{display:none!important}.grid{display:grid;gap:10px}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-5{gap:20px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.p-3{padding:12px}.p-4{padding:16px}.px-3{padding-left:12px;padding-right:12px}.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}.rounded-xl,.rounded-2xl{border-radius:8px}.border{border:1px solid #dbe7dd}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3}.bg-\[\#173a2d\]{background:#fff!important;color:#173a2d!important;border:2px solid #173a2d}.text-white,.text-white\/70{color:#173a2d!important}.text-\[\#087443\]{color:#087443}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:10px}.text-sm{font-size:12px}.text-lg{font-size:16px}.text-xl{font-size:18px}.text-2xl{font-size:22px}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article,section{break-inside:avoid;page-break-inside:avoid}img{max-width:100%}
+  </style></head><body>${elemento.innerHTML}</body></html>`);
+  janela.document.close();
+  janela.focus();
+  setTimeout(() => { janela.print(); janela.close(); }, 250);
+};
 const receitaVazia = (): ReceitaLinha => ({
   ingrediente_id: null,
   preparacao_id: null,
@@ -1095,6 +1107,8 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   const totalMarmitas = pratos.reduce((s: number, x: any) => s + x.total, 0);
 
   return <Janela titulo={`Ficha de produção total do dia — ${dataFmt}`} fechar={fechar}>
+    <div className="mb-4 flex justify-end"><Botao leve onClick={() => imprimirElemento("ficha-producao-dia-impressao", `Ficha de produção do dia — ${dataFmt}`)}>Imprimir ficha do dia</Botao></div>
+    <div id="ficha-producao-dia-impressao">
     <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div className="rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase text-[#527164]">Total do dia</p><p className="mt-1 text-2xl font-black text-[#087443]">{totalMarmitas} unidades</p></div>
       <div className="rounded-2xl bg-[#f4f7f4] p-4"><p className="text-xs font-bold uppercase text-[#527164]">Produtos</p><p className="mt-1 text-2xl font-black text-[#173a2d]">{pratos.length}</p></div>
@@ -1148,6 +1162,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         </div>
       </div>
     )}
+    </div>
   </Janela>;
 }
 
@@ -1231,7 +1246,8 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const listaSeparar = Array.from(totais.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   const resumo = TAMANHOS.filter((t) => quantidades[t.id] > 0).map((t) => `${quantidades[t.id]}×${t.label}`).join(" + ");
   return <Janela titulo={`Ficha de produção — ${produto.nome}`} fechar={fechar}>
-    <div className="grid gap-5">
+    <div className="mb-4 flex justify-end"><Botao leve onClick={() => imprimirElemento("ficha-producao-produto-impressao", `Ficha de produção — ${produto.nome}`)}>Imprimir ficha</Botao></div>
+    <div id="ficha-producao-produto-impressao" className="grid gap-5">
       <div className="rounded-2xl bg-[#edf5e6] p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Produção consolidada do dia {String(dataProducao).split("-").reverse().join("/")}</p>
         <h4 className="mt-1 text-xl font-black">{resumo || "Sem quantidade planejada"}</h4>
