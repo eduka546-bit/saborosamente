@@ -6,6 +6,7 @@ import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProduca
 import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
 import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
+import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { EtiquetasManager } from "./cozinha.etiquetas";
 import { toast } from "sonner";
 import {
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "demanda" | "separar" | "compras" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
+type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
 type Tamanho = "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -395,6 +396,7 @@ function CozinhaPage() {
     { id: "demanda", label: "Demanda", icon: BarChart3 },
     { id: "separar", label: "Separar hoje", icon: Salad },
     { id: "compras", label: "Lista de compras", icon: Package },
+    { id: "gestao", label: "Gestão operacional", icon: Store },
     { id: "ingredientes", label: "Ingredientes", icon: Package },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
     { id: "estoque", label: "Estoque", icon: Store },
@@ -574,6 +576,7 @@ function CozinhaPage() {
               estoque={estoque as any[]}
             />
           )}
+          {aba === "gestao" && <GestaoOperacional />}
           {aba === "ingredientes" && (
             <section>
               <Titulo
