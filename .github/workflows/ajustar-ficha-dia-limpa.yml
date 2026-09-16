@@ -25,12 +25,9 @@ jobs:
               raise SystemExit('componente da ficha do dia não encontrado')
           bloco = s[fi:fj]
           start = bloco.find('    <div className="hidden print-only">')
-          if start < 0:
-              raise SystemExit('bloco print-only não encontrado')
-          end_marker = '    </div>\n  </Janela>;\n}\n\n'
-          end = bloco.find(end_marker, start)
-          if end < 0:
-              raise SystemExit('fim do bloco print-only não encontrado')
+          end = bloco.rfind('  </Janela>;')
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('bloco de impressão da ficha do dia não encontrado')
 
           novo = r'''    <div className="hidden print-only">
       <section>
@@ -56,7 +53,7 @@ jobs:
 
       <section className="mt-4">
         <p className="mb-2 text-lg font-black uppercase text-[#087443]">2. Ingredientes necessários do dia</p>
-        <p className="mb-2 text-sm text-[#62766b]">Separe estas quantidades antes de iniciar a produção. Os códigos indicam em quais pratos cada ingrediente será usado.</p>
+        <p className="mb-2 text-sm text-[#62766b]">Separe estas quantidades antes de iniciar. Os códigos mostram em quais pratos cada ingrediente será usado.</p>
         {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia."/> : <div className="rounded-xl border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]" style={{gridTemplateColumns:"minmax(250px,1fr) 120px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
           {(separar as any[]).map((x:any)=>{
@@ -68,7 +65,7 @@ jobs:
 
       <section className="page-break-before">
         <div className="mb-3 flex items-start justify-between gap-3">
-          <div><p className="text-sm font-black uppercase text-[#087443]">3. Montagem por tamanho</p><h2 className="mt-1 text-xl font-black text-[#173a2d]">Referência de montagem do dia</h2><p className="mt-1 text-sm text-[#62766b]">Siga a coluna do tamanho correto. Cada bloco mostra exatamente quanto vai de cada componente em uma unidade.</p></div>
+          <div><p className="text-sm font-black uppercase text-[#087443]">3. Montagem por tamanho</p><h2 className="mt-1 text-xl font-black text-[#173a2d]">Referência de montagem do dia</h2><p className="mt-1 text-sm text-[#62766b]">Siga a coluna do tamanho correto. Cada bloco mostra quanto vai de cada componente em uma unidade.</p></div>
           <b className="text-sm text-[#173a2d]">{dataFmt}</b>
         </div>
         {!pratos.length ? <Vazio texto="Nenhuma montagem disponível para este dia."/> : <div className="grid gap-4">
@@ -83,8 +80,7 @@ jobs:
             };
             const v200=exatos("200"),v300=exatos("300"),v400=exatos("400");
             return <article key={`dia-mont-${x.produto.id}`} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
-              <div className="mb-2 grid items-center gap-3" style={{gridTemplateColumns:"74px 1fr 72px"}}>
-                <div style={{width:"74px",height:"56px",display:"grid",placeItems:"center"}}>{x.produto.imagem_url || x.produto.imagens?.[0] ? <img src={x.produto.imagem_url || x.produto.imagens?.[0]} alt={x.produto.nome} style={{width:"74px",height:"56px",objectFit:"contain",objectPosition:"center center",display:"block"}}/> : <ChefHat size={24}/>}</div>
+              <div className="mb-2 flex items-center justify-between gap-3">
                 <div><h3 className="text-lg font-black">{x.produto.nome}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p></div>
                 <b className="text-right text-[#087443]">{x.total} un</b>
               </div>
@@ -98,7 +94,7 @@ jobs:
       </section>
     </div>
 '''
-          bloco = bloco[:start] + novo + bloco[end + len('    </div>\n'):]
+          bloco = bloco[:start] + novo + bloco[end:]
           s = s[:fi] + bloco + s[fj:]
           p.write_text(s, encoding='utf-8')
       - name: Publicar
@@ -106,5 +102,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/routes/cozinha.tsx
-          git commit -m "feat(cozinha): limpar e organizar ficha de produção do dia"
+          git commit -m "feat(cozinha): aplicar prévia limpa da ficha de produção do dia"
           git push
