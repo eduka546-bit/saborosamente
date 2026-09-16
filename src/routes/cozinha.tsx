@@ -361,6 +361,23 @@ function CozinhaPage() {
       }),
     [producoes, produto, filtroProducao, buscaProducao],
   );
+  const producoesAgrupadasVisiveis = useMemo(() => {
+    const grupos = new Map<string, any[]>();
+    (producoesVisiveis as any[]).forEach((p: any) => grupos.set(p.produto_id, [...(grupos.get(p.produto_id) || []), p]));
+    return Array.from(grupos.entries()).map(([produtoId, linhas]) => {
+      const total = linhas.reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0);
+      const variacoes = TAMANHOS.map((t) => ({
+        ...t,
+        quantidade: linhas.filter((x: any) => x.gramatura === t.id).reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0),
+      })).filter((x) => x.quantidade > 0);
+      const status = linhas.every((x: any) => x.status === "concluida")
+        ? "concluida"
+        : linhas.some((x: any) => x.status === "em_preparo" || x.status === "concluida")
+          ? "em_preparo"
+          : "planejada";
+      return { produtoId, linhas, total, variacoes, status };
+    });
+  }, [producoesVisiveis]);
   const estoqueMarmitasPorProduto = useMemo(
     () => porId(estoqueMarmitas as any[]),
     [estoqueMarmitas],
@@ -461,89 +478,58 @@ function CozinhaPage() {
                   Ver ficha de produção total do dia
                 </Botao>
               </div>
-              {!(producoesVisiveis as any[]).length ? (
+              {!(producoesAgrupadasVisiveis as any[]).length ? (
                 <Vazio texto="Nenhuma produção encontrada para estes filtros." />
               ) : (
                 <div className="grid gap-3">
-                  {(producoesVisiveis as any[]).map((p) => {
-                    const pr = produto.get(p.produto_id);
+                  {(producoesAgrupadasVisiveis as any[]).map((grupo) => {
+                    const pr = produto.get(grupo.produtoId);
+                    const ids = grupo.linhas.map((x: any) => x.id);
+                    const resumoVariacoes = grupo.variacoes.map((v: any) => `${v.quantidade}×${v.label}`).join(" + ");
                     return (
-                      <article
-                        key={p.id}
-                        className="flex flex-wrap items-center gap-4 rounded-2xl border bg-white p-4"
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-bold">{pr?.nome}</h3>
-                          <p className="text-sm text-[#62766b]">
-                            {p.quantidade_planejada} unidades ·{" "}
-                            {labelGramatura(p.gramatura)}
-                          </p>
+                      <article key={grupo.produtoId} className="rounded-2xl border bg-white p-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="min-w-[220px] flex-1">
+                            <h3 className="font-bold">{pr?.nome}</h3>
+                            <p className="text-sm text-[#62766b]">{grupo.total} unidades · {resumoVariacoes}</p>
+                          </div>
+                          <span className="rounded-full bg-[#e0f2e7] px-3 py-1 text-xs font-bold text-[#087443]">
+                            {grupo.status === "concluida" ? "Concluída" : grupo.status === "em_preparo" ? "Em preparo" : "Planejada"}
+                          </span>
+                          <Botao leve onClick={() => abrir("ficha-producao", pr)}><BookOpen size={16} />Ver ficha da produção</Botao>
+                          <Botao leve onClick={() => abrir("ficha-montagem", pr)}><CookingPot size={16} />Ver ficha de montagem</Botao>
+                          {grupo.status === "planejada" && <Botao leve onClick={async () => {
+                            const { error } = await supabase.from("cozinha_producoes").update({ status: "em_preparo", updated_at: new Date().toISOString() }).in("id", ids);
+                            if (error) toast.error(error.message); else invalidar("coz-prod-dia");
+                          }}>Começar preparo</Botao>}
+                          {grupo.status !== "concluida" && <Botao onClick={async () => {
+                            if (alertasEstoquePlanejado.length) toast.warning(`Atenção: estoque insuficiente para ${alertasEstoquePlanejado.join(", ")}. A produção será registrada mesmo assim.`);
+                            for (const linha of grupo.linhas.filter((x: any) => x.status !== "concluida")) {
+                              const { error } = await supabase.rpc("concluir_producao_cozinha", { p_producao_id: linha.id } as any);
+                              if (error) return toast.error(error.message);
+                            }
+                            invalidar("coz-prod-dia", "coz-estoque-marmitas");
+                            toast.success("Produção concluída e adicionada ao estoque da cozinha.");
+                          }}><CheckCircle2 size={16} />Marcar como produzida</Botao>}
+                          {grupo.status === "concluida" && <Botao leve onClick={async () => {
+                            for (const linha of grupo.linhas) {
+                              const { error } = await supabase.rpc("reverter_conclusao_producao_cozinha", { p_producao_id: linha.id } as any);
+                              if (error) return toast.error(error.message);
+                            }
+                            invalidar("coz-prod-dia", "coz-estoque-marmitas");
+                            toast.success("Produção voltou para planejada e o saldo da cozinha foi corrigido.");
+                          }}>Marcar como pendente</Botao>}
+                          <button aria-label={`Excluir ${pr?.nome || "produção"}`} onClick={async () => {
+                            if (!window.confirm(`Excluir todos os lançamentos de ${pr?.nome || "produção"} deste dia?`)) return;
+                            if (grupo.linhas.some((x: any) => x.status === "concluida")) return toast.error("Antes de excluir, marque esta produção como pendente para corrigir o estoque.");
+                            const { error } = await supabase.from("cozinha_producoes").delete().in("id", ids);
+                            if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Lançamentos excluídos."); }
+                          }} className="rounded-xl p-2.5 text-red-600 hover:bg-red-50"><Trash2 size={18} /></button>
                         </div>
-                        <span className="rounded-full bg-[#e0f2e7] px-3 py-1 text-xs font-bold text-[#087443]">
-                          {p.status === "concluida"
-                            ? "Concluída"
-                            : p.status === "em_preparo"
-                              ? "Em preparo"
-                              : "Planejada"}
-                        </span>
-                        <Botao leve onClick={() => abrir("ficha-producao", pr)}>
-                          <BookOpen size={16} />
-                          Ver ficha da produção
-                        </Botao>
-                        <Botao leve onClick={() => abrir("ficha-montagem", pr)}>
-                          <CookingPot size={16} />
-                          Ver ficha de montagem
-                        </Botao>
-                        {p.status === "planejada" && (
-                          <Botao
-                            leve
-                            onClick={async () => {
-                              const { error } = await supabase
-                                .from("cozinha_producoes")
-                                .update({
-                                  status: "em_preparo",
-                                  updated_at: new Date().toISOString(),
-                                })
-                                .eq("id", p.id);
-                              if (error) toast.error(error.message);
-                              else invalidar("coz-prod-dia");
-                            }}
-                          >
-                            Começar preparo
-                          </Botao>
-                        )}
-                        {p.status !== "concluida" && (
-                          <Botao
-                            onClick={async () => {
-                              if (alertasEstoquePlanejado.length) {
-                                toast.warning(
-                                  `Atenção: estoque insuficiente para ${alertasEstoquePlanejado.join(", ")}. A produção será registrada mesmo assim.`,
-                                );
-                              }
-                              const { error } = await supabase.rpc("concluir_producao_cozinha", {
-                                p_producao_id: p.id,
-                              } as any);
-                              if (error) toast.error(error.message);
-                              else {
-                                invalidar("coz-prod-dia", "coz-estoque-marmitas");
-                                toast.success("Produção concluída e adicionada ao estoque da cozinha.");
-                              }
-                            }}
-                          >
-                            <CheckCircle2 size={16} />
-                            Marcar como produzida
-                          </Botao>
-                        )}
-                        {p.status === "concluida" && <Botao leve onClick={async () => {
-                          const { error } = await supabase.rpc("reverter_conclusao_producao_cozinha", { p_producao_id: p.id } as any);
-                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia", "coz-estoque-marmitas"); toast.success("Produção voltou para planejada e o saldo da cozinha foi corrigido."); }
-                        }}>Marcar como pendente</Botao>}
-                        <button aria-label={`Excluir ${pr?.nome || "produção"}`} onClick={async () => {
-                          if (!window.confirm(`Excluir o lançamento de ${pr?.nome || "produção"}?`)) return;
-                          if (p.status === "concluida") return toast.error("Antes de excluir, marque esta produção como pendente para corrigir o estoque.");
-                          const { error } = await supabase.from("cozinha_producoes").delete().eq("id", p.id);
-                          if (error) toast.error(error.message); else { invalidar("coz-prod-dia"); toast.success("Lançamento excluído."); }
-                        }} className="rounded-xl p-2.5 text-red-600 hover:bg-red-50"><Trash2 size={18} /></button>
+                        {grupo.linhas.length > 1 && <details className="mt-3 border-t border-[#edf1ed] pt-3">
+                          <summary className="cursor-pointer text-xs font-bold text-[#527164]">Ver variações separadas</summary>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-3">{grupo.variacoes.map((v: any) => <div key={v.id} className="rounded-xl bg-[#f4f7f4] px-3 py-2 text-sm"><b>{v.label}</b><span className="ml-2 text-[#62766b]">{v.quantidade} un</span></div>)}</div>
+                        </details>}
                       </article>
                     );
                   })}
