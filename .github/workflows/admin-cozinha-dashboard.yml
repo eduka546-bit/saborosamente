@@ -1,0 +1,43 @@
+name: Integrar cozinha ao dashboard admin
+on:
+  push:
+    paths:
+      - '.github/workflows/admin-cozinha-dashboard.yml'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar integração
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/admin.index.tsx')
+          s=p.read_text()
+          s=s.replace('  AlertCircle,\n}', '  AlertCircle,\n  ChefHat,\n}')
+          s=s.replace('        lowStockRes,\n        allCustomersRes,\n      ] = await Promise.all([', '        lowStockRes,\n        allCustomersRes,\n        kitchenProductionsRes,\n        kitchenIngredientsRes,\n      ] = await Promise.all([')
+          s=s.replace('        supabase.from("profiles").select("id", { count: "exact", head: true }),\n      ]);', '        supabase.from("profiles").select("id", { count: "exact", head: true }),\n        supabase.from("cozinha_producoes").select("status,quantidade_planejada,quantidade_produzida").eq("data_producao", today.toISOString().slice(0, 10)),\n        supabase.from("cozinha_estoque").select("quantidade_atual,quantidade_minima"),\n      ]);')
+          marker='''      return {\n        ordersToday: ordersTodayRes.count ?? 0,'''
+          inject='''      const kitchenProductions = kitchenProductionsRes.data ?? [];\n      const kitchenPlannedUnits = kitchenProductions.filter((p: any) => p.status === "planejada").reduce((s: number, p: any) => s + (Number(p.quantidade_planejada) || 0), 0);\n      const kitchenInProgressUnits = kitchenProductions.filter((p: any) => p.status === "em_preparo").reduce((s: number, p: any) => s + (Number(p.quantidade_planejada) || 0), 0);\n      const kitchenDoneUnits = kitchenProductions.filter((p: any) => p.status === "concluida").reduce((s: number, p: any) => s + (Number(p.quantidade_produzida) || Number(p.quantidade_planejada) || 0), 0);\n      const kitchenLowIngredients = (kitchenIngredientsRes.data ?? []).filter((i: any) => Number(i.quantidade_minima || 0) > 0 && Number(i.quantidade_atual || 0) < Number(i.quantidade_minima || 0)).length;\n\n      return {\n        kitchenPlannedUnits,\n        kitchenInProgressUnits,\n        kitchenDoneUnits,\n        kitchenLowIngredients,\n        ordersToday: ordersTodayRes.count ?? 0,'''
+          if marker not in s: raise SystemExit('return stats marker not found')
+          s=s.replace(marker,inject,1)
+          marker2='''      {/* Linha 2: Últimos Pedidos + Sidebar */}'''
+          block='''      {/* Operação da Cozinha */}\n      <div>\n        <div className="mb-3 flex items-center justify-between">\n          <h2 className="flex items-center gap-2 text-lg font-black text-gray-800"><ChefHat size={20} className="text-[#087443]" /> Operação da Cozinha</h2>\n          <Link to={"/cozinha" as any} className="flex items-center gap-1 text-xs font-bold uppercase text-[#087443] hover:underline">Abrir cozinha <ArrowRight size={12} /></Link>\n        </div>\n        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">\n          {[\n            { label: "A produzir hoje", value: stats?.kitchenPlannedUnits ?? 0, sub: "unidades planejadas", cls: "bg-amber-50 text-amber-700" },\n            { label: "Em preparo", value: stats?.kitchenInProgressUnits ?? 0, sub: "unidades em andamento", cls: "bg-blue-50 text-blue-700" },\n            { label: "Produzidas hoje", value: stats?.kitchenDoneUnits ?? 0, sub: "unidades concluídas", cls: "bg-emerald-50 text-emerald-700" },\n            { label: "Ingredientes baixos", value: stats?.kitchenLowIngredients ?? 0, sub: "abaixo do estoque mínimo", cls: "bg-red-50 text-red-700" },\n          ].map((item) => (\n            <Link key={item.label} to={"/cozinha" as any} className={`rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md ${item.cls}`}>\n              <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">{item.label}</p>\n              <p className="mt-1 text-2xl font-black">{item.value}</p>\n              <p className="mt-1 text-xs opacity-70">{item.sub}</p>\n            </Link>\n          ))}\n        </div>\n      </div>\n\n      {/* Linha 2: Últimos Pedidos + Sidebar */}'''
+          if marker2 not in s: raise SystemExit('dashboard insertion marker not found')
+          s=s.replace(marker2,block,1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/admin.index.tsx
+          git commit -m 'feat(admin): mostrar situacao da cozinha no dashboard'
+          git push
+      - name: Remover workflow temporário
+        run: |
+          git rm .github/workflows/admin-cozinha-dashboard.yml
+          git commit -m 'chore: remover workflow temporário do dashboard'
+          git push
