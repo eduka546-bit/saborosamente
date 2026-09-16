@@ -16,6 +16,7 @@ import {
   Star,
   MessageCircle,
   AlertCircle,
+  ChefHat,
 } from "lucide-react";
 import {
   LineChart,
@@ -84,6 +85,8 @@ function AdminDashboard() {
         allOrdersItemsRes,
         lowStockRes,
         allCustomersRes,
+        kitchenProductionsRes,
+        kitchenIngredientsRes,
       ] = await Promise.all([
         supabase
           .from("pedidos")
@@ -127,6 +130,8 @@ function AdminDashboard() {
           .gte("created_at", last30Days),
         supabase.from("produtos").select("id,nome,estoque_200g,estoque_300g,estoque_400g,estoque_minimo").eq("controle_estoque", true),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("cozinha_producoes").select("status,quantidade_planejada,quantidade_produzida").eq("data_producao", today.toISOString().slice(0, 10)),
+        supabase.from("cozinha_estoque").select("quantidade_atual,quantidade_minima"),
       ]);
 
       const monthlyRevenue = parseFloat(
@@ -196,7 +201,17 @@ function AdminDashboard() {
         })
         .slice(0, 5);
 
+      const kitchenProductions = kitchenProductionsRes.data ?? [];
+      const kitchenPlannedUnits = kitchenProductions.filter((p: any) => p.status === "planejada").reduce((s: number, p: any) => s + (Number(p.quantidade_planejada) || 0), 0);
+      const kitchenInProgressUnits = kitchenProductions.filter((p: any) => p.status === "em_preparo").reduce((s: number, p: any) => s + (Number(p.quantidade_planejada) || 0), 0);
+      const kitchenDoneUnits = kitchenProductions.filter((p: any) => p.status === "concluida").reduce((s: number, p: any) => s + (Number(p.quantidade_produzida) || Number(p.quantidade_planejada) || 0), 0);
+      const kitchenLowIngredients = (kitchenIngredientsRes.data ?? []).filter((i: any) => Number(i.quantidade_minima || 0) > 0 && Number(i.quantidade_atual || 0) < Number(i.quantidade_minima || 0)).length;
+
       return {
+        kitchenPlannedUnits,
+        kitchenInProgressUnits,
+        kitchenDoneUnits,
+        kitchenLowIngredients,
         ordersToday: ordersTodayRes.count ?? 0,
         activeProducts: activeProductsRes.count ?? 0,
         monthlyRevenue,
@@ -372,6 +387,28 @@ function AdminDashboard() {
             <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Operação da Cozinha */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-black text-gray-800"><ChefHat size={20} className="text-[#087443]" /> Operação da Cozinha</h2>
+          <Link to={"/cozinha" as any} className="flex items-center gap-1 text-xs font-bold uppercase text-[#087443] hover:underline">Abrir cozinha <ArrowRight size={12} /></Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "A produzir hoje", value: stats?.kitchenPlannedUnits ?? 0, sub: "unidades planejadas", cls: "bg-amber-50 text-amber-700" },
+            { label: "Em preparo", value: stats?.kitchenInProgressUnits ?? 0, sub: "unidades em andamento", cls: "bg-blue-50 text-blue-700" },
+            { label: "Produzidas hoje", value: stats?.kitchenDoneUnits ?? 0, sub: "unidades concluídas", cls: "bg-emerald-50 text-emerald-700" },
+            { label: "Ingredientes baixos", value: stats?.kitchenLowIngredients ?? 0, sub: "abaixo do estoque mínimo", cls: "bg-red-50 text-red-700" },
+          ].map((item) => (
+            <Link key={item.label} to={"/cozinha" as any} className={`rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md ${item.cls}`}>
+              <p className="text-[11px] font-bold uppercase tracking-wider opacity-70">{item.label}</p>
+              <p className="mt-1 text-2xl font-black">{item.value}</p>
+              <p className="mt-1 text-xs opacity-70">{item.sub}</p>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Linha 2: Últimos Pedidos + Sidebar */}
