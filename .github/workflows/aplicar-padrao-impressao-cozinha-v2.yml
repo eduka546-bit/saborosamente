@@ -22,3 +22,4 @@ jobs:
           git add src/routes/cozinha.tsx
           git commit -m "feat(cozinha): aplicar padrão aprovado às fichas impressas"
           git push
+# execução final após remoção do workflow inválido
