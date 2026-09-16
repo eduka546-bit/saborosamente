@@ -1,0 +1,91 @@
+name: Adicionar montagem na impressao
+
+on:
+  push:
+    paths:
+      - '.github/workflows/adicionar-montagem-impressao.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajustar ficha impressa
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+
+          # Permite iniciar a montagem em uma nova pagina da impressao.
+          old_css = 'article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}[data-screen-only]{display:none!important}.print-only{display:block!important}'
+          new_css = 'article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}.page-break-before{break-before:page;page-break-before:always}[data-screen-only]{display:none!important}.print-only{display:block!important}'
+          if old_css not in s:
+              raise SystemExit('CSS de impressao nao encontrado')
+          s = s.replace(old_css, new_css, 1)
+
+          # Mantem a montagem individual disponivel para a pagina 2.
+          old_return = 'return { produto, q, montagemTotal, total: q["200"] + q["300"] + q["400"] };'
+          new_return = 'return { produto, q, montagem, montagemTotal, total: q["200"] + q["300"] + q["400"] };'
+          if old_return not in s:
+              raise SystemExit('retorno de pratos nao encontrado')
+          s = s.replace(old_return, new_return, 1)
+
+          # Segunda pagina: montagem individual por gramatura.
+          anchor = '''      <section className="mt-5">
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Ingredientes necessários do dia</p>
+        {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-3"><div className="flex items-center justify-between gap-3"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="text-right text-sm font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p></div>{x.pratos?.length > 0 && <p className="mt-1 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
+        </div>}
+      </section>
+    </div>'''
+
+          replacement = '''      <section className="mt-5">
+        <p className="mb-3 text-sm font-black uppercase text-[#087443]">Ingredientes necessários do dia</p>
+        {!(separar as any[]).length ? <Vazio texto="Nenhum ingrediente calculado para a produção deste dia." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(separar as any[]).map((x: any) => <article key={`impressao-ing-${x.id}-${x.unidade}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-3"><div className="flex items-center justify-between gap-3"><p className="font-black text-[#173a2d]">{x.item?.nome}</p><p className="text-right text-sm font-black text-[#087443]">{x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</p></div>{x.pratos?.length > 0 && <p className="mt-1 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p>}</article>)}
+        </div>}
+      </section>
+
+      <section className="page-break-before">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
+            <p className="text-xs text-[#62766b]">Quantidade de cada componente pronto em uma marmita de 200 g, 300 g e 400 g.</p>
+          </div>
+          <b className="text-xs text-[#173a2d]">{dataFmt}</b>
+        </div>
+        {!pratos.length ? <Vazio texto="Nenhuma montagem disponível para este dia." /> : <div className="grid gap-4">
+          {pratos.map((x: any) => <article key={`impressao-montagem-${x.produto.id}`} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black">{x.produto.nome}</h3>
+                <p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t => x.q[t.id] > 0).map(t => `${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p>
+              </div>
+              <b className="text-[#087443]">{x.total} un</b>
+            </div>
+            {!(x.montagem as any[]).length ? <p className="text-xs text-[#62766b]">Montagem ainda não cadastrada para esta ficha.</p> : <div className="border rounded-xl">
+              <div className="grid grid-cols-[minmax(180px,1fr)_90px_90px_90px] gap-2 bg-[#edf5e6] px-3 py-2 text-xs font-bold uppercase text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+              {(x.montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(180px,1fr)_90px_90px_90px] items-center gap-2 border-t border-[#e2ebe3] px-3 py-2 text-sm"><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{n(m.gramas_200) > 0 ? `${arredondarProducao(m.gramas_200, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_300) > 0 ? `${arredondarProducao(m.gramas_300, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span><span>{n(m.gramas_400) > 0 ? `${arredondarProducao(m.gramas_400, "g").toLocaleString("pt-BR")} g` : (ehQB(m.observacao) ? "a gosto" : "—")}</span></div>)}
+            </div>}
+          </article>)}
+        </div>}
+      </section>
+    </div>'''
+
+          if anchor not in s:
+              raise SystemExit('bloco de impressao nao encontrado')
+          s = s.replace(anchor, replacement, 1)
+          p.write_text(s)
+
+      - name: Publicar alteracao
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "feat(cozinha): adicionar montagem por tamanho na segunda pagina"
+          git push
