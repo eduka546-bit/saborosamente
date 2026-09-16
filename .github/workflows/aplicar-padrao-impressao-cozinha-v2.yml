@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/aplicar-padrao-impressao-cozinha-v2.yml'
+      - '.github/scripts/patch_padroes_impressao_cozinha.py'
 
 permissions:
   contents: write
@@ -22,4 +23,3 @@ jobs:
           git add src/routes/cozinha.tsx
           git commit -m "feat(cozinha): aplicar padrão aprovado às fichas impressas"
           git push
-# execução final após remoção do workflow inválido
