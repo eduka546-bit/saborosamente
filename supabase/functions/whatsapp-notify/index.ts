@@ -93,17 +93,21 @@ async function isClienteRecorrente(user_id: string): Promise<boolean> {
 // site_settings.parametros_loja.mensagens_whatsapp. Placeholders: {nome} {protocolo} {link}
 const DEFAULT_MENSAGENS: Record<string, string> = {
   novo_pedido:
-    "🍱 Olá, *{nome}*! Recebemos seu pedido *#{protocolo}* com sucesso!\n\nAssim que começarmos a preparar, você recebe uma mensagem aqui 😊\n\nAcompanhe em: {link}",
+    "🍱 Oii, *{nome}*! Recebemos seu pedido *#{protocolo}* com sucesso. Assim que ele for confirmado, avisamos por aqui 😊",
+  pendente:
+    "✅ Oii, *{nome}*! Seu pedido *#{protocolo}* foi recebido e confirmado com sucesso.\n\nSaborosaMente 🍱",
   pagamento_confirmado:
-    "✅ Pagamento confirmado, *{nome}*! Seu pedido *#{protocolo}* foi confirmado.\n\nEstamos preparando com carinho 🍱\n\nAcompanhe: {link}",
+    "✅ Oii, *{nome}*! Seu pedido *#{protocolo}* foi recebido e confirmado com sucesso.\n\nSaborosaMente 🍱",
   preparando:
-    "🔥 *{nome}*, seu pedido *#{protocolo}* está sendo preparado agora com carinho 👨‍🍳\n\nTempo estimado: 30-45 min\n\nAcompanhe: {link}",
+    "🍳 *{nome}*, seu pedido *#{protocolo}* está em preparação.\n\nSaborosaMente 🍱",
   "saiu para entrega":
-    "🚚 *{nome}*, seu pedido *#{protocolo}* saiu para entrega agora! 🏃‍♂️\n\nRastreie em tempo real: {link}",
+    "🚚 Oii, *{nome}*! Seu pedido *#{protocolo}* saiu para entrega e já está a caminho.\n\nSaborosaMente 🍱",
+  "pronto para retirada":
+    "🛍️ Oii, *{nome}*! Seu pedido *#{protocolo}* já está pronto para retirada na loja.\n\nSaborosaMente 🍱",
   entregue:
-    "🎉 Pedido *#{protocolo}* entregue, *{nome}*!\n\nEsperamos que aprecie bastante 😋\n\nResponda com uma nota de *1 a 5* ⭐ para nos ajudar a melhorar!\n\n_Sua opinião é muito importante para nós_ 🫶🏼",
+    "Oii, *{nome}*! 😊 Seu pedido *#{protocolo}* foi finalizado.\n\nQueremos muito saber como foi sua experiência com a SaborosaMente 💚\nSe puder, conta pra gente por aqui mesmo o que achou do pedido, dos pratos e do atendimento.\n\nSeu feedback ajuda bastante a gente a melhorar cada vez mais. 🫶🏼\n\nSaborosaMente 🍱",
   cancelado:
-    "😔 Oi, *{nome}*. Infelizmente seu pedido *#{protocolo}* foi cancelado.\n\nEntraremos em contato para explicar. Dúvidas? Responda esta mensagem 💬",
+    "Oi, *{nome}*. Seu pedido *#{protocolo}* foi cancelado. Se precisar de ajuda, responda esta mensagem e nossa equipe verifica para você.",
 };
 
 function aplicarTemplate(
@@ -224,7 +228,13 @@ Deno.serve(async (req) => {
       console.warn("Falha ao buscar templates de mensagens (usando defaults):", e);
     }
 
-    const mensagemObj = mensagemStatus(status_novo, pedido, isRecorrente, templates);
+    const metodoEntrega = String(pedido.metodo_entrega ?? "").toLowerCase();
+    const statusMensagem =
+      status_novo === "saiu para entrega" && metodoEntrega === "retirada"
+        ? "pronto para retirada"
+        : status_novo;
+
+    const mensagemObj = mensagemStatus(statusMensagem, pedido, isRecorrente, templates);
     if (!mensagemObj) {
       return new Response(JSON.stringify({ ok: false, motivo: "sem mensagem para esse status" }), {
         status: 200,
@@ -234,7 +244,7 @@ Deno.serve(async (req) => {
 
     const { error: claimError } = await supabase.from("whatsapp_notificacoes_enviadas").insert({
       pedido_id,
-      status: status_novo,
+      status: statusMensagem,
     });
     if (claimError?.code === "23505") {
       return new Response(JSON.stringify({ ok: true, duplicada: true }), {
@@ -245,7 +255,7 @@ Deno.serve(async (req) => {
     if (claimError) throw new Error(`Falha ao registrar notificação: ${claimError.message}`);
     notificationClaimed = true;
     claimedOrderId = pedido_id;
-    claimedStatus = status_novo;
+    claimedStatus = statusMensagem;
 
     // Envia mensagem
     await sendWhatsApp(telWA, mensagemObj.texto);
@@ -289,13 +299,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Notificação WhatsApp enviada: ${status_novo}`);
+    console.log(`Notificação WhatsApp enviada: ${statusMensagem}`);
 
     return new Response(
       JSON.stringify({
         ok: true,
         cliente_recorrente: isRecorrente,
-        status: status_novo,
+        status: statusMensagem,
       }),
       {
         status: 200,

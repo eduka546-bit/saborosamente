@@ -680,12 +680,24 @@ function AdminOrdersPage() {
       status: string;
       statusAnterior?: string;
     }) => {
-      const { error } = await supabase.from("pedidos").update({ status }).eq("id", id);
+      const { data: pedidoAtual, error: pedidoAtualError } = await supabase
+        .from("pedidos")
+        .select("metodo_entrega")
+        .eq("id", id)
+        .maybeSingle();
+      if (pedidoAtualError) throw pedidoAtualError;
+
+      const statusEfetivo =
+        status === "saiu para entrega" && String(pedidoAtual?.metodo_entrega ?? "").toLowerCase() === "retirada"
+          ? "pronto para retirada"
+          : status;
+
+      const { error } = await supabase.from("pedidos").update({ status: statusEfetivo }).eq("id", id);
       if (error) throw error;
 
       // Cashback só é creditado quando o pedido é FINALIZADO (entregue).
       // Idempotente: não credita de novo se já foi creditado antes.
-      if (status === "entregue") {
+      if (statusEfetivo === "entregue") {
         try {
           const { data: pedido } = await supabase
             .from("pedidos")
@@ -711,7 +723,7 @@ function AdminOrdersPage() {
           body: {
             pedido_id: id,
             status_anterior: statusAnterior,
-            status_novo: status,
+            status_novo: statusEfetivo,
           },
         });
         if (error) console.warn("Notificação WhatsApp falhou:", error.message);
@@ -800,6 +812,7 @@ function AdminOrdersPage() {
     { label: "pendente", icon: Clock3, color: "text-yellow-500" },
     { label: "preparando", icon: Package, color: "text-blue-500" },
     { label: "saiu para entrega", icon: MapPin, color: "text-purple-500" },
+    { label: "pronto para retirada", icon: Package, color: "text-purple-500" },
     { label: "entregue", icon: CheckCircle2, color: "text-green-500" },
     { label: "cancelado", icon: XCircle, color: "text-red-500" },
   ];
@@ -810,6 +823,7 @@ function AdminOrdersPage() {
     pendente: "bg-yellow-50 text-yellow-600 border-yellow-200",
     preparando: "bg-blue-50 text-blue-600 border-blue-200",
     "saiu para entrega": "bg-purple-50 text-purple-600 border-purple-200",
+    "pronto para retirada": "bg-purple-50 text-purple-600 border-purple-200",
     entregue: "bg-green-50 text-green-600 border-green-200",
     cancelado: "bg-red-50 text-red-600 border-red-200",
   };

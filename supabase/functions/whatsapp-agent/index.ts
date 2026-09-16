@@ -2663,25 +2663,31 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
               .update({ aguardando_avaliacao: null })
               .eq("id", conversa.id);
 
-            const msgs = [
-              "",
-              "Ih, precisa melhorar 😔",
-              "Vamos nos esforçar mais! 🙏",
-              "Obrigado pelo feedback 😊",
-              "Que ótimo! Ficamos felizes 😄",
-              "Perfeito! Que alegria! 🎉",
-            ];
-            const agradecimento = `${msgs[nota]} Obrigada pela avaliação, *${nota} estrela${nota > 1 ? "s" : ""}*! ⭐\n\nSe quiser comentar algo, pode escrever agora. Se não, é só me chamar quando precisar! 🫶🏼`;
+            const agradecimento = `Muito obrigada pelo feedback! 💚 Sua opinião ajuda muito a SaborosaMente a melhorar cada vez mais. 🫶🏼`;
             await sendWhatsAppMessage(telefone, agradecimento);
             await appendMensagem(conversa.id, historico, {
               role: "assistant",
               content: agradecimento,
             });
           } else {
-            // Resposta conversacional: NÃO reexibir o menu (evita atrito de
-            // grudar o menu no meio de uma conversa fluida).
-            await sendWhatsAppMessage(telefone, resposta);
-            await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+            const pedidoId = conversa.aguardando_avaliacao;
+            const comentario = texto.trim();
+            if (comentario) {
+              await supabase.from("avaliacoes").insert({
+                pedido_id: pedidoId,
+                telefone,
+                nota: null,
+                comentario,
+              });
+              await supabase
+                .from("whatsapp_conversas")
+                .update({ aguardando_avaliacao: null })
+                .eq("id", conversa.id);
+
+              const agradecimento = "Muito obrigada por contar pra gente! 💚 Seu feedback foi registrado e ajuda muito a SaborosaMente a melhorar cada vez mais. 🫶🏼";
+              await sendWhatsAppMessage(telefone, agradecimento);
+              await appendMensagem(conversa.id, historico, { role: "assistant", content: agradecimento });
+            }
           }
         } else {
           // Resposta conversacional normal.
