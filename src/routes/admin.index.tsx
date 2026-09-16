@@ -489,6 +489,7 @@ function AdminDashboard() {
                 { label: "Registrar Pedido P10", icon: Package, href: "/admin/registrar-p10" },
                 { label: "Ver Pedidos", icon: ShoppingBag, href: "/admin/pedidos" },
                 { label: "Relatórios", icon: BarChart2, href: "/admin/relatorios" },
+                { label: "Custos e Margens", icon: TrendingUp, href: "/admin/custos" },
                 { label: "Entregas", icon: Truck, href: "/admin/config/taxas" },
                 {
                   label: "Marmita Personalizada",
