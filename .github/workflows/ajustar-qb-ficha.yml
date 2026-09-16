@@ -1,0 +1,43 @@
+name: Ajustar QB ficha cozinha
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ajustar-qb-ficha.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar regra QB
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+
+          old = '''<p className="text-sm"><b>2.</b> Faça cada preparação usando as quantidades exatas impressas abaixo. Se aparecer ⚠ CADASTRAR QUANTIDADE, não improvise: corrija a ficha antes de produzir.</p>'''
+          new = '''<p className="text-sm"><b>2.</b> Faça cada preparação usando as quantidades impressas abaixo. Quando o ingrediente não tiver quantidade definida, considere <b>QB (quanto baste / a gosto)</b>.</p>'''
+          if old not in s:
+              raise SystemExit('orientacao antiga nao encontrada')
+          s = s.replace(old, new, 1)
+
+          old = '''<span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.pendente ? `⚠ CADASTRAR QUANTIDADE${item.quantidade_texto ? ` · referência: ${textoCozinha(item.quantidade_texto)}` : ""}` : item.calculado.exibicao}</b>'''
+          new = '''<span>{item.ingrediente?.nome || "Ingrediente"}</span><b>{item.pendente ? (/\\d/.test(String(item.quantidade_texto || "")) ? textoCozinha(item.quantidade_texto) : "QB · a gosto") : item.calculado.exibicao}</b>'''
+          if old not in s:
+              raise SystemExit('render pendente nao encontrado')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "fix(cozinha): tratar quantidade ausente como QB na ficha"
+          git push
