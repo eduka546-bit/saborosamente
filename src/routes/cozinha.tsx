@@ -277,6 +277,28 @@ function CozinhaPage() {
       ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
     ]));
     const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
+    const fallbackDireto = montagemReceita.length && montagemReceita.some((m: any) => {
+      if (!(n(m[campo]) > 0)) return false;
+      const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+      if (preparacao) {
+        const itens = itensPrep.get(preparacao.id) || [];
+        const rendimentoInformado = n(preparacao.rendimento_final_g);
+        const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+        return !(rendimentoBase > 0) || !itens.some((item: any) => n(item.quantidade) > 0 || ehQB(item.quantidade_texto));
+      }
+      return !(ingredientes as any[]).some((x: any) => mesmo(x.nome, m.nome));
+    });
+    if (fallbackDireto) {
+      linhasReceita.forEach((linha: any) => {
+        if (!linha.ingrediente_id) return;
+        const ingrediente = ing.get(linha.ingrediente_id);
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+        add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+      });
+      return;
+    }
     if (montagemReceita.length) {
       montagemReceita.forEach((m: any) => {
         const prontoPorUnidade = n(m[campo]);
