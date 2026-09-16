@@ -1,0 +1,123 @@
+name: Fix separacao ingredientes
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-separacao-ingredientes.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir fallback da separacao
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          old = '''    if (montagemReceita.length) {
+      montagemReceita.forEach((m: any) => {
+        const prontoPorUnidade = n(m[campo]);
+        if (!(prontoPorUnidade > 0)) return;
+        const prontoTotal = prontoPorUnidade * multiplicador;
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+        if (preparacao) {
+          const itens = itensPrep.get(preparacao.id) || [];
+          const rendimentoInformado = n(preparacao.rendimento_final_g);
+          const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+          if (!(rendimentoBase > 0)) return;
+          const fator = prontoTotal / rendimentoBase;
+          itens.forEach((item: any) => {
+            if (ehQB(item.quantidade_texto)) {
+              add(item.ingrediente_id, 0, prato.nome, unidadeItemPreparacao(item), true);
+              return;
+            }
+            const qtdBase = n(item.quantidade);
+            if (!(qtdBase > 0)) return;
+            add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
+          });
+          return;
+        }
+        const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const bruto = unidade === "g" ? quantidadeComRendimento(prontoTotal, ingrediente) : prontoTotal;
+        add(ingrediente.id, bruto, prato.nome, unidade);
+      });
+      return;
+    }
+    linhasReceita.forEach((linha: any) => {
+      if (!linha.ingrediente_id) return;
+      const ingrediente = ing.get(linha.ingrediente_id);
+      if (!ingrediente) return;
+      const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+      const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+      add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+    });'''
+          new = '''    const adicionarIngredientesDiretos = () => {
+      linhasReceita.forEach((linha: any) => {
+        if (!linha.ingrediente_id) return;
+        const ingrediente = ing.get(linha.ingrediente_id);
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+        add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+      });
+    };
+    if (montagemReceita.length) {
+      const montagemAtiva = montagemReceita.filter((m: any) => n(m[campo]) > 0);
+      const montagemCompleta = montagemAtiva.every((m: any) => {
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+        if (preparacao) {
+          const itens = itensPrep.get(preparacao.id) || [];
+          const rendimentoInformado = n(preparacao.rendimento_final_g);
+          const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+          return rendimentoBase > 0 && itens.some((item: any) => n(item.quantidade) > 0 || ehQB(item.quantidade_texto));
+        }
+        return (ingredientes as any[]).some((x: any) => mesmo(x.nome, m.nome));
+      });
+      if (!montagemCompleta && linhasReceita.some((linha: any) => linha.ingrediente_id && n(linha[campo]) > 0)) {
+        adicionarIngredientesDiretos();
+        return;
+      }
+      montagemAtiva.forEach((m: any) => {
+        const prontoTotal = n(m[campo]) * multiplicador;
+        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
+        if (preparacao) {
+          const itens = itensPrep.get(preparacao.id) || [];
+          const rendimentoInformado = n(preparacao.rendimento_final_g);
+          const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
+          if (!(rendimentoBase > 0)) return;
+          const fator = prontoTotal / rendimentoBase;
+          itens.forEach((item: any) => {
+            if (ehQB(item.quantidade_texto)) {
+              add(item.ingrediente_id, 0, prato.nome, unidadeItemPreparacao(item), true);
+              return;
+            }
+            const qtdBase = n(item.quantidade);
+            if (!(qtdBase > 0)) return;
+            add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
+          });
+          return;
+        }
+        const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
+        if (!ingrediente) return;
+        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+        const bruto = unidade === "g" ? quantidadeComRendimento(prontoTotal, ingrediente) : prontoTotal;
+        add(ingrediente.id, bruto, prato.nome, unidade);
+      });
+      return;
+    }
+    adicionarIngredientesDiretos();'''
+          if old not in s:
+              raise SystemExit('bloco de separacao nao encontrado')
+          p.write_text(s.replace(old, new, 1))
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/fix-separacao-ingredientes.yml
+          git commit -m "fix(cozinha): garantir todos ingredientes na separacao"
+          git push
