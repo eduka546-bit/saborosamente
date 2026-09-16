@@ -1,0 +1,41 @@
+name: Remover imagens da ficha do dia
+
+on:
+  push:
+    paths:
+      - '.github/workflows/remover-imagens-ficha-dia.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remover imagens da montagem da ficha do dia
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text(encoding='utf-8')
+          antigo = '''              <div className="mb-2 grid items-center gap-3" style={{gridTemplateColumns:"74px 1fr 72px"}}>
+                <div style={{width:"74px",height:"56px",display:"grid",placeItems:"center"}}>{x.produto.imagem_url || x.produto.imagens?.[0] ? <img src={x.produto.imagem_url || x.produto.imagens?.[0]} alt={x.produto.nome} style={{width:"74px",height:"56px",objectFit:"contain",objectPosition:"center center",display:"block"}}/> : <ChefHat size={24}/>}</div>
+                <div><h3 className="text-lg font-black">{x.produto.nome}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p></div>
+                <b className="text-right text-[#087443]">{x.total} un</b>
+              </div>'''
+          novo = '''              <div className="mb-2 grid items-center gap-3" style={{gridTemplateColumns:"1fr 72px"}}>
+                <div><h3 className="text-lg font-black">{x.produto.nome}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ") || "sem quantidade lançada"}</p></div>
+                <b className="text-right text-[#087443]">{x.total} un</b>
+              </div>'''
+          if antigo not in s:
+              raise SystemExit('bloco com imagem da ficha do dia não encontrado')
+          s = s.replace(antigo, novo, 1)
+          p.write_text(s, encoding='utf-8')
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "fix(cozinha): remover imagens da ficha de produção do dia"
+          git push
