@@ -1201,7 +1201,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
             <p className="mt-1 text-sm text-[#62766b]">{dataFmt}</p>
           </div>
           <div className="grid gap-1" style={{gridTemplateColumns:"repeat(3,110px)"}}>
-            <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Unidades</p><p className="mt-1 text-xl font-black text-[#087443]">{totalDia}</p></div>
+            <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Unidades</p><p className="mt-1 text-xl font-black text-[#087443]">{totalMarmitas}</p></div>
             <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Produtos</p><p className="mt-1 text-xl font-black text-[#087443]">{pratos.length}</p></div>
             <div className="rounded-xl bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Ingredientes</p><p className="mt-1 text-xl font-black text-[#087443]">{(separar as any[]).length}</p></div>
           </div>
@@ -1255,6 +1255,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           })}
         </div>}
       </section>
+    </div>
     </div>
   </Janela>;
 }
