@@ -1,0 +1,35 @@
+name: Executar correção visual das fichas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/corrigir-impressao-exata-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  executar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Reutilizar patch visual aprovado
+        shell: python
+        run: |
+          from pathlib import Path
+          import textwrap
+          wf = Path('.github/workflows/corrigir-impressao-exata.yml').read_text()
+          bloco = wf.split('        run: |\n', 1)[1].split('\n      - name: Commit', 1)[0]
+          exec(textwrap.dedent(bloco), {})
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(cozinha): corrigir layout de impressão aprovado"
+          git push origin main
