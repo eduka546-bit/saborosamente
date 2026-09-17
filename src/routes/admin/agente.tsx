@@ -1762,8 +1762,14 @@ function AdminAgentePage() {
   };
   const foiRespondida = (conversa: any) => {
     const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
-    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
-    return ultima?.role === "assistant";
+    const uteis = msgs.filter((m: any) => m?.role !== "system");
+    const ultimoCliente = uteis.map((m: any) => m?.role).lastIndexOf("user");
+    if (ultimoCliente < 0) return false;
+    const ultima = uteis.at(-1);
+    // So entra em Respondidas quando o cliente falou e houve uma resposta depois.
+    // Isso tambem cobre conversas iniciadas por campanha depois que o cliente responde.
+    // Mensagem/campanha enviada por nos sem resposta do cliente nao conta.
+    return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;
   };
   const humanasCount = (conversas as any[]).filter((c) => c.modo === "humano").length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
