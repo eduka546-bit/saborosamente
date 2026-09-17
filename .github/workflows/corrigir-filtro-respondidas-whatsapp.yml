@@ -1,0 +1,49 @@
+name: Corrigir filtro respondidas WhatsApp
+
+on:
+  push:
+    paths:
+      - '.github/workflows/corrigir-filtro-respondidas-whatsapp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Corrigir critério de respondidas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/admin/agente.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''  const foiRespondida = (conversa: any) => {
+    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
+    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
+    return ultima?.role === "assistant";
+  };'''
+          new = '''  const foiRespondida = (conversa: any) => {
+    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
+    const uteis = msgs.filter((m: any) => m?.role !== "system");
+    const ultimoCliente = uteis.map((m: any) => m?.role).lastIndexOf("user");
+    if (ultimoCliente < 0) return false;
+    const ultima = uteis.at(-1);
+    // Só entra em Respondidas quando o cliente falou e houve uma resposta depois.
+    // Mensagem/campanha enviada por nós sem resposta do cliente não conta.
+    return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;
+  };'''
+          if old not in s:
+              raise SystemExit('Trecho foiRespondida não encontrado')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/admin/agente.tsx
+          git commit -m 'fix(whatsapp): respondidas somente apos mensagem do cliente'
+          git push origin main
