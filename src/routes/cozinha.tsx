@@ -228,10 +228,14 @@ function CozinhaPage() {
     return gramas;
   };
   const quantidadeComRendimento = (gramas: number, ingrediente: any) => {
-    if (ingrediente?.tipo_rendimento === "perda")
-      return gramas * (1 + n(ingrediente.quebra_percentual) / 100);
-    if (ingrediente?.tipo_rendimento === "ganho")
-      return gramas / n(ingrediente.fator_rendimento || 1);
+    if (ingrediente?.tipo_rendimento === "perda") {
+      const perda = Math.min(99.999, Math.max(0, n(ingrediente.quebra_percentual))) / 100;
+      return gramas / (1 - perda);
+    }
+    if (ingrediente?.tipo_rendimento === "ganho") {
+      const fator = Math.max(0.000001, n(ingrediente.fator_rendimento || 1));
+      return gramas / fator;
+    }
     return gramas;
   };
   const custoPrep = (id: string) => {
@@ -1309,8 +1313,11 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const diretos = montagemDireta.map((m: any) => {
     const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
     let bruto = m.total;
-    if (ingrediente?.tipo_rendimento === "perda") bruto = m.total * (1 + n(ingrediente.quebra_percentual) / 100);
-    if (ingrediente?.tipo_rendimento === "ganho") bruto = m.total / n(ingrediente.fator_rendimento || 1);
+    if (ingrediente?.tipo_rendimento === "perda") {
+      const perda = Math.min(99.999, Math.max(0, n(ingrediente.quebra_percentual))) / 100;
+      bruto = m.total / (1 - perda);
+    }
+    if (ingrediente?.tipo_rendimento === "ganho") bruto = m.total / Math.max(0.000001, n(ingrediente.fator_rendimento || 1));
     return { montagem: m, ingrediente, bruto };
   });
   const idsEmPreparacoes = new Set(preparacoesCalculadas.flatMap((pc: any) => pc.itens.map((item: any) => item.ingrediente_id).filter(Boolean)));
@@ -1667,7 +1674,14 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const editarMontagem = (i:number,k:string,v:any) => setMontagem(montagem.map((x,j) => j === i ? {...x,[k]:v}:x));
   const addComponente = () => { if(!selecionado) return toast.error("Escolha um ingrediente ou preparação."); const [tipo,id] = selecionado.split(":"); if(tipo === "p" && linhas.some(x => x.preparacao_id === id)) return toast.error("Essa preparação já está na ficha."); if(tipo === "i" && linhas.some(x => x.ingrediente_id === id)) return toast.error("Esse ingrediente já está na ficha."); setLinhas([...linhas,{...receitaVazia(),ingrediente_id:tipo === "i" ? id : null,preparacao_id:tipo === "p" ? id : null}]); setSelecionado(""); };
   const addNovo = async () => { if(!novoD.nome.trim()) return toast.error("Informe o nome."); const criado = await criarIngrediente(novoD.nome,n(novoD.custo),n(novoD.rendimento)||1); if(!criado) return; setLinhas([...linhas,{...receitaVazia(),ingrediente_id:criado.id}]); setNovoD({nome:"",custo:"",rendimento:"1"});setNovo(false); };
-  const qCorreta = (g:number, item:any) => item?.tipo_rendimento==="perda" ? g*(1+n(item.quebra_percentual)/100) : item?.tipo_rendimento==="ganho" ? g/n(item.fator_rendimento||1) : g;
+  const qCorreta = (g:number, item:any) => {
+    if (item?.tipo_rendimento === "perda") {
+      const perda = Math.min(99.999, Math.max(0, n(item.quebra_percentual))) / 100;
+      return g / (1 - perda);
+    }
+    if (item?.tipo_rendimento === "ganho") return g / Math.max(0.000001, n(item.fator_rendimento || 1));
+    return g;
+  };
   const custoLinha = (x:ReceitaLinha,t:Tamanho) => x.preparacao_id
     ? n(x[`gramas_${t}` as keyof ReceitaLinha]) * n(custoPrep(x.preparacao_id))
     : qCorreta(n(x[`gramas_${t}` as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));
