@@ -90,8 +90,24 @@ const imprimirElemento = (id: string, titulo: string) => {
 #ficha-producao-produto-impressao>section.page-break-before img{width:76%!important;max-width:none!important;max-height:400pt!important}
 #ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child{margin-top:14pt!important}
 #ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child>div:first-child{width:95%!important;margin-bottom:8pt!important}
-#ficha-producao-produto-impressao h2{line-height:1.12}
-#ficha-producao-produto-impressao section>p.text-lg{margin-top:8pt;margin-bottom:5pt}
+#ficha-producao-produto-impressao h2{line-height:1.08}
+#ficha-producao-produto-impressao>section:first-child .py-2{padding-top:2.6pt!important;padding-bottom:2.6pt!important}
+#ficha-producao-produto-impressao>section:first-child .text-sm{font-size:9.6pt!important;line-height:1.18!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2){margin-top:7pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2)>p.text-lg{margin-top:0!important;margin-bottom:4pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2) .p-3{padding:4pt 5pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2) .px-3{padding-left:5pt!important;padding-right:5pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2) .py-2{padding-top:2.8pt!important;padding-bottom:2.8pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2) .text-sm{font-size:9.25pt!important;line-height:1.18!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2) .text-xs{font-size:8.6pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(2)>div>div.grid{break-inside:auto!important;page-break-inside:auto!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3){margin-top:7pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3)>p.text-lg{margin-top:0!important;margin-bottom:4pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3) .px-3{padding-left:5pt!important;padding-right:5pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3) .py-2{padding-top:2.5pt!important;padding-bottom:2.5pt!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3) .text-sm{font-size:9.2pt!important;line-height:1.15!important}
+#ficha-producao-produto-impressao>section:nth-of-type(3) .text-xs{font-size:8.5pt!important}
+#ficha-producao-produto-impressao section>p.text-lg{margin-top:7pt;margin-bottom:4pt}
 #ficha-producao-dia-impressao h2{line-height:1.12}
   </style></head><body>${elemento.innerHTML}</body></html>`);
   janela.document.close();
@@ -99,6 +115,17 @@ const imprimirElemento = (id: string, titulo: string) => {
   const imagens = Array.from(janela.document.images);
   const prontas = imagens.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); }));
   Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {
+    const fichaProduto = janela.document.getElementById("ficha-producao-produto-impressao");
+    if (fichaProduto) {
+      const montagem = fichaProduto.querySelector("section.page-break-before") as HTMLElement | null;
+      if (montagem) {
+        const alturaUtilA4Px = (297 - 12 - 15) * (96 / 25.4);
+        const inicioNaturalMontagem = montagem.offsetTop;
+        // Se o conteúdo da primeira página já ultrapassar a área útil, não força
+        // uma nova página: evita criar uma terceira página quase vazia.
+        if (inicioNaturalMontagem > alturaUtilA4Px * 0.92) montagem.classList.remove("page-break-before");
+      }
+    }
     setTimeout(() => { janela.print(); janela.close(); }, 150);
   });
 };
