@@ -26,7 +26,7 @@ jobs:
           linhas = bloco.splitlines()
           codigo = '\n'.join((linha[10:] if linha.startswith('          ') else linha) for linha in linhas)
           codigo = codigo.replace("s.index('\\n}\\nfunction FichaMontagemModal', r0)", "s.index('\\n}\\n\\nfunction FichaMontagemModal', r0)")
-          codigo = codigo.replace("s.index('\\n}\\nfunction IngredienteModal', r1)", "s.index('\\n}\\nfunction IngredienteModal', r1) if '\\n}\\nfunction IngredienteModal' in s else s.index('\\n}\\n\\nfunction IngredienteModal', r1)")
+          codigo = codigo.replace("r1 = s.index('  return <Janela titulo={`Ficha de produção — ${produto.nome}`}', f1)", "r1 = s.index('return <Janela titulo={`Ficha de produção — ${produto.nome}`}', f1)")
           exec(codigo, {})
       - name: Commit
         run: |
