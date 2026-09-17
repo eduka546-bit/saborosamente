@@ -1,0 +1,47 @@
+name: Compactar impressão da ficha por produto
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/compactar-impressao-ficha-produto.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Ajustar layout e paginação da impressão
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+
+          css_marker = '#ficha-producao-produto-impressao h2{line-height:1.12}\n#ficha-producao-produto-impressao section>p.text-lg{margin-top:8pt;margin-bottom:5pt}'
+          css_new = '''#ficha-producao-produto-impressao h2{line-height:1.08}\n#ficha-producao-produto-impressao>section:first-child .py-2{padding-top:2.6pt!important;padding-bottom:2.6pt!important}\n#ficha-producao-produto-impressao>section:first-child .text-sm{font-size:9.6pt!important;line-height:1.18!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2){margin-top:7pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2)>p.text-lg{margin-top:0!important;margin-bottom:4pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2) .p-3{padding:4pt 5pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2) .px-3{padding-left:5pt!important;padding-right:5pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2) .py-2{padding-top:2.8pt!important;padding-bottom:2.8pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2) .text-sm{font-size:9.25pt!important;line-height:1.18!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2) .text-xs{font-size:8.6pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(2)>div>div.grid{break-inside:auto!important;page-break-inside:auto!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3){margin-top:7pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3)>p.text-lg{margin-top:0!important;margin-bottom:4pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3) .px-3{padding-left:5pt!important;padding-right:5pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3) .py-2{padding-top:2.5pt!important;padding-bottom:2.5pt!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3) .text-sm{font-size:9.2pt!important;line-height:1.15!important}\n#ficha-producao-produto-impressao>section:nth-of-type(3) .text-xs{font-size:8.5pt!important}\n#ficha-producao-produto-impressao section>p.text-lg{margin-top:7pt;margin-bottom:4pt}'''
+          if css_marker not in s:
+              raise SystemExit('Marcador CSS não encontrado')
+          s = s.replace(css_marker, css_new, 1)
+
+          old = '''  Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {\n    setTimeout(() => { janela.print(); janela.close(); }, 150);\n  });'''
+          new = '''  Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {\n    const fichaProduto = janela.document.getElementById("ficha-producao-produto-impressao");\n    if (fichaProduto) {\n      const montagem = fichaProduto.querySelector("section.page-break-before") as HTMLElement | null;\n      if (montagem) {\n        const alturaUtilA4Px = (297 - 12 - 15) * (96 / 25.4);\n        const inicioNaturalMontagem = montagem.offsetTop;\n        // Se o conteúdo da primeira página já ultrapassar a área útil, não força\n        // uma nova página: evita criar uma terceira página quase vazia.\n        if (inicioNaturalMontagem > alturaUtilA4Px * 0.92) montagem.classList.remove("page-break-before");\n      }\n    }\n    setTimeout(() => { janela.print(); janela.close(); }, 150);\n  });'''
+          if old not in s:
+              raise SystemExit('Marcador de impressão não encontrado')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(cozinha): manter ficha compacta e evitar terceira pagina vazia"
+          git push origin main
