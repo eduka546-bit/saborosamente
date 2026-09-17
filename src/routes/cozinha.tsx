@@ -90,6 +90,15 @@ const imprimirElemento = (id: string, titulo: string) => {
 #ficha-producao-produto-impressao>section.page-break-before img{width:76%!important;max-width:none!important;max-height:400pt!important}
 #ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child{margin-top:14pt!important}
 #ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child>div:first-child{width:95%!important;margin-bottom:8pt!important}
+#ficha-producao-produto-impressao .montagem-fluida{break-before:auto!important;page-break-before:auto!important;margin-top:8pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2){margin-top:6pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2) .p-3{padding:3.5pt 4.5pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2) .text-sm{font-size:9.1pt!important;line-height:1.14!important}
+#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2) .text-xs{font-size:8.4pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(3){margin-top:6pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa .montagem-produto{margin-top:7pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa .montagem-produto .py-2{padding-top:2.4pt!important;padding-bottom:2.4pt!important}
+#ficha-producao-produto-impressao.ficha-produto-longa .montagem-produto img{width:66%!important;max-height:300pt!important}
 #ficha-producao-produto-impressao h2{line-height:1.08}
 #ficha-producao-produto-impressao>section:first-child .py-2{padding-top:2.6pt!important;padding-bottom:2.6pt!important}
 #ficha-producao-produto-impressao>section:first-child .text-sm{font-size:9.6pt!important;line-height:1.18!important}
@@ -123,7 +132,16 @@ const imprimirElemento = (id: string, titulo: string) => {
         const inicioNaturalMontagem = montagem.offsetTop;
         // Se o conteúdo da primeira página já ultrapassar a área útil, não força
         // uma nova página: evita criar uma terceira página quase vazia.
-        if (inicioNaturalMontagem > alturaUtilA4Px * 0.92) montagem.classList.remove("page-break-before");
+        if (inicioNaturalMontagem > alturaUtilA4Px * 0.70) {
+          montagem.classList.remove("page-break-before");
+          montagem.classList.add("montagem-fluida");
+        }
+        const alturaDuasPaginas = alturaUtilA4Px * 2;
+        const alturaConteudo = fichaProduto.scrollHeight;
+        if (alturaConteudo > alturaDuasPaginas * 1.02) {
+          const escala = Math.max(0.86, Math.min(1, (alturaDuasPaginas * 0.97) / alturaConteudo));
+          (fichaProduto as HTMLElement).style.zoom = String(escala);
+        }
       }
     }
     setTimeout(() => { janela.print(); janela.close(); }, 150);
@@ -1446,7 +1464,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       ];
   return <Janela titulo={`Ficha de produção — ${produto.nome}`} fechar={fechar}>
     <div className="mb-4 flex justify-end"><Botao leve onClick={() => imprimirElemento("ficha-producao-produto-impressao", `Ficha de produção — ${produto.nome}`)}>Imprimir ficha</Botao></div>
-    <div id="ficha-producao-produto-impressao">
+    <div id="ficha-producao-produto-impressao" className={preparacoesExibicao.length > 1 || preparacoesExibicao.some((pc:any) => pc.itens.length > 5 || String(pc.prep.modo_preparo || "").split(/\n|\\n/).length > 4) ? "ficha-produto-longa" : ""}>
       <section>
         <p className="text-sm font-black text-[#087443]">SaborosaMente - Ficha operacional da cozinha</p>
         <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{produto.nome}</h2>
@@ -1478,7 +1496,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         {ingredientesSemVinculo.length>0 && <div className="mt-3 border border-[#e5c36b] bg-[#fff9ee] px-3 py-2 text-sm text-[#52695f]"><b>Observação da ficha:</b> há ingredientes da composição sem ponto de aplicação definido na preparação. Eles continuam listados acima para separação e conferência.</div>}
       </section>
 
-      <section className="page-break-before">
+      <section className={preparacoesExibicao.length > 1 || preparacoesExibicao.some((pc:any) => pc.itens.length > 5 || String(pc.prep.modo_preparo || "").split(/\n|\\n/).length > 4) ? "mt-4 montagem-produto montagem-fluida" : "page-break-before montagem-produto"}>
         <p className="text-lg font-black uppercase text-[#087443]">Montagem por tamanho</p>
         <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{produto.nome}</h2>
         <p className="mt-1 text-sm text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
