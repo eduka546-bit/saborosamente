@@ -1610,7 +1610,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "ia" | "humano" | "campanhas">("pendentes");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("pendentes");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
@@ -1760,8 +1760,14 @@ function AdminAgentePage() {
     const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
     return ultima?.role === "user";
   };
+  const foiRespondida = (conversa: any) => {
+    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
+    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
+    return ultima?.role === "assistant";
+  };
   const humanasCount = (conversas as any[]).filter((c) => c.modo === "humano").length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
+  const respondidasCount = (conversas as any[]).filter(foiRespondida).length;
 
   const telefonesComConversa = new Set(
     (conversas as any[]).map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
@@ -1801,7 +1807,7 @@ function AdminAgentePage() {
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : (conversas as any[]);
   const filtered = itensDaLista.filter((c: any) => {
-    const matchModo = filterModo === "todos" || filterModo === "campanhas" || (filterModo === "pendentes" ? precisaResponder(c) : c.modo === filterModo);
+    const matchModo = filterModo === "todos" || filterModo === "campanhas" || (filterModo === "pendentes" ? precisaResponder(c) : filterModo === "respondidas" ? foiRespondida(c) : c.modo === filterModo);
     const matchSearch =
       !search ||
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -1935,7 +1941,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className={`flex flex-wrap gap-1.5 px-3 py-2 shrink-0`}>
-          {(["pendentes", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["pendentes", "respondidas", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -1947,8 +1953,10 @@ function AdminAgentePage() {
             >
               {f === "pendentes"
                 ? `🔴 Falta responder (${pendentesCount})`
-                : f === "todos"
-                  ? "Tudo"
+                : f === "respondidas"
+                  ? `✅ Respondidas (${respondidasCount})`
+                  : f === "todos"
+                    ? "Tudo"
                   : f === "humano"
                     ? "👤 Você"
                     : f === "ia"
