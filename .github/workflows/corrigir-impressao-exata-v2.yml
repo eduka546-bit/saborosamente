@@ -25,6 +25,8 @@ jobs:
           bloco = wf.split('        run: |\n', 1)[1].split('\n      - name: Commit', 1)[0]
           linhas = bloco.splitlines()
           codigo = '\n'.join((linha[10:] if linha.startswith('          ') else linha) for linha in linhas)
+          codigo = codigo.replace("s.index('\\n}\\nfunction FichaMontagemModal', r0)", "s.index('\\n}\\n\\nfunction FichaMontagemModal', r0)")
+          codigo = codigo.replace("s.index('\\n}\\nfunction IngredienteModal', r1)", "s.index('\\n}\\nfunction IngredienteModal', r1) if '\\n}\\nfunction IngredienteModal' in s else s.index('\\n}\\n\\nfunction IngredienteModal', r1)")
           exec(codigo, {})
       - name: Commit
         run: |
