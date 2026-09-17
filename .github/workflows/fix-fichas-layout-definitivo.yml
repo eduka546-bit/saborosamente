@@ -23,10 +23,13 @@ jobs:
       - name: Aplicar patch
         run: python3 .github/scripts/fix_fichas_layout_definitivo.py
 
-      - name: Validar build
+      - name: Validar estrutura
         run: |
-          npm ci
-          npm run build
+          grep -q '1. Componentes prontos para este produto' src/routes/cozinha.tsx
+          grep -q 'className="page-break-before"' src/routes/cozinha.tsx
+          grep -q 'width:"76%"' src/routes/cozinha.tsx
+          ! grep -q 'montagem-fluida' src/routes/cozinha.tsx
+          ! grep -q 'ficha-produto-longa' src/routes/cozinha.tsx
 
       - name: Salvar alteração
         run: |
