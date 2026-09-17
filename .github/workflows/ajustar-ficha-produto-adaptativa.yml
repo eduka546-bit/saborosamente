@@ -1,0 +1,50 @@
+name: Ajustar ficha produto adaptativa
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ajustar-ficha-produto-adaptativa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  ajustar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Ajustar impressão adaptativa
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/cozinha.tsx')
+          s=p.read_text()
+          old='<div id="ficha-producao-produto-impressao">'
+          new='<div id="ficha-producao-produto-impressao" className={preparacoesExibicao.length > 1 ? "ficha-produto-longa" : ""}>'
+          if old not in s:
+              raise SystemExit('raiz da ficha nao encontrada')
+          s=s.replace(old,new,1)
+          old='<section className="page-break-before">\n        <p className="text-lg font-black uppercase text-[#087443]">Montagem por tamanho</p>'
+          new='<section className={preparacoesExibicao.length > 1 ? "mt-4 montagem-produto montagem-fluida" : "page-break-before montagem-produto"}>\n        <p className="text-lg font-black uppercase text-[#087443]">Montagem por tamanho</p>'
+          if old not in s:
+              raise SystemExit('secao de montagem nao encontrada')
+          s=s.replace(old,new,1)
+          marker='#ficha-producao-produto-impressao h2{line-height:1.12}'
+          css='''#ficha-producao-produto-impressao .montagem-fluida{break-before:auto!important;page-break-before:auto!important;margin-top:8pt!important}\n#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2){margin-top:7pt!important}\n#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2) .p-3{padding:4pt!important}\n#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(2) .text-sm{font-size:9.6pt!important;line-height:1.18!important}\n#ficha-producao-produto-impressao.ficha-produto-longa>section:nth-of-type(3){margin-top:7pt!important}\n#ficha-producao-produto-impressao.ficha-produto-longa .montagem-produto{margin-top:8pt!important}\n#ficha-producao-produto-impressao.ficha-produto-longa .montagem-produto img{width:68%!important;max-height:320pt!important}\n'''
+          if marker not in s:
+              raise SystemExit('marcador css nao encontrado')
+          s=s.replace(marker,css+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(cozinha): evitar terceira pagina vazia nas fichas longas"
+          git push origin main
