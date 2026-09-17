@@ -1,0 +1,29 @@
+name: Aplicar layout exato v5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/aplicar-layout-impressao-exato-v5.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Aplicar patch
+        run: python .github/scripts/aplicar_layout_impressao_exato_v5.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(cozinha): replicar layout aprovado nas impressões"
+          git push origin main
