@@ -34,6 +34,7 @@ jobs:
     if (ultimoCliente < 0) return false;
     const ultima = uteis.at(-1);
     // Só entra em Respondidas quando o cliente falou e houve uma resposta depois.
+    // Isso também cobre conversas iniciadas por campanha depois que o cliente responde.
     // Mensagem/campanha enviada por nós sem resposta do cliente não conta.
     return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;
   };'''
