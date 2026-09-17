@@ -557,6 +557,12 @@ function CozinhaPage() {
               <Titulo
                 titulo="Separar e preparar hoje"
                 texto="Totais calculados conforme as fichas técnicas e a produção planejada."
+                acao={separar.length ? (
+                  <Botao leve onClick={() => imprimirElemento("separar-hoje-impressao", `Separar hoje — ${new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR")}`)}>
+                    <BookOpen size={18} />
+                    Exportar PDF
+                  </Botao>
+                ) : null}
               />
               <div className="grid gap-3 md:grid-cols-2">
                 {!separar.length ? (
@@ -575,6 +581,31 @@ function CozinhaPage() {
                   ))
                 )}
               </div>
+
+              {separar.length > 0 && (
+                <div id="separar-hoje-impressao" className="hidden print-only">
+                  <section>
+                    <p className="text-sm font-black text-[#087443]">SaborosaMente - Separar e preparar hoje</p>
+                    <h2 className="mt-1 text-2xl font-black text-[#173a2d]">Lista de separação da cozinha</h2>
+                    <p className="mt-1 text-sm text-[#62766b]">Produção de {new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR")}</p>
+                    <p className="mt-2 text-sm text-[#62766b]">Quantidades cruas para separar, já considerando os ganhos × e perdas % cadastrados.</p>
+                  </section>
+                  <section className="mt-4">
+                    <div className="rounded-xl border border-[#dbe7dd] bg-white">
+                      <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold uppercase text-white" style={{gridTemplateColumns:"minmax(260px,1fr) 150px 1fr"}}>
+                        <span>Ingrediente</span><span>Quantidade</span><span>Usado em</span>
+                      </div>
+                      {separar.map((x) => (
+                        <div key={`pdf-${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(260px,1fr) 150px 1fr"}}>
+                          <b>{x.item.nome}</b>
+                          <b className="text-[#087443]">{x.qb ? "QB · a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</b>
+                          <span className="text-xs text-[#62766b]">{(x.pratos || []).map((nome: string) => String(nome).match(/\b([A-Z]{2}\d{2})\b/)?.[1] || nome).join(" · ")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              )}
             </section>
           )}
           {aba === "compras" && (
