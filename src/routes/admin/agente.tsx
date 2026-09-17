@@ -45,14 +45,34 @@ export const Route = createFileRoute("/admin/agente")({
 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+type AnexoSaida = {
+  url: string;
+  tipo: "image" | "video" | "document";
+  nome: string;
+  mime: string;
+};
+
 async function sendManualMessage(
   to: string,
   text: string,
-): Promise<{ ok: boolean; errorMsg?: string }> {
+  anexo?: AnexoSaida | null,
+): Promise<{ ok: boolean; errorMsg?: string; messageId?: string }> {
   try {
-    const { error } = await supabase.functions.invoke("whatsapp-send", { body: { to, text } });
+    const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+      body: {
+        to,
+        text,
+        ...(anexo ? {
+          media_url: anexo.url,
+          media_type: anexo.tipo,
+          filename: anexo.nome,
+          caption: text,
+        } : {}),
+      },
+    });
     if (error) return { ok: false, errorMsg: error.message };
-    return { ok: true };
+    if (data?.error) return { ok: false, errorMsg: data.error };
+    return { ok: true, messageId: data?.message_id || undefined };
   } catch (e: any) {
     return { ok: false, errorMsg: e.message };
   }
@@ -1025,12 +1045,37 @@ function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
   );
 }
 
+function MidiaEnviada({ msg }: { msg: any }) {
+  const url = String(msg?.media_url || "");
+  if (!url) return null;
+  const tipo = String(msg?.media_type || "").toLowerCase();
+  const mime = String(msg?.mime_type || "").toLowerCase();
+  if (tipo === "image" || mime.startsWith("image/")) {
+    return <a href={url} target="_blank" rel="noreferrer" className="block mt-1"><img src={url} alt={msg.media_name || "Imagem enviada"} className="max-w-full max-h-[360px] rounded-xl object-contain" /></a>;
+  }
+  if (tipo === "video" || mime.startsWith("video/")) {
+    return <video src={url} controls preload="metadata" className="max-w-full max-h-[360px] rounded-xl mt-1" />;
+  }
+  return <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15"><FileText size={18}/><span className="text-xs font-semibold truncate">{msg.media_name || "Abrir arquivo"}</span></a>;
+}
+
+const EMOJIS_RAPIDOS = [
+  "😊","😍","🥰","😋","😄","😂","😉","🤩","😅","🙏",
+  "👍","👏","🙌","💚","❤️","✨","🎉","🔥","✅","👀",
+  "🍽️","🥗","🍲","🥘","🍝","🥩","🍗","🥔","🥦","🧊",
+  "🚚","📦","🛒","💳","💰","📍","📅","⏰","📲","💬",
+];
+
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
+  const [emojiAberto, setEmojiAberto] = useState(false);
+  const [anexoFile, setAnexoFile] = useState<File | null>(null);
+  const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
+  const anexoInputRef = useRef<HTMLInputElement>(null);
   const [editandoNome, setEditandoNome] = useState(false);
   const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
   const [salvandoNome, setSalvandoNome] = useState(false);
@@ -1211,25 +1256,83 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
     }
   };
 
+  const selecionarAnexo = (file?: File) => {
+    if (!file) return;
+    const ehImagem = file.type.startsWith("image/");
+    const ehVideo = file.type.startsWith("video/");
+    const permitidos = ehImagem || ehVideo || [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/plain",
+    ].includes(file.type);
+    if (!permitidos) return toast.error("Envie imagem, vídeo, PDF ou documento.");
+    const limite = ehImagem ? 5 : ehVideo ? 16 : 20;
+    if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
+    setAnexoFile(file);
+    if (anexoPreview) URL.revokeObjectURL(anexoPreview);
+    setAnexoPreview(ehImagem || ehVideo ? URL.createObjectURL(file) : null);
+    setEmojiAberto(false);
+  };
+
+  const limparAnexo = () => {
+    if (anexoPreview) URL.revokeObjectURL(anexoPreview);
+    setAnexoPreview(null);
+    setAnexoFile(null);
+    if (anexoInputRef.current) anexoInputRef.current.value = "";
+  };
+
   const handleSend = async () => {
-    if (!msgText.trim() || sending) return;
+    const texto = msgText.trim();
+    if ((!texto && !anexoFile) || sending) return;
     setSending(true);
     try {
-      const novas = [...mensagensDaConversa, { role: "assistant", content: msgText, manual: true }].slice(
-        -30,
-      );
-      await supabase
+      let anexo: AnexoSaida | null = null;
+      if (anexoFile) {
+        const tipo: AnexoSaida["tipo"] = anexoFile.type.startsWith("image/")
+          ? "image"
+          : anexoFile.type.startsWith("video/")
+            ? "video"
+            : "document";
+        const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+        const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
+        const { error: uploadError } = await supabase.storage
+          .from("agente-arquivos")
+          .upload(path, anexoFile, { contentType: anexoFile.type || "application/octet-stream", upsert: false });
+        if (uploadError) throw uploadError;
+        const url = supabase.storage.from("agente-arquivos").getPublicUrl(path).data.publicUrl;
+        anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
+      }
+
+      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo);
+      if (!ok) throw new Error(errorMsg || "Falha ao enviar");
+
+      const agora = new Date().toISOString();
+      const novaMensagem: any = {
+        role: "assistant",
+        content: texto,
+        manual: true,
+        timestamp: agora,
+        deliveryStatus: "enviado",
+        ...(messageId ? { whatsapp_message_id: messageId } : {}),
+        ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
+      };
+      const novas = [...mensagensDaConversa, novaMensagem].slice(-30);
+      const { error: persistError } = await supabase
         .from("whatsapp_conversas")
-        .update({ mensagens: novas, ultima_msg: new Date().toISOString() })
+        .update({ mensagens: novas, ultima_msg: agora })
         .eq("id", conversa.id);
-      const { ok, errorMsg } = await sendManualMessage(conversa.telefone, msgText);
-      if (ok) {
-        toast.success("Enviado!");
-        setMsgText("");
-        queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
-      } else toast.error(errorMsg ? `Erro: ${errorMsg}` : "Falha ao enviar");
+      if (persistError) throw persistError;
+
+      toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
+      setMsgText("");
+      limparAnexo();
+      setEmojiAberto(false);
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || "Falha ao enviar");
     } finally {
       setSending(false);
     }
@@ -1419,6 +1522,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
+                {msg.media_url && <MidiaEnviada msg={msg} />}
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
@@ -1466,29 +1570,30 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <div
-              className={`flex-1 flex items-center gap-2 rounded-full px-4 py-2.5 ${t.chatInputField} border ${t.divider}`}
-            >
-              <Smile size={18} className={t.textSub} />
-              <input
-                value={msgText}
-                onChange={(e) => setMsgText(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())
-                }
-                placeholder="Digite uma mensagem"
-                className="flex-1 bg-transparent outline-none text-sm"
-              />
-              <Paperclip size={18} className={t.textSub} />
+          <div className="relative">
+            {anexoFile && (
+              <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
+                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
+                <div className="min-w-0 flex-1"><p className={`truncate text-xs font-semibold ${t.text}`}>{anexoFile.name}</p><p className={`text-[10px] ${t.textSub}`}>{(anexoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
+                <button onClick={limparAnexo} className={`rounded-full p-1.5 ${t.textSub}`} title="Remover anexo"><X size={16}/></button>
+              </div>
+            )}
+            {emojiAberto && (
+              <div className={`absolute bottom-14 left-0 z-30 w-[300px] rounded-2xl border p-3 shadow-2xl ${dark ? "border-[#3b4a54] bg-[#202c33]" : "border-[#dfe3e5] bg-white"}`}>
+                <div className="grid grid-cols-8 gap-1">{EMOJIS_RAPIDOS.map((emoji) => <button key={emoji} onClick={() => setMsgText((atual) => atual + emoji)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-black/10">{emoji}</button>)}</div>
+              </div>
+            )}
+            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 flex items-center gap-2 rounded-full px-3 py-2.5 ${t.chatInputField} border ${t.divider}`}>
+                <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
+                <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 bg-transparent outline-none text-sm" />
+                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
+              </div>
+              <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
+                {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!msgText.trim() || sending}
-              className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0"
-            >
-              {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-            </button>
           </div>
         )}
       </div>
@@ -1505,7 +1610,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "ia" | "humano" | "campanhas">("todos");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "ia" | "humano" | "campanhas">("pendentes");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
@@ -1650,7 +1755,13 @@ function AdminAgentePage() {
     }
   };
 
+  const precisaResponder = (conversa: any) => {
+    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
+    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
+    return ultima?.role === "user";
+  };
   const humanasCount = (conversas as any[]).filter((c) => c.modo === "humano").length;
+  const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
 
   const telefonesComConversa = new Set(
     (conversas as any[]).map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
@@ -1690,7 +1801,7 @@ function AdminAgentePage() {
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : (conversas as any[]);
   const filtered = itensDaLista.filter((c: any) => {
-    const matchModo = filterModo === "todos" || filterModo === "campanhas" || c.modo === filterModo;
+    const matchModo = filterModo === "todos" || filterModo === "campanhas" || (filterModo === "pendentes" ? precisaResponder(c) : c.modo === filterModo);
     const matchSearch =
       !search ||
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -1823,8 +1934,8 @@ function AdminAgentePage() {
         </div>
 
         {/* Filtros */}
-        <div className={`flex gap-2 px-3 py-2 shrink-0`}>
-          {(["todos", "humano", "ia", "campanhas"] as const).map((f) => (
+        <div className={`flex flex-wrap gap-1.5 px-3 py-2 shrink-0`}>
+          {(["pendentes", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -1834,13 +1945,15 @@ function AdminAgentePage() {
                   : `${dark ? "bg-[#2a3942] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`
               }`}
             >
-              {f === "todos"
-                ? "Tudo"
-                : f === "humano"
-                  ? "👤 Você"
-                  : f === "ia"
-                    ? "🤖 IA"
-                    : `📣 Campanhas${carregandoCampanhas ? "" : ` (${campanhasSemResposta.length})`}`}
+              {f === "pendentes"
+                ? `🔴 Falta responder (${pendentesCount})`
+                : f === "todos"
+                  ? "Tudo"
+                  : f === "humano"
+                    ? "👤 Você"
+                    : f === "ia"
+                      ? "🤖 IA"
+                      : `📣 Campanhas${carregandoCampanhas ? "" : ` (${campanhasSemResposta.length})`}`}
             </button>
           ))}
         </div>
@@ -1873,6 +1986,8 @@ function AdminAgentePage() {
               const isHumano = c.modo === "humano";
               const isCampanha = c.somenteCampanha === true;
               const lastMsg = c.mensagens?.at(-1);
+              const pendente = !isCampanha && precisaResponder(c);
+              const naoRespondidas = pendente ? [...(c.mensagens || [])].reverse().findIndex((m: any) => m?.role === "assistant") : 0;
               const avatarColor = isCampanha ? "bg-[#5850ec]" : isHumano ? "bg-[#f0a202]" : "bg-[#00a884]";
 
               return (
@@ -1904,15 +2019,15 @@ function AdminAgentePage() {
                       <p className={`text-xs truncate ${t.textSub}`}>
                         {isCampanha
                           ? `📣 ${c.statusCampanha === "enviado" ? "Enviado à Meta" : c.statusCampanha === "entregue" ? "Entregue" : c.statusCampanha === "lido" ? "Lido" : c.statusCampanha}`
-                          : <>{lastMsg?.role === "assistant" ? "🤖 " : ""}{lastMsg?.content?.slice(0, 45) ?? ""}</>}
+                          : pendente
+                            ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
+                            : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
                       </p>
-                      {isHumano && (
-                        <span
-                          className={`ml-2 h-5 w-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}
-                        >
-                          !
-                        </span>
-                      )}
+                      {pendente ? (
+                        <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-red-500 text-white" title="Aguardando sua resposta">{Math.max(1, naoRespondidas)}</span>
+                      ) : isHumano ? (
+                        <span className={`ml-2 px-1.5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}>VOCÊ</span>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1956,7 +2071,7 @@ function AdminAgentePage() {
             <div className={`flex gap-6 text-center mt-2`}>
               {[
                 { label: "Contatos", val: (conversas as any[]).length },
-                { label: "Aguardando", val: humanasCount },
+                { label: "Falta responder", val: pendentesCount },
                 {
                   label: "Com IA",
                   val: (conversas as any[]).filter((c: any) => c.modo === "ia").length,
