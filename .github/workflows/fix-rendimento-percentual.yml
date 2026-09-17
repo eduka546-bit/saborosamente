@@ -1,0 +1,53 @@
+name: Corrigir fórmula de rendimento percentual
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-rendimento-percentual.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Corrigir fórmula
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text()
+          old = '''  const quantidadeComRendimento = (gramas: number, ingrediente: any) => {
+    if (ingrediente?.tipo_rendimento === "perda")
+      return gramas * (1 + n(ingrediente.quebra_percentual) / 100);
+    if (ingrediente?.tipo_rendimento === "ganho")
+      return gramas / n(ingrediente.fator_rendimento || 1);
+    return gramas;
+  };'''
+          new = '''  const quantidadeComRendimento = (gramas: number, ingrediente: any) => {
+    if (ingrediente?.tipo_rendimento === "perda") {
+      const perda = Math.min(99.999, Math.max(0, n(ingrediente.quebra_percentual))) / 100;
+      return gramas / (1 - perda);
+    }
+    if (ingrediente?.tipo_rendimento === "ganho") {
+      const fator = Math.max(0.000001, n(ingrediente.fator_rendimento || 1));
+      return gramas / fator;
+    }
+    return gramas;
+  };'''
+          if old not in s:
+              raise SystemExit('Trecho da fórmula não encontrado')
+          p.write_text(s.replace(old, new, 1))
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/cozinha.tsx
+          git commit -m "fix(cozinha): aplicar rendimento percentual corretamente"
+          git push origin main
