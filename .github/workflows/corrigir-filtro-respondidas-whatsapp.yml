@@ -16,30 +16,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Corrigir critério de respondidas
+      - name: Corrigir criterio de respondidas
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('src/routes/admin/agente.tsx')
           s = p.read_text(encoding='utf-8')
-          old = '''  const foiRespondida = (conversa: any) => {
-    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
-    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
-    return ultima?.role === "assistant";
-  };'''
-          new = '''  const foiRespondida = (conversa: any) => {
-    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
-    const uteis = msgs.filter((m: any) => m?.role !== "system");
-    const ultimoCliente = uteis.map((m: any) => m?.role).lastIndexOf("user");
-    if (ultimoCliente < 0) return false;
-    const ultima = uteis.at(-1);
-    // Só entra em Respondidas quando o cliente falou e houve uma resposta depois.
-    // Isso também cobre conversas iniciadas por campanha depois que o cliente responde.
-    // Mensagem/campanha enviada por nós sem resposta do cliente não conta.
-    return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;
-  };'''
+          old = '  const foiRespondida = (conversa: any) => {\n    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];\n    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");\n    return ultima?.role === "assistant";\n  };'
+          new = '  const foiRespondida = (conversa: any) => {\n    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];\n    const uteis = msgs.filter((m: any) => m?.role !== "system");\n    const ultimoCliente = uteis.map((m: any) => m?.role).lastIndexOf("user");\n    if (ultimoCliente < 0) return false;\n    const ultima = uteis.at(-1);\n    // So entra em Respondidas quando o cliente falou e houve uma resposta depois.\n    // Isso tambem cobre conversas iniciadas por campanha depois que o cliente responde.\n    // Mensagem/campanha enviada por nos sem resposta do cliente nao conta.\n    return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;\n  };'
           if old not in s:
-              raise SystemExit('Trecho foiRespondida não encontrado')
+              raise SystemExit('Trecho foiRespondida nao encontrado')
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
       - name: Commit
