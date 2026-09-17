@@ -23,62 +23,31 @@ jobs:
           from pathlib import Path
           p = Path('src/routes/cozinha.tsx')
           s = p.read_text()
-          old = '''          {aba === "separar" && (
-            <section>
-              <Titulo
+          inicio = s.index('          {aba === "separar" && (')
+          fim = s.index('          {aba === "compras" && (', inicio)
+          bloco = s[inicio:fim]
+          if 'separar-hoje-impressao' in bloco:
+              raise SystemExit('Exportação já aplicada')
+
+          titulo_old = '''              <Titulo
                 titulo="Separar e preparar hoje"
                 texto="Totais calculados conforme as fichas técnicas e a produção planejada."
-              />
-              <div className="grid gap-3 md:grid-cols-2">
-                {!separar.length ? (
-                  <Vazio texto="Adicione produção e cadastre fichas técnicas para gerar a lista." />
-                ) : (
-                  separar.map((x) => (
-                    <article key={x.id} className="rounded-2xl border bg-white p-4">
-                      <h3 className="font-bold">{x.item.nome}</h3>
-                      <p className="mt-2 text-2xl font-black text-[#087443]">
-                        {x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}
-                      </p>
-                      <p className="mt-2 text-xs text-[#62766b]">
-                        Usado em: {x.pratos.join(" · ")}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </div>
-            </section>
-          )}'''
-          new = '''          {aba === "separar" && (
-            <section>
-              <Titulo
+              />'''
+          titulo_new = '''              <Titulo
                 titulo="Separar e preparar hoje"
                 texto="Totais calculados conforme as fichas técnicas e a produção planejada."
-                acao={
-                  separar.length ? (
-                    <Botao leve onClick={() => imprimirElemento("separar-hoje-impressao", `Separar hoje — ${new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR")}`)}>
-                      <BookOpen size={18} />
-                      Exportar PDF
-                    </Botao>
-                  ) : null
-                }
-              />
-              <div className="grid gap-3 md:grid-cols-2">
-                {!separar.length ? (
-                  <Vazio texto="Adicione produção e cadastre fichas técnicas para gerar a lista." />
-                ) : (
-                  separar.map((x) => (
-                    <article key={x.id} className="rounded-2xl border bg-white p-4">
-                      <h3 className="font-bold">{x.item.nome}</h3>
-                      <p className="mt-2 text-2xl font-black text-[#087443]">
-                        {x.qb ? "a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}
-                      </p>
-                      <p className="mt-2 text-xs text-[#62766b]">
-                        Usado em: {x.pratos.join(" · ")}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </div>
+                acao={separar.length ? (
+                  <Botao leve onClick={() => imprimirElemento("separar-hoje-impressao", `Separar hoje — ${new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR")}`)}>
+                    <BookOpen size={18} />
+                    Exportar PDF
+                  </Botao>
+                ) : null}
+              />'''
+          if titulo_old not in bloco:
+              raise SystemExit('Título de Separar hoje não encontrado')
+          bloco = bloco.replace(titulo_old, titulo_new, 1)
+
+          extra = '''
               {separar.length > 0 && (
                 <div id="separar-hoje-impressao" className="hidden print-only">
                   <section>
@@ -103,11 +72,12 @@ jobs:
                   </section>
                 </div>
               )}
-            </section>
-          )}'''
-          if old not in s:
-              raise SystemExit('Bloco Separar hoje não encontrado')
-          p.write_text(s.replace(old, new, 1))
+'''
+          pos = bloco.rfind('            </section>')
+          if pos < 0:
+              raise SystemExit('Fechamento da seção Separar hoje não encontrado')
+          bloco = bloco[:pos] + extra + bloco[pos:]
+          p.write_text(s[:inicio] + bloco + s[fim:])
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
