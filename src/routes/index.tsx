@@ -270,7 +270,7 @@ function Index() {
 
   const quickFilters = [
     "Mais escolhidas", "Mais saudáveis", "Mais leves", "Mais calóricas", "Mais proteicas",
-    "Frango", "Carne bovina", "Peixes", "Vegetarianas",
+    "Frango", "Carne bovina", "Peixes",
   ];
   const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
   const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
@@ -279,7 +279,7 @@ function Index() {
   const filteredProducts = useMemo(() => {
     let result = [...products];
     const selectedCategories = selectedFilters.filter((filter) => !quickFilters.includes(filter) && !restrictionFilters.includes(filter));
-    const selectedProteins = selectedFilters.filter((filter) => ["Frango", "Carne bovina", "Peixes", "Vegetarianas"].includes(filter));
+    const selectedProteins = selectedFilters.filter((filter) => ["Frango", "Carne bovina", "Peixes"].includes(filter));
     if (selectedCategories.length > 0) result = result.filter((p: any) => selectedCategories.includes(p.categorias?.nome));
     if (selectedProteins.length > 0) {
       result = result.filter((p: any) => selectedProteins.some((filter) => {
@@ -287,7 +287,7 @@ function Index() {
         if (filter === "Frango") return /frango|ave|peito de frango/.test(text);
         if (filter === "Carne bovina") return /patinho|carne bovina|ac[eé]m|cox[aã]o|alcatra|mignon|carne mo[ií]da/.test(text);
         if (filter === "Peixes") return /peixe|salm[aã]o|til[aá]pia|atum/.test(text);
-        return /vegetar|vegana|vegetal/.test(text);
+        return false;
       }));
     }
     if (selectedFilters.includes("Sem Glúten")) result = result.filter((p: any) => p.sem_gluten);
@@ -465,7 +465,7 @@ function Index() {
               title="Monte seu Combo"
               text="Quanto mais marmitas, maior o desconto. Automático e sem código."
               action="Montar Combo"
-              chips={["5+ → 3% off", "10+ → 5% off", "20+ → 7% off"]}
+              chips={["5+ → preço especial", "10+ → economize mais", "20+ → melhor preço"]}
               tone="combo"
               onClick={() => setComboModalOpen(true)}
             />
@@ -475,7 +475,9 @@ function Index() {
               title="Monte sua Marmita Personalizada"
               text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
               action="Montar Marmita"
-              chips={["P → R$ 18,90", "M → R$ 22,90", "G → R$ 26,90", "GG → R$ 29,90"]}
+              chips={marmitaConfig.tamanhos.map(
+                (t) => `${t.sigla} → ${formatBRL(t.preco)}`,
+              )}
               tone="personalizada"
               onClick={() => setMarmitaModalOpen(true)}
             />}
