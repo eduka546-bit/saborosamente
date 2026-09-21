@@ -17,6 +17,7 @@ export const Route = createFileRoute("/carrinho")({
       { property: "og:description", content: "Revise seu pedido de marmitas congeladas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, follow" },
     ],
     links: [{ rel: "canonical", href: "https://saborosamente.vercel.app/carrinho" }],
   }),
