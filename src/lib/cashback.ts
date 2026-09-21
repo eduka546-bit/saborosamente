@@ -11,7 +11,7 @@ export async function getCashbackConfig() {
 
   return {
     ativo: (data as any)?.cashback_ativo !== false,
-    percentual: Number((data as any)?.cashback_percentual ?? 3) / 100,
+    percentual: Number((data as any)?.cashback_percentual ?? 1) / 100,
     validade_dias: Number((data as any)?.cashback_validade_dias ?? 30),
     minimo_uso: Number((data as any)?.cashback_minimo_uso ?? 3),
     limite_desconto_pct: Number((data as any)?.cashback_limite_desconto_pct ?? 15) / 100,
@@ -40,7 +40,7 @@ export async function getSaldo(userId: string): Promise<number> {
 
 export interface CashbackConfigCalc {
   ativo: boolean;
-  /** Fração (ex.: 0.03 para 3%). */
+  /** Fração (ex.: 0.01 para 1%). */
   percentual: number;
   /** Saldo mínimo necessário para poder usar cashback. */
   minimo_uso: number;
