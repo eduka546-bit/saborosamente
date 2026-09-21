@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { fatorCapacidade, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -951,6 +952,28 @@ function CozinhaPage() {
           preparacoes={preparacoes as any[]}
           itensPreparacao={itensPrep}
           ingredientes={ingredientes as any[]}
+          salvarQuantidades={async (produtoId: string, qs: Record<string, number>) => {
+            const linhasProduto = (producoes as any[]).filter((x:any)=>x.produto_id===produtoId);
+            if (linhasProduto.some((x:any)=>x.status==="concluida")) throw new Error("Marque a produção como pendente antes de editar as quantidades.");
+            for (const tamanho of TAMANHOS) {
+              const existentes = linhasProduto.filter((x:any)=>x.gramatura===tamanho.id);
+              const quantidade = Math.max(0, Math.floor(n(qs[tamanho.id])));
+              if (existentes.length) {
+                const [principal, ...duplicadas] = existentes;
+                const operacao = quantidade > 0
+                  ? supabase.from("cozinha_producoes").update({ quantidade_planejada:quantidade, updated_at:new Date().toISOString() }).eq("id",principal.id)
+                  : supabase.from("cozinha_producoes").delete().eq("id",principal.id);
+                const { error } = await operacao;
+                if (error) throw error;
+                if (duplicadas.length) await supabase.from("cozinha_producoes").delete().in("id",duplicadas.map((x:any)=>x.id));
+              } else if (quantidade > 0) {
+                const { data:{ user } } = await supabase.auth.getUser();
+                const { error } = await supabase.from("cozinha_producoes").insert({ data_producao:dataProducao, produto_id:produtoId, gramatura:tamanho.id, quantidade_planejada:quantidade, created_by:user?.id });
+                if (error) throw error;
+              }
+            }
+            await invalidar("coz-prod-dia");
+          }}
           fechar={() => setModal(null)}
         />
       )}
@@ -1252,8 +1275,10 @@ function AjusteEstoqueModal({ item, fechar, salvar }: any) {
     <div className="mt-4 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={()=>salvar(Math.max(0,n(quantidade)),Math.max(0,n(minimo)),observacao)}>Salvar ajuste</Botao></div>
   </Janela>;
 }
-function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, montagemPorReceita, itensReceita, separar, preparacoes, itensPreparacao, ingredientes, fechar }: any) {
+function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, montagemPorReceita, itensReceita, separar, preparacoes, itensPreparacao, ingredientes, salvarQuantidades, fechar }: any) {
   const [preparoPronto, setPreparoPronto] = useState<Record<string, number>>({});
+  const [ingredienteAjustado, setIngredienteAjustado] = useState<Record<string, number>>({});
+  const [salvandoProduto, setSalvandoProduto] = useState<string | null>(null);
   const produtoPorId = new Map((produtos as any[]).map((x: any) => [x.id, x]));
   const receitaPorProduto = new Map((receitas as any[]).map((x: any) => [x.produto_id, x]));
   const prepPorId = new Map((preparacoes as any[]).map((x: any) => [x.id, x]));
@@ -1365,8 +1390,23 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   });
   const ingredientesDiaAjustados = (separar as any[]).map((x:any) => ({
     ...x,
-    quantidade: x.qb ? x.quantidade : Math.max(0, n(x.quantidade) - (descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0)),
+    quantidade: x.qb ? x.quantidade : Math.max(0, ingredienteAjustado[`${x.id}:${x.unidade}`] ?? quantidadeRestante(n(x.quantidade), descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0)),
+    quantidadeCalculada: x.qb ? x.quantidade : quantidadeRestante(n(x.quantidade), descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0),
   }));
+  const ajustesComBase = ingredientesDiaAjustados.filter((x:any)=>!x.qb&&ingredienteAjustado[`${x.id}:${x.unidade}`]!==undefined&&x.quantidadeCalculada>0);
+  const fatorIngredientes = fatorCapacidade(ajustesComBase.map((x:any)=>({disponivel:x.quantidade,necessario:x.quantidadeCalculada})));
+  const simulandoIngredientes = ajustesComBase.length>0;
+  const editarPlanejamento = async (prato:any) => {
+    const qs:Record<string,number> = {...prato.q};
+    for (const tamanho of TAMANHOS) {
+      const valor=window.prompt(`Quantidade de ${tamanho.label} para ${prato.produto.nome}:`,String(qs[tamanho.id]||0));
+      if(valor===null)return;
+      qs[tamanho.id]=Math.max(0,Math.floor(n(String(valor).replace(',','.'))));
+    }
+    try { setSalvandoProduto(prato.produto.id); await salvarQuantidades(prato.produto.id,qs); toast.success("Planejamento atualizado. Preparações e ingredientes foram recalculados."); }
+    catch (erro:any) { toast.error(erro?.message||"Não foi possível atualizar o planejamento."); }
+    finally { setSalvandoProduto(null); }
+  };
   const totalMarmitas = pratos.reduce((s:number,x:any)=>s+x.total,0);
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString('pt-BR');
   const exatos = (montagem:any[], tamanho:'200'|'300'|'400') => {
@@ -1394,7 +1434,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         <p className="mb-1 text-lg font-black uppercase text-[#087443]">1. Produção planejada</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-2 py-1.5 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><span>Produto</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
-          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-2 py-1.5 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><b>{rotuloProduto(x.produto)}</b><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
+          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-2 py-1.5 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><div><b>{rotuloProduto(x.produto)}</b><div data-screen-only><button disabled={salvandoProduto===x.produto.id} className="mt-1 rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443] disabled:opacity-50" onClick={()=>editarPlanejamento(x)}>{salvandoProduto===x.produto.id?"Salvando…":"Editar quantidades"}</button></div></div><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
         </div>
       </section>
       <section className="mt-3">
@@ -1414,8 +1454,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         <p className="mb-1 text-sm text-[#62766b]">Quantidades cruas, considerando ganhos ×, perdas % e os preparos marcados como já prontos.</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
-          {ingredientesDiaAjustados.map((x:any)=>{const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); return <div key={`${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><b>{x.item?.nome}</b><div><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}</div><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
+          {ingredientesDiaAjustados.map((x:any)=>{const chave=`${x.id}:${x.unidade}`; const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); const editado=ingredienteAjustado[chave]!==undefined; return <div key={chave} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><div><b>{x.item?.nome}</b>{!x.qb&&<div data-screen-only className="mt-1 flex gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quantidade disponível de ${x.item?.nome} (${x.unidade}):`,String(x.quantidade));if(valor!==null)setIngredienteAjustado((atual)=>({...atual,[chave]:Math.max(0,n(String(valor).replace(',','.')))}));}}>Editar ingrediente</button>{editado&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setIngredienteAjustado((atual)=>{const novo={...atual};delete novo[chave];return novo;})}>Restaurar</button>}</div>}</div><div><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}{editado&&<p className="text-xs font-bold text-amber-700">necessário: {formatarQuantidadeProducao(x.quantidadeCalculada,x.unidade,x.item?.nome)}</p>}</div><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
         </div>
+        {simulandoIngredientes&&<div className="mt-2 border border-amber-200 bg-amber-50 p-3 text-sm"><p className="font-black text-amber-800">Capacidade estimada com os ingredientes informados: {(fatorIngredientes*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}% do planejamento</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{pratos.map((prato:any)=><div key={prato.produto.id}><b>{rotuloProduto(prato.produto)}</b><p className="text-xs text-[#62766b]">Sugestão: {TAMANHOS.map((t)=>`${sugerirMarmitas(n(prato.q[t.id]),fatorIngredientes)}×${t.label}`).join(' · ')}</p></div>)}</div><p className="mt-2 text-xs text-[#62766b]">Preparos estimados: {preparacoesConsolidadas.map((g:any)=>`${capitalizarNomeCozinha(g.prep.nome)} ${formatPeso(g.total*fatorIngredientes)}`).join(' · ')}</p></div>}
       </section>
       <section className="page-break-before">
         <p className="text-sm font-black uppercase text-[#087443]">4. Montagem por tamanho</p>
