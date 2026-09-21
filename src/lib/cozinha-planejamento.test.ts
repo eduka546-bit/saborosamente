@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fatorCapacidade, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
+import { fatorCapacidade, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
 
 describe("planejamento interligado da cozinha", () => {
   it("zera a necessidade quando o preparo pronto cobre o total", () => {
@@ -35,5 +35,18 @@ describe("planejamento interligado da cozinha", () => {
     const costelaDoLote=quantidadeNoLote(2000,12182.4,4800);
     expect(costelaDoLote).toBeCloseTo(5076,3);
     expect(quantidadeRestante(costelaDoLote,costelaDoLote)).toBe(0);
+  });
+
+  it("não confunde Arroz Branco com Molho Branco", () => {
+    expect(nomesCozinhaCorrespondem("Arroz branco","Molho branco")).toBe(false);
+  });
+
+  it("não confunde Feijão Preto com Feijão Carioca", () => {
+    expect(nomesCozinhaCorrespondem("Feijão Preto","Feijão Carioca")).toBe(false);
+  });
+
+  it("mantém correspondências específicas válidas", () => {
+    expect(nomesCozinhaCorrespondem("Arroz Branco Parboilizado","arroz branco")).toBe(true);
+    expect(nomesCozinhaCorrespondem("Molho madeira","alcatra molho madeira")).toBe(true);
   });
 });

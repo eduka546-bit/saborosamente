@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { fatorCapacidade, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { fatorCapacidade, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ import {
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
 type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
-type Tamanho = "200" | "300" | "400" | "personalizada";
+type Tamanho = "150" | "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
   preparacao_id: string | null;
@@ -45,10 +45,16 @@ type ReceitaLinha = {
 };
 type MontagemLinha = { id?: string; nome: string; gramas_200: number; gramas_300: number; gramas_400: number; observacao: string };
 const TAMANHOS: { id: Tamanho; label: string }[] = [
+  { id: "150", label: "150 g" },
   { id: "200", label: "200 g" },
   { id: "300", label: "300 g" },
   { id: "400", label: "400 g" },
 ];
+const TAMANHOS_RECEITA = TAMANHOS.filter((t) => t.id !== "150");
+const ehComplemento150 = (produto: any) => /^CO\d+/i.test(codigoProduto(produto)) || produto?.tipo_produto === "complemento";
+const tamanhosDoProduto = (produto: any) => produto?.tipo_produto === "sopa"
+  ? TAMANHOS_RECEITA.filter((t) => t.id === "400")
+  : ehComplemento150(produto) ? TAMANHOS.filter((t) => t.id === "150") : TAMANHOS_RECEITA;
 const labelGramatura = (gramatura: string) =>
   gramatura === "personalizada"
     ? "Personalizada"
@@ -82,11 +88,6 @@ const rotuloProduto = (produto: any) => {
   const codigo = codigoProduto(produto);
   const nome = nomeProdutoSemCodigo(produto);
   return codigo && nome ? `${codigo} — ${nome}` : (nome || codigo || "Produto não identificado");
-};
-const normalizarNomeCozinha = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const nomesCozinhaCorrespondem = (a: unknown, b: unknown) => {
-  const x = normalizarNomeCozinha(a), y = normalizarNomeCozinha(b);
-  return !!x && !!y && (x.includes(y) || y.includes(x) || x.split(" ").some((t) => t.length >= 4 && y.includes(t)));
 };
 const capitalizarNomeCozinha = (v: unknown) => {
   const texto = String(v || "").trim();
@@ -265,17 +266,6 @@ function CozinhaPage() {
     if (linha?.operacao_producao === "dividir") return gramas / fator;
     return gramas;
   };
-  const quantidadeComRendimento = (gramas: number, ingrediente: any) => {
-    if (ingrediente?.tipo_rendimento === "perda") {
-      const perda = Math.min(99.999, Math.max(0, n(ingrediente.quebra_percentual))) / 100;
-      return gramas / (1 - perda);
-    }
-    if (ingrediente?.tipo_rendimento === "ganho") {
-      const fator = Math.max(0.000001, n(ingrediente.fator_rendimento || 1));
-      return gramas / fator;
-    }
-    return gramas;
-  };
   const custoPrep = (id: string) => {
     const p = prep.get(id);
     if (!p || !n(p.rendimento_final_g)) return 0;
@@ -289,15 +279,6 @@ function CozinhaPage() {
   };
   const separar = useMemo(() => {
   const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any; qb: boolean }>();
-  const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
-  const mesmo = (a: unknown, b: unknown) => {
-    const na = normalizar(a), nb = normalizar(b);
-    if (!na || !nb) return false;
-    if (na.includes(nb) || nb.includes(na)) return true;
-    const ta = tokens(a), tb = tokens(b);
-    return ta.some((x) => tb.includes(x));
-  };
   const unidadeItemPreparacao = (item: any): "g" | "un" => {
     const texto = String(item?.quantidade_texto || "").trim();
     if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return "g";
@@ -320,76 +301,32 @@ function CozinhaPage() {
     const campo = `gramas_${p.gramatura || "400"}`;
     const multiplicador = n(p.quantidade_planejada);
     const linhasReceita = itensRec.get(r.id) || [];
-    const montagemReceita = itensMontagem.get(r.id) || [];
-    const idsPreparacoes = Array.from(new Set([
-      ...(Array.isArray(r.preparacoes) ? r.preparacoes.map((x: any) => x?.id).filter(Boolean) : []),
-      ...linhasReceita.map((x: any) => x.preparacao_id).filter(Boolean),
-    ]));
-    const prepsVinculadas = idsPreparacoes.map((id: any) => prep.get(id)).filter(Boolean);
-    const fallbackDireto = montagemReceita.length && montagemReceita.some((m: any) => {
-      if (!(n(m[campo]) > 0)) return false;
-      const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
-      if (preparacao) {
-        const itens = itensPrep.get(preparacao.id) || [];
-        const rendimentoInformado = n(preparacao.rendimento_final_g);
-        const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
-        return !(rendimentoBase > 0) || !itens.some((item: any) => n(item.quantidade) > 0 || ehQB(item.quantidade_texto));
-      }
-      return !(ingredientes as any[]).some((x: any) => mesmo(x.nome, m.nome));
-    });
-    if (fallbackDireto) {
-      linhasReceita.forEach((linha: any) => {
-        if (!linha.ingrediente_id) return;
+    const linhasIngredientes = linhasReceita.filter((linha: any) => linha.ingrediente_id);
+    if (linhasIngredientes.length) {
+      linhasIngredientes.forEach((linha: any) => {
         const ingrediente = ing.get(linha.ingrediente_id);
         if (!ingrediente) return;
         const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
         const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
-        add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
-      });
-      return;
-    }
-    if (montagemReceita.length) {
-      montagemReceita.forEach((m: any) => {
-        const prontoPorUnidade = n(m[campo]);
-        if (!(prontoPorUnidade > 0)) return;
-        const prontoTotal = prontoPorUnidade * multiplicador;
-        const preparacao = prepsVinculadas.find((x: any) => mesmo(m.nome, x.nome));
-        if (preparacao) {
-          const itens = itensPrep.get(preparacao.id) || [];
-          const rendimentoInformado = n(preparacao.rendimento_final_g);
-          const rendimentoBase = rendimentoInformado > 0 ? rendimentoInformado : itens.reduce((soma: number, item: any) => unidadeItemPreparacao(item) === "g" ? soma + n(item.quantidade) : soma, 0);
-          if (!(rendimentoBase > 0)) return;
-          const fator = prontoTotal / rendimentoBase;
-          itens.forEach((item: any) => {
-            if (ehQB(item.quantidade_texto)) {
-              add(item.ingrediente_id, 0, prato.nome, unidadeItemPreparacao(item), true);
-              return;
-            }
-            const qtdBase = n(item.quantidade);
-            if (!(qtdBase > 0)) return;
-            add(item.ingrediente_id, qtdBase * fator, prato.nome, unidadeItemPreparacao(item));
-          });
-          return;
-        }
-        const ingrediente = (ingredientes as any[]).find((x: any) => mesmo(x.nome, m.nome));
-        if (!ingrediente) return;
-        const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
-        const bruto = unidade === "g" ? quantidadeComRendimento(prontoTotal, ingrediente) : prontoTotal;
-        add(ingrediente.id, bruto, prato.nome, unidade);
+        add(linha.ingrediente_id, qtd, prato.nome, unidade, ehQB(linha.observacao));
       });
       return;
     }
     linhasReceita.forEach((linha: any) => {
-      if (!linha.ingrediente_id) return;
-      const ingrediente = ing.get(linha.ingrediente_id);
-      if (!ingrediente) return;
-      const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
-      const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
-      add(linha.ingrediente_id, unidade === "g" ? quantidadeComRendimento(qtd, ingrediente) : qtd, prato.nome, unidade);
+      if (!linha.preparacao_id) return;
+      const preparacao = prep.get(linha.preparacao_id);
+      const itens = itensPrep.get(linha.preparacao_id) || [];
+      const prontoTotal = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+      const rendimento = n(preparacao?.rendimento_final_g) || itens.reduce((s: number, item: any) => s + (unidadeItemPreparacao(item) === "g" ? n(item.quantidade) : 0), 0);
+      if (!(rendimento > 0) || !(prontoTotal > 0)) return;
+      itens.forEach((item: any) => {
+        const qb = ehQB(item.quantidade_texto);
+        add(item.ingrediente_id, qb ? 0 : n(item.quantidade) * prontoTotal / rendimento, prato.nome, unidadeItemPreparacao(item), qb);
+      });
     });
   });
   return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
-}, [producoes, produto, rec, itensRec, itensMontagem, prep, itensPrep, ing, ingredientes]);
+}, [producoes, produto, rec, itensRec, ing, prep, itensPrep]);
   const alertasEstoquePlanejado = useMemo(
     () =>
       separar
@@ -1201,7 +1138,7 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
     [q, setQ] = useState<any>({}),
     [obs, setObs] = useState("");
   const produtoSelecionado = marmitas.find((x: any) => x.id === produto);
-  const tamanhosDisponiveis = produtoSelecionado?.tipo_produto === "sopa" ? TAMANHOS.filter((t) => t.id === "400") : TAMANHOS;
+  const tamanhosDisponiveis = tamanhosDoProduto(produtoSelecionado);
   return (
     <Janela titulo="Adicionar à produção" fechar={fechar}>
       <div className="grid gap-4">
@@ -1245,10 +1182,11 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
   );
 }
 function EditarProducaoModal({ produto, linhas, fechar, salvar }: any) {
-  const [q, setQ] = useState<Record<string, number>>(() => Object.fromEntries(TAMANHOS.map((t) => [t.id, (linhas as any[]).filter((x: any) => x.gramatura === t.id).reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0)])));
+  const tamanhos = tamanhosDoProduto(produto);
+  const [q, setQ] = useState<Record<string, number>>(() => Object.fromEntries(tamanhos.map((t) => [t.id, (linhas as any[]).filter((x: any) => x.gramatura === t.id).reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0)])));
   return <Janela titulo={`Editar quantidades — ${rotuloProduto(produto)}`} fechar={fechar}>
     <p className="mb-4 text-sm text-[#62766b]">Informe quantas unidades serão produzidas em cada tamanho. Use zero para retirar um tamanho do planejamento.</p>
-    <div className="grid gap-3 sm:grid-cols-3">{TAMANHOS.map((t) => <Campo key={t.id} label={t.label}><input className={input} min="0" type="number" value={q[t.id] ?? 0} onChange={(e) => setQ((atual) => ({ ...atual, [t.id]: Math.max(0, n(e.target.value)) }))} /></Campo>)}</div>
+    <div className="grid gap-3 sm:grid-cols-3">{tamanhos.map((t) => <Campo key={t.id} label={t.label}><input className={input} min="0" type="number" value={q[t.id] ?? 0} onChange={(e) => setQ((atual) => ({ ...atual, [t.id]: Math.max(0, n(e.target.value)) }))} /></Campo>)}</div>
     <div className="mt-5 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={() => salvar(q)}>Salvar quantidades</Botao></div>
   </Janela>;
 }
@@ -1258,7 +1196,7 @@ function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
   const disponivel = n(saldo?.[`estoque_${tamanho}g`]);
   return <Janela titulo={`Transferir para a loja — ${rotuloProduto(produto)}`} fechar={fechar}>
     <div className="grid gap-3 sm:grid-cols-2">
-      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>setTamanho(e.target.value)}>{TAMANHOS.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[`estoque_${t.id}g`])} un</option>)}</select></Campo>
+      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>setTamanho(e.target.value)}>{TAMANHOS_RECEITA.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[`estoque_${t.id}g`])} un</option>)}</select></Campo>
       <Campo label="Quantidade"><input className={input} type="number" min="1" max={disponivel} value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo>
     </div>
     <p className="mt-2 text-sm text-[#62766b]">Saldo disponível: <b>{disponivel} unidades</b></p>
@@ -1291,10 +1229,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const receita = receitaPorProduto.get(produtoId) as any;
     const montagem = receita ? (montagemPorReceita.get(receita.id) || []) : [];
     const linhasReceita = receita ? (itensReceita.get(receita.id) || []) : [];
-    const q = { '200': 0, '300': 0, '400': 0 } as Record<string, number>;
+    const q = { '150': 0, '200': 0, '300': 0, '400': 0 } as Record<string, number>;
     linhas.forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
     const montagemTotal = montagem.map((m: any) => ({ ...m, total: n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
-    return { produto, receita, linhasReceita, q, montagem, montagemTotal, total:q['200']+q['300']+q['400'] };
+    return { produto, receita, linhasReceita, q, montagem, montagemTotal, total:q['150']+q['200']+q['300']+q['400'] };
   }).filter((x:any)=>x.produto).sort((a:any,b:any)=>a.produto.nome.localeCompare(b.produto.nome));
 
   const prepDia = new Map<string, any>();
@@ -1306,11 +1244,12 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   pratos.forEach((prato:any) => {
     const vinculadas = (Array.isArray(prato.receita?.preparacoes) ? prato.receita.preparacoes : []).map((r:any)=>prepPorId.get(r?.id)).filter(Boolean) as any[];
     prato.montagemTotal.forEach((m:any) => {
-      const prep = vinculadas.find((x:any)=>mesmo(x.nome,m.nome)) || (preparacoes as any[]).find((x:any)=>mesmo(x.nome,m.nome));
-      const linhaIngrediente = !prep ? (prato.linhasReceita as any[]).find((linha:any)=>{
+      const prepVinculada = vinculadas.find((x:any)=>mesmo(x.nome,m.nome));
+      const linhaIngrediente = !prepVinculada ? (prato.linhasReceita as any[]).find((linha:any)=>{
         const ingrediente=ingPorId.get(linha.ingrediente_id) as any;
         return ingrediente&&mesmo(ingrediente.nome,m.nome);
       }) : null;
+      const prep = prepVinculada || (!linhaIngrediente ? (preparacoes as any[]).find((x:any)=>mesmo(x.nome,m.nome)) : null);
       const ingredienteBase = !prep
         ? (ingPorId.get(linhaIngrediente?.ingrediente_id) || (ingredientes as any[]).find((x:any)=>mesmo(x.nome,m.nome)))
         : null;
@@ -1404,9 +1343,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
       const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo);
       const ingrediente = ingPorId.get(item.ingrediente_id) as any;
-      const totalLote = rendimentoBase>0
-        ? quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase)
-        : quantidadeBrutaPorRendimento(totalExato,ingrediente || {});
+      const totalLote = totalExato > 0
+        ? totalExato
+        : rendimentoBase>0
+          ? quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase)
+          : quantidadeBrutaPorRendimento(totalExato,ingrediente || {});
       somarDesconto(item.ingrediente_id, totalLote * proporcaoPronta);
     });
   });
@@ -1420,7 +1361,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   const simulandoIngredientes = ajustesComBase.length>0;
   const editarPlanejamento = async (prato:any) => {
     const qs:Record<string,number> = {...prato.q};
-    for (const tamanho of TAMANHOS) {
+    for (const tamanho of tamanhosDoProduto(prato.produto)) {
       const valor=window.prompt(`Quantidade de ${tamanho.label} para ${prato.produto.nome}:`,String(qs[tamanho.id]||0));
       if(valor===null)return;
       qs[tamanho.id]=Math.max(0,Math.floor(n(String(valor).replace(',','.'))));
@@ -1455,8 +1396,8 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       <section className="mt-3">
         <p className="mb-1 text-lg font-black uppercase text-[#087443]">1. Produção planejada</p>
         <div className="border border-[#dbe7dd] bg-white">
-          <div className="grid bg-[#173a2d] px-2 py-1.5 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><span>Produto</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
-          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-2 py-1.5 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><div><b>{rotuloProduto(x.produto)}</b><div data-screen-only><button disabled={salvandoProduto===x.produto.id} className="mt-1 rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443] disabled:opacity-50" onClick={()=>editarPlanejamento(x)}>{salvandoProduto===x.produto.id?"Salvando…":"Editar quantidades"}</button></div></div><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
+          <div className="grid bg-[#173a2d] px-2 py-1.5 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(280px,1fr) 68px 68px 68px 68px 72px"}}><span>Produto</span><span>150 g</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
+          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-2 py-1.5 text-sm" style={{gridTemplateColumns:"minmax(280px,1fr) 68px 68px 68px 68px 72px"}}><div><b>{rotuloProduto(x.produto)}</b><div data-screen-only><button disabled={salvandoProduto===x.produto.id} className="mt-1 rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443] disabled:opacity-50" onClick={()=>editarPlanejamento(x)}>{salvandoProduto===x.produto.id?"Salvando…":"Editar quantidades"}</button></div></div><span>{x.q["150"]||"—"}</span><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
         </div>
       </section>
       <section className="mt-3">
@@ -1503,20 +1444,12 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
   return <Janela titulo={`Ficha de montagem — ${rotuloProduto(produto)}`} fechar={fechar}>
     <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Montagem por tamanho</p><p className="mt-1 text-sm text-[#527164]">Referência para montar cada marmita individualmente. Produção de {dataFmt}: {TAMANHOS.filter(t => q[t.id] > 0).map(t => `${q[t.id]}×${t.label}`).join(" + ") || "nenhuma quantidade lançada"}.</p></div>
     {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{fmt(m.gramas_200, m.observacao)}</span><span>{fmt(m.gramas_300, m.observacao)}</span><span>{fmt(m.gramas_400, m.observacao)}</span></div>)}</div></div>}
-    <div className="mt-5 grid gap-3 sm:grid-cols-3">{TAMANHOS.map(t => <div key={t.id} className="rounded-xl bg-[#f4f7f4] p-3"><p className="text-xs font-bold text-[#62766b]">Produzir {t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{q[t.id]} un</p></div>)}</div>
+    <div className="mt-5 grid gap-3 sm:grid-cols-3">{TAMANHOS_RECEITA.map(t => <div key={t.id} className="rounded-xl bg-[#f4f7f4] p-3"><p className="text-xs font-bold text-[#62766b]">Produzir {t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{q[t.id]} un</p></div>)}</div>
   </Janela>;
 }
 
 function FichaProducaoModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, itensPreparacao, itensReceita = [], ingredientes, fechar }: any) {
-  const normalizar = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const tokens = (v: unknown) => normalizar(v).split(" ").filter((x) => x.length >= 4 && !["molho", "pronto", "cozido", "cozida", "grelhado", "grelhada"].includes(x));
-  const mesmo = (a: unknown, b: unknown) => {
-    const na = normalizar(a), nb = normalizar(b);
-    if (!na || !nb) return false;
-    if (na.includes(nb) || nb.includes(na)) return true;
-    const ta = tokens(a), tb = tokens(b);
-    return ta.some((x) => tb.includes(x));
-  };
+  const mesmo = nomesCozinhaCorrespondem;
   const porId = new Map((ingredientes as any[]).map((x: any) => [x.id, x]));
   const quantidades = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
   (producoes as any[]).forEach((p: any) => { if (quantidades[p.gramatura] != null) quantidades[p.gramatura] += n(p.quantidade_planejada); });
@@ -1925,7 +1858,7 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
 }
 function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], embalagens = [], itensPreparacao, custoIng, custoPrep, criarIngrediente, fechar, salvar }: any) {
   const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "preparacoes" | "custos">("ingredientes");
-  const tamanhosFicha = produto?.tipo_produto === "sopa" ? TAMANHOS.filter((t) => t.id === "400") : TAMANHOS;
+  const tamanhosFicha = produto?.tipo_produto === "sopa" ? TAMANHOS_RECEITA.filter((t) => t.id === "400") : TAMANHOS_RECEITA;
   const colunasFicha = produto?.tipo_produto === "sopa" ? "grid-cols-[minmax(220px,1fr)_120px_42px]" : "grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px]";
   const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, ingrediente_id: x.ingrediente_id || null, preparacao_id: x.preparacao_id || null })));
   const [montagem, setMontagem] = useState<MontagemLinha[]>(montagemInicial.map((x: any) => ({ id:x.id, nome:x.nome || "", gramas_200:n(x.gramas_200), gramas_300:n(x.gramas_300), gramas_400:n(x.gramas_400), observacao:x.observacao || "" })));
@@ -1980,11 +1913,11 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem)}>Salvar ficha técnica</Botao></div>
   </Janela>;
 }
-function TabelaCabecalho({titulo,children,tamanhos=TAMANHOS}:any){
+function TabelaCabecalho({titulo,children,tamanhos=TAMANHOS_RECEITA}:any){
   const grid = `minmax(220px,1fr) ${tamanhos.map(() => "120px").join(" ")} 42px`;
   return <div className="mt-4 overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[480px]"><div className="grid gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]" style={{gridTemplateColumns:grid}}><span>{titulo}</span>{tamanhos.map((t:any)=><span key={t.id}>{t.label}</span>)}<span/></div>{children}</div></div>
 }
-function TabelaCustos({linhas,ingredientes,nome,custoLinha,custoPrep,formatarGramas,tamanhos=TAMANHOS}:any){
+function TabelaCustos({linhas,ingredientes,nome,custoLinha,custoPrep,formatarGramas,tamanhos=TAMANHOS_RECEITA}:any){
   const grid = `minmax(220px,1fr) 100px ${tamanhos.map(() => "125px").join(" ")}`;
   const visiveis = linhas.filter((x:any)=>tamanhos.some((t:any)=>n(x[`gramas_${t.id}`]) > 0));
   return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[520px]"><div className="grid gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]" style={{gridTemplateColumns:grid}}><span>Componente</span><span>Custo/kg</span>{tamanhos.map((t:any)=><span key={t.id}>{t.label}</span>)}</div>{visiveis.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);const custoKg=x.preparacao_id?valor(n(custoPrep(x.preparacao_id))*1000):item?valor(n(item.custo_por_kg)):"—";return <div key={i} className="grid gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm" style={{gridTemplateColumns:grid}}><b>{nome(x)}</b><span>{custoKg}</span>{tamanhos.map((t:any)=><span key={t.id}>{formatarQuantidadeProducao(x[`gramas_${t.id}`], item?.unidade_medida === "un" ? "un" : "g", item?.nome || nome(x))} · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>

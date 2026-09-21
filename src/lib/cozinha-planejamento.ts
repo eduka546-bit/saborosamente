@@ -28,3 +28,11 @@ export function quantidadeNoLote(quantidadeBase: number, preparoNecessario: numb
   if (!(Number(rendimentoBase) > 0)) return 0;
   return Math.max(0, Number(quantidadeBase || 0) * Number(preparoNecessario || 0) / Number(rendimentoBase));
 }
+
+const termosGenericos = new Set(["molho","branco","preto","arroz","feijao","carne","frango","pronto","cozido","cozida","grelhado","grelhada"]);
+const normalizarNome = (valor: unknown) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+export function nomesCozinhaCorrespondem(a: unknown, b: unknown) {
+  const x=normalizarNome(a), y=normalizarNome(b);
+  return !!x&&!!y&&(x.includes(y)||y.includes(x)||x.split(" ").some((termo)=>termo.length>=4&&!termosGenericos.has(termo)&&y.split(" ").includes(termo)));
+}
