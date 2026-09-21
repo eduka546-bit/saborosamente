@@ -1337,6 +1337,36 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     }
     return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(escalado,'g',ing?.nome)}`;
   };
+  const descontosIngredientes = new Map<string, number>();
+  const somarDesconto = (ingredienteId:string, quantidade:number) => {
+    if (!(quantidade > 0)) return;
+    const linha = (separar as any[]).find((x:any)=>x.id===ingredienteId&&!x.qb);
+    if (!linha) return;
+    const chave = `${ingredienteId}:${linha.unidade}`;
+    descontosIngredientes.set(chave, (descontosIngredientes.get(chave) || 0) + quantidade);
+  };
+  preparacoesConsolidadas.forEach((grupo:any) => {
+    const jaPronto = grupo.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${grupo.prep.id}:${pr.produto_id}`])),0);
+    if (!(jaPronto > 0) || !(grupo.total > 0)) return;
+    const proporcaoPronta = Math.min(1, jaPronto / grupo.total);
+    if (grupo.ingredienteBase) {
+      somarDesconto(grupo.ingredienteBase.id, grupo.bruto * proporcaoPronta);
+      return;
+    }
+    const itens = (itensPreparacao.get(grupo.prep.id) || []) as any[];
+    const rendimento = n(grupo.prep.rendimento_final_g);
+    const fatorLote = rendimento > 0 ? grupo.total / rendimento : fatorRecuperadoGrupo(itens, grupo);
+    itens.forEach((item:any) => {
+      if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
+      const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo);
+      const totalLote = totalExato > 0 ? totalExato : n(item.quantidade) * fatorLote;
+      somarDesconto(item.ingrediente_id, totalLote * proporcaoPronta);
+    });
+  });
+  const ingredientesDiaAjustados = (separar as any[]).map((x:any) => ({
+    ...x,
+    quantidade: x.qb ? x.quantidade : Math.max(0, n(x.quantidade) - (descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0)),
+  }));
   const totalMarmitas = pratos.reduce((s:number,x:any)=>s+x.total,0);
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString('pt-BR');
   const exatos = (montagem:any[], tamanho:'200'|'300'|'400') => {
@@ -1381,10 +1411,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       </section>
       <section className="mt-3">
         <p className="mb-1 text-lg font-black uppercase text-[#087443]">3. Ingredientes necessários do dia</p>
-        <p className="mb-1 text-sm text-[#62766b]">Quantidades cruas, considerando ganhos × e perdas % cadastradas.</p>
+        <p className="mb-1 text-sm text-[#62766b]">Quantidades cruas, considerando ganhos ×, perdas % e os preparos marcados como já prontos.</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
-          {(separar as any[]).map((x:any)=>{const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); return <div key={`${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><b>{x.item?.nome}</b><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
+          {ingredientesDiaAjustados.map((x:any)=>{const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); return <div key={`${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><b>{x.item?.nome}</b><div><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}</div><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
         </div>
       </section>
       <section className="page-break-before">
