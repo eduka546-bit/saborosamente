@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,75 @@ function AuthPage() {
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecoveryMode(true);
+        setIsLogin(true);
+        setPassword("");
+        setConfirmPassword("");
+      }
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleForgotPassword = async () => {
+    const emailLimpo = email.trim();
+    if (!emailLimpo) {
+      toast.error("Informe seu e-mail primeiro.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
+      const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo, {
+        redirectTo,
+      });
+      if (error) throw error;
+
+      // Resposta genérica evita revelar se o e-mail existe ou não.
+      toast.success(
+        "Se este e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.",
+      );
+    } catch {
+      toast.error("Não foi possível solicitar a recuperação agora. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      toast.error("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Senha alterada com sucesso!");
+      setRecoveryMode(false);
+      setPassword("");
+      setConfirmPassword("");
+      if (typeof window !== "undefined") window.location.href = "/auth";
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível alterar sua senha.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,17 +191,23 @@ function AuthPage() {
             <User className="h-6 w-6" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">
-            {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
+            {recoveryMode
+              ? "Crie uma nova senha"
+              : isLogin
+                ? "Entrar na sua conta"
+                : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isLogin
-              ? "Use seu e-mail e sua senha para entrar"
-              : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
+            {recoveryMode
+              ? "Escolha uma nova senha para sua conta"
+              : isLogin
+                ? "Use seu e-mail e sua senha para entrar"
+                : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="mt-8 space-y-4">
-          {!isLogin && (
+        <form onSubmit={recoveryMode ? handleRecovery : handleAuth} className="mt-8 space-y-4">
+          {!isLogin && !recoveryMode && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome Completo</Label>
@@ -165,6 +240,7 @@ function AuthPage() {
             </>
           )}
 
+          {!recoveryMode && (
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
             <div className="relative">
@@ -181,8 +257,9 @@ function AuthPage() {
               />
             </div>
           </div>
+          )}
 
-          {!isLogin && (
+          {!isLogin && !recoveryMode && (
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF</Label>
               <div className="relative">
@@ -204,19 +281,25 @@ function AuthPage() {
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              {isLogin ? "Senha" : "Crie uma senha"}
+              {recoveryMode ? "Nova senha" : isLogin ? "Senha" : "Crie uma senha"}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder={isLogin ? "Digite sua senha" : "Mínimo de 6 caracteres"}
+                placeholder={
+                  recoveryMode
+                    ? "Mínimo de 6 caracteres"
+                    : isLogin
+                      ? "Digite sua senha"
+                      : "Mínimo de 6 caracteres"
+                }
                 minLength={6}
                 className="pl-10 pr-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isLogin ? "current-password" : "new-password"}
+                autoComplete={recoveryMode || !isLogin ? "new-password" : "current-password"}
                 required
               />
               <button
@@ -230,18 +313,72 @@ function AuthPage() {
             </div>
           </div>
 
+          {recoveryMode && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirme a nova senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Digite novamente"
+                  minLength={6}
+                  className="pl-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {isLogin && !recoveryMode && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
+          )}
+
           <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
-            {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
+            {loading
+              ? "Processando..."
+              : recoveryMode
+                ? "Salvar nova senha"
+                : isLogin
+                  ? "Entrar"
+                  : "Cadastrar"}
           </Button>
         </form>
 
         <div className="text-center">
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-primary hover:underline font-medium"
-          >
-            {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
-          </button>
+          {recoveryMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRecoveryMode(false);
+                setPassword("");
+                setConfirmPassword("");
+              }}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              Voltar para o login
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
+            </button>
+          )}
         </div>
       </div>
     </div>
