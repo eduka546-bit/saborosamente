@@ -66,12 +66,14 @@ const normalizarRegraCozinha = (v: unknown) => String(v || "").normalize("NFD").
 const ehQB = (v: unknown) => /^(q\.?b\.?|qb|quanto baste|a gosto)$/i.test(normalizarRegraCozinha(v));
 const textoCozinha = (v: unknown) => ehQB(v) ? "a gosto" : String(v || "").trim();
 const codigoProduto = (produto: any) => {
+  const nome = String(produto?.nome || produto || "");
+  const codigoGeral = nome.match(/\b([A-Z]{2}\d{2})\b/i)?.[1]?.toUpperCase();
+  if (codigoGeral) return codigoGeral;
   const codigoCadastrado = String(produto?.codigo_integracao || "").trim().toUpperCase();
-  if (codigoCadastrado) return codigoCadastrado;
-  return String(produto?.nome || produto || "").match(/\b([A-Z]{2}\d{2})\b/i)?.[1]?.toUpperCase() || "";
+  return /^[A-Z]{1,4}\d{1,6}$/.test(codigoCadastrado) ? codigoCadastrado : "";
 };
 const nomeProdutoSemCodigo = (produto: any) => {
-  const nome = String(produto?.nome || produto || "").trim();
+  const nome = String(produto?.nome || produto || "").trim().replace(/^\s*\d{8,14}\s*[-–—:]?\s*/, "");
   const codigo = codigoProduto(produto);
   return codigo ? nome.replace(new RegExp(`^\\s*${codigo}\\s*[-–—:]?\\s*`, "i"), "").trim() : nome;
 };
@@ -95,24 +97,18 @@ const imprimirElemento = (id: string, titulo: string) => {
   if (!elemento) return toast.error("Não foi possível preparar a ficha para impressão.");
   const janela = window.open("", "_blank", "width=1000,height=800");
   if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
-  janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
-    @page{size:A4;margin:12mm 13mm 15mm 13mm;@bottom-left{content:"SaborosaMente - ficha operacional";font-family:Arial,sans-serif;font-size:7.5pt;color:#52695f}@bottom-right{content:"Página " counter(page);font-family:Arial,sans-serif;font-size:7.5pt;color:#52695f}}*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{font-family:Arial,sans-serif;color:#173a2d;margin:0;font-size:10.2pt;line-height:1.25}h1,h2,h3,h4,p{margin-top:0;margin-bottom:3px}button{display:none!important}.grid{display:grid;gap:4pt}.flex{display:flex}.flex-wrap{flex-wrap:wrap}.justify-between{justify-content:space-between}.items-center{align-items:center}.items-start{align-items:flex-start}.gap-1{gap:3pt}.gap-2,.gap-3,.gap-4,.gap-5{gap:4pt}.mb-2,.mb-3,.mb-4,.mb-5{margin-bottom:5pt}.mt-1,.mt-2,.mt-3,.mt-4{margin-top:4pt}.p-3,.p-4{padding:6pt}.px-3{padding-left:6pt;padding-right:6pt}.py-1,.py-2{padding-top:3.5pt;padding-bottom:3.5pt}.rounded-xl,.rounded-2xl{border-radius:4pt}.border{border:1px solid #dbe7dd}.border-t{border-top:1px solid #dbe7dd}.border-l{border-left:1px solid #dbe7dd}.border-t-0{border-top:0}.bg-white{background:#fff}.bg-\[\#edf5e6\],.bg-\[\#f4f7f4\],.bg-\[\#f4f8f4\]{background:#f3f7f3!important}.bg-\[\#fff9ee\]{background:#fff9ee!important}.bg-\[\#173a2d\]{background:#173a2d!important;color:#fff!important;border:1px solid #173a2d}.text-white,.text-white\/70{color:#fff!important}.text-\[\#087443\]{color:#087443}.text-\[\#173a2d\]{color:#173a2d}.text-\[\#527164\],.text-\[\#62766b\]{color:#52695f}.font-bold{font-weight:700}.font-black{font-weight:800}.text-xs{font-size:9pt}.text-sm{font-size:10.2pt}.text-lg{font-size:12pt}.text-xl{font-size:17pt}.text-2xl{font-size:19pt}.uppercase{text-transform:uppercase}.whitespace-pre-line{white-space:pre-line}article{break-inside:avoid;page-break-inside:avoid}section{break-inside:auto;page-break-inside:auto}.page-break-before{break-before:page!important;page-break-before:always!important}[data-screen-only]{display:none!important}.print-only{display:block!important}.sm\:grid-cols-2,.md\:grid-cols-2,.lg\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3,.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}img{max-width:100%}
-#ficha-producao-produto-impressao>section:first-child>div.mt-3{margin-left:12pt!important;margin-right:12pt!important}
-#ficha-producao-produto-impressao>section:nth-of-type(3)>.grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important}
-#ficha-producao-produto-impressao>section:nth-of-type(3)>.grid>div{background:#fff9ee!important}
-#ficha-producao-produto-impressao>section.page-break-before{padding-top:0!important}
-#ficha-producao-produto-impressao>section.page-break-before>div.mt-3{margin-top:8pt!important}
-#ficha-producao-produto-impressao>section.page-break-before img{width:76%!important;max-width:none!important;max-height:400pt!important}
-#ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child{margin-top:14pt!important}
-#ficha-producao-produto-impressao>section.page-break-before>div.mt-4:last-child>div:first-child{width:95%!important;margin-bottom:8pt!important}
-#ficha-producao-produto-impressao h2{line-height:1.12}
-#ficha-producao-produto-impressao section>p.text-lg{margin-top:8pt;margin-bottom:5pt}
-#ficha-producao-dia-impressao h2{line-height:1.12}
-  </style></head><body>${elemento.innerHTML}</body></html>`);
+  const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style')).map((x) => x.outerHTML).join("");
+  janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>${estilos}<style>
+    @page{size:A4;margin:12mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{margin:0;color:#173a2d}.print-root{width:100%;max-width:none!important}button,[data-screen-only]{display:none!important}.print-only{display:block!important}.page-break-before{break-before:page!important;page-break-before:always!important}article{break-inside:avoid;page-break-inside:avoid}
+  </style></head><body><main class="print-root">${elemento.outerHTML}</main></body></html>`);
   janela.document.close();
   janela.focus();
   const imagens = Array.from(janela.document.images);
-  const prontas = imagens.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); }));
+  const folhas = Array.from(janela.document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+  const prontas = [
+    ...imagens.map((img) => img.complete ? Promise.resolve() : new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); })),
+    ...folhas.map((link) => link.sheet ? Promise.resolve() : new Promise<void>((resolve) => { link.onload = () => resolve(); link.onerror = () => resolve(); })),
+  ];
   Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {
     setTimeout(() => { janela.print(); janela.close(); }, 150);
   });
@@ -138,7 +134,7 @@ function CozinhaPage() {
     [dataProducao, setDataProducao] = useState(hoje()),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
+    [modal, setModal] = useState<null | "producao" | "editar-producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
@@ -539,6 +535,7 @@ function CozinhaPage() {
                           </span>
                           <Botao leve onClick={() => abrir("ficha-producao", pr)}><BookOpen size={16} />Ver ficha da produção</Botao>
                           <Botao leve onClick={() => abrir("ficha-montagem", pr)}><CookingPot size={16} />Ver ficha de montagem</Botao>
+                          <Botao leve onClick={() => abrir("editar-producao", { produto: pr, linhas: grupo.linhas })}><Pencil size={16} />Editar quantidades</Botao>
                           {grupo.status === "planejada" && <Botao leve onClick={async () => {
                             const { error } = await supabase.from("cozinha_producoes").update({ status: "em_preparo", updated_at: new Date().toISOString() }).in("id", ids);
                             if (error) toast.error(error.message); else invalidar("coz-prod-dia");
@@ -880,6 +877,38 @@ function CozinhaPage() {
           }}
         />
       )}
+      {modal === "editar-producao" && edit && (
+        <EditarProducaoModal
+          produto={edit.produto}
+          linhas={edit.linhas}
+          fechar={() => setModal(null)}
+          salvar={async (qs: Record<string, number>) => {
+            if (edit.linhas.some((x: any) => x.status === "concluida")) return toast.error("Marque a produção como pendente antes de editar as quantidades.");
+            for (const tamanho of TAMANHOS) {
+              const existentes = edit.linhas.filter((x: any) => x.gramatura === tamanho.id);
+              const quantidade = n(qs[tamanho.id]);
+              if (existentes.length) {
+                const [principal, ...duplicadas] = existentes;
+                if (quantidade > 0) {
+                  const { error } = await supabase.from("cozinha_producoes").update({ quantidade_planejada: quantidade, updated_at: new Date().toISOString() }).eq("id", principal.id);
+                  if (error) return toast.error(error.message);
+                } else {
+                  const { error } = await supabase.from("cozinha_producoes").delete().eq("id", principal.id);
+                  if (error) return toast.error(error.message);
+                }
+                if (duplicadas.length) await supabase.from("cozinha_producoes").delete().in("id", duplicadas.map((x: any) => x.id));
+              } else if (quantidade > 0) {
+                const { data: { user } } = await supabase.auth.getUser();
+                const { error } = await supabase.from("cozinha_producoes").insert({ data_producao: dataProducao, produto_id: edit.produto.id, gramatura: tamanho.id, quantidade_planejada: quantidade, created_by: user?.id });
+                if (error) return toast.error(error.message);
+              }
+            }
+            await invalidar("coz-prod-dia");
+            setModal(null);
+            toast.success("Quantidades atualizadas.");
+          }}
+        />
+      )}
       {modal === "ficha-producao" && edit && (
         <FichaProducaoModal
           produto={edit}
@@ -1175,7 +1204,16 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
     </Janela>
   );
 }
+function EditarProducaoModal({ produto, linhas, fechar, salvar }: any) {
+  const [q, setQ] = useState<Record<string, number>>(() => Object.fromEntries(TAMANHOS.map((t) => [t.id, (linhas as any[]).filter((x: any) => x.gramatura === t.id).reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0)])));
+  return <Janela titulo={`Editar quantidades — ${rotuloProduto(produto)}`} fechar={fechar}>
+    <p className="mb-4 text-sm text-[#62766b]">Informe quantas unidades serão produzidas em cada tamanho. Use zero para retirar um tamanho do planejamento.</p>
+    <div className="grid gap-3 sm:grid-cols-3">{TAMANHOS.map((t) => <Campo key={t.id} label={t.label}><input className={input} min="0" type="number" value={q[t.id] ?? 0} onChange={(e) => setQ((atual) => ({ ...atual, [t.id]: Math.max(0, n(e.target.value)) }))} /></Campo>)}</div>
+    <div className="mt-5 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={() => salvar(q)}>Salvar quantidades</Botao></div>
+  </Janela>;
+}
 function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, montagemPorReceita, itensReceita, separar, preparacoes, itensPreparacao, ingredientes, fechar }: any) {
+  const [preparoPronto, setPreparoPronto] = useState<Record<string, number>>({});
   const produtoPorId = new Map((produtos as any[]).map((x: any) => [x.id, x]));
   const receitaPorProduto = new Map((receitas as any[]).map((x: any) => [x.produto_id, x]));
   const prepPorId = new Map((preparacoes as any[]).map((x: any) => [x.id, x]));
@@ -1236,11 +1274,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     }
     return 0;
   };
-  const fmtItemPrepExato = (item:any, grupo:any, fatorRecuperado:number) => {
+  const fmtItemPrepExato = (item:any, grupo:any, fatorRecuperado:number, escala=1) => {
     const ing = ingPorId.get(item.ingrediente_id) as any;
     const texto = String(item.quantidade_texto || '').trim();
     if (ehQB(texto)) return `${ing?.nome || 'Ingrediente'}: QB · a gosto`;
-    const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo);
+    const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo) * escala;
     if (totalExato > 0) return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(totalExato,'g',ing?.nome)}`;
     if (!(fatorRecuperado > 0) || !(n(item.quantidade) > 0)) return `${ing?.nome || 'Ingrediente'}: REVISAR CADASTRO`;
     const escalado = n(item.quantidade) * fatorRecuperado;
@@ -1286,9 +1324,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         <p className="mb-2 text-sm text-[#62766b]">Produzir cada preparação uma única vez para o dia inteiro e depois separar a quantidade pronta indicada para cada prato.</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"190px minmax(280px,1fr) minmax(280px,1fr)"}}><span>Preparação</span><span>Quantidade / ingredientes</span><span>Modo de preparo</span></div>
-          {preparacoesConsolidadas.map((g:any)=>{const rendimento=n(g.prep.rendimento_final_g); const fator=rendimento>0?g.total/rendimento:0; const itens=(itensPreparacao.get(g.prep.id)||[]) as any[]; const cadastroIncompleto=!(rendimento>0); const fatorRecuperado=cadastroIncompleto?fatorRecuperadoGrupo(itens,g):0; return <div key={g.prep.id} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"190px minmax(280px,1fr) minmax(280px,1fr)"}}>
-            <div className="p-3"><b>{g.prep.nome}</b><p className="mt-1 text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{formatPeso(g.total)}</b> no total</p>{cadastroIncompleto&&<p className="mt-1 text-xs font-bold text-amber-700">Rendimento-base ausente · quantidades recuperadas da ficha do prato</p>}</div>
-            <div className="border-l border-[#dbe7dd] p-3"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=><p key={pr.produto_id} className="mt-1"><b>{pr.rotulo}</b>: {formatPeso(pr.total)}</p>)}<p className="mt-2 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes da preparação não informados</p>:itens.map((item:any)=><p key={item.id} className="mt-1">{cadastroIncompleto?fmtItemPrepExato(item,g,fatorRecuperado):fmtItemPrep(item,fator)}</p>)}</div>
+          {preparacoesConsolidadas.map((g:any)=>{const jaPronto=g.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${g.prep.id}:${pr.produto_id}`])),0); const produzir=Math.max(0,g.total-jaPronto); const escala=g.total>0?produzir/g.total:0; const rendimento=n(g.prep.rendimento_final_g); const fator=rendimento>0?produzir/rendimento:0; const itens=(itensPreparacao.get(g.prep.id)||[]) as any[]; const cadastroIncompleto=!(rendimento>0); const fatorRecuperado=cadastroIncompleto?fatorRecuperadoGrupo(itens,g)*escala:0; return <div key={g.prep.id} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"190px minmax(280px,1fr) minmax(280px,1fr)"}}>
+            <div className="p-3"><b>{g.prep.nome}</b><p className="mt-1 text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{formatPeso(produzir)}</b> no total</p>{jaPronto>0&&<p className="mt-1 text-xs font-bold text-[#087443]">Já pronto: {formatPeso(jaPronto)}</p>}{cadastroIncompleto&&<p className="mt-1 text-xs font-bold text-amber-700">Rendimento-base ausente · quantidades recuperadas da ficha do prato</p>}</div>
+            <div className="border-l border-[#dbe7dd] p-3"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id} className="mt-1"><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto({...preparoPronto,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))});}}>Alterar quantidade pronta</button><button className="rounded-lg border border-red-200 px-2 py-1 text-xs font-bold text-red-600" onClick={()=>setPreparoPronto({...preparoPronto,[chave]:pr.total})}>Retirar este preparo</button>{pronto>0&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setPreparoPronto({...preparoPronto,[chave]:0})}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir para este prato: {formatPeso(falta)}</p>}</div>})}<p className="mt-2 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="mt-1 font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes da preparação não informados</p>:itens.map((item:any)=><p key={item.id} className="mt-1">{cadastroIncompleto?fmtItemPrepExato(item,g,fatorRecuperado,escala):fmtItemPrep(item,fator)}</p>)}</div>
             <div className="border-l border-[#dbe7dd] p-3"><p className="whitespace-pre-line text-sm">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
         </div>
