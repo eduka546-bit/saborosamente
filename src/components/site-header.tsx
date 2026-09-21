@@ -93,6 +93,7 @@ export function SiteHeader() {
       const { data, error } = await supabase
         .from("delivery_rates")
         .select("*")
+        .eq("ativo", true)
         .order("cidade", { ascending: true })
         .order("bairro", { ascending: true });
 
@@ -106,226 +107,10 @@ export function SiteHeader() {
         }));
       }
 
-      // Prioridade 2: Lista Completa de Backup
-      const backupData: any[] = [
-        // São Bento do Sul
-        { id: 1, neighborhood: "Centro", rate: 8.9, city: "São Bento do Sul" },
-        { id: 2, neighborhood: "Progresso", rate: 8.9, city: "São Bento do Sul" },
-        { id: 3, neighborhood: "25 de Julho", rate: 10.5, city: "São Bento do Sul" },
-        { id: 4, neighborhood: "Alpino", rate: 17.0, city: "São Bento do Sul" },
-        { id: 5, neighborhood: "Boehmerwald", rate: 10.5, city: "São Bento do Sul" },
-        { id: 6, neighborhood: "Brasília", rate: 12.0, city: "São Bento do Sul" },
-        { id: 7, neighborhood: "Centenário", rate: 10.5, city: "São Bento do Sul" },
-        { id: 8, neighborhood: "Colonial", rate: 10.5, city: "São Bento do Sul" },
-        { id: 9, neighborhood: "Cruzeiro", rate: 10.5, city: "São Bento do Sul" },
-        { id: 10, neighborhood: "Industrial Sudoeste", rate: 11.0, city: "São Bento do Sul" },
-        { id: 11, neighborhood: "Loteamento Itália", rate: 9.5, city: "São Bento do Sul" },
-        { id: 12, neighborhood: "Mato Preto", rate: 12.0, city: "São Bento do Sul" },
-        { id: 13, neighborhood: "Oxford", rate: 11.0, city: "São Bento do Sul" },
-        { id: 14, neighborhood: "Parque Mariani", rate: 9.5, city: "São Bento do Sul" },
-        { id: 15, neighborhood: "Residencial Santa Fé", rate: 12.5, city: "São Bento do Sul" },
-        { id: 16, neighborhood: "Rio Negro", rate: 10.0, city: "São Bento do Sul" },
-        { id: 17, neighborhood: "Schramm", rate: 9.0, city: "São Bento do Sul" },
-        { id: 18, neighborhood: "Serra Alta", rate: 13.0, city: "São Bento do Sul" },
-        { id: 19, neighborhood: "Dona Francisca", rate: 15.0, city: "São Bento do Sul" },
-        { id: 20, neighborhood: "Bela Aliança", rate: 10.0, city: "São Bento do Sul" },
-        { id: 21, neighborhood: "Campo do Meio", rate: 10.0, city: "São Bento do Sul" },
-        { id: 22, neighborhood: "Castelo Branco", rate: 10.0, city: "São Bento do Sul" },
-        { id: 23, neighborhood: "Estrada das Neves", rate: 10.0, city: "São Bento do Sul" },
-        { id: 24, neighborhood: "Estrada dos Bugres", rate: 10.0, city: "São Bento do Sul" },
-        { id: 25, neighborhood: "Lençol", rate: 10.0, city: "São Bento do Sul" },
-        { id: 26, neighborhood: "Rio Natal", rate: 10.0, city: "São Bento do Sul" },
-        { id: 27, neighborhood: "Rio Represo", rate: 10.0, city: "São Bento do Sul" },
-        { id: 28, neighborhood: "Rio Vermelho Estação", rate: 10.0, city: "São Bento do Sul" },
-        { id: 29, neighborhood: "Rio Vermelho Povoado", rate: 10.0, city: "São Bento do Sul" },
-        { id: 30, neighborhood: "Sertãozinho", rate: 10.0, city: "São Bento do Sul" },
-        { id: 31, neighborhood: "Serra Alta I", rate: 13.0, city: "São Bento do Sul" },
-        { id: 32, neighborhood: "Serra Alta II", rate: 13.0, city: "São Bento do Sul" },
-        { id: 33, neighborhood: "Rio Vermelho", rate: 12.0, city: "São Bento do Sul" },
-        { id: 34, neighborhood: "Oxford I", rate: 11.0, city: "São Bento do Sul" },
-        { id: 35, neighborhood: "Oxford II", rate: 11.0, city: "São Bento do Sul" },
+      // Se o banco estiver indisponível, não exibimos taxas antigas ou estimadas.
+      // É mais seguro mostrar a indisponibilidade temporária do que informar um frete incorreto.
+      return [];
 
-        // Rio Negrinho
-        ...[
-          "Ceramarte",
-          "Alegre",
-          "Bairro Preto",
-          "Barro Preto",
-          "Bela Vista",
-          "Campo Lençol",
-          "Centro",
-          "Colônia Olsen",
-          "Cruzeiro",
-          "Industrial Norte",
-          "Industrial Sul",
-          "Jardim Hantschel",
-          "Pinheirinho",
-          "Quitandinha",
-          "Rio Casa de Pedra",
-          "Rio Preto",
-          "Rio dos Bugres",
-          "Serro Azul",
-          "São Pedro",
-          "São Rafael",
-          "Vila Nova",
-          "Vista Alegre",
-          "Volta Grande",
-        ].map((n, i) => ({ id: 40 + i, neighborhood: n, rate: 10.0, city: "Rio Negrinho" })),
-
-        // Campo Alegre
-        ...[
-          "Avenquinha",
-          "Bateias de Baixo",
-          "Bateias de Cima",
-          "Belo Horizonte",
-          "Cascata",
-          "Cascatas",
-          "Centro",
-          "Corredeiras",
-          "Fragosos",
-          "Lajeado",
-          "Mato Limpo",
-          "Pinhais",
-          "Povoado de Fragosos",
-          "Ribeirão do Meio",
-          "Rio Represo",
-          "Rio do Bugre",
-          "Saltinho",
-          "Santo Antônio",
-          "São Miguel",
-          "Vila Novo Mundo",
-        ].map((n, i) => ({ id: 70 + i, neighborhood: n, rate: 10.0, city: "Campo Alegre" })),
-
-        // Corupá
-        ...[
-          "Ano Bom",
-          "Bomplandt",
-          "Caminho Pequeno",
-          "Centro",
-          "Faxinal",
-          "Itapocu",
-          "Izabel",
-          "João Tozini",
-          "Pedra de Amolar",
-          "Poço D'Anta",
-          "Putinga",
-          "Rio Correa",
-          "Rio Feio",
-          "Rio Novo",
-          "Rio Paulo",
-          "Rio da Veada",
-          "Seminário",
-          "XV de Novembro",
-        ].map((n, i) => ({ id: 100 + i, neighborhood: n, rate: 10.0, city: "Corupá" })),
-
-        // Piên
-        ...[
-          "Aterrado Alto",
-          "Avencal",
-          "Boa Vista",
-          "Cachoeirinha",
-          "Campina dos Crespins",
-          "Campina dos Maia",
-          "Campo Novo",
-          "Centro",
-          "Cerro Verde",
-          "Gramados",
-          "Lageado",
-          "Letreiro",
-          "Mosquito",
-          "Palmito",
-          "Palmito de Cima",
-          "Picacinho",
-          "Pocinho",
-          "Poço Frio",
-          "Poço Frio dos Moreiras",
-          "Quicé",
-          "Trigolândia",
-          "Vermelhinho",
-        ].map((n, i) => ({ id: 120 + i, neighborhood: n, rate: 10.0, city: "Piên" })),
-
-        // Rio Negro
-        ...[
-          "Bairro Alto",
-          "Bairro do Seminário",
-          "Bom Jesus",
-          "Bom Jesus do Rio Negro",
-          "Campina dos Andrades",
-          "Campo do Gado",
-          "Centro",
-          "Estação Nova",
-          "Fazendinha",
-          "Jardim Zelinda",
-          "Lageado dos Vieiras",
-          "Maitaca",
-          "Passa Três",
-          "Passo do Valo",
-          "Retiro",
-          "Roseira",
-          "Seminário",
-          "Sítio dos Rauen",
-          "Tijuco Preto",
-          "Vila Militar",
-          "Vila Paraná",
-          "Vila Paraíso",
-          "Volta Grande",
-        ].map((n, i) => ({ id: 150 + i, neighborhood: n, rate: 10.0, city: "Rio Negro" })),
-
-        // Mafra
-        ...[
-          "Augusta Vitória",
-          "Autódromo",
-          "Avencal São Sebastião",
-          "Avencal de Cima",
-          "Avencal do Meio",
-          "Bairro do Autódromo",
-          "Bela Vista do Sul",
-          "Bituvinha",
-          "Butiá dos Tabordas",
-          "Campina Konkel",
-          "Campo da Lança",
-          "Caçador",
-          "Centro I - Baixada",
-          "Centro II - Alto de Mafra",
-          "Centro III Monte Alegre",
-          "Espigão do Bugre",
-          "Faxinal",
-          "Fazenda Potreiro",
-          "General Brito",
-          "Imbuial",
-          "Jardim América",
-          "Jardim Novo Horizonte",
-          "Jardim do Moinho",
-          "Maurício Caillet",
-          "Nossa Senhora Aparecida",
-          "Passo",
-          "Restinga",
-          "Rio Preto",
-          "Rio da Areia",
-          "Rio da Areia de Baixo",
-          "Rio da Areia de Cima",
-          "Rio do Cedro",
-          "Saltinho do Canivete",
-          "São Lourenço",
-          "Vila Argentina",
-          "Vila Buenos Aires",
-          "Vila Clementina",
-          "Vila Edson Luis",
-          "Vila Ferroviária",
-          "Vila Formosa",
-          "Vila Industrial",
-          "Vila Ivete",
-          "Vila Nova",
-          "Vila Ruthes",
-          "Vila Solidariedade",
-          "Vila Velha",
-          "Vila das Flores",
-          "Vilinha",
-          "Vista Alegre",
-        ].map((n, i) => ({ id: 180 + i, neighborhood: n, rate: 10.0, city: "Mafra" })),
-      ];
-
-      return backupData;
     },
     staleTime: 1000 * 60 * 60,
   });
@@ -345,6 +130,13 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   const logoSrc = imgUrl(settings?.logo_url) || "/icon-app.jpg";
+
+  const visibleLinks = links.filter((link) => {
+    if (link.label === "Cashback" || link.label === "Indique e Ganhe") {
+      return settings?.cashback_ativo === true;
+    }
+    return true;
+  });
 
   return (
     <header className="relative z-[40] transition-all duration-300 pointer-events-none">
@@ -383,7 +175,7 @@ export function SiteHeader() {
               </SheetTitle>
             </SheetHeader>
             <nav className="mt-6 flex flex-col gap-1">
-              {links.map((l) =>
+              {visibleLinks.map((l) =>
                 l.type === "modal" ? (
                   <button
                     key={l.label}
@@ -415,7 +207,7 @@ export function SiteHeader() {
 
         {/* Navigation Links - Centered options */}
         <nav className="hidden flex-1 md:flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
-          {links.map((l) =>
+          {visibleLinks.map((l) =>
             l.type === "modal" ? (
               <button
                 key={l.label}
