@@ -82,6 +82,21 @@ const rotuloProduto = (produto: any) => {
   const nome = nomeProdutoSemCodigo(produto);
   return codigo && nome ? `${codigo} — ${nome}` : (nome || codigo || "Produto não identificado");
 };
+const normalizarNomeCozinha = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const nomesCozinhaCorrespondem = (a: unknown, b: unknown) => {
+  const x = normalizarNomeCozinha(a), y = normalizarNomeCozinha(b);
+  return !!x && !!y && (x.includes(y) || y.includes(x) || x.split(" ").some((t) => t.length >= 4 && y.includes(t)));
+};
+const capitalizarNomeCozinha = (v: unknown) => {
+  const texto = String(v || "").trim();
+  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : "Componente";
+};
+const nomeCompletoComponente = (nome: unknown, preparacoes: any[] = [], ingredientes: any[] = []) => {
+  const preparacao = preparacoes.find((x: any) => nomesCozinhaCorrespondem(x.nome, nome));
+  if (preparacao) return capitalizarNomeCozinha(preparacao.nome);
+  const ingrediente = ingredientes.find((x: any) => nomesCozinhaCorrespondem(x.nome, nome));
+  return capitalizarNomeCozinha(ingrediente?.nome || nome);
+};
 const ehMicroIngrediente = (nome: unknown) => /(^|\b)(sal|salsinha|cebolinha|cheiro verde|tempero|pimenta|oregano|alho em po|paprica|noz moscada)(\b|$)/i.test(normalizarRegraCozinha(nome));
 const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" = "g", nome: unknown = "") => {
   const qtd = Math.max(0, n(v));
@@ -946,6 +961,8 @@ function CozinhaPage() {
           producoes={(producoes as any[]).filter((p) => p.produto_id === edit.id)}
           receita={rec.get(edit.id)}
           montagem={itensMontagem.get(rec.get(edit.id)?.id) || []}
+          preparacoes={preparacoes as any[]}
+          ingredientes={ingredientes as any[]}
           fechar={() => setModal(null)}
         />
       )}
@@ -1212,14 +1229,36 @@ function EditarProducaoModal({ produto, linhas, fechar, salvar }: any) {
     <div className="mt-5 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={() => salvar(q)}>Salvar quantidades</Botao></div>
   </Janela>;
 }
+function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
+  const [tamanho, setTamanho] = useState("200");
+  const [quantidade, setQuantidade] = useState("");
+  const disponivel = n(saldo?.[`estoque_${tamanho}g`]);
+  return <Janela titulo={`Transferir para a loja — ${rotuloProduto(produto)}`} fechar={fechar}>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>setTamanho(e.target.value)}>{TAMANHOS.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[`estoque_${t.id}g`])} un</option>)}</select></Campo>
+      <Campo label="Quantidade"><input className={input} type="number" min="1" max={disponivel} value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo>
+    </div>
+    <p className="mt-2 text-sm text-[#62766b]">Saldo disponível: <b>{disponivel} unidades</b></p>
+    <div className="mt-4 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={()=>{const qtd=n(quantidade); if(qtd<=0)return toast.error("Informe uma quantidade válida."); if(qtd>disponivel)return toast.error("Quantidade maior que o saldo da cozinha."); salvar(tamanho,qtd);}}>Transferir</Botao></div>
+  </Janela>;
+}
+function AjusteEstoqueModal({ item, fechar, salvar }: any) {
+  const [quantidade, setQuantidade] = useState(String(item?.quantidade_atual ?? 0));
+  const [minimo, setMinimo] = useState(String(item?.quantidade_minima ?? 0));
+  const [observacao, setObservacao] = useState("");
+  return <Janela titulo={`Ajustar estoque — ${item?.ingrediente || "Ingrediente"}`} fechar={fechar}>
+    <div className="grid gap-3 sm:grid-cols-2"><Campo label={`Quantidade atual (${item?.unidade || "g"})`}><input className={input} type="number" min="0" value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo><Campo label={`Estoque mínimo (${item?.unidade || "g"})`}><input className={input} type="number" min="0" value={minimo} onChange={(e)=>setMinimo(e.target.value)} /></Campo></div>
+    <div className="mt-3"><Campo label="Observação"><input className={input} value={observacao} onChange={(e)=>setObservacao(e.target.value)} placeholder="Motivo do ajuste" /></Campo></div>
+    <div className="mt-4 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={()=>salvar(Math.max(0,n(quantidade)),Math.max(0,n(minimo)),observacao)}>Salvar ajuste</Botao></div>
+  </Janela>;
+}
 function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, montagemPorReceita, itensReceita, separar, preparacoes, itensPreparacao, ingredientes, fechar }: any) {
   const [preparoPronto, setPreparoPronto] = useState<Record<string, number>>({});
   const produtoPorId = new Map((produtos as any[]).map((x: any) => [x.id, x]));
   const receitaPorProduto = new Map((receitas as any[]).map((x: any) => [x.produto_id, x]));
   const prepPorId = new Map((preparacoes as any[]).map((x: any) => [x.id, x]));
   const ingPorId = new Map((ingredientes as any[]).map((x: any) => [x.id, x]));
-  const normalizar = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const mesmo = (a: unknown, b: unknown) => { const x=normalizar(a), y=normalizar(b); return !!x && !!y && (x.includes(y) || y.includes(x) || x.split(' ').some((t)=>t.length>=4 && y.includes(t))); };
+  const mesmo = nomesCozinhaCorrespondem;
   const grupos = new Map<string, any[]>();
   (producoes as any[]).forEach((p: any) => grupos.set(p.produto_id, [...(grupos.get(p.produto_id) || []), p]));
   const pratos = Array.from(grupos.entries()).map(([produtoId, linhas]) => {
@@ -1245,7 +1284,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const ingredienteBase = !prep ? (ingredientes as any[]).find((x:any)=>mesmo(x.nome,m.nome)) : null;
       if ((!prep && !ingredienteBase) || !(m.total>0)) return;
       const chave = prep?.id || `base:${ingredienteBase.id}`;
-      const prepExibicao = prep || { id:chave, nome:m.nome, modo_preparo:"Preparar o ingrediente-base conforme o padrão da cozinha e conferir o peso pronto antes de separar por prato." };
+      const prepExibicao = prep || { id:chave, nome:ingredienteBase.nome, modo_preparo:"Preparar o ingrediente-base conforme o padrão da cozinha e conferir o peso pronto antes de separar por prato." };
       const atual = prepDia.get(chave) || { prep:prepExibicao, total:0, bruto:0, pratos:[] as any[], ingredienteBase };
       atual.total += m.total;
       if (ingredienteBase) atual.bruto += quantidadeCruaBase(m.total, ingredienteBase);
@@ -1315,34 +1354,34 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         <p className="text-sm font-black text-[#087443]">SaborosaMente - Ficha operacional da cozinha</p>
         <h2 className="mt-1 text-2xl font-black text-[#173a2d]">Produção do dia</h2>
         <p className="mt-1 text-sm text-[#62766b]">{dataFmt}</p>
-        <div className="mt-3 grid gap-1" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Unidades</p><p className="mt-1 text-xl font-black text-[#087443]">{totalMarmitas}</p></div>
-          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Produtos</p><p className="mt-1 text-xl font-black text-[#087443]">{pratos.length}</p></div>
-          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-3 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Preparações</p><p className="mt-1 text-xl font-black text-[#087443]">{preparacoesConsolidadas.length}</p></div>
+        <div className="mt-2 grid gap-1" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-2 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Unidades</p><p className="text-lg font-black text-[#087443]">{totalMarmitas}</p></div>
+          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-2 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Produtos</p><p className="text-lg font-black text-[#087443]">{pratos.length}</p></div>
+          <div className="border border-[#dbe7dd] bg-[#edf5e6] p-2 text-center"><p className="text-xs font-bold uppercase text-[#62766b]">Preparações</p><p className="text-lg font-black text-[#087443]">{preparacoesConsolidadas.length}</p></div>
         </div>
       </section>
-      <section className="mt-4">
-        <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Produção planejada</p>
+      <section className="mt-3">
+        <p className="mb-1 text-lg font-black uppercase text-[#087443]">1. Produção planejada</p>
         <div className="border border-[#dbe7dd] bg-white">
-          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><span>Produto</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
-          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><b>{rotuloProduto(x.produto)}</b><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
+          <div className="grid bg-[#173a2d] px-2 py-1.5 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><span>Produto</span><span>200 g</span><span>300 g</span><span>400 g</span><span>Total</span></div>
+          {pratos.map((x:any)=><div key={x.produto.id} className="grid items-center border-t border-[#dbe7dd] px-2 py-1.5 text-sm" style={{gridTemplateColumns:"minmax(300px,1fr) 72px 72px 72px 72px"}}><b>{rotuloProduto(x.produto)}</b><span>{x.q["200"]||"—"}</span><span>{x.q["300"]||"—"}</span><span>{x.q["400"]||"—"}</span><b className="text-[#087443]">{x.total} un</b></div>)}
         </div>
       </section>
-      <section className="mt-4">
-        <p className="mb-2 text-lg font-black uppercase text-[#087443]">2. Preparações consolidadas do dia</p>
-        <p className="mb-2 text-sm text-[#62766b]">Produzir cada preparação uma única vez para o dia inteiro e depois separar a quantidade pronta indicada para cada prato.</p>
+      <section className="mt-3">
+        <p className="mb-1 text-lg font-black uppercase text-[#087443]">2. Preparações consolidadas do dia</p>
+        <p className="mb-1 text-sm text-[#62766b]">Produzir cada preparação uma vez e separar a quantidade pronta indicada para cada prato.</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"190px minmax(280px,1fr) minmax(280px,1fr)"}}><span>Preparação</span><span>Quantidade / ingredientes</span><span>Modo de preparo</span></div>
           {preparacoesConsolidadas.map((g:any)=>{const jaPronto=g.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${g.prep.id}:${pr.produto_id}`])),0); const produzir=Math.max(0,g.total-jaPronto); const escala=g.total>0?produzir/g.total:0; const rendimento=n(g.prep.rendimento_final_g); const fator=rendimento>0?produzir/rendimento:0; const itens=(itensPreparacao.get(g.prep.id)||[]) as any[]; const cadastroIncompleto=!g.ingredienteBase&&!(rendimento>0); const fatorRecuperado=cadastroIncompleto?fatorRecuperadoGrupo(itens,g)*escala:0; return <div key={g.prep.id} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"190px minmax(280px,1fr) minmax(280px,1fr)"}}>
-            <div className="p-3"><b>{g.prep.nome}</b>{g.ingredienteBase&&<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingrediente-base</p>}<p className="mt-1 text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{formatPeso(produzir)}</b> no total</p>{jaPronto>0&&<p className="mt-1 text-xs font-bold text-[#087443]">Já pronto: {formatPeso(jaPronto)}</p>}{cadastroIncompleto&&<p className="mt-1 text-xs font-bold text-amber-700">Rendimento-base ausente · quantidades recuperadas da ficha do prato</p>}</div>
-            <div className="border-l border-[#dbe7dd] p-3"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id} className="mt-1"><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto({...preparoPronto,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))});}}>Alterar quantidade pronta</button><button className="rounded-lg border border-red-200 px-2 py-1 text-xs font-bold text-red-600" onClick={()=>setPreparoPronto({...preparoPronto,[chave]:pr.total})}>Retirar este preparo</button>{pronto>0&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setPreparoPronto({...preparoPronto,[chave]:0})}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir para este prato: {formatPeso(falta)}</p>}</div>})}<p className="mt-2 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="mt-1 font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p className="mt-1"><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(quantidade crua)</span></p>:!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes da preparação não informados</p>:itens.map((item:any)=><p key={item.id} className="mt-1">{cadastroIncompleto?fmtItemPrepExato(item,g,fatorRecuperado,escala):fmtItemPrep(item,fator)}</p>)}</div>
-            <div className="border-l border-[#dbe7dd] p-3"><p className="whitespace-pre-line text-sm">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
+            <div className="p-2"><b>{capitalizarNomeCozinha(g.prep.nome)}</b>{g.ingredienteBase&&<p className="text-xs font-black uppercase text-[#527164]">Ingrediente-base</p>}<p className="text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{formatPeso(produzir)}</b></p>{jaPronto>0&&<p className="text-xs font-bold text-[#087443]">Já pronto: {formatPeso(jaPronto)}</p>}{cadastroIncompleto&&<p className="text-xs font-bold text-amber-700">Rendimento-base ausente · quantidades recuperadas da ficha do prato</p>}</div>
+            <div className="border-l border-[#dbe7dd] p-2"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id}><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto((atual)=>({...atual,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))}));}}>Alterar quantidade pronta</button><button className="rounded-lg border border-red-200 px-2 py-1 text-xs font-bold text-red-600" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:pr.total}))}>Retirar este preparo</button>{pronto>0&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:0}))}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir: {formatPeso(falta)}</p>}</div>})}<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(cru)</span></p>:!itens.length?<p className="font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:itens.map((item:any)=><p key={item.id}>{cadastroIncompleto?fmtItemPrepExato(item,g,fatorRecuperado,escala):fmtItemPrep(item,fator)}</p>)}</div>
+            <div className="border-l border-[#dbe7dd] p-2"><p className="whitespace-pre-line text-sm leading-snug">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
         </div>
       </section>
-      <section className="mt-4">
-        <p className="mb-2 text-lg font-black uppercase text-[#087443]">3. Ingredientes necessários do dia</p>
-        <p className="mb-2 text-sm text-[#62766b]">Quantidades cruas para separar, já considerando os ganhos × e as perdas % cadastradas.</p>
+      <section className="mt-3">
+        <p className="mb-1 text-lg font-black uppercase text-[#087443]">3. Ingredientes necessários do dia</p>
+        <p className="mb-1 text-sm text-[#62766b]">Quantidades cruas, considerando ganhos × e perdas % cadastradas.</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
           {(separar as any[]).map((x:any)=>{const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); return <div key={`${x.id}-${x.unidade}`} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><b>{x.item?.nome}</b><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
@@ -1355,7 +1394,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
         <div className="mt-3 grid gap-3">{pratos.map((x:any)=>{const v200=exatos(x.montagem,"200"),v300=exatos(x.montagem,"300"),v400=exatos(x.montagem,"400"); return <article key={x.produto.id} className="border border-[#dbe7dd] bg-white">
           <div className="flex items-center justify-between gap-3 bg-[#edf5e6] p-3"><div><h3 className="text-lg font-black">{rotuloProduto(x.produto)}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><b className="text-[#087443]">{x.total} un</b></div>
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-          {x.montagem.map((m:any,i:number)=><div key={m.id||i} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><b>{`${i+1}. ${m.nome}`}</b><span>{v200[i]>0?`${v200[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v300[i]>0?`${v300[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v400[i]>0?`${v400[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+          {x.montagem.map((m:any,i:number)=><div key={m.id||i} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><b>{`${i+1}. ${nomeCompletoComponente(m.nome, preparacoes as any[], ingredientes as any[])}`}</b><span>{v200[i]>0?`${v200[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v300[i]>0?`${v300[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v400[i]>0?`${v400[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
           <div className="grid border-t border-[#dbe7dd] bg-[#edf5e6] px-3 py-2 text-sm font-black" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><span>TOTAL</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
         </article>})}</div>
       </section>
@@ -1363,14 +1402,14 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   </Janela>;
 }
 
-function FichaMontagemModal({ produto, dataProducao, producoes, receita, montagem, fechar }: any) {
+function FichaMontagemModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, ingredientes, fechar }: any) {
   const q = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
   (producoes as any[]).forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR");
   const fmt = (v: unknown, observacao?: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : (ehQB(observacao) ? "a gosto" : "—");
   return <Janela titulo={`Ficha de montagem — ${rotuloProduto(produto)}`} fechar={fechar}>
     <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Montagem por tamanho</p><p className="mt-1 text-sm text-[#527164]">Referência para montar cada marmita individualmente. Produção de {dataFmt}: {TAMANHOS.filter(t => q[t.id] > 0).map(t => `${q[t.id]}×${t.label}`).join(" + ") || "nenhuma quantidade lançada"}.</p></div>
-    {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{fmt(m.gramas_200, m.observacao)}</span><span>{fmt(m.gramas_300, m.observacao)}</span><span>{fmt(m.gramas_400, m.observacao)}</span></div>)}</div></div>}
+    {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{fmt(m.gramas_200, m.observacao)}</span><span>{fmt(m.gramas_300, m.observacao)}</span><span>{fmt(m.gramas_400, m.observacao)}</span></div>)}</div></div>}
     <div className="mt-5 grid gap-3 sm:grid-cols-3">{TAMANHOS.map(t => <div key={t.id} className="rounded-xl bg-[#f4f7f4] p-3"><p className="text-xs font-bold text-[#62766b]">Produzir {t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{q[t.id]} un</p></div>)}</div>
   </Janela>;
 }
@@ -1526,12 +1565,12 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Componentes prontos para este produto</p>
         <div className="border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(240px,1fr) 150px minmax(280px,1fr)"}}><span>Componente pronto</span><span>Total do prato</span><span>Quantidade por unidade</span></div>
-          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"minmax(240px,1fr) 150px minmax(280px,1fr)"}}><div className="p-3"><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><div className="border-l border-[#dbe7dd] p-3"><b className="text-[#087443]">{montagemTotal[idx]?.total>0?formatPeso(montagemTotal[idx].total):(ehQB(m.observacao)?"QB · a gosto":"—")}</b></div><div className="border-l border-[#dbe7dd] p-3">200 g: <b>{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b> · 300 g: <b>{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b> · 400 g: <b>{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b></div></div>)}
+          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"minmax(240px,1fr) 150px minmax(280px,1fr)"}}><div className="p-3"><b>{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><div className="border-l border-[#dbe7dd] p-3"><b className="text-[#087443]">{montagemTotal[idx]?.total>0?formatPeso(montagemTotal[idx].total):(ehQB(m.observacao)?"QB · a gosto":"—")}</b></div><div className="border-l border-[#dbe7dd] p-3">200 g: <b>{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b> · 300 g: <b>{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b> · 400 g: <b>{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</b></div></div>)}
         </div>
       </section>
       <section className="mt-4">
         <p className="mb-2 text-lg font-black uppercase text-[#087443]">2. Total a separar</p>
-        <div className="grid gap-0 sm:grid-cols-3">{montagemTotal.map((m:any)=><div key={m.id||m.nome} className="border border-[#dbe7dd] bg-[#fff9ee] px-3 py-2"><p className="text-xs font-bold">{m.nome}</p><p className="mt-1 text-sm font-black text-[#087443]">{m.total>0?formatPeso(m.total):(ehQB(m.observacao)?"QB · a gosto":"—")}</p></div>)}</div>
+        <div className="grid gap-0 sm:grid-cols-3">{montagemTotal.map((m:any)=><div key={m.id||m.nome} className="border border-[#dbe7dd] bg-[#fff9ee] px-3 py-2"><p className="text-xs font-bold">{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</p><p className="mt-1 text-sm font-black text-[#087443]">{m.total>0?formatPeso(m.total):(ehQB(m.observacao)?"QB · a gosto":"—")}</p></div>)}</div>
         <div className="border border-t-0 border-[#dbe7dd] bg-[#fff9ee] px-3 py-2 text-sm"><b>Total de componentes do lote deste produto:</b> {formatPeso(totalLoteProduto)}</div>
       </section>
       <section className="page-break-before">
@@ -1540,7 +1579,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <p className="mt-1 text-sm text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
         <div className="mt-3 border border-[#dbe7dd] bg-white">
           <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><b>{`${idx+1}. ${m.nome}`}</b><span>{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><b>{`${idx+1}. ${nomeCompletoComponente(m.nome, preparacoes, ingredientes)}`}</b><span>{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
           <div className="grid border-t border-[#dbe7dd] bg-[#edf5e6] px-3 py-2 text-sm font-black" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><span>TOTAL</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
         </div>
         <div className="mt-4"><p className="text-lg font-black uppercase text-[#087443]">Checklist antes de tampar</p><div className="mt-2 grid gap-1"><p className="text-sm">■ Conferir o tamanho da embalagem antes de começar.</p><p className="text-sm">■ Pesar cada componente individualmente pela coluna correta.</p><p className="text-sm">■ Respeitar a ordem das camadas mostrada na tabela.</p><p className="text-sm">■ Conferir o peso total da marmita antes de fechar.</p><p className="text-sm">■ Comparar visualmente o resultado com a foto de referência.</p></div></div>
