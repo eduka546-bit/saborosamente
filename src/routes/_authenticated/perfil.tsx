@@ -561,7 +561,7 @@ function PerfilPage() {
                     R$ {cashbackSaldo.toFixed(2).replace(".", ",")}
                   </p>
                   <p className="text-xs text-yellow-600 mt-1">
-                    Use no checkout para descontar do próximo pedido
+                    Use no checkout em até 30 dias. O sistema usa primeiro o crédito que vence antes.
                   </p>
                 </div>
                 <div className="h-16 w-16 rounded-full bg-yellow-200 flex items-center justify-center">
@@ -592,6 +592,9 @@ function PerfilPage() {
                         <p className="text-sm font-medium text-gray-800 capitalize">{t.tipo}</p>
                         <p className="text-xs text-gray-400">
                           {format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          {t.tipo === "recebido" && t.expira_em && Number(t.saldo_restante ?? 0) > 0
+                            ? ` • vence em ${format(new Date(t.expira_em), "dd/MM/yyyy", { locale: ptBR })}`
+                            : ""}
                         </p>
                       </div>
                     </div>
@@ -617,7 +620,7 @@ function PerfilPage() {
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
                   <p className="text-sm text-gray-500">
-                    Compartilhe seu link e ganhe cashback a cada amigo que fizer o primeiro pedido.
+                    Seu amigo ganha 5% na primeira compra e você recebe R$ 5,00 após a entrega.
                   </p>
                 </div>
                 <Link
