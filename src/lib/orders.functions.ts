@@ -147,6 +147,9 @@ export const createOrder = createServerFn({ method: "POST" })
       );
       if (!allowed.has(data.pagamento)) throw new Error("Forma de pagamento indisponível.");
     }
+    if ((data.pagamento === "cartao" || data.pagamento === "alimentacao") && !data.tipoCartao) {
+      throw new Error("Selecione o cartão ou benefício utilizado.");
+    }
 
     const productIds = [
       ...new Set(
@@ -396,7 +399,7 @@ export const createOrder = createServerFn({ method: "POST" })
       cupom_codigo: cupomAplicado,
       troco: data.troco || null,
       tipo_cartao: data.tipoCartao || null,
-      status: "preparando",
+      status: "pendente",
     };
 
     if (data.metodoEntrega === "entrega") {
