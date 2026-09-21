@@ -79,6 +79,13 @@ export interface CartCustomMarmita {
   itens: CartCustomItem[];
 }
 
+/** Combo pronto com sabores escolhidos pelo cliente. */
+export interface CartComboPronto {
+  comboId: string;
+  totalUnits: number;
+  sabores: Array<{ productId: string; quantity: number }>;
+}
+
 export interface CartLine {
   productId: string;
   quantity: number;
@@ -86,6 +93,8 @@ export interface CartLine {
   opcoes?: CartItemOpcoes;
   /** Presente apenas em marmitas personalizadas (item sem produto de catálogo). */
   custom?: CartCustomMarmita;
+  /** Presente apenas em combos prontos com sabores escolhidos. */
+  comboPronto?: CartComboPronto;
 }
 
 export interface CartLineDetailed extends CartLine {
@@ -112,6 +121,13 @@ interface CartContextValue {
   add: (productId: string, quantity?: number, weight?: string, opcoes?: CartItemOpcoes) => void;
   /** Adiciona uma marmita personalizada (item sem produto de catálogo). */
   addCustom: (custom: CartCustomMarmita, quantity: number) => void;
+  /** Adiciona um combo pronto preservando preço fechado e composição. */
+  addComboPronto: (
+    comboId: string,
+    weight: string,
+    totalUnits: number,
+    sabores: Array<{ productId: string; quantity: number }>,
+  ) => void;
   setQuantity: (
     productId: string,
     quantity: number,
@@ -496,6 +512,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLines((prev) => [...prev, { productId: `custom:${uid}`, quantity, custom }]);
   }, []);
 
+  const addComboPronto = useCallback(
+    (
+      comboId: string,
+      weight: string,
+      totalUnits: number,
+      sabores: Array<{ productId: string; quantity: number }>,
+    ) => {
+      const uid =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : String(Date.now()) + Math.random().toString(36).slice(2);
+      setLines((prev) => [
+        ...prev,
+        {
+          productId: `combo:${comboId}:${uid}`,
+          quantity: 1,
+          weight,
+          comboPronto: { comboId, totalUnits, sabores },
+        },
+      ]);
+    },
+    [],
+  );
+
   const setQuantity = useCallback(
     (productId: string, quantity: number, weight?: string, opcoes?: CartItemOpcoes) => {
       setLines((prev) =>
@@ -535,7 +575,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const product = customToProduct(line.custom);
           return [{ ...line, product, subtotal: line.custom.precoUnitario * line.quantity }];
         }
-        const product = cachedProducts.find((p) => p.id === line.productId);
+        const catalogId = line.comboPronto?.comboId ?? line.productId;
+        const product = cachedProducts.find((p) => p.id === catalogId);
         if (!product) return [];
         const price =
           line.weight === "300g" && product.preco_300g
@@ -568,7 +609,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Marmitas personalizadas usam um Product sintético (customToProduct).
     const linhasResolvidas = lines.flatMap((line) => {
       if (line.custom) return [{ line, product: customToProduct(line.custom) }];
-      const product = cachedProducts.find((p) => p.id === line.productId);
+      const catalogId = line.comboPronto?.comboId ?? line.productId;
+      const product = cachedProducts.find((p) => p.id === catalogId);
       return product ? [{ line, product }] : [];
     });
 
@@ -578,7 +620,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // faixa das marmitas avulsas, mesmo sendo uma única linha no carrinho.
     // Marmitas personalizadas contam a própria quantidade (1 un cada).
     const count = linhasResolvidas.reduce((acc, { line, product }) => {
-      const un = line.custom ? 1 : unidadesDoItem(product.nome, product.categoria);
+      const un = line.custom
+        ? 1
+        : line.comboPronto
+          ? line.comboPronto.totalUnits
+          : unidadesDoItem(product.nome, product.categoria);
       return acc + line.quantity * un;
     }, 0);
 
@@ -592,6 +638,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
           precoCheio: line.custom.precoUnitario,
         };
       }
+
+      if (line.comboPronto) {
+        const precoCombo =
+          line.weight === "300g" && product.preco_300g
+            ? product.preco_300g
+            : line.weight === "400g" && product.preco_400g
+              ? product.preco_400g
+              : product.preco;
+        return {
+          ...line,
+          product,
+          subtotal: Number(precoCombo || 0) * line.quantity,
+          precoCheio: Number(precoCombo || 0),
+        };
+      }
+
       const categoria = product.categoria ?? "";
       const isSopa = categoria.toLowerCase().includes("sopa");
       const semDesconto = isNoDiscount(categoria);
@@ -675,13 +737,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       add,
       addCustom,
+      addComboPronto,
       setQuantity,
       remove,
       clear,
       exitIntentCoupon,
       markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
 
   return (
     <>
