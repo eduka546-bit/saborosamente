@@ -43,7 +43,6 @@ import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
-import { creditarCashbackSeElegivel } from "@/lib/cashback";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
@@ -695,27 +694,8 @@ function AdminOrdersPage() {
       const { error } = await supabase.from("pedidos").update({ status: statusEfetivo }).eq("id", id);
       if (error) throw error;
 
-      // Cashback só é creditado quando o pedido é FINALIZADO (entregue).
-      // Idempotente: não credita de novo se já foi creditado antes.
-      if (statusEfetivo === "entregue") {
-        try {
-          const { data: pedido } = await supabase
-            .from("pedidos")
-            .select("user_id, valor_total, desconto_aplicado, taxa_entrega")
-            .eq("id", id)
-            .maybeSingle();
-          if (pedido?.user_id) {
-            // Base do cashback = valor pago pelos produtos (sem taxa de entrega).
-            const base = Math.max(
-              0,
-              Number(pedido.valor_total ?? 0) - Number(pedido.taxa_entrega ?? 0),
-            );
-            await creditarCashbackSeElegivel(pedido.user_id, id, base);
-          }
-        } catch (e) {
-          console.warn("Falha ao creditar cashback na entrega:", e);
-        }
-      }
+      // Cashback e indicação são processados por trigger no banco quando o pedido
+      // muda para "entregue", garantindo idempotência independentemente da tela usada.
 
       // Notifica cliente via WhatsApp quando status muda
       try {
