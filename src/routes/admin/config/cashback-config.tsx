@@ -30,7 +30,7 @@ function AdminCashbackConfigPage() {
   const queryClient = useQueryClient();
   const [config, setConfig] = useState({
     ativo: true,
-    percentual: "3",
+    percentual: "1",
     validade_dias: "30",
     minimo_uso: "3",
     limite_desconto_pct: "15",
@@ -52,7 +52,7 @@ function AdminCashbackConfigPage() {
         setSettingsId(data.id);
         setConfig({
           ativo: (data as any).cashback_ativo !== false,
-          percentual: String((data as any).cashback_percentual ?? 3),
+          percentual: String((data as any).cashback_percentual ?? 1),
           validade_dias: String((data as any).cashback_validade_dias ?? 30),
           minimo_uso: String((data as any).cashback_minimo_uso ?? 3),
           limite_desconto_pct: String((data as any).cashback_limite_desconto_pct ?? 15),
@@ -94,7 +94,7 @@ function AdminCashbackConfigPage() {
       const limite = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
       const { data, error } = await supabase
         .from("cashback_transacoes")
-        .select("user_id, saldo_restante, expira_em, profiles:user_id(nome, telefone)")
+        .select("user_id, tipo, saldo_restante, expira_em, profiles:user_id(nome, telefone)")
         .eq("tipo", "recebido")
         .gt("saldo_restante", 0)
         .gt("expira_em", agora.toISOString())
@@ -248,7 +248,7 @@ function AdminCashbackConfigPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { key: "percentual", label: "% ganho por pedido", placeholder: "3", suffix: "%" },
+            { key: "percentual", label: "% ganho por pedido", placeholder: "1", suffix: "%" },
             { key: "validade_dias", label: "Validade (dias)", placeholder: "30", suffix: "dias" },
             { key: "minimo_uso", label: "Saldo mínimo para usar", placeholder: "3", suffix: "R$" },
             {
