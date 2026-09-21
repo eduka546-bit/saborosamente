@@ -49,6 +49,7 @@ export const Route = createFileRoute("/checkout")({
         property: "og:description",
         content: "Finalize seu pedido de marmitas congeladas.",
       },
+      { name: "robots", content: "noindex, follow" },
     ],
   }),
   component: Checkout,
