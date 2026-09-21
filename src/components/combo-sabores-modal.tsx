@@ -22,7 +22,7 @@ interface ComboSaboresModalProps {
 }
 
 export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalProps) {
-  const { add } = useCart();
+  const { addComboPronto } = useCart();
   const [selectedWeight, setSelectedWeight] = useState("300g");
   const [sabores, setSabores] = useState<Record<string, number>>({}); // produto_id → qty
 
@@ -39,11 +39,13 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     queryFn: async () => {
       const { data } = await supabase
         .from("combo_sabores")
-        .select("produto_id, produtos:produto_id(id, nome, imagem_url)")
+        .select("produto_id, produtos:produto_id(id, nome, imagem_url, estoque_200g, estoque_300g, estoque_400g, controle_estoque, ativo, visivel_online)")
         .eq("combo_id", combo.id)
         .eq("ativo", true)
         .order("ordem");
-      return (data ?? []).map((s: any) => s.produtos).filter(Boolean);
+      return (data ?? [])
+        .map((s: any) => s.produtos)
+        .filter((p: any) => p && p.ativo !== false && p.visivel_online !== false);
     },
   });
 
@@ -60,10 +62,22 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
 
   if (!isOpen || !combo) return null;
 
+  function estoqueDisponivel(prod: any) {
+    if (!prod?.controle_estoque) return Number.POSITIVE_INFINITY;
+    if (selectedWeight === "400g") return Number(prod.estoque_400g ?? 0);
+    if (selectedWeight === "300g") return Number(prod.estoque_300g ?? 0);
+    return Number(prod.estoque_200g ?? 0);
+  }
+
   function changeQty(produtoId: string, delta: number) {
     setSabores((prev) => {
       const atual = prev[produtoId] ?? 0;
       const novo = Math.max(0, atual + delta);
+      const produto = saboresDisponiveis.find((p: any) => p.id === produtoId);
+      if (delta > 0 && produto && novo > estoqueDisponivel(produto)) {
+        toast.error(`${produto.nome} está sem estoque suficiente em ${selectedWeight}.`);
+        return prev;
+      }
       // Não deixa passar do total
       const totalAtual = Object.entries(prev).reduce(
         (s, [k, v]) => s + (k === produtoId ? 0 : v),
@@ -83,10 +97,20 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
       return;
     }
 
-    // Adiciona cada sabor como item individual no carrinho (pro estoque decrementar certinho)
-    Object.entries(sabores).forEach(([produtoId, qty]) => {
-      add(produtoId, qty, selectedWeight);
-    });
+    for (const [produtoId, qty] of Object.entries(sabores)) {
+      const produto = saboresDisponiveis.find((p: any) => p.id === produtoId);
+      if (!produto || qty > estoqueDisponivel(produto)) {
+        toast.error(`Estoque insuficiente para ${produto?.nome ?? "um dos sabores"} em ${selectedWeight}.`);
+        return;
+      }
+    }
+
+    addComboPronto(
+      combo.id,
+      selectedWeight,
+      totalCombo,
+      Object.entries(sabores).map(([productId, quantity]) => ({ productId, quantity })),
+    );
 
     toast.success(`${combo.nome} adicionado!`, {
       description: `${totalCombo} marmitas (${selectedWeight})`,
@@ -201,10 +225,14 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                     </span>
                     <button
                       onClick={() => changeQty(prod.id, 1)}
-                      disabled={totalSelecionado >= totalCombo}
+                      disabled={
+                        totalSelecionado >= totalCombo ||
+                        (prod.controle_estoque && qty >= estoqueDisponivel(prod))
+                      }
                       className={cn(
                         "h-8 w-8 rounded-full flex items-center justify-center transition-all",
-                        totalSelecionado < totalCombo
+                        totalSelecionado < totalCombo &&
+                          (!prod.controle_estoque || qty < estoqueDisponivel(prod))
                           ? "bg-[#086e45] text-white hover:bg-[#065a38]"
                           : "bg-gray-100 text-gray-300 cursor-not-allowed",
                       )}
