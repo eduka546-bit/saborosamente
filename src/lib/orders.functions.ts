@@ -18,6 +18,25 @@ import { validarEntregaProgramada } from "@/lib/entrega-config";
 
 const roundMoney = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
+function adicionarDiasDataBR(dataBr: string, dias: number) {
+  const [dd, mm, yyyy] = String(dataBr || "").split("/").map(Number);
+  if (!dd || !mm || !yyyy) return null;
+  const d = new Date(Date.UTC(yyyy, mm - 1, dd));
+  if (
+    d.getUTCFullYear() !== yyyy ||
+    d.getUTCMonth() !== mm - 1 ||
+    d.getUTCDate() !== dd
+  ) {
+    return null;
+  }
+  d.setUTCDate(d.getUTCDate() + dias);
+  return [
+    String(d.getUTCDate()).padStart(2, "0"),
+    String(d.getUTCMonth() + 1).padStart(2, "0"),
+    d.getUTCFullYear(),
+  ].join("/");
+}
+
 const orderItemSchema = z.object({
   productId: z.string().uuid().nullable().optional(),
   quantity: z.number().int().positive().max(200),
@@ -681,6 +700,12 @@ export const createOrder = createServerFn({ method: "POST" })
           })
           .join(" + ");
         partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
+        const dataPersonalizada = adicionarDiasDataBR(data.dataProgramada, 7);
+        if (dataPersonalizada) {
+          partes.push(
+            `Entrega personalizada prevista: ${dataPersonalizada} • ${data.faixaHorario}`,
+          );
+        }
         if (comp) partes.push(comp);
       }
 
