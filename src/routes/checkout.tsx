@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
-import { normalizarEntregaConfig, gerarDatasEntrega } from "@/lib/entrega-config";
+import { configEntregaParaCidade, gerarDatasEntrega } from "@/lib/entrega-config";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -240,9 +240,17 @@ function Checkout() {
   });
 
   // ── Datas e horários de entrega — configuráveis na aba Parâmetros do admin ──
-  const entregaCfg = normalizarEntregaConfig((siteSettings as any)?.parametros_loja?.entrega);
+  const entregaCfg = configEntregaParaCidade(
+    (siteSettings as any)?.parametros_loja?.entrega,
+    metodoEntrega === "entrega" ? selectedCity : "São Bento do Sul",
+  );
   const datasEntrega = gerarDatasEntrega(entregaCfg);
   const HORARIOS_ENTREGA = entregaCfg.horarios;
+
+  useEffect(() => {
+    setDataEntrega("");
+    setHorarioEntrega("");
+  }, [selectedCity, metodoEntrega]);
 
   // Há marmita personalizada no carrinho? (para o aviso de prazo)
   const temMarmitaPersonalizada = lines.some((l) => l.custom);
@@ -406,6 +414,8 @@ function Checkout() {
           telefone: data.telefone,
           metodoEntrega,
           horarioEntrega: `${dataEntrega} • ${horarioEntrega}`,
+          dataProgramada: dataEntrega,
+          faixaHorario: horarioEntrega,
           cidade: metodoEntrega === "entrega" ? data.cidade : undefined,
           bairro: metodoEntrega === "entrega" ? selectedBairro : undefined,
           endereco: metodoEntrega === "entrega" ? data.endereco : undefined,
@@ -855,6 +865,12 @@ function Checkout() {
                   preparo e serão entregues na semana seguinte. Os demais itens saem na data/horário
                   escolhidos.
                 </span>
+              </div>
+            )}
+
+            {metodoEntrega === "entrega" && entregaCfg.descricao && (
+              <div className="rounded-2xl border border-[#086e45]/20 bg-[#086e45]/5 px-4 py-3 text-sm text-[#086e45]">
+                {entregaCfg.descricao}
               </div>
             )}
 
