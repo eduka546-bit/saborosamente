@@ -346,6 +346,15 @@ function Checkout() {
       return;
     }
 
+    if (selectedPayment === "cartao" && !selectedFlag) {
+      toast.error("Selecione a bandeira do cartão.");
+      return;
+    }
+    if (selectedPayment === "alimentacao" && !selectedFlag) {
+      toast.error("Selecione o cartão de benefício.");
+      return;
+    }
+
     // Marmita personalizada: mínimo de unidades por combinação.
     const MIN_PERSONALIZADA = 3;
     if (lines.some((l) => l.custom && l.quantity < MIN_PERSONALIZADA)) {
