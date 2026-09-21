@@ -425,46 +425,20 @@ function Checkout() {
 
       clear();
 
-      // Notifica cliente via WhatsApp — confirmação do pedido
+      // Notifica o cliente de que o pedido foi recebido.
+      // O PIX configurado hoje é pago na entrega/retirada; portanto não marcamos
+      // o pedido como pagamento confirmado e não tentamos gerar QR Code inexistente.
       try {
-        // Se pagamento é PIX, gera QR code primeiro
-        let qrCodeUrl = null;
-        if (data.pagamento === "pix") {
-          try {
-            const pixRes = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-pix-qr`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-                },
-                body: JSON.stringify({
-                  pix_dict: "chave-pix@saborosamente", // TODO: Carregar do admin settings
-                  valor: valorConfirmado,
-                  descricao: `Pedido #${order.id.slice(0, 8).toUpperCase()}`,
-                  pedido_id: order.id,
-                }),
-              },
-            );
-            const pixData = await pixRes.json();
-            qrCodeUrl = pixData.qr_code_url;
-          } catch (e) {
-            console.warn("Erro ao gerar QR Code PIX:", e);
-          }
-        }
-
-        // Envia notificação via WhatsApp com QR code se PIX
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             pedido_id: order.id,
-            status_novo: data.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
-            qr_code_pix: qrCodeUrl,
+            status_novo: "novo_pedido",
             valor_total: valorConfirmado,
           }),
         });
