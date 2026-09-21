@@ -301,13 +301,27 @@ function CozinhaPage() {
     const campo = `gramas_${p.gramatura || "400"}`;
     const multiplicador = n(p.quantidade_planejada);
     const linhasReceita = itensRec.get(r.id) || [];
+    const montagemReceita = itensMontagem.get(r.id) || [];
+    const preparacoesVinculadas = (Array.isArray(r.preparacoes) ? r.preparacoes : [])
+      .map((ref: any) => prep.get(ref?.id))
+      .filter(Boolean);
     const linhasIngredientes = linhasReceita.filter((linha: any) => linha.ingrediente_id);
     if (linhasIngredientes.length) {
       linhasIngredientes.forEach((linha: any) => {
         const ingrediente = ing.get(linha.ingrediente_id);
         if (!ingrediente) return;
         const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
-        const qtd = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
+        const componentePronto = montagemReceita.find((montagem: any) =>
+          nomesCozinhaCorrespondem(ingrediente.nome, montagem.nome)
+          && !preparacoesVinculadas.some((preparacao: any) => nomesCozinhaCorrespondem(preparacao.nome, montagem.nome)),
+        );
+        // Um ingrediente-base (arroz, feijão, massa, brócolis, couve...) parte do
+        // peso servido na montagem. Os demais partem da quantidade líquida da receita.
+        // Em ambos os casos o rendimento é aplicado exatamente uma vez para chegar à compra.
+        const liquido = componentePronto
+          ? n(componentePronto[campo])
+          : quantidadeCorreta(n(linha[campo]), linha);
+        const qtd = quantidadeBrutaPorRendimento(liquido, ingrediente) * multiplicador;
         add(linha.ingrediente_id, qtd, prato.nome, unidade, ehQB(linha.observacao));
       });
       return;
@@ -1274,8 +1288,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const atual = prepDia.get(chave) || { prep:prepExibicao, total:0, bruto:0, pratos:[] as any[], ingredienteBase };
       atual.total += m.total;
       if (ingredienteBase) {
-        const brutoExato=ingredienteBrutoDoPrato(ingredienteBase.id,prato);
-        atual.bruto += brutoExato>0 ? brutoExato : quantidadeCruaBase(m.total, ingredienteBase);
+        // A montagem é a fonte do peso pronto. Converter daqui evita reutilizar uma
+        // quantidade antiga da planilha como se ela já fosse peso de compra.
+        atual.bruto += quantidadeCruaBase(m.total, ingredienteBase);
       }
       const ja = atual.pratos.find((x:any)=>x.produto_id===prato.produto.id);
       if (ja) ja.total += m.total; else atual.pratos.push({produto_id:prato.produto.id,nome:prato.produto.nome,rotulo:rotuloProduto(prato.produto),receita_id:prato.receita?.id,q:prato.q,total:m.total});
