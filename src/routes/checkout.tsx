@@ -906,20 +906,6 @@ function Checkout() {
 
             {/* ── conteúdo condicional por método ─────────────────────────── */}
 
-            {(selectedPayment === "pix" || selectedPayment === "mercadopago") && (
-              <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                <MessageCircle
-                  className="mt-0.5 size-5 shrink-0 text-green-600"
-                  aria-hidden="true"
-                />
-                <p>
-                  Após confirmar o pedido, enviaremos o{" "}
-                  <strong>{selectedPayment === "pix" ? "código PIX" : "link de pagamento"}</strong>{" "}
-                  via <strong>WhatsApp</strong>. Mantenha o aplicativo aberto para receber. 📲
-                </p>
-              </div>
-            )}
-
             {selectedPayment === "cartao" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
                 <p className="text-sm font-semibold">💳 Selecione a bandeira do cartão</p>
