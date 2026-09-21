@@ -3,6 +3,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { FREE_SHIPPING_FROM, useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { regraEntregaCidade } from "@/lib/entrega-config";
 
 export const Route = createFileRoute("/carrinho")({
   head: () => ({
@@ -43,6 +44,14 @@ function Carrinho() {
     clear,
   } = useCart();
 
+  const regraCidade = regraEntregaCidade(selectedCity);
+  const minimoRegional = regraCidade.minUnidades ?? 0;
+  const pedidoRegionalInvalido =
+    selectedCity !== "" &&
+    !selectedCity.toLowerCase().includes("são bento do sul") &&
+    minimoRegional > 0 &&
+    count < minimoRegional;
+
   return (
     <section className="mx-auto max-w-6xl px-4 py-14">
       <h1 className="text-4xl font-extrabold">Seu carrinho</h1>
@@ -80,7 +89,7 @@ function Carrinho() {
                 <div className="flex-1">
                   <h2 className="text-sm font-semibold">{product.nome}</h2>
                   <p className="text-xs text-muted-foreground">
-                    {weight || product.peso} • {formatBRL(product.preco)} cada
+                    {weight || product.peso} • {formatBRL(lineTotal / Math.max(1, quantity))} cada
                   </p>
                   {opcoes && (
                     <p className="mt-0.5 text-[11px] font-medium text-primary">
@@ -223,7 +232,7 @@ function Carrinho() {
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground italic">
-                  * Válido para pedidos acima de R$ 70,00 ou 5 itens.
+                  * Em São Bento do Sul, 5 ou mais unidades reduzem o frete para R$ 5,00.
                 </p>
               </div>
             )}
@@ -233,35 +242,23 @@ function Carrinho() {
               subtotal < 70 &&
               count < 5 && (
                 <p className="mt-4 rounded-2xl bg-secondary p-3 text-xs text-secondary-foreground">
-                  Dica: Pedidos acima de R$ 70 ou 5 itens baixam o frete para R$ 5,00 em SBS!
+                  Dica: com 5 ou mais unidades, o frete em São Bento do Sul cai para R$ 5,00!
                 </p>
               )}
 
-            {!selectedCity.toLowerCase().includes("são bento do sul") &&
-              selectedCity !== "" &&
-              subtotal < 70 &&
-              count < 5 && (
-                <div className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                  Pedido mínimo de R$ 70,00 ou 5 unidades para esta cidade.
-                </div>
-              )}
+            {pedidoRegionalInvalido && (
+              <div className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                Pedido mínimo de {minimoRegional} unidades para esta cidade.
+              </div>
+            )}
 
             <Link
               to="/checkout"
               search={{ cupom: undefined }}
-              disabled={
-                selectedCity !== "" &&
-                !selectedCity.toLowerCase().includes("são bento do sul") &&
-                subtotal < 70 &&
-                count < 5
-              }
+              disabled={pedidoRegionalInvalido}
               className={cn(
                 "mt-6 flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark",
-                selectedCity !== "" &&
-                  !selectedCity.toLowerCase().includes("são bento do sul") &&
-                  subtotal < 70 &&
-                  count < 5 &&
-                  "opacity-50 pointer-events-none",
+                pedidoRegionalInvalido && "opacity-50 pointer-events-none",
               )}
             >
               Finalizar pedido
@@ -280,23 +277,18 @@ function Carrinho() {
               </div>
 
               {(() => {
-                const tiers = [
-                  { minItems: 5, discount: 3 },
-                  { minItems: 10, discount: 5 },
-                  { minItems: 20, discount: 7 },
-                ];
-
-                const nextTier = tiers.find((t) => count < t.minItems);
-                const currentTier = [...tiers].reverse().find((t) => count >= t.minItems);
+                const tiers = [5, 10, 20];
+                const nextTier = tiers.find((minItems) => count < minItems);
+                const currentTier = [...tiers].reverse().find((minItems) => count >= minItems);
 
                 if (!nextTier && currentTier) {
                   return (
                     <div className="space-y-3">
                       <div className="flex justify-between text-xs font-bold">
                         <span className="text-primary-dark uppercase">
-                          Parabéns! Desconto máximo atingido!
+                          Melhor faixa de preço atingida!
                         </span>
-                        <span className="text-primary">7% OFF</span>
+                        <span className="text-primary">20+ UNID.</span>
                       </div>
                       <div className="h-3 w-full rounded-full bg-primary shadow-inner" />
                     </div>
@@ -304,12 +296,11 @@ function Carrinho() {
                 }
 
                 if (nextTier) {
-                  const itemsNeeded = nextTier.minItems - count;
-                  const prevGoal =
-                    tiers.find((t, i) => tiers[i + 1]?.minItems === nextTier.minItems)?.minItems ||
-                    0;
-                  const range = nextTier.minItems - prevGoal;
-                  const currentInRange = count - prevGoal;
+                  const itemsNeeded = nextTier - count;
+                  const previousTier =
+                    [...tiers].reverse().find((minItems) => minItems < nextTier) ?? 0;
+                  const range = nextTier - previousTier;
+                  const currentInRange = count - previousTier;
                   const progress = (currentInRange / range) * 100;
 
                   return (
@@ -320,7 +311,7 @@ function Carrinho() {
                           {itemsNeeded === 1 ? "marmita" : "marmitas"}
                         </span>
                         <span className="text-primary-dark">
-                          Para ganhar {nextTier.discount}% OFF
+                          Para liberar a faixa de {nextTier}+
                         </span>
                       </div>
                       <div className="h-3 w-full overflow-hidden rounded-full bg-white border border-primary/20 p-[2px]">
@@ -331,7 +322,7 @@ function Carrinho() {
                       </div>
                       {currentTier && (
                         <p className="text-[10px] text-center font-bold text-primary italic">
-                          * Você já tem {currentTier.discount}% de desconto aplicado!
+                          * Preço da faixa de {currentTier}+ unidades já aplicado.
                         </p>
                       )}
                     </div>
@@ -341,22 +332,18 @@ function Carrinho() {
               })()}
 
               <div className="mt-6 grid grid-cols-3 gap-2">
-                {[
-                  { q: 5, d: 3 },
-                  { q: 10, d: 5 },
-                  { q: 20, d: 7 },
-                ].map((tier) => (
+                {[5, 10, 20].map((q) => (
                   <div
-                    key={tier.q}
+                    key={q}
                     className={cn(
                       "flex flex-col items-center justify-center p-2 rounded-2xl border transition-all",
-                      count >= tier.q
+                      count >= q
                         ? "bg-primary text-white border-primary shadow-md scale-105 z-10"
                         : "bg-white text-muted-foreground border-border opacity-70",
                     )}
                   >
-                    <span className="text-[10px] font-black">{tier.q} UNID.</span>
-                    <span className="text-sm font-black">{tier.d}% OFF</span>
+                    <span className="text-[10px] font-black">{q}+ UNID.</span>
+                    <span className="text-xs font-black">PREÇO ESPECIAL</span>
                   </div>
                 ))}
               </div>
