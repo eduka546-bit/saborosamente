@@ -14,6 +14,7 @@ import {
   normalizarMarmitaConfig,
   tamanhoPorPeso,
 } from "@/lib/marmita-personalizada-config";
+import { validarEntregaProgramada } from "@/lib/entrega-config";
 
 const roundMoney = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
@@ -69,6 +70,8 @@ const createOrderSchema = z.object({
   telefone: z.string().trim().min(10).max(20),
   metodoEntrega: z.enum(["entrega", "retirada"]),
   horarioEntrega: z.string().trim().min(3).max(120),
+  dataProgramada: z.string().trim().min(10).max(10),
+  faixaHorario: z.string().trim().min(3).max(80),
   cidade: z.string().trim().max(80).optional(),
   bairro: z.string().trim().max(120).optional(),
   endereco: z.string().trim().max(160).optional(),
@@ -467,6 +470,17 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const descontoIndicacao = referralEligible ? roundMoney(subtotalEfetivo * 0.05) : 0;
 
+    const validacaoAgenda = validarEntregaProgramada({
+      cidade: data.metodoEntrega === "entrega" ? data.cidade : "São Bento do Sul",
+      data: data.dataProgramada,
+      horario: data.faixaHorario,
+      rawConfig: (settings as any)?.parametros_loja?.entrega,
+      totalUnidades,
+    });
+    if (!validacaoAgenda.ok) {
+      throw new Error(validacaoAgenda.erro);
+    }
+
     let taxaEntrega = 0;
     if (data.metodoEntrega === "entrega") {
       if (!data.cidade || !data.bairro || !data.endereco) {
@@ -482,11 +496,6 @@ export const createOrder = createServerFn({ method: "POST" })
         .limit(1);
       if (rateError || !rateRows?.length) {
         throw new Error("Não encontramos uma taxa de entrega válida para este bairro.");
-      }
-
-      const isSbs = data.cidade.toLowerCase().includes("são bento do sul");
-      if (!isSbs && subtotalCheio < 70 && totalUnidades < 5) {
-        throw new Error("Para esta cidade, o pedido mínimo é R$ 70,00 ou 5 unidades.");
       }
 
       taxaEntrega = roundMoney(
