@@ -421,6 +421,12 @@ export const createOrder = createServerFn({ method: "POST" })
           .eq("user_id", user.id)
           .not("status", "in", '("cancelado","Cancelado")');
 
+        const { count: previousIdentityOrders } = await supabase
+          .from("pedidos")
+          .select("id", { count: "exact", head: true })
+          .or(`email_cliente.eq.${data.email},telefone_cliente.eq.${data.telefone}`)
+          .not("status", "in", '("cancelado","Cancelado")');
+
         const { data: refProfile } = await supabase
           .from("profiles")
           .select("id, telefone, codigo_indicacao")
@@ -446,7 +452,12 @@ export const createOrder = createServerFn({ method: "POST" })
           duplicatedIdentity = duplicatedIdentity || (count ?? 0) > 0;
         }
 
-        if ((previousOrders ?? 0) === 0 && refProfile && !duplicatedIdentity) {
+        if (
+          (previousOrders ?? 0) === 0 &&
+          (previousIdentityOrders ?? 0) === 0 &&
+          refProfile &&
+          !duplicatedIdentity
+        ) {
           referralEligible = true;
           referralCode = String(profile.indicado_por).toUpperCase();
           referrer = refProfile;
