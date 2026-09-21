@@ -29,6 +29,20 @@ const orderItemSchema = z.object({
       garfoEFaca: z.boolean().optional(),
     })
     .optional(),
+  comboPronto: z
+    .object({
+      totalUnits: z.number().int().positive().max(100),
+      sabores: z
+        .array(
+          z.object({
+            productId: z.string().uuid(),
+            quantity: z.number().int().positive().max(100),
+          }),
+        )
+        .min(1)
+        .max(50),
+    })
+    .optional(),
   custom: z
     .object({
       label: z.string().max(120),
@@ -177,6 +191,49 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const productMap = new Map((products ?? []).map((p: any) => [p.id, p]));
 
+    const comboIds = [
+      ...new Set(
+        data.items
+          .filter((item) => item.comboPronto && item.productId)
+          .map((item) => item.productId as string),
+      ),
+    ];
+    const comboFlavorIds = [
+      ...new Set(
+        data.items.flatMap((item) =>
+          item.comboPronto?.sabores.map((s) => s.productId) ?? [],
+        ),
+      ),
+    ];
+
+    const { data: comboLinks, error: comboLinksError } = comboIds.length
+      ? await supabase
+          .from("combo_sabores")
+          .select("combo_id, produto_id")
+          .in("combo_id", comboIds)
+          .eq("ativo", true)
+      : { data: [], error: null };
+    if (comboLinksError) throw new Error("Não foi possível validar os sabores do combo.");
+
+    const { data: comboFlavorProducts, error: comboFlavorError } = comboFlavorIds.length
+      ? await supabase
+          .from("produtos")
+          .select(
+            "id, nome, tipo_produto, controle_estoque, estoque_200g, estoque_300g, estoque_400g, ativo, visivel_online",
+          )
+          .in("id", comboFlavorIds)
+          .eq("ativo", true)
+          .eq("visivel_online", true)
+      : { data: [], error: null };
+    if (comboFlavorError) throw new Error("Não foi possível validar o estoque dos sabores.");
+
+    const comboAllowed = new Set(
+      (comboLinks ?? []).map((row: any) => `${row.combo_id}:${row.produto_id}`),
+    );
+    const comboFlavorMap = new Map(
+      (comboFlavorProducts ?? []).map((p: any) => [p.id, p]),
+    );
+
     // Quantidade real usada nas faixas de preço e frete.
     const totalUnidades = data.items.reduce((acc, item) => {
       if (item.custom) return acc + item.quantity;
@@ -237,6 +294,62 @@ export const createOrder = createServerFn({ method: "POST" })
           : item.weight === "400g" && p.preco_400g
             ? Number(p.preco_400g)
             : Number(p.preco);
+
+      if (item.comboPronto) {
+        if (tipo !== "combo") throw new Error("Combo inválido.");
+        if (!["200g", "300g", "400g"].includes(item.weight ?? "")) {
+          throw new Error("Tamanho inválido para o combo.");
+        }
+
+        const esperado = unidadesDoItem(p.nome, categoria);
+        if (esperado <= 1 || item.comboPronto.totalUnits !== esperado) {
+          throw new Error("Quantidade do combo inválida.");
+        }
+
+        const agrupados = new Map<string, number>();
+        for (const sabor of item.comboPronto.sabores) {
+          agrupados.set(sabor.productId, (agrupados.get(sabor.productId) ?? 0) + sabor.quantity);
+        }
+        const totalSelecionado = [...agrupados.values()].reduce((sum, qty) => sum + qty, 0);
+        if (totalSelecionado !== esperado) {
+          throw new Error(`Escolha exatamente ${esperado} sabores para este combo.`);
+        }
+
+        const comboComponents = [...agrupados.entries()].map(([productId, quantity]) => {
+          if (!comboAllowed.has(`${p.id}:${productId}`)) {
+            throw new Error("Um dos sabores não pertence a este combo.");
+          }
+          const sabor: any = comboFlavorMap.get(productId);
+          if (!sabor) throw new Error("Um dos sabores do combo não está disponível.");
+
+          if (sabor.controle_estoque) {
+            const available =
+              item.weight === "400g"
+                ? Number(sabor.estoque_400g ?? 0)
+                : item.weight === "300g"
+                  ? Number(sabor.estoque_300g ?? 0)
+                  : Number(sabor.estoque_200g ?? 0);
+            const necessario = quantity * item.quantity;
+            if (available < necessario) {
+              throw new Error(`Estoque insuficiente para ${sabor.nome} em ${item.weight}.`);
+            }
+          }
+
+          return {
+            productId,
+            nome: sabor.nome,
+            quantity,
+          };
+        });
+
+        return {
+          item,
+          product: p,
+          fullUnitPrice: roundMoney(precoCatalogo),
+          effectiveUnitPrice: roundMoney(precoCatalogo),
+          comboComponents,
+        };
+      }
 
       const fixedPrice = tipo !== "marmita" || isNoDiscount(categoria);
       const fullBase =
@@ -417,7 +530,28 @@ export const createOrder = createServerFn({ method: "POST" })
       .single();
     if (orderError) throw new Error(orderError.message);
 
-    const itemsToInsert = authoritativeItems.map(({ item, effectiveUnitPrice }) => {
+    const itemsToInsert = authoritativeItems.flatMap((row: any) => {
+      const { item, effectiveUnitPrice, product, comboComponents } = row;
+
+      if (item.comboPronto && comboComponents?.length) {
+        const precoPorMarmita = roundMoney(
+          effectiveUnitPrice / Math.max(1, item.comboPronto.totalUnits),
+        );
+        return comboComponents.map((component: any) => ({
+          pedido_id: order.id,
+          produto_id: component.productId,
+          nome_item: null,
+          quantidade: component.quantity * item.quantity,
+          preco_unitario: precoPorMarmita,
+          observacao: [
+            item.weight ? `Peso: ${item.weight}` : null,
+            product?.nome ? `Combo: ${product.nome}` : "Combo pronto",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        }));
+      }
+
       const partes: string[] = [];
       if (item.weight) partes.push(`Peso: ${item.weight}`);
       if (item.opcoes) {
@@ -428,7 +562,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
       if (item.custom) {
         const comp = item.custom.itens
-          .map((i) => {
+          .map((i: any) => {
             const g = i.gramatura > 0 ? `${i.gramatura}g ` : "";
             return `${g}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`;
           })
@@ -436,23 +570,39 @@ export const createOrder = createServerFn({ method: "POST" })
         partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
         if (comp) partes.push(comp);
       }
-      return {
-        pedido_id: order.id,
-        produto_id: item.custom ? null : (item.productId ?? null),
-        nome_item: item.custom ? item.custom.label : null,
-        quantidade: item.quantity,
-        preco_unitario: effectiveUnitPrice,
-        observacao: partes.length > 0 ? partes.join(" | ") : null,
-      };
+
+      return [
+        {
+          pedido_id: order.id,
+          produto_id: item.custom ? null : (item.productId ?? null),
+          nome_item: item.custom ? item.custom.label : null,
+          quantidade: item.quantity,
+          preco_unitario: effectiveUnitPrice,
+          observacao: partes.length > 0 ? partes.join(" | ") : null,
+        },
+      ];
     });
 
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
     if (itemsError) throw new Error(itemsError.message);
 
-    for (const row of authoritativeItems) {
+    for (const row of authoritativeItems as any[]) {
       const item = row.item;
+      const tamanho = item.weight || "300g";
+
+      if (item.comboPronto && row.comboComponents?.length) {
+        for (const component of row.comboComponents) {
+          const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
+            p_produto_id: component.productId,
+            p_qtd: component.quantity * item.quantity,
+            p_tamanho: tamanho,
+          });
+          if (estoqueError) console.error("Estoque de combo falhou:", estoqueError.message);
+        }
+        continue;
+      }
+
       if (item.productId && !item.custom) {
-        const tamanho = item.weight || "300g";
         const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
           p_produto_id: item.productId,
           p_qtd: item.quantity,
