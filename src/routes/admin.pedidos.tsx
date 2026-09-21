@@ -181,19 +181,27 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                   <tfoot className="bg-gray-50/50 font-semibold">
                     <tr>
                       <td colSpan={3} className="px-4 py-3 text-right text-gray-500">
-                        Subtotal:
+                        Produtos:
                       </td>
                       <td className="px-4 py-3 text-right">
-                        R$ {order.valor_total.toFixed(2).replace(".", ",")}
+                        R 
+                        {(order.itens ?? [])
+                          .reduce(
+                            (sum: number, item: any) =>
+                              sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0),
+                            0,
+                          )
+                          .toFixed(2)
+                          .replace(".", ",")}
                       </td>
                     </tr>
-                    {order.desconto_aplicado > 0 && (
+                    {Number(order.desconto_aplicado || 0) > 0 && (
                       <tr className="text-red-500">
                         <td colSpan={3} className="px-4 py-3 text-right">
-                          Desconto:
+                          Descontos registrados:
                         </td>
                         <td className="px-4 py-3 text-right">
-                          - R$ {order.desconto_aplicado.toFixed(2).replace(".", ",")}
+                          R$ {Number(order.desconto_aplicado).toFixed(2).replace(".", ",")}
                         </td>
                       </tr>
                     )}
@@ -202,22 +210,15 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                         Taxa de Entrega:
                       </td>
                       <td className="px-4 py-3 text-right">
-                        R$ {order.taxa_entrega?.toFixed(2).replace(".", ",") || "0,00"}
+                        R$ {Number(order.taxa_entrega || 0).toFixed(2).replace(".", ",")}
                       </td>
                     </tr>
                     <tr className="text-lg text-[#5850ec]">
                       <td colSpan={3} className="px-4 py-3 text-right">
-                        Total:
+                        Total final:
                       </td>
                       <td className="px-4 py-3 text-right font-bold">
-                        R${" "}
-                        {(
-                          order.valor_total -
-                          (order.desconto_aplicado || 0) +
-                          (order.taxa_entrega || 0)
-                        )
-                          .toFixed(2)
-                          .replace(".", ",")}
+                        R$ {Number(order.valor_total || 0).toFixed(2).replace(".", ",")}
                       </td>
                     </tr>
                   </tfoot>
@@ -241,8 +242,8 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                   <p className="text-xs text-gray-500 uppercase font-bold mb-1">
                     Status do Pagamento
                   </p>
-                  <p className="font-semibold text-green-600 flex items-center gap-1">
-                    <CheckCircle2 size={14} /> Confirmado
+                  <p className="font-semibold text-amber-600 flex items-center gap-1">
+                    <Clock3 size={14} /> A confirmar
                   </p>
                 </div>
               </div>
@@ -779,7 +780,6 @@ function AdminOrdersPage() {
   };
 
   const statusOptions = [
-    { label: "rascunho", icon: FileText, color: "text-gray-500" },
     { label: "pendente", icon: Clock3, color: "text-yellow-500" },
     { label: "preparando", icon: Package, color: "text-blue-500" },
     { label: "saiu para entrega", icon: MapPin, color: "text-purple-500" },
@@ -963,6 +963,7 @@ function AdminOrdersPage() {
                 "pendente",
                 "preparando",
                 "saiu para entrega",
+                "pronto para retirada",
                 "entregue",
                 "cancelado",
               ].map((s) => (
