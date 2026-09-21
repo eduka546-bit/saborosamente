@@ -19,11 +19,6 @@ export const defaultPaymentMethods: PaymentOption[] = [
     enabled: true,
   },
   {
-    label: "Mercado Pago",
-    icon: "https://logospng.org/download/mercado-pago/logo-mercado-pago-icone-1024.png",
-    enabled: true,
-  },
-  {
     label: "Dinheiro",
     icon: "https://cdn-icons-png.flaticon.com/512/2489/2489756.png",
     enabled: true,
