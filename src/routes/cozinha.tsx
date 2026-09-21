@@ -1290,10 +1290,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const produto = produtoPorId.get(produtoId) as any;
     const receita = receitaPorProduto.get(produtoId) as any;
     const montagem = receita ? (montagemPorReceita.get(receita.id) || []) : [];
+    const linhasReceita = receita ? (itensReceita.get(receita.id) || []) : [];
     const q = { '200': 0, '300': 0, '400': 0 } as Record<string, number>;
     linhas.forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
     const montagemTotal = montagem.map((m: any) => ({ ...m, total: n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
-    return { produto, receita, q, montagem, montagemTotal, total:q['200']+q['300']+q['400'] };
+    return { produto, receita, linhasReceita, q, montagem, montagemTotal, total:q['200']+q['300']+q['400'] };
   }).filter((x:any)=>x.produto).sort((a:any,b:any)=>a.produto.nome.localeCompare(b.produto.nome));
 
   const prepDia = new Map<string, any>();
@@ -1306,7 +1307,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const vinculadas = (Array.isArray(prato.receita?.preparacoes) ? prato.receita.preparacoes : []).map((r:any)=>prepPorId.get(r?.id)).filter(Boolean) as any[];
     prato.montagemTotal.forEach((m:any) => {
       const prep = vinculadas.find((x:any)=>mesmo(x.nome,m.nome)) || (preparacoes as any[]).find((x:any)=>mesmo(x.nome,m.nome));
-      const ingredienteBase = !prep ? (ingredientes as any[]).find((x:any)=>mesmo(x.nome,m.nome)) : null;
+      const linhaIngrediente = !prep ? (prato.linhasReceita as any[]).find((linha:any)=>{
+        const ingrediente=ingPorId.get(linha.ingrediente_id) as any;
+        return ingrediente&&mesmo(ingrediente.nome,m.nome);
+      }) : null;
+      const ingredienteBase = !prep
+        ? (ingPorId.get(linhaIngrediente?.ingrediente_id) || (ingredientes as any[]).find((x:any)=>mesmo(x.nome,m.nome)))
+        : null;
       if ((!prep && !ingredienteBase) || !(m.total>0)) return;
       const chave = prep?.id || `base:${ingredienteBase.id}`;
       const prepExibicao = prep || { id:chave, nome:ingredienteBase.nome, modo_preparo:"Preparar o ingrediente-base conforme o padrão da cozinha e conferir o peso pronto antes de separar por prato." };
