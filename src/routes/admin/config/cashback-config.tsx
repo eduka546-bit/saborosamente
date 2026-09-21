@@ -87,6 +87,25 @@ function AdminCashbackConfigPage() {
     },
   });
 
+  const { data: vencimentos = [] } = useQuery({
+    queryKey: ["admin-cashback-vencimentos"],
+    queryFn: async () => {
+      const agora = new Date();
+      const limite = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { data, error } = await supabase
+        .from("cashback_transacoes")
+        .select("user_id, saldo_restante, expira_em, profiles:user_id(nome, telefone)")
+        .eq("tipo", "recebido")
+        .gt("saldo_restante", 0)
+        .gt("expira_em", agora.toISOString())
+        .lte("expira_em", limite.toISOString())
+        .order("expira_em", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 60_000,
+  });
+
   const saveConfig = async () => {
     if (!settingsId) return;
     setSaving(true);
@@ -127,7 +146,7 @@ function AdminCashbackConfigPage() {
     const limite = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
     const agrupado = new Map<string, any>();
 
-    transacoes
+    vencimentos
       .filter((t: any) => {
         if (t.tipo !== "recebido" || Number(t.saldo_restante ?? 0) <= 0 || !t.expira_em) return false;
         const expira = new Date(t.expira_em);
