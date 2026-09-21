@@ -1309,6 +1309,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   };
   const totalReceitaGrupo = (ingredienteId:string, grupo:any) => {
     let total = 0;
+    const ingrediente = ingPorId.get(ingredienteId) as any;
     grupo.pratos.forEach((prato:any) => {
       const linhas = (itensReceita.get(prato.receita_id) || []) as any[];
       linhas.filter((linha:any) => linha.ingrediente_id === ingredienteId).forEach((linha:any) => {
@@ -1317,7 +1318,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           : linha.operacao_producao==='dividir'
             ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
             : gramas;
-        total += corrigir(n(linha.gramas_200)) * n(prato.q?.['200']) + corrigir(n(linha.gramas_300)) * n(prato.q?.['300']) + corrigir(n(linha.gramas_400)) * n(prato.q?.['400']);
+        total += quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_200)), ingrediente) * n(prato.q?.['200'])
+          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_300)), ingrediente) * n(prato.q?.['300'])
+          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_400)), ingrediente) * n(prato.q?.['400']);
       });
     });
     return total;
