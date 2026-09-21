@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { fatorCapacidade, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { fatorCapacidade, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1333,7 +1333,12 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     grupo.pratos.forEach((prato:any) => {
       const linhas = (itensReceita.get(prato.receita_id) || []) as any[];
       linhas.filter((linha:any) => linha.ingrediente_id === ingredienteId).forEach((linha:any) => {
-        total += n(linha.gramas_200) * n(prato.q?.['200']) + n(linha.gramas_300) * n(prato.q?.['300']) + n(linha.gramas_400) * n(prato.q?.['400']);
+        const corrigir = (gramas:number) => linha.operacao_producao==='acrescentar'
+          ? gramas*(1+n(linha.fator_producao||1))
+          : linha.operacao_producao==='dividir'
+            ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
+            : gramas;
+        total += corrigir(n(linha.gramas_200)) * n(prato.q?.['200']) + corrigir(n(linha.gramas_300)) * n(prato.q?.['300']) + corrigir(n(linha.gramas_400)) * n(prato.q?.['400']);
       });
     });
     return total;
@@ -1380,11 +1385,21 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     }
     const itens = (itensPreparacao.get(grupo.prep.id) || []) as any[];
     const rendimento = n(grupo.prep.rendimento_final_g);
-    const fatorLote = rendimento > 0 ? grupo.total / rendimento : fatorRecuperadoGrupo(itens, grupo);
+    const itemEmPeso = (item:any) => {
+      const texto=String(item.quantidade_texto||'').trim();
+      if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return true;
+      if (texto&&/^\s*[\d.,]+/.test(texto)) return false;
+      return (ingPorId.get(item.ingrediente_id) as any)?.unidade_medida!=='un';
+    };
+    const rendimentoInferido = itens.reduce((s:number,item:any)=>s+(itemEmPeso(item)?n(item.quantidade):0),0);
+    const rendimentoBase = rendimento>0?rendimento:rendimentoInferido;
     itens.forEach((item:any) => {
       if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
       const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo);
-      const totalLote = totalExato > 0 ? totalExato : n(item.quantidade) * fatorLote;
+      const ingrediente = ingPorId.get(item.ingrediente_id) as any;
+      const totalLote = rendimentoBase>0
+        ? quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase)
+        : quantidadeBrutaPorRendimento(totalExato,ingrediente || {});
       somarDesconto(item.ingrediente_id, totalLote * proporcaoPronta);
     });
   });
