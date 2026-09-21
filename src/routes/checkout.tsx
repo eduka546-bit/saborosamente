@@ -382,6 +382,8 @@ function Checkout() {
           troco: data.troco,
           tipoCartao: selectedFlag || undefined,
           userId: session?.user?.id,
+          accessToken: session.access_token,
+          cashbackUsado: cashbackDesconto,
           items: lines.map((l) => ({
             productId: l.custom ? null : l.product.id,
             quantity: l.quantity,
@@ -401,6 +403,7 @@ function Checkout() {
       });
 
       setOrderId(order.id);
+      const valorConfirmado = Number(order.valor_total ?? finalTotal);
 
       // Carrinho abandonado: ao finalizar um pedido, marca a sessão como convertida
       // antes de limpar o carrinho para não deixar uma venda concluída aparecendo como perdida.
@@ -438,7 +441,7 @@ function Checkout() {
                 },
                 body: JSON.stringify({
                   pix_dict: "chave-pix@saborosamente", // TODO: Carregar do admin settings
-                  valor: finalTotal,
+                  valor: valorConfirmado,
                   descricao: `Pedido #${order.id.slice(0, 8).toUpperCase()}`,
                   pedido_id: order.id,
                 }),
@@ -462,7 +465,7 @@ function Checkout() {
             pedido_id: order.id,
             status_novo: data.pagamento === "pix" ? "pagamento_confirmado" : "novo_pedido",
             qr_code_pix: qrCodeUrl,
-            valor_total: finalTotal,
+            valor_total: valorConfirmado,
           }),
         });
       } catch (_) {
