@@ -101,6 +101,8 @@ interface PedidoInsert {
   valor_total: number;
   taxa_entrega: number;
   desconto_aplicado: number;
+  cashback_usado: number;
+  desconto_indicacao: number;
   cupom_codigo: string | null;
   troco: string | null;
   tipo_cartao: string | null;
@@ -125,14 +127,9 @@ export const createOrder = createServerFn({ method: "POST" })
     if (authError || !user) throw new Error("Sua sessão expirou. Entre novamente para finalizar.");
     if (data.userId && data.userId !== user.id) throw new Error("Sessão inválida.");
 
-    // Cashback permanece desativado no lançamento. Nunca aceite desconto enviado pelo navegador.
-    if (Number(data.cashbackUsado ?? 0) > 0) {
-      throw new Error("Cashback indisponível no momento.");
-    }
-
     const { data: settings, error: settingsError } = await supabase
       .from("site_settings")
-      .select("parametros_loja, payment_methods, cashback_ativo")
+      .select("parametros_loja, payment_methods, cashback_ativo, cashback_minimo_uso, cashback_limite_desconto_pct")
       .maybeSingle();
     if (settingsError) throw new Error("Não foi possível carregar as configurações da loja.");
 
@@ -400,6 +397,65 @@ export const createOrder = createServerFn({ method: "POST" })
     );
     const descontoProgressivo = roundMoney(Math.max(0, subtotalCheio - subtotalEfetivo));
 
+    // Indique e Ganhe: 5% para o amigo apenas na primeira compra, com vínculo
+    // capturado no cadastro e válido por até 30 dias.
+    let referralEligible = false;
+    let referralCode: string | null = null;
+    let referrer: any = null;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, telefone, cpf, indicado_por, indicado_por_em")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile?.indicado_por && profile?.indicado_por_em) {
+      const referralAgeMs = Date.now() - new Date(profile.indicado_por_em).getTime();
+      const referralWithin30Days =
+        referralAgeMs >= 0 && referralAgeMs <= 30 * 24 * 60 * 60 * 1000;
+
+      if (referralWithin30Days) {
+        const { count: previousOrders } = await supabase
+          .from("pedidos")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .not("status", "in", '("cancelado","Cancelado")');
+
+        const { data: refProfile } = await supabase
+          .from("profiles")
+          .select("id, telefone, codigo_indicacao")
+          .eq("codigo_indicacao", String(profile.indicado_por).toUpperCase())
+          .neq("id", user.id)
+          .maybeSingle();
+
+        let duplicatedIdentity = false;
+        if (profile.cpf) {
+          const { count } = await supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("cpf", profile.cpf)
+            .neq("id", user.id);
+          duplicatedIdentity = duplicatedIdentity || (count ?? 0) > 0;
+        }
+        if (profile.telefone) {
+          const { count } = await supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("telefone", profile.telefone)
+            .neq("id", user.id);
+          duplicatedIdentity = duplicatedIdentity || (count ?? 0) > 0;
+        }
+
+        if ((previousOrders ?? 0) === 0 && refProfile && !duplicatedIdentity) {
+          referralEligible = true;
+          referralCode = String(profile.indicado_por).toUpperCase();
+          referrer = refProfile;
+        }
+      }
+    }
+
+    const descontoIndicacao = referralEligible ? roundMoney(subtotalEfetivo * 0.05) : 0;
+
     let taxaEntrega = 0;
     if (data.metodoEntrega === "entrega") {
       if (!data.cidade || !data.bairro || !data.endereco) {
@@ -436,6 +492,7 @@ export const createOrder = createServerFn({ method: "POST" })
     }
 
     let cupomAplicado: string | null = null;
+    let cupomTipo: string | null = null;
     let descontoCupom = 0;
 
     if (data.cupom) {
@@ -473,6 +530,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
 
       const tipoCupom = String(cupom.tipo ?? "");
+      cupomTipo = tipoCupom;
       const valorCupom = Number(cupom.valor ?? 0);
       descontoCupom =
         tipoCupom === "Percentual"
@@ -486,10 +544,51 @@ export const createOrder = createServerFn({ method: "POST" })
       cupomAplicado = cupom.codigo;
     }
 
-    const valorTotal = roundMoney(
-      Math.max(0, subtotalEfetivo + taxaEntrega - descontoCupom),
+    const descontoCupomProdutos =
+      cupomTipo === "Entrega Grátis"
+        ? 0
+        : Math.min(descontoCupom, Math.max(0, subtotalEfetivo - descontoIndicacao));
+    const produtosLiquidos = roundMoney(
+      Math.max(0, subtotalEfetivo - descontoIndicacao - descontoCupomProdutos),
     );
-    const descontoTotal = roundMoney(descontoProgressivo + descontoCupom);
+
+    let cashbackUsado = roundMoney(Number(data.cashbackUsado ?? 0));
+    if (cashbackUsado > 0) {
+      if (!(settings as any)?.cashback_ativo) {
+        throw new Error("Cashback indisponível no momento.");
+      }
+
+      const { data: saldoAtual, error: saldoError } = await supabase.rpc(
+        "cashback_saldo_disponivel",
+        { p_user_id: user.id },
+      );
+      if (saldoError) throw new Error("Não foi possível validar seu cashback.");
+
+      const saldo = Number(saldoAtual ?? 0);
+      const minimoUso = Number((settings as any)?.cashback_minimo_uso ?? 3);
+      const limitePct = Number((settings as any)?.cashback_limite_desconto_pct ?? 15) / 100;
+      if (saldo < minimoUso) {
+        throw new Error(`O saldo mínimo para usar cashback é R$ ${minimoUso.toFixed(2)}.`);
+      }
+
+      const cashbackMaximo = roundMoney(Math.min(saldo, produtosLiquidos * limitePct));
+      if (cashbackUsado > cashbackMaximo + 0.01) {
+        throw new Error(
+          `Você pode usar até R$ ${cashbackMaximo.toFixed(2)} de cashback neste pedido.`,
+        );
+      }
+      cashbackUsado = Math.min(cashbackUsado, cashbackMaximo);
+    }
+
+    const valorTotal = roundMoney(
+      Math.max(
+        0,
+        subtotalEfetivo + taxaEntrega - descontoCupom - descontoIndicacao - cashbackUsado,
+      ),
+    );
+    const descontoTotal = roundMoney(
+      descontoProgressivo + descontoCupom + descontoIndicacao + cashbackUsado,
+    );
 
     const insertData: PedidoInsert = {
       user_id: user.id,
@@ -509,6 +608,8 @@ export const createOrder = createServerFn({ method: "POST" })
       valor_total: valorTotal,
       taxa_entrega: taxaEntrega,
       desconto_aplicado: descontoTotal,
+      cashback_usado: cashbackUsado,
+      desconto_indicacao: descontoIndicacao,
       cupom_codigo: cupomAplicado,
       troco: data.troco || null,
       tipo_cartao: data.tipoCartao || null,
@@ -529,6 +630,25 @@ export const createOrder = createServerFn({ method: "POST" })
       .select()
       .single();
     if (orderError) throw new Error(orderError.message);
+
+    if (referralEligible && referralCode && referrer?.id) {
+      const { error: referralError } = await supabase.from("indicacoes").insert({
+        indicador_user_id: referrer.id,
+        indicador_telefone: referrer.telefone ?? null,
+        indicado_user_id: user.id,
+        indicado_telefone: data.telefone,
+        indicado_email: data.email,
+        codigo: referralCode,
+        status: "pendente",
+        pedido_indicado_id: order.id,
+        cashback_gerado: 0,
+      });
+
+      if (referralError) {
+        await supabase.from("pedidos").delete().eq("id", order.id);
+        throw new Error("Não foi possível registrar o benefício da indicação.");
+      }
+    }
 
     const itemsToInsert = authoritativeItems.flatMap((row: any) => {
       const { item, effectiveUnitPrice, product, comboComponents } = row;
@@ -584,7 +704,25 @@ export const createOrder = createServerFn({ method: "POST" })
     });
 
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
-    if (itemsError) throw new Error(itemsError.message);
+    if (itemsError) {
+      await supabase.from("indicacoes").delete().eq("pedido_indicado_id", order.id);
+      await supabase.from("pedidos").delete().eq("id", order.id);
+      throw new Error(itemsError.message);
+    }
+
+    if (cashbackUsado > 0) {
+      const { error: cashbackError } = await supabase.rpc("cashback_usar_seguro", {
+        p_user_id: user.id,
+        p_pedido_id: order.id,
+        p_valor: cashbackUsado,
+      });
+      if (cashbackError) {
+        await supabase.from("pedido_itens").delete().eq("pedido_id", order.id);
+        await supabase.from("indicacoes").delete().eq("pedido_indicado_id", order.id);
+        await supabase.from("pedidos").delete().eq("id", order.id);
+        throw new Error("Não foi possível aplicar o cashback. Tente novamente.");
+      }
+    }
 
     for (const row of authoritativeItems as any[]) {
       const item = row.item;
@@ -651,5 +789,7 @@ export const createOrder = createServerFn({ method: "POST" })
       valor_total: valorTotal,
       taxa_entrega: taxaEntrega,
       desconto_aplicado: descontoTotal,
+      cashback_usado: cashbackUsado,
+      desconto_indicacao: descontoIndicacao,
     };
   });
