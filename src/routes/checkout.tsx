@@ -394,11 +394,17 @@ function Checkout() {
           accessToken: session.access_token,
           cashbackUsado: cashbackDesconto,
           items: lines.map((l) => ({
-            productId: l.custom ? null : l.product.id,
+            productId: l.custom ? null : (l.comboPronto?.comboId ?? l.product.id),
             quantity: l.quantity,
             weight: l.weight,
             price: l.subtotal / l.quantity,
             opcoes: l.opcoes,
+            comboPronto: l.comboPronto
+              ? {
+                  totalUnits: l.comboPronto.totalUnits,
+                  sabores: l.comboPronto.sabores,
+                }
+              : undefined,
             custom: l.custom
               ? {
                   label: l.custom.label,
