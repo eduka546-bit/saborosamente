@@ -1,61 +1,80 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
+import {
+  calcularFrete,
+  isNoDiscount,
+  normalizarPrecosMarmita,
+  precoCheioMarmita,
+  precoMarmitaPorFaixa,
+  unidadesDoItem,
+} from "@/lib/combo-rules";
+import {
+  limiteProteina,
+  normalizarMarmitaConfig,
+  tamanhoPorPeso,
+} from "@/lib/marmita-personalizada-config";
+
+const roundMoney = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
 const orderItemSchema = z.object({
-  productId: z.string().nullable().optional(),
-  quantity: z.number(),
-  weight: z.string().optional(),
-  price: z.number(),
+  productId: z.string().uuid().nullable().optional(),
+  quantity: z.number().int().positive().max(200),
+  weight: z.string().max(20).optional(),
+  // Mantido por compatibilidade com o cliente, mas nunca é confiado pelo servidor.
+  price: z.number().nonnegative(),
   opcoes: z
     .object({
       consumo: z.enum(["pronta", "congelada"]),
       garfoEFaca: z.boolean().optional(),
     })
     .optional(),
-  // Marmita personalizada (item sem produto de catálogo).
   custom: z
     .object({
-      label: z.string(),
-      tamanhoSigla: z.string(),
-      pesoTotal: z.number(),
-      itens: z.array(
-        z.object({
-          grupo: z.string(),
-          nome: z.string(),
-          modoPreparo: z.string().optional(),
-          gramatura: z.number(),
-        }),
-      ),
+      label: z.string().max(120),
+      tamanhoSigla: z.string().max(10),
+      pesoTotal: z.number().positive().max(1000),
+      itens: z
+        .array(
+          z.object({
+            grupo: z.string().max(80),
+            nome: z.string().max(120),
+            modoPreparo: z.string().max(80).optional(),
+            gramatura: z.number().min(0).max(1000),
+          }),
+        )
+        .min(1)
+        .max(30),
     })
     .optional(),
 });
 
 const createOrderSchema = z.object({
-  nome: z.string(),
-  email: z.string(),
-  telefone: z.string(),
+  nome: z.string().trim().min(3).max(80),
+  email: z.string().trim().email().max(120),
+  telefone: z.string().trim().min(10).max(20),
   metodoEntrega: z.enum(["entrega", "retirada"]),
-  horarioEntrega: z.string(),
-  cidade: z.string().optional(),
-  bairro: z.string().optional(),
-  endereco: z.string().optional(),
-  complemento: z.string().optional(),
-  cep: z.string().optional(),
-  pagamento: z.string(),
-  observacoes: z.string().optional(),
-  valorTotal: z.number(),
-  taxaEntrega: z.number(),
+  horarioEntrega: z.string().trim().min(3).max(120),
+  cidade: z.string().trim().max(80).optional(),
+  bairro: z.string().trim().max(120).optional(),
+  endereco: z.string().trim().max(160).optional(),
+  complemento: z.string().trim().max(80).optional(),
+  cep: z.string().trim().max(20).optional(),
+  pagamento: z.string().trim().min(2).max(50),
+  observacoes: z.string().trim().max(300).optional(),
+  // Valores abaixo chegam do navegador apenas para compatibilidade. O servidor recalcula tudo.
+  valorTotal: z.number().nonnegative(),
+  taxaEntrega: z.number().nonnegative(),
+  desconto: z.number().nonnegative(),
   userId: z.string().uuid().optional(),
-  desconto: z.number(),
-  cupom: z.string().optional(),
-  items: z.array(orderItemSchema),
-  troco: z.string().optional(),
-  tipoCartao: z.string().optional(),
+  accessToken: z.string().min(20),
+  cashbackUsado: z.number().nonnegative().optional().default(0),
+  cupom: z.string().trim().max(80).optional(),
+  items: z.array(orderItemSchema).min(1).max(100),
+  troco: z.string().trim().max(30).optional(),
+  tipoCartao: z.string().trim().max(80).optional(),
 });
 
-// Campos gravados na tabela `pedidos` ao criar um pedido.
-// Os de endereço são opcionais (só preenchidos em entrega).
 interface PedidoInsert {
   user_id: string | null;
   nome_cliente: string;
@@ -84,19 +103,236 @@ export const createOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const supabase = createServerClient();
 
-    // ── Validação de cupom no servidor (confiável; não dá para burlar pelo cliente) ──
+    // Autenticação obrigatória e verificada no servidor.
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(data.accessToken);
+    if (authError || !user) throw new Error("Sua sessão expirou. Entre novamente para finalizar.");
+    if (data.userId && data.userId !== user.id) throw new Error("Sessão inválida.");
+
+    // Cashback permanece desativado no lançamento. Nunca aceite desconto enviado pelo navegador.
+    if (Number(data.cashbackUsado ?? 0) > 0) {
+      throw new Error("Cashback indisponível no momento.");
+    }
+
+    const { data: settings, error: settingsError } = await supabase
+      .from("site_settings")
+      .select("parametros_loja, payment_methods, cashback_ativo")
+      .maybeSingle();
+    if (settingsError) throw new Error("Não foi possível carregar as configurações da loja.");
+
+    const tabelaPrecos = normalizarPrecosMarmita((settings as any)?.parametros_loja?.precos_marmita);
+    const personalizadaCfg = normalizarMarmitaConfig(
+      (settings as any)?.parametros_loja?.marmita_personalizada,
+    );
+    const acrescimos = (settings as any)?.parametros_loja?.acrescimos ?? {};
+    const adicionalPronta = Number(acrescimos?.pronta) || 1;
+    const adicionalGarfo = Number(acrescimos?.garfoEFaca) || 1;
+
+    // Confirma que a forma de pagamento escolhida está habilitada.
+    const paymentMap: Record<string, string> = {
+      PIX: "pix",
+      "Cartão": "cartao",
+      "Alimentação": "alimentacao",
+      "Mercado Pago": "mercadopago",
+      Dinheiro: "dinheiro",
+    };
+    const configuredPayments = Array.isArray((settings as any)?.payment_methods)
+      ? (settings as any).payment_methods.filter((p: any) => p?.enabled !== false)
+      : [];
+    if (configuredPayments.length > 0) {
+      const allowed = new Set(
+        configuredPayments.map((p: any) => paymentMap[String(p?.label ?? "")]).filter(Boolean),
+      );
+      if (!allowed.has(data.pagamento)) throw new Error("Forma de pagamento indisponível.");
+    }
+
+    const productIds = [
+      ...new Set(
+        data.items
+          .filter((item) => !item.custom && item.productId)
+          .map((item) => item.productId as string),
+      ),
+    ];
+
+    const { data: products, error: productsError } = productIds.length
+      ? await supabase
+          .from("produtos")
+          .select(
+            "id, nome, preco, preco_300g, preco_400g, tipo_produto, controle_estoque, estoque_200g, estoque_300g, estoque_400g, ativo, visivel_online, categorias(nome)",
+          )
+          .in("id", productIds)
+          .eq("ativo", true)
+          .eq("visivel_online", true)
+      : { data: [], error: null };
+
+    if (productsError) throw new Error("Não foi possível validar os produtos do pedido.");
+    if ((products ?? []).length !== productIds.length) {
+      throw new Error("Um ou mais produtos não estão mais disponíveis.");
+    }
+
+    const productMap = new Map((products ?? []).map((p: any) => [p.id, p]));
+
+    // Quantidade real usada nas faixas de preço e frete.
+    const totalUnidades = data.items.reduce((acc, item) => {
+      if (item.custom) return acc + item.quantity;
+      const p: any = item.productId ? productMap.get(item.productId) : null;
+      if (!p) return acc;
+      const categoria = Array.isArray(p.categorias) ? p.categorias[0]?.nome : p.categorias?.nome;
+      return acc + item.quantity * unidadesDoItem(p.nome, categoria);
+    }, 0);
+
+    const authoritativeItems = data.items.map((item) => {
+      if (item.custom) {
+        if (!personalizadaCfg.ativo) throw new Error("Marmitas personalizadas estão indisponíveis.");
+        if (item.quantity < personalizadaCfg.minUnidades) {
+          throw new Error(
+            `Marmitas personalizadas exigem no mínimo ${personalizadaCfg.minUnidades} unidades por combinação.`,
+          );
+        }
+
+        const itensComPeso = item.custom.itens.filter((i) => i.gramatura > 0);
+        const pesoCalculado = itensComPeso.reduce((sum, i) => sum + i.gramatura, 0);
+        if (pesoCalculado <= 0 || pesoCalculado > personalizadaCfg.pesoMaximo) {
+          throw new Error("Gramatura inválida na marmita personalizada.");
+        }
+
+        const tamanho = tamanhoPorPeso(pesoCalculado, personalizadaCfg);
+        if (!tamanho || tamanho.sigla !== item.custom.tamanhoSigla) {
+          throw new Error("Tamanho inválido na marmita personalizada.");
+        }
+
+        const pesoProteina = itensComPeso
+          .filter((i) => i.grupo.toLowerCase().includes("prote"))
+          .reduce((sum, i) => sum + i.gramatura, 0);
+        const excedente = Math.max(0, pesoProteina - limiteProteina(tamanho, personalizadaCfg));
+        const unitPrice = roundMoney(
+          tamanho.preco + excedente * personalizadaCfg.adicionalProteinaPorGrama,
+        );
+
+        return {
+          item,
+          product: null,
+          fullUnitPrice: unitPrice,
+          effectiveUnitPrice: unitPrice,
+        };
+      }
+
+      if (!item.productId) throw new Error("Produto inválido no pedido.");
+      const p: any = productMap.get(item.productId);
+      if (!p) throw new Error("Produto não disponível.");
+
+      const categoria = String(
+        Array.isArray(p.categorias) ? p.categorias[0]?.nome ?? "" : p.categorias?.nome ?? "",
+      );
+      const tipo = String(p.tipo_produto ?? "marmita").toLowerCase();
+      const isSopa = tipo === "sopa" || categoria.toLowerCase().includes("sopa");
+      const precoCatalogo =
+        item.weight === "300g" && p.preco_300g
+          ? Number(p.preco_300g)
+          : item.weight === "400g" && p.preco_400g
+            ? Number(p.preco_400g)
+            : Number(p.preco);
+
+      const fixedPrice = tipo !== "marmita" || isNoDiscount(categoria);
+      const fullBase =
+        tipo === "marmita" && !fixedPrice
+          ? precoCheioMarmita(item.weight, tabelaPrecos) || precoCatalogo
+          : precoCatalogo;
+      const effectiveBase =
+        tipo === "marmita" && !fixedPrice
+          ? precoMarmitaPorFaixa(item.weight, totalUnidades, fullBase, tabelaPrecos)
+          : fullBase;
+
+      const optionExtra =
+        tipo === "marmita"
+          ? (item.opcoes?.consumo === "pronta" ? adicionalPronta : 0) +
+            (item.opcoes?.consumo === "pronta" && item.opcoes?.garfoEFaca ? adicionalGarfo : 0)
+          : 0;
+
+      // Validação de estoque antes de gravar o pedido.
+      if (p.controle_estoque && tipo !== "combo") {
+        const available =
+          tipo === "sopa"
+            ? Number(p.estoque_400g ?? 0)
+            : tipo === "complemento" || tipo === "bebida"
+              ? Number(p.estoque_200g ?? 0)
+              : item.weight === "400g"
+                ? Number(p.estoque_400g ?? 0)
+                : item.weight === "200g"
+                  ? Number(p.estoque_200g ?? 0)
+                  : Number(p.estoque_300g ?? 0);
+        if (available < item.quantity) {
+          throw new Error(`Estoque insuficiente para ${p.nome}.`);
+        }
+      }
+
+      return {
+        item,
+        product: p,
+        fullUnitPrice: roundMoney(fullBase + optionExtra),
+        effectiveUnitPrice: roundMoney(effectiveBase + optionExtra),
+      };
+    });
+
+    const subtotalCheio = roundMoney(
+      authoritativeItems.reduce((sum, row) => sum + row.fullUnitPrice * row.item.quantity, 0),
+    );
+    const subtotalEfetivo = roundMoney(
+      authoritativeItems.reduce((sum, row) => sum + row.effectiveUnitPrice * row.item.quantity, 0),
+    );
+    const descontoProgressivo = roundMoney(Math.max(0, subtotalCheio - subtotalEfetivo));
+
+    let taxaEntrega = 0;
+    if (data.metodoEntrega === "entrega") {
+      if (!data.cidade || !data.bairro || !data.endereco) {
+        throw new Error("Informe cidade, bairro e endereço para entrega.");
+      }
+
+      const { data: rateRows, error: rateError } = await supabase
+        .from("delivery_rates")
+        .select("valor")
+        .eq("ativo", true)
+        .eq("cidade", data.cidade)
+        .eq("bairro", data.bairro)
+        .limit(1);
+      if (rateError || !rateRows?.length) {
+        throw new Error("Não encontramos uma taxa de entrega válida para este bairro.");
+      }
+
+      const isSbs = data.cidade.toLowerCase().includes("são bento do sul");
+      if (!isSbs && subtotalCheio < 70 && totalUnidades < 5) {
+        throw new Error("Para esta cidade, o pedido mínimo é R$ 70,00 ou 5 unidades.");
+      }
+
+      taxaEntrega = roundMoney(
+        calcularFrete({
+          subtotal: subtotalCheio,
+          totalUnidades,
+          taxaBase: Number(rateRows[0].valor ?? 0),
+          cidade: data.cidade,
+          freteGratisAPartirDe: 999999,
+          minQuantidadeSBS: 5,
+          fretePromoSBS: 5,
+        }),
+      );
+    }
+
+    let cupomAplicado: string | null = null;
+    let descontoCupom = 0;
+
     if (data.cupom) {
+      const codigo = data.cupom.trim().toUpperCase();
       const { data: cupom, error: cupomError } = await supabase
         .from("cupons")
-        .select("codigo, ativo, validade, uso, max_uso, apenas_primeira_compra")
-        .eq("codigo", data.cupom)
+        .select("codigo, tipo, valor, ativo, validade, uso, max_uso, apenas_primeira_compra")
+        .eq("codigo", codigo)
         .maybeSingle();
 
       if (cupomError) throw new Error("Erro ao validar o cupom.");
-      if (!cupom || cupom.ativo === false) {
-        throw new Error("Cupom inválido ou inativo.");
-      }
-      if (cupom.validade && new Date(cupom.validade) < new Date()) {
+      if (!cupom || cupom.ativo === false) throw new Error("Cupom inválido ou inativo.");
+      if (cupom.validade && new Date(`${cupom.validade}T23:59:59`) < new Date()) {
         throw new Error("Este cupom expirou.");
       }
       if (
@@ -107,30 +343,40 @@ export const createOrder = createServerFn({ method: "POST" })
         throw new Error("Este cupom já atingiu o limite de usos.");
       }
 
-      // Regra "somente primeira compra": checa por user_id, e-mail e telefone.
       if (cupom.apenas_primeira_compra) {
-        const query = supabase
+        const { count, error: countError } = await supabase
           .from("pedidos")
           .select("id", { count: "exact", head: true })
+          .or(
+            `user_id.eq.${user.id},email_cliente.eq.${data.email},telefone_cliente.eq.${data.telefone}`,
+          )
+          .neq("status", "cancelado")
           .neq("status", "Cancelado");
-
-        // Monta o filtro: qualquer pedido anterior do mesmo user, e-mail ou telefone
-        const ors: string[] = [];
-        if (data.userId) ors.push(`user_id.eq.${data.userId}`);
-        if (data.email) ors.push(`email_cliente.eq.${data.email}`);
-        if (data.telefone) ors.push(`telefone_cliente.eq.${data.telefone}`);
-
-        if (ors.length > 0) {
-          const { count } = await query.or(ors.join(","));
-          if ((count ?? 0) > 0) {
-            throw new Error("Este cupom é exclusivo para a primeira compra.");
-          }
-        }
+        if (countError) throw new Error("Não foi possível validar a regra do cupom.");
+        if ((count ?? 0) > 0) throw new Error("Este cupom é exclusivo para a primeira compra.");
       }
+
+      const tipoCupom = String(cupom.tipo ?? "");
+      const valorCupom = Number(cupom.valor ?? 0);
+      descontoCupom =
+        tipoCupom === "Percentual"
+          ? subtotalCheio * (valorCupom / 100)
+          : tipoCupom === "Entrega Grátis"
+            ? taxaEntrega
+            : valorCupom;
+      descontoCupom = roundMoney(
+        Math.min(Math.max(0, descontoCupom), subtotalEfetivo + taxaEntrega),
+      );
+      cupomAplicado = cupom.codigo;
     }
 
+    const valorTotal = roundMoney(
+      Math.max(0, subtotalEfetivo + taxaEntrega - descontoCupom),
+    );
+    const descontoTotal = roundMoney(descontoProgressivo + descontoCupom);
+
     const insertData: PedidoInsert = {
-      user_id: data.userId ?? null,
+      user_id: user.id,
       nome_cliente: data.nome,
       telefone_cliente: data.telefone,
       email_cliente: data.email,
@@ -144,21 +390,19 @@ export const createOrder = createServerFn({ method: "POST" })
       ]
         .filter(Boolean)
         .join(" | "),
-      valor_total: data.valorTotal,
-      taxa_entrega: data.taxaEntrega,
-      desconto_aplicado: data.desconto ?? 0,
-      cupom_codigo: data.cupom || null,
+      valor_total: valorTotal,
+      taxa_entrega: taxaEntrega,
+      desconto_aplicado: descontoTotal,
+      cupom_codigo: cupomAplicado,
       troco: data.troco || null,
       tipo_cartao: data.tipoCartao || null,
       status: "preparando",
     };
 
-    // Só adiciona os campos de endereço se houver valor, para evitar erros em 'retirada'
-    // e facilitar o debug de colunas faltando no banco
     if (data.metodoEntrega === "entrega") {
-      if (data.cidade) insertData.endereco_cidade = data.cidade;
-      if (data.bairro) insertData.endereco_bairro = data.bairro;
-      if (data.endereco) insertData.endereco_rua = data.endereco;
+      insertData.endereco_cidade = data.cidade!;
+      insertData.endereco_bairro = data.bairro!;
+      insertData.endereco_rua = data.endereco!;
       if (data.complemento) insertData.endereco_complemento = data.complemento;
       if (data.cep) insertData.endereco_cep = data.cep;
     }
@@ -168,11 +412,9 @@ export const createOrder = createServerFn({ method: "POST" })
       .insert(insertData)
       .select()
       .single();
-
     if (orderError) throw new Error(orderError.message);
 
-    // 2. Criar os itens do pedido na tabela 'pedido_itens'
-    const itemsToInsert = data.items.map((item) => {
+    const itemsToInsert = authoritativeItems.map(({ item, effectiveUnitPrice }) => {
       const partes: string[] = [];
       if (item.weight) partes.push(`Peso: ${item.weight}`);
       if (item.opcoes) {
@@ -181,8 +423,6 @@ export const createOrder = createServerFn({ method: "POST" })
           partes.push("Garfo e faca");
         }
       }
-      // Marmita personalizada: grava a composição na observação (sai na comanda)
-      // e o nome próprio em nome_item (produto_id fica null).
       if (item.custom) {
         const comp = item.custom.itens
           .map((i) => {
@@ -198,26 +438,16 @@ export const createOrder = createServerFn({ method: "POST" })
         produto_id: item.custom ? null : (item.productId ?? null),
         nome_item: item.custom ? item.custom.label : null,
         quantidade: item.quantity,
-        preco_unitario: item.price,
+        preco_unitario: effectiveUnitPrice,
         observacao: partes.length > 0 ? partes.join(" | ") : null,
       };
     });
 
-    // Validação servidor: mínimo de unidades por combinação personalizada.
-    const minPersonalizada = 3;
-    const abaixoDoMinimo = data.items.some((i) => i.custom && i.quantity < minPersonalizada);
-    if (abaixoDoMinimo) {
-      throw new Error(
-        `Marmitas personalizadas exigem no mínimo ${minPersonalizada} unidades por combinação.`,
-      );
-    }
-
     const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
-
     if (itemsError) throw new Error(itemsError.message);
 
-    // 2b. Decrementar estoque por tamanho (cada item que tem produto_id).
-    for (const item of data.items) {
+    for (const row of authoritativeItems) {
+      const item = row.item;
       if (item.productId && !item.custom) {
         const tamanho = item.weight || "300g";
         const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
@@ -229,26 +459,19 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
-    // 3. Incrementa o uso do cupom no servidor (após o pedido ser criado com sucesso),
-    //    garantindo que o contador só sobe quando o pedido realmente existe.
-    if (data.cupom) {
+    if (cupomAplicado) {
       const { error: cupomUsoError } = await supabase.rpc("incrementar_uso_cupom", {
-        p_codigo: data.cupom,
+        p_codigo: cupomAplicado,
       });
-      if (cupomUsoError) {
-        // Não falha o pedido por causa do contador; apenas registra.
-        console.error("Falha ao incrementar uso do cupom:", cupomUsoError.message);
-      }
+      if (cupomUsoError) console.error("Falha ao incrementar uso do cupom:", cupomUsoError.message);
     }
 
-    // 4. Dispara notificação push para os admins (funciona com o app fechado).
-    //    Fire-and-forget: uma falha aqui nunca deve derrubar a criação do pedido.
     try {
       const supabaseUrl = process.env.SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
       const serviceKey =
         process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
       const protocolo = String(order.id).slice(0, 8).toUpperCase();
-      const valor = Number(data.valorTotal ?? 0).toLocaleString("pt-BR", {
+      const valor = Number(valorTotal).toLocaleString("pt-BR", {
         style: "currency",
         currency: "BRL",
       });
@@ -270,5 +493,10 @@ export const createOrder = createServerFn({ method: "POST" })
       console.error("Falha ao disparar push de novo pedido:", pushError);
     }
 
-    return order;
+    return {
+      ...order,
+      valor_total: valorTotal,
+      taxa_entrega: taxaEntrega,
+      desconto_aplicado: descontoTotal,
+    };
   });
