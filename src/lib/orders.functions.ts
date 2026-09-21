@@ -782,3 +782,72 @@ export const createOrder = createServerFn({ method: "POST" })
       desconto_indicacao: descontoIndicacao,
     };
   });
+
+
+const adminStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum([
+    "pendente",
+    "preparando",
+    "saiu para entrega",
+    "pronto para retirada",
+    "entregue",
+    "cancelado",
+  ]),
+  accessToken: z.string().min(20),
+});
+
+export const updateAdminOrderStatus = createServerFn({ method: "POST" })
+  .validator((data: z.infer<typeof adminStatusSchema>) => adminStatusSchema.parse(data))
+  .handler(async ({ data }) => {
+    const supabase = createServerClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(data.accessToken);
+    if (authError || !user) throw new Error("Sessão expirada.");
+
+    const { data: roleRow, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (roleError || !roleRow) throw new Error("Acesso administrativo necessário.");
+
+    const { data: pedido, error: pedidoError } = await supabase
+      .from("pedidos")
+      .select("id,status,metodo_entrega")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (pedidoError || !pedido) throw new Error("Pedido não encontrado.");
+
+    if (pedido.status === "cancelado" && data.status !== "cancelado") {
+      throw new Error("Pedido cancelado não pode voltar para um status ativo.");
+    }
+
+    if (data.status === "cancelado") {
+      const { data: result, error } = await supabase.rpc("cancelar_pedido_atomico", {
+        p_pedido_id: data.id,
+      });
+      if (error) throw new Error(error.message);
+      return result;
+    }
+
+    const statusEfetivo =
+      data.status === "saiu para entrega" &&
+      String(pedido.metodo_entrega ?? "").toLowerCase() === "retirada"
+        ? "pronto para retirada"
+        : data.status;
+
+    const { data: atualizado, error } = await supabase
+      .from("pedidos")
+      .update({ status: statusEfetivo, updated_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .select("id,status")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return atualizado;
+  });
