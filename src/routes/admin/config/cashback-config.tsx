@@ -11,6 +11,7 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Clock,
+  MessageCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ function AdminCashbackConfigPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cashback_transacoes")
-        .select("*, profiles:user_id(nome, email)")
+        .select("*, profiles:user_id(nome, telefone)")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -79,7 +80,7 @@ function AdminCashbackConfigPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cashback_saldo")
-        .select("*, profiles:user_id(nome, email)")
+        .select("*, profiles:user_id(nome, telefone)")
         .order("saldo", { ascending: false });
       if (error) throw error;
       return data;
@@ -118,8 +119,62 @@ function AdminCashbackConfigPage() {
   const filteredTransacoes = transacoes.filter(
     (t: any) =>
       (t.profiles?.nome || "").toLowerCase().includes(search.toLowerCase()) ||
-      (t.profiles?.email || "").toLowerCase().includes(search.toLowerCase()),
+      (t.profiles?.telefone || "").toLowerCase().includes(search.toLowerCase()),
   );
+
+  const proximosVencimentos = (() => {
+    const agora = new Date();
+    const limite = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const agrupado = new Map<string, any>();
+
+    transacoes
+      .filter((t: any) => {
+        if (t.tipo !== "recebido" || Number(t.saldo_restante ?? 0) <= 0 || !t.expira_em) return false;
+        const expira = new Date(t.expira_em);
+        return expira > agora && expira <= limite;
+      })
+      .forEach((t: any) => {
+        const atual = agrupado.get(t.user_id) ?? {
+          user_id: t.user_id,
+          nome: t.profiles?.nome || "Cliente",
+          telefone: t.profiles?.telefone || "",
+          valor: 0,
+          expira_em: t.expira_em,
+        };
+        atual.valor += Number(t.saldo_restante ?? 0);
+        if (new Date(t.expira_em) < new Date(atual.expira_em)) atual.expira_em = t.expira_em;
+        agrupado.set(t.user_id, atual);
+      });
+
+    return [...agrupado.values()].sort(
+      (a, b) => new Date(a.expira_em).getTime() - new Date(b.expira_em).getTime(),
+    );
+  })();
+
+  function abrirWhatsAppCashback(item: any) {
+    let telefone = String(item.telefone || "").replace(/\D/g, "");
+    if (!telefone) {
+      toast.error("Este cliente não possui telefone cadastrado.");
+      return;
+    }
+    if (telefone.length <= 11) telefone = `55${telefone}`;
+
+    const dataExpira = format(new Date(item.expira_em), "dd/MM/yyyy", { locale: ptBR });
+    const valor = Number(item.valor).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    const primeiroNome = String(item.nome || "Cliente").trim().split(/\s+/)[0];
+    const mensagem =
+      `Olá, ${primeiroNome}! 😊 Você tem ${valor} de cashback na SaborosaMente que expira em ${dataExpira}. ` +
+      "Se quiser aproveitar, é só fazer seu pedido pelo nosso site. 💚";
+
+    window.open(
+      `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
 
   const tipoColors: any = {
     recebido: "bg-green-100 text-green-700",
@@ -231,7 +286,7 @@ function AdminCashbackConfigPage() {
                 <tr key={s.user_id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <p className="font-medium text-gray-900">{(s as any).profiles?.nome || "—"}</p>
-                    <p className="text-xs text-gray-400">{(s as any).profiles?.email}</p>
+                    <p className="text-xs text-gray-400">{(s as any).profiles?.telefone}</p>
                   </td>
                   <td className="px-6 py-3 text-right font-black text-[#5850ec]">
                     R$ {Number(s.saldo).toFixed(2)}
@@ -242,6 +297,60 @@ function AdminCashbackConfigPage() {
           </table>
         </div>
       )}
+
+      {/* Vencimentos próximos — aviso manual via WhatsApp */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="px-6 py-4 border-b flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+              <Clock size={18} className="text-amber-500" /> Próximos do vencimento
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Créditos que vencem nos próximos 7 dias. O envio é sempre manual.
+            </p>
+          </div>
+          <Badge className="bg-amber-100 text-amber-700">
+            {proximosVencimentos.length}
+          </Badge>
+        </div>
+
+        {proximosVencimentos.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-gray-400">
+            Nenhum cashback vence nos próximos 7 dias.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {proximosVencimentos.map((item: any) => (
+              <div
+                key={item.user_id}
+                className="px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-bold text-gray-900">{item.nome}</p>
+                  <p className="text-xs text-gray-400">{item.telefone || "Sem telefone"}</p>
+                  <p className="text-sm mt-1">
+                    <span className="font-black text-amber-600">
+                      R$ {Number(item.valor).toFixed(2).replace(".", ",")}
+                    </span>
+                    <span className="text-gray-400">
+                      {" "}vence em {format(new Date(item.expira_em), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => abrirWhatsAppCashback(item)}
+                  disabled={!item.telefone}
+                  className="bg-[#25D366] hover:bg-[#1ebe5b] text-white gap-2"
+                >
+                  <MessageCircle size={16} />
+                  Enviar WhatsApp
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Histórico de transações */}
       <div className="bg-white rounded-xl border overflow-hidden">
@@ -286,7 +395,7 @@ function AdminCashbackConfigPage() {
                 <tr key={t.id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <p className="font-medium text-gray-900">{t.profiles?.nome || "—"}</p>
-                    <p className="text-xs text-gray-400">{t.profiles?.email}</p>
+                    <p className="text-xs text-gray-400">{t.profiles?.telefone}</p>
                   </td>
                   <td className="px-6 py-3">
                     <Badge
