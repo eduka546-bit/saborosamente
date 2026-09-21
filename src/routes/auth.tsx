@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,75 +47,6 @@ function AuthPage() {
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
-  const [recoveryMode, setRecoveryMode] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setRecoveryMode(true);
-        setIsLogin(true);
-        setPassword("");
-        setConfirmPassword("");
-      }
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  const handleForgotPassword = async () => {
-    const emailLimpo = email.trim();
-    if (!emailLimpo) {
-      toast.error("Informe seu e-mail primeiro.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const redirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
-      const { error } = await supabase.auth.resetPasswordForEmail(emailLimpo, {
-        redirectTo,
-      });
-      if (error) throw error;
-
-      // Resposta genérica evita revelar se o e-mail existe ou não.
-      toast.success(
-        "Se este e-mail estiver cadastrado, você receberá as instruções para redefinir sua senha.",
-      );
-    } catch {
-      toast.error("Não foi possível solicitar a recuperação agora. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRecovery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.length < 6) {
-      toast.error("A nova senha precisa ter pelo menos 6 caracteres.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error("As senhas não coincidem.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      toast.success("Senha alterada com sucesso!");
-      setRecoveryMode(false);
-      setPassword("");
-      setConfirmPassword("");
-      if (typeof window !== "undefined") window.location.href = "/auth";
-    } catch (error: any) {
-      toast.error(error?.message || "Não foi possível alterar sua senha.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +61,13 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       } else {
+        const senhaCpf = cpf.replace(/\D/g, "");
+        if (senhaCpf.length !== 11) {
+          toast.error("Informe um CPF válido com 11 dígitos.");
+          setLoading(false);
+          return;
+        }
+
         let referral: { code?: string; capturedAt?: string; expiresAt?: number } | null = null;
         if (typeof window !== "undefined") {
           try {
@@ -152,7 +90,7 @@ function AuthPage() {
 
         const { error } = await supabase.auth.signUp({
           email,
-          password,
+          password: senhaCpf,
           options: {
             data: {
               nome,
@@ -187,27 +125,29 @@ function AuthPage() {
     <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-soft">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <User className="h-6 w-6" />
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setPassword("");
+            }}
+            className="text-sm text-primary hover:underline font-medium"
+          >
+            {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
+          </button>
+        </div>
           <h2 className="text-2xl font-bold tracking-tight">
-            {recoveryMode
-              ? "Crie uma nova senha"
-              : isLogin
-                ? "Entrar na sua conta"
-                : "Criar nova conta"}
+            {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {recoveryMode
-              ? "Escolha uma nova senha para sua conta"
-              : isLogin
-                ? "Use seu e-mail e sua senha para entrar"
-                : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
+            {isLogin
+              ? "O login é seu e-mail e a senha é o seu CPF cadastrado"
+              : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
           </p>
         </div>
 
-        <form onSubmit={recoveryMode ? handleRecovery : handleAuth} className="mt-8 space-y-4">
-          {!isLogin && !recoveryMode && (
+        <form onSubmit={handleAuth} className="mt-8 space-y-4">
+          {!isLogin && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome Completo</Label>
@@ -240,7 +180,6 @@ function AuthPage() {
             </>
           )}
 
-          {!recoveryMode && (
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
             <div className="relative">
@@ -257,9 +196,8 @@ function AuthPage() {
               />
             </div>
           </div>
-          )}
 
-          {!isLogin && !recoveryMode && (
+          {!isLogin && (
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF</Label>
               <div className="relative">
@@ -279,81 +217,40 @@ function AuthPage() {
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="password">
-              {recoveryMode ? "Nova senha" : isLogin ? "Senha" : "Crie uma senha"}
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder={
-                  recoveryMode
-                    ? "Mínimo de 6 caracteres"
-                    : isLogin
-                      ? "Digite sua senha"
-                      : "Mínimo de 6 caracteres"
-                }
-                minLength={6}
-                className="pl-10 pr-10"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={recoveryMode || !isLogin ? "new-password" : "current-password"}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {recoveryMode && (
+          {isLogin && (
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirme a nova senha</Label>
+              <Label htmlFor="password">Senha (seu CPF)</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="confirmPassword"
+                  id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Digite novamente"
-                  minLength={6}
-                  className="pl-10"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Digite seu CPF, somente números"
+                  className="pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                  autoComplete="current-password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            </div>
-          )}
-
-          {isLogin && !recoveryMode && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                disabled={loading}
-                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
-              >
-                Esqueci minha senha
-              </button>
+              <p className="text-xs text-muted-foreground">
+                Sua senha padrão é o CPF cadastrado, somente números.
+              </p>
             </div>
           )}
 
           <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
-            {loading
-              ? "Processando..."
-              : recoveryMode
-                ? "Salvar nova senha"
-                : isLogin
-                  ? "Entrar"
-                  : "Cadastrar"}
+            {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
         </form>
 
