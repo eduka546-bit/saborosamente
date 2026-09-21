@@ -30,10 +30,10 @@ function AdminCashbackConfigPage() {
   const queryClient = useQueryClient();
   const [config, setConfig] = useState({
     ativo: true,
-    percentual: "1",
+    percentual: "3",
     validade_dias: "30",
-    minimo_uso: "5",
-    limite_desconto_pct: "10",
+    minimo_uso: "3",
+    limite_desconto_pct: "15",
   });
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,10 +52,10 @@ function AdminCashbackConfigPage() {
         setSettingsId(data.id);
         setConfig({
           ativo: (data as any).cashback_ativo !== false,
-          percentual: String((data as any).cashback_percentual ?? 1),
+          percentual: String((data as any).cashback_percentual ?? 3),
           validade_dias: String((data as any).cashback_validade_dias ?? 30),
-          minimo_uso: String((data as any).cashback_minimo_uso ?? 5),
-          limite_desconto_pct: String((data as any).cashback_limite_desconto_pct ?? 10),
+          minimo_uso: String((data as any).cashback_minimo_uso ?? 3),
+          limite_desconto_pct: String((data as any).cashback_limite_desconto_pct ?? 15),
         });
       }
       return data;
@@ -229,13 +229,13 @@ function AdminCashbackConfigPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { key: "percentual", label: "% ganho por pedido", placeholder: "1", suffix: "%" },
+            { key: "percentual", label: "% ganho por pedido", placeholder: "3", suffix: "%" },
             { key: "validade_dias", label: "Validade (dias)", placeholder: "30", suffix: "dias" },
-            { key: "minimo_uso", label: "Saldo mínimo para usar", placeholder: "5", suffix: "R$" },
+            { key: "minimo_uso", label: "Saldo mínimo para usar", placeholder: "3", suffix: "R$" },
             {
               key: "limite_desconto_pct",
               label: "Limite de desconto",
-              placeholder: "10",
+              placeholder: "15",
               suffix: "% do pedido",
             },
           ].map((f) => (
