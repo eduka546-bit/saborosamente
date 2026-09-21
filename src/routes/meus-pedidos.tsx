@@ -18,6 +18,7 @@ export const Route = createFileRoute("/meus-pedidos")({
         name: "description",
         content: "Consulte seus pedidos anteriores e repita em um clique informando seu telefone.",
       },
+      { name: "robots", content: "noindex, follow" },
     ],
   }),
   component: MeusPedidosPage,
