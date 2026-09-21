@@ -21,7 +21,6 @@ import { createOrder } from "@/lib/orders.functions";
 import {
   getCashbackConfig,
   getSaldo,
-  usarCashback,
   calcularCashbackUtilizavel,
 } from "@/lib/cashback";
 import {
@@ -110,6 +109,7 @@ function Checkout() {
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
   const [cashbackConfig, setCashbackConfig] = useState<any>(null);
   const [cashbackAtivado, setCashbackAtivado] = useState(false);
+  const [indicacaoElegivel, setIndicacaoElegivel] = useState(false);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -207,14 +207,28 @@ function Checkout() {
         : appliedCoupon.valor
     : 0;
 
-  // calcula desconto do cashback e total final
-  // Máximo de cashback utilizável, calculado por função pura testada (cashback.ts):
-  // respeita saldo, teto percentual do pedido e saldo mínimo de uso.
+  // Benefício de indicação: 5% apenas na primeira compra elegível.
+  // O servidor revalida identidade, prazo e primeira compra antes de aceitar o pedido.
+  const produtosAposFaixa = Math.max(0, totalCheckout - shippingCheckout);
+  const descontoIndicacao = indicacaoElegivel ? produtosAposFaixa * 0.05 : 0;
+  const couponProductDiscount =
+    appliedCoupon?.tipo === "Entrega Grátis"
+      ? 0
+      : Math.min(couponDiscount, Math.max(0, produtosAposFaixa - descontoIndicacao));
+  const produtosLiquidos = Math.max(
+    0,
+    produtosAposFaixa - descontoIndicacao - couponProductDiscount,
+  );
+
+  // Máximo de cashback utilizável: saldo válido, mínimo e até 15% dos produtos.
   const cashbackMaxDesc = cashbackConfig
-    ? calcularCashbackUtilizavel(cashbackSaldo, totalCheckout - couponDiscount, cashbackConfig)
+    ? calcularCashbackUtilizavel(cashbackSaldo, produtosLiquidos, cashbackConfig)
     : 0;
   const cashbackDesconto = cashbackAtivado ? cashbackMaxDesc : 0;
-  const finalTotal = Math.max(0, totalCheckout - couponDiscount - cashbackDesconto);
+  const finalTotal = Math.max(
+    0,
+    totalCheckout - couponDiscount - descontoIndicacao - cashbackDesconto,
+  );
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
@@ -270,13 +284,28 @@ function Checkout() {
       // busca perfil (nome, telefone)
       const { data: profile } = await supabase
         .from("profiles")
-        .select("nome, telefone")
+        .select("nome, telefone, indicado_por, indicado_por_em")
         .eq("id", s.user.id)
         .single();
 
       if (profile) {
         if (profile.nome) setValue("nome", profile.nome, { shouldValidate: false });
         if (profile.telefone) setValue("telefone", profile.telefone, { shouldValidate: false });
+
+        if (profile.indicado_por && profile.indicado_por_em) {
+          const capturadoEm = new Date(profile.indicado_por_em).getTime();
+          const dentroDoPrazo =
+            Date.now() >= capturadoEm &&
+            Date.now() - capturadoEm <= 30 * 24 * 60 * 60 * 1000;
+          if (dentroDoPrazo) {
+            const { count } = await supabase
+              .from("pedidos")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", s.user.id)
+              .not("status", "in", '("cancelado","Cancelado")');
+            setIndicacaoElegivel((count ?? 0) === 0);
+          }
+        }
       }
 
       // busca endereços salvos
@@ -461,12 +490,7 @@ function Checkout() {
         /* falha ao notificar não deve bloquear a finalização do pedido */
       }
 
-      // Cashback: o CRÉDITO só acontece quando o pedido é finalizado (status
-      // "entregue"), feito no painel admin — pedidos não finalizados não geram
-      // cashback. Aqui apenas debitamos o cashback que o cliente optou por usar.
-      if (session?.user?.id && cashbackDesconto > 0) {
-        await usarCashback(session.user.id, order.id, cashbackDesconto);
-      }
+      // O uso do cashback é debitado no servidor junto à criação do pedido.
 
       toast.success("Pedido registrado!", {
         description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}`,
@@ -1023,6 +1047,12 @@ function Checkout() {
             )}
           </fieldset>
 
+          {indicacaoElegivel && (
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              <strong>Indicação aplicada:</strong> você recebe 5% de desconto nesta primeira compra.
+            </div>
+          )}
+
           {/* ── cupom de desconto ─────────────────────────────────────── */}
           <div>
             <label className="text-sm font-medium">Cupom de desconto</label>
@@ -1195,6 +1225,14 @@ function Checkout() {
                   🎟️ Cupom {appliedCoupon?.codigo}
                 </dt>
                 <dd>− {formatBRL(couponDiscount)}</dd>
+              </div>
+            )}
+            {descontoIndicacao > 0 && (
+              <div className="flex justify-between text-green-600">
+                <dt className="font-semibold flex items-center gap-1">
+                  🎁 Indique e Ganhe
+                </dt>
+                <dd>− {formatBRL(descontoIndicacao)}</dd>
               </div>
             )}
             {cashbackDesconto > 0 && (
