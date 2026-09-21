@@ -441,8 +441,8 @@ function Checkout() {
       clear();
 
       // Notifica o cliente de que o pedido foi recebido.
-      // O PIX configurado hoje é pago na entrega/retirada; portanto não marcamos
-      // o pedido como pagamento confirmado e não tentamos gerar QR Code inexistente.
+      // As instruções de PIX/Mercado Pago são enviadas manualmente via WhatsApp;
+      // o site não gera QR Code, código PIX ou link de pagamento automaticamente.
       try {
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-notify`, {
           method: "POST",
