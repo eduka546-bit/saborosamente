@@ -92,7 +92,7 @@ function IndicarPage() {
     if (navigator.share) {
       await navigator.share({
         title: "Saborosamente — Marmitas Congeladas Artesanais",
-        text: "Use meu link e ganhe desconto no primeiro pedido! 🍱",
+        text: "Use meu link da SaborosaMente e ganhe 5% de desconto na sua primeira compra! 🍱",
         url: linkIndicacao,
       });
     } else {
@@ -107,6 +107,12 @@ function IndicarPage() {
     (s: number, i: any) => s + (Number(i.cashback_gerado) || 0),
     0,
   );
+
+  const mascararTelefone = (telefone?: string) => {
+    const digitos = String(telefone || "").replace(/\D/g, "");
+    if (digitos.length < 4) return "Amigo indicado";
+    return `•••••••${digitos.slice(-4)}`;
+  };
 
   if (!session) {
     return (
@@ -136,8 +142,8 @@ function IndicarPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Indique e Ganhe</h1>
         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
-          A cada amigo que fizer o primeiro pedido usando seu link, você ganha{" "}
-          <strong>R$ 5,00</strong> de cashback automático 🎉
+          Seu amigo ganha <strong>5% na primeira compra</strong> e, quando esse pedido for
+          entregue, você ganha <strong>R$ 5,00</strong> de cashback 🎉
         </p>
       </div>
 
@@ -187,9 +193,9 @@ function IndicarPage() {
         <div className="space-y-3">
           {[
             { icon: Share2, texto: "Compartilhe seu link com amigos" },
-            { icon: Users, texto: "Amigo faz o primeiro pedido pelo link" },
-            { icon: TrendingUp, texto: "Você ganha R$ 5,00 de cashback automaticamente" },
-            { icon: Gift, texto: "Use o cashback como desconto nos seus pedidos" },
+            { icon: Users, texto: "Seu amigo recebe 5% de desconto na primeira compra" },
+            { icon: TrendingUp, texto: "Após a entrega, você recebe R$ 5,00 de cashback" },
+            { icon: Gift, texto: "O cashback vale por 30 dias e pode ser usado nos próximos pedidos" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -211,7 +217,7 @@ function IndicarPage() {
             {(indicacoes as any[]).map((ind) => (
               <div key={ind.id} className="px-5 py-3.5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">{ind.indicado_telefone}</p>
+                  <p className="text-sm font-medium text-gray-800">{mascararTelefone(ind.indicado_telefone)}</p>
                   <p className="text-xs text-gray-400">
                     {new Date(ind.created_at).toLocaleDateString("pt-BR")}
                   </p>
