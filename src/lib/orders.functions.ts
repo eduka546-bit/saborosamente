@@ -635,32 +635,6 @@ export const createOrder = createServerFn({ method: "POST" })
       if (data.cep) insertData.endereco_cep = data.cep;
     }
 
-    const { data: order, error: orderError } = await supabase
-      .from("pedidos")
-      .insert(insertData)
-      .select()
-      .single();
-    if (orderError) throw new Error(orderError.message);
-
-    if (referralEligible && referralCode && referrer?.id) {
-      const { error: referralError } = await supabase.from("indicacoes").insert({
-        indicador_user_id: referrer.id,
-        indicador_telefone: referrer.telefone ?? null,
-        indicado_user_id: user.id,
-        indicado_telefone: data.telefone,
-        indicado_email: data.email,
-        codigo: referralCode,
-        status: "pendente",
-        pedido_indicado_id: order.id,
-        cashback_gerado: 0,
-      });
-
-      if (referralError) {
-        await supabase.from("pedidos").delete().eq("id", order.id);
-        throw new Error("Não foi possível registrar o benefício da indicação.");
-      }
-    }
-
     const itemsToInsert = authoritativeItems.flatMap((row: any) => {
       const { item, effectiveUnitPrice, product, comboComponents } = row;
 
@@ -669,7 +643,6 @@ export const createOrder = createServerFn({ method: "POST" })
           effectiveUnitPrice / Math.max(1, item.comboPronto.totalUnits),
         );
         return comboComponents.map((component: any) => ({
-          pedido_id: order.id,
           produto_id: component.productId,
           nome_item: null,
           quantidade: component.quantity * item.quantity,
@@ -704,7 +677,6 @@ export const createOrder = createServerFn({ method: "POST" })
 
       return [
         {
-          pedido_id: order.id,
           produto_id: item.custom ? null : (item.productId ?? null),
           nome_item: item.custom ? item.custom.label : null,
           quantidade: item.quantity,
@@ -714,58 +686,55 @@ export const createOrder = createServerFn({ method: "POST" })
       ];
     });
 
-    const { error: itemsError } = await supabase.from("pedido_itens").insert(itemsToInsert);
-    if (itemsError) {
-      await supabase.from("indicacoes").delete().eq("pedido_indicado_id", order.id);
-      await supabase.from("pedidos").delete().eq("id", order.id);
-      throw new Error(itemsError.message);
-    }
-
-    if (cashbackUsado > 0) {
-      const { error: cashbackError } = await supabase.rpc("cashback_usar_seguro", {
-        p_user_id: user.id,
-        p_pedido_id: order.id,
-        p_valor: cashbackUsado,
-      });
-      if (cashbackError) {
-        await supabase.from("pedido_itens").delete().eq("pedido_id", order.id);
-        await supabase.from("indicacoes").delete().eq("pedido_indicado_id", order.id);
-        await supabase.from("pedidos").delete().eq("id", order.id);
-        throw new Error("Não foi possível aplicar o cashback. Tente novamente.");
-      }
-    }
-
+    // Consolida as baixas para que a validação considere a quantidade TOTAL do mesmo
+    // produto/tamanho antes de alterar qualquer saldo.
+    const stockMap = new Map<string, { productId: string; quantity: number; weight: string }>();
     for (const row of authoritativeItems as any[]) {
       const item = row.item;
-      const tamanho = item.weight || "300g";
+      const weight = item.weight || "300g";
+
+      const adicionarEstoque = (productId: string, quantity: number) => {
+        const key = `${productId}:${weight}`;
+        const atual = stockMap.get(key);
+        stockMap.set(key, {
+          productId,
+          weight,
+          quantity: (atual?.quantity ?? 0) + quantity,
+        });
+      };
 
       if (item.comboPronto && row.comboComponents?.length) {
         for (const component of row.comboComponents) {
-          const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
-            p_produto_id: component.productId,
-            p_qtd: component.quantity * item.quantity,
-            p_tamanho: tamanho,
-          });
-          if (estoqueError) console.error("Estoque de combo falhou:", estoqueError.message);
+          adicionarEstoque(component.productId, component.quantity * item.quantity);
         }
-        continue;
-      }
-
-      if (item.productId && !item.custom) {
-        const { error: estoqueError } = await supabase.rpc("decrementar_estoque", {
-          p_produto_id: item.productId,
-          p_qtd: item.quantity,
-          p_tamanho: tamanho,
-        });
-        if (estoqueError) console.error("Estoque decrement falhou:", estoqueError.message);
+      } else if (item.productId && !item.custom) {
+        adicionarEstoque(item.productId, item.quantity);
       }
     }
 
-    if (cupomAplicado) {
-      const { error: cupomUsoError } = await supabase.rpc("incrementar_uso_cupom", {
-        p_codigo: cupomAplicado,
-      });
-      if (cupomUsoError) console.error("Falha ao incrementar uso do cupom:", cupomUsoError.message);
+    const referralPayload =
+      referralEligible && referralCode && referrer?.id
+        ? {
+            indicador_user_id: referrer.id,
+            indicador_telefone: referrer.telefone ?? null,
+            codigo: referralCode,
+          }
+        : null;
+
+    // Pedido, itens, indicação, uso de cashback, estoque e cupom são confirmados
+    // dentro da MESMA transação no Postgres. Qualquer erro desfaz tudo.
+    const { data: order, error: orderError } = await supabase.rpc("criar_pedido_atomico", {
+      p_order: {
+        ...insertData,
+        origem: "site",
+      },
+      p_items: itemsToInsert,
+      p_stock_ops: [...stockMap.values()],
+      p_referral: referralPayload,
+    });
+
+    if (orderError || !order) {
+      throw new Error(orderError?.message || "Não foi possível registrar o pedido.");
     }
 
     try {
