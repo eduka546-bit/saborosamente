@@ -1,14 +1,13 @@
 /**
- * Meus Pedidos (público) — o cliente informa o telefone e vê os pedidos
- * anteriores (por telefone_cliente), com status, itens e botão "Pedir de novo"
- * que readiciona os itens de catálogo ao carrinho. Não exige login.
+ * Meus Pedidos — histórico privado do cliente autenticado.
+ * O acesso é sempre limitado ao user_id da sessão, respeitando o RLS do Supabase.
  */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
-import { Loader2, Search, RotateCcw, Package, ChevronRight } from "lucide-react";
+import { Loader2, RotateCcw, Package, ChevronRight, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/meus-pedidos")({
   head: () => ({
@@ -16,18 +15,13 @@ export const Route = createFileRoute("/meus-pedidos")({
       { title: "Meus Pedidos | Saborosamente" },
       {
         name: "description",
-        content: "Consulte seus pedidos anteriores e repita em um clique informando seu telefone.",
+        content: "Consulte com segurança seus pedidos anteriores e repita em um clique.",
       },
       { name: "robots", content: "noindex, follow" },
     ],
   }),
   component: MeusPedidosPage,
 });
-
-// Só dígitos, pra casar com telefones gravados em formatos diferentes.
-function soDigitos(t: string): string {
-  return (t ?? "").replace(/\D/g, "");
-}
 
 // Extrai o tamanho da observação ("Peso: 300g | ...") → "300g" | null
 function extrairPeso(obs?: string | null): string | null {
@@ -47,30 +41,48 @@ const STATUS_LABEL: Record<string, { txt: string; cls: string }> = {
 function MeusPedidosPage() {
   const navigate = useNavigate();
   const { add } = useCart();
-  const [telefone, setTelefone] = useState("");
+  const [session, setSession] = useState<any>(null);
   const [pedidos, setPedidos] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [repetindo, setRepetindo] = useState<string | null>(null);
 
-  async function buscar(e?: React.FormEvent) {
-    e?.preventDefault();
-    const tel = soDigitos(telefone);
-    if (tel.length < 8) {
-      toast.error("Informe um telefone válido com DDD.");
-      return;
-    }
+  useEffect(() => {
+    let ativo = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!ativo) return;
+      const s = data.session ?? null;
+      setSession(s);
+      if (s?.user?.id) buscar(s.user.id);
+      else setLoading(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!ativo) return;
+      setSession(s);
+      if (s?.user?.id) buscar(s.user.id);
+      else {
+        setPedidos(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      ativo = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  async function buscar(userId: string) {
     setLoading(true);
     try {
-      // Busca por telefone_cliente contendo os dígitos informados (ignora máscara).
       const { data, error } = await supabase
         .from("pedidos")
         .select("id, created_at, status, valor_total, metodo_entrega, origem, itens:pedido_itens(*)")
-        .ilike("telefone_cliente", `%${tel}%`)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
 
-      // Resolve nomes dos produtos referenciados pelos itens.
       const ids = [
         ...new Set(
           (data ?? []).flatMap((p: any) =>
@@ -84,19 +96,18 @@ function MeusPedidosPage() {
         (prods ?? []).forEach((p: any) => (nomes[p.id] = p.nome));
       }
 
-      const comNomes = (data ?? []).map((p: any) => ({
-        ...p,
-        itens: (p.itens ?? []).map((i: any) => ({
-          ...i,
-          nomeExibicao: nomes[i.produto_id] ?? i.nome_item ?? "Produto",
+      setPedidos(
+        (data ?? []).map((p: any) => ({
+          ...p,
+          itens: (p.itens ?? []).map((i: any) => ({
+            ...i,
+            nomeExibicao: nomes[i.produto_id] ?? i.nome_item ?? "Produto",
+          })),
         })),
-      }));
-      setPedidos(comNomes);
-      if (comNomes.length === 0) {
-        toast.info("Nenhum pedido encontrado para esse telefone.");
-      }
-    } catch (err: any) {
-      toast.error("Erro ao buscar pedidos. Tente novamente.");
+      );
+    } catch {
+      toast.error("Erro ao carregar seus pedidos. Tente novamente.");
+      setPedidos([]);
     } finally {
       setLoading(false);
     }
@@ -138,36 +149,39 @@ function MeusPedidosPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
       <h1 className="text-2xl md:text-3xl font-black text-gray-900">Meus Pedidos</h1>
       <p className="text-gray-500 mt-1 text-sm">
-        Informe o telefone usado no pedido para ver seu histórico e repetir com um clique.
+        Seu histórico fica disponível somente dentro da sua conta.
       </p>
 
-      <form onSubmit={buscar} className="flex gap-2 mt-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="tel"
-            inputMode="tel"
-            value={telefone}
-            onChange={(e) => setTelefone(e.target.value)}
-            placeholder="Seu telefone com DDD"
-            className="w-full h-12 pl-10 pr-4 rounded-2xl border border-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-[#086e45]/30"
-          />
+      {loading && (
+        <div className="mt-10 flex items-center justify-center gap-2 text-sm text-gray-500">
+          <Loader2 size={18} className="animate-spin" />
+          Carregando seus pedidos...
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="h-12 px-6 rounded-2xl bg-[#086e45] text-white font-bold disabled:opacity-60 flex items-center gap-2"
-        >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : "Buscar"}
-        </button>
-      </form>
+      )}
 
-      {pedidos !== null && (
+      {!loading && !session && (
+        <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
+          <Lock size={32} className="mx-auto text-[#086e45] mb-3" />
+          <p className="font-bold text-gray-900">Entre para ver seus pedidos</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Por segurança, o histórico não pode ser consultado apenas pelo telefone.
+          </p>
+          <Link
+            to="/auth"
+            search={{ redirect: "/meus-pedidos" }}
+            className="mt-5 inline-flex rounded-full bg-[#086e45] px-6 py-3 text-sm font-bold text-white"
+          >
+            Entrar na minha conta
+          </Link>
+        </div>
+      )}
+
+      {!loading && session && pedidos !== null && (
         <div className="mt-8 space-y-4">
           {pedidos.length === 0 ? (
             <div className="text-center py-16 text-gray-400 border border-dashed rounded-2xl">
               <Package size={40} className="mx-auto mb-3 opacity-30" />
-              Nenhum pedido encontrado para esse telefone.
+              Você ainda não tem pedidos nesta conta.
             </div>
           ) : (
             pedidos.map((p) => {
