@@ -33,6 +33,7 @@ type SugestaoAgrupada = {
   motivo: string;
   tamanhos: Partial<Record<Tamanho, Sugestao>>;
 };
+type ComponentePrincipal = { id: string; nome: string; gramas: number };
 
 const n = (v: unknown) => Number(v || 0);
 const tamanhos: { id: Tamanho; label: string }[] = [
@@ -115,8 +116,8 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
   const perfilProduto = (produtoId: string, tamanho: Tamanho) => {
     const totais = new Map<string, number>();
     ingredientesEfetivos(produtoId, tamanho).forEach((x) => totais.set(x.id, n(totais.get(x.id)) + x.gramas));
-    let proteina: { id: string; nome: string; gramas: number } | null = null;
-    let carboidrato: { id: string; nome: string; gramas: number } | null = null;
+    let proteina: ComponentePrincipal | null = null;
+    let carboidrato: ComponentePrincipal | null = null;
     totais.forEach((gramas, id) => {
       const ing = ingredientePorId.get(id);
       if (!ing) return;
@@ -124,7 +125,7 @@ export function SugestoesProducaoSinergia({ dataProducao, producoes, produtos, r
       if (tipo === "proteina" && (!proteina || gramas > proteina.gramas)) proteina = { id, nome: ing.nome, gramas };
       if (tipo === "carboidrato" && (!carboidrato || gramas > carboidrato.gramas)) carboidrato = { id, nome: ing.nome, gramas };
     });
-    return { proteina, carboidrato };
+    return { proteina: proteina as ComponentePrincipal | null, carboidrato: carboidrato as ComponentePrincipal | null };
   };
 
   const { data: historico = [] } = useQuery({
