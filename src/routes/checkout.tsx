@@ -98,6 +98,9 @@ function Checkout() {
   const [session, setSession] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [metodoEntrega, setMetodoEntrega] = useState<"entrega" | "retirada">(
+    selectedBairro ? "entrega" : "retirada",
+  );
 
   // ── data e horário de entrega (entrega programada) ─────────────────────────
   const [dataEntrega, setDataEntrega] = useState<string>("");
@@ -191,12 +194,16 @@ function Checkout() {
     }
   }
 
+  // Retirada na loja nunca cobra frete. Na entrega, mantém a regra calculada no carrinho.
+  const shippingCheckout = metodoEntrega === "retirada" ? 0 : shipping;
+  const totalCheckout = Math.max(0, total - shipping + shippingCheckout);
+
   // calcula desconto do cupom
   const couponDiscount = appliedCoupon
     ? appliedCoupon.tipo === "Percentual"
       ? subtotal * (appliedCoupon.valor / 100)
       : appliedCoupon.tipo === "Entrega Grátis"
-        ? shipping
+        ? shippingCheckout
         : appliedCoupon.valor
     : 0;
 
@@ -204,10 +211,10 @@ function Checkout() {
   // Máximo de cashback utilizável, calculado por função pura testada (cashback.ts):
   // respeita saldo, teto percentual do pedido e saldo mínimo de uso.
   const cashbackMaxDesc = cashbackConfig
-    ? calcularCashbackUtilizavel(cashbackSaldo, total - couponDiscount, cashbackConfig)
+    ? calcularCashbackUtilizavel(cashbackSaldo, totalCheckout - couponDiscount, cashbackConfig)
     : 0;
   const cashbackDesconto = cashbackAtivado ? cashbackMaxDesc : 0;
-  const finalTotal = Math.max(0, total - couponDiscount - cashbackDesconto);
+  const finalTotal = Math.max(0, totalCheckout - couponDiscount - cashbackDesconto);
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
@@ -322,7 +329,14 @@ function Checkout() {
       return;
     }
 
-    // Entrega programada: exige data e horário escolhidos
+    if (metodoEntrega === "entrega") {
+      if (!data.cidade || !selectedBairro || !data.endereco) {
+        toast.error("Informe cidade, bairro e endereço para entrega.");
+        return;
+      }
+    }
+
+    // Entrega/retirada programada: exige data e horário escolhidos
     if (!dataEntrega) {
       toast.error("Escolha a data de entrega.");
       return;
@@ -352,17 +366,17 @@ function Checkout() {
           nome: data.nome,
           email: data.email,
           telefone: data.telefone,
-          metodoEntrega: selectedBairro ? "entrega" : "retirada",
+          metodoEntrega,
           horarioEntrega: `${dataEntrega} • ${horarioEntrega}`,
-          cidade: data.cidade,
-          bairro: selectedBairro,
-          endereco: data.endereco,
-          complemento: data.complemento,
-          cep: data.cep,
+          cidade: metodoEntrega === "entrega" ? data.cidade : undefined,
+          bairro: metodoEntrega === "entrega" ? selectedBairro : undefined,
+          endereco: metodoEntrega === "entrega" ? data.endereco : undefined,
+          complemento: metodoEntrega === "entrega" ? data.complemento : undefined,
+          cep: metodoEntrega === "entrega" ? data.cep : undefined,
           pagamento: data.pagamento,
           observacoes: data.observacoes,
           valorTotal: finalTotal,
-          taxaEntrega: shipping,
+          taxaEntrega: shippingCheckout,
           desconto: discount + couponDiscount,
           cupom: appliedCoupon?.codigo,
           troco: data.troco,
@@ -658,9 +672,47 @@ function Checkout() {
           {/* ── entrega ────────────────────────────────────────────────────── */}
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Entrega
+              Entrega ou retirada
             </legend>
 
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMetodoEntrega("entrega")}
+                className={cn(
+                  "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
+                  metodoEntrega === "entrega"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:border-primary",
+                )}
+              >
+                Entrega
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMetodoEntrega("retirada");
+                  setSelectedBairro("");
+                }}
+                className={cn(
+                  "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
+                  metodoEntrega === "retirada"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:border-primary",
+                )}
+              >
+                Retirada na loja
+              </button>
+            </div>
+
+            {metodoEntrega === "retirada" && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
+                Retirada na loja de São Bento do Sul — sem taxa de entrega.
+              </div>
+            )}
+
+            {metodoEntrega === "entrega" && (
+              <>
             {/* seletor de endereços salvos — só aparece quando logado */}
             {addresses.length > 0 && (
               <div>
@@ -773,6 +825,10 @@ function Checkout() {
               <input id="complemento" className={fieldClass} {...register("complemento")} />
             </div>
 
+
+              </>
+            )}
+
             {/* Aviso de prazo — marmitas personalizadas */}
             {temMarmitaPersonalizada && (
               <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
@@ -790,7 +846,7 @@ function Checkout() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="dataEntrega" className="text-sm font-medium">
-                  Data de entrega
+                  {metodoEntrega === "entrega" ? "Data de entrega" : "Data de retirada"}
                 </label>
                 <select
                   id="dataEntrega"
@@ -808,7 +864,7 @@ function Checkout() {
               </div>
               <div>
                 <label htmlFor="horarioEntrega" className="text-sm font-medium">
-                  Horário
+                  {metodoEntrega === "entrega" ? "Horário de entrega" : "Horário de retirada"}
                 </label>
                 <select
                   id="horarioEntrega"
@@ -1134,12 +1190,10 @@ function Checkout() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Entrega</dt>
               <dd>
-                {appliedCoupon?.tipo === "Entrega Grátis" ? (
+                {appliedCoupon?.tipo === "Entrega Grátis" || shippingCheckout === 0 ? (
                   <span className="text-green-600 font-semibold">Grátis</span>
-                ) : shipping === 0 ? (
-                  "Grátis"
                 ) : (
-                  formatBRL(shipping)
+                  formatBRL(shippingCheckout)
                 )}
               </dd>
             </div>
