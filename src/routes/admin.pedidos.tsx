@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search,
@@ -43,6 +44,7 @@ import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
+import { updateAdminOrderStatus } from "@/lib/orders.functions";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
@@ -337,6 +339,7 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
 
 function AdminOrdersPage() {
   const queryClient = useQueryClient();
+  const updateAdminOrderStatusFn = useServerFn(updateAdminOrderStatus);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -679,25 +682,27 @@ function AdminOrdersPage() {
       status: string;
       statusAnterior?: string;
     }) => {
-      const { data: pedidoAtual, error: pedidoAtualError } = await supabase
-        .from("pedidos")
-        .select("metodo_entrega")
-        .eq("id", id)
-        .maybeSingle();
-      if (pedidoAtualError) throw pedidoAtualError;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada.");
 
-      const statusEfetivo =
-        status === "saiu para entrega" && String(pedidoAtual?.metodo_entrega ?? "").toLowerCase() === "retirada"
-          ? "pronto para retirada"
-          : status;
+      const result = await updateAdminOrderStatusFn({
+        data: {
+          id,
+          status: status as
+            | "pendente"
+            | "preparando"
+            | "saiu para entrega"
+            | "pronto para retirada"
+            | "entregue"
+            | "cancelado",
+          accessToken,
+        },
+      });
 
-      const { error } = await supabase.from("pedidos").update({ status: statusEfetivo }).eq("id", id);
-      if (error) throw error;
+      const statusEfetivo = String((result as any)?.status ?? status);
 
-      // Cashback e indicação são processados por trigger no banco quando o pedido
-      // muda para "entregue", garantindo idempotência independentemente da tela usada.
-
-      // Notifica cliente via WhatsApp quando status muda
+      // Notificação continua best-effort; nenhuma falha aqui desfaz o status já confirmado.
       try {
         const { error } = await supabase.functions.invoke("whatsapp-notify", {
           body: {
@@ -720,21 +725,7 @@ function AdminOrdersPage() {
     },
   });
 
-  const deleteOrder = useMutation({
-    mutationFn: async (id: string) => {
-      // Remove itens primeiro (cascadeia, mas por segurança)
-      await supabase.from("pedido_itens").delete().eq("pedido_id", id);
-      const { error } = await supabase.from("pedidos").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      toast.success("Pedido excluído.");
-    },
-    onError: (error: any) => {
-      toast.error("Erro ao excluir: " + error.message);
-    },
-  });
+  // Pedidos cancelados são mantidos para auditoria de estoque, cashback e cupons.
 
   const filteredOrders = useMemo(() => {
     const now = new Date();
@@ -927,28 +918,6 @@ function AdminOrdersPage() {
             </button>
           )}
 
-          {/* Botão excluir pedidos cancelados em massa */}
-          <button
-            onClick={async () => {
-              const cancelados = orders.filter((o: any) => o.status === "cancelado");
-              if (cancelados.length === 0) {
-                toast.info("Nenhum pedido cancelado para excluir.");
-                return;
-              }
-              if (!confirm(`Excluir ${cancelados.length} pedido(s) cancelado(s) permanentemente?`))
-                return;
-              for (const o of cancelados) {
-                await supabase.from("pedido_itens").delete().eq("pedido_id", o.id);
-                await supabase.from("pedidos").delete().eq("id", o.id);
-              }
-              queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-              toast.success(`${cancelados.length} pedido(s) cancelado(s) excluído(s).`);
-            }}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-bold transition-all bg-white text-red-500 border-red-200 hover:bg-red-50"
-          >
-            <Trash2 size={16} />
-            Excluir Cancelados
-          </button>
         </div>
       </div>
 
@@ -1219,18 +1188,6 @@ function AdminOrdersPage() {
                             >
                               <XCircle size={14} /> Cancelar Pedido
                             </DropdownMenuItem>
-                            {order.status === "cancelado" && (
-                              <DropdownMenuItem
-                                className="text-xs font-bold uppercase flex gap-2 text-red-600 bg-red-50"
-                                onClick={() => {
-                                  if (confirm("Excluir permanentemente este pedido cancelado?")) {
-                                    deleteOrder.mutate(order.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 size={14} /> Excluir Pedido
-                              </DropdownMenuItem>
-                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
