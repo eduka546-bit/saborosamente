@@ -61,6 +61,26 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       } else {
+        let referral: { code?: string; capturedAt?: string; expiresAt?: number } | null = null;
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("saborosamente.referral");
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (
+              parsed?.code &&
+              parsed?.capturedAt &&
+              Number(parsed?.expiresAt) > Date.now() &&
+              /^IND-[A-Z0-9]{5,12}$/.test(String(parsed.code))
+            ) {
+              referral = parsed;
+            } else if (raw) {
+              localStorage.removeItem("saborosamente.referral");
+            }
+          } catch {
+            localStorage.removeItem("saborosamente.referral");
+          }
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -69,10 +89,15 @@ function AuthPage() {
               nome,
               telefone,
               cpf,
+              indicado_por: referral?.code,
+              indicado_por_capturado_em: referral?.capturedAt,
             },
           },
         });
         if (error) throw error;
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("saborosamente.referral");
+        }
         toast.success("Cadastro realizado com sucesso!");
       }
       if (typeof window !== "undefined") {
