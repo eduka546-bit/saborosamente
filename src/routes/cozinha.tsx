@@ -1241,6 +1241,21 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     if (ingrediente?.tipo_rendimento === "ganho") return pronto / Math.max(0.000001, n(ingrediente.fator_rendimento || 1));
     return pronto;
   };
+  const ingredienteBrutoDoPrato = (ingredienteId:string, prato:any) => {
+    return (prato.linhasReceita as any[])
+      .filter((linha:any)=>linha.ingrediente_id===ingredienteId)
+      .reduce((total:number,linha:any)=>{
+        const corrigir=(gramas:number)=>linha.operacao_producao==='acrescentar'
+          ? gramas*(1+n(linha.fator_producao||1))
+          : linha.operacao_producao==='dividir'
+            ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
+            : gramas;
+        return total
+          + corrigir(n(linha.gramas_200))*n(prato.q['200'])
+          + corrigir(n(linha.gramas_300))*n(prato.q['300'])
+          + corrigir(n(linha.gramas_400))*n(prato.q['400']);
+      },0);
+  };
   pratos.forEach((prato:any) => {
     const vinculadas = (Array.isArray(prato.receita?.preparacoes) ? prato.receita.preparacoes : []).map((r:any)=>prepPorId.get(r?.id)).filter(Boolean) as any[];
     prato.montagemTotal.forEach((m:any) => {
@@ -1258,7 +1273,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const prepExibicao = prep || { id:chave, nome:ingredienteBase.nome, modo_preparo:"Preparar o ingrediente-base conforme o padrão da cozinha e conferir o peso pronto antes de separar por prato." };
       const atual = prepDia.get(chave) || { prep:prepExibicao, total:0, bruto:0, pratos:[] as any[], ingredienteBase };
       atual.total += m.total;
-      if (ingredienteBase) atual.bruto += quantidadeCruaBase(m.total, ingredienteBase);
+      if (ingredienteBase) {
+        const brutoExato=ingredienteBrutoDoPrato(ingredienteBase.id,prato);
+        atual.bruto += brutoExato>0 ? brutoExato : quantidadeCruaBase(m.total, ingredienteBase);
+      }
       const ja = atual.pratos.find((x:any)=>x.produto_id===prato.produto.id);
       if (ja) ja.total += m.total; else atual.pratos.push({produto_id:prato.produto.id,nome:prato.produto.nome,rotulo:rotuloProduto(prato.produto),receita_id:prato.receita?.id,q:prato.q,total:m.total});
       prepDia.set(chave, atual);
