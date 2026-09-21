@@ -25,7 +25,7 @@ import { getPublicProducts } from "@/lib/products.functions";
 import { formatBRL } from "@/lib/products";
 import { imgUrl } from "@/lib/image-proxy";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
 import { COMBO_RULES } from "@/lib/combo-rules";
@@ -170,6 +170,33 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = "saborosamente.referral";
+    const agora = Date.now();
+    const params = new URLSearchParams(window.location.search);
+    const ref = (params.get("ref") || "").trim().toUpperCase();
+
+    if (/^IND-[A-Z0-9]{5,12}$/.test(ref)) {
+      const payload = {
+        code: ref,
+        capturedAt: new Date(agora).toISOString(),
+        expiresAt: agora + 30 * 24 * 60 * 60 * 1000,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
+    } else {
+      try {
+        const atual = JSON.parse(localStorage.getItem(storageKey) || "null");
+        if (atual?.expiresAt && Number(atual.expiresAt) <= agora) {
+          localStorage.removeItem(storageKey);
+        }
+      } catch {
+        localStorage.removeItem(storageKey);
+      }
+    }
+  }, []);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
