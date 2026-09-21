@@ -18,7 +18,7 @@ export const Route = createFileRoute("/carrinho")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://saborosamente.lovable.app/carrinho" }],
+    links: [{ rel: "canonical", href: "https://saborosamente.vercel.app/carrinho" }],
   }),
   component: Carrinho,
 });
