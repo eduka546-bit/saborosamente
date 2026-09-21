@@ -1,0 +1,137 @@
+name: Aplicar ficha no layout aprovado final
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ficha-layout-aprovado-final.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Aplicar layout aprovado e manter duas páginas
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('src/routes/cozinha.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          # A primeira página sempre mantém preparações completas + total a separar.
+          inicio = s.index('      <section className="mt-4">\n        <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Componentes prontos para este produto</p>')
+          fim = s.index('      <section className="page-break-before">', inicio)
+
+          bloco = '''      <section className="mt-4">
+        <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Preparações do lote</p>
+        {preparacoesExibicao.length ? <div className="border border-[#dbe7dd] bg-white">
+          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"190px minmax(250px,1fr) minmax(280px,1fr)"}}><span>Preparação</span><span>Quantidade / ingredientes</span><span>Modo de preparo</span></div>
+          {preparacoesExibicao.map((pc:any)=><div key={pc.prep.id} className="grid border-t border-[#dbe7dd] text-sm" style={{gridTemplateColumns:"190px minmax(250px,1fr) minmax(280px,1fr)"}}>
+            <div className="p-3"><b>{pc.prep.nome}</b>{pc.pronto>0 && <p className="mt-1 text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{formatPeso(pc.pronto)}</b></p>}</div>
+            <div className="border-l border-[#dbe7dd] p-3">
+              {pc.itens.length ? pc.itens.map((item:any)=><p key={item.id || `${pc.prep.id}-${item.ingrediente_id}`} className="mt-1"><b>{item.ingrediente?.nome || "Ingrediente"}:</b> {item.calculado?.exibicao || (item.pendente ? "QB · a gosto" : "—")}</p>) : <p>Sem ingredientes cadastrados.</p>}
+            </div>
+            <div className="border-l border-[#dbe7dd] p-3"><p className="whitespace-pre-line text-sm">{textoCozinha(pc.prep.modo_preparo).replace(/\\\\n/g,"\\n") || "Modo de preparo não informado."}</p></div>
+          </div>)}
+        </div> : <div className="border border-[#dbe7dd] bg-white p-3 text-sm text-[#62766b]">Este produto não possui preparação intermediária cadastrada. Seguir diretamente para a montagem.</div>}
+      </section>
+
+      <section className="mt-4">
+        <p className="mb-2 text-lg font-black uppercase text-[#087443]">2. Total a separar</p>
+        <div className="grid gap-0 sm:grid-cols-3">
+          {listaSeparar.map((x:any)=><div key={x.nome} className="border border-[#dbe7dd] bg-[#fff9ee] px-3 py-2"><p className="text-xs font-bold text-[#52695f]">{x.nome}</p><p className="mt-1 text-sm font-black text-[#087443]">{x.peso>0?formatPeso(x.peso):x.unidades>0?`${x.unidades.toLocaleString("pt-BR")} un`:x.textos.join(" · ")||"QB · a gosto"}</p></div>)}
+        </div>
+        {ingredientesSemVinculo.length>0 && <div className="mt-3 border border-[#e5c36b] bg-[#fff9ee] px-3 py-2 text-sm text-[#52695f]"><b>Observação:</b> há ingredientes da composição sem ponto de aplicação definido na preparação; eles continuam listados para separação e conferência.</div>}
+      </section>
+'''
+          s = s[:inicio] + bloco + s[fim:]
+
+          # Usa as instruções já calculadas (que contemplam preparações) no cabeçalho.
+          s = s.replace(
+            '{["Receber da ficha do dia todos os componentes já preparados e separados.","Conferir o total pronto necessário de cada componente para este produto.","Usar a coluna correta de 200 g, 300 g ou 400 g.","Montar a marmita respeitando exatamente a ordem indicada.","Conferir o peso e comparar com a foto antes de tampar."].map((txt,i)=>',
+            '{instrucoesFicha.map((txt:string,i:number)=>'
+          )
+
+          # Marca cada página para medir e compactar sem alterar a quebra.
+          s = s.replace('<div id="ficha-producao-produto-impressao">\n      <section>', '<div id="ficha-producao-produto-impressao">\n      <div className="pagina-ficha pagina-ficha-1">\n      <section>', 1)
+          s = s.replace('      <section className="page-break-before">', '      </div>\n      <div className="pagina-ficha pagina-ficha-2 page-break-before">\n      <section>', 1)
+          marker = '      </section>\n    </div>\n  </Janela>;\n}\nfunction IngredienteModal'
+          replacement = '      </section>\n      </div>\n    </div>\n  </Janela>;\n}\nfunction IngredienteModal'
+          if marker not in s:
+              raise SystemExit('fechamento da ficha não encontrado')
+          s = s.replace(marker, replacement, 1)
+
+          # CSS do layout aprovado, sem as regras adaptativas antigas.
+          css_extra = '''
+#ficha-producao-produto-impressao .pagina-ficha{width:100%}
+#ficha-producao-produto-impressao .pagina-ficha-2{padding-top:0!important}
+#ficha-producao-produto-impressao .pagina-ficha-2 img{width:76%!important;max-width:none!important;max-height:400pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:first-child>div.mt-3{margin-left:12pt!important;margin-right:12pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(2){margin-top:7pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(2) .p-3{padding:4pt 5pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(2) .text-sm{font-size:9.2pt!important;line-height:1.16!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(2) .text-xs{font-size:8.5pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(3){margin-top:7pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(3)>.grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(3) .px-3{padding-left:5pt!important;padding-right:5pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-1>section:nth-of-type(3) .py-2{padding-top:2.6pt!important;padding-bottom:2.6pt!important}
+#ficha-producao-produto-impressao .pagina-ficha-2>section{break-before:auto!important;page-break-before:auto!important}
+'''
+          css_marker = '#ficha-producao-dia-impressao h2{line-height:1.12}'
+          if css_extra not in s:
+              s = s.replace(css_marker, css_extra + css_marker, 1)
+
+          # Compacta somente a página que exceder o A4; nunca remove a quebra aprovada.
+          old = '''  Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {
+    setTimeout(() => { janela.print(); janela.close(); }, 150);
+  });'''
+          new = '''  Promise.race([Promise.all(prontas), new Promise((resolve) => setTimeout(resolve, 1500))]).then(() => {
+    const ficha = janela.document.getElementById("ficha-producao-produto-impressao");
+    if (ficha) {
+      const alturaPagina = (297 - 12 - 15) * (96 / 25.4);
+      const paginas = Array.from(ficha.querySelectorAll(".pagina-ficha")) as HTMLElement[];
+      paginas.forEach((pagina) => {
+        const altura = pagina.scrollHeight;
+        if (altura > alturaPagina * 0.985) {
+          const escala = Math.max(0.78, Math.min(1, (alturaPagina * 0.965) / altura));
+          pagina.style.zoom = String(escala);
+        }
+      });
+    }
+    setTimeout(() => { janela.print(); janela.close(); }, 150);
+  });'''
+          if old not in s:
+              raise SystemExit('bloco de impressão não encontrado')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Validar e compilar
+        run: |
+          grep -q '1. Preparações do lote' src/routes/cozinha.tsx
+          grep -q 'Quantidade / ingredientes' src/routes/cozinha.tsx
+          grep -q 'Modo de preparo' src/routes/cozinha.tsx
+          grep -q 'listaSeparar.map' src/routes/cozinha.tsx
+          grep -q 'pagina-ficha-1' src/routes/cozinha.tsx
+          grep -q 'pagina-ficha-2' src/routes/cozinha.tsx
+          grep -q 'pagina.style.zoom' src/routes/cozinha.tsx
+          npm ci
+          npm run build
+
+      - name: Publicar alteração final e remover workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/cozinha.tsx
+          git rm .github/workflows/ficha-layout-aprovado-final.yml
+          git commit -m 'fix(cozinha): fixar layout aprovado completo das fichas'
+          git push origin main
