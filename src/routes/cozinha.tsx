@@ -527,7 +527,7 @@ function CozinhaPage() {
                       <article key={grupo.produtoId} className="rounded-2xl border bg-white p-4">
                         <div className="flex flex-wrap items-center gap-4">
                           <div className="min-w-[220px] flex-1">
-                            <h3 className="font-bold">{pr?.nome}</h3>
+                            <h3 className="font-bold">{rotuloProduto(pr)}</h3>
                             <p className="text-sm text-[#62766b]">{grupo.total} unidades · {resumoVariacoes}</p>
                           </div>
                           <span className="rounded-full bg-[#e0f2e7] px-3 py-1 text-xs font-bold text-[#087443]">
@@ -1173,7 +1173,7 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
             <option value="">Selecione o item</option>
             {marmitas.map((x: any) => (
               <option key={x.id} value={x.id}>
-                {x.nome}
+                {rotuloProduto(x)}
               </option>
             ))}
           </select>
@@ -1359,7 +1359,7 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
   (producoes as any[]).forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR");
   const fmt = (v: unknown, observacao?: unknown) => n(v) > 0 ? `${arredondarProducao(v, "g").toLocaleString("pt-BR")} g` : (ehQB(observacao) ? "a gosto" : "—");
-  return <Janela titulo={`Ficha de montagem — ${produto.nome}`} fechar={fechar}>
+  return <Janela titulo={`Ficha de montagem — ${rotuloProduto(produto)}`} fechar={fechar}>
     <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Montagem por tamanho</p><p className="mt-1 text-sm text-[#527164]">Referência para montar cada marmita individualmente. Produção de {dataFmt}: {TAMANHOS.filter(t => q[t.id] > 0).map(t => `${q[t.id]}×${t.label}`).join(" + ") || "nenhuma quantidade lançada"}.</p></div>
     {!receita || !(montagem as any[]).length ? <Vazio texto="Esta ficha ainda não possui montagem cadastrada." /> : <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[720px]"><div className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] gap-2 bg-[#edf5e6] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]"><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>{(montagem as any[]).map((m: any, i: number) => <div key={m.id || i} className="grid grid-cols-[minmax(260px,1fr)_140px_140px_140px] items-center gap-2 border-t border-[#e2ebe3] bg-white px-4 py-3"><div><b>{m.nome}</b>{m.observacao && !ehQB(m.observacao) && <p className="mt-1 text-xs text-[#62766b]">{textoCozinha(m.observacao)}</p>}</div><span>{fmt(m.gramas_200, m.observacao)}</span><span>{fmt(m.gramas_300, m.observacao)}</span><span>{fmt(m.gramas_400, m.observacao)}</span></div>)}</div></div>}
     <div className="mt-5 grid gap-3 sm:grid-cols-3">{TAMANHOS.map(t => <div key={t.id} className="rounded-xl bg-[#f4f7f4] p-3"><p className="text-xs font-bold text-[#62766b]">Produzir {t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{q[t.id]} un</p></div>)}</div>
