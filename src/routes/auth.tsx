@@ -126,8 +126,8 @@ function AuthPage() {
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {isLogin
-              ? "O login é seu e-mail e a senha o seu CPF cadastrado"
-              : "Cadastre-se para acompanhar seus pedidos"}
+              ? "Use seu e-mail e sua senha para entrar"
+              : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
           </p>
         </div>
 
@@ -204,23 +204,18 @@ function AuthPage() {
 
           <div className="space-y-2">
             <Label htmlFor="password">
-              {isLogin ? "Senha (Seu CPF)" : "Senha (Crie sua senha)"}
+              {isLogin ? "Senha" : "Crie uma senha"}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder={isLogin ? "Digite seu CPF" : "Apenas números"}
+                placeholder={isLogin ? "Digite sua senha" : "Mínimo de 6 caracteres"}
+                minLength={6}
                 className="pl-10 pr-10"
                 value={password}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  setPassword(val);
-                  if (!isLogin) setCpf(val);
-                }}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 required
               />
