@@ -287,7 +287,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="text-sm font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
+            <h3 className="text-[15px] font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
               {product.nome}
             </h3>
 
@@ -303,7 +303,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       setSelectedWeight(w);
                     }}
                     className={cn(
-                      "rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-all border",
+                      "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition-all border",
                       selectedWeight === w
                         ? "bg-[#086e45] text-white border-[#086e45] shadow-sm"
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
@@ -314,13 +314,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
                 {product.peso}
               </p>
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
                 <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
                   {currentNutritional.kcal} kcal
                 </span>
@@ -341,7 +341,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
                 {selectedWeight && (
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase">
                     {selectedWeight}
                   </span>
                 )}
@@ -350,12 +350,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     <span className="text-xs font-bold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-xl font-black text-[#086e45] leading-tight">
+                    <span className="text-[22px] font-black text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-xl font-black text-[#086e45]">
+                  <span className="text-[22px] font-black text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -373,20 +373,20 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {podeTerDesconto &&
               (proximaFaixa ? (
                 <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-bold text-white leading-tight">
+                  <p className="text-[11px] font-bold text-white leading-snug">
                     Adicione mais{" "}
                     <span className="font-black text-[#86efac]">
                       {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
                     </span>
                   </p>
-                  <p className="text-[10px] font-bold text-white leading-tight">
+                  <p className="text-[11px] font-bold text-white leading-snug">
                     para liberar o preço da faixa de{" "}
                     <span className="font-black text-[#86efac]">{proximaFaixa}+</span>
                   </p>
                 </div>
               ) : (
                 <div className="mt-1.5 rounded-lg bg-[#086e45] px-3 py-2 text-center">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-white">
+                  <span className="text-[11px] font-black uppercase tracking-wide text-white">
                     ✓ Melhor faixa de preço aplicada
                   </span>
                 </div>
