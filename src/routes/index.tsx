@@ -219,6 +219,7 @@ function Index() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
@@ -639,7 +640,32 @@ function Index() {
 
             <DiscountProgressWidget className="mb-6" />
 
-            <div className="rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen((open) => !open)}
+              className="flex w-full items-center justify-between rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] px-4 py-3 text-left lg:hidden"
+              aria-expanded={mobileFiltersOpen}
+            >
+              <div>
+                <span className="text-xs font-black uppercase tracking-[.08em] text-[#075636]">
+                  Filtrar cardápio
+                </span>
+                <span className="mt-0.5 block text-[10px] text-[#5a745f]">
+                  {selectedFilters.length > 0
+                    ? `${selectedFilters.length} filtro${selectedFilters.length > 1 ? "s" : ""} ativo${selectedFilters.length > 1 ? "s" : ""}`
+                    : "Objetivo, restrição, proteína ou categoria"}
+                </span>
+              </div>
+              <ChevronDown
+                size={18}
+                className={cn("text-[#075636] transition-transform", mobileFiltersOpen && "rotate-180")}
+              />
+            </button>
+
+            <div className={cn(
+              "rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm",
+              !mobileFiltersOpen && "hidden lg:block",
+            )}>
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <p className="font-bebas text-base tracking-[.12em] text-[#78922f]">FILTROS</p>
