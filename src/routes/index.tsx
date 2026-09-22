@@ -648,7 +648,7 @@ function Index() {
               aria-expanded={mobileFiltersOpen}
             >
               <div>
-                <span className="text-xs font-black uppercase tracking-[.08em] text-[#075636]">
+                <span className="text-[13px] font-black uppercase tracking-[.08em] text-[#075636]">
                   Filtrar cardápio
                 </span>
                 <span className="mt-0.5 block text-[10px] text-[#5a745f]">
@@ -718,7 +718,7 @@ function Index() {
                         onClick={() => toggleFilter(category)}
                         aria-pressed={selected}
                         className={cn(
-                          "rounded-full border px-3 py-2 text-xs font-bold transition-all",
+                          "rounded-full border px-3 py-2 text-[13px] font-bold transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                             : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
@@ -855,7 +855,7 @@ function Index() {
                           {(() => {
                             const catInfo = orderedCategories.find((c: any) => c.nome === category);
                             return catInfo?.descricao ? (
-                              <p className="text-xs text-gray-400 mb-4">{catInfo.descricao}</p>
+                              <p className="text-[13px] text-gray-400 mb-4">{catInfo.descricao}</p>
                             ) : <div className="mb-4" />;
                           })()}
                           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
