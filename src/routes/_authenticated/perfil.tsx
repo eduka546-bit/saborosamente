@@ -410,10 +410,32 @@ function PerfilPage() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
-      <div className="mb-8 space-y-2">
+      <div className="mb-6 space-y-2">
         <h1 className="text-3xl font-bold">Meu Perfil</h1>
         <p className="text-muted-foreground">Gerencie suas informações e pedidos.</p>
       </div>
+
+      <nav
+        aria-label="Atalhos do perfil"
+        className="-mx-4 mb-8 flex snap-x gap-2 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+      >
+        {[
+          ["favoritos", "Favoritos"],
+          ...(topProducts.length > 0 ? [["mais-pedidos", "Mais pedidos"]] : []),
+          ["pedidos", "Pedidos"],
+          ["cashback", "Cashback"],
+          ["indicacao", "Indique e Ganhe"],
+          ["enderecos", "Endereços"],
+        ].map(([id, label]) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-xs font-bold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
 
       <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
         {/* Informações Básicas */}
@@ -495,7 +517,7 @@ function PerfilPage() {
 
         <div className="space-y-12">
           {/* Meus Favoritos */}
-          <section className="space-y-4">
+          <section id="favoritos" className="scroll-mt-28 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <Heart className="h-5 w-5 fill-primary text-primary" />
@@ -548,7 +570,7 @@ function PerfilPage() {
           </section>
 
           {topProducts.length > 0 && (
-            <section className="space-y-4">
+            <section id="mais-pedidos" className="scroll-mt-28 space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-primary" />
                 Seus mais pedidos
@@ -585,7 +607,7 @@ function PerfilPage() {
           )}
 
           {/* Meus Pedidos */}
-          <section className="space-y-6">
+          <section id="pedidos" className="scroll-mt-28 space-y-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-primary" />
               Meus Pedidos
@@ -705,7 +727,7 @@ function PerfilPage() {
           </section>
 
           {/* Meu Cashback */}
-          <section className="space-y-4">
+          <section id="cashback" className="scroll-mt-28 space-y-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Gift className="h-5 w-5 text-yellow-500" />
               Meu Cashback
@@ -769,7 +791,7 @@ function PerfilPage() {
           </section>
 
           {/* Indique e Ganhe */}
-          <section className="space-y-4">
+          <section id="indicacao" className="scroll-mt-28 space-y-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Gift className="h-5 w-5 text-primary" />
               Indique e Ganhe
@@ -793,7 +815,7 @@ function PerfilPage() {
           </section>
 
           {/* Gerenciamento de Endereços */}
-          <section className="space-y-6">
+          <section id="enderecos" className="scroll-mt-28 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <MapPinned className="h-5 w-5 text-primary" />
