@@ -209,6 +209,18 @@ export function SiteHeader() {
           </SheetContent>
         </Sheet>
 
+        <Link
+          to="/"
+          className="absolute left-1/2 -translate-x-1/2 md:hidden"
+          aria-label="SaborosaMente"
+        >
+          <img
+            src={logoSrc}
+            alt="SaborosaMente"
+            className="h-10 w-32 object-contain"
+          />
+        </Link>
+
         <Link to="/" className="hidden md:flex shrink-0 items-center mr-6" aria-label="SaborosaMente">
           <img src={logoSrc} alt="SaborosaMente" className="h-12 w-44 object-contain object-left" />
         </Link>
