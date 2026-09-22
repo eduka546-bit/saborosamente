@@ -385,7 +385,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="min-h-[2.65rem] line-clamp-2 text-[15px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+            <h3 className="min-h-[3.9rem] text-[15px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
 
