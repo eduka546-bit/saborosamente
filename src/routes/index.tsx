@@ -255,6 +255,21 @@ function Index() {
     },
   });
 
+  const { data: bestSellerRows = [] } = useQuery({
+    queryKey: ["best-sellers-90d"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("produtos_mais_vendidos_90d", { p_limite: 8 });
+      if (error) return [];
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const bestSellerIds = useMemo(
+    () => new Set((bestSellerRows as any[]).map((row) => row.produto_id)),
+    [bestSellerRows],
+  );
+
   const promoBanners: { image_url?: string; alt?: string; link?: string }[] =
     Array.isArray((settings as any)?.promo_banners) && (settings as any).promo_banners.length > 0
       ? (settings as any).promo_banners
@@ -321,7 +336,9 @@ function Index() {
     }
     if (selectedFilters.includes("Sem Glúten")) result = result.filter((p: any) => p.sem_gluten);
     if (selectedFilters.includes("Sem Lactose")) result = result.filter((p: any) => p.sem_lactose);
-    if (selectedFilters.includes("Mais escolhidas")) result = result.filter((p: any) => p.destaque);
+    if (selectedFilters.includes("Mais escolhidas")) {
+      result = result.filter((p: any) => bestSellerIds.has(p.id));
+    }
     if (selectedFilters.includes("Até 300 kcal")) {
       result = result.filter((p: any) => {
         const kcal = nutritionValue(p, "kcal");
@@ -369,7 +386,7 @@ function Index() {
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
         return (a.ordem ?? 999) - (b.ordem ?? 999);
       });
-  }, [products, selectedFilters, searchTerm]);
+  }, [products, selectedFilters, searchTerm, bestSellerIds]);
 
   const categoriesWithProducts = useMemo(() => {
     // Filtros especiais por selo de restrição (só se houver produtos com o selo).
@@ -864,6 +881,7 @@ function Index() {
                                 key={product.id}
                                 product={{
                                   ...product,
+                                  mais_vendido: bestSellerIds.has(product.id),
                                   categoria: product.categorias?.nome || "Marmita",
                                   imagem: imgUrl(product.imagem_url),
                                 }}
@@ -886,6 +904,7 @@ function Index() {
                           key={product.id}
                           product={{
                             ...product,
+                            mais_vendido: bestSellerIds.has(product.id),
                             categoria: product.categorias?.nome || "Marmita",
                             imagem: product.imagem_url,
                           }}
