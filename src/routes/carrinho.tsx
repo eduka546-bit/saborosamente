@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Gift, Minus, Plus, Trash2 } from "lucide-react";
 import { FREE_SHIPPING_FROM, useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { regraEntregaCidade } from "@/lib/entrega-config";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/carrinho")({
   head: () => ({
@@ -43,6 +45,23 @@ function Carrinho() {
     remove,
     clear,
   } = useCart();
+
+  const { data: cashbackConfig } = useQuery({
+    queryKey: ["cashback-cart-config"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("cashback_ativo,cashback_percentual")
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const cashbackPercent = Number(cashbackConfig?.cashback_percentual ?? 1);
+  const cashbackBase = Math.max(0, subtotal - discount);
+  const cashbackEstimado =
+    cashbackConfig?.cashback_ativo === false ? 0 : cashbackBase * (cashbackPercent / 100);
 
   const regraCidade = regraEntregaCidade(selectedCity);
   const minimoRegional = regraCidade.minUnidades ?? 0;
@@ -204,6 +223,17 @@ function Carrinho() {
                   <dd className="font-bold">-{formatBRL(discount)}</dd>
                 </div>
               )}
+              {cashbackEstimado > 0 && (
+                <div className="flex items-center justify-between rounded-xl bg-[#f4f8ee] px-3 py-2 text-[#315440]">
+                  <dt className="flex items-center gap-1.5 font-semibold">
+                    <Gift className="size-4 text-[#78922f]" />
+                    Cashback estimado
+                  </dt>
+                  <dd className="font-black text-[#086e45]">
+                    +{formatBRL(cashbackEstimado)}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Entrega</dt>
                 <dd className="font-medium">{shipping === 0 ? "Grátis" : formatBRL(shipping)}</dd>
@@ -213,6 +243,14 @@ function Carrinho() {
                 <dd className="font-bold text-primary">{formatBRL(total)}</dd>
               </div>
             </dl>
+
+            {cashbackEstimado > 0 && (
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Ao concluir e receber este pedido, você pode ganhar cerca de{" "}
+                <strong className="text-[#086e45]">{formatBRL(cashbackEstimado)}</strong> em cashback.
+                O valor final considera as regras vigentes e não inclui a taxa de entrega.
+              </p>
+            )}
 
             {/* Barra de Progresso Frete SBS */}
             {selectedCity.toLowerCase().includes("são bento do sul") && (
