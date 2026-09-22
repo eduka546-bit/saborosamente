@@ -353,27 +353,168 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
   );
 }
 
-function TabelaNutricionalExpansivel({ valores, aberta, aoAlternar }: { valores: any; aberta: boolean; aoAlternar: () => void }) {
+function TabelaNutricionalExpansivel({
+  valores,
+  aberta,
+  aoAlternar,
+}: {
+  valores: any;
+  aberta: boolean;
+  aoAlternar: () => void;
+}) {
   if (!valores?.kcal) return null;
+
+  const temColuna100g =
+    valores.kcal_100g != null ||
+    valores.carb_100g != null ||
+    valores.prot_100g != null;
+
   const linhas = [
-    ["Valor energético", valores.kcal != null ? `${valores.kcal} kcal` : "—"],
-    ["Carboidratos totais", valores.carb != null ? `${valores.carb} g` : "—"],
-    ["Proteínas", valores.prot != null ? `${valores.prot} g` : "—"],
-    ["Gorduras totais", valores.gorduras_totais != null ? `${valores.gorduras_totais} g` : "—"],
-    ["Gorduras saturadas", valores.gorduras_saturadas != null ? `${valores.gorduras_saturadas} g` : "—"],
-    ["Gorduras trans", valores.gorduras_trans != null ? `${valores.gorduras_trans} g` : "—"],
-    ["Fibra alimentar", valores.fibra != null ? `${valores.fibra} g` : "—"],
-    ["Sódio", valores.sodio != null ? `${valores.sodio} mg` : "—"],
+    {
+      rotulo: "Valor energético",
+      valor100g: valores.kcal_100g != null ? `${valores.kcal_100g} kcal` : "—",
+      valor: valores.kcal != null ? `${valores.kcal} kcal` : "—",
+      vd: valores.vd_kcal,
+    },
+    {
+      rotulo: "Carboidratos totais",
+      valor100g: valores.carb_100g != null ? `${valores.carb_100g} g` : "—",
+      valor: valores.carb != null ? `${valores.carb} g` : "—",
+      vd: valores.vd_carb,
+    },
+    {
+      rotulo: "Açúcares totais",
+      valor100g:
+        valores.acucares_totais_100g != null ? `${valores.acucares_totais_100g} g` : "—",
+      valor: valores.acucares_totais != null ? `${valores.acucares_totais} g` : "—",
+      vd: null,
+    },
+    {
+      rotulo: "Açúcares adicionados",
+      valor100g:
+        valores.acucares_adicionados_100g != null
+          ? `${valores.acucares_adicionados_100g} g`
+          : "—",
+      valor:
+        valores.acucares_adicionados != null ? `${valores.acucares_adicionados} g` : "—",
+      vd: valores.vd_acucares_adicionados,
+    },
+    {
+      rotulo: "Proteínas",
+      valor100g: valores.prot_100g != null ? `${valores.prot_100g} g` : "—",
+      valor: valores.prot != null ? `${valores.prot} g` : "—",
+      vd: valores.vd_prot,
+    },
+    {
+      rotulo: "Gorduras totais",
+      valor100g:
+        valores.gorduras_totais_100g != null ? `${valores.gorduras_totais_100g} g` : "—",
+      valor: valores.gorduras_totais != null ? `${valores.gorduras_totais} g` : "—",
+      vd: valores.vd_gorduras_totais,
+    },
+    {
+      rotulo: "Gorduras saturadas",
+      valor100g:
+        valores.gorduras_saturadas_100g != null
+          ? `${valores.gorduras_saturadas_100g} g`
+          : "—",
+      valor:
+        valores.gorduras_saturadas != null ? `${valores.gorduras_saturadas} g` : "—",
+      vd: valores.vd_gorduras_saturadas,
+    },
+    {
+      rotulo: "Gorduras trans",
+      valor100g:
+        valores.gorduras_trans_100g != null ? `${valores.gorduras_trans_100g} g` : "—",
+      valor: valores.gorduras_trans != null ? `${valores.gorduras_trans} g` : "—",
+      vd: valores.vd_gorduras_trans,
+    },
+    {
+      rotulo: "Fibra alimentar",
+      valor100g: valores.fibra_100g != null ? `${valores.fibra_100g} g` : "—",
+      valor: valores.fibra != null ? `${valores.fibra} g` : "—",
+      vd: valores.vd_fibra,
+    },
+    {
+      rotulo: "Sódio",
+      valor100g: valores.sodio_100g != null ? `${valores.sodio_100g} mg` : "—",
+      valor: valores.sodio != null ? `${valores.sodio} mg` : "—",
+      vd: valores.vd_sodio,
+    },
   ];
-  return <section className="overflow-hidden rounded-2xl border border-border bg-background">
-    <button type="button" onClick={aoAlternar} className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-foreground">Tabela nutricional<ChevronDown className={cn("size-5 transition-transform", aberta && "rotate-180")} /></button>
-    {aberta && <div className="border-t border-border px-4 pb-4 pt-3">
-      <div className="overflow-hidden rounded-lg border border-foreground/20 text-xs">
-        <div className="border-b border-foreground/20 py-2 text-center font-black uppercase">Informação nutricional</div>
-        <p className="border-b border-foreground/20 px-3 py-2">Porção: {valores.porcao_g || "—"} g</p>
-        {linhas.map(([rotulo, valor]) => <div key={rotulo} className="grid grid-cols-[1fr_auto] border-b border-foreground/20 last:border-b-0"><span className="px-3 py-2">{rotulo}</span><b className="border-l border-foreground/20 px-3 py-2">{valor}</b></div>)}
-      </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">Valores calculados para o tamanho selecionado.</p>
-    </div>}
-  </section>;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-background">
+      <button
+        type="button"
+        onClick={aoAlternar}
+        className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-foreground"
+      >
+        Tabela nutricional
+        <ChevronDown className={cn("size-5 transition-transform", aberta && "rotate-180")} />
+      </button>
+
+      {aberta && (
+        <div className="border-t border-border px-4 pb-4 pt-3">
+          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-[11px] sm:text-xs">
+            <div className="border-b border-foreground/20 py-2 text-center font-black uppercase">
+              Informação nutricional
+            </div>
+
+            <div className="border-b border-foreground/20 px-3 py-2">
+              {valores.porcoes_embalagem != null && (
+                <div>Porções por embalagem: {valores.porcoes_embalagem}</div>
+              )}
+              <div>Porção: {valores.porcao_g || "—"} g</div>
+            </div>
+
+            {temColuna100g ? (
+              <>
+                <div className="grid min-w-[460px] grid-cols-[1.7fr_0.75fr_0.75fr_0.55fr] border-b border-foreground/20 bg-muted/30 font-bold">
+                  <span className="px-3 py-2">Nutriente</span>
+                  <span className="border-l border-foreground/20 px-2 py-2 text-center">100 g</span>
+                  <span className="border-l border-foreground/20 px-2 py-2 text-center">
+                    {valores.porcao_g || "Porção"} g
+                  </span>
+                  <span className="border-l border-foreground/20 px-2 py-2 text-center">% VD*</span>
+                </div>
+                {linhas.map((linha) => (
+                  <div
+                    key={linha.rotulo}
+                    className="grid min-w-[460px] grid-cols-[1.7fr_0.75fr_0.75fr_0.55fr] border-b border-foreground/20 last:border-b-0"
+                  >
+                    <span className="px-3 py-2">{linha.rotulo}</span>
+                    <span className="border-l border-foreground/20 px-2 py-2 text-center">
+                      {linha.valor100g}
+                    </span>
+                    <b className="border-l border-foreground/20 px-2 py-2 text-center">
+                      {linha.valor}
+                    </b>
+                    <span className="border-l border-foreground/20 px-2 py-2 text-center">
+                      {linha.vd != null ? linha.vd : "—"}
+                    </span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                {linhas.map((linha) => (
+                  <div
+                    key={linha.rotulo}
+                    className="grid grid-cols-[1fr_auto] border-b border-foreground/20 last:border-b-0"
+                  >
+                    <span className="px-3 py-2">{linha.rotulo}</span>
+                    <b className="border-l border-foreground/20 px-3 py-2">{linha.valor}</b>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            * Percentual de valores diários fornecidos pela porção.
+          </p>
+        </div>
+      )}
+    </section>
+  );
 }
