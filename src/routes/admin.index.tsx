@@ -256,11 +256,20 @@ function AdminDashboard() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-8 md:py-10 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-[#5850ec]">Painel Administrativo</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Bem-vindo ao centro de controle da Saborosamente.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-[#5850ec]">Painel Administrativo</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Bem-vindo ao centro de controle da Saborosamente.
+          </p>
+        </div>
+        <Link
+          to="/admin/inteligencia"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#173a2d] px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#0f2b20]"
+        >
+          <BarChart2 className="size-4" />
+          Inteligência comercial
+        </Link>
       </div>
 
       {/* Cards de métricas principais */}
