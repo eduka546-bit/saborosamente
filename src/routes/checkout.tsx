@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -33,6 +33,7 @@ import {
   enabledOrDefault,
 } from "@/lib/payment-options";
 import { checkoutSchema, type CheckoutForm } from "@/lib/checkout-validation";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -92,6 +93,7 @@ function Checkout() {
   const search = useSearch({ from: "/checkout" });
   const createOrderFn = useServerFn(createOrder);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const checkoutTracked = useRef(false);
   const [feedbackNota, setFeedbackNota] = useState(0);
   const [feedbackComentario, setFeedbackComentario] = useState("");
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
@@ -127,6 +129,15 @@ function Checkout() {
     },
     staleTime: 1000 * 60 * 10,
   });
+
+  useEffect(() => {
+    if (checkoutTracked.current || lines.length === 0) return;
+    checkoutTracked.current = true;
+    trackEvent("checkout_start", {
+      valor: finalTotal,
+      metadata: { itens: lines.length, unidades: lines.reduce((s, l) => s + Number(l.quantity || 0), 0) },
+    });
+  }, [lines.length]);
 
   useEffect(() => {
     if (!session?.user) return;
@@ -475,6 +486,16 @@ function Checkout() {
 
       setOrderId(order.id);
       const valorConfirmado = Number(order.valor_total ?? finalTotal);
+      trackEvent("purchase", {
+        pedidoId: order.id,
+        valor: valorConfirmado,
+        metadata: {
+          itens: lines.length,
+          pagamento: data.pagamento,
+          entrega: metodoEntrega,
+          cidade: metodoEntrega === "entrega" ? data.cidade : "retirada",
+        },
+      });
 
       // Carrinho abandonado: ao finalizar um pedido, marca a sessão como convertida
       // antes de limpar o carrinho para não deixar uma venda concluída aparecendo como perdida.
