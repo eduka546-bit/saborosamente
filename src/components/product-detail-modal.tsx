@@ -187,7 +187,11 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                     Restrições
                   </h4>
                   <p className="text-xs mt-1">
-                    {product.informacao_nutricional || "Sem Glúten | Sem Lactose"}
+                    {Array.isArray(product.restricoes)
+                      ? product.restricoes.join(" | ")
+                      : typeof product.restricoes === "string" && product.restricoes.trim()
+                        ? product.restricoes
+                        : "Consulte a embalagem para informações de alergênicos."}
                   </p>
                 </div>
               </div>
