@@ -15,6 +15,7 @@ import {
   WheatOff,
   ChefHat,
   ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
