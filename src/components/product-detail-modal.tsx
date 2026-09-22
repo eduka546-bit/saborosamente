@@ -3,7 +3,7 @@ import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
-import { ChevronDown, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
@@ -23,7 +23,7 @@ interface ProductDetailModalProps {
 // Modal de detalhes do produto — layout robusto (imagem grande + ficha completa),
 // abre por cima do catálogo sem trocar de página.
 export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] }: ProductDetailModalProps) {
-  const { add, count } = useCart();
+  const { add, count, lines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -80,6 +80,28 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
         : selectedWeight === "400g" && product.tabela_nutricional_400g
           ? product.tabela_nutricional_400g
           : product.tabela_nutricional;
+
+  const currentStock = (() => {
+    if (selectedWeight === "200g") return product.estoque_200g;
+    if (selectedWeight === "300g") return product.estoque_300g;
+    if (selectedWeight === "400g") return product.estoque_400g;
+    return product.estoque ?? product.estoque_200g ?? null;
+  })();
+  const stockNumber =
+    currentStock === null || currentStock === undefined || currentStock === ""
+      ? null
+      : Number(currentStock);
+  const quantityAlreadyInCart = lines.reduce((sum, line) => {
+    if (line.custom || line.comboPronto) return sum;
+    return line.productId === product.id && line.weight === selectedWeight
+      ? sum + Number(line.quantity || 0)
+      : sum;
+  }, 0);
+  const remainingStock =
+    stockNumber === null || !Number.isFinite(stockNumber)
+      ? null
+      : Math.max(0, stockNumber - quantityAlreadyInCart);
+  const soldOut = remainingStock !== null && remainingStock <= 0;
 
   const currentRestrictions =
     selectedWeight === "200g" && product.restricoes_200g
@@ -197,7 +219,28 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     });
   };
 
+  const handleShare = async () => {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/produto/${product.id}`
+        : `https://saborosamente.vercel.app/produto/${product.id}`;
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: product.nome, text: product.nome, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success("Link do produto copiado!");
+    } catch {
+      // Usuário pode cancelar o compartilhamento nativo; não precisa exibir erro.
+    }
+  };
+
   const handleAddToCart = () => {
+    if (soldOut) {
+      toast.info("Esta gramatura já atingiu a quantidade disponível.");
+      return;
+    }
     const opcoes = ehMarmita
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
       : undefined;
@@ -257,9 +300,20 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
           {/* Ficha do produto */}
           <div className="flex flex-1 flex-col p-6">
             <DialogHeader className="mb-4">
-              <DialogTitle className="text-2xl font-bold text-primary-dark">
-                {product.nome}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-3 pr-8">
+                <DialogTitle className="text-2xl font-bold text-primary-dark">
+                  {product.nome}
+                </DialogTitle>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Compartilhar produto"
+                  title="Compartilhar produto"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-white text-primary transition hover:bg-primary/5"
+                >
+                  <Share2 className="size-4" />
+                </button>
+              </div>
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-sm text-muted-foreground">
@@ -508,12 +562,18 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 );
               })()}
 
+              {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
+                <p className="mb-2 text-center text-xs font-bold text-[#9a5b00]">
+                  {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
+                </p>
+              )}
               <Button
                 onClick={handleAddToCart}
-                className="w-full h-14 rounded-2xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02]"
+                disabled={soldOut}
+                className="w-full h-14 rounded-2xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
                 <ShoppingCart className="size-5" />
-                Adicionar ao Carrinho
+                {soldOut ? "Esgotado nesta gramatura" : "Adicionar ao Carrinho"}
               </Button>
             </div>
           </div>
