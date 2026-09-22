@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Gift,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
@@ -40,6 +41,7 @@ function isComboProduct(product: Product | any): boolean {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useFavorites } from "@/lib/use-favorites";
 
 export interface ProductCardProps {
   product: Product;
@@ -48,6 +50,7 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add, count } = useCart();
+  const { userId, favoriteIds, toggleFavorite } = useFavorites();
   const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -162,6 +165,30 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
+            <button
+              type="button"
+              aria-label={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              title={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!userId) {
+                  toast.info("Entre na sua conta para salvar favoritos.");
+                  return;
+                }
+                try {
+                  const favorite = await toggleFavorite(product.id);
+                  toast.success(favorite ? "Adicionado aos favoritos" : "Removido dos favoritos");
+                } catch {
+                  toast.error("Não foi possível atualizar seus favoritos.");
+                }
+              }}
+              className="absolute right-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
+            >
+              <Heart
+                className={cn("size-5", favoriteIds.has(product.id) && "fill-[#086e45]")}
+                aria-hidden="true"
+              />
+            </button>
             <img
               src={product.imagem}
               alt={`Combo ${product.nome}`}
