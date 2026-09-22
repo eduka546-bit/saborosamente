@@ -124,6 +124,46 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
     return w;
   };
 
+  const nutritionalForWeight = (w: string) =>
+    w === "200g"
+      ? product.tabela_nutricional_200g || product.tabela_nutricional
+      : w === "300g"
+        ? product.tabela_nutricional_300g || product.tabela_nutricional
+        : w === "400g"
+          ? product.tabela_nutricional_400g || product.tabela_nutricional
+          : product.tabela_nutricional;
+
+  const fullPriceForWeight = (w: string) => {
+    if (isSopa) return 18;
+    if (ehMarmita && !isNoDiscount(categoriaNome)) {
+      return precoCheioMarmita(w, tabelaPrecos) || Number(product.preco || 0);
+    }
+    if (w === "300g" && product.preco_300g) return Number(product.preco_300g);
+    if (w === "400g" && product.preco_400g) return Number(product.preco_400g);
+    return Number(product.preco || 0);
+  };
+
+  const priceForWeight = (w: string) => {
+    const full = fullPriceForWeight(w);
+    return ehMarmita && !isNoDiscount(categoriaNome)
+      ? precoMarmitaPorFaixa(w, count, full, tabelaPrecos)
+      : full;
+  };
+
+  const selectedWeightIndex = weights.indexOf(selectedWeight);
+  const nextWeight =
+    selectedWeightIndex >= 0 && selectedWeightIndex < weights.length - 1
+      ? weights[selectedWeightIndex + 1]
+      : null;
+  const nextWeightNutrition = nextWeight ? nutritionalForWeight(nextWeight) : null;
+  const upgradePriceDifference = nextWeight
+    ? Math.max(0, priceForWeight(nextWeight) - priceForWeight(selectedWeight))
+    : 0;
+  const upgradeProteinDifference =
+    nextWeightNutrition?.prot != null && currentNutritional?.prot != null
+      ? Number(nextWeightNutrition.prot) - Number(currentNutritional.prot)
+      : null;
+
   const handleAddToCart = () => {
     const opcoes = ehMarmita
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
@@ -237,28 +277,53 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
               {weights.length > 1 && (
                 <div>
                   <h4 className="mb-2 font-bold text-foreground">Escolha o tamanho:</h4>
-                  <div className="flex gap-2">
-                    {weights.map((w: string) => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => setSelectedWeight(w)}
-                        className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-sm font-bold transition-all",
-                          selectedWeight === w
-                            ? "border-primary bg-primary/5 text-primary shadow-sm"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                        )}
-                      >
-                        {weightLabel(w)}
-                        {isComboPronto && (
-                          <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">
-                            {w}
+                  <div className="grid grid-cols-3 gap-2">
+                    {weights.map((w: string) => {
+                      const nutrition = nutritionalForWeight(w);
+                      const price = priceForWeight(w);
+                      const selected = selectedWeight === w;
+                      return (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setSelectedWeight(w)}
+                          className={cn(
+                            "min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
+                            selected
+                              ? "border-primary bg-primary/5 text-primary shadow-sm"
+                              : "border-border bg-background text-muted-foreground hover:border-primary/30",
+                          )}
+                        >
+                          <span className="block text-sm font-black">{weightLabel(w)}</span>
+                          {isComboPronto && (
+                            <span className="block text-[9px] font-normal text-muted-foreground">
+                              {w}
+                            </span>
+                          )}
+                          <span className={cn("mt-1 block text-xs font-black", selected ? "text-[#086e45]" : "text-foreground")}>
+                            {formatBRL(price)}
                           </span>
-                        )}
-                      </button>
-                    ))}
+                          {nutrition?.kcal != null && (
+                            <span className="mt-1 block text-[9px] font-semibold leading-tight text-muted-foreground">
+                              {nutrition.kcal} kcal
+                              {nutrition?.prot != null ? ` • ${nutrition.prot}g prot` : ""}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {nextWeight && (
+                    <div className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-xs text-[#315440]">
+                      <strong>Quer subir para {nextWeight}?</strong>{" "}
+                      {upgradePriceDifference > 0
+                        ? `Por +${formatBRL(upgradePriceDifference)}`
+                        : "Sem aumento de preço"}
+                      {upgradeProteinDifference != null && upgradeProteinDifference > 0
+                        ? ` você leva +${upgradeProteinDifference}g de proteína.`
+                        : "."}
+                    </div>
+                  )}
                 </div>
               )}
 
