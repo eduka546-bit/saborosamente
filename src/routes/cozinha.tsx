@@ -1650,20 +1650,70 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const montagem400 = montagemExata("400");
   const totalLoteProduto = montagemTotal.reduce((s:number,m:any)=>s+n(m.total),0);
   const preparacoesExibicao = preparacoesCalculadas.filter((pc:any)=>pc.pronto>0 || pc.itens.length>0);
+  const limparPassos = (texto: unknown) => {
+    const linhas = textoCozinha(texto)
+      .replace(/\\n/g, "\n")
+      .split(/\r?\n/)
+      .map((x: string) => x.trim())
+      .filter(Boolean);
+
+    const passos: string[] = [];
+    let emIngredientes = false;
+    for (const linhaOriginal of linhas) {
+      const linha = linhaOriginal.replace(/^[-•]\s*/, "").trim();
+      if (!linha) continue;
+
+      if (/^prepara[cç][aã]o\s*:/i.test(linha)) {
+        emIngredientes = false;
+        continue;
+      }
+      if (/^ingredientes\s*:/i.test(linha)) {
+        emIngredientes = true;
+        continue;
+      }
+      if (/^modo de preparo\s*:/i.test(linha)) {
+        emIngredientes = false;
+        continue;
+      }
+      if (emIngredientes) continue;
+
+      const limpo = linha
+        .replace(/^\d+[.)-]\s*/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (limpo && !passos.some((p) => p.toLocaleLowerCase("pt-BR") === limpo.toLocaleLowerCase("pt-BR"))) {
+        passos.push(limpo);
+      }
+    }
+    return passos;
+  };
+
+  const preparoDetalhado = preparacoesExibicao.map((pc: any) => ({
+    nome: textoCozinha(pc.prep.nome).replace(/ • [A-Z]{2}\d{2}$/i, ""),
+    passos: limparPassos(pc.prep.modo_preparo),
+  }));
+
+  const passosReceita = limparPassos(receita?.modo_preparo);
+  const passosPreparacoes = preparoDetalhado.flatMap((x: any) => x.passos);
+  const receitaTemPassosExtras = passosReceita.filter((passo: string) =>
+    !passosPreparacoes.some((p: string) => p.toLocaleLowerCase("pt-BR") === passo.toLocaleLowerCase("pt-BR")),
+  );
+
   const instrucoesFicha = preparacoesExibicao.length > 0
     ? [
-        "Separar todos os ingredientes do lote antes de iniciar.",
-        `Preparar ${preparacoesExibicao.map((pc:any)=>pc.prep.nome).join(", ")}.`,
-        "Conferir os rendimentos e a quantidade pronta de cada preparação.",
-        "Montar por tamanho usando a tabela da página seguinte.",
-        "Comparar a montagem final com a foto antes de tampar.",
+        "Separar todos os ingredientes e componentes do lote antes de iniciar.",
+        `Executar as preparações na ordem: ${preparacoesExibicao.map((pc:any)=>textoCozinha(pc.prep.nome).replace(/ • [A-Z]{2}\d{2}$/i, "")).join(" → ")}.`,
+        "Conferir o rendimento pronto de cada preparação antes da montagem.",
+        "Montar usando a coluna correta de 200 g, 300 g ou 400 g.",
+        "Conferir o peso final e a referência visual antes de tampar.",
       ]
     : [
         "Separar todos os componentes do lote antes de iniciar.",
         "Conferir as quantidades prontas necessárias para este produto.",
         "Usar a coluna correta de 200 g, 300 g ou 400 g.",
-        "Montar por tamanho usando a tabela da página seguinte.",
-        "Comparar a montagem final com a foto antes de tampar.",
+        "Montar a marmita respeitando exatamente a ordem indicada.",
+        "Conferir o peso e comparar com a foto antes de tampar.",
       ];
   return <Janela titulo={`Ficha de produção — ${rotuloProduto(produto)}`} fechar={fechar}>
     <div className="mb-4 flex justify-end"><Botao leve onClick={() => imprimirElemento("ficha-producao-produto-impressao", `Ficha de produção — ${rotuloProduto(produto)}`)}>Imprimir ficha</Botao></div>
@@ -1672,7 +1722,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <p className="text-sm font-black text-[#087443]">SaborosaMente - Ficha operacional da cozinha</p>
         <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{rotuloProduto(produto)}</h2>
         <p className="mt-1 text-sm text-[#62766b]">Produção do dia: <b className="text-[#173a2d]">{resumo || "Sem quantidade planejada"}</b></p>
-        <div className="mt-3 border border-[#dbe7dd] bg-[#edf5e6]">{["Receber da ficha do dia todos os componentes já preparados e separados.","Conferir o total pronto necessário de cada componente para este produto.","Usar a coluna correta de 200 g, 300 g ou 400 g.","Montar a marmita respeitando exatamente a ordem indicada.","Conferir o peso e comparar com a foto antes de tampar."].map((txt,i)=><div key={txt} className="grid border-t border-[#dbe7dd] px-3 py-2 text-sm first:border-t-0" style={{gridTemplateColumns:"28px 1fr"}}><b>{i+1}.</b><span>{txt}</span></div>)}</div>
+        <div className="mt-3 border border-[#dbe7dd] bg-[#edf5e6]">{instrucoesFicha.map((txt:string,i:number)=><div key={txt} className="grid border-t border-[#dbe7dd] px-3 py-2 text-sm first:border-t-0" style={{gridTemplateColumns:"28px 1fr"}}><b>{i+1}.</b><span>{txt}</span></div>)}</div>
       </section>
       <section className="mt-4">
         <p className="mb-2 text-lg font-black uppercase text-[#087443]">1. Componentes prontos para este produto</p>
@@ -1686,6 +1736,52 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <div className="grid gap-0 sm:grid-cols-3">{montagemTotal.map((m:any)=><div key={m.id||m.nome} className="border border-[#dbe7dd] bg-[#fff9ee] px-3 py-2"><p className="text-xs font-bold">{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</p><p className="mt-1 text-sm font-black text-[#087443]">{m.total>0?formatPeso(m.total):(ehQB(m.observacao)?"QB · a gosto":"—")}</p></div>)}</div>
         <div className="border border-t-0 border-[#dbe7dd] bg-[#fff9ee] px-3 py-2 text-sm"><b>Total de componentes do lote deste produto:</b> {formatPeso(totalLoteProduto)}</div>
       </section>
+      <section className="page-break-before">
+        <p className="text-sm font-black uppercase text-[#087443]">Modo de preparo do prato</p>
+        <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{rotuloProduto(produto)}</h2>
+        <p className="mt-1 text-sm text-[#62766b]">Siga as etapas abaixo na ordem. Os modos de preparo vêm das preparações vinculadas à ficha técnica deste prato.</p>
+
+        <div className="mt-4 space-y-4">
+          {preparoDetalhado.length > 0 ? preparoDetalhado.map((grupo:any,grupoIdx:number)=><article key={`${grupo.nome}-${grupoIdx}`} className="border border-[#dbe7dd] bg-white">
+            <div className="bg-[#173a2d] px-3 py-2 text-sm font-black text-white">{grupoIdx+1}. {grupo.nome}</div>
+            <div className="p-3">
+              {grupo.passos.length > 0 ? <ol className="space-y-2">
+                {grupo.passos.map((passo:string,idx:number)=><li key={`${grupo.nome}-${idx}`} className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[#e3f1e7] text-xs font-black text-[#087443]">{idx+1}</span>
+                  <span>{passo}</span>
+                </li>)}
+              </ol> : <p className="text-sm text-[#62766b]">Sem etapas textuais cadastradas para esta preparação.</p>}
+            </div>
+          </article>) : null}
+
+          {receitaTemPassosExtras.length > 0 && <article className="border border-[#dbe7dd] bg-white">
+            <div className="bg-[#527164] px-3 py-2 text-sm font-black text-white">Etapas complementares da receita</div>
+            <div className="p-3"><ol className="space-y-2">
+              {receitaTemPassosExtras.map((passo:string,idx:number)=><li key={idx} className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#edf5e6] text-xs font-black text-[#087443]">{idx+1}</span>
+                <span>{passo}</span>
+              </li>)}
+            </ol></div>
+          </article>}
+
+          <article className="border border-[#dbe7dd] bg-[#fff9ee]">
+            <div className="bg-[#087443] px-3 py-2 text-sm font-black text-white">{preparoDetalhado.length+1}. Montagem da marmita</div>
+            <div className="p-3">
+              <ol className="space-y-2">
+                {(montagem as any[]).map((m:any,idx:number)=><li key={m.id||idx} className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-black text-[#087443]">{idx+1}</span>
+                  <span><b>{nomeCompletoComponente(m.nome, preparacoes, ingredientes)}</b>: pesar conforme a coluna do tamanho escolhido na página de montagem{m.observacao && !ehQB(m.observacao) ? `. ${textoCozinha(m.observacao)}` : ""}.</span>
+                </li>)}
+                <li className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-black text-[#087443]">{(montagem as any[]).length+1}</span>
+                  <span>Conferir o peso total da unidade, comparar com a foto de referência e somente então tampar.</span>
+                </li>
+              </ol>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section className="page-break-before">
         <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
         <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{rotuloProduto(produto)}</h2>
