@@ -764,7 +764,6 @@ function Index() {
                     className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
                   >
                     <input
-                      autoFocus
                       name="q"
                       type="text"
                       placeholder="Buscar..."
@@ -794,11 +793,26 @@ function Index() {
             </div>
 
             {isLoading ? (
-              <div className="flex flex-col items-center py-24 gap-4">
-                <Loader2 className="animate-spin text-primary" size={40} />
-                <p className="text-muted-foreground text-base font-medium">
-                  Carregando cardápio...
-                </p>
+              <div aria-label="Carregando cardápio" className="space-y-6">
+                <div className="h-5 w-40 animate-pulse rounded-full bg-[#e7ece3]" />
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="overflow-hidden rounded-2xl border border-[#e6e9e1] bg-white"
+                    >
+                      <div className="aspect-4/3 animate-pulse bg-[#edf0e9]" />
+                      <div className="space-y-3 p-4">
+                        <div className="h-4 w-4/5 animate-pulse rounded-full bg-[#e7ece3]" />
+                        <div className="h-3 w-2/5 animate-pulse rounded-full bg-[#eef1eb]" />
+                        <div className="flex items-end justify-between pt-3">
+                          <div className="h-6 w-20 animate-pulse rounded-full bg-[#e7ece3]" />
+                          <div className="size-9 animate-pulse rounded-full bg-[#dce7d5]" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="py-24 text-center">
