@@ -31,10 +31,17 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
   const couponRef = useRef<string | null>(null);
   const exitFiredRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedAtRef = useRef(Date.now());
+  const EXIT_COOLDOWN_KEY = "saborosamente.exit_intent.last_shown";
+  const EXIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+  const MIN_EXIT_VALUE = 40;
+  const MIN_BROWSE_MS = 60 * 1000;
   // Não disparar no painel admin. IMPORTANTE: não fazer early return aqui —
   // os hooks abaixo precisam ser chamados sempre na mesma ordem (regras de
   // hooks do React). A flag isAdmin é usada para desativar a lógica interna.
-  const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  const isAdmin = path.startsWith("/admin");
+  const isCheckout = path.startsWith("/checkout");
   const hasCart = lines.length > 0 && !isAdmin;
 
   // ── Salva / atualiza o carrinho no banco ──────────────────────────────────
@@ -124,13 +131,19 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
 
     const handleMouseLeave = async (e: MouseEvent) => {
       if (e.clientY > 5) return;
-      if (exitFiredRef.current) return;
-      exitFiredRef.current = true;
+      if (exitFiredRef.current || isCheckout) return;
+      if (total < MIN_EXIT_VALUE) return;
+      if (Date.now() - startedAtRef.current < MIN_BROWSE_MS) return;
 
+      const lastShown = Number(localStorage.getItem(EXIT_COOLDOWN_KEY) || 0);
+      if (lastShown && Date.now() - lastShown < EXIT_COOLDOWN_MS) return;
+
+      exitFiredRef.current = true;
       try {
         await saveToDb("exit_intent");
         const { coupon, discountPercent } = await issueCoupon();
         couponRef.current = coupon;
+        localStorage.setItem(EXIT_COOLDOWN_KEY, String(Date.now()));
         onExitIntent(coupon, discountPercent);
       } catch (error) {
         console.warn("[AbandonedCart] erro ao gerar cupom:", error);
@@ -140,7 +153,7 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, [hasCart, saveToDb, issueCoupon, onExitIntent]);
+  }, [hasCart, saveToDb, issueCoupon, onExitIntent, total, isCheckout]);
 
   // ── beforeunload: salva se ainda tiver carrinho ───────────────────────────
   useEffect(() => {
