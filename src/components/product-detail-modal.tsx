@@ -89,6 +89,32 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
           ? product.restricoes_400g
           : product.restricoes;
 
+  const restrictionText = Array.isArray(currentRestrictions)
+    ? currentRestrictions.join(" | ")
+    : typeof currentRestrictions === "string"
+      ? currentRestrictions
+      : "";
+
+  const glutenStatus = /N[ÃA]O\s+CONT[ÉE]M\s+GL[ÚU]TEN/i.test(restrictionText)
+    ? "não contém"
+    : /CONT[ÉE]M\s+GL[ÚU]TEN/i.test(restrictionText)
+      ? "contém"
+      : product.sem_gluten === true
+        ? "não contém"
+        : product.sem_gluten === false
+          ? "contém"
+          : "consultar embalagem";
+
+  const lactoseStatus = /N[ÃA]O\s+CONT[ÉE]M\s+LACTOSE/i.test(restrictionText)
+    ? "não contém"
+    : /CONT[ÉE]M\s+LACTOSE/i.test(restrictionText)
+      ? "contém"
+      : product.sem_lactose === true
+        ? "não contém"
+        : product.sem_lactose === false
+          ? "contém"
+          : "consultar embalagem";
+
   const isComboPronto = categoriaNome.toLowerCase().includes("combo pronto");
   const weightLabel = (w: string) => {
     if (!isComboPronto) return w;
@@ -197,13 +223,14 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                   <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">
                     Restrições
                   </h4>
-                  <p className="text-xs mt-1">
-                    {Array.isArray(currentRestrictions)
-                      ? currentRestrictions.join(" | ")
-                      : typeof currentRestrictions === "string" && currentRestrictions.trim()
-                        ? currentRestrictions
-                        : "Consulte a embalagem para informações de alergênicos."}
-                  </p>
+                  <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
+                    <span>
+                      <strong className="text-foreground">Glúten:</strong> {glutenStatus}
+                    </span>
+                    <span>
+                      <strong className="text-foreground">Lactose:</strong> {lactoseStatus}
+                    </span>
+                  </div>
                 </div>
               </div>
 
