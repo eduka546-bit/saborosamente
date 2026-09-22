@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { experimentVariant, trackEvent } from "@/lib/analytics";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ProductDetailModalProps {
@@ -50,6 +52,21 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
   const [garfoEFaca, setGarfoEFaca] = useState(false);
   const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
+  const [restockContact, setRestockContact] = useState("");
+  const [restockSending, setRestockSending] = useState(false);
+  const ctaVariant = experimentVariant("product_modal_cta_v1");
+
+  useEffect(() => {
+    if (!isOpen || !product?.id) return;
+    trackEvent("product_view", {
+      produtoId: product.id,
+      metadata: { origem: window.location.pathname.startsWith("/produto/") ? "product_page" : "modal" },
+    });
+    trackEvent("experiment_exposure", {
+      produtoId: product.id,
+      metadata: { experimento: "product_modal_cta_v1", variante: ctaVariant },
+    });
+  }, [isOpen, product?.id, ctaVariant]);
 
   if (!product) return null;
 
@@ -227,12 +244,42 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ title: product.nome, text: product.nome, url });
+        trackEvent("product_share", { produtoId: product.id, metadata: { metodo: "native" } });
         return;
       }
       await navigator.clipboard.writeText(url);
+      trackEvent("product_share", { produtoId: product.id, metadata: { metodo: "clipboard" } });
       toast.success("Link do produto copiado!");
     } catch {
       // Usuário pode cancelar o compartilhamento nativo; não precisa exibir erro.
+    }
+  };
+
+  const requestRestock = async () => {
+    if (restockSending) return;
+    setRestockSending(true);
+    const contact = restockContact.trim();
+    const email = contact.includes("@") ? contact : null;
+    const telefone = contact && !email ? contact : null;
+    try {
+      const { error } = await supabase.rpc("solicitar_alerta_reposicao", {
+        p_produto_id: product.id,
+        p_gramatura: selectedWeight || null,
+        p_nome: null,
+        p_telefone: telefone,
+        p_email: email,
+      });
+      if (error) throw error;
+      trackEvent("restock_request", {
+        produtoId: product.id,
+        metadata: { gramatura: selectedWeight, canal: email ? "email" : telefone ? "telefone" : "conta" },
+      });
+      toast.success("Pronto! Vamos registrar seu interesse.");
+      setRestockContact("");
+    } catch {
+      toast.error("Informe seu WhatsApp ou e-mail para receber o aviso.");
+    } finally {
+      setRestockSending(false);
     }
   };
 
@@ -245,6 +292,11 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
       : undefined;
     add(product.id, 1, selectedWeight, opcoes);
+    trackEvent("add_to_cart", {
+      produtoId: product.id,
+      valor: Number(priceForWeight(selectedWeight) || 0),
+      metadata: { gramatura: selectedWeight, consumo },
+    });
     const detalheOpcao = ehMarmita
       ? ` — ${consumo === "pronta" ? "pronta para consumo" : "congelada"}`
       : "";
@@ -373,7 +425,13 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                         <button
                           key={w}
                           type="button"
-                          onClick={() => setSelectedWeight(w)}
+                          onClick={() => {
+                            setSelectedWeight(w);
+                            trackEvent("size_select", {
+                              produtoId: product.id,
+                              metadata: { gramatura: w },
+                            });
+                          }}
                           className={cn(
                             "min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
                             selected
@@ -567,14 +625,38 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
                 </p>
               )}
-              <Button
-                onClick={handleAddToCart}
-                disabled={soldOut}
-                className="w-full h-14 rounded-2xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-              >
-                <ShoppingCart className="size-5" />
-                {soldOut ? "Esgotado nesta gramatura" : "Adicionar ao Carrinho"}
-              </Button>
+              {soldOut ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      value={restockContact}
+                      onChange={(e) => setRestockContact(e.target.value)}
+                      placeholder="WhatsApp ou e-mail"
+                      aria-label="WhatsApp ou e-mail para aviso de reposição"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <Button
+                      type="button"
+                      onClick={requestRestock}
+                      disabled={restockSending}
+                      className="shrink-0 rounded-xl px-4 font-bold"
+                    >
+                      {restockSending ? "Salvando..." : "Avise-me"}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Se você estiver logado, pode deixar o campo em branco.
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleAddToCart}
+                  className="w-full h-14 rounded-2xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02]"
+                >
+                  <ShoppingCart className="size-5" />
+                  {ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
