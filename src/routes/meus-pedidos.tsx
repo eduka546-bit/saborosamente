@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
-import { Loader2, RotateCcw, Package, ChevronRight, Lock } from "lucide-react";
+import { Loader2, RotateCcw, Package, ChevronRight, Lock, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/meus-pedidos")({
   head: () => ({
@@ -113,6 +113,18 @@ function MeusPedidosPage() {
     }
   }
 
+  function adicionarItemNovamente(item: any) {
+    if (!item?.produto_id) {
+      toast.info("Itens personalizados precisam ser montados novamente.");
+      return;
+    }
+    const peso = extrairPeso(item.observacao) ?? "300g";
+    add(item.produto_id, 1, peso, { consumo: "congelada", garfoEFaca: false });
+    toast.success("1 unidade adicionada ao carrinho", {
+      description: `${item.nomeExibicao}${peso ? ` (${peso})` : ""}`,
+    });
+  }
+
   async function pedirDeNovo(pedido: any) {
     setRepetindo(pedido.id);
     try {
@@ -125,7 +137,7 @@ function MeusPedidosPage() {
           continue;
         }
         const peso = extrairPeso(item.observacao) ?? "300g";
-        add(item.produto_id, item.quantidade ?? 1, peso);
+        add(item.produto_id, item.quantidade ?? 1, peso, { consumo: "congelada", garfoEFaca: false });
         adicionados++;
       }
       if (adicionados === 0) {
@@ -220,14 +232,27 @@ function MeusPedidosPage() {
                     {(p.itens ?? []).map((i: any) => {
                       const peso = extrairPeso(i.observacao);
                       return (
-                        <li key={i.id} className="text-sm text-gray-600 flex justify-between gap-2">
-                          <span>
+                        <li key={i.id} className="flex items-center justify-between gap-3 rounded-xl py-1.5 text-sm text-gray-600">
+                          <span className="min-w-0">
                             {i.quantidade}x {i.nomeExibicao}
                             {peso ? <span className="text-gray-400"> ({peso})</span> : ""}
                           </span>
-                          <span className="text-gray-400 whitespace-nowrap">
-                            R$ {Number(i.preco_unitario ?? 0).toFixed(2).replace(".", ",")}
-                          </span>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="text-gray-400 whitespace-nowrap">
+                              R$ {Number(i.preco_unitario ?? 0).toFixed(2).replace(".", ",")}
+                            </span>
+                            {i.produto_id && (
+                              <button
+                                type="button"
+                                onClick={() => adicionarItemNovamente(i)}
+                                aria-label={`Adicionar novamente ${i.nomeExibicao}`}
+                                title="Adicionar 1 unidade novamente"
+                                className="inline-flex size-8 items-center justify-center rounded-full bg-[#086e45]/10 text-[#086e45] transition hover:bg-[#086e45]/20"
+                              >
+                                <Plus className="size-4" />
+                              </button>
+                            )}
+                          </div>
                         </li>
                       );
                     })}
