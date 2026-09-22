@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { regraEntregaCidade } from "@/lib/entrega-config";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicProducts } from "@/lib/products.functions";
+import { trackEvent } from "@/lib/analytics";
+import { useEffect, useMemo } from "react";
 
 export const Route = createFileRoute("/carrinho")({
   head: () => ({
@@ -58,6 +61,7 @@ function Carrinho() {
     setQuantity,
     remove,
     clear,
+    add,
   } = useCart();
 
   const { data: cashbackConfig } = useQuery({
@@ -71,6 +75,38 @@ function Carrinho() {
     },
     staleTime: 1000 * 60 * 10,
   });
+
+  const { data: catalog = [] } = useQuery({
+    queryKey: ["public-products-cart-recommendations"],
+    queryFn: () => getPublicProducts(),
+    staleTime: 1000 * 60 * 30,
+  });
+
+  useEffect(() => {
+    if (!lines.length) return;
+    trackEvent("cart_view", {
+      valor: total,
+      metadata: { itens: count, linhas: lines.length },
+    });
+  }, []);
+
+  const cartCategories = useMemo(
+    () => new Set(lines.map((line) => line.product?.categorias?.nome || line.product?.categoria).filter(Boolean)),
+    [lines],
+  );
+  const cartProductIds = useMemo(() => new Set(lines.map((line) => line.product?.id).filter(Boolean)), [lines]);
+  const suggestions = useMemo(
+    () =>
+      (catalog as any[])
+        .filter((product) => {
+          if (!product?.id || cartProductIds.has(product.id)) return false;
+          if (product.ativo === false || product.visivel_online === false) return false;
+          const category = product.categorias?.nome || product.categoria;
+          return cartCategories.size === 0 || cartCategories.has(category) || product.destaque;
+        })
+        .slice(0, 2),
+    [catalog, cartCategories, cartProductIds],
+  );
 
   const cashbackPercent = Number(cashbackConfig?.cashback_percentual ?? 1);
   const cashbackBase = Math.max(0, subtotal - discount);
@@ -332,6 +368,56 @@ function Carrinho() {
             >
               Finalizar pedido
             </Link>
+
+            {suggestions.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-[#dce7d5] bg-[#f7faf4] p-4">
+                <p className="text-xs font-black uppercase tracking-wider text-[#315440]">
+                  Complete seu pedido
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Sugestões rápidas com base no que você já escolheu.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {suggestions.map((product: any) => {
+                    const weight = product.preco_300g ? "300g" : product.preco_400g ? "400g" : product.peso || "";
+                    const price =
+                      weight === "300g" && product.preco_300g
+                        ? Number(product.preco_300g)
+                        : weight === "400g" && product.preco_400g
+                          ? Number(product.preco_400g)
+                          : Number(product.preco || 0);
+                    return (
+                      <div key={product.id} className="flex items-center gap-3 rounded-xl bg-white p-2.5">
+                        <img
+                          src={product.imagem_url}
+                          alt={product.nome}
+                          className="size-12 shrink-0 rounded-lg object-cover"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-xs font-bold">{product.nome}</p>
+                          <p className="mt-0.5 text-xs font-black text-primary">{formatBRL(price)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            add(product.id, 1, weight);
+                            trackEvent("cart_recommendation_add", {
+                              produtoId: product.id,
+                              valor: price,
+                              metadata: { gramatura: weight },
+                            });
+                          }}
+                          className="rounded-full bg-primary px-3 py-2 text-[10px] font-black text-primary-foreground"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Widget de Desconto Progressivo */}
             <div className="mt-8 rounded-3xl bg-primary/5 p-6 border-2 border-primary/10">
