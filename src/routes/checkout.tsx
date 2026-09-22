@@ -114,6 +114,20 @@ function Checkout() {
   const [cashbackAtivado, setCashbackAtivado] = useState(false);
   const [indicacaoElegivel, setIndicacaoElegivel] = useState(false);
 
+  const { data: referralProfile } = useQuery({
+    queryKey: ["checkout-referral-profile", session?.user?.id],
+    enabled: Boolean(session?.user?.id),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("codigo_indicacao")
+        .eq("id", session!.user.id)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
   useEffect(() => {
     if (!session?.user) return;
     getCashbackConfig().then((cfg) => setCashbackConfig(cfg));
@@ -554,6 +568,40 @@ function Checkout() {
             Você receberá as próximas atualizações do pedido pelo WhatsApp. A avaliação será solicitada somente depois da entrega.
           </p>
         </div>
+
+        {referralProfile?.codigo_indicacao && (
+          <div className="mt-4 rounded-2xl border border-[#e3dfaf] bg-[#fffbea] p-5 text-left">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f5d94a]">
+                <Gift className="size-5 text-[#315440]" />
+              </div>
+              <div>
+                <p className="font-black text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#66715f]">
+                  Seu amigo ganha 5% na primeira compra e você recebe R$ 5 de cashback depois que o pedido dele for entregue.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    to="/indicar"
+                    className="rounded-full bg-[#086e45] px-4 py-2 text-xs font-black text-white"
+                  >
+                    Ver meu link
+                  </Link>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      `Conheça a SaborosaMente! Use meu link e ganhe 5% na sua primeira compra: https://saborosamente.vercel.app/?ref=${referralProfile.codigo_indicacao}`,
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-[#086e45] px-4 py-2 text-xs font-black text-[#086e45]"
+                  >
+                    Compartilhar no WhatsApp
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Link
           to="/"
