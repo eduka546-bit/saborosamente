@@ -72,11 +72,22 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
         : product.preco;
 
   const currentNutritional =
-    selectedWeight === "300g" && product.tabela_nutricional_300g
-      ? product.tabela_nutricional_300g
-      : selectedWeight === "400g" && product.tabela_nutricional_400g
-        ? product.tabela_nutricional_400g
-        : product.tabela_nutricional;
+    selectedWeight === "200g" && product.tabela_nutricional_200g
+      ? product.tabela_nutricional_200g
+      : selectedWeight === "300g" && product.tabela_nutricional_300g
+        ? product.tabela_nutricional_300g
+        : selectedWeight === "400g" && product.tabela_nutricional_400g
+          ? product.tabela_nutricional_400g
+          : product.tabela_nutricional;
+
+  const currentRestrictions =
+    selectedWeight === "200g" && product.restricoes_200g
+      ? product.restricoes_200g
+      : selectedWeight === "300g" && product.restricoes_300g
+        ? product.restricoes_300g
+        : selectedWeight === "400g" && product.restricoes_400g
+          ? product.restricoes_400g
+          : product.restricoes;
 
   const isComboPronto = categoriaNome.toLowerCase().includes("combo pronto");
   const weightLabel = (w: string) => {
@@ -187,10 +198,10 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                     Restrições
                   </h4>
                   <p className="text-xs mt-1">
-                    {Array.isArray(product.restricoes)
-                      ? product.restricoes.join(" | ")
-                      : typeof product.restricoes === "string" && product.restricoes.trim()
-                        ? product.restricoes
+                    {Array.isArray(currentRestrictions)
+                      ? currentRestrictions.join(" | ")
+                      : typeof currentRestrictions === "string" && currentRestrictions.trim()
+                        ? currentRestrictions
                         : "Consulte a embalagem para informações de alergênicos."}
                   </p>
                 </div>
