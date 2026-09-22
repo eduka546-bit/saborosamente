@@ -345,34 +345,25 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </button>
             </div>
 
-            {/* Card de desconto — fundo preto, quantidade e % em verde */}
+            {/* Faixa de preço progressiva — sem prometer percentual aproximado */}
             {podeTerDesconto &&
               (proximaFaixa ? (
                 <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-bold text-white leading-tight">
                     Adicione mais{" "}
-                    <span className={proximaFaixa === 5 ? "text-[#86efac]" : proximaFaixa === 10 ? "text-[#34d399]" : "text-[#059669]"}>
+                    <span className="font-black text-[#86efac]">
                       {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
                     </span>
                   </p>
                   <p className="text-[10px] font-bold text-white leading-tight">
-                    para ganhar{" "}
-                    {proximaFaixa === 5 && (
-                      <span className="text-[#86efac] font-black">3%</span>
-                    )}
-                    {proximaFaixa === 10 && (
-                      <span className="text-[#34d399] font-black">5%</span>
-                    )}
-                    {proximaFaixa === 20 && (
-                      <span className="text-[#059669] font-black">7%</span>
-                    )}{" "}
-                    de desconto!
+                    para liberar o preço da faixa de{" "}
+                    <span className="font-black text-[#86efac]">{proximaFaixa}+</span>
                   </p>
                 </div>
               ) : (
                 <div className="mt-1.5 rounded-lg bg-[#086e45] px-3 py-2 text-center">
                   <span className="text-[10px] font-black uppercase tracking-wide text-white">
-                    ✓ Desconto máximo aplicado
+                    ✓ Melhor faixa de preço aplicada
                   </span>
                 </div>
               ))}
