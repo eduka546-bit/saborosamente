@@ -16,6 +16,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { DiscountProgressWidget } from "./discount-progress-widget";
 
+function estoqueDaLinha(product: any, weight?: string) {
+  const raw =
+    weight === "200g"
+      ? product?.estoque_200g
+      : weight === "300g"
+        ? product?.estoque_300g
+        : weight === "400g"
+          ? product?.estoque_400g
+          : product?.estoque ?? product?.estoque_200g;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.max(0, value) : null;
+}
+
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const { lines, subtotal, discount, shipping, total, setQuantity, remove, clear } = useCart();
@@ -49,7 +63,10 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           ) : (
             <>
               <ul className="space-y-4">
-                {lines.map(({ product, productId, quantity, weight, opcoes, subtotal: lineTotal }) => (
+                {lines.map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
+                  const stock = custom ? null : estoqueDaLinha(product, weight);
+                  const reachedStock = stock !== null && quantity >= stock;
+                  return (
                   <li
                     key={`${productId}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                     className="flex gap-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm"
@@ -79,7 +96,12 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           </span>
                           <button
                             onClick={() => setQuantity(productId, quantity + 1, weight, opcoes)}
-                            className="size-6 rounded-full hover:bg-white flex items-center justify-center transition-colors"
+                            disabled={reachedStock}
+                            title={reachedStock ? "Quantidade máxima disponível atingida" : undefined}
+                            className={cn(
+                              "size-6 rounded-full flex items-center justify-center transition-colors",
+                              reachedStock ? "cursor-not-allowed opacity-35" : "hover:bg-white",
+                            )}
                           >
                             <Plus className="size-3" />
                           </button>
@@ -96,7 +118,8 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       <X size={14} />
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
 
               <DiscountProgressWidget className="bg-white" />
