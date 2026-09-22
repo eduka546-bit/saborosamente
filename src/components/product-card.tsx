@@ -116,6 +116,20 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           ? product.tabela_nutricional_400g
           : product.tabela_nutricional;
 
+  const currentStock = (() => {
+    if (selectedWeight === "200g") return (product as any).estoque_200g;
+    if (selectedWeight === "300g") return (product as any).estoque_300g;
+    if (selectedWeight === "400g") return (product as any).estoque_400g;
+    return (product as any).estoque ?? (product as any).estoque_200g ?? null;
+  })();
+  const stockNumber =
+    currentStock === null || currentStock === undefined ? null : Number(currentStock);
+  const soldOut = stockNumber !== null && stockNumber <= 0;
+  const lowStock = stockNumber !== null && stockNumber > 0 && stockNumber <= 5;
+  const isNew =
+    Boolean((product as any).created_at) &&
+    Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
+
   // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
   const categoriaCard = product.categorias?.nome || product.categoria || "";
   const podeTerDesconto = !combo && !isSopa && !isNoDiscount(categoriaCard);
@@ -131,6 +145,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (soldOut) {
+      toast.info("Esta gramatura está esgotada no momento.");
+      return;
+    }
     if (combo) {
       setComboOpen(true);
       return;
@@ -286,11 +304,28 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 aria-hidden="true"
               />
             </button>
-            {(product as any).mais_vendido && (
-              <span className="absolute right-2 top-2 z-20 rounded-full bg-[#f5d94a] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#24432f] shadow-md">
-                Mais pedido
-              </span>
-            )}
+            <div className="absolute right-2 top-2 z-20 flex flex-col items-end gap-1">
+              {(product as any).mais_vendido && (
+                <span className="rounded-full bg-[#f5d94a] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#24432f] shadow-md">
+                  Mais pedido
+                </span>
+              )}
+              {isNew && (
+                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#086e45] shadow-md">
+                  Novo
+                </span>
+              )}
+              {lowStock && (
+                <span className="rounded-full bg-[#fff1d6] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#9a5b00] shadow-md">
+                  Últimas {stockNumber}
+                </span>
+              )}
+              {soldOut && (
+                <span className="rounded-full bg-neutral-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-md">
+                  Esgotado
+                </span>
+              )}
+            </div>
             <img
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
@@ -419,7 +454,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="inline-flex size-9 items-center justify-center rounded-full bg-[#086e45] text-white transition-all hover:scale-110 active:scale-95 shadow-md"
+                disabled={soldOut}
+                className={cn(
+                  "inline-flex size-9 items-center justify-center rounded-full text-white transition-all shadow-md",
+                  soldOut
+                    ? "cursor-not-allowed bg-gray-300"
+                    : "bg-[#086e45] hover:scale-110 active:scale-95",
+                )}
               >
                 <Plus className="size-5" aria-hidden="true" />
               </button>
