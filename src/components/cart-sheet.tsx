@@ -49,9 +49,9 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           ) : (
             <>
               <ul className="space-y-4">
-                {lines.map(({ product, quantity, weight, subtotal: lineTotal }) => (
+                {lines.map(({ product, productId, quantity, weight, opcoes, subtotal: lineTotal }) => (
                   <li
-                    key={`${product.id}-${weight}`}
+                    key={`${productId}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                     className="flex gap-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm"
                   >
                     <img
@@ -69,7 +69,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50 p-1">
                           <button
-                            onClick={() => setQuantity(product.id, quantity - 1, weight)}
+                            onClick={() => setQuantity(productId, quantity - 1, weight, opcoes)}
                             className="size-6 rounded-full hover:bg-white flex items-center justify-center transition-colors"
                           >
                             <Minus className="size-3" />
@@ -78,7 +78,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                             {quantity}
                           </span>
                           <button
-                            onClick={() => setQuantity(product.id, quantity + 1, weight)}
+                            onClick={() => setQuantity(productId, quantity + 1, weight, opcoes)}
                             className="size-6 rounded-full hover:bg-white flex items-center justify-center transition-colors"
                           >
                             <Plus className="size-3" />
@@ -90,7 +90,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       </div>
                     </div>
                     <button
-                      onClick={() => remove(product.id, weight)}
+                      onClick={() => remove(productId, weight, opcoes)}
                       className="text-gray-300 hover:text-red-500 transition-colors self-start"
                     >
                       <X size={14} />
