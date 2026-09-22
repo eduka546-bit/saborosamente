@@ -655,6 +655,51 @@ function Checkout() {
         ))}
       </div>
 
+      <details className="mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white shadow-sm lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-[#315440]">Resumo do pedido</p>
+            <p className="text-[11px] text-muted-foreground">{lines.length} {lines.length === 1 ? "item" : "itens"}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <strong className="text-base text-primary">{formatBRL(finalTotal)}</strong>
+            <ChevronDown className="size-4 text-primary" />
+          </div>
+        </summary>
+        <div className="border-t border-border px-4 py-3">
+          <ul className="space-y-2 text-xs">
+            {lines.map(({ product, quantity, subtotal: lineTotal }) => (
+              <li key={product.id} className="flex justify-between gap-3">
+                <span className="min-w-0 text-muted-foreground">
+                  {quantity}× {product.nome}
+                </span>
+                <span className="shrink-0 font-semibold">{formatBRL(lineTotal)}</span>
+              </li>
+            ))}
+          </ul>
+          <dl className="mt-3 space-y-2 border-t border-border pt-3 text-xs">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Subtotal</dt>
+              <dd>{formatBRL(subtotal)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Entrega</dt>
+              <dd>{appliedCoupon?.tipo === "Entrega Grátis" || shippingCheckout === 0 ? "Grátis" : formatBRL(shippingCheckout)}</dd>
+            </div>
+            {(couponDiscount + descontoIndicacao + cashbackDesconto) > 0 && (
+              <div className="flex justify-between text-green-600">
+                <dt>Descontos</dt>
+                <dd>− {formatBRL(couponDiscount + descontoIndicacao + cashbackDesconto)}</dd>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border pt-2 text-sm">
+              <dt className="font-bold">Total</dt>
+              <dd className="font-black text-primary">{formatBRL(finalTotal)}</dd>
+            </div>
+          </dl>
+        </div>
+      </details>
+
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -1238,7 +1283,7 @@ function Checkout() {
         </form>
 
         {/* ── resumo do pedido ──────────────────────────────────────────────── */}
-        <aside className="h-fit rounded-3xl border border-border bg-card p-6 shadow-soft">
+        <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:block">
           <h2 className="text-lg font-semibold">Seu pedido</h2>
           <ul className="mt-4 space-y-3 text-sm">
             {lines.map(({ product, quantity, subtotal: lineTotal }) => (
