@@ -875,9 +875,8 @@ function Index() {
                               type="button"
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
-                                setSearchTerm(product.nome);
                                 setSearchFocused(false);
-                                scrollToSection("produtos-grid");
+                                navigate({ to: "/produto/$produtoId", params: { produtoId: product.id } });
                               }}
                               className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
                             >
