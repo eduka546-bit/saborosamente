@@ -356,10 +356,14 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
 function TabelaNutricionalExpansivel({ valores, aberta, aoAlternar }: { valores: any; aberta: boolean; aoAlternar: () => void }) {
   if (!valores?.kcal) return null;
   const linhas = [
-    ["Valor energético", `${valores.kcal} kcal`], ["Carboidratos totais", `${valores.carb ?? 0} g`],
-    ["Proteínas", `${valores.prot ?? 0} g`], ["Gorduras totais", `${valores.gorduras_totais ?? 0} g`],
-    ["Gorduras saturadas", `${valores.gorduras_saturadas ?? 0} g`], ["Gorduras trans", `${valores.gorduras_trans ?? 0} g`],
-    ["Fibra alimentar", `${valores.fibra ?? 0} g`], ["Sódio", `${valores.sodio ?? 0} mg`],
+    ["Valor energético", valores.kcal != null ? `${valores.kcal} kcal` : "—"],
+    ["Carboidratos totais", valores.carb != null ? `${valores.carb} g` : "—"],
+    ["Proteínas", valores.prot != null ? `${valores.prot} g` : "—"],
+    ["Gorduras totais", valores.gorduras_totais != null ? `${valores.gorduras_totais} g` : "—"],
+    ["Gorduras saturadas", valores.gorduras_saturadas != null ? `${valores.gorduras_saturadas} g` : "—"],
+    ["Gorduras trans", valores.gorduras_trans != null ? `${valores.gorduras_trans} g` : "—"],
+    ["Fibra alimentar", valores.fibra != null ? `${valores.fibra} g` : "—"],
+    ["Sódio", valores.sodio != null ? `${valores.sodio} mg` : "—"],
   ];
   return <section className="overflow-hidden rounded-2xl border border-border bg-background">
     <button type="button" onClick={aoAlternar} className="flex w-full items-center justify-between px-4 py-3 text-left font-bold text-foreground">Tabela nutricional<ChevronDown className={cn("size-5 transition-transform", aberta && "rotate-180")} /></button>
