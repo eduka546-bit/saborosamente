@@ -223,6 +223,17 @@ function CozinhaPage() {
   );
   const { data: transferencias = [] } = useTableQuery("coz-transferencias", "cozinha_transferencias_estoque", "*", "created_at");
   const { data: movimentosIngredientes = [] } = useTableQuery("coz-movimentos-ingredientes", "cozinha_movimentacoes_ingredientes", "*", "created_at");
+  const { data: inteligenciaEstoque = [] } = useQuery({
+    queryKey: ["coz-inteligencia-estoque"],
+    enabled: ok,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("inteligencia_estoque");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
   const { data: producoes = [] } = useQuery({
     queryKey: ["coz-prod-dia", dataProducao],
     enabled: ok,
@@ -465,6 +476,50 @@ function CozinhaPage() {
                 <Campo label="Buscar item"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, sopa, lasanha..." /></Campo>
                 <Campo label="Status"><select className={input} value={filtroProducao} onChange={(e) => setFiltroProducao(e.target.value as typeof filtroProducao)}><option value="todos">Todos os status</option><option value="planejada">Planejadas</option><option value="em_preparo">Em preparo</option><option value="concluida">Produzidas</option></select></Campo>
               </div>
+              {(inteligenciaEstoque as any[]).some((item) => ["urgente", "atencao"].includes(item.prioridade)) && (
+                <section className="mb-5 rounded-2xl border border-[#dbe7dd] bg-white p-4">
+                  <div className="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-[#087443]">
+                        Sugestão por ritmo de venda
+                      </p>
+                      <h3 className="mt-1 text-lg font-black">O que tende a acabar primeiro</h3>
+                      <p className="mt-1 text-xs text-[#62766b]">
+                        Base: vendas entregues dos últimos 30 dias e estoque atual. A sugestão busca aproximadamente 10 dias de cobertura.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">
+                      Apoio ao planejamento
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {(inteligenciaEstoque as any[])
+                      .filter((item) => ["urgente", "atencao"].includes(item.prioridade))
+                      .slice(0, 6)
+                      .map((item) => (
+                        <article key={item.produto_id} className="rounded-xl bg-[#f7f9f5] p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <b className="text-sm">{item.nome}</b>
+                            <span className={
+                              "rounded-full px-2 py-0.5 text-[9px] font-black uppercase " +
+                              (item.prioridade === "urgente"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700")
+                            }>
+                              {item.prioridade}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-[#62766b]">
+                            {item.dias_restantes ?? "—"} dias de cobertura · {item.vendidos_30d} vendidos/30d
+                          </p>
+                          <p className="mt-1 text-sm font-black text-[#087443]">
+                            Sugestão: produzir {item.sugestao_producao} un
+                          </p>
+                        </article>
+                      ))}
+                  </div>
+                </section>
+              )}
               <SugestoesProducaoSinergia
                 dataProducao={dataProducao}
                 producoes={producoes as any[]}
