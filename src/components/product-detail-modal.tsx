@@ -17,11 +17,12 @@ interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: any;
+  allProducts?: any[];
 }
 
 // Modal de detalhes do produto — layout robusto (imagem grande + ficha completa),
 // abre por cima do catálogo sem trocar de página.
-export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailModalProps) {
+export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] }: ProductDetailModalProps) {
   const { add, count } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -163,6 +164,38 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
     nextWeightNutrition?.prot != null && currentNutritional?.prot != null
       ? Number(nextWeightNutrition.prot) - Number(currentNutritional.prot)
       : null;
+
+  const relatedProducts = allProducts
+    .filter((candidate: any) => {
+      if (!candidate || candidate.id === product.id || candidate.ativo === false || candidate.visivel_online === false) {
+        return false;
+      }
+      const candidateCategory = candidate.categorias?.nome || candidate.categoria || "";
+      if (/escolha você mesmo|escolha voce mesmo|monte você mesmo|monte voce mesmo/i.test(candidateCategory + " " + (candidate.nome || ""))) {
+        return false;
+      }
+      return candidateCategory === categoriaNome;
+    })
+    .slice(0, 3);
+
+  const addRelatedProduct = (candidate: any) => {
+    const relatedCategory = candidate.categorias?.nome || candidate.categoria || "";
+    const relatedIsMarmita = isMarmita(candidate.nome, relatedCategory);
+    const relatedWeight = candidate.preco_300g
+      ? "300g"
+      : candidate.preco_400g
+        ? "400g"
+        : candidate.peso || "";
+    add(
+      candidate.id,
+      1,
+      relatedWeight,
+      relatedIsMarmita ? { consumo: "congelada", garfoEFaca: false } : undefined,
+    );
+    toast.success("Adicionado ao carrinho!", {
+      description: `${candidate.nome}${relatedWeight ? ` (${relatedWeight})` : ""}`,
+    });
+  };
 
   const handleAddToCart = () => {
     const opcoes = ehMarmita
@@ -383,6 +416,51 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
                 </div>
               )}
             </div>
+
+            {relatedProducts.length > 0 && (
+              <section className="mt-2 border-t border-border pt-5">
+                <div className="mb-3">
+                  <p className="text-sm font-black text-foreground">Você também pode gostar</p>
+                  <p className="text-xs text-muted-foreground">Outras opções da mesma categoria.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {relatedProducts.map((candidate: any) => {
+                    const relatedWeight = candidate.preco_300g
+                      ? "300g"
+                      : candidate.preco_400g
+                        ? "400g"
+                        : candidate.peso || "";
+                    const relatedPrice =
+                      relatedWeight === "300g" && candidate.preco_300g
+                        ? candidate.preco_300g
+                        : relatedWeight === "400g" && candidate.preco_400g
+                          ? candidate.preco_400g
+                          : candidate.preco;
+                    return (
+                      <div key={candidate.id} className="flex items-center gap-2 rounded-xl border bg-background p-2 sm:flex-col sm:items-stretch">
+                        <img
+                          src={imgUrl(candidate.imagem_url || candidate.imagem)}
+                          alt={candidate.nome}
+                          className="size-14 rounded-lg object-cover sm:h-24 sm:w-full"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-[11px] font-bold leading-snug">{candidate.nome}</p>
+                          <p className="mt-1 text-xs font-black text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => addRelatedProduct(candidate)}
+                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[10px] font-black text-primary-foreground"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             <div className="sticky bottom-0 z-20 -mx-6 mt-auto border-t bg-card/95 px-6 pb-2 pt-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
               {(() => {
