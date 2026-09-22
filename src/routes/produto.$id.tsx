@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, ChevronRight, Star, ShoppingCart, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { Loader2, ChevronLeft, ChevronRight, Star, ShoppingCart, ArrowLeft, Share2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
@@ -14,21 +14,54 @@ import { OptimizedImage } from "@/components/optimized-image";
 import { isMarmita } from "@/lib/combo-rules";
 import { ProductSeals } from "@/components/product-seals";
 import { imgUrl } from "@/lib/image-proxy";
+import { getPublicProducts } from "@/lib/products.functions";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/produto/$id")({
+  loader: async ({ params }) => {
+    const products = (await getPublicProducts()) as any[];
+    const product = products.find((item) => item.id === params.id);
+    return product
+      ? {
+          id: product.id,
+          nome: product.nome,
+          descricao: product.descricao,
+          imagem: imgUrl(product.imagem_url || product.imagem),
+        }
+      : null;
+  },
   component: ProdutoPage,
-  head: () => ({
-    meta: [
-      { title: "Produto | Saborosamente" },
-      { name: "description", content: "Detalhes do produto" },
-    ],
-  }),
+  head: ({ loaderData, params }) => {
+    const product = loaderData as any;
+    const title = product?.nome ? `${product.nome} | SaborosaMente` : "Produto | SaborosaMente";
+    const description =
+      product?.descricao ||
+      "Marmita congelada artesanal SaborosaMente. Veja tamanhos, preço e informações nutricionais.";
+    const image = product?.imagem || "https://saborosamente.vercel.app/icon-app.jpg";
+    const url = `https://saborosamente.vercel.app/produto/${params.id}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        { property: "og:image", content: image },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
 });
 
 function ProdutoPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
-  const { add } = useCart();
+  const { add, lines } = useCart();
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
@@ -51,6 +84,11 @@ function ProdutoPage() {
       return data;
     },
   });
+
+  useEffect(() => {
+    if (!product?.id) return;
+    trackEvent("product_view", { produtoId: product.id, metadata: { origem: "product_page" } });
+  }, [product?.id]);
 
   if (isLoading) {
     return (
@@ -110,6 +148,26 @@ function ProdutoPage() {
   // Preço
   const isSopa = product.categorias?.nome?.toLowerCase().includes("sopa");
   const ehMarmita = isMarmita(product.nome, product.categorias?.nome || product.categoria);
+  const currentStock = (() => {
+    if (selectedWeight === "200g") return product.estoque_200g;
+    if (selectedWeight === "300g") return product.estoque_300g;
+    if (selectedWeight === "400g") return product.estoque_400g;
+    return product.estoque ?? product.estoque_200g ?? null;
+  })();
+  const stockNumber =
+    currentStock === null || currentStock === undefined || currentStock === ""
+      ? null
+      : Number(currentStock);
+  const alreadyInCart = lines.reduce((sum, line) => {
+    if (line.custom || line.comboPronto) return sum;
+    return line.productId === product.id && line.weight === selectedWeight
+      ? sum + Number(line.quantity || 0)
+      : sum;
+  }, 0);
+  const remainingStock =
+    stockNumber === null || !Number.isFinite(stockNumber) ? null : Math.max(0, stockNumber - alreadyInCart);
+  const soldOut = remainingStock !== null && remainingStock <= 0;
+
   const currentPrice = isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
@@ -126,11 +184,34 @@ function ProdutoPage() {
         ? product.tabela_nutricional_400g
         : product.tabela_nutricional;
 
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : `https://saborosamente.vercel.app/produto/${product.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.nome, text: product.nome, url });
+        trackEvent("product_share", { produtoId: product.id, metadata: { metodo: "native" } });
+      } else {
+        await navigator.clipboard.writeText(url);
+        trackEvent("product_share", { produtoId: product.id, metadata: { metodo: "clipboard" } });
+        toast.success("Link copiado!");
+      }
+    } catch {}
+  };
+
   const handleAddToCart = () => {
+    if (soldOut) {
+      toast.info("Esta gramatura está esgotada.");
+      return;
+    }
     const opcoes = ehMarmita
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
       : undefined;
     add(product.id, 1, selectedWeight, opcoes);
+    trackEvent("add_to_cart", {
+      produtoId: product.id,
+      valor: Number(currentPrice || 0),
+      metadata: { gramatura: selectedWeight, origem: "product_page" },
+    });
     toast.success("Adicionado ao carrinho!", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
     });
@@ -262,7 +343,17 @@ function ProdutoPage() {
         <div className="space-y-6">
           {/* Cabeçalho */}
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">{product.nome}</h1>
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <h1 className="text-4xl font-bold text-foreground">{product.nome}</h1>
+              <button
+                type="button"
+                onClick={handleShare}
+                aria-label="Compartilhar produto"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-primary transition hover:bg-primary/5"
+              >
+                <Share2 className="size-4" />
+              </button>
+            </div>
 
             {/* Rating + Categoria */}
             <div className="flex items-center gap-4 mb-4">
@@ -304,7 +395,10 @@ function ProdutoPage() {
                 {weights.map((w: string) => (
                   <button
                     key={w}
-                    onClick={() => setSelectedWeight(w)}
+                    onClick={() => {
+                      setSelectedWeight(w);
+                      trackEvent("size_select", { produtoId: product.id, metadata: { gramatura: w, origem: "product_page" } });
+                    }}
                     className={cn(
                       "rounded-xl border-2 py-4 text-sm font-bold transition-all",
                       selectedWeight === w
@@ -426,12 +520,18 @@ function ProdutoPage() {
               </span>
             </div>
 
+            {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
+              <p className="text-xs font-bold text-[#9a5b00]">
+                {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
+              </p>
+            )}
             <Button
               onClick={handleAddToCart}
-              className="w-full h-14 rounded-xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02]"
+              disabled={soldOut}
+              className="w-full h-14 rounded-xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShoppingCart className="size-5" />
-              Adicionar ao Carrinho
+              {soldOut ? "Esgotado nesta gramatura" : "Adicionar ao Carrinho"}
             </Button>
           </div>
         </div>
