@@ -543,7 +543,7 @@ function PerfilPage() {
                 {favoriteProducts.map((product) => (
                   <Card key={product.id} className="overflow-hidden">
                     <CardContent className="flex items-center gap-3 p-3">
-                      <Link to="/produto/$produtoId" params={{ produtoId: product.id }} className="shrink-0">
+                      <Link to="/produto/$id" params={{ id: product.id }} className="shrink-0">
                         <img
                           src={imgUrl(product.imagem_url)}
                           alt={product.nome}
@@ -553,8 +553,8 @@ function PerfilPage() {
                       </Link>
                       <div className="min-w-0 flex-1">
                         <Link
-                          to="/produto/$produtoId"
-                          params={{ produtoId: product.id }}
+                          to="/produto/$id"
+                          params={{ id: product.id }}
                           className="line-clamp-2 text-sm font-bold leading-snug hover:text-primary"
                         >
                           {product.nome}
@@ -563,8 +563,8 @@ function PerfilPage() {
                           R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
                         </p>
                         <Link
-                          to="/produto/$produtoId"
-                          params={{ produtoId: product.id }}
+                          to="/produto/$id"
+                          params={{ id: product.id }}
                           className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                         >
                           Abrir produto <ExternalLink className="size-3" />
@@ -608,8 +608,8 @@ function PerfilPage() {
                           </div>
                         </div>
                         <Link
-                          to="/produto/$produtoId"
-                          params={{ produtoId: item.id }}
+                          to="/produto/$id"
+                          params={{ id: item.id }}
                           className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/5"
                         >
                           Abrir
