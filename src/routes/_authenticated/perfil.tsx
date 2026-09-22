@@ -22,6 +22,7 @@ import {
   ArrowDownCircle,
   RotateCcw,
   Heart,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSaldo } from "@/lib/cashback";
@@ -542,17 +543,32 @@ function PerfilPage() {
                 {favoriteProducts.map((product) => (
                   <Card key={product.id} className="overflow-hidden">
                     <CardContent className="flex items-center gap-3 p-3">
-                      <img
-                        src={imgUrl(product.imagem_url)}
-                        alt={product.nome}
-                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                        loading="lazy"
-                      />
+                      <Link to="/produto/$produtoId" params={{ produtoId: product.id }} className="shrink-0">
+                        <img
+                          src={imgUrl(product.imagem_url)}
+                          alt={product.nome}
+                          className="h-16 w-16 rounded-xl object-cover"
+                          loading="lazy"
+                        />
+                      </Link>
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-sm font-bold leading-snug">{product.nome}</p>
+                        <Link
+                          to="/produto/$produtoId"
+                          params={{ produtoId: product.id }}
+                          className="line-clamp-2 text-sm font-bold leading-snug hover:text-primary"
+                        >
+                          {product.nome}
+                        </Link>
                         <p className="mt-1 text-sm font-black text-primary">
                           R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
                         </p>
+                        <Link
+                          to="/produto/$produtoId"
+                          params={{ produtoId: product.id }}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                        >
+                          Abrir produto <ExternalLink className="size-3" />
+                        </Link>
                       </div>
                       <button
                         type="button"
@@ -592,11 +608,11 @@ function PerfilPage() {
                           </div>
                         </div>
                         <Link
-                          to="/"
-                          hash="cardapio"
-                          className="shrink-0 text-xs font-bold text-primary hover:underline"
+                          to="/produto/$produtoId"
+                          params={{ produtoId: item.id }}
+                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/5"
                         >
-                          Ver
+                          Abrir
                         </Link>
                       </div>
                     ))}
