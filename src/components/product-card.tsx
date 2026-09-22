@@ -164,6 +164,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               src={product.imagem}
               alt={`Combo ${product.nome}`}
               loading="lazy"
+              decoding="async"
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
               width={800}
               height={600}
               className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -235,6 +237,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
               loading="lazy"
+              decoding="async"
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
               width={800}
               height={800}
               className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -409,6 +413,9 @@ function ProductCarousel({ images }: { images: string[] }) {
           <img
             key={i}
             src={img}
+            loading="lazy"
+            decoding="async"
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
             className="size-full object-cover shrink-0"
             alt={`Imagem ${i + 1}`}
           />
