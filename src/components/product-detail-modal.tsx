@@ -384,7 +384,7 @@ export function ProductDetailModal({ isOpen, onClose, product }: ProductDetailMo
               )}
             </div>
 
-            <div className="mt-auto pt-6 border-t">
+            <div className="sticky bottom-0 z-20 -mx-6 mt-auto border-t bg-card/95 px-6 pb-2 pt-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
               {(() => {
                 // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
                 const semDesconto = isNoDiscount(categoriaNome);
