@@ -262,6 +262,35 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50 h-full">
           {/* Imagem — sem arredondamento no topo */}
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
+            <button
+              type="button"
+              aria-label={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              title={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (!userId) {
+                  toast.info("Entre na sua conta para salvar favoritos.");
+                  return;
+                }
+                try {
+                  const favorite = await toggleFavorite(product.id);
+                  toast.success(favorite ? "Adicionado aos favoritos" : "Removido dos favoritos");
+                } catch {
+                  toast.error("Não foi possível atualizar seus favoritos.");
+                }
+              }}
+              className="absolute left-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
+            >
+              <Heart
+                className={cn("size-5", favoriteIds.has(product.id) && "fill-[#086e45]")}
+                aria-hidden="true"
+              />
+            </button>
+            {(product as any).mais_vendido && (
+              <span className="absolute right-2 top-2 z-20 rounded-full bg-[#f5d94a] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#24432f] shadow-md">
+                Mais pedido
+              </span>
+            )}
             <img
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
