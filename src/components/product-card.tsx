@@ -49,7 +49,7 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
-  const { add, count } = useCart();
+  const { add, count, lines } = useCart();
   const { userId, favoriteIds, toggleFavorite } = useFavorites();
   const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
@@ -124,8 +124,16 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   })();
   const stockNumber =
     currentStock === null || currentStock === undefined ? null : Number(currentStock);
-  const soldOut = stockNumber !== null && stockNumber <= 0;
-  const lowStock = stockNumber !== null && stockNumber > 0 && stockNumber <= 5;
+  const quantityAlreadyInCart = lines.reduce((sum, line) => {
+    if (line.custom || line.comboPronto) return sum;
+    return line.productId === product.id && line.weight === selectedWeight
+      ? sum + Number(line.quantity || 0)
+      : sum;
+  }, 0);
+  const remainingStock =
+    stockNumber === null ? null : Math.max(0, stockNumber - quantityAlreadyInCart);
+  const soldOut = remainingStock !== null && remainingStock <= 0;
+  const lowStock = remainingStock !== null && remainingStock > 0 && remainingStock <= 5;
   const isNew =
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
@@ -133,7 +141,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const commercialBadge = soldOut
     ? { label: "Esgotado", className: "bg-neutral-900 text-white" }
     : lowStock
-      ? { label: `Últimas ${stockNumber}`, className: "bg-[#fff1d6] text-[#9a5b00]" }
+      ? { label: `Últimas ${remainingStock}`, className: "bg-[#fff1d6] text-[#9a5b00]" }
       : (product as any).mais_vendido
         ? { label: "Mais pedido", className: "bg-[#f5d94a] text-[#24432f]" }
         : isNew
