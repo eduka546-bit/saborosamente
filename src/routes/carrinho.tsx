@@ -27,6 +27,20 @@ export const Route = createFileRoute("/carrinho")({
   component: Carrinho,
 });
 
+function estoqueDaLinha(product: any, weight?: string) {
+  const raw =
+    weight === "200g"
+      ? product?.estoque_200g
+      : weight === "300g"
+        ? product?.estoque_300g
+        : weight === "400g"
+          ? product?.estoque_400g
+          : product?.estoque ?? product?.estoque_200g;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.max(0, value) : null;
+}
+
 function Carrinho() {
   const {
     lines,
@@ -92,7 +106,10 @@ function Carrinho() {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           <ul className="space-y-4">
-            {lines.map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => (
+            {lines.map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
+              const stock = custom ? null : estoqueDaLinha(product, weight);
+              const reachedStock = stock !== null && quantity >= stock;
+              return (
               <li
                 key={`${productId}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                 className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center"
@@ -136,7 +153,12 @@ function Carrinho() {
                         type="button"
                         aria-label={`Aumentar quantidade de ${product.nome}`}
                         onClick={() => setQuantity(productId, quantity + 1, weight, opcoes)}
-                        className="grid size-8 place-items-center rounded-full hover:bg-secondary"
+                        disabled={reachedStock}
+                        title={reachedStock ? "Quantidade máxima disponível atingida" : undefined}
+                        className={cn(
+                          "grid size-8 place-items-center rounded-full",
+                          reachedStock ? "cursor-not-allowed opacity-35" : "hover:bg-secondary",
+                        )}
                       >
                         <Plus className="size-4" aria-hidden="true" />
                       </button>
@@ -152,7 +174,8 @@ function Carrinho() {
                 </div>
                 <span className="text-base font-bold text-primary">{formatBRL(lineTotal)}</span>
               </li>
-            ))}
+              );
+            })}
             <li>
               <button
                 type="button"
@@ -242,6 +265,14 @@ function Carrinho() {
                 <dt className="font-semibold">Total</dt>
                 <dd className="font-bold text-primary">{formatBRL(total)}</dd>
               </div>
+              {count > 0 && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <dt>Média por unidade</dt>
+                  <dd className="font-bold text-[#315440]">
+                    {formatBRL(Math.max(0, subtotal - discount) / count)}
+                  </dd>
+                </div>
+              )}
             </dl>
 
             {cashbackEstimado > 0 && (
