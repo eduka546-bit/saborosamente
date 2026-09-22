@@ -876,7 +876,7 @@ function Index() {
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
                                 setSearchFocused(false);
-                                navigate({ to: "/produto/$produtoId", params: { produtoId: product.id } });
+                                navigate({ to: "/produto/$id", params: { id: product.id } });
                               }}
                               className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
                             >
