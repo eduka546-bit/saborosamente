@@ -20,6 +20,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AdminHeader } from "@/components/admin-header";
 import { FloatingDiscountWidget } from "@/components/floating-discount-widget";
 import { CartSheet } from "@/components/cart-sheet";
+import { AnalyticsObserver } from "@/components/analytics-observer";
 
 function NotFoundComponent() {
   return (
@@ -190,6 +191,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AnalyticsObserver pathname={pathname} />
       <CartProvider>
         <div className="flex min-h-screen flex-col bg-gradient-to-b from-primary/5 via-background to-background">
           {/* Decoração de fundo - gradiente nas laterais */}
