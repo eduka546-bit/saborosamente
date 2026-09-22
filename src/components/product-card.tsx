@@ -496,6 +496,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         isOpen={detailOpen}
         onClose={() => setDetailOpen(false)}
         product={product}
+        allProducts={allProducts}
       />
 
       <ComboSaboresModal
