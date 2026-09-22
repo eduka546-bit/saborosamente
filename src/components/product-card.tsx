@@ -105,11 +105,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   })();
 
   const currentNutritional =
-    selectedWeight === "300g" && product.tabela_nutricional_300g
-      ? product.tabela_nutricional_300g
-      : selectedWeight === "400g" && product.tabela_nutricional_400g
-        ? product.tabela_nutricional_400g
-        : product.tabela_nutricional;
+    selectedWeight === "200g" && (product as any).tabela_nutricional_200g
+      ? (product as any).tabela_nutricional_200g
+      : selectedWeight === "300g" && product.tabela_nutricional_300g
+        ? product.tabela_nutricional_300g
+        : selectedWeight === "400g" && product.tabela_nutricional_400g
+          ? product.tabela_nutricional_400g
+          : product.tabela_nutricional;
 
   // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
   const categoriaCard = product.categorias?.nome || product.categoria || "";
@@ -315,6 +317,24 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                 {product.peso}
               </p>
+            )}
+
+            {currentNutritional?.kcal != null && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
+                  {currentNutritional.kcal} kcal
+                </span>
+                {currentNutritional?.prot != null && (
+                  <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
+                    {currentNutritional.prot}g proteína
+                  </span>
+                )}
+                {Number(currentNutritional?.prot || 0) >= 30 && (
+                  <span className="rounded-full bg-[#086e45] px-2 py-1 text-white">
+                    alta proteína
+                  </span>
+                )}
+              </div>
             )}
 
             {/* Preço + botão adicionar */}
