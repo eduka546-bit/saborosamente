@@ -365,6 +365,29 @@ function PerfilPage() {
     );
   }, [newAddress.cidade, newAddress.bairro, taxas]);
 
+  const topProducts = useMemo(() => {
+    const counts = new Map<string, { id: string; nome: string; quantidade: number }>();
+
+    orders
+      .filter((order: any) => String(order.status || "").toLowerCase() !== "cancelado")
+      .forEach((order: any) => {
+        (order.itens ?? []).forEach((item: any) => {
+          if (!item.produto_id) return;
+          const current = counts.get(item.produto_id) ?? {
+            id: item.produto_id,
+            nome: item.produtos?.nome ?? "Produto",
+            quantidade: 0,
+          };
+          current.quantidade += Number(item.quantidade || 0);
+          counts.set(item.produto_id, current);
+        });
+      });
+
+    return [...counts.values()]
+      .sort((a, b) => b.quantidade - a.quantidade)
+      .slice(0, 5);
+  }, [orders]);
+
   const handleRepeatOrder = (order: any) => {
     try {
       // Adiciona cada item do pedido anterior ao carrinho.
@@ -523,6 +546,43 @@ function PerfilPage() {
               </div>
             )}
           </section>
+
+          {topProducts.length > 0 && (
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary" />
+                Seus mais pedidos
+              </h2>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="divide-y">
+                    {topProducts.map((item, index) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{item.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.quantidade} {item.quantidade === 1 ? "unidade pedida" : "unidades pedidas"}
+                            </p>
+                          </div>
+                        </div>
+                        <Link
+                          to="/"
+                          hash="cardapio"
+                          className="shrink-0 text-xs font-bold text-primary hover:underline"
+                        >
+                          Ver
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
           {/* Meus Pedidos */}
           <section className="space-y-6">
