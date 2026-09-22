@@ -87,6 +87,29 @@ function AdminCampaignPage() {
     staleTime: 30_000,
   });
 
+  const {
+    data: alertasReposicaoProntos = [],
+    refetch: refetchAlertasReposicao,
+  } = useQuery({
+    queryKey: ["campanhas-alertas-reposicao-prontos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("alertas_reposicao_prontos");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 30_000,
+  });
+
+  const carregarAlertasReposicao = () => {
+    const contatos = (alertasReposicaoProntos as any[])
+      .map((item) => String(item.telefone || "").replace(/\D/g, ""))
+      .filter((telefone) => telefone.length >= 10);
+    setListaCarregada(null);
+    setContatosEditaveis(Array.from(new Set(contatos)));
+    setMostrarListaCompleta(true);
+    toast.success(`${contatos.length} contatos de reposição carregados.`);
+  };
+
   const carregarSegmento = (segmento: string) => {
     const telefones = (segmentosClientes as any[])
       .filter((item) => item.segmento === segmento && item.telefone)
@@ -690,7 +713,37 @@ function AdminCampaignPage() {
 
       return campanha;
     },
-    onSuccess: (campanha) => {
+    onSuccess: async (campanha, variables) => {
+      const enviados = new Set(
+        (variables?.contatosSelecionados || []).map((telefone: string) =>
+          String(telefone).replace(/\D/g, ""),
+        ),
+      );
+
+      if (enviados.size) {
+        const filaIds = (filaRecompra as any[])
+          .filter((item) => enviados.has(String(item.telefone || "").replace(/\D/g, "")))
+          .map((item) => item.id);
+        if (filaIds.length) {
+          await supabase
+            .from("campanhas_recompra_fila")
+            .update({ status: "enviado", updated_at: new Date().toISOString() })
+            .in("id", filaIds);
+          refetchFilaRecompra();
+        }
+
+        const alertaIds = (alertasReposicaoProntos as any[])
+          .filter((item) => enviados.has(String(item.telefone || "").replace(/\D/g, "")))
+          .map((item) => item.alerta_id);
+        if (alertaIds.length) {
+          await supabase
+            .from("alertas_reposicao")
+            .update({ status: "notificado", notificado_em: new Date().toISOString() })
+            .in("id", alertaIds);
+          refetchAlertasReposicao();
+        }
+      }
+
       toast.success(`✓ Campanha iniciada! Enviando para ${campanha.contatos_total} contatos...`);
       setMensagem("");
       setNomesCampanha("");
@@ -1236,6 +1289,14 @@ function AdminCampaignPage() {
                   className="rounded-full bg-[#5850ec] px-3 py-2 text-xs font-black text-white disabled:opacity-40"
                 >
                   Recompra automática ({(filaRecompra as any[]).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={carregarAlertasReposicao}
+                  disabled={(alertasReposicaoProntos as any[]).length === 0}
+                  className="rounded-full bg-[#087443] px-3 py-2 text-xs font-black text-white disabled:opacity-40"
+                >
+                  Reposição disponível ({(alertasReposicaoProntos as any[]).length})
                 </button>
               </div>
 
