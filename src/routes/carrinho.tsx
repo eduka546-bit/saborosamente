@@ -72,7 +72,7 @@ function Carrinho() {
     count < minimoRegional;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-14">
+    <section className="mx-auto max-w-6xl px-4 pb-32 pt-14 lg:pb-14">
       <h1 className="text-4xl font-extrabold">Seu carrinho</h1>
 
       {lines.length === 0 ? (
@@ -387,6 +387,30 @@ function Carrinho() {
               </div>
             </div>
           </aside>
+        </div>
+      )}
+
+      {lines.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-border bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(0,0,0,.08)] backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Total do pedido
+              </p>
+              <p className="text-xl font-black text-[#086e45]">{formatBRL(total)}</p>
+            </div>
+            <Link
+              to="/checkout"
+              search={{ cupom: undefined }}
+              disabled={pedidoRegionalInvalido}
+              className={cn(
+                "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-black text-primary-foreground shadow-md",
+                pedidoRegionalInvalido && "pointer-events-none opacity-50",
+              )}
+            >
+              Finalizar pedido
+            </Link>
+          </div>
         </div>
       )}
     </section>
