@@ -9,6 +9,9 @@ import {
   MapPin,
   ChevronDown,
   Gift,
+  ShieldCheck,
+  Store,
+  CreditCard,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
@@ -545,76 +548,12 @@ function Checkout() {
           );
         })()}
 
-        {/* Modal de Feedback */}
-        {!feedbackEnviado && (
-          <div className="mt-8 bg-white border rounded-2xl p-6 text-left shadow-sm">
-            <h3 className="text-lg font-bold text-center mb-1">Como foi sua experiência?</h3>
-            <p className="text-xs text-muted-foreground text-center mb-4">
-              Sua opinião nos ajuda a melhorar!
-            </p>
-
-            {/* Estrelas de nota */}
-            <div className="flex justify-center gap-2 mb-4">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setFeedbackNota(n)}
-                  className={`text-2xl transition-transform hover:scale-125 ${
-                    n <= feedbackNota ? "text-yellow-400" : "text-gray-300"
-                  }`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-
-            {/* Comentário */}
-            <textarea
-              placeholder="Deixe um comentário (opcional)..."
-              value={feedbackComentario}
-              onChange={(e) => setFeedbackComentario(e.target.value)}
-              className="w-full border rounded-xl p-3 text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-
-            <div className="flex gap-2 mt-4">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await supabase.from("avaliacoes").insert([
-                      {
-                        pedido_id: orderId,
-                        user_id: session?.user?.id || null,
-                        nota: feedbackNota,
-                        comentario: feedbackComentario || null,
-                      },
-                    ]);
-                    setFeedbackEnviado(true);
-                    toast.success("Obrigado pelo feedback!");
-                  } catch (e) {
-                    setFeedbackEnviado(true);
-                  }
-                }}
-                disabled={feedbackNota === 0}
-                className="flex-1 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Enviar Feedback
-              </button>
-              <button
-                type="button"
-                onClick={() => setFeedbackEnviado(true)}
-                className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
-              >
-                Pular
-              </button>
-            </div>
-          </div>
-        )}
-
-        {feedbackEnviado && (
-          <p className="mt-4 text-sm text-green-600 font-medium">Obrigado pelo seu feedback!</p>
-        )}
+        <div className="mt-6 rounded-2xl border border-[#d9e6d2] bg-[#f4f8f1] p-4 text-left text-sm text-[#315440]">
+          <strong>Agora é com a gente.</strong>
+          <p className="mt-1 text-xs leading-relaxed text-[#5b7064]">
+            Você receberá as próximas atualizações do pedido pelo WhatsApp. A avaliação será solicitada somente depois da entrega.
+          </p>
+        </div>
 
         <Link
           to="/"
@@ -650,10 +589,25 @@ function Checkout() {
     <section className="mx-auto max-w-6xl px-4 py-14">
       <h1 className="text-4xl font-extrabold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Preencha os dados de entrega e escolha a forma de pagamento.
+        Finalize seu pedido em três etapas simples.
       </p>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+      <div className="mt-6 grid grid-cols-3 gap-2">
+        {[
+          ["1", "Entrega"],
+          ["2", "Pagamento"],
+          ["3", "Confirmar"],
+        ].map(([numero, label]) => (
+          <div key={numero} className="rounded-2xl border border-[#dce7d5] bg-[#f7faf4] px-3 py-3 text-center">
+            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-xs font-black text-white">
+              {numero}
+            </span>
+            <span className="mt-1 block text-[11px] font-extrabold text-[#315440]">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
@@ -662,7 +616,7 @@ function Checkout() {
           {/* ── dados pessoais ─────────────────────────────────────────────── */}
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Seus dados
+              1. Seus dados
             </legend>
             <div>
               <label htmlFor="nome" className="text-sm font-medium">
@@ -918,7 +872,7 @@ function Checkout() {
           {/* ── pagamento ──────────────────────────────────────────────────── */}
           <fieldset className="space-y-3">
             <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Pagamento
+              2. Pagamento
             </legend>
 
             <input type="hidden" {...register("pagamento")} />
@@ -1168,6 +1122,15 @@ function Checkout() {
             </div>
           )}
 
+          <div className="border-t border-border pt-5">
+            <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              3. Revise e confirme
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Confira o resumo ao lado, deixe alguma observação se precisar e confirme o pedido.
+            </p>
+          </div>
+
           {/* ── observações ────────────────────────────────────────────────── */}
           <div>
             <label htmlFor="observacoes" className="text-sm font-medium">
@@ -1192,6 +1155,25 @@ function Checkout() {
                 ? `Confirmar pedido • ${formatBRL(finalTotal)}`
                 : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
+              <ShieldCheck className="mx-auto size-5 text-[#086e45]" />
+              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Pedido protegido</span>
+            </div>
+            <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
+              <CreditCard className="mx-auto size-5 text-[#086e45]" />
+              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Sem taxa no cartão</span>
+            </div>
+            <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
+              <Store className="mx-auto size-5 text-[#086e45]" />
+              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Loja física em SBS</span>
+            </div>
+            <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
+              <MessageCircle className="mx-auto size-5 text-[#086e45]" />
+              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Suporte no WhatsApp</span>
+            </div>
+          </div>
 
           {!session && (
             <p className="text-center text-xs text-muted-foreground">
