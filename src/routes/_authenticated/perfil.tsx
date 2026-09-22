@@ -21,11 +21,13 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   RotateCcw,
+  Heart,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSaldo } from "@/lib/cashback";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { imgUrl } from "@/lib/image-proxy";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,6 +70,7 @@ function PerfilPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
   const [cashbackTransacoes, setCashbackTransacoes] = useState<any[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
 
   const [profileForm, setProfileForm] = useState({
     nome: "",
@@ -90,6 +93,7 @@ function PerfilPage() {
     fetchProfile();
     fetchAddresses();
     fetchOrders();
+    fetchFavorites();
     // Busca cashback
     getSaldo(session.user.id).then((s) => setCashbackSaldo(s));
     supabase
@@ -145,6 +149,48 @@ function PerfilPage() {
     } finally {
       setLoadingOrders(false);
     }
+  };
+
+  const fetchFavorites = async () => {
+    const { data: favs } = await supabase
+      .from("favoritos")
+      .select("produto_id, created_at")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
+
+    const ids = (favs ?? []).map((f: any) => f.produto_id);
+    if (!ids.length) {
+      setFavoriteProducts([]);
+      return;
+    }
+
+    const { data: products } = await supabase
+      .from("produtos")
+      .select("id,nome,imagem_url,preco,preco_300g,ativo,visivel_online")
+      .in("id", ids)
+      .eq("ativo", true)
+      .eq("visivel_online", true);
+
+    const orderMap = new Map(ids.map((id: string, index: number) => [id, index]));
+    setFavoriteProducts(
+      (products ?? []).sort(
+        (a: any, b: any) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999),
+      ),
+    );
+  };
+
+  const removeFavorite = async (produtoId: string) => {
+    const { error } = await supabase
+      .from("favoritos")
+      .delete()
+      .eq("user_id", session.user.id)
+      .eq("produto_id", produtoId);
+    if (error) {
+      toast.error("Não foi possível remover dos favoritos.");
+      return;
+    }
+    setFavoriteProducts((current) => current.filter((product) => product.id !== produtoId));
+    toast.success("Removido dos favoritos.");
   };
 
   const fetchProfile = async () => {
@@ -425,6 +471,59 @@ function PerfilPage() {
         </Card>
 
         <div className="space-y-12">
+          {/* Meus Favoritos */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Heart className="h-5 w-5 fill-primary text-primary" />
+                Meus Favoritos
+              </h2>
+              <Link to="/" hash="cardapio" className="text-sm font-bold text-primary hover:underline">
+                Ver cardápio
+              </Link>
+            </div>
+
+            {favoriteProducts.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center">
+                  <Heart className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Toque no coração das suas marmitas favoritas para encontrá-las aqui.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {favoriteProducts.map((product) => (
+                  <Card key={product.id} className="overflow-hidden">
+                    <CardContent className="flex items-center gap-3 p-3">
+                      <img
+                        src={imgUrl(product.imagem_url)}
+                        alt={product.nome}
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                        loading="lazy"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-bold leading-snug">{product.nome}</p>
+                        <p className="mt-1 text-sm font-black text-primary">
+                          R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFavorite(product.id)}
+                        aria-label="Remover dos favoritos"
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                      >
+                        <Heart className="size-4 fill-current" />
+                      </button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Meus Pedidos */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
