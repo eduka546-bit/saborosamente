@@ -33,7 +33,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 const links = [
   { to: "/", hash: "cardapio", label: "Cardápio", icon: Menu, type: "link" },
   { to: "#", label: "Áreas de entrega", icon: MapPin, type: "modal" },
-  { to: "/perfil", label: "Cashback", icon: Sparkles, type: "link" },
+  { to: "/perfil", hash: "cashback", label: "Cashback", icon: Sparkles, type: "link" },
   { to: "/meus-pedidos", label: "Meus Pedidos", icon: ShoppingBag, type: "link" },
   { to: "/indicar", label: "Indique e Ganhe", icon: Gift, type: "link" },
   { to: "/fale-conosco", label: "Fale conosco", icon: MessageSquare, type: "link" },
