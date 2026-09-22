@@ -135,7 +135,6 @@ function AuthPage() {
           >
             {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
           </button>
-        </div>
           <h2 className="text-2xl font-bold tracking-tight">
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
@@ -254,29 +253,6 @@ function AuthPage() {
           </Button>
         </form>
 
-        <div className="text-center">
-          {recoveryMode ? (
-            <button
-              type="button"
-              onClick={() => {
-                setRecoveryMode(false);
-                setPassword("");
-                setConfirmPassword("");
-              }}
-              className="text-sm text-primary hover:underline font-medium"
-            >
-              Voltar para o login
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline font-medium"
-            >
-              {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
