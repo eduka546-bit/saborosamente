@@ -484,23 +484,54 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cachedProducts.find((p) => p.id === id);
   }, []);
 
+  const stockFor = useCallback((productId: string, weight?: string) => {
+    const product: any = cachedProducts.find((p) => p.id === productId);
+    if (!product) return null;
+    const raw =
+      weight === "200g"
+        ? product.estoque_200g
+        : weight === "300g"
+          ? product.estoque_300g
+          : weight === "400g"
+            ? product.estoque_400g
+            : product.estoque ?? product.estoque_200g;
+    if (raw === null || raw === undefined || raw === "") return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? Math.max(0, value) : null;
+  }, []);
+
+  const quantityInCartFor = useCallback(
+    (cartLines: CartLine[], productId: string, weight?: string, exclude?: CartLine) =>
+      cartLines.reduce((sum, line) => {
+        if (line === exclude || line.custom || line.comboPronto) return sum;
+        return line.productId === productId && line.weight === weight ? sum + line.quantity : sum;
+      }, 0),
+    [],
+  );
+
   const add = useCallback(
     (productId: string, quantity = 1, weight?: string, opcoes?: CartItemOpcoes) => {
       setLines((prev) => {
+        const stock = stockFor(productId, weight);
+        const alreadyInCart = quantityInCartFor(prev, productId, weight);
+        const available = stock === null ? quantity : Math.max(0, stock - alreadyInCart);
+        const quantityToAdd = Math.max(0, Math.min(quantity, available));
+        if (quantityToAdd <= 0) return prev;
+
         const existing = prev.find(
           (l) => l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes),
         );
         if (existing) {
           return prev.map((l) =>
             l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)
-              ? { ...l, quantity: l.quantity + quantity }
+              ? { ...l, quantity: l.quantity + quantityToAdd }
               : l,
           );
         }
-        return [...prev, { productId, quantity, weight, opcoes }];
+        return [...prev, { productId, quantity: quantityToAdd, weight, opcoes }];
       });
     },
-    [],
+    [quantityInCartFor, stockFor],
   );
 
   // Marmita personalizada: cada combinação é uma linha única (id sintético).
@@ -538,20 +569,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const setQuantity = useCallback(
     (productId: string, quantity: number, weight?: string, opcoes?: CartItemOpcoes) => {
-      setLines((prev) =>
-        quantity <= 0
-          ? prev.filter(
-              (l) =>
-                !(l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)),
-            )
-          : prev.map((l) =>
-              l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes)
-                ? { ...l, quantity }
-                : l,
-            ),
-      );
+      setLines((prev) => {
+        const target = prev.find(
+          (l) => l.productId === productId && l.weight === weight && mesmaOpcao(l.opcoes, opcoes),
+        );
+        if (!target) return prev;
+        if (quantity <= 0) {
+          return prev.filter((line) => line !== target);
+        }
+
+        const stock = stockFor(productId, weight);
+        const otherQuantity = quantityInCartFor(prev, productId, weight, target);
+        const maxForThisLine =
+          stock === null ? quantity : Math.max(0, stock - otherQuantity);
+        const nextQuantity = Math.min(quantity, maxForThisLine);
+        if (nextQuantity <= 0) return prev.filter((line) => line !== target);
+
+        return prev.map((line) =>
+          line === target ? { ...line, quantity: nextQuantity } : line,
+        );
+      });
     },
-    [],
+    [quantityInCartFor, stockFor],
   );
 
   const remove = useCallback((productId: string, weight?: string, opcoes?: CartItemOpcoes) => {
