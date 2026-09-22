@@ -54,9 +54,27 @@ const productText = (product: any) =>
   );
 
 const nutritionValue = (product: any, field: "kcal" | "prot") => {
-  const raw = product.tabela_nutricional?.[field] ?? product[`tabela_nutricional_300g`]?.[field] ?? "";
+  // Para marmitas, o tamanho padrão da vitrine é 300 g. Sopas/complementos
+  // continuam usando a tabela principal quando não possuem 300 g.
+  const raw =
+    product.tabela_nutricional_300g?.[field] ??
+    product.tabela_nutricional?.[field] ??
+    product.tabela_nutricional_400g?.[field] ??
+    "";
   const parsed = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const productPrice = (product: any) => {
+  const values = [
+    product.preco,
+    product.preco_200g,
+    product.preco_300g,
+    product.preco_400g,
+  ]
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return values.length ? Math.min(...values) : Number.POSITIVE_INFINITY;
 };
 
 // Apenas "Combos Escolha Você Mesmo" são excluídos do catálogo e filtros
@@ -269,11 +287,20 @@ function Index() {
   });
 
   const quickFilters = [
-    "Mais escolhidas", "Mais saudáveis", "Mais leves", "Mais calóricas", "Mais proteicas",
-    "Frango", "Carne bovina", "Peixes",
+    "Mais escolhidas",
+    "Até 300 kcal",
+    "30g+ proteína",
+    "Mais leves",
+    "Mais calóricas",
+    "Mais proteicas",
+    "Menor preço",
+    "Frango",
+    "Carne bovina",
+    "Peixes",
+    "Sopas",
   ];
   const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
-  const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
+  const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas", "Menor preço"];
   const activeFiltersLabel = selectedFilters.length > 0 ? selectedFilters.join(" + ") : "Todos os Produtos";
 
   const filteredProducts = useMemo(() => {
@@ -293,8 +320,20 @@ function Index() {
     if (selectedFilters.includes("Sem Glúten")) result = result.filter((p: any) => p.sem_gluten);
     if (selectedFilters.includes("Sem Lactose")) result = result.filter((p: any) => p.sem_lactose);
     if (selectedFilters.includes("Mais escolhidas")) result = result.filter((p: any) => p.destaque);
-    if (selectedFilters.includes("Mais saudáveis")) {
-      result = result.filter((p: any) => /fitness|low carb|integral|vegetar|vegana|leve/.test(productText(p)));
+    if (selectedFilters.includes("Até 300 kcal")) {
+      result = result.filter((p: any) => {
+        const kcal = nutritionValue(p, "kcal");
+        return kcal > 0 && kcal <= 300;
+      });
+    }
+    if (selectedFilters.includes("30g+ proteína")) {
+      result = result.filter((p: any) => nutritionValue(p, "prot") >= 30);
+    }
+    if (selectedFilters.includes("Sopas")) {
+      result = result.filter((p: any) => {
+        const category = normalizeText(p.categorias?.nome);
+        return category.includes("sopa") || /^so\d+/i.test(String(p.nome || ""));
+      });
     }
     if (searchTerm) {
       // Normaliza (remove acentos) para casar "gluten"/"glúten", "lactose" etc.
@@ -322,6 +361,7 @@ function Index() {
         if (activeSort === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
         if (activeSort === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
         if (activeSort === "Mais proteicas") return nutritionValue(b, "prot") - nutritionValue(a, "prot");
+        if (activeSort === "Menor preço") return productPrice(a) - productPrice(b);
         const catOrdemA = a.categorias?.ordem_filtro ?? 999;
         const catOrdemB = b.categorias?.ordem_filtro ?? 999;
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
@@ -386,6 +426,52 @@ function Index() {
     const categoria = categoriesWithProducts.find((item) => item.toLowerCase().includes("combo"));
     abrirCardapio(categoria || "Todas");
   };
+
+  const abrirObjetivo = (filter: string) => {
+    setSelectedFilters([filter]);
+    setSearchTerm("");
+    window.setTimeout(() => {
+      document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
+  const objetivos = [
+    {
+      filtro: "Mais proteicas",
+      titulo: "Mais proteína",
+      texto: "Veja primeiro as refeições com maior teor de proteína.",
+      destaque: "PROTEÍNA",
+      icon: "💪",
+    },
+    {
+      filtro: "Até 300 kcal",
+      titulo: "Até 300 kcal",
+      texto: "Opções com até 300 kcal na porção de referência.",
+      destaque: "LEVE",
+      icon: "⚡",
+    },
+    {
+      filtro: "Sem Glúten",
+      titulo: "Sem glúten",
+      texto: "Filtre apenas os produtos identificados como sem glúten.",
+      destaque: "RESTRIÇÃO",
+      icon: "🌾",
+    },
+    {
+      filtro: "Sem Lactose",
+      titulo: "Sem lactose",
+      texto: "Encontre rapidamente as opções identificadas como sem lactose.",
+      destaque: "RESTRIÇÃO",
+      icon: "🥛",
+    },
+    {
+      filtro: "Sopas",
+      titulo: "Sopas e caldos",
+      texto: "Opções práticas para variar o cardápio e aquecer a rotina.",
+      destaque: "CONFORTO",
+      icon: "🥣",
+    },
+  ];
 
   const toggleFilter = (filter: string) => {
     if (filter === "Todas") return setSelectedFilters([]);
@@ -481,6 +567,58 @@ function Index() {
               tone="personalizada"
               onClick={() => setMarmitaModalOpen(true)}
             />}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#e8eadf] bg-[#f7f8f1] py-10 md:py-14">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">
+                ESCOLHA PELO SEU OBJETIVO
+              </p>
+              <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">
+                Encontre mais rápido o que combina com você
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
+                Atalhos baseados nos dados nutricionais e restrições cadastrados nas etiquetas dos produtos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => abrirCardapio()}
+              className="w-fit text-sm font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+            >
+              Ver cardápio completo
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+            {objetivos.map((objetivo) => (
+              <button
+                key={objetivo.filtro}
+                type="button"
+                onClick={() => abrirObjetivo(objetivo.filtro)}
+                className="group flex min-h-[170px] flex-col rounded-[1.5rem] border border-[#dce4d4] bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-[#8eb85a] hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-2xl" aria-hidden="true">{objetivo.icon}</span>
+                  <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-[9px] font-black tracking-[.08em] text-[#658638]">
+                    {objetivo.destaque}
+                  </span>
+                </div>
+                <h3 className="mt-4 font-display text-lg font-black text-[#075636]">
+                  {objetivo.titulo}
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-[#607168]">
+                  {objetivo.texto}
+                </p>
+                <span className="mt-auto pt-3 text-xs font-black text-[#087149] transition group-hover:translate-x-1">
+                  Ver opções →
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </section>
