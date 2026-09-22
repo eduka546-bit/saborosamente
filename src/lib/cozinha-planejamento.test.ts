@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fatorCapacidade, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
+import { alocarQuantidadePorPesos, fatorCapacidade, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
 
 describe("planejamento interligado da cozinha", () => {
   it("zera a necessidade quando o preparo pronto cobre o total", () => {
@@ -48,5 +48,28 @@ describe("planejamento interligado da cozinha", () => {
   it("mantém correspondências específicas válidas", () => {
     expect(nomesCozinhaCorrespondem("Arroz Branco Parboilizado","arroz branco")).toBe(true);
     expect(nomesCozinhaCorrespondem("Molho madeira","alcatra molho madeira")).toBe(true);
+  });
+
+  it("reconhece o mesmo ingrediente com descrição de corte ou marca", () => {
+    expect(ingredientesCozinhaCorrespondem("Patinho", "Patinho em tiras")).toBe(true);
+    expect(ingredientesCozinhaCorrespondem("Molho madeira", "Molho madeira industrializado marca Elegê")).toBe(true);
+  });
+
+  it("não mistura tomate com molho ou batatas de tipos diferentes", () => {
+    expect(ingredientesCozinhaCorrespondem("Tomate", "Molho de tomate industrializado")).toBe(false);
+    expect(ingredientesCozinhaCorrespondem("Batata doce", "Batata inglesa")).toBe(false);
+  });
+
+  it("distribui um ingrediente compartilhado sem aumentar o total", () => {
+    const partes=alocarQuantidadePorPesos(12000,[{id:"a",peso:2},{id:"b",peso:1}]);
+    expect(partes.find((x)=>x.id==="a")?.quantidade).toBe(8000);
+    expect(partes.find((x)=>x.id==="b")?.quantidade).toBe(4000);
+    expect(partes.reduce((s,x)=>s+x.quantidade,0)).toBe(12000);
+  });
+
+  it("abate proporcionalmente somente a parte pronta de cada preparo", () => {
+    const partes=alocarQuantidadePorPesos(12000,[{id:"madeira",peso:1},{id:"estrogonofe",peso:1}]);
+    const desconto=partes.find((x)=>x.id==="estrogonofe")!.quantidade*0.5;
+    expect(quantidadeRestante(12000,desconto)).toBe(9000);
   });
 });

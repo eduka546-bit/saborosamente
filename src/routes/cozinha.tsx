@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { fatorCapacidade, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { alocarQuantidadePorPesos, fatorCapacidade, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1309,6 +1309,39 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     });
   });
   const preparacoesConsolidadas = Array.from(prepDia.values()).sort((a:any,b:any)=>a.prep.nome.localeCompare(b.prep.nome));
+  type ContribuicaoIngrediente = { prepId:string; produtoId:string; itemId:string; ingredienteAlvoId:string; quantidade:number };
+  const contribuicoesIngredientes:ContribuicaoIngrediente[]=[];
+  pratos.forEach((prato:any) => {
+    (prato.linhasReceita as any[]).filter((linha:any)=>linha.ingrediente_id).forEach((linha:any) => {
+      const ingredienteAlvo=ingPorId.get(linha.ingrediente_id) as any;
+      if (!ingredienteAlvo) return;
+      const corrigir=(gramas:number)=>linha.operacao_producao==='acrescentar'
+        ? gramas*(1+n(linha.fator_producao||1))
+        : linha.operacao_producao==='dividir'
+          ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
+          : gramas;
+      const totalCompra=quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_personalizada)),ingredienteAlvo)*n(prato.q['150'])
+        +quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_200)),ingredienteAlvo)*n(prato.q['200'])
+        +quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_300)),ingredienteAlvo)*n(prato.q['300'])
+        +quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_400)),ingredienteAlvo)*n(prato.q['400']);
+      if (!(totalCompra>0)) return;
+      const candidatos:any[]=[];
+      preparacoesConsolidadas.forEach((grupo:any) => {
+        const uso=grupo.pratos.find((x:any)=>x.produto_id===prato.produto.id);
+        if (!uso || grupo.ingredienteBase) return;
+        const itens=(itensPreparacao.get(grupo.prep.id)||[]) as any[];
+        const rendimento=n(grupo.prep.rendimento_final_g)||itens.reduce((s:number,item:any)=>s+n(item.quantidade),0);
+        if (!(rendimento>0)) return;
+        itens.forEach((item:any) => {
+          const ingredienteItem=ingPorId.get(item.ingrediente_id) as any;
+          if (!(n(item.quantidade)>0)||!ingredienteItem) return;
+          if (item.ingrediente_id!==linha.ingrediente_id&&!ingredientesCozinhaCorrespondem(ingredienteItem.nome,ingredienteAlvo.nome)) return;
+          candidatos.push({prepId:grupo.prep.id,produtoId:prato.produto.id,itemId:item.id,ingredienteAlvoId:linha.ingrediente_id,peso:n(item.quantidade)*n(uso.total)/rendimento});
+        });
+      });
+      contribuicoesIngredientes.push(...alocarQuantidadePorPesos(totalCompra,candidatos));
+    });
+  });
   const formatPeso = (g:number) => formatarQuantidadeProducao(arredondarProducao(g,'g'),'g');
   const fmtItemPrep = (item:any, fator:number) => {
     const ing = ingPorId.get(item.ingrediente_id) as any;
@@ -1323,30 +1356,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     }
     return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',ing?.nome)}`;
   };
-  const totalReceitaGrupo = (ingredienteId:string, grupo:any) => {
-    let total = 0;
-    const ingrediente = ingPorId.get(ingredienteId) as any;
-    grupo.pratos.forEach((prato:any) => {
-      const linhas = (itensReceita.get(prato.receita_id) || []) as any[];
-      linhas.filter((linha:any) => linha.ingrediente_id === ingredienteId).forEach((linha:any) => {
-        const corrigir = (gramas:number) => linha.operacao_producao==='acrescentar'
-          ? gramas*(1+n(linha.fator_producao||1))
-          : linha.operacao_producao==='dividir'
-            ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
-            : gramas;
-        total += quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_personalizada)), ingrediente) * n(prato.q?.['150'])
-          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_200)), ingrediente) * n(prato.q?.['200'])
-          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_300)), ingrediente) * n(prato.q?.['300'])
-          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_400)), ingrediente) * n(prato.q?.['400']);
-      });
-    });
-    return total;
-  };
+  const contribuicoesItemGrupo = (item:any,grupo:any) => contribuicoesIngredientes.filter((x)=>x.prepId===grupo.prep.id&&x.itemId===item.id);
+  const totalReceitaGrupo = (item:any,grupo:any) => contribuicoesItemGrupo(item,grupo).reduce((s,x)=>s+x.quantidade,0);
   const fatorRecuperadoGrupo = (itens:any[], grupo:any) => {
     for (const item of itens) {
       const texto = String(item.quantidade_texto || '').trim();
       const base = n(item.quantidade);
-      const exato = totalReceitaGrupo(item.ingrediente_id, grupo);
+      const exato = totalReceitaGrupo(item, grupo);
       if (base > 0 && exato > 0 && /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto)) return exato / base;
     }
     return 0;
@@ -1355,7 +1371,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const ing = ingPorId.get(item.ingrediente_id) as any;
     const texto = String(item.quantidade_texto || '').trim();
     if (ehQB(texto)) return `${ing?.nome || 'Ingrediente'}: QB · a gosto`;
-    const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo) * escala;
+    const contribuicoes=contribuicoesItemGrupo(item,grupo);
+    const totalExato = contribuicoes.reduce((s,contribuicao)=>{
+      const uso=grupo.pratos.find((pr:any)=>pr.produto_id===contribuicao.produtoId);
+      if (!uso || !(uso.total>0)) return s;
+      const pronto=Math.min(uso.total,n(preparoPronto[`${grupo.prep.id}:${uso.produto_id}`]));
+      return s+contribuicao.quantidade*(1-pronto/uso.total);
+    },0);
     if (totalExato > 0) return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(totalExato,'g',ing?.nome)}`;
     if (!(fatorRecuperado > 0) || !(n(item.quantidade) > 0)) {
       return fatorPadrao > 0 ? fmtItemPrep(item, fatorPadrao) : `${ing?.nome || 'Ingrediente'}: REVISAR CADASTRO`;
@@ -1396,14 +1418,18 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const rendimentoBase = rendimento>0?rendimento:rendimentoInferido;
     itens.forEach((item:any) => {
       if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
-      const totalExato = totalReceitaGrupo(item.ingrediente_id, grupo);
-      const ingrediente = ingPorId.get(item.ingrediente_id) as any;
-      const totalLote = totalExato > 0
-        ? totalExato
-        : rendimentoBase>0
-          ? quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase)
-          : quantidadeBrutaPorRendimento(totalExato,ingrediente || {});
-      somarDesconto(item.ingrediente_id, totalLote * proporcaoPronta);
+      const contribuicoes=contribuicoesItemGrupo(item,grupo);
+      if (contribuicoes.length) {
+        contribuicoes.forEach((contribuicao)=>{
+          const uso=grupo.pratos.find((pr:any)=>pr.produto_id===contribuicao.produtoId);
+          if (!uso || !(uso.total>0)) return;
+          const pronto=Math.min(uso.total,n(preparoPronto[`${grupo.prep.id}:${uso.produto_id}`]));
+          somarDesconto(contribuicao.ingredienteAlvoId,contribuicao.quantidade*pronto/uso.total);
+        });
+        return;
+      }
+      const totalLote=rendimentoBase>0?quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase):0;
+      somarDesconto(item.ingrediente_id,totalLote*proporcaoPronta);
     });
   });
   const ingredientesDiaAjustados = (separar as any[]).map((x:any) => ({

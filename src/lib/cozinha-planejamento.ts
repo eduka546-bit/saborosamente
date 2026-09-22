@@ -36,3 +36,19 @@ export function nomesCozinhaCorrespondem(a: unknown, b: unknown) {
   const x=normalizarNome(a), y=normalizarNome(b);
   return !!x&&!!y&&(x.includes(y)||y.includes(x)||x.split(" ").some((termo)=>termo.length>=4&&!termosGenericos.has(termo)&&y.split(" ").includes(termo)));
 }
+
+export function ingredientesCozinhaCorrespondem(a: unknown, b: unknown) {
+  const x=normalizarNome(a), y=normalizarNome(b);
+  if (!x || !y) return false;
+  const classesExclusivas=["molho","extrato","pure","farinha","queijo"];
+  if (classesExclusivas.some((termo)=>(x.split(" ").includes(termo))!==(y.split(" ").includes(termo)))) return false;
+  return x.includes(y)||y.includes(x);
+}
+
+export function alocarQuantidadePorPesos<T extends { peso: number }>(total: number, destinos: T[]) {
+  const quantidade=Math.max(0,Number(total||0));
+  const validos=destinos.filter((destino)=>Number(destino.peso)>0);
+  const somaPesos=validos.reduce((s,destino)=>s+Number(destino.peso),0);
+  if (!(somaPesos>0)) return [] as Array<T & { quantidade: number }>;
+  return validos.map((destino)=>({...destino,quantidade:quantidade*Number(destino.peso)/somaPesos}));
+}
