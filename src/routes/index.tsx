@@ -222,6 +222,7 @@ function Index() {
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["public-products-all"],
@@ -229,6 +230,20 @@ function Index() {
     staleTime: 1000 * 60 * 30, // Cache por 30 minutos para reduzir egress
     gcTime: 1000 * 60 * 60,
   });
+
+  const scrollToSection = (id: string) => {
+    if (typeof window === "undefined") return;
+    const run = () => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(run));
+  };
+
+  useEffect(() => {
+    if (isLoading || typeof window === "undefined" || !window.location.hash) return;
+    const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+    if (!id) return;
+    const timer = window.setTimeout(() => scrollToSection(id), 80);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
 
   // Busca categorias na ordem e visibilidade definidas pelo admin
   const { data: orderedCategories = [] } = useQuery({
@@ -455,9 +470,7 @@ function Index() {
   const abrirCardapio = (categoria = "Todas") => {
     setSelectedFilters(categoria === "Todas" ? [] : [categoria]);
     setSearchTerm("");
-    window.setTimeout(() => {
-      document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
+    window.setTimeout(() => scrollToSection("cardapio"), 0);
   };
 
   const abrirCombosProntos = () => {
@@ -468,9 +481,7 @@ function Index() {
   const abrirObjetivo = (filter: string) => {
     setSelectedFilters([filter]);
     setSearchTerm("");
-    window.setTimeout(() => {
-      document.getElementById("cardapio")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
+    window.setTimeout(() => scrollToSection("cardapio"), 0);
   };
 
   const objetivos = [
@@ -632,13 +643,13 @@ function Index() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5">
             {objetivos.map((objetivo) => (
               <button
                 key={objetivo.filtro}
                 type="button"
                 onClick={() => abrirObjetivo(objetivo.filtro)}
-                className="group flex min-h-[170px] flex-col rounded-[1.5rem] border border-[#dce4d4] bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:border-[#8eb85a] hover:shadow-md"
+                className="group flex min-h-[170px] w-[78vw] max-w-[280px] shrink-0 snap-start flex-col rounded-[1.5rem] border border-[#dce4d4] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#8eb85a] hover:shadow-md md:w-auto md:max-w-none"
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-2xl" aria-hidden="true">{objetivo.icon}</span>
@@ -662,7 +673,7 @@ function Index() {
       </section>
 
       {/* Main Content: Filters + Products */}
-      <section id="cardapio" className="mx-auto max-w-7xl px-4 py-6">
+      <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 md:py-12">
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
@@ -835,7 +846,7 @@ function Index() {
                       const q = formData.get("q") as string;
                       setSearchTerm(q || "");
                     }}
-                    className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
+                    className="relative flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
                   >
                     <input
                       name="q"
@@ -843,6 +854,8 @@ function Index() {
                       placeholder="Buscar..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
                       className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
                     />
                     <button
@@ -851,6 +864,36 @@ function Index() {
                     >
                       <Tag size={18} />
                     </button>
+                    {searchFocused && searchTerm.trim().length >= 2 && (
+                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+                        {products
+                          .filter((product: any) => productText(product).includes(normalizeText(searchTerm)))
+                          .slice(0, 5)
+                          .map((product: any) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSearchTerm(product.nome);
+                                setSearchFocused(false);
+                                scrollToSection("produtos-grid");
+                              }}
+                              className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
+                            >
+                              <img
+                                src={imgUrl(product.imagem_url)}
+                                alt=""
+                                className="size-9 shrink-0 rounded-lg object-cover"
+                                loading="lazy"
+                              />
+                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
+                                {product.nome}
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </form>
 
                   {searchTerm && (
