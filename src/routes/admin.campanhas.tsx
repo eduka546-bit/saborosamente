@@ -60,6 +60,68 @@ function AdminCampaignPage() {
   const csvInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  const { data: segmentosClientes = [] } = useQuery({
+    queryKey: ["campanhas-segmentos-clientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("segmentos_clientes");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+
+  const {
+    data: filaRecompra = [],
+    refetch: refetchFilaRecompra,
+  } = useQuery({
+    queryKey: ["campanhas-fila-recompra"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("campanhas_recompra_fila")
+        .select("id,user_id,telefone,nome,dias_sem_comprar,segmento,status")
+        .eq("status", "pendente")
+        .order("dias_sem_comprar", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 30_000,
+  });
+
+  const carregarSegmento = (segmento: string) => {
+    const telefones = (segmentosClientes as any[])
+      .filter((item) => item.segmento === segmento && item.telefone)
+      .map((item) => String(item.telefone).replace(/\D/g, ""))
+      .filter((telefone) => telefone.length >= 10);
+    setListaCarregada(null);
+    setContatosEditaveis(Array.from(new Set(telefones)));
+    setMostrarListaCompleta(true);
+    toast.success(`${telefones.length} contatos do segmento ${segmento} carregados.`);
+  };
+
+  const carregarFilaRecompra = async () => {
+    const contatos = (filaRecompra as any[])
+      .map((item) => String(item.telefone || "").replace(/\D/g, ""))
+      .filter((telefone) => telefone.length >= 10);
+    setListaCarregada(null);
+    setContatosEditaveis(Array.from(new Set(contatos)));
+    setMostrarListaCompleta(true);
+    if ((filaRecompra as any[]).length) {
+      await supabase
+        .from("campanhas_recompra_fila")
+        .update({ status: "carregado", updated_at: new Date().toISOString() })
+        .in("id", (filaRecompra as any[]).map((item) => item.id));
+      refetchFilaRecompra();
+    }
+    toast.success(`${contatos.length} clientes de recompra carregados.`);
+  };
+
+  const atualizarFilaRecompra = async () => {
+    const { data, error } = await supabase.rpc("regerar_fila_recompra");
+    if (error) return toast.error(error.message);
+    await refetchFilaRecompra();
+    toast.success(`Fila atualizada: ${Number(data || 0)} pendentes.`);
+  };
+
   // Query para histórico de campanhas
   const { data: campanhas = [], isLoading: carregandoCampanhas } = useQuery({
     queryKey: ["campanhas-historico"],
@@ -1131,6 +1193,56 @@ function AdminCampaignPage() {
                 </div>
               </div>
             )}
+
+            <div className="rounded-xl border border-[#d7ddff] bg-[#f6f7ff] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-[#5850ec]">
+                    Público inteligente
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Carregue segmentos calculados pelos pedidos reais ou a fila automática de recompra.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={atualizarFilaRecompra}
+                  className="rounded-lg border border-[#5850ec]/20 bg-white px-3 py-2 text-xs font-bold text-[#5850ec]"
+                >
+                  Atualizar fila
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["vip", "recorrente", "novo", "ativo", "inativo"].map((segmento) => {
+                  const quantidade = (segmentosClientes as any[]).filter(
+                    (item) => item.segmento === segmento && item.telefone,
+                  ).length;
+                  return (
+                    <button
+                      key={segmento}
+                      type="button"
+                      onClick={() => carregarSegmento(segmento)}
+                      className="rounded-full border border-[#5850ec]/20 bg-white px-3 py-2 text-xs font-bold text-[#4d4a87] hover:border-[#5850ec]"
+                    >
+                      {segmento} ({quantidade})
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={carregarFilaRecompra}
+                  disabled={(filaRecompra as any[]).length === 0}
+                  className="rounded-full bg-[#5850ec] px-3 py-2 text-xs font-black text-white disabled:opacity-40"
+                >
+                  Recompra automática ({(filaRecompra as any[]).length})
+                </button>
+              </div>
+
+              <p className="mt-3 text-[11px] leading-relaxed text-gray-500">
+                Para contatos fora da janela de 24 horas do WhatsApp, use um template de Marketing aprovado pela Meta.
+              </p>
+            </div>
 
             {/* Seleção de Clientes - Apenas se nenhuma lista carregada */}
             {/* Lista Completa de Clientes - Expansível */}
