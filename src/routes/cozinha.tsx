@@ -1245,7 +1245,16 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const linhasReceita = receita ? (itensReceita.get(receita.id) || []) : [];
     const q = { '150': 0, '200': 0, '300': 0, '400': 0 } as Record<string, number>;
     linhas.forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
-    const montagemTotal = montagem.map((m: any) => ({ ...m, total: n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
+    const montagemTotalPadrao = montagem.map((m: any) => ({ ...m, total: n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
+    // Complementos CO são porções prontas de 150 g. Como a tabela de montagem
+    // possui somente as colunas 200/300/400, use a preparação vinculada como a
+    // montagem integral da porção, sem duplicar uma receita paralela.
+    const preparacao150 = q['150'] > 0 && ehComplemento150(produto)
+      ? (Array.isArray(receita?.preparacoes) ? receita.preparacoes[0] : null)
+      : null;
+    const montagemTotal = preparacao150
+      ? [{ nome: preparacao150.nome, total: 150 * q['150'], gramas_150: 150, observacao: "Porção avulsa do mesmo preparo vinculado." }]
+      : montagemTotalPadrao;
     return { produto, receita, linhasReceita, q, montagem, montagemTotal, total:q['150']+q['200']+q['300']+q['400'] };
   }).filter((x:any)=>x.produto).sort((a:any,b:any)=>a.produto.nome.localeCompare(b.produto.nome));
 
@@ -1265,6 +1274,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
             ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
             : gramas;
         return total
+          + corrigir(n(linha.gramas_personalizada))*n(prato.q['150'])
           + corrigir(n(linha.gramas_200))*n(prato.q['200'])
           + corrigir(n(linha.gramas_300))*n(prato.q['300'])
           + corrigir(n(linha.gramas_400))*n(prato.q['400']);
@@ -1318,7 +1328,8 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           : linha.operacao_producao==='dividir'
             ? gramas/Math.max(0.000001,n(linha.fator_producao||1))
             : gramas;
-        total += quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_200)), ingrediente) * n(prato.q?.['200'])
+        total += quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_personalizada)), ingrediente) * n(prato.q?.['150'])
+          + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_200)), ingrediente) * n(prato.q?.['200'])
           + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_300)), ingrediente) * n(prato.q?.['300'])
           + quantidadeBrutaPorRendimento(corrigir(n(linha.gramas_400)), ingrediente) * n(prato.q?.['400']);
       });
