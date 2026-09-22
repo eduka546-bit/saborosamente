@@ -130,6 +130,16 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
 
+  const commercialBadge = soldOut
+    ? { label: "Esgotado", className: "bg-neutral-900 text-white" }
+    : lowStock
+      ? { label: `Últimas ${stockNumber}`, className: "bg-[#fff1d6] text-[#9a5b00]" }
+      : (product as any).mais_vendido
+        ? { label: "Mais pedido", className: "bg-[#f5d94a] text-[#24432f]" }
+        : isNew
+          ? { label: "Novo", className: "bg-white text-[#086e45]" }
+          : null;
+
   // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
   const categoriaCard = product.categorias?.nome || product.categoria || "";
   const podeTerDesconto = !combo && !isSopa && !isNoDiscount(categoriaCard);
@@ -172,7 +182,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       <>
         <article
           onClick={() => setComboOpen(true)}
-          className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1"
+          className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/50 bg-card shadow-soft transition-all hover:shadow-md hover:-translate-y-0.5"
         >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2">
@@ -203,7 +213,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               className="absolute right-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
             >
               <Heart
-                className={cn("size-5", favoriteIds.has(product.id) && "fill-[#086e45]")}
+                className={cn(
+                  "size-5 transition-transform duration-200",
+                  favoriteIds.has(product.id) && "scale-110 fill-[#086e45]",
+                )}
                 aria-hidden="true"
               />
             </button>
@@ -215,7 +228,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
               width={800}
               height={600}
-              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
               <div className="rounded-full bg-white/95 p-3 text-primary shadow-lg backdrop-blur-sm">
@@ -277,7 +290,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   return (
     <>
       <div onClick={() => isComboPronto ? setComboSaboresOpen(true) : setDetailOpen(true)} className="h-full">
-        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-lift hover:-translate-y-1 rounded-b-2xl border border-border/50 h-full">
+        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-md hover:-translate-y-0.5 rounded-b-2xl border border-border/50 h-full">
           {/* Imagem — sem arredondamento no topo */}
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
             <button
@@ -300,32 +313,23 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               className="absolute left-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
             >
               <Heart
-                className={cn("size-5", favoriteIds.has(product.id) && "fill-[#086e45]")}
+                className={cn(
+                  "size-5 transition-transform duration-200",
+                  favoriteIds.has(product.id) && "scale-110 fill-[#086e45]",
+                )}
                 aria-hidden="true"
               />
             </button>
-            <div className="absolute right-2 top-2 z-20 flex flex-col items-end gap-1">
-              {(product as any).mais_vendido && (
-                <span className="rounded-full bg-[#f5d94a] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#24432f] shadow-md">
-                  Mais pedido
-                </span>
-              )}
-              {isNew && (
-                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#086e45] shadow-md">
-                  Novo
-                </span>
-              )}
-              {lowStock && (
-                <span className="rounded-full bg-[#fff1d6] px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#9a5b00] shadow-md">
-                  Últimas {stockNumber}
-                </span>
-              )}
-              {soldOut && (
-                <span className="rounded-full bg-neutral-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-md">
-                  Esgotado
-                </span>
-              )}
-            </div>
+            {commercialBadge && (
+              <span
+                className={cn(
+                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-md",
+                  commercialBadge.className,
+                )}
+              >
+                {commercialBadge.label}
+              </span>
+            )}
             <img
               src={currentImage}
               alt={`Marmita de ${product.nome}`}
@@ -334,7 +338,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
               width={800}
               height={800}
-              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className={cn(
+                "size-full object-cover transition-all duration-500 group-hover:scale-[1.025]",
+                soldOut && "grayscale-[35%] opacity-55",
+              )}
             />
             {product.imagens && product.imagens.length > 0 && (
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-2">
@@ -378,13 +385,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="text-[15px] font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
+            <h3 className="min-h-[2.65rem] line-clamp-2 text-[15px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
 
             {/* Seletor de peso */}
             {weights.length > 1 ? (
-              <div className="flex gap-1.5">
+              <div className="flex min-h-7 items-center gap-1.5">
                 {weights.map((w) => (
                   <button
                     key={w}
@@ -394,9 +401,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       setSelectedWeight(w);
                     }}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition-all border",
+                      "rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide transition-all",
                       selectedWeight === w
-                        ? "bg-[#086e45] text-white border-[#086e45] shadow-sm"
+                        ? "border-[#086e45] bg-[#086e45] text-white shadow-sm ring-2 ring-[#086e45]/20 ring-offset-1"
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
                     )}
                   >
@@ -411,7 +418,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-[11px] font-bold">
                 <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
                   {currentNutritional.kcal} kcal
                 </span>
