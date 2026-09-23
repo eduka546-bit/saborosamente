@@ -43,7 +43,7 @@ type ReceitaLinha = {
   fator_producao: number;
   observacao: string;
 };
-type MontagemLinha = { id?: string; nome: string; gramas_200: number; gramas_300: number; gramas_400: number; observacao: string };
+type MontagemLinha = { id?: string; nome: string; gramas_150: number; gramas_200: number; gramas_300: number; gramas_400: number; observacao: string };
 const TAMANHOS: { id: Tamanho; label: string }[] = [
   { id: "150", label: "150 g" },
   { id: "200", label: "200 g" },
@@ -1141,7 +1141,7 @@ function CozinhaPage() {
             if (apagarMontagem) return toast.error(apagarMontagem.message);
             const final = montagem.filter((x) => x.nome.trim());
             if (final.length) {
-              const { error: e } = await supabase.from("cozinha_receita_montagem_itens").insert(final.map((x, i) => ({ receita_id: data.id, nome: x.nome.trim(), gramas_200: n(x.gramas_200), gramas_300: n(x.gramas_300), gramas_400: n(x.gramas_400), observacao: x.observacao || null, ordem: i })));
+              const { error: e } = await supabase.from("cozinha_receita_montagem_itens").insert(final.map((x, i) => ({ receita_id: data.id, nome: x.nome.trim(), gramas_150: n(x.gramas_150), gramas_200: n(x.gramas_200), gramas_300: n(x.gramas_300), gramas_400: n(x.gramas_400), observacao: x.observacao || null, ordem: i })));
               if (e) return toast.error(e.message);
             }
             invalidar("coz-rec", "coz-rec-itens", "coz-montagem-itens");
@@ -1301,7 +1301,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const linhasReceita = receita ? (itensReceita.get(receita.id) || []) : [];
     const q = { '150': 0, '200': 0, '300': 0, '400': 0 } as Record<string, number>;
     linhas.forEach((p: any) => { if (q[p.gramatura] != null) q[p.gramatura] += n(p.quantidade_planejada); });
-    const montagemTotalPadrao = montagem.map((m: any) => ({ ...m, total: n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
+    const montagemTotalPadrao = montagem.map((m: any) => ({ ...m, total: n(m.gramas_150)*q['150'] + n(m.gramas_200)*q['200'] + n(m.gramas_300)*q['300'] + n(m.gramas_400)*q['400'] })).filter((m:any)=>m.total>0 || m.observacao);
     // Complementos CO são porções prontas de 150 g. Como a tabela de montagem
     // possui somente as colunas 200/300/400, use a preparação vinculada como a
     // montagem integral da porção, sem duplicar uma receita paralela.
@@ -1508,7 +1508,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   };
   const totalMarmitas = pratos.reduce((s:number,x:any)=>s+x.total,0);
   const dataFmt = new Date(`${dataProducao}T12:00:00`).toLocaleDateString('pt-BR');
-  const exatos = (montagem:any[], tamanho:'200'|'300'|'400') => {
+  const exatos = (montagem:any[], tamanho:'150'|'200'|'300'|'400') => {
     const chave=`gramas_${tamanho}`;
     const vals=montagem.map((m:any)=>n(m[chave])>0?arredondarProducao(m[chave],'g'):0);
     const ids=vals.map((v:number,i:number)=>v>0?i:-1).filter((i:number)=>i>=0);
@@ -1542,11 +1542,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           <h2 className="mt-1 text-2xl font-black text-[#173a2d]">Referência de montagem do dia</h2>
           <p className="mt-1 text-sm text-[#62766b]">As preparações devem estar prontas e separadas. Aqui é somente a montagem final das marmitas.</p>
         </div>
-        <div className="mt-3 grid gap-3">{pratos.map((x:any)=>{const v200=exatos(x.montagem,"200"),v300=exatos(x.montagem,"300"),v400=exatos(x.montagem,"400"); return <article key={x.produto.id} className="print-montage-card border border-[#dbe7dd] bg-white">
+        <div className="mt-3 grid gap-3">{pratos.map((x:any)=>{const v150=exatos(x.montagem,"150"),v200=exatos(x.montagem,"200"),v300=exatos(x.montagem,"300"),v400=exatos(x.montagem,"400"); return <article key={x.produto.id} className="print-montage-card border border-[#dbe7dd] bg-white">
           <div className="flex items-center justify-between gap-3 bg-[#edf5e6] p-3"><div><h3 className="text-lg font-black">{rotuloProduto(x.produto)}</h3><p className="mt-1 text-xs text-[#62766b]">Produção: {TAMANHOS.filter(t=>x.q[t.id]>0).map(t=>`${x.q[t.id]}×${t.label}`).join(" + ")}</p></div><b className="text-[#087443]">{x.total} un</b></div>
-          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-          {x.montagem.map((m:any,i:number)=><div key={m.id||i} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><b>{`${i+1}. ${nomeCompletoComponente(m.nome, preparacoes as any[], ingredientes as any[])}`}</b><span>{v200[i]>0?`${v200[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v300[i]>0?`${v300[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v400[i]>0?`${v400[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
-          <div className="grid border-t border-[#dbe7dd] bg-[#edf5e6] px-3 py-2 text-sm font-black" style={{gridTemplateColumns:"minmax(250px,1fr) 90px 90px 90px"}}><span>TOTAL</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 78px 78px 78px 78px"}}><span>Componente pronto</span><span>150 g</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+          {x.montagem.map((m:any,i:number)=><div key={m.id||i} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 78px 78px 78px 78px"}}><b>{`${i+1}. ${nomeCompletoComponente(m.nome, preparacoes as any[], ingredientes as any[])}`}</b><span>{v150[i]>0?`${v150[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v200[i]>0?`${v200[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v300[i]>0?`${v300[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{v400[i]>0?`${v400[i]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+          <div className="grid border-t border-[#dbe7dd] bg-[#edf5e6] px-3 py-2 text-sm font-black" style={{gridTemplateColumns:"minmax(250px,1fr) 78px 78px 78px 78px"}}><span>TOTAL</span><span>150 g</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
         </article>})}</div>
       </section>
       <section className="print-group-break mt-3">
@@ -2099,7 +2099,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const tamanhosFicha = tamanhosDoProduto(produto);
   const colunasFicha = tamanhosFicha.length === 1 ? "grid-cols-[minmax(220px,1fr)_120px_42px]" : "grid-cols-[minmax(220px,1fr)_120px_120px_120px_42px]";
   const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, ingrediente_id: x.ingrediente_id || null, preparacao_id: x.preparacao_id || null })));
-  const [montagem, setMontagem] = useState<MontagemLinha[]>(montagemInicial.map((x: any) => ({ id:x.id, nome:x.nome || "", gramas_200:n(x.gramas_200), gramas_300:n(x.gramas_300), gramas_400:n(x.gramas_400), observacao:x.observacao || "" })));
+  const [montagem, setMontagem] = useState<MontagemLinha[]>(montagemInicial.map((x: any) => ({ id:x.id, nome:x.nome || "", gramas_150:n(x.gramas_150), gramas_200:n(x.gramas_200), gramas_300:n(x.gramas_300), gramas_400:n(x.gramas_400), observacao:x.observacao || "" })));
   const [selecionado, setSelecionado] = useState("");
   const [novo, setNovo] = useState(false);
   const [novoD, setNovoD] = useState({ nome:"", custo:"", rendimento:"1" });
@@ -2128,7 +2128,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   };
   const custo=(t:Tamanho)=>custoIngredientes(t)+custoEmbalagem(t);
   const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[campoGramasReceita(t) as keyof ReceitaLinha]),0);
-  const novaMontagem=()=>({nome:"",gramas_200:0,gramas_300:0,gramas_400:0,observacao:""});
+  const novaMontagem=()=>({nome:"",gramas_150:0,gramas_200:0,gramas_300:0,gramas_400:0,observacao:""});
   const idsPreparacoesFicha = Array.from(new Set([
     ...(Array.isArray(receita?.preparacoes) ? receita.preparacoes.map((p:any) => p?.id).filter(Boolean) : []),
     ...linhas.filter((x) => x.preparacao_id).map((x) => x.preparacao_id).filter(Boolean),
