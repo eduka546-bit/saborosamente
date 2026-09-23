@@ -336,6 +336,40 @@ function CozinhaPage() {
         const qtd = quantidadeBrutaPorRendimento(liquido, ingrediente) * multiplicador;
         add(linha.ingrediente_id, qtd, prato.nome, unidade, ehQB(linha.observacao));
       });
+
+      // Ingredientes que existem somente dentro de uma preparação também precisam
+      // entrar na lista do dia (ex.: creme de leite do estrogonofe; alho/cebola/louro
+      // do feijão). Os que já aparecem na receita principal são ignorados aqui para
+      // não contar duas vezes.
+      const idsDiretos = new Set(linhasIngredientes.map((linha: any) => linha.ingrediente_id));
+      preparacoesVinculadas.forEach((preparacao: any) => {
+        const montagemDaPreparacao = montagemReceita.find((montagem: any) =>
+          nomesCozinhaCorrespondem(preparacao.nome, montagem.nome),
+        );
+        if (!montagemDaPreparacao) return;
+        const prontoTotal = n(montagemDaPreparacao[campo]) * multiplicador;
+        if (!(prontoTotal > 0)) return;
+        const itens = itensPrep.get(preparacao.id) || [];
+        const rendimento =
+          n(preparacao.rendimento_final_g) ||
+          itens.reduce(
+            (s: number, item: any) =>
+              s + (unidadeItemPreparacao(item) === "g" ? n(item.quantidade) : 0),
+            0,
+          );
+        if (!(rendimento > 0)) return;
+        itens.forEach((item: any) => {
+          if (idsDiretos.has(item.ingrediente_id)) return;
+          const qb = ehQB(item.quantidade_texto);
+          add(
+            item.ingrediente_id,
+            qb ? 0 : (n(item.quantidade) * prontoTotal) / rendimento,
+            prato.nome,
+            unidadeItemPreparacao(item),
+            qb,
+          );
+        });
+      });
       return;
     }
     linhasReceita.forEach((linha: any) => {
