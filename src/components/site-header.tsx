@@ -130,7 +130,7 @@ export function SiteHeader() {
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
 
-  const logoSrc = imgUrl(settings?.logo_url) || "/icon-app.jpg";
+  const logoSrc = imgUrl(settings?.logo_url) || "/logo-saborosamente.png";
 
   const visibleLinks = links.filter((link) => {
     if (link.label === "Cashback" || link.label === "Indique e Ganhe") {
@@ -217,12 +217,12 @@ export function SiteHeader() {
           <img
             src={logoSrc}
             alt="SaborosaMente"
-            className="h-10 w-32 object-contain"
+            className="h-9 w-40 object-contain object-center"
           />
         </Link>
 
         <Link to="/" className="hidden md:flex shrink-0 items-center mr-6" aria-label="SaborosaMente">
-          <img src={logoSrc} alt="SaborosaMente" className="h-12 w-44 object-contain object-left" />
+          <img src={logoSrc} alt="SaborosaMente" className="h-11 w-48 object-contain object-left" />
         </Link>
 
         {/* Navigation Links - Centered options */}
