@@ -29,6 +29,9 @@ export interface Product {
   tipo_produto?: "marmita" | "combo" | "sopa" | "complemento" | "bebida" | string;
   peso: string;
   categoria: ProductCategory;
+  subgrupo?: string | null;
+  proteina?: string | null;
+  observacao_cardapio?: string | null;
   /** Categoria vinda do join do Supabase (tabela `categorias`). Opcional. */
   categorias?: { nome: string } | null;
   imagem: string;
