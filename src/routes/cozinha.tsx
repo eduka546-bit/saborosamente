@@ -8,6 +8,7 @@ import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
 import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
+import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
 import { EtiquetasManager } from "./cozinha.etiquetas";
 import { toast } from "sonner";
 import {
@@ -24,12 +25,13 @@ import {
   Plus,
   Salad,
   Store,
+  Table2,
   Trash2,
   X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
-type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
+type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "cardapio" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
 type Tamanho = "150" | "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {
   ingrediente_id: string | null;
@@ -190,7 +192,7 @@ function CozinhaPage() {
   const { data: produtos = [] } = useTableQuery(
     "coz-prod",
     "produtos",
-    "id,nome,codigo_integracao,imagem_url,imagens,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto",
+    "id,nome,codigo_integracao,imagem_url,imagens,imagem_200g,imagem_300g,imagem_400g,ingredientes,preco,preco_300g,preco_400g,preco_custo,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto,subgrupo,proteina,observacao_cardapio,sem_gluten,sem_lactose,tabela_nutricional,tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g,restricoes_200g,restricoes_300g,restricoes_400g,visivel_online,categoria,categoria_id",
     "nome",
   );
   const { data: ingredientes = [] } = useTableQuery("coz-ing", "cozinha_ingredientes", "*", "nome");
@@ -459,6 +461,7 @@ function CozinhaPage() {
     { id: "gestao", label: "Gestão operacional", icon: Store },
     { id: "ingredientes", label: "Ingredientes", icon: Package },
     { id: "marmitas", label: "Marmitas", icon: BookOpen },
+    { id: "cardapio", label: "Cardápio Completo", icon: Table2 },
     { id: "estoque", label: "Estoque", icon: Store },
     { id: "embalagens", label: "Embalagens", icon: Package },
     { id: "relatorio", label: "Relatórios", icon: BarChart3 },
@@ -917,6 +920,19 @@ function CozinhaPage() {
                 <div className="rounded-2xl border bg-white p-4"><h3 className="font-black">Últimos consumos de ingredientes</h3><div className="mt-3 grid gap-2">{(movimentosIngredientes as any[]).filter((m) => m.tipo === "consumo_producao" && String(m.created_at).slice(0,10) === dataProducao).length ? (movimentosIngredientes as any[]).filter((m) => m.tipo === "consumo_producao" && String(m.created_at).slice(0,10) === dataProducao).map((m) => <div key={m.id} className="flex justify-between rounded-xl bg-[#f4f7f4] p-3 text-sm"><span>{ing.get(m.ingrediente_id)?.nome || "Ingrediente"}</span><b>{Math.abs(n(m.quantidade)).toLocaleString("pt-BR")} g</b></div>) : <p className="text-sm text-[#62766b]">Nenhum consumo registrado neste dia.</p>}</div></div>
               </div>
             </section>
+          )}
+          {aba === "cardapio" && (
+            <CardapioCompleto
+              produtos={marmitas}
+              receitas={receitas as any[]}
+              receitaItens={receitaItens as any[]}
+              montagemItens={montagemItens as any[]}
+              preparacoes={preparacoes as any[]}
+              preparacaoItens={preparacaoItens as any[]}
+              ingredientes={ingredientes as any[]}
+              embalagens={embalagens as any[]}
+              onOpenRecipe={(produtoSelecionado) => abrir("receita", produtoSelecionado)}
+            />
           )}
           {aba === "embalagens" && <EmbalagensManager />}
           {aba === "etiquetas" && <EtiquetasManager />}
