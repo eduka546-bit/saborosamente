@@ -2189,7 +2189,10 @@ function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }:
   );
 }
 function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], embalagens = [], itensPreparacao, custoIng, custoPrep, salvarIngredienteFicha, fechar, salvar }: any) {
+  const qc = useQueryClient();
   const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "preparacoes" | "custos">("ingredientes");
+  const [custosInsumosEditados, setCustosInsumosEditados] = useState<Record<string,string>>({});
+  const [salvandoInsumo, setSalvandoInsumo] = useState<string | null>(null);
   const tamanhosFicha = tamanhosDoProduto(produto);
   const colunasFicha = tamanhosFicha.length === 1 ? "grid-cols-[minmax(300px,1fr)_120px_42px]" : "grid-cols-[minmax(300px,1fr)_120px_120px_120px_42px]";
   const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, ingrediente_id: x.ingrediente_id || null, preparacao_id: x.preparacao_id || null })));
@@ -2245,13 +2248,30 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     ? n(x[campoGramasReceita(t) as keyof ReceitaLinha]) * n(custoPrep(x.preparacao_id))
     : qCorreta(n(x[campoGramasReceita(t) as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));
   const custoIngredientes=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);
-  const custoEmbalagem=(t:Tamanho)=>{
-    const etiqueta = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
+  const etiquetaCusto = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
+  const embalagemDoTamanho=(t:Tamanho)=>{
     const categoria = produto?.tipo_produto === "sopa" ? "sopa" : `marmita_${t}`;
-    const embalagem = embalagens.find((x:any)=>x.categoria === categoria && x.ativo !== false);
-    return n(embalagem?.custo_unitario) + n(etiqueta?.custo_unitario);
+    return embalagens.find((x:any)=>x.categoria === categoria && x.ativo !== false);
   };
+  const custoSomenteEmbalagem=(t:Tamanho)=>n(embalagemDoTamanho(t)?.custo_unitario);
+  const custoSomenteEtiqueta=()=>n(etiquetaCusto?.custo_unitario);
+  const custoEmbalagem=(t:Tamanho)=>custoSomenteEmbalagem(t)+custoSomenteEtiqueta();
   const custo=(t:Tamanho)=>custoIngredientes(t)+custoEmbalagem(t);
+  const custoInsumoExibido=(item:any)=>custosInsumosEditados[item?.id] ?? String(item?.custo_unitario ?? 0);
+  const salvarCustoInsumo=async(item:any)=>{
+    if(!item?.id) return;
+    const novo = Math.max(0, n(custoInsumoExibido(item)));
+    setSalvandoInsumo(item.id);
+    const { error } = await supabase.from("cozinha_embalagens").update({
+      custo_unitario: novo,
+      updated_at: new Date().toISOString(),
+    }).eq("id", item.id);
+    setSalvandoInsumo(null);
+    if(error) return toast.error(error.message);
+    setCustosInsumosEditados((atual)=>{const proximo={...atual};delete proximo[item.id];return proximo;});
+    await qc.invalidateQueries({queryKey:["coz-embalagens"]});
+    toast.success(`${item.nome} atualizado. Custos e lucros foram recalculados.`);
+  };
   const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[campoGramasReceita(t) as keyof ReceitaLinha]),0);
   const novaMontagem=()=>({nome:"",gramas_150:0,gramas_200:0,gramas_300:0,gramas_400:0,observacao:""});
   const idsPreparacoesFicha = Array.from(new Set([
@@ -2300,7 +2320,43 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     </section>}
     {abaFicha==="montagem" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Cadastre somente os componentes prontos que entram na marmita: por exemplo, frango empanado, molho, arroz e brócolis.</p><Botao onClick={()=>setMontagem([...montagem,novaMontagem()])}><Plus size={17}/>Adicionar componente pronto</Botao>{!montagem.length?<div className="mt-4"><Vazio texto="Nenhum componente pronto cadastrado." /></div>:<div className="mt-4"><TabelaCabecalho titulo="Componente pronto" tamanhos={tamanhosFicha}>{montagem.map((x,i)=><div key={x.id||i} className={`grid ${colunasFicha} items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3`}><div><input className={input} value={x.nome} placeholder="Ex.: Frango empanado americano" onChange={e=>editarMontagem(i,"nome",e.target.value)}/><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editarMontagem(i,"observacao",e.target.value)}/></div>{tamanhosFicha.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof MontagemLinha])||""} placeholder="0 g" onChange={e=>editarMontagem(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setMontagem(montagem.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho></div>}</section>}
     {abaFicha==="preparacoes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações vinculadas</p><p className="mb-4 mt-1 text-sm text-[#62766b]">Cada preparação mostra sua receita-base, ingredientes e modo de preparo. Na produção, o lote é reduzido ou aumentado mantendo a mesma proporção.</p>{!preparacoesFicha.length?<Vazio texto="Nenhuma preparação vinculada a esta ficha."/>:<div className="grid gap-4">{preparacoesFicha.map((preparacao:any)=>{const itens=itensPreparacao.get(preparacao.id)||[];return <article key={preparacao.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-black text-[#173a2d]">{preparacao.nome}</h3><p className="mt-1 text-sm text-[#62766b]">Receita-base proporcional conforme as quantidades abaixo.</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">BASE PROPORCIONAL</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Ingredientes</p>{!itens.length?<p className="mt-2 text-sm text-[#62766b]">Ingredientes não informados.</p>:<div className="mt-2 grid gap-2">{itens.map((item:any)=>{const ingrediente=ingredientes.find((x:any)=>x.id===item.ingrediente_id);return <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><div className="flex items-center gap-2"><span>{ingrediente?.nome||"Ingrediente"}</span>{ingrediente&&<button type="button" onClick={()=>abrirEditarIngrediente(ingrediente)} className="inline-flex items-center gap-1 rounded-md border border-[#bcd8c5] px-2 py-1 text-[10px] font-bold text-[#087443]"><Pencil size={11}/>Editar</button>}</div><b>{item.quantidade_texto||`${formatarGramas(item.quantidade)} g`}</b></div>})}</div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line rounded-xl border border-[#e2ebe3] bg-white p-3 text-sm leading-relaxed text-[#355445]">{preparacao.modo_preparo||"Modo de preparo não informado."}</div></div></div></article>})}</div>}</section>}
-    {abaFicha==="custos" && <section><div className="mb-5 rounded-2xl bg-[#edf5e6] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{tamanhosFicha.map(t=><div key={t.id} className="rounded-xl bg-white p-3"><p className="text-xs font-bold text-[#62766b]">{t.label}</p><p className="mt-1 text-lg font-black text-[#087443]">{formatarGramas(peso(t.id))} g</p><p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} de custo total</p><p className="mt-1 text-xs text-[#62766b]">Ingredientes {valor(custoIngredientes(t.id))} · Embalagem + etiqueta {valor(custoEmbalagem(t.id))}</p></div>)}</div></div>{!linhas.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarQuantidadeCusto={formatarQuantidadeCusto}/>}</section>}
+    {abaFicha==="custos" && <section>
+      <div className="mb-5 rounded-2xl border border-[#dbe7dd] bg-white p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Insumos fixos por unidade</p>
+            <h4 className="mt-1 font-black text-[#173a2d]">Embalagem + etiqueta</h4>
+            <p className="mt-1 text-xs text-[#62766b]">Estes valores são únicos no sistema. Ao editar aqui, o Cardápio Completo, custo e lucro de todos os pratos que usam o mesmo insumo são atualizados.</p>
+          </div>
+          <span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">FONTE ÚNICA</span>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {etiquetaCusto ? <div className="rounded-xl border border-[#dbe7dd] bg-[#f8fbf8] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2"><div><b className="text-sm">{etiquetaCusto.nome}</b><p className="text-[11px] text-[#62766b]">Aplicada em cada unidade produzida</p></div><span className="text-xs font-bold text-[#087443]">{valor(n(etiquetaCusto.custo_unitario))}</span></div>
+            <div className="flex gap-2"><input className={input} type="number" min="0" step="0.01" value={custoInsumoExibido(etiquetaCusto)} onChange={(e)=>setCustosInsumosEditados((a)=>({...a,[etiquetaCusto.id]:e.target.value}))}/><button type="button" onClick={()=>salvarCustoInsumo(etiquetaCusto)} disabled={salvandoInsumo===etiquetaCusto.id} className="rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{salvandoInsumo===etiquetaCusto.id?"Salvando...":"Salvar"}</button></div>
+          </div> : <div className="rounded-xl border border-dashed border-[#d6b66e] bg-[#fff9ea] p-3 text-sm text-[#765b1c]">Etiqueta ainda não cadastrada na aba Embalagens.</div>}
+          {Array.from(new Map(tamanhosFicha.map((t:any)=>{const item=embalagemDoTamanho(t.id);return item?[item.id,{item,t}]:[null,null]}).filter(([id])=>id) as any).values()).map(({item,t}:any)=><div key={item.id} className="rounded-xl border border-[#dbe7dd] bg-[#f8fbf8] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2"><div><b className="text-sm">{item.nome}</b><p className="text-[11px] text-[#62766b]">{produto?.tipo_produto==="sopa"?"Usada nas sopas":"Aplicada ao tamanho "+t.label}</p></div><span className="text-xs font-bold text-[#087443]">{valor(n(item.custo_unitario))}</span></div>
+            <div className="flex gap-2"><input className={input} type="number" min="0" step="0.01" value={custoInsumoExibido(item)} onChange={(e)=>setCustosInsumosEditados((a)=>({...a,[item.id]:e.target.value}))}/><button type="button" onClick={()=>salvarCustoInsumo(item)} disabled={salvandoInsumo===item.id} className="rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{salvandoInsumo===item.id?"Salvando...":"Salvar"}</button></div>
+          </div>)}
+        </div>
+      </div>
+      <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">{tamanhosFicha.map(t=><div key={t.id} className="rounded-xl bg-white p-3">
+          <p className="text-xs font-bold text-[#62766b]">{t.label}</p>
+          <p className="mt-1 text-lg font-black text-[#087443]">{formatarGramas(peso(t.id))} g</p>
+          <p className="text-sm font-bold text-[#355445]">{valor(custo(t.id))} de custo total</p>
+          <div className="mt-2 space-y-1 text-xs text-[#62766b]">
+            <p className="flex justify-between gap-3"><span>Ingredientes</span><b>{valor(custoIngredientes(t.id))}</b></p>
+            <p className="flex justify-between gap-3"><span>Embalagem</span><b>{embalagemDoTamanho(t.id)?valor(custoSomenteEmbalagem(t.id)):"—"}</b></p>
+            <p className="flex justify-between gap-3"><span>Etiqueta</span><b>{etiquetaCusto?valor(custoSomenteEtiqueta()):"—"}</b></p>
+            <p className="flex justify-between gap-3 border-t border-[#dbe7dd] pt-1 font-black text-[#355445]"><span>Total</span><span>{valor(custo(t.id))}</span></p>
+          </div>
+        </div>)}</div>
+      </div>
+      {!linhas.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhas} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} formatarQuantidadeCusto={formatarQuantidadeCusto}/>}
+    </section>}
     <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem)}>Salvar ficha técnica</Botao></div>
     {ingredienteEditorAberto && <IngredienteModal
       item={ingredienteEdicao}
