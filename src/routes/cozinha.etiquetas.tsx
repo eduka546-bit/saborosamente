@@ -101,15 +101,18 @@ export function EtiquetasManager() {
       const payload = { produto_id: value.produto_id, tamanho_g: value.tamanho_g, nome_exibicao: value.nome_exibicao || null, ingredientes: value.ingredientes || null, informacao_nutricional: value.informacao_nutricional || {}, instrucoes_preparo: value.instrucoes_preparo || null, conservacao: value.conservacao || null, validade_dias: value.validade_dias || null, imagem_url: value.imagem_url || null, ativo: value.ativo };
       const { data, error } = value.id ? await supabase.from("cozinha_etiquetas").update(payload).eq("id", value.id).select().single() : await supabase.from("cozinha_etiquetas").insert(payload).select().single();
       if (error) return toast.error(error.message);
-      const colunaNutricional =
+      const atualizacaoNutricional =
         value.tamanho_g === 200
-          ? "tabela_nutricional"
+          ? {
+              tabela_nutricional: value.informacao_nutricional || {},
+              tabela_nutricional_200g: value.informacao_nutricional || {},
+            }
           : value.tamanho_g === 300
-            ? "tabela_nutricional_300g"
-            : "tabela_nutricional_400g";
+            ? { tabela_nutricional_300g: value.informacao_nutricional || {} }
+            : { tabela_nutricional_400g: value.informacao_nutricional || {} };
       const { error: erroProduto } = await supabase
         .from("produtos")
-        .update({ [colunaNutricional]: value.informacao_nutricional || {} })
+        .update(atualizacaoNutricional)
         .eq("id", value.produto_id);
       if (erroProduto) return toast.error(erroProduto.message);
       toast.success(value.id ? "Etiqueta e tabela nutricional atualizadas." : "Etiqueta criada e nutrição publicada no produto.");
