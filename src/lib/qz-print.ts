@@ -109,6 +109,7 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const subtotal = itens.reduce((s: number, i: any) => s + i.preco_unitario * i.quantidade, 0);
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
+  const acrescimo = Math.max(0, Number(order.valor_total ?? 0) - (subtotal + entrega - desconto));
 
   const itensLines = itens
     .map((item: any) => {
@@ -146,8 +147,9 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     itensLines,
     THIN,
     r("Subtotal:", `R$ ${subtotal.toFixed(2)}`),
-    r("Entrega:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
+    r("Frete:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
     ...(desconto > 0 ? [r(`Desconto:`, `- R$ ${desconto.toFixed(2)}`)] : []),
+    ...(acrescimo > 0 ? [r("Acrescimo:", `R$ ${acrescimo.toFixed(2)}`)] : []),
     SEP,
     r("TOTAL:", `R$ ${order.valor_total.toFixed(2)}`),
     SEP,
