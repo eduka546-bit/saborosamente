@@ -64,6 +64,7 @@ export function ThermalReceipt({ order }: ThermalReceiptProps) {
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
   const total = order.valor_total;
+  const acrescimo = Math.max(0, total - (subtotal + entrega - desconto));
 
   return (
     <>
@@ -147,6 +148,7 @@ ${order.endereco_cep ?? ""}`
                 `- R$ ${desconto.toFixed(2)}`,
               )
             : ""}
+          {acrescimo > 0 ? row("Acrescimo:", `R$ ${acrescimo.toFixed(2)}`) : ""}
           {SEP}
           {row("TOTAL:", `R$ ${total.toFixed(2)}`)}
           {SEP}
@@ -183,6 +185,7 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   const subtotal = order.itens.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0);
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;
+  const acrescimo = Math.max(0, order.valor_total - (subtotal + entrega - desconto));
 
   // Linhas de itens — estilo P10: linha com qtd+desc+valor, obs abaixo com *
   const itensHtml = order.itens.map((item) => {
@@ -287,8 +290,9 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
 
   <table class="totals">
     <tr><td class="lbl">Subtotal:</td><td class="val">R$ ${subtotal.toFixed(2)}</td></tr>
-    <tr><td class="lbl">Tx. Entrega:</td><td class="val">${entrega > 0 ? "R$ " + entrega.toFixed(2) : "GRATIS"}</td></tr>
+    <tr><td class="lbl">Frete:</td><td class="val">${entrega > 0 ? "R$ " + entrega.toFixed(2) : "GRATIS"}</td></tr>
     ${desconto > 0 ? `<tr><td class="lbl">Desconto${order.cupom_codigo ? " (" + order.cupom_codigo + ")" : ""}:</td><td class="val">- R$ ${desconto.toFixed(2)}</td></tr>` : ""}
+    ${acrescimo > 0 ? `<tr><td class="lbl">Acréscimo:</td><td class="val">R$ ${acrescimo.toFixed(2)}</td></tr>` : ""}
     <tr class="total-row">
       <td class="lbl">TOTAL PEDIDO:</td>
       <td class="val">R$ ${order.valor_total.toFixed(2)}</td>
