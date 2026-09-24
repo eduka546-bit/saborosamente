@@ -51,6 +51,8 @@ const productText = (product: any) =>
       product.ingredientes,
       product.informacao_nutricional,
       product.categorias?.nome,
+      product.subgrupo,
+      product.proteina,
     ].join(" "),
   );
 
@@ -330,29 +332,54 @@ function Index() {
     "Frango",
     "Carne bovina",
     "Peixes",
+    "Suína",
+    "Vegetariano",
+    "Misto",
     "Sopas",
   ];
   const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
   const advancedFilters = ["Até 500mg sódio", "Até 30g carboidratos"];
   const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas", "Menor preço"];
-  const activeFiltersLabel = selectedFilters.length > 0 ? selectedFilters.join(" + ") : "Todos os Produtos";
+  const proteinFilters = ["Frango", "Carne bovina", "Peixes", "Suína", "Vegetariano", "Misto"];
+  const subgruposDisponiveis = useMemo(
+    () =>
+      Array.from(new Set(products.map((p: any) => String(p.subgrupo || "").trim()).filter(Boolean))).sort(
+        (a: string, b: string) => a.localeCompare(b, "pt-BR"),
+      ),
+    [products],
+  );
+  const activeFiltersLabel =
+    selectedFilters.length > 0
+      ? selectedFilters.map((f) => f.startsWith("Subgrupo:") ? f.replace("Subgrupo:", "") : f).join(" + ")
+      : "Todos os Produtos";
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
+    const selectedSubgroups = selectedFilters
+      .filter((filter) => filter.startsWith("Subgrupo:"))
+      .map((filter) => filter.replace("Subgrupo:", ""));
     const selectedCategories = selectedFilters.filter(
       (filter) =>
+        !filter.startsWith("Subgrupo:") &&
         !quickFilters.includes(filter) &&
         !restrictionFilters.includes(filter) &&
         !advancedFilters.includes(filter),
     );
-    const selectedProteins = selectedFilters.filter((filter) => ["Frango", "Carne bovina", "Peixes"].includes(filter));
+    const selectedProteins = selectedFilters.filter((filter) => proteinFilters.includes(filter));
     if (selectedCategories.length > 0) result = result.filter((p: any) => selectedCategories.includes(p.categorias?.nome));
+    if (selectedSubgroups.length > 0) result = result.filter((p: any) => selectedSubgroups.includes(p.subgrupo));
     if (selectedProteins.length > 0) {
       result = result.filter((p: any) => selectedProteins.some((filter) => {
+        const cadastrado = String(p.proteina || "").trim();
+        if (cadastrado) {
+          if (filter === "Peixes") return cadastrado === "Peixe" || cadastrado === "Peixes";
+          return cadastrado === filter;
+        }
         const text = productText(p);
         if (filter === "Frango") return /frango|ave|peito de frango/.test(text);
         if (filter === "Carne bovina") return /patinho|carne bovina|ac[eé]m|cox[aã]o|alcatra|mignon|carne mo[ií]da/.test(text);
         if (filter === "Peixes") return /peixe|salm[aã]o|til[aá]pia|atum/.test(text);
+        if (filter === "Suína") return /bacon|calabresa|su[ií]n|paio/.test(text);
         return false;
       }));
     }
@@ -813,6 +840,34 @@ function Index() {
                     );
                   })}
                 </div>
+              )}
+
+              {subgruposDisponiveis.length > 0 && (
+                <>
+                  <div className="my-4 border-t border-[#cfe0c4]" />
+                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Subgrupos</p>
+                  <div className="flex flex-wrap gap-2">
+                    {subgruposDisponiveis.map((subgrupo) => {
+                      const chave = "Subgrupo:" + subgrupo;
+                      const selected = selectedFilters.includes(chave);
+                      return (
+                        <button
+                          key={chave}
+                          onClick={() => toggleFilter(chave)}
+                          aria-pressed={selected}
+                          className={cn(
+                            "rounded-full border px-3 py-2 text-[13px] font-bold transition-all",
+                            selected
+                              ? "border-[#075636] bg-[#075636] text-white shadow-sm"
+                              : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
+                          )}
+                        >
+                          {subgrupo}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>
