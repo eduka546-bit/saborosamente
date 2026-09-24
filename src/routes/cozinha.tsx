@@ -1460,6 +1460,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const ing = ingPorId.get(item.ingrediente_id) as any;
     const texto = String(item.quantidade_texto || '').trim();
     if (ehQB(texto)) return `${ing?.nome || 'Ingrediente'}: QB · a gosto`;
+    // Quando a preparação possui rendimento final cadastrado, a própria ficha da
+    // preparação é a fonte de verdade. Escalar os ingredientes pelo peso pronto
+    // solicitado evita reaproveitar quantidades antigas das linhas da marmita e
+    // aplicar rendimento/perda duas vezes (ex.: arroz consolidado do dia).
+    if (fatorPadrao > 0) return fmtItemPrep(item, fatorPadrao);
     const contribuicoes=contribuicoesItemGrupo(item,grupo);
     const totalExato = contribuicoes.reduce((s,contribuicao)=>{
       const uso=grupo.pratos.find((pr:any)=>pr.produto_id===contribuicao.produtoId);
