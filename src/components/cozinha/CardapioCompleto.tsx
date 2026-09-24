@@ -24,7 +24,7 @@ type FaixaPreco = "unit" | "t5" | "t10" | "t20";
 const tamanhos: TamanhoCardapio[] = [200, 300, 400];
 const n = (v: unknown) => Number(v || 0);
 const brl = (v: number) =>
-  Number.isFinite(v) && v > 0
+  Number.isFinite(v) && v !== 0
     ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "—";
 const numeroFiltro = (v: unknown) => {
@@ -34,7 +34,7 @@ const numeroFiltro = (v: unknown) => {
   return Number.isFinite(valor) ? valor : null;
 };
 const mediaValida = (valores: number[]) => {
-  const validos = valores.filter((v) => Number.isFinite(v) && v > 0);
+  const validos = valores.filter((v) => Number.isFinite(v) && v !== 0);
   return validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : 0;
 };
 const percentual = (v: number) =>
