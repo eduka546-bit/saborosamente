@@ -57,6 +57,7 @@ function AdminPDV() {
   const [showWeightPicker, setShowWeightPicker] = useState<any>(null);
   const [descontoManual, setDescontoManual] = useState(0);
   const [acrescimoManual, setAcrescimoManual] = useState(0);
+  const [freteManual, setFreteManual] = useState(0);
   // Origem da venda: "pdv" (Loja), "site" ou "pedidos10" (P10).
   // Permite lançar manualmente pedidos de outros canais e classificá-los certo.
   const [origemVenda, setOrigemVenda] = useState<"pdv" | "site" | "pedidos10">("pdv");
@@ -154,7 +155,7 @@ function AdminPDV() {
     [recalculatedItems],
   );
   const desconto = Math.max(0, subtotal - totalEfetivo);
-  const totalFinal = Math.max(0, totalEfetivo - descontoManual + acrescimoManual);
+  const totalFinal = Math.max(0, totalEfetivo - descontoManual + acrescimoManual + freteManual);
 
   // Busca produto por EAN ou nome
   const searchResults = useMemo(() => {
@@ -315,16 +316,17 @@ function AdminPDV() {
           user_id: cliente?.id ?? null,
           nome_cliente: cliente?.nome ?? "Balcão",
           telefone_cliente: cliente?.telefone ?? null,
-          metodo_entrega: "retirada",
+          metodo_entrega: freteManual > 0 ? "entrega" : "retirada",
           metodo_pagamento: metodoPagamentoFinal,
           valor_total: totalFinal,
-          taxa_entrega: 0,
+          taxa_entrega: freteManual,
           desconto_aplicado: desconto + descontoManual,
           troco: troco || null,
           status: "entregue",
           origem: origemVenda,
           observacao:
             [
+              freteManual > 0 ? `Frete: R$ ${freteManual.toFixed(2)}` : null,
               acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
               descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
             ]
@@ -367,10 +369,10 @@ function AdminPDV() {
           telefone_cliente: cliente?.telefone,
           created_at: order.created_at,
           status: "entregue",
-          metodo_entrega: "retirada",
+          metodo_entrega: freteManual > 0 ? "entrega" : "retirada",
           metodo_pagamento: metodoPagamentoFinal,
           valor_total: totalFinal,
-          taxa_entrega: 0,
+          taxa_entrega: freteManual,
           desconto_aplicado: desconto + descontoManual,
           troco: troco || undefined,
           itens: recalculatedItems.map((item) => ({
@@ -407,6 +409,7 @@ function AdminPDV() {
       setTroco("");
       setDescontoManual(0);
       setAcrescimoManual(0);
+      setFreteManual(0);
       setOrigemVenda("pdv");
       setFaixaForcada(null);
       setTamanhoFixo(null);
@@ -661,8 +664,8 @@ function AdminPDV() {
               </div>
             )}
 
-            {/* Desconto / acréscimo manual */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+            {/* Ajustes manuais */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t">
               <div>
                 <label className="text-[9px] font-bold text-gray-400 uppercase block mb-0.5">
                   Desconto (R$)
@@ -691,6 +694,20 @@ function AdminPDV() {
                   className="w-full h-8 px-2 rounded-lg border border-gray-200 text-sm"
                 />
               </div>
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase block mb-0.5">
+                  Frete (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={freteManual || ""}
+                  onChange={(e) => setFreteManual(Number(e.target.value) || 0)}
+                  placeholder="0,00"
+                  className="w-full h-8 px-2 rounded-lg border border-gray-200 text-sm"
+                />
+              </div>
             </div>
 
             {descontoManual > 0 && (
@@ -703,6 +720,12 @@ function AdminPDV() {
               <div className="flex justify-between text-sm text-orange-600 font-bold">
                 <span>Acréscimo</span>
                 <span>+{formatBRL(acrescimoManual)}</span>
+              </div>
+            )}
+            {freteManual > 0 && (
+              <div className="flex justify-between text-sm text-blue-600 font-bold">
+                <span>Frete</span>
+                <span>+{formatBRL(freteManual)}</span>
               </div>
             )}
 
