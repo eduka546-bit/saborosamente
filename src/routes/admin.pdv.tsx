@@ -378,7 +378,7 @@ function AdminPDV() {
           itens: recalculatedItems.map((item) => ({
             nome: `${item.nome} (${item.weight})`,
             quantidade: item.quantity,
-            preco_unitario: item.precoUnitario,
+            preco_unitario: item.precoCheio,
             observacao: null,
           })),
         };
