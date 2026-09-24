@@ -192,6 +192,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
         imagem_url: "",
         descricao: "",
         informacao_nutricional: "",
+        subgrupo: "",
+        proteina: "",
+        observacao_cardapio: "",
         sem_gluten: false,
         sem_lactose: false,
         tabela_nutricional: { kcal: "", carb: "", prot: "" },
@@ -691,6 +694,49 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                          Subgrupo
+                        </label>
+                        <Input
+                          placeholder="Ex: PARMEGIANA, MASSAS, ARROZ & FEIJÃO"
+                          className="h-10 border-gray-200"
+                          value={formData.subgrupo || ""}
+                          onChange={(e) => setFormData({ ...formData, subgrupo: e.target.value })}
+                        />
+                        <p className="text-[10px] text-gray-400">
+                          Usado no Cardápio Completo e nos filtros do site.
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                          Proteína
+                        </label>
+                        <Input
+                          placeholder="Ex: Frango, Carne bovina, Peixe, Suína"
+                          className="h-10 border-gray-200"
+                          value={formData.proteina || ""}
+                          onChange={(e) => setFormData({ ...formData, proteina: e.target.value })}
+                        />
+                        <p className="text-[10px] text-gray-400">
+                          Fonte única para classificar o tipo de proteína do prato.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                        Observação do Cardápio Completo
+                      </label>
+                      <Input
+                        placeholder="Observação interna opcional"
+                        className="h-10 border-gray-200"
+                        value={formData.observacao_cardapio || ""}
+                        onChange={(e) => setFormData({ ...formData, observacao_cardapio: e.target.value })}
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -2010,7 +2056,9 @@ function AdminProductsPage() {
       products.filter(
         (p: any) =>
           p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (p.categorias?.nome || "").toLowerCase().includes(searchTerm.toLowerCase()),
+          (p.categorias?.nome || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.subgrupo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.proteina || "").toLowerCase().includes(searchTerm.toLowerCase()),
       ),
     [products, searchTerm],
   );
