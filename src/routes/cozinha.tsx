@@ -2285,6 +2285,16 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     if (unidade === "un") return formatarQuantidadeProducao(qtd, "un", itemNome);
     return formatarQuantidadeProducao(qtd, "g", itemNome);
   };
+  const insumosEmbalagemFicha = Array.from(
+    new Map(
+      tamanhosFicha
+        .map((t:any) => {
+          const item = embalagemDoTamanho(t.id);
+          return item ? [item.id, { item, t }] : null;
+        })
+        .filter(Boolean) as Array<[string, { item:any; t:any }]>,
+    ).values(),
+  );
   return <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
     <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]"><div className="h-32 overflow-hidden rounded-xl bg-white">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt="" className="size-full object-cover" />:<div className="grid size-full place-items-center text-[#087443]"><ChefHat /></div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Monte a ficha técnica</p><h4 className="mt-1 text-xl font-black">{produto.nome}</h4><p className="mt-2 text-sm text-[#527164]">Ingredientes são a base de custo e produção. Em Montagem, registre somente o que entra pronto na embalagem.</p></div></div>
     <div className="mb-6 grid grid-cols-2 rounded-xl bg-[#e7eee8] p-1 sm:grid-cols-4">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["preparacoes","3. Preparações"],["custos","4. Custos"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAbaFicha(id as typeof abaFicha)} className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha===id?"bg-white text-[#087443] shadow-sm":"text-[#62766b]"}`}>{label}</button>)}</div>
@@ -2335,7 +2345,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
             <div className="mb-2 flex items-center justify-between gap-2"><div><b className="text-sm">{etiquetaCusto.nome}</b><p className="text-[11px] text-[#62766b]">Aplicada em cada unidade produzida</p></div><span className="text-xs font-bold text-[#087443]">{valor(n(etiquetaCusto.custo_unitario))}</span></div>
             <div className="flex gap-2"><input className={input} type="number" min="0" step="0.01" value={custoInsumoExibido(etiquetaCusto)} onChange={(e)=>setCustosInsumosEditados((a)=>({...a,[etiquetaCusto.id]:e.target.value}))}/><button type="button" onClick={()=>salvarCustoInsumo(etiquetaCusto)} disabled={salvandoInsumo===etiquetaCusto.id} className="rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{salvandoInsumo===etiquetaCusto.id?"Salvando...":"Salvar"}</button></div>
           </div> : <div className="rounded-xl border border-dashed border-[#d6b66e] bg-[#fff9ea] p-3 text-sm text-[#765b1c]">Etiqueta ainda não cadastrada na aba Embalagens.</div>}
-          {Array.from(new Map(tamanhosFicha.map((t:any)=>{const item=embalagemDoTamanho(t.id);return item?[item.id,{item,t}]:[null,null]}).filter(([id])=>id) as any).values()).map(({item,t}:any)=><div key={item.id} className="rounded-xl border border-[#dbe7dd] bg-[#f8fbf8] p-3">
+          {insumosEmbalagemFicha.map(({item,t}:any)=><div key={item.id} className="rounded-xl border border-[#dbe7dd] bg-[#f8fbf8] p-3">
             <div className="mb-2 flex items-center justify-between gap-2"><div><b className="text-sm">{item.nome}</b><p className="text-[11px] text-[#62766b]">{produto?.tipo_produto==="sopa"?"Usada nas sopas":"Aplicada ao tamanho "+t.label}</p></div><span className="text-xs font-bold text-[#087443]">{valor(n(item.custo_unitario))}</span></div>
             <div className="flex gap-2"><input className={input} type="number" min="0" step="0.01" value={custoInsumoExibido(item)} onChange={(e)=>setCustosInsumosEditados((a)=>({...a,[item.id]:e.target.value}))}/><button type="button" onClick={()=>salvarCustoInsumo(item)} disabled={salvandoInsumo===item.id} className="rounded-lg bg-[#087443] px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{salvandoInsumo===item.id?"Salvando...":"Salvar"}</button></div>
           </div>)}
