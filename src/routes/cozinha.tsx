@@ -194,7 +194,7 @@ function CozinhaPage() {
   const { data: produtos = [] } = useTableQuery(
     "coz-prod",
     "produtos",
-    "id,nome,codigo_integracao,imagem_url,imagens,imagem_200g,imagem_300g,imagem_400g,ingredientes,preco,preco_300g,preco_400g,preco_custo,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto,subgrupo,proteina,observacao_cardapio,sem_gluten,sem_lactose,tabela_nutricional,tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g,restricoes_200g,restricoes_300g,restricoes_400g,visivel_online,categoria,categoria_id",
+    "id,nome,descricao,codigo_integracao,imagem_url,imagens,imagem_200g,imagem_300g,imagem_400g,ingredientes,preco,preco_300g,preco_400g,preco_custo,estoque_200g,estoque_300g,estoque_400g,ativo,tipo_produto,subgrupo,proteina,observacao_cardapio,sem_gluten,sem_lactose,tabela_nutricional,tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g,restricoes_200g,restricoes_300g,restricoes_400g,visivel_online,categoria,categoria_id",
     "nome",
   );
   const { data: ingredientes = [] } = useTableQuery("coz-ing", "cozinha_ingredientes", "*", "nome");
