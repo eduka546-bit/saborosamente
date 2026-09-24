@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, ImageIcon, Pencil, Search, Table2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, Pencil, RotateCcw, Search, SlidersHorizontal, Table2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizarPrecosMarmita } from "@/lib/combo-rules";
@@ -27,6 +27,18 @@ const brl = (v: number) =>
   Number.isFinite(v) && v > 0
     ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "—";
+const numeroFiltro = (v: unknown) => {
+  const texto = String(v ?? "").trim();
+  if (!texto) return null;
+  const valor = Number(texto.replace(",", "."));
+  return Number.isFinite(valor) ? valor : null;
+};
+const mediaValida = (valores: number[]) => {
+  const validos = valores.filter((v) => Number.isFinite(v) && v > 0);
+  return validos.length ? validos.reduce((a, b) => a + b, 0) / validos.length : 0;
+};
+const percentual = (v: number) =>
+  Number.isFinite(v) ? `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—";
 
 const codigoProduto = (produto: any) =>
   String(produto?.nome || "").match(/\b((?:TD|SO|CO)\d{2})\b/i)?.[1]?.toUpperCase() || "";
@@ -104,6 +116,35 @@ export function CardapioCompleto({
   const [busca, setBusca] = useState("");
   const [filtroSubgrupo, setFiltroSubgrupo] = useState("Todos");
   const [filtroProteina, setFiltroProteina] = useState("Todas");
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const filtrosIniciais = {
+    codigo: "",
+    saborDescricao: "",
+    ingrediente: "",
+    tamanho: "Todos",
+    gluten: "Todos",
+    lactose: "Todos",
+    codigoBarras: "",
+    observacao: "",
+    tamanhoAnalise: "300",
+    kcalMin: "",
+    kcalMax: "",
+    carbMin: "",
+    carbMax: "",
+    protMin: "",
+    protMax: "",
+    precoMin: "",
+    precoMax: "",
+    custoMin: "",
+    custoMax: "",
+    lucroMin: "",
+    lucroMax: "",
+    margemMin: "",
+    margemMax: "",
+  };
+  const [filtros, setFiltros] = useState(filtrosIniciais);
+  const setFiltro = (campo: string, valor: string) =>
+    setFiltros((atual) => ({ ...atual, [campo]: valor }));
   const [ocultos, setOcultos] = useState<Record<string, boolean>>({});
   const [fotoProduto, setFotoProduto] = useState<any | null>(null);
   const [nutriProduto, setNutriProduto] = useState<any | null>(null);
@@ -181,27 +222,96 @@ export function CardapioCompleto({
     [produtos],
   );
 
-  const linhas = useMemo(() => {
+  const ingredientesTecnicosProduto = (produto: any) => {
+    const receita = receitaPorProduto.get(produto.id);
+    if (!receita) return [];
+    const nomes = new Set<string>();
+    (itensReceita.get(receita.id) || []).forEach((linha: any) => {
+      const ingrediente = ingredientePorId.get(linha.ingrediente_id);
+      if (ingrediente?.nome) nomes.add(String(ingrediente.nome));
+      if (linha.preparacao_id) {
+        (itensPreparacao.get(linha.preparacao_id) || []).forEach((item: any) => {
+          const ing = ingredientePorId.get(item.ingrediente_id);
+          if (ing?.nome) nomes.add(String(ing.nome));
+        });
+      }
+    });
+    (Array.isArray(receita.preparacoes) ? receita.preparacoes : []).forEach((ref: any) => {
+      (itensPreparacao.get(ref?.id) || []).forEach((item: any) => {
+        const ing = ingredientePorId.get(item.ingrediente_id);
+        if (ing?.nome) nomes.add(String(ing.nome));
+      });
+    });
+    return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  };
+
+  const textoIngredientesProduto = (produto: any) =>
+    [produto.ingredientes, ...ingredientesTecnicosProduto(produto)]
+      .filter(Boolean)
+      .join(" · ");
+
+  const produtosCardapio = useMemo(
+    () => produtos.filter((p: any) => ["marmita", "sopa"].includes(p.tipo_produto || "marmita")),
+    [produtos],
+  );
+
+  const linhasBase = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    return produtos
-      .filter((p: any) => ["marmita", "sopa"].includes(p.tipo_produto || "marmita"))
+    const codigo = filtros.codigo.trim().toLocaleLowerCase("pt-BR");
+    const saborDescricao = filtros.saborDescricao.trim().toLocaleLowerCase("pt-BR");
+    const ingrediente = filtros.ingrediente.trim().toLocaleLowerCase("pt-BR");
+    const observacao = filtros.observacao.trim().toLocaleLowerCase("pt-BR");
+
+    return produtosCardapio
       .filter((p: any) => filtroSubgrupo === "Todos" || p.subgrupo === filtroSubgrupo)
       .filter((p: any) => filtroProteina === "Todas" || p.proteina === filtroProteina)
+      .filter((p: any) => filtros.tamanho === "Todos" || tamanhosProduto(p).includes(Number(filtros.tamanho)))
+      .filter((p: any) => filtros.gluten === "Todos" || (filtros.gluten === "Sim" ? !!p.sem_gluten : !p.sem_gluten))
+      .filter((p: any) => filtros.lactose === "Todos" || (filtros.lactose === "Sim" ? !!p.sem_lactose : !p.sem_lactose))
+      .filter((p: any) => !codigo || codigoProduto(p).toLocaleLowerCase("pt-BR").includes(codigo))
+      .filter((p: any) => {
+        if (!saborDescricao) return true;
+        return [nomeProduto(p), p.descricao]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase("pt-BR")
+          .includes(saborDescricao);
+      })
+      .filter((p: any) => !ingrediente || textoIngredientesProduto(p).toLocaleLowerCase("pt-BR").includes(ingrediente))
+      .filter((p: any) => !observacao || String(p.observacao_cardapio || "").toLocaleLowerCase("pt-BR").includes(observacao))
       .filter((p: any) => {
         if (!termo) return true;
         return [
           codigoProduto(p),
           nomeProduto(p),
+          p.descricao,
           p.subgrupo,
           p.proteina,
-          p.ingredientes,
+          textoIngredientesProduto(p),
+          p.observacao_cardapio,
         ]
           .join(" ")
           .toLocaleLowerCase("pt-BR")
           .includes(termo);
       })
       .sort((a: any, b: any) => codigoProduto(a).localeCompare(codigoProduto(b), "pt-BR"));
-  }, [produtos, busca, filtroSubgrupo, filtroProteina]);
+  }, [
+    produtosCardapio,
+    busca,
+    filtroSubgrupo,
+    filtroProteina,
+    filtros.codigo,
+    filtros.saborDescricao,
+    filtros.ingrediente,
+    filtros.tamanho,
+    filtros.gluten,
+    filtros.lactose,
+    filtros.observacao,
+    receitaPorProduto,
+    itensReceita,
+    itensPreparacao,
+    ingredientePorId,
+  ]);
 
   const custoIngrediente = (ingrediente: any) =>
     ingrediente?.unidade_medida === "un"
@@ -313,6 +423,113 @@ export function CardapioCompleto({
         (x: any) => n(x.tamanho_g) === tamanho && x.ativo !== false,
       )?.codigo_barras || "",
     );
+
+  const tamanhoAnalise = Number(filtros.tamanhoAnalise || 300) as TamanhoCardapio;
+  const haFiltroNumerico = [
+    filtros.kcalMin, filtros.kcalMax, filtros.carbMin, filtros.carbMax,
+    filtros.protMin, filtros.protMax, filtros.precoMin, filtros.precoMax,
+    filtros.custoMin, filtros.custoMax, filtros.lucroMin, filtros.lucroMax,
+    filtros.margemMin, filtros.margemMax,
+  ].some((x) => String(x).trim() !== "");
+
+  const dentroFaixa = (valor: number, minimo: unknown, maximo: unknown) => {
+    const min = numeroFiltro(minimo);
+    const max = numeroFiltro(maximo);
+    if (min !== null && valor < min) return false;
+    if (max !== null && valor > max) return false;
+    return true;
+  };
+
+  const linhas = linhasBase.filter((produto: any) => {
+    const termoBarcode = filtros.codigoBarras.trim().toLowerCase();
+    if (termoBarcode) {
+      const encontrou = tamanhos.some((t) => codigoBarras(produto, t).toLowerCase().includes(termoBarcode));
+      if (!encontrou) return false;
+    }
+
+    if (!haFiltroNumerico) return true;
+    if (!tamanhosProduto(produto).includes(tamanhoAnalise)) return false;
+
+    const tabela = tabelaNutricional(produto, tamanhoAnalise);
+    const kcal = n(tabela?.kcal);
+    const carb = n(tabela?.carb);
+    const prot = n(tabela?.prot);
+    const preco = precoProduto(produto, tamanhoAnalise, "unit");
+    const custo = custoProduto(produto, tamanhoAnalise);
+    const lucro = preco > 0 && custo > 0 ? preco - custo : 0;
+    const margem = preco > 0 && custo > 0 ? (lucro / preco) * 100 : 0;
+
+    return (
+      dentroFaixa(kcal, filtros.kcalMin, filtros.kcalMax) &&
+      dentroFaixa(carb, filtros.carbMin, filtros.carbMax) &&
+      dentroFaixa(prot, filtros.protMin, filtros.protMax) &&
+      dentroFaixa(preco, filtros.precoMin, filtros.precoMax) &&
+      dentroFaixa(custo, filtros.custoMin, filtros.custoMax) &&
+      dentroFaixa(lucro, filtros.lucroMin, filtros.lucroMax) &&
+      dentroFaixa(margem, filtros.margemMin, filtros.margemMax)
+    );
+  });
+
+  const resumoPorTamanho = tamanhos.map((tamanho) => {
+    const aptos = linhas.filter((p: any) => tamanhosProduto(p).includes(tamanho));
+    const dados = aptos.map((produto: any) => {
+      const tabela = tabelaNutricional(produto, tamanho);
+      const custo = custoProduto(produto, tamanho);
+      const unit = precoProduto(produto, tamanho, "unit");
+      const p5 = precoProduto(produto, tamanho, "t5");
+      const p10 = precoProduto(produto, tamanho, "t10");
+      const p20 = precoProduto(produto, tamanho, "t20");
+      const lucro = unit > 0 && custo > 0 ? unit - custo : 0;
+      const margem = unit > 0 && custo > 0 ? (lucro / unit) * 100 : 0;
+      return {
+        kcal: n(tabela?.kcal),
+        carb: n(tabela?.carb),
+        prot: n(tabela?.prot),
+        custo,
+        unit,
+        lucro,
+        margem,
+        lucro5: p5 > 0 && custo > 0 ? p5 - custo : 0,
+        lucro10: p10 > 0 && custo > 0 ? p10 - custo : 0,
+        lucro20: p20 > 0 && custo > 0 ? p20 - custo : 0,
+        custoSobreVenda: unit > 0 && custo > 0 ? (custo / unit) * 100 : 0,
+      };
+    });
+    return {
+      tamanho,
+      quantidade: aptos.length,
+      kcal: mediaValida(dados.map((x) => x.kcal)),
+      carb: mediaValida(dados.map((x) => x.carb)),
+      prot: mediaValida(dados.map((x) => x.prot)),
+      custo: mediaValida(dados.map((x) => x.custo)),
+      unit: mediaValida(dados.map((x) => x.unit)),
+      lucro: mediaValida(dados.map((x) => x.lucro)),
+      margem: mediaValida(dados.map((x) => x.margem)),
+      lucro5: mediaValida(dados.map((x) => x.lucro5)),
+      lucro10: mediaValida(dados.map((x) => x.lucro10)),
+      lucro20: mediaValida(dados.map((x) => x.lucro20)),
+      custoSobreVenda: mediaValida(dados.map((x) => x.custoSobreVenda)),
+    };
+  });
+
+  const resumoAnalise = resumoPorTamanho.find((x) => x.tamanho === tamanhoAnalise) || resumoPorTamanho[1];
+  const totalSemGluten = linhas.filter((p: any) => !!p.sem_gluten).length;
+  const totalSemLactose = linhas.filter((p: any) => !!p.sem_lactose).length;
+  const filtrosAtivos =
+    Number(!!busca.trim()) +
+    Number(filtroSubgrupo !== "Todos") +
+    Number(filtroProteina !== "Todas") +
+    Object.entries(filtros).reduce((soma, [chave, valor]) => {
+      const padrao = (filtrosIniciais as any)[chave];
+      return soma + Number(String(valor) !== String(padrao));
+    }, 0);
+
+  const limparFiltros = () => {
+    setBusca("");
+    setFiltroSubgrupo("Todos");
+    setFiltroProteina("Todas");
+    setFiltros(filtrosIniciais);
+  };
 
   const abrirNutricao = (produto: any, tamanhoInicial?: TamanhoCardapio) => {
     const disponiveis = tamanhosProduto(produto).filter((x) => tamanhos.includes(x as TamanhoCardapio)) as TamanhoCardapio[];
@@ -429,28 +646,108 @@ export function CardapioCompleto({
           </p>
         </div>
         <div className="rounded-xl border border-[#cfe1d3] bg-[#f5faf3] px-3 py-2 text-xs font-bold text-[#355445]">
-          {linhas.length} item(ns) exibido(s)
+          {linhas.length} de {produtosCardapio.length} prato(s) · {filtrosAtivos} filtro(s)
         </div>
       </div>
 
-      <div className="mb-4 grid gap-2 rounded-2xl border border-[#dbe7dd] bg-white p-3 md:grid-cols-[minmax(240px,1fr)_220px_200px]">
-        <label className="relative">
-          <Search size={16} className="absolute left-3 top-2.5 text-[#6b7e73]" />
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="w-full rounded-xl border border-[#cbd8ce] py-2 pl-9 pr-3 text-sm outline-none focus:border-[#087443]"
-            placeholder="Buscar código, prato, ingrediente..."
-          />
-        </label>
-        <select className={input} value={filtroSubgrupo} onChange={(e) => setFiltroSubgrupo(e.target.value)}>
-          <option>Todos</option>
-          {subgrupos.map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <select className={input} value={filtroProteina} onChange={(e) => setFiltroProteina(e.target.value)}>
-          <option>Todas</option>
-          {proteinas.map((x) => <option key={x}>{x}</option>)}
-        </select>
+      <div className="mb-4 rounded-2xl border border-[#dbe7dd] bg-white p-3">
+        <div className="grid gap-2 lg:grid-cols-[minmax(260px,1fr)_220px_200px_auto_auto]">
+          <label className="relative">
+            <Search size={16} className="absolute left-3 top-2.5 text-[#6b7e73]" />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full rounded-xl border border-[#cbd8ce] py-2 pl-9 pr-3 text-sm outline-none focus:border-[#087443]"
+              placeholder="Busca geral: código, prato, descrição, ingrediente..."
+            />
+          </label>
+          <select className={input} value={filtroSubgrupo} onChange={(e) => setFiltroSubgrupo(e.target.value)}>
+            <option>Todos</option>
+            {subgrupos.map((x) => <option key={x}>{x}</option>)}
+          </select>
+          <select className={input} value={filtroProteina} onChange={(e) => setFiltroProteina(e.target.value)}>
+            <option>Todas</option>
+            {proteinas.map((x) => <option key={x}>{x}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={() => setMostrarFiltros((v) => !v)}
+            className={"inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold " + (mostrarFiltros || filtrosAtivos > 0 ? "border-[#087443] bg-[#edf5e6] text-[#087443]" : "border-[#cbd8ce] bg-white text-[#355445]")}
+          >
+            <SlidersHorizontal size={16} />
+            Filtros avançados
+          </button>
+          <button
+            type="button"
+            onClick={limparFiltros}
+            disabled={filtrosAtivos === 0}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#cbd8ce] px-3 py-2 text-sm font-bold text-[#62766b] disabled:opacity-40"
+          >
+            <RotateCcw size={15} /> Limpar
+          </button>
+        </div>
+
+        {mostrarFiltros && (
+          <div className="mt-3 border-t border-[#e2ebe3] pt-3">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-[#527164]">Filtros por coluna</p>
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              <input className={input} value={filtros.codigo} onChange={(e)=>setFiltro("codigo",e.target.value)} placeholder="CÓD: ex. TD10" />
+              <input className={input} value={filtros.saborDescricao} onChange={(e)=>setFiltro("saborDescricao",e.target.value)} placeholder="Sabor / descrição" />
+              <input className={input} value={filtros.ingrediente} onChange={(e)=>setFiltro("ingrediente",e.target.value)} placeholder="Ingrediente: ex. patinho" />
+              <input className={input} value={filtros.codigoBarras} onChange={(e)=>setFiltro("codigoBarras",e.target.value)} placeholder="Código de barras" />
+              <select className={input} value={filtros.tamanho} onChange={(e)=>setFiltro("tamanho",e.target.value)}>
+                <option value="Todos">Todos os tamanhos</option>
+                <option value="200">Tem 200g</option>
+                <option value="300">Tem 300g</option>
+                <option value="400">Tem 400g</option>
+              </select>
+              <select className={input} value={filtros.gluten} onChange={(e)=>setFiltro("gluten",e.target.value)}>
+                <option value="Todos">Glúten: todos</option>
+                <option value="Sim">Sem glúten</option>
+                <option value="Não">Contém / não marcado sem glúten</option>
+              </select>
+              <select className={input} value={filtros.lactose} onChange={(e)=>setFiltro("lactose",e.target.value)}>
+                <option value="Todos">Lactose: todos</option>
+                <option value="Sim">Sem lactose</option>
+                <option value="Não">Contém / não marcado sem lactose</option>
+              </select>
+              <input className={input} value={filtros.observacao} onChange={(e)=>setFiltro("observacao",e.target.value)} placeholder="Observação" />
+            </div>
+
+            <div className="mt-4 rounded-xl bg-[#f5faf3] p-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[#087443]">Filtros numéricos</p>
+                  <p className="text-xs text-[#62766b]">Aplicados ao tamanho escolhido abaixo. As médias finais usam apenas os pratos que permanecerem após todos os filtros.</p>
+                </div>
+                <select className="rounded-lg border border-[#bcd8c5] bg-white px-3 py-2 text-sm font-bold text-[#087443]" value={filtros.tamanhoAnalise} onChange={(e)=>setFiltro("tamanhoAnalise",e.target.value)}>
+                  <option value="200">Analisar 200g</option>
+                  <option value="300">Analisar 300g</option>
+                  <option value="400">Analisar 400g</option>
+                </select>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                {[
+                  ["Kcal", "kcalMin", "kcalMax"],
+                  ["Carb (g)", "carbMin", "carbMax"],
+                  ["Proteína (g)", "protMin", "protMax"],
+                  ["Preço (R$)", "precoMin", "precoMax"],
+                  ["Custo (R$)", "custoMin", "custoMax"],
+                  ["Lucro (R$)", "lucroMin", "lucroMax"],
+                  ["Margem (%)", "margemMin", "margemMax"],
+                ].map(([label,minKey,maxKey])=>(
+                  <div key={label} className="rounded-lg border border-[#dbe7dd] bg-white p-2">
+                    <p className="mb-1 text-[10px] font-black uppercase text-[#527164]">{label}</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      <input className={input} inputMode="decimal" value={(filtros as any)[minKey]} onChange={(e)=>setFiltro(minKey,e.target.value)} placeholder="Mín." />
+                      <input className={input} inputMode="decimal" value={(filtros as any)[maxKey]} onChange={(e)=>setFiltro(maxKey,e.target.value)} placeholder="Máx." />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2 text-xs">
@@ -586,7 +883,7 @@ export function CardapioCompleto({
                     />
                   </td>
                   <td className="border-b border-r px-2 py-2">
-                    <div className="max-w-[310px] whitespace-normal leading-relaxed">{produto.ingredientes || "—"}</div>
+                    <div className="max-w-[310px] whitespace-normal leading-relaxed">{produto.ingredientes || ingredientesTecnicosProduto(produto).join(", ") || "—"}</div>
                     <button type="button" onClick={() => onOpenRecipe(produto)} className="mt-1 inline-flex items-center gap-1 font-bold text-[#087443]">
                       <Pencil size={12} /> Editar na ficha técnica
                     </button>
@@ -649,6 +946,81 @@ export function CardapioCompleto({
           </tbody>
         </table>
       </div>
+
+      <section className="mt-5 rounded-2xl border border-[#cbd8ce] bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-[#087443]">Resumo gerencial dos filtros atuais</p>
+            <h3 className="mt-1 text-xl font-black">{linhas.length} prato(s) selecionado(s)</h3>
+            <p className="mt-1 text-xs text-[#62766b]">
+              Todas as médias abaixo são recalculadas automaticamente quando você filtra a tabela.
+            </p>
+          </div>
+          <div className="text-right text-xs text-[#62766b]">
+            <b className="text-[#355445]">{totalSemGluten}</b> sem glúten · <b className="text-[#355445]">{totalSemLactose}</b> sem lactose
+          </div>
+        </div>
+
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          {[
+            ["Pratos", String(resumoAnalise?.quantidade || 0), `${tamanhoAnalise}g disponíveis`],
+            ["Kcal média", resumoAnalise?.kcal ? resumoAnalise.kcal.toLocaleString("pt-BR",{maximumFractionDigits:1}) : "—", `${tamanhoAnalise}g`],
+            ["Preço médio", brl(resumoAnalise?.unit || 0), "unitário"],
+            ["Custo médio", brl(resumoAnalise?.custo || 0), `${tamanhoAnalise}g`],
+            ["Lucro médio", brl(resumoAnalise?.lucro || 0), "unitário"],
+            ["Margem média", percentual(resumoAnalise?.margem || 0), "sobre venda"],
+            ["Custo / venda", percentual(resumoAnalise?.custoSobreVenda || 0), "média"],
+          ].map(([label,valorCard,sub])=>(
+            <div key={label} className="rounded-xl border border-[#dbe7dd] bg-[#f8fbf8] p-3">
+              <p className="text-[10px] font-black uppercase tracking-wide text-[#62766b]">{label}</p>
+              <p className="mt-1 text-lg font-black text-[#173a2d]">{valorCard}</p>
+              <p className="text-[10px] text-[#7a8b81]">{sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-[#dbe7dd]">
+          <table className="min-w-[1180px] w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-[#173a2d] text-white">
+                <th className="border-r border-[#315c49] px-3 py-2 text-left">Tamanho</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Qtd. pratos</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Kcal média</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Carb médio</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Prot média</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Preço médio</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Custo médio</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Lucro médio</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Margem</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Lucro 5+</th>
+                <th className="border-r border-[#315c49] px-3 py-2 text-right">Lucro 10+</th>
+                <th className="px-3 py-2 text-right">Lucro 20+</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumoPorTamanho.map((r)=>(
+                <tr key={r.tamanho} className="even:bg-[#f8fbf8]">
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 font-black text-[#087443]">{r.tamanho}g</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right font-bold">{r.quantidade}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{r.kcal ? r.kcal.toLocaleString("pt-BR",{maximumFractionDigits:1}) : "—"}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{r.carb ? `${r.carb.toLocaleString("pt-BR",{maximumFractionDigits:1})} g` : "—"}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{r.prot ? `${r.prot.toLocaleString("pt-BR",{maximumFractionDigits:1})} g` : "—"}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{brl(r.unit)}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{brl(r.custo)}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right font-bold text-[#087443]">{brl(r.lucro)}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{r.margem ? percentual(r.margem) : "—"}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{brl(r.lucro5)}</td>
+                  <td className="border-t border-r border-[#e2ebe3] px-3 py-2 text-right">{brl(r.lucro10)}</td>
+                  <td className="border-t border-[#e2ebe3] px-3 py-2 text-right">{brl(r.lucro20)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-[11px] text-[#7a8b81]">
+          Médias ignoram campos sem valor cadastrado. Lucro = preço da faixa − custo calculado pela ficha técnica, ingredientes, rendimentos e embalagem.
+        </p>
+      </section>
 
       {fotoProduto && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-4">
