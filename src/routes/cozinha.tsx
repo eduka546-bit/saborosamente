@@ -319,7 +319,27 @@ function CozinhaPage() {
       .filter(Boolean);
     const linhasIngredientes = linhasReceita.filter((linha: any) => linha.ingrediente_id);
     if (linhasIngredientes.length) {
+      // Preparações estruturadas (com rendimento final e itens quantitativos) são a
+      // fonte de verdade para os ingredientes que pertencem a elas. Isso evita que
+      // uma linha antiga da ficha da marmita concorra com a receita real do preparo
+      // e impede rendimento/perda aplicado duas vezes.
+      const preparacoesEstruturadas = preparacoesVinculadas.filter((preparacao: any) => {
+        const montagemDaPreparacao = montagemReceita.find((montagem: any) =>
+          nomesCozinhaCorrespondem(preparacao.nome, montagem.nome),
+        );
+        const itens = itensPrep.get(preparacao.id) || [];
+        return !!montagemDaPreparacao
+          && n(preparacao.rendimento_final_g) > 0
+          && itens.some((item: any) => n(item.quantidade) > 0 || ehQB(item.quantidade_texto));
+      });
+      const idsCobertosPorPreparacao = new Set(
+        preparacoesEstruturadas.flatMap((preparacao: any) =>
+          (itensPrep.get(preparacao.id) || []).map((item: any) => item.ingrediente_id),
+        ),
+      );
+
       linhasIngredientes.forEach((linha: any) => {
+        if (idsCobertosPorPreparacao.has(linha.ingrediente_id)) return;
         const ingrediente = ing.get(linha.ingrediente_id);
         if (!ingrediente) return;
         const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
@@ -337,10 +357,6 @@ function CozinhaPage() {
         add(linha.ingrediente_id, qtd, prato.nome, unidade, ehQB(linha.observacao));
       });
 
-      // Ingredientes que existem somente dentro de uma preparação também precisam
-      // entrar na lista do dia (ex.: creme de leite do estrogonofe; alho/cebola/louro
-      // do feijão). Os que já aparecem na receita principal são ignorados aqui para
-      // não contar duas vezes.
       const idsDiretos = new Set(linhasIngredientes.map((linha: any) => linha.ingrediente_id));
       preparacoesVinculadas.forEach((preparacao: any) => {
         const montagemDaPreparacao = montagemReceita.find((montagem: any) =>
@@ -350,6 +366,7 @@ function CozinhaPage() {
         const prontoTotal = n(montagemDaPreparacao[campo]) * multiplicador;
         if (!(prontoTotal > 0)) return;
         const itens = itensPrep.get(preparacao.id) || [];
+        const estruturada = preparacoesEstruturadas.some((x: any) => x.id === preparacao.id);
         const rendimento =
           n(preparacao.rendimento_final_g) ||
           itens.reduce(
@@ -359,7 +376,7 @@ function CozinhaPage() {
           );
         if (!(rendimento > 0)) return;
         itens.forEach((item: any) => {
-          if (idsDiretos.has(item.ingrediente_id)) return;
+          if (!estruturada && idsDiretos.has(item.ingrediente_id)) return;
           const qb = ehQB(item.quantidade_texto);
           add(
             item.ingrediente_id,
