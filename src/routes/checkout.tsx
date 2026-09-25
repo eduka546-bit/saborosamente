@@ -72,6 +72,8 @@ const PAYMENT_VALUE_MAP: Record<string, PaymentValue> = {
 const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
+const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
+
 // ─── componente principal ─────────────────────────────────────────────────────
 
 function Checkout() {
@@ -94,6 +96,7 @@ function Checkout() {
   const createOrderFn = useServerFn(createOrder);
   const [orderId, setOrderId] = useState<string | null>(null);
   const checkoutTracked = useRef(false);
+  const restoringCheckoutDraft = useRef(false);
   const [feedbackNota, setFeedbackNota] = useState(0);
   const [feedbackComentario, setFeedbackComentario] = useState("");
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
@@ -276,6 +279,7 @@ function Checkout() {
   const HORARIOS_ENTREGA = entregaCfg.horarios;
 
   useEffect(() => {
+    if (restoringCheckoutDraft.current) return;
     setDataEntrega("");
     setHorarioEntrega("");
   }, [selectedCity, metodoEntrega]);
@@ -299,6 +303,7 @@ function Checkout() {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
@@ -307,6 +312,67 @@ function Checkout() {
       cidade: selectedCity,
     },
   });
+
+  function saveCheckoutDraft(data: CheckoutForm) {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(
+      CHECKOUT_DRAFT_KEY,
+      JSON.stringify({
+        form: data,
+        selectedCity,
+        selectedBairro,
+        metodoEntrega,
+        dataEntrega,
+        horarioEntrega,
+        selectedPayment,
+        selectedFlag,
+        couponInput,
+        savedAt: Date.now(),
+      }),
+    );
+  }
+
+  function restoreCheckoutDraft() {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = sessionStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (!raw) return false;
+      const draft = JSON.parse(raw);
+      // Rascunho de checkout só precisa sobreviver ao fluxo de login, não indefinidamente.
+      if (!draft?.savedAt || Date.now() - Number(draft.savedAt) > 60 * 60 * 1000) {
+        sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+        return false;
+      }
+
+      restoringCheckoutDraft.current = true;
+      reset({ pagamento: "pix", ...(draft.form || {}) });
+      if (draft.selectedCity != null) setSelectedCity(draft.selectedCity);
+      if (draft.selectedBairro != null) setSelectedBairro(draft.selectedBairro);
+      if (draft.metodoEntrega === "entrega" || draft.metodoEntrega === "retirada") {
+        setMetodoEntrega(draft.metodoEntrega);
+      }
+      if (draft.dataEntrega) setDataEntrega(draft.dataEntrega);
+      if (draft.horarioEntrega) setHorarioEntrega(draft.horarioEntrega);
+      if (draft.selectedPayment) setSelectedPayment(draft.selectedPayment);
+      if (draft.selectedFlag != null) setSelectedFlag(draft.selectedFlag);
+      if (draft.couponInput) {
+        setCouponInput(draft.couponInput);
+        void applyCoupon(draft.couponInput);
+      }
+      window.setTimeout(() => {
+        restoringCheckoutDraft.current = false;
+      }, 250);
+      return true;
+    } catch {
+      sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+      restoringCheckoutDraft.current = false;
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    restoreCheckoutDraft();
+  }, []);
 
   // ── buscar sessão e dados do usuário ──────────────────────────────────────
   useEffect(() => {
@@ -390,6 +456,7 @@ function Checkout() {
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.
     if (!session) {
+      saveCheckoutDraft(data);
       navigate({ to: "/auth", search: { redirect: "/checkout" } as any });
       return;
     }
@@ -515,6 +582,9 @@ function Checkout() {
         console.warn("[Checkout] não foi possível marcar carrinho como convertido:", err);
       }
 
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+      }
       clear();
 
       // Notifica o cliente de que o pedido foi recebido.
@@ -689,10 +759,18 @@ function Checkout() {
         </summary>
         <div className="border-t border-border px-4 py-3">
           <ul className="space-y-2 text-xs">
-            {lines.map(({ product, quantity, subtotal: lineTotal }) => (
-              <li key={product.id} className="flex justify-between gap-3">
+            {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
+              <li
+                key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
+                className="flex justify-between gap-3"
+              >
                 <span className="min-w-0 text-muted-foreground">
                   {quantity}× {product.nome}
+                  {(weight || opcoes) && (
+                    <span className="mt-0.5 block text-[10px] font-medium text-[#315440]">
+                      {[weight, opcoes?.consumo === "pronta" ? "Pronta para consumo" : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? "Garfo e faca" : null].filter(Boolean).join(" • ")}
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 font-semibold">{formatBRL(lineTotal)}</span>
               </li>
@@ -1307,10 +1385,18 @@ function Checkout() {
         <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:block">
           <h2 className="text-lg font-semibold">Seu pedido</h2>
           <ul className="mt-4 space-y-3 text-sm">
-            {lines.map(({ product, quantity, subtotal: lineTotal }) => (
-              <li key={product.id} className="flex justify-between gap-3">
+            {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
+              <li
+                key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
+                className="flex justify-between gap-3"
+              >
                 <span className="text-muted-foreground">
                   {quantity}× {product.nome}
+                  {(weight || opcoes) && (
+                    <span className="mt-0.5 block text-[11px] font-medium text-[#315440]">
+                      {[weight, opcoes?.consumo === "pronta" ? "Pronta para consumo" : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? "Garfo e faca" : null].filter(Boolean).join(" • ")}
+                    </span>
+                  )}
                 </span>
                 <span className="font-medium">{formatBRL(lineTotal)}</span>
               </li>
