@@ -1,9 +1,6 @@
 name: Corrigir filtro respondidas WhatsApp
 
 on:
-  push:
-    paths:
-      - '.github/workflows/corrigir-filtro-respondidas-whatsapp.yml'
   workflow_dispatch:
 
 permissions:
