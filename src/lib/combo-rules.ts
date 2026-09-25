@@ -5,8 +5,8 @@
 
 export const COMBO_RULES = [
   { min: 5, discount: 0.03, label: "5+ marmitas", badge: "3% OFF" },
-  { min: 10, discount: 0.05, label: "10+ marmitas", badge: "5% OFF" },
-  { min: 20, discount: 0.07, label: "20+ marmitas", badge: "7% OFF" },
+  { min: 10, discount: 0.07, label: "10+ marmitas", badge: "7% OFF" },
+  { min: 20, discount: 0.12, label: "20+ marmitas", badge: "12% OFF" },
 ];
 
 // Categorias com preço fixo (não recebem desconto progressivo).
@@ -82,8 +82,8 @@ export function getComboDiscount(totalQty: number) {
 
 export const PROGRESSIVE_DISCOUNT_TIERS = [
   { min: 5, discount: 0.03 },
-  { min: 10, discount: 0.05 },
-  { min: 20, discount: 0.07 },
+  { min: 10, discount: 0.07 },
+  { min: 20, discount: 0.12 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -182,8 +182,8 @@ export function precoCheioMarmita(
 // vêm de MARMITA_PRICE_TABLE; estes percentuais são só a comunicação visual.
 export const PROGRESSIVE_LABELS = [
   { min: 5, discount: 0.03 },
-  { min: 10, discount: 0.05 },
-  { min: 20, discount: 0.07 },
+  { min: 10, discount: 0.07 },
+  { min: 20, discount: 0.12 },
 ];
 
 export interface CartItemForCalc {
@@ -193,7 +193,7 @@ export interface CartItemForCalc {
 }
 
 /**
- * Retorna a porcentagem de desconto progressivo (0, 0.03, 0.05, 0.07) para uma
+ * Retorna a porcentagem de desconto progressivo (0, 0.03, 0.07, 0.12) para uma
  * quantidade total de itens. Sopas/complementos CONTAM na quantidade total.
  */
 export function tierDescontoProgressivo(totalUnidades: number): number {
