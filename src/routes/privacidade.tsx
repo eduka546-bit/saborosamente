@@ -35,7 +35,7 @@ function PrivacidadePage() {
           <p className="mt-2">
             Esta Política de Privacidade descreve como coletamos, utilizamos, armazenamos e
             protegemos suas informações pessoais ao utilizar nosso site (
-            <strong>saborosamente.vercel.app</strong>), nosso atendimento via WhatsApp e demais
+            <strong>www.saborosamente.com</strong>), nosso atendimento via WhatsApp e demais
             serviços.
           </p>
         </section>
@@ -230,8 +230,8 @@ function PrivacidadePage() {
             </li>
             <li>
               🌐 Site:{" "}
-              <a href="https://saborosamente.vercel.app" className="text-[#086e45] hover:underline">
-                saborosamente.vercel.app
+              <a href="https://www.saborosamente.com" className="text-[#086e45] hover:underline">
+                www.saborosamente.com
               </a>
             </li>
             <li>📍 São Bento do Sul — SC — Brasil</li>
