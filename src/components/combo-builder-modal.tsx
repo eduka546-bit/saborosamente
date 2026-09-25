@@ -6,8 +6,8 @@
  * - Sopas e Complementos: preço fixo, sem desconto, MAS contam na quantidade
  * - Marmitas: recebem desconto progressivo por quantidade total
  *   5+  = 3% OFF
- *   10+ = 5% OFF
- *   20+ = 7% OFF
+ *   10+ = 7% OFF
+ *   20+ = 12% OFF
  */
 
 import { useState, useMemo } from "react";
