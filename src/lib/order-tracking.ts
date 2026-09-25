@@ -24,7 +24,7 @@ export interface OrderStatus {
 export function getTrackingUrl(protocolId: string, baseUrl?: string): string {
   const url =
     baseUrl ||
-    (typeof window !== "undefined" ? window.location.origin : "https://saborosamente.vercel.app");
+    (typeof window !== "undefined" ? window.location.origin : "https://www.saborosamente.com");
   return `${url}/pedido?p=${protocolId.toUpperCase()}`;
 }
 
