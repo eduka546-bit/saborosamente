@@ -171,7 +171,7 @@ async function processarCarrinho(
     mensagem += `🎁 Tem um cupom especial para você: *${cupom}*\nUse no checkout para garantir seu desconto!\n\n`;
   }
 
-  mensagem += `Finalize seu pedido: saborosamente.vercel.app/carrinho`;
+  mensagem += `Finalize seu pedido: www.saborosamente.com/carrinho`;
 
   const enviado = await sendWhatsApp(telefone, mensagem);
 
