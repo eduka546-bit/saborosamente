@@ -311,6 +311,8 @@ export function SiteHeader() {
 
           <CartSheet>
             <button
+              type="button"
+              aria-label="Abrir carrinho"
               className="relative flex items-center justify-center size-10 rounded-full hover:bg-black/5 transition-colors"
               style={{ color: navText }}
             >
