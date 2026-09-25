@@ -1,9 +1,7 @@
 name: Corrigir ficha do dia
 
 on:
-  push:
-    paths:
-      - '.github/workflows/ajustar-ficha-dia-limpa.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
