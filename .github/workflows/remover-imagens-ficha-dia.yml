@@ -1,9 +1,7 @@
 name: Remover imagens da ficha do dia
 
 on:
-  push:
-    paths:
-      - '.github/workflows/remover-imagens-ficha-dia.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
