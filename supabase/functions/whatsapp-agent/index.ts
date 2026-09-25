@@ -35,7 +35,7 @@ const OPENAI_TIMEOUT_MS = 25_000;
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 const MAX_TENTATIVAS_ENVIO = 2; // tentativas de reenvio de mídia ao WhatsApp
 const IMG_TRANSFORM = "width=800&quality=75"; // otimização de imagem do Supabase Storage
-const SITE_URL = "saborosamente.vercel.app";
+const SITE_URL = "www.saborosamente.com";
 // Mensagem padrão quando a OpenAI falha (timeout/erro transitório).
 const MSG_ERRO_TECNICO = "Desculpe, tive um problema técnico. Tente novamente em instantes! 🙏";
 
@@ -2431,8 +2431,8 @@ PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
 - Ao informar o valor de uma marmita, apresente como "a partir de R$ X,XX", porque o preço final cai conforme a quantidade (desconto progressivo).
 - Explique de forma curta e simpática o desconto progressivo nas MARMITAS:
   • 5 ou mais marmitas: 3% de desconto
-  • 10 ou mais marmitas: 5% de desconto
-  • 20 ou mais marmitas: 7% de desconto
+  • 10 ou mais marmitas: 7% de desconto
+  • 20 ou mais marmitas: 12% de desconto
 - A quantidade que define a faixa é o TOTAL de itens do pedido. Sopas e complementos CONTAM nessa quantidade, mas eles NÃO recebem desconto (o desconto incide só sobre as marmitas).
 - Não prometa um valor final fechado com desconto sem saber a quantidade. Se o cliente ainda não disse quantas, diga o "a partir de" e convide a montar o combo: "Quanto mais marmitas, maior o desconto 😉".
 - Nunca invente outras porcentagens além dessas. Se o cliente pedir algo fora dessas faixas, explique as faixas reais.
