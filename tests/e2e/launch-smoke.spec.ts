@@ -66,7 +66,7 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   await goToCheckoutThroughCart(page);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
   await expect(
-    page.locator("aside").getByText(/Pronta para consumo.*Garfo e faca/i).first(),
+    page.locator("aside").getByText(/Pronta para consumo.*R\$.*Garfo e faca.*R\$/i).first(),
   ).toBeVisible();
 
   const entrega = page.getByRole("button", { name: "Entrega", exact: true });
@@ -186,6 +186,7 @@ test("mobile: catálogo, modal e checkout sem overflow horizontal", async ({ pag
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
   const mobileSummary = page.locator("summary").filter({ hasText: "Resumo do pedido" });
   await expect(mobileSummary).toBeVisible();
+  await expect(mobileSummary).toContainText(/item.*pedido/i);
   await mobileSummary.click();
   await expect(page.getByText(PRODUCT, { exact: false }).first()).toBeVisible();
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

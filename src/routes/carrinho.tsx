@@ -69,7 +69,7 @@ function Carrinho() {
     queryFn: async () => {
       const { data } = await supabase
         .from("site_settings")
-        .select("cashback_ativo,cashback_percentual")
+        .select("cashback_ativo,cashback_percentual,parametros_loja")
         .maybeSingle();
       return data;
     },
@@ -109,6 +109,9 @@ function Carrinho() {
   );
 
   const cashbackPercent = Number(cashbackConfig?.cashback_percentual ?? 1);
+  const acrescimos = (cashbackConfig as any)?.parametros_loja?.acrescimos;
+  const adicionalPronta = Number(acrescimos?.pronta ?? 1);
+  const adicionalGarfo = Number(acrescimos?.garfoEFaca ?? 1);
   const cashbackBase = Math.max(0, subtotal - discount);
   const cashbackEstimado =
     cashbackConfig?.cashback_ativo === false ? 0 : cashbackBase * (cashbackPercent / 100);
@@ -165,8 +168,12 @@ function Carrinho() {
                   </p>
                   {opcoes && (
                     <p className="mt-0.5 text-[11px] font-medium text-primary">
-                      {opcoes.consumo === "pronta" ? "Pronta para consumo" : "Congelada"}
-                      {opcoes.consumo === "pronta" && opcoes.garfoEFaca ? " • com garfo e faca" : ""}
+                      {opcoes.consumo === "pronta"
+                        ? `Pronta para consumo +${formatBRL(adicionalPronta)}`
+                        : "Congelada"}
+                      {opcoes.consumo === "pronta" && opcoes.garfoEFaca
+                        ? ` • Garfo e faca +${formatBRL(adicionalGarfo)}`
+                        : ""}
                     </p>
                   )}
                   {custom && (

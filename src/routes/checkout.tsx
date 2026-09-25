@@ -79,6 +79,7 @@ const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
 function Checkout() {
   const {
     lines,
+    count,
     subtotal,
     shipping,
     total,
@@ -746,11 +747,11 @@ function Checkout() {
         ))}
       </div>
 
-      <details className="mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white shadow-sm lg:hidden">
+      <details className="sticky top-16 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-[#315440]">Resumo do pedido</p>
-            <p className="text-[11px] text-muted-foreground">{lines.length} {lines.length === 1 ? "item" : "itens"}</p>
+            <p className="text-[11px] text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
           </div>
           <div className="flex items-center gap-2">
             <strong className="text-base text-primary">{formatBRL(finalTotal)}</strong>
@@ -768,7 +769,7 @@ function Checkout() {
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
                     <span className="mt-0.5 block text-[10px] font-medium text-[#315440]">
-                      {[weight, opcoes?.consumo === "pronta" ? "Pronta para consumo" : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? "Garfo e faca" : null].filter(Boolean).join(" • ")}
+                      {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
                 </span>
@@ -1394,7 +1395,7 @@ function Checkout() {
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
                     <span className="mt-0.5 block text-[11px] font-medium text-[#315440]">
-                      {[weight, opcoes?.consumo === "pronta" ? "Pronta para consumo" : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? "Garfo e faca" : null].filter(Boolean).join(" • ")}
+                      {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
                 </span>
