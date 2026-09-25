@@ -680,7 +680,7 @@ function Checkout() {
                   </Link>
                   <a
                     href={`https://wa.me/?text=${encodeURIComponent(
-                      `Conheça a SaborosaMente! Use meu link e ganhe 5% na sua primeira compra: https://saborosamente.vercel.app/?ref=${referralProfile.codigo_indicacao}`,
+                      `Conheça a SaborosaMente! Use meu link e ganhe 5% na sua primeira compra: https://www.saborosamente.com/?ref=${referralProfile.codigo_indicacao}`,
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
