@@ -1843,7 +1843,7 @@ function AdminCampaignPage() {
                               return { ...draft, buttons };
                             })
                           }
-                          placeholder="https://saborosamente.vercel.app/cardapio"
+                          placeholder="https://www.saborosamente.com/cardapio"
                           required
                           className="h-8 text-xs"
                         />
