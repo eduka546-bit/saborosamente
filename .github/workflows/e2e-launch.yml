@@ -1,0 +1,47 @@
+name: E2E Launch Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "tests/e2e/**"
+      - ".github/workflows/e2e-launch.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: https://saborosamente.vercel.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install project dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright for smoke test
+        run: |
+          bun add --dev @playwright/test@1.55.0
+          bunx playwright install --with-deps chromium
+
+      - name: Run launch browser simulation
+        run: bunx playwright test tests/e2e/launch-smoke.spec.ts --project=chromium --reporter=list
+        env:
+          CI: "true"
+
+      - name: Upload screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-launch-results
+          path: test-results
+          if-no-files-found: ignore
