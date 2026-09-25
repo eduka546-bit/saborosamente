@@ -1,10 +1,7 @@
 name: Corrigir impressão exata das fichas
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/corrigir-impressao-exata.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
