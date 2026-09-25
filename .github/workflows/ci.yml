@@ -25,5 +25,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verificar domínio público oficial
+        run: |
+          if grep -RIn --fixed-strings "saborosamente.vercel.app" src public supabase/functions 2>/dev/null; then
+            echo "Referência pública antiga ao domínio da Vercel encontrada."
+            exit 1
+          fi
+
       - name: Typecheck, tests and build
         run: bun run check
