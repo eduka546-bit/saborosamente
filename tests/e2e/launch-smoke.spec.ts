@@ -121,6 +121,14 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   await page.waitForURL(/\/auth(?:\?|$)/, { timeout: 10000 });
   expect(page.url()).toContain("redirect");
 
+  // O preenchimento deve sobreviver ao desvio para login.
+  await page.goBack();
+  await page.waitForURL(/\/checkout(?:\?|$)/, { timeout: 10000 });
+  await expect(page.getByLabel("Nome completo")).toHaveValue("Teste SaborosaMente");
+  await expect(page.getByLabel("E-mail")).toHaveValue("teste-e2e@saborosamente.invalid");
+  await expect(page.getByPlaceholder("Digite seu cupom")).toHaveValue(SAFE_COUPON);
+  await expect(page.getByText(new RegExp(`Cupom.*${SAFE_COUPON}.*aplicado`, "i"))).toBeVisible({ timeout: 10000 });
+
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
