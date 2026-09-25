@@ -1,10 +1,7 @@
 name: Ajustar ficha produto adaptativa
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/ajustar-ficha-produto-adaptativa.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
