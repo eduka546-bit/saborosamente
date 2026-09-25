@@ -1,10 +1,7 @@
 name: Melhorar caixa WhatsApp
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/melhorar-caixa-whatsapp.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
