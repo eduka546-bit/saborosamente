@@ -13,6 +13,17 @@ function observe(page: Page) {
   return problems;
 }
 
+
+async function goToCheckoutThroughCart(page: Page) {
+  const cartButton = page.getByRole("button", { name: "Abrir carrinho" });
+  await expect(cartButton).toBeVisible();
+  await cartButton.click();
+  await expect(page.getByRole("heading", { name: "Seu Carrinho" })).toBeVisible();
+  await expect(page.getByText(PRODUCT, { exact: false }).first()).toBeVisible();
+  await page.getByRole("link", { name: "Finalizar compra" }).click();
+  await page.waitForURL(/\/checkout(?:\?|$)/);
+}
+
 async function dismissWelcome(page: Page) {
   const close = page.getByRole("button", { name: "Fechar" });
   if (await close.isVisible({ timeout: 1200 }).catch(() => false)) {
@@ -52,9 +63,8 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   await page.screenshot({ path: "test-results/02-produto-opcoes.png", fullPage: true });
   await addButton.click();
 
-  await page.goto(`${BASE_URL}/checkout`, { waitUntil: "domcontentloaded" });
+  await goToCheckoutThroughCart(page);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-  await expect(page.getByText(PRODUCT, { exact: false }).first()).toBeVisible();
 
   const entrega = page.getByRole("button", { name: "Entrega", exact: true });
   await entrega.click();
@@ -138,9 +148,8 @@ test("desktop: montar combo adiciona item ao carrinho", async ({ page }) => {
   await page.screenshot({ path: "test-results/04-combo.png", fullPage: true });
   await addCombo.click();
 
-  await page.goto(`${BASE_URL}/checkout`, { waitUntil: "domcontentloaded" });
+  await goToCheckoutThroughCart(page);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-  await expect(page.getByText(PRODUCT, { exact: false }).first()).toBeVisible();
 
   expect(problems, problems.join("\n")).toEqual([]);
 });
