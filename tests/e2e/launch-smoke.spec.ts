@@ -65,7 +65,9 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
 
   await goToCheckoutThroughCart(page);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-  await expect(page.getByText(/Pronta para consumo.*Garfo e faca/i).first()).toBeVisible();
+  await expect(
+    page.locator("aside").getByText(/Pronta para consumo.*Garfo e faca/i).first(),
+  ).toBeVisible();
 
   const entrega = page.getByRole("button", { name: "Entrega", exact: true });
   await entrega.click();
