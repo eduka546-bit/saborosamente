@@ -1,9 +1,7 @@
 name: Aplicar prévia exata da ficha da cozinha
 
 on:
-  push:
-    paths:
-      - '.github/workflows/aplicar-previa-exata-ficha.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
