@@ -142,7 +142,7 @@ test("desktop: montar combo adiciona item ao carrinho", async ({ page }) => {
   await dismissWelcome(page);
 
   await page.getByRole("button", { name: /Montar Combo/i }).first().click();
-  await expect(page.getByRole("heading", { name: "Monte seu Combo" })).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("h2").filter({ hasText: "Monte seu Combo" })).toBeVisible({ timeout: 10000 });
 
   const busca = page.getByPlaceholder("Buscar marmita...");
   await busca.fill("TD24");
