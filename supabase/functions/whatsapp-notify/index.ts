@@ -5,7 +5,7 @@ const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SITE_URL = (Deno.env.get("SITE_URL") || "https://saborosamente.vercel.app").replace(
+const SITE_URL = (Deno.env.get("SITE_URL") || "https://www.saborosamente.com").replace(
   /\/$/,
   "",
 );
