@@ -1,10 +1,7 @@
 name: Corrigir rendimento da cozinha
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/corrigir-impressao-exata-v2.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
