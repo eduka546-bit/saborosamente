@@ -3,9 +3,19 @@ name: E2E Launch Smoke
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
+      - "src/**"
+      - "public/**"
+      - "supabase/functions/**"
       - "tests/e2e/**"
+      - "package.json"
+      - "bun.lock"
       - ".github/workflows/e2e-launch.yml"
+
+concurrency:
+  group: e2e-production
+  cancel-in-progress: true
 
 permissions:
   contents: read
