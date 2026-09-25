@@ -88,17 +88,43 @@ export async function qzDisponivel(): Promise<boolean> {
 
 // ── Gera conteúdo ESC/POS a partir do objeto de pedido ───────────────────────
 export function gerarConteudoComanda(order: any, colunas = 32): string {
-  const c = (t: string) => {
-    const len = Math.min(t.length, colunas);
-    const pad = Math.floor((colunas - len) / 2);
-    return " ".repeat(pad) + t.slice(0, colunas);
+  // Texto ASCII evita símbolos quebrados em impressoras com página de código
+  // diferente da usada pelo navegador/QZ Tray.
+  const ascii = (value: unknown) => String(value ?? "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+  const wrap = (value: unknown, prefix = "") => {
+    const words = ascii(value).split(" ");
+    const lines: string[] = [];
+    let line = prefix;
+    for (let word of words) {
+      if (!word) continue;
+      if (line.trim() && line.length + word.length + 1 > colunas) {
+        lines.push(line);
+        line = "  ";
+      }
+      while (word.length > colunas - line.length - (line.trim() ? 1 : 0)) {
+        const size = colunas - line.length - (line.trim() ? 1 : 0);
+        if (size <= 0) { lines.push(line); line = "  "; continue; }
+        line += (line.trim() ? " " : "") + word.slice(0, size);
+        word = word.slice(size);
+        lines.push(line);
+        line = "  ";
+      }
+      line += (line.trim() ? " " : "") + word;
+    }
+    return [...lines, line].filter((part) => part.trim()).join("\n");
   };
-  const r = (l: string, v: string) => {
-    const gap = colunas - l.length - v.length;
-    return l + " ".repeat(Math.max(1, gap)) + v;
+  const c = (value: unknown) => {
+    const t = ascii(value).slice(0, colunas);
+    return " ".repeat(Math.max(0, Math.floor((colunas - t.length) / 2))) + t;
   };
-  const SEP = "─".repeat(colunas);
-  const THIN = "·".repeat(colunas);
+  const r = (label: string, value: string) => {
+    const l = ascii(label);
+    const v = ascii(value);
+    return l + " ".repeat(Math.max(1, colunas - l.length - v.length)) + v;
+  };
+  const SEP = "-".repeat(colunas);
 
   const date = new Date(order.created_at);
   const dateStr = date.toLocaleDateString("pt-BR");
@@ -114,11 +140,11 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const itensLines = itens
     .map((item: any) => {
       const tot = item.preco_unitario * item.quantidade;
-      const prod = `${item.quantidade}x ${item.nome}`;
-      const val = `R$ ${tot.toFixed(2)}`;
-      const gap = colunas - prod.length - val.length;
-      const line = prod + " ".repeat(Math.max(1, gap)) + val;
-      return item.observacao ? `${line}\n  Obs: ${item.observacao}` : line;
+      return [
+        wrap(`${item.quantidade}x ${item.nome}`),
+        r("", `R$ ${tot.toFixed(2)}`),
+        ...(item.observacao ? [wrap(`Obs: ${item.observacao}`, "  ")] : []),
+      ].join("\n");
     })
     .join("\n");
 
@@ -130,22 +156,22 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     c(`${dateStr}  ${timeStr}`),
     SEP,
     "CLIENTE:",
-    order.nome_cliente ?? "—",
-    order.telefone_cliente ?? "",
+    wrap(order.nome_cliente ?? "Balcao"),
+    ...(order.telefone_cliente ? [wrap(order.telefone_cliente)] : []),
     SEP,
     c(isDelivery ? "** DELIVERY **" : "** RETIRADA **"),
     ...(isDelivery && order.endereco_rua
       ? [
           "ENTREGA:",
-          `${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`,
-          `${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`,
+          wrap(`${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}`),
+          wrap(`${order.endereco_bairro ?? ""}  ${order.endereco_cidade ?? ""}`),
         ]
       : []),
     SEP,
     "ITENS:",
-    THIN,
+    SEP,
     itensLines,
-    THIN,
+    SEP,
     r("Subtotal:", `R$ ${subtotal.toFixed(2)}`),
     r("Frete:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
     ...(desconto > 0 ? [r(`Desconto:`, `- R$ ${desconto.toFixed(2)}`)] : []),
@@ -154,16 +180,18 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     r("TOTAL:", `R$ ${order.valor_total.toFixed(2)}`),
     SEP,
     "PAGAMENTO:",
-    order.metodo_pagamento ?? "Nao informado",
-    ...(order.troco ? [`Troco p/ R$ ${order.troco}`] : []),
-    ...(order.observacao ? [`\nOBS: ${order.observacao}`] : []),
+    wrap(order.metodo_pagamento ?? "Nao informado"),
+    ...(order.troco ? [wrap(`Troco p/ R$ ${order.troco}`)] : []),
+    ...(order.observacao ? ["OBS:", wrap(order.observacao)] : []),
     SEP,
     c("Obrigado pela preferencia!"),
     c("@saborosamente.sbs"),
     "\n\n\n", // alimenta o papel
   ];
 
-  return linhas.filter((l) => l != null).join("\n");
+  // Inicializa a POS e ativa impressão enfatizada para melhorar a leitura
+  // dos caracteres na impressão direta. Desativa antes de terminar a comanda.
+  return "\x1b@\x1bE\x01" + linhas.filter((l) => l != null).join("\n") + "\x1bE\x00";
 }
 
 // ── Impressão principal — QZ Tray TCP ou fallback window.print ───────────────

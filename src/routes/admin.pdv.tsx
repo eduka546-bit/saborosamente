@@ -69,6 +69,8 @@ function AdminPDV() {
   // independente da quantidade (a quantidade representativa define a faixa).
   const [faixaForcada, setFaixaForcada] = useState<null | 5 | 10 | 20>(null);
   const [imprimirCupom, setImprimirCupom] = useState(true); // product waiting for weight
+  const [consumirQuentinho, setConsumirQuentinho] = useState(false);
+  const [incluirTalher, setIncluirTalher] = useState(false);
   // Identificação do cliente (opcional)
   const [clienteBusca, setClienteBusca] = useState("");
   const [cliente, setCliente] = useState<any>(null);
@@ -309,6 +311,13 @@ function AdminPDV() {
 
     setIsProcessing(true);
     try {
+      const observacaoVenda = [
+        consumirQuentinho ? "Consumir quentinho" : null,
+        incluirTalher ? "Incluir talher" : null,
+        freteManual > 0 ? `Frete: R$ ${freteManual.toFixed(2)}` : null,
+        acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
+        descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
+      ].filter(Boolean).join(" | ") || null;
       // 1. Criar pedido
       const { data: order, error: orderError } = await supabase
         .from("pedidos")
@@ -324,14 +333,7 @@ function AdminPDV() {
           troco: troco || null,
           status: "entregue",
           origem: origemVenda,
-          observacao:
-            [
-              freteManual > 0 ? `Frete: R$ ${freteManual.toFixed(2)}` : null,
-              acrescimoManual > 0 ? `Acréscimo: +R$ ${acrescimoManual.toFixed(2)}` : null,
-              descontoManual > 0 ? `Desconto manual: -R$ ${descontoManual.toFixed(2)}` : null,
-            ]
-              .filter(Boolean)
-              .join(" | ") || null,
+          observacao: observacaoVenda,
         })
         .select()
         .single();
@@ -375,6 +377,7 @@ function AdminPDV() {
           taxa_entrega: freteManual,
           desconto_aplicado: desconto + descontoManual,
           troco: troco || undefined,
+          observacao: observacaoVenda ?? undefined,
           itens: recalculatedItems.map((item) => ({
             nome: `${item.nome} (${item.weight})`,
             quantidade: item.quantity,
@@ -410,6 +413,8 @@ function AdminPDV() {
       setDescontoManual(0);
       setAcrescimoManual(0);
       setFreteManual(0);
+      setConsumirQuentinho(false);
+      setIncluirTalher(false);
       setOrigemVenda("pdv");
       setFaixaForcada(null);
       setTamanhoFixo(null);
@@ -1088,6 +1093,16 @@ function AdminPDV() {
 
           {/* Botão finalizar */}
           <div className="p-4 shrink-0 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex items-center gap-2 rounded-lg border p-2 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" checked={consumirQuentinho} onChange={(e) => setConsumirQuentinho(e.target.checked)} className="size-4 accent-[#086e45]" />
+                Consumir quentinho
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border p-2 text-xs font-semibold cursor-pointer">
+                <input type="checkbox" checked={incluirTalher} onChange={(e) => setIncluirTalher(e.target.checked)} className="size-4 accent-[#086e45]" />
+                Talher
+              </label>
+            </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"

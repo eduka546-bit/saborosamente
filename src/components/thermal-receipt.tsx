@@ -188,21 +188,21 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   const acrescimo = Math.max(0, order.valor_total - (subtotal + entrega - desconto));
 
   // Linhas de itens — estilo P10: linha com qtd+desc+valor, obs abaixo com *
+  const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[char] ?? char);
   const itensHtml = order.itens.map((item) => {
     const tot = (item.preco_unitario * item.quantidade).toFixed(2);
-    const uni = item.preco_unitario.toFixed(2);
     // Extrai o sabor da observação ("Peso: 300g | TD01 - Nome" ou só "Peso: 300g")
     const obs = item.observacao ?? "";
     // Remove só o "Peso: XXXg" da observação pra não duplicar
     const obsLimpa = obs.replace(/Peso:\s*\d+\s*g\s*\|?\s*/i, "").trim();
     return `
       <tr class="item-row">
-        <td class="qty">${item.quantidade}</td>
-        <td class="desc">${item.nome}</td>
-        <td class="uni">R$&nbsp;${uni}</td>
+        <td class="desc">${escapeHtml(item.quantidade)}x ${escapeHtml(item.nome)}</td>
         <td class="tot">R$&nbsp;${tot}</td>
       </tr>
-      ${obsLimpa ? `<tr><td></td><td colspan="3" class="obs"> * ${obsLimpa}</td></tr>` : ""}
+      ${obsLimpa ? `<tr><td colspan="2" class="obs">* ${escapeHtml(obsLimpa)}</td></tr>` : ""}
     `;
   }).join("");
 
@@ -212,13 +212,13 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <meta charset="utf-8">
   <title>Comanda #${seq}</title>
   <style>
-    @page { margin: 3mm 2mm; size: 58mm auto; }
+    @page { margin: 2mm; size: 58mm auto; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 9pt;
-      font-weight: bold;
-      line-height: 1.4;
+      font-size: 10pt;
+      font-weight: 600;
+      line-height: 1.35;
       width: 54mm;
       color: #000;
       background: white;
@@ -226,21 +226,17 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
       print-color-adjust: exact;
     }
     .center { text-align: center; }
-    .sep { border-top: 1px dashed #000; margin: 3px 0; }
-    .sep-solid { border-top: 2px solid #000; margin: 3px 0; }
+    .sep { border-top: 1px solid #000; margin: 3px 0; }
+    .sep-solid { border-top: 1px solid #000; margin: 3px 0; }
     .label { font-size: 8pt; font-weight: normal; }
     .big { font-size: 11pt; font-weight: bold; }
     /* Tabela de itens */
     table { width: 100%; border-collapse: collapse; }
-    th { font-size: 7pt; font-weight: bold; border-bottom: 1px solid #000; padding: 1px 1px; }
-    .th-qty  { width: 8%;  text-align: center; }
-    .th-desc { width: 54%; text-align: left; }
-    .th-uni  { width: 19%; text-align: right; }
-    .th-tot  { width: 19%; text-align: right; }
-    .qty  { text-align: center; vertical-align: top; padding: 1px 1px; font-size: 9pt; }
-    .desc { text-align: left;   vertical-align: top; padding: 1px 2px; word-break: break-word; font-size: 9pt; }
-    .uni  { text-align: right;  vertical-align: top; padding: 1px 1px; white-space: nowrap; font-size: 8pt; }
-    .tot  { text-align: right;  vertical-align: top; padding: 1px 1px; white-space: nowrap; font-size: 9pt; }
+    th { font-size: 8pt; font-weight: bold; border-bottom: 1px solid #000; padding: 2px 1px; }
+    .th-desc { width: 72%; text-align: left; }
+    .th-tot  { width: 28%; text-align: right; }
+    .desc { text-align: left; vertical-align: top; padding: 3px 2px; overflow-wrap: anywhere; }
+    .tot  { text-align: right; vertical-align: top; padding: 3px 1px; white-space: nowrap; }
     .obs  { font-size: 8pt; font-weight: normal; padding: 0 2px 2px 4px; color: #000; }
     /* Totais */
     .totals { width: 100%; margin-top: 2px; }
@@ -260,24 +256,22 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <div class="center label">${dateStr} - ${timeStr}</div>
   <div class="sep"></div>
 
-  <div><span class="label">Cliente: </span>${order.nome_cliente}</div>
-  ${order.telefone_cliente ? `<div><span class="label">Fone: </span>${order.telefone_cliente}</div>` : ""}
+  <div><span class="label">Cliente: </span>${escapeHtml(order.nome_cliente)}</div>
+  ${order.telefone_cliente ? `<div><span class="label">Fone: </span>${escapeHtml(order.telefone_cliente)}</div>` : ""}
   <div class="sep"></div>
 
   <div class="center big">${isDelivery ? "** ENTREGA EM CASA **" : "** RETIRADA **"}</div>
   ${isDelivery && order.endereco_rua ? `
-    <div><span class="label">End.: </span>${order.endereco_rua}${order.endereco_numero ? ", " + order.endereco_numero : ""}</div>
-    <div><span class="label">Bairro: </span>${order.endereco_bairro ?? ""} - ${order.endereco_cidade ?? ""}</div>
-    ${order.endereco_cep ? `<div><span class="label">CEP: </span>${order.endereco_cep}</div>` : ""}
+    <div><span class="label">End.: </span>${escapeHtml(order.endereco_rua)}${order.endereco_numero ? ", " + escapeHtml(order.endereco_numero) : ""}</div>
+    <div><span class="label">Bairro: </span>${escapeHtml(order.endereco_bairro)} - ${escapeHtml(order.endereco_cidade)}</div>
+    ${order.endereco_cep ? `<div><span class="label">CEP: </span>${escapeHtml(order.endereco_cep)}</div>` : ""}
   ` : ""}
   <div class="sep"></div>
 
   <table>
     <thead>
       <tr>
-        <th class="th-qty">Qtd</th>
         <th class="th-desc">Descrição</th>
-        <th class="th-uni">V.Uni.</th>
         <th class="th-tot">V.Total</th>
       </tr>
     </thead>
@@ -291,7 +285,7 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <table class="totals">
     <tr><td class="lbl">Subtotal:</td><td class="val">R$ ${subtotal.toFixed(2)}</td></tr>
     <tr><td class="lbl">Frete:</td><td class="val">${entrega > 0 ? "R$ " + entrega.toFixed(2) : "GRATIS"}</td></tr>
-    ${desconto > 0 ? `<tr><td class="lbl">Desconto${order.cupom_codigo ? " (" + order.cupom_codigo + ")" : ""}:</td><td class="val">- R$ ${desconto.toFixed(2)}</td></tr>` : ""}
+    ${desconto > 0 ? `<tr><td class="lbl">Desconto${order.cupom_codigo ? " (" + escapeHtml(order.cupom_codigo) + ")" : ""}:</td><td class="val">- R$ ${desconto.toFixed(2)}</td></tr>` : ""}
     ${acrescimo > 0 ? `<tr><td class="lbl">Acréscimo:</td><td class="val">R$ ${acrescimo.toFixed(2)}</td></tr>` : ""}
     <tr class="total-row">
       <td class="lbl">TOTAL PEDIDO:</td>
@@ -300,9 +294,9 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   </table>
 
   <div class="sep"></div>
-  <div><span class="label">F. Pagto.: </span>${order.metodo_pagamento ?? "Nao informado"}</div>
-  ${order.troco ? `<div><span class="label">Troco para: </span>R$ ${order.troco}</div>` : ""}
-  ${order.observacao ? `<div class="sep"></div><div><span class="label">OBS: </span>${order.observacao}</div>` : ""}
+  <div><span class="label">F. Pagto.: </span>${escapeHtml(order.metodo_pagamento ?? "Nao informado")}</div>
+  ${order.troco ? `<div><span class="label">Troco para: </span>R$ ${escapeHtml(order.troco)}</div>` : ""}
+  ${order.observacao ? `<div class="sep"></div><div><span class="label">OBS: </span>${escapeHtml(order.observacao)}</div>` : ""}
 
   <div class="sep-solid"></div>
   <div class="center">Obrigado pela preferencia!</div>
@@ -312,8 +306,8 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
 <script>
   window.onload = function() {
     window.print();
-    setTimeout(function() { window.close(); }, 1000);
   };
+  window.onafterprint = function() { window.close(); };
 </script>
 </body>
 </html>`);
