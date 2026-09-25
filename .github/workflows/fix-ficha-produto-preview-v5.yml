@@ -1,10 +1,7 @@
 name: Aplicar layout final da ficha por produto
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fix-ficha-produto-preview-v5.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
