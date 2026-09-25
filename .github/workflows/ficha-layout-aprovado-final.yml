@@ -1,10 +1,7 @@
 name: Aplicar ficha no layout aprovado final
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/ficha-layout-aprovado-final.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
