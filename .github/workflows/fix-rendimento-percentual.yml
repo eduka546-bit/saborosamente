@@ -1,10 +1,7 @@
 name: Corrigir fórmula de rendimento percentual
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fix-rendimento-percentual.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
