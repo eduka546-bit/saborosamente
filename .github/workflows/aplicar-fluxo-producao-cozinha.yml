@@ -1,8 +1,7 @@
 name: Aplicar fluxo de produção da cozinha
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
