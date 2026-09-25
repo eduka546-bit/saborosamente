@@ -34,7 +34,7 @@ jobs:
           bunx playwright install --with-deps chromium
 
       - name: Run launch browser simulation
-        run: bunx playwright test tests/e2e/launch-smoke.spec.ts --project=chromium --reporter=list
+        run: bunx playwright test tests/e2e/launch-smoke.spec.ts --reporter=list
         env:
           CI: "true"
 
