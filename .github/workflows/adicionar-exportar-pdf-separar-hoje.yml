@@ -1,10 +1,7 @@
 name: Adicionar exportacao PDF separar hoje
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/adicionar-exportar-pdf-separar-hoje.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
