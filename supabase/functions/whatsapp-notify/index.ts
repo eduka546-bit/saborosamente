@@ -5,10 +5,12 @@ const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SITE_URL = (Deno.env.get("SITE_URL") || "https://www.saborosamente.com").replace(
-  /\/$/,
-  "",
-);
+const configuredSiteUrl = Deno.env.get("SITE_URL")?.trim() ?? "";
+const SITE_URL = (
+  configuredSiteUrl.includes("www.saborosamente.com")
+    ? configuredSiteUrl
+    : "https://www.saborosamente.com"
+).replace(/\/$/, "");
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
