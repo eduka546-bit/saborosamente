@@ -105,16 +105,35 @@ as $function$
   order by count(*) desc,min(a.created_at);
 $function$;
 
-revoke execute on function public.ab_test_resultados(text, integer) from anon;
-revoke execute on function public.alertas_reposicao_prontos() from anon;
-revoke execute on function public.cozinha_atualizar_cardapio_produto(uuid, text, text, text) from anon;
-revoke execute on function public.cozinha_atualizar_nutricao_cardapio(uuid, integer, jsonb, jsonb) from anon;
-revoke execute on function public.demanda_reposicao() from anon;
-revoke execute on function public.funil_analytics(integer) from anon;
-revoke execute on function public.inteligencia_estoque() from anon;
-revoke execute on function public.regerar_fila_recompra() from anon;
-revoke execute on function public.segmentos_clientes() from anon;
-revoke execute on function public.usuario_tem_role(text[]) from anon;
+revoke execute on function public.ab_test_resultados(text, integer) from public;
+grant execute on function public.ab_test_resultados(text, integer) to authenticated, service_role;
 
-revoke execute on function public.sync_etiqueta_nutricao_para_produto() from anon, authenticated;
-revoke execute on function public.sync_produto_nutricao_para_etiquetas() from anon, authenticated;
+revoke execute on function public.alertas_reposicao_prontos() from public;
+grant execute on function public.alertas_reposicao_prontos() to authenticated, service_role;
+
+revoke execute on function public.cozinha_atualizar_cardapio_produto(uuid, text, text, text) from public;
+grant execute on function public.cozinha_atualizar_cardapio_produto(uuid, text, text, text) to authenticated, service_role;
+
+revoke execute on function public.cozinha_atualizar_nutricao_cardapio(uuid, integer, jsonb, jsonb) from public;
+grant execute on function public.cozinha_atualizar_nutricao_cardapio(uuid, integer, jsonb, jsonb) to authenticated, service_role;
+
+revoke execute on function public.demanda_reposicao() from public;
+grant execute on function public.demanda_reposicao() to authenticated, service_role;
+
+revoke execute on function public.funil_analytics(integer) from public;
+grant execute on function public.funil_analytics(integer) to authenticated, service_role;
+
+revoke execute on function public.inteligencia_estoque() from public;
+grant execute on function public.inteligencia_estoque() to authenticated, service_role;
+
+revoke execute on function public.regerar_fila_recompra() from public;
+grant execute on function public.regerar_fila_recompra() to authenticated, service_role;
+
+revoke execute on function public.segmentos_clientes() from public;
+grant execute on function public.segmentos_clientes() to authenticated, service_role;
+
+revoke execute on function public.usuario_tem_role(text[]) from public;
+grant execute on function public.usuario_tem_role(text[]) to authenticated, service_role;
+
+revoke execute on function public.sync_etiqueta_nutricao_para_produto() from public;
+revoke execute on function public.sync_produto_nutricao_para_etiquetas() from public;
