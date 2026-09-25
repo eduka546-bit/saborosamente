@@ -37,8 +37,8 @@ export const Route = createFileRoute("/produto/$id")({
     const description =
       product?.descricao ||
       "Marmita congelada artesanal SaborosaMente. Veja tamanhos, preço e informações nutricionais.";
-    const image = product?.imagem || "https://saborosamente.vercel.app/icon-app.jpg";
-    const url = `https://saborosamente.vercel.app/produto/${params.id}`;
+    const image = product?.imagem || "https://www.saborosamente.com/icon-app.jpg";
+    const url = `https://www.saborosamente.com/produto/${params.id}`;
     return {
       meta: [
         { title },
@@ -185,7 +185,7 @@ function ProdutoPage() {
         : product.tabela_nutricional;
 
   const handleShare = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : `https://saborosamente.vercel.app/produto/${product.id}`;
+    const url = typeof window !== "undefined" ? window.location.href : `https://www.saborosamente.com/produto/${product.id}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: product.nome, text: product.nome, url });
