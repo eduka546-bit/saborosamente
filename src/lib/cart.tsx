@@ -39,8 +39,8 @@ export const RULES = {
   // Desconto progressivo — sopas e complementos CONTAM na qtd mas NÃO recebem desconto
   PROGRESSIVE_DISCOUNT: [
     { min: 5, discount: 0.03 },
-    { min: 10, discount: 0.05 },
-    { min: 20, discount: 0.07 },
+    { min: 10, discount: 0.07 },
+    { min: 20, discount: 0.12 },
   ],
 };
 
