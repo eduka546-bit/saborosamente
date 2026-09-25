@@ -171,8 +171,9 @@ test("mobile: catálogo, modal e checkout sem overflow horizontal", async ({ pag
   await page.screenshot({ path: "test-results/05-mobile-modal.png", fullPage: true });
 
   await page.getByRole("button", { name: /Adicionar ao (Carrinho|pedido)/i }).click();
-  await page.goto(`${BASE_URL}/checkout`, { waitUntil: "domcontentloaded" });
+  await goToCheckoutThroughCart(page);
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  await expect(page.getByText(PRODUCT, { exact: false }).first()).toBeVisible();
   overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
   await page.screenshot({ path: "test-results/06-mobile-checkout.png", fullPage: true });
