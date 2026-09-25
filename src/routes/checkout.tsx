@@ -271,6 +271,10 @@ function Checkout() {
     },
   });
 
+  const acrescimos = (siteSettings as any)?.parametros_loja?.acrescimos;
+  const adicionalPronta = Number(acrescimos?.pronta ?? 1);
+  const adicionalGarfo = Number(acrescimos?.garfoEFaca ?? 1);
+
   // ── Datas e horários de entrega — configuráveis na aba Parâmetros do admin ──
   const entregaCfg = configEntregaParaCidade(
     (siteSettings as any)?.parametros_loja?.entrega,
