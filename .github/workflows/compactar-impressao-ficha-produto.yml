@@ -1,10 +1,7 @@
 name: Compactar impressão da ficha por produto
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/compactar-impressao-ficha-produto.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
