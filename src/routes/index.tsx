@@ -116,8 +116,8 @@ export const Route = createFileRoute("/")({
           "Marmitas congeladas artesanais feitas com ingredientes naturais. Prontas em 7 minutos. Entrega em São Bento do Sul e região.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://saborosamente.vercel.app/" },
-      { property: "og:image", content: "https://saborosamente.vercel.app/icon-app.jpg" },
+      { property: "og:url", content: "https://www.saborosamente.com/" },
+      { property: "og:image", content: "https://www.saborosamente.com/icon-app.jpg" },
       { property: "og:locale", content: "pt_BR" },
       { property: "og:site_name", content: "Saborosamente" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -127,11 +127,11 @@ export const Route = createFileRoute("/")({
         content:
           "Marmitas congeladas artesanais. Prontas em 7 minutos, validade 6 meses. Entrega em São Bento do Sul e região.",
       },
-      { name: "twitter:image", content: "https://saborosamente.vercel.app/favicon.png" },
+      { name: "twitter:image", content: "https://www.saborosamente.com/favicon.png" },
       { name: "robots", content: "index, follow" },
       { name: "author", content: "SaborosaMente" },
     ],
-    links: [{ rel: "canonical", href: "https://saborosamente.vercel.app/" }],
+    links: [{ rel: "canonical", href: "https://www.saborosamente.com/" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -141,10 +141,10 @@ export const Route = createFileRoute("/")({
           name: "SaborosaMente",
           description: "Marmitas congeladas artesanais feitas com ingredientes naturais",
           servesCuisine: ["Culinária Brasileira", "Marmitas Congeladas"],
-          url: "https://saborosamente.vercel.app/",
-          image: "https://saborosamente.vercel.app/favicon.png",
+          url: "https://www.saborosamente.com/",
+          image: "https://www.saborosamente.com/favicon.png",
           priceRange: "R$$",
-          hasMenu: "https://saborosamente.vercel.app/#cardapio",
+          hasMenu: "https://www.saborosamente.com/#cardapio",
           address: {
             "@type": "PostalAddress",
             addressLocality: "São Bento do Sul",
