@@ -1,9 +1,7 @@
 name: Adicionar filtro de conversas respondidas
 
 on:
-  push:
-    paths:
-      - '.github/workflows/adicionar-filtro-respondidas-whatsapp.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
