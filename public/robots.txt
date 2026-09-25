@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://saborosamente.vercel.app/sitemap.xml
+Sitemap: https://www.saborosamente.com/sitemap.xml
