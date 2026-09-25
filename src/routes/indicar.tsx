@@ -76,7 +76,7 @@ function IndicarPage() {
   }, [profile, isLoading]);
 
   const linkIndicacao = profile?.codigo_indicacao
-    ? `${typeof window !== "undefined" ? window.location.origin : "https://saborosamente.vercel.app"}/?ref=${profile.codigo_indicacao}`
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://www.saborosamente.com"}/?ref=${profile.codigo_indicacao}`
     : "";
 
   const copiarLink = () => {
