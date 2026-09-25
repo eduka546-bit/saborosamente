@@ -226,9 +226,26 @@ function Index() {
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const { data: products = [], isLoading } = useQuery({
+  const {
+    data: products = [],
+    isLoading,
+    isError: productsError,
+    error: productsErrorDetail,
+    refetch: refetchProducts,
+    isFetching: productsFetching,
+  } = useQuery({
     queryKey: ["public-products-all"],
-    queryFn: () => getPublicProducts(),
+    queryFn: async () => {
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error("O cardápio demorou mais que o esperado para carregar.")),
+          15000,
+        );
+      });
+      return Promise.race([getPublicProducts(), timeout]);
+    },
+    retry: 1,
+    retryDelay: 750,
     staleTime: 1000 * 60 * 30, // Cache por 30 minutos para reduzir egress
     gcTime: 1000 * 60 * 60,
   });
@@ -963,7 +980,28 @@ function Index() {
               </div>
             </div>
 
-            {isLoading ? (
+            {productsError ? (
+              <div className="rounded-3xl border border-[#dce7d5] bg-white px-6 py-12 text-center shadow-sm">
+                <div className="mx-auto grid size-12 place-items-center rounded-full bg-[#eef5e9] text-2xl">🍽️</div>
+                <h3 className="mt-4 text-lg font-black text-[#173a2d]">
+                  Não conseguimos carregar o cardápio agora
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  Sua conexão pode ter oscilado por alguns instantes. Tente novamente — seu carrinho continua salvo.
+                </p>
+                {productsErrorDetail instanceof Error && (
+                  <p className="sr-only">{productsErrorDetail.message}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => refetchProducts()}
+                  disabled={productsFetching}
+                  className="mt-5 inline-flex min-w-40 items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
+                >
+                  {productsFetching ? "Tentando novamente..." : "Tentar novamente"}
+                </button>
+              </div>
+            ) : isLoading ? (
               <div aria-label="Carregando cardápio" className="space-y-6">
                 <div className="h-5 w-40 animate-pulse rounded-full bg-[#e7ece3]" />
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
