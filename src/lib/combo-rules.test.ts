@@ -57,16 +57,16 @@ describe("faixas de desconto progressivo", () => {
     expect(getComboDiscount(5)?.discount).toBe(0.03);
   });
 
-  it("5% a partir de 10 unidades", () => {
-    expect(tierDescontoProgressivo(10)).toBe(0.05);
-    expect(tierDescontoProgressivo(19)).toBe(0.05);
-    expect(getComboDiscount(10)?.discount).toBe(0.05);
+  it("7% a partir de 10 unidades", () => {
+    expect(tierDescontoProgressivo(10)).toBe(0.07);
+    expect(tierDescontoProgressivo(19)).toBe(0.07);
+    expect(getComboDiscount(10)?.discount).toBe(0.07);
   });
 
-  it("7% a partir de 20 unidades", () => {
-    expect(tierDescontoProgressivo(20)).toBe(0.07);
-    expect(tierDescontoProgressivo(100)).toBe(0.07);
-    expect(getComboDiscount(50)?.discount).toBe(0.07);
+  it("12% a partir de 20 unidades", () => {
+    expect(tierDescontoProgressivo(20)).toBe(0.12);
+    expect(tierDescontoProgressivo(100)).toBe(0.12);
+    expect(getComboDiscount(50)?.discount).toBe(0.12);
   });
 });
 
@@ -94,9 +94,9 @@ describe("calcularDescontoProgressivo", () => {
     expect(calcularDescontoProgressivo(itens)).toBeCloseTo(2.7, 5);
   });
 
-  it("aplica 7% quando chega a 20 unidades", () => {
+  it("aplica 12% quando chega a 20 unidades", () => {
     const itens: CartItemForCalc[] = [{ categoria: "Fitness", subtotal: 400, quantidade: 20 }];
-    expect(calcularDescontoProgressivo(itens)).toBeCloseTo(28, 5);
+    expect(calcularDescontoProgressivo(itens)).toBeCloseTo(48, 5);
   });
 
   it("pedido só de sopas não recebe desconto mesmo com 10+ unidades", () => {
@@ -193,12 +193,12 @@ describe("calcularTotaisCombo", () => {
     expect(r.total).toBeCloseTo(97, 5);
   });
 
-  it("usa a MAIOR faixa: 20 marmitas dão 7% (não 3%)", () => {
+  it("usa a MAIOR faixa: 20 marmitas dão 12% (não 3%)", () => {
     // Regressão: a versão antiga com COMBO_RULES.find() retornava 3% para 20 itens.
     const r = calcularTotaisCombo([{ categoria: "Fitness", subtotal: 400, quantidade: 20 }]);
-    expect(r.discountPct).toBe(0.07);
-    expect(r.discount).toBeCloseTo(28, 5);
-    expect(r.total).toBeCloseTo(372, 5);
+    expect(r.discountPct).toBe(0.12);
+    expect(r.discount).toBeCloseTo(48, 5);
+    expect(r.total).toBeCloseTo(352, 5);
   });
 
   it("sopas contam na quantidade mas não recebem desconto", () => {
