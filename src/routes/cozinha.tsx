@@ -2412,7 +2412,12 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const custoIngredientes=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);
   const etiquetaCusto = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
   const embalagemDoTamanho=(t:Tamanho)=>{
-    const categoria = produto?.tipo_produto === "sopa" ? "sopa" : `marmita_${t}`;
+    const categoria =
+      produto?.tipo_produto === "sopa"
+        ? "sopa"
+        : produto?.tipo_produto === "complemento"
+          ? "marmita_200"
+          : `marmita_${t}`;
     return embalagens.find((x:any)=>x.categoria === categoria && x.ativo !== false);
   };
   const custoSomenteEmbalagem=(t:Tamanho)=>n(embalagemDoTamanho(t)?.custo_unitario);
