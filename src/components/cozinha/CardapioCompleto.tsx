@@ -222,27 +222,38 @@ export function CardapioCompleto({
     [produtos],
   );
 
+  const idsIngredientesPreparacao = (prepId: string, visitados = new Set<string>()): Set<string> => {
+    if (!prepId || visitados.has(prepId)) return new Set();
+    const proximos = new Set(visitados);
+    proximos.add(prepId);
+    const ids = new Set<string>();
+    (itensPreparacao.get(prepId) || []).forEach((item: any) => {
+      if (item.ingrediente_id) ids.add(item.ingrediente_id);
+      if (item.preparacao_componente_id) {
+        idsIngredientesPreparacao(item.preparacao_componente_id, proximos).forEach((id) => ids.add(id));
+      }
+    });
+    return ids;
+  };
+
   const ingredientesTecnicosProduto = (produto: any) => {
     const receita = receitaPorProduto.get(produto.id);
     if (!receita) return [];
-    const nomes = new Set<string>();
+    const ids = new Set<string>();
     (itensReceita.get(receita.id) || []).forEach((linha: any) => {
-      const ingrediente = ingredientePorId.get(linha.ingrediente_id);
-      if (ingrediente?.nome) nomes.add(String(ingrediente.nome));
+      if (linha.ingrediente_id) ids.add(linha.ingrediente_id);
       if (linha.preparacao_id) {
-        (itensPreparacao.get(linha.preparacao_id) || []).forEach((item: any) => {
-          const ing = ingredientePorId.get(item.ingrediente_id);
-          if (ing?.nome) nomes.add(String(ing.nome));
-        });
+        idsIngredientesPreparacao(linha.preparacao_id).forEach((id) => ids.add(id));
       }
     });
     (Array.isArray(receita.preparacoes) ? receita.preparacoes : []).forEach((ref: any) => {
-      (itensPreparacao.get(ref?.id) || []).forEach((item: any) => {
-        const ing = ingredientePorId.get(item.ingrediente_id);
-        if (ing?.nome) nomes.add(String(ing.nome));
-      });
+      idsIngredientesPreparacao(ref?.id).forEach((id) => ids.add(id));
     });
-    return Array.from(nomes).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return Array.from(ids)
+      .map((id) => ingredientePorId.get(id)?.nome)
+      .filter(Boolean)
+      .map(String)
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
   };
 
   const textoIngredientesProduto = (produto: any) =>
@@ -319,18 +330,26 @@ export function CardapioCompleto({
       : n(ingrediente?.custo_por_kg) / 1000;
 
   const unidadeItemPreparacao = (item: any): "g" | "un" => {
+    if (item?.preparacao_componente_id) return "g";
     const texto = String(item?.quantidade_texto || "").trim();
     if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return "g";
     if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
     return ingredientePorId.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
   };
 
-  const custoPreparacaoPorGrama = (preparacao: any) => {
-    if (!preparacao || !(n(preparacao.rendimento_final_g) > 0)) return 0;
+  const custoPreparacaoPorGrama = (preparacao: any, visitados = new Set<string>()): number => {
+    if (!preparacao || !(n(preparacao.rendimento_final_g) > 0) || visitados.has(preparacao.id)) return 0;
+    const proximos = new Set(visitados);
+    proximos.add(preparacao.id);
     const itens = itensPreparacao.get(preparacao.id) || [];
     const custoTotal = itens.reduce((soma: number, item: any) => {
+      if (!(n(item.quantidade) > 0)) return soma;
+      if (item.preparacao_componente_id) {
+        const filho = preparacaoPorId.get(item.preparacao_componente_id);
+        return soma + n(item.quantidade) * custoPreparacaoPorGrama(filho, proximos);
+      }
       const ing = ingredientePorId.get(item.ingrediente_id);
-      if (!ing || !(n(item.quantidade) > 0)) return soma;
+      if (!ing) return soma;
       const unitario =
         unidadeItemPreparacao(item) === "un"
           ? n(ing.custo_por_unidade)
@@ -369,9 +388,10 @@ export function CardapioCompleto({
       const itens = itensPreparacao.get(prep.id) || [];
       return itemMontagem && n(prep.rendimento_final_g) > 0 && itens.some((x: any) => n(x.quantidade) > 0);
     });
-    const idsCobertos = new Set(
-      estruturadas.flatMap((prep: any) => (itensPreparacao.get(prep.id) || []).map((x: any) => x.ingrediente_id)),
-    );
+    const idsCobertos = new Set<string>();
+    estruturadas.forEach((prep: any) => {
+      idsIngredientesPreparacao(prep.id).forEach((id) => idsCobertos.add(id));
+    });
 
     let custo = 0;
 
