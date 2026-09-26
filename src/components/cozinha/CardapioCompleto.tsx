@@ -325,16 +325,20 @@ export function CardapioCompleto({
   ]);
 
   const custoIngrediente = (ingrediente: any) =>
-    ingrediente?.unidade_medida === "un"
+    ingrediente?.unidade_medida === "un" || ingrediente?.unidade_medida === "L"
       ? n(ingrediente?.custo_por_unidade)
       : n(ingrediente?.custo_por_kg) / 1000;
 
-  const unidadeItemPreparacao = (item: any): "g" | "un" => {
+  const unidadeItemPreparacao = (item: any): "g" | "un" | "L" => {
     if (item?.preparacao_componente_id) return "g";
+    const ingrediente = ingredientePorId.get(item?.ingrediente_id);
+    if (ingrediente?.unidade_medida === "L") return "L";
+    if (ingrediente?.unidade_medida === "un") return "un";
     const texto = String(item?.quantidade_texto || "").trim();
-    if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return "g";
+    if (/\blitro(s)?\b|\bL\b/i.test(texto)) return "L";
+    if (/\bkg\b|\bgr\b|grama|\bg\b|ml/i.test(texto)) return "g";
     if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
-    return ingredientePorId.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
+    return "g";
   };
 
   const custoPreparacaoPorGrama = (preparacao: any, visitados = new Set<string>()): number => {
@@ -350,8 +354,9 @@ export function CardapioCompleto({
       }
       const ing = ingredientePorId.get(item.ingrediente_id);
       if (!ing) return soma;
+      const unidade = unidadeItemPreparacao(item);
       const unitario =
-        unidadeItemPreparacao(item) === "un"
+        unidade === "un" || unidade === "L"
           ? n(ing.custo_por_unidade)
           : n(ing.custo_por_kg) / 1000;
       return soma + n(item.quantidade) * unitario;
