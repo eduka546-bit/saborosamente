@@ -1467,6 +1467,43 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       prepDia.set(chave, atual);
     });
   });
+
+  // Preparações podem usar outras preparações compartilhadas como componentes.
+  // Ex.: Molho Bolonhesa usa o mesmo Molho sugo do restante do cardápio.
+  // Incluímos esses subpreparos no consolidado do dia para que sejam produzidos
+  // uma única vez e somados aos usos diretos do mesmo preparo.
+  const gruposRaiz = Array.from(prepDia.values()).filter((g:any)=>!g.ingredienteBase);
+  const adicionarSubpreparo = (prepPaiId:string, quantidadePai:number, pratoUso:any, visitados = new Set<string>()) => {
+    if (!prepPaiId || !(quantidadePai > 0) || visitados.has(prepPaiId)) return;
+    const prepPai = prepPorId.get(prepPaiId) as any;
+    if (!prepPai) return;
+    const rendimentoPai = n(prepPai.rendimento_final_g);
+    if (!(rendimentoPai > 0)) return;
+    const proximos = new Set(visitados);
+    proximos.add(prepPaiId);
+    ((itensPreparacao.get(prepPaiId) || []) as any[]).forEach((item:any) => {
+      if (!item.preparacao_componente_id || !(n(item.quantidade) > 0)) return;
+      const prepFilho = prepPorId.get(item.preparacao_componente_id) as any;
+      if (!prepFilho) return;
+      const quantidadeFilho = n(item.quantidade) * quantidadePai / rendimentoPai;
+      if (!(quantidadeFilho > 0)) return;
+      const chave = prepFilho.id;
+      const atual = prepDia.get(chave) || { prep:prepFilho, total:0, bruto:0, pratos:[] as any[], ingredienteBase:null };
+      atual.total += quantidadeFilho;
+      const ja = atual.pratos.find((x:any)=>x.produto_id===pratoUso.produto_id);
+      if (ja) {
+        ja.total += quantidadeFilho;
+      } else {
+        atual.pratos.push({ ...pratoUso, total:quantidadeFilho });
+      }
+      prepDia.set(chave, atual);
+      adicionarSubpreparo(prepFilho.id, quantidadeFilho, pratoUso, proximos);
+    });
+  };
+  gruposRaiz.forEach((grupo:any) => {
+    grupo.pratos.forEach((pr:any) => adicionarSubpreparo(grupo.prep.id, n(pr.total), pr));
+  });
+
   const preparacoesConsolidadas = Array.from(prepDia.values()).sort((a:any,b:any)=>a.prep.nome.localeCompare(b.prep.nome));
   type ContribuicaoIngrediente = { prepId:string; produtoId:string; itemId:string; ingredienteAlvoId:string; quantidade:number };
   const contribuicoesIngredientes:ContribuicaoIngrediente[]=[];
@@ -1504,16 +1541,22 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   const formatPeso = (g:number) => formatarQuantidadeProducao(arredondarProducao(g,'g'),'g');
   const fmtItemPrep = (item:any, fator:number) => {
     const ing = ingPorId.get(item.ingrediente_id) as any;
+    const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
+    const nomeItem = ing?.nome || prepComponente?.nome || 'Componente';
     const txt = String(item.quantidade_texto || '').trim();
-    if (ehQB(txt) || !n(item.quantidade)) return `${ing?.nome || 'Ingrediente'}: QB`;
-    if (/\blitro(s)?\b|\bl\b/i.test(txt)) { const litros=(n(item.quantidade)*fator)/1000; return `${ing?.nome || 'Ingrediente'}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L`; }
+    if (ehQB(txt) || !n(item.quantidade)) return `${nomeItem}: QB`;
+    if (prepComponente) {
+      const qtd = n(item.quantidade) * fator;
+      return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)} · preparo compartilhado`;
+    }
+    if (/\blitro(s)?\b|\bl\b/i.test(txt)) { const litros=(n(item.quantidade)*fator)/1000; return `${nomeItem}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L`; }
     const qtd = n(item.quantidade)*fator;
     const unidadeTexto = txt && /^\s*[\d.,]+/.test(txt) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(txt);
     if (unidadeTexto) {
       const complemento = txt.replace(/^\s*[\d.,]+\s*/i,'').trim();
-      return `${ing?.nome || 'Ingrediente'}: ${arredondarProducao(qtd,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
+      return `${nomeItem}: ${arredondarProducao(qtd,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
     }
-    return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',ing?.nome)}`;
+    return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)}`;
   };
   const contribuicoesItemGrupo = (item:any,grupo:any) => contribuicoesIngredientes.filter((x)=>x.prepId===grupo.prep.id&&x.itemId===item.id);
   const totalReceitaGrupo = (item:any,grupo:any) => contribuicoesItemGrupo(item,grupo).reduce((s,x)=>s+x.quantidade,0);
@@ -1528,8 +1571,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   };
   const fmtItemPrepExato = (item:any, grupo:any, fatorRecuperado:number, escala=1, fatorPadrao=0) => {
     const ing = ingPorId.get(item.ingrediente_id) as any;
+    const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
+    const nomeItem = ing?.nome || prepComponente?.nome || 'Componente';
     const texto = String(item.quantidade_texto || '').trim();
-    if (ehQB(texto)) return `${ing?.nome || 'Ingrediente'}: QB · a gosto`;
+    if (ehQB(texto)) return `${nomeItem}: QB · a gosto`;
     // Quando a preparação possui rendimento final cadastrado, a própria ficha da
     // preparação é a fonte de verdade. Escalar os ingredientes pelo peso pronto
     // solicitado evita reaproveitar quantidades antigas das linhas da marmita e
@@ -1542,17 +1587,17 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const pronto=Math.min(uso.total,n(preparoPronto[`${grupo.prep.id}:${uso.produto_id}`]));
       return s+contribuicao.quantidade*(1-pronto/uso.total);
     },0);
-    if (totalExato > 0) return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(totalExato,'g',ing?.nome)}`;
+    if (totalExato > 0) return `${nomeItem}: ${formatarQuantidadeProducao(totalExato,'g',nomeItem)}`;
     if (!(fatorRecuperado > 0) || !(n(item.quantidade) > 0)) {
-      return fatorPadrao > 0 ? fmtItemPrep(item, fatorPadrao) : `${ing?.nome || 'Ingrediente'}: REVISAR CADASTRO`;
+      return fatorPadrao > 0 ? fmtItemPrep(item, fatorPadrao) : `${nomeItem}: REVISAR CADASTRO`;
     }
     const escalado = n(item.quantidade) * fatorRecuperado;
     const unidadeTexto = texto && /^\s*[\d.,]+/.test(texto) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto);
     if (unidadeTexto) {
       const complemento = texto.replace(/^\s*[\d.,]+\s*/i,'').trim();
-      return `${ing?.nome || 'Ingrediente'}: ${arredondarProducao(escalado,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
+      return `${nomeItem}: ${arredondarProducao(escalado,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
     }
-    return `${ing?.nome || 'Ingrediente'}: ${formatarQuantidadeProducao(escalado,'g',ing?.nome)}`;
+    return `${nomeItem}: ${formatarQuantidadeProducao(escalado,'g',nomeItem)}`;
   };
   const descontosIngredientes = new Map<string, number>();
   const somarDesconto = (ingredienteId:string, quantidade:number) => {
@@ -1562,6 +1607,25 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const chave = `${ingredienteId}:${linha.unidade}`;
     descontosIngredientes.set(chave, (descontosIngredientes.get(chave) || 0) + quantidade);
   };
+  const descontarPreparacaoPronta = (prepId:string, pronto:number, visitados = new Set<string>()) => {
+    if (!prepId || !(pronto > 0) || visitados.has(prepId)) return;
+    const preparo = prepPorId.get(prepId) as any;
+    const itens = (itensPreparacao.get(prepId) || []) as any[];
+    if (!preparo || !itens.length) return;
+    const proximos = new Set(visitados);
+    proximos.add(prepId);
+    const rendimento = n(preparo.rendimento_final_g) || itens.reduce((s:number,item:any)=>s+n(item.quantidade),0);
+    if (!(rendimento > 0)) return;
+    itens.forEach((item:any) => {
+      if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
+      const quantidade = n(item.quantidade) * pronto / rendimento;
+      if (item.preparacao_componente_id) {
+        descontarPreparacaoPronta(item.preparacao_componente_id, quantidade, proximos);
+      } else if (item.ingrediente_id) {
+        somarDesconto(item.ingrediente_id, quantidade);
+      }
+    });
+  };
   preparacoesConsolidadas.forEach((grupo:any) => {
     const jaPronto = grupo.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${grupo.prep.id}:${pr.produto_id}`])),0);
     if (!(jaPronto > 0) || !(grupo.total > 0)) return;
@@ -1570,31 +1634,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       somarDesconto(grupo.ingredienteBase.id, grupo.bruto * proporcaoPronta);
       return;
     }
-    const itens = (itensPreparacao.get(grupo.prep.id) || []) as any[];
-    const rendimento = n(grupo.prep.rendimento_final_g);
-    const itemEmPeso = (item:any) => {
-      const texto=String(item.quantidade_texto||'').trim();
-      if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return true;
-      if (texto&&/^\s*[\d.,]+/.test(texto)) return false;
-      return (ingPorId.get(item.ingrediente_id) as any)?.unidade_medida!=='un';
-    };
-    const rendimentoInferido = itens.reduce((s:number,item:any)=>s+(itemEmPeso(item)?n(item.quantidade):0),0);
-    const rendimentoBase = rendimento>0?rendimento:rendimentoInferido;
-    itens.forEach((item:any) => {
-      if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
-      const contribuicoes=contribuicoesItemGrupo(item,grupo);
-      if (contribuicoes.length) {
-        contribuicoes.forEach((contribuicao)=>{
-          const uso=grupo.pratos.find((pr:any)=>pr.produto_id===contribuicao.produtoId);
-          if (!uso || !(uso.total>0)) return;
-          const pronto=Math.min(uso.total,n(preparoPronto[`${grupo.prep.id}:${uso.produto_id}`]));
-          somarDesconto(contribuicao.ingredienteAlvoId,contribuicao.quantidade*pronto/uso.total);
-        });
-        return;
-      }
-      const totalLote=rendimentoBase>0?quantidadeNoLote(n(item.quantidade),grupo.total,rendimentoBase):0;
-      somarDesconto(item.ingrediente_id,totalLote*proporcaoPronta);
-    });
+    descontarPreparacaoPronta(grupo.prep.id, jaPronto);
   });
   const ingredientesDiaAjustados = (separar as any[]).map((x:any) => ({
     ...x,
