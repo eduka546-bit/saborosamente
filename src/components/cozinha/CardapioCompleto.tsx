@@ -373,7 +373,12 @@ export function CardapioCompleto({
 
   const custoEmbalagem = (produto: any, tamanho: TamanhoCardapio) => {
     const etiqueta = embalagens.find((x: any) => x.categoria === "etiqueta" && x.ativo !== false);
-    const categoria = produto?.tipo_produto === "sopa" ? "sopa" : "marmita_" + tamanho;
+    const categoria =
+      produto?.tipo_produto === "sopa"
+        ? "sopa"
+        : produto?.tipo_produto === "complemento"
+          ? "marmita_200"
+          : "marmita_" + tamanho;
     const embalagem = embalagens.find((x: any) => x.categoria === categoria && x.ativo !== false);
     return n(etiqueta?.custo_unitario) + n(embalagem?.custo_unitario);
   };
