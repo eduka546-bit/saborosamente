@@ -104,7 +104,7 @@ function CustosMargensPage() {
           tipo === "sopa"
             ? "sopa"
             : tipo === "complemento"
-              ? "complemento_150"
+              ? "marmita_200"
               : `marmita_${tam}`;
         const emb: any = (embalagens.data ?? []).find(
           (x: any) => x.categoria === categoria && x.ativo !== false,
@@ -629,7 +629,7 @@ function CustosMargensPage() {
             </div>
           </div>
           <p className="text-xs text-gray-400">
-            Custos técnicos usam ingredientes, preparações compartilhadas, embalagens e etiqueta. Complementos usam a ficha de 150 g; se não houver embalagem específica cadastrada, entra apenas a etiqueta até que a embalagem seja definida.
+            Custos técnicos usam ingredientes, preparações compartilhadas, embalagens e etiqueta. Complementos de 150 g usam a mesma embalagem de 250 ml das marmitas de 200 g.
           </p>
         </>
       )}
