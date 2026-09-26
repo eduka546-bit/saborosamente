@@ -1606,7 +1606,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const pronto=Math.min(uso.total,n(preparoPronto[`${grupo.prep.id}:${uso.produto_id}`]));
       return s+contribuicao.quantidade*(1-pronto/uso.total);
     },0);
-    if (totalExato > 0) return `${nomeItem}: ${formatarQuantidadeProducao(totalExato,'g',nomeItem)}`;
+    if (totalExato > 0) {
+      const fatorAprox = n(item.quantidade) > 0 ? totalExato / n(item.quantidade) : 0;
+      return `${nomeItem}: ${formatarQuantidadeProducao(totalExato,'g',nomeItem)}${aproximacaoItemPrep(item,fatorAprox)}`;
+    }
     if (!(fatorRecuperado > 0) || !(n(item.quantidade) > 0)) {
       return fatorPadrao > 0 ? fmtItemPrep(item, fatorPadrao) : `${nomeItem}: REVISAR CADASTRO`;
     }
@@ -1614,9 +1617,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const unidadeTexto = texto && /^\s*[\d.,]+/.test(texto) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto);
     if (unidadeTexto) {
       const complemento = texto.replace(/^\s*[\d.,]+\s*/i,'').trim();
-      return `${nomeItem}: ${arredondarProducao(escalado,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
+      return `${nomeItem}: ${arredondarProducao(escalado,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}${aproximacaoItemPrep(item,fatorRecuperado)}`;
     }
-    return `${nomeItem}: ${formatarQuantidadeProducao(escalado,'g',nomeItem)}`;
+    return `${nomeItem}: ${formatarQuantidadeProducao(escalado,'g',nomeItem)}${aproximacaoItemPrep(item,fatorRecuperado)}`;
   };
   const descontosIngredientes = new Map<string, number>();
   const somarDesconto = (ingredienteId:string, quantidade:number) => {
