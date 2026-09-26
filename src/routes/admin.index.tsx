@@ -503,7 +503,7 @@ function AdminDashboard() {
                   href: "/admin/pedidos/carrinhos-abandonados",
                 },
                 { label: "Relatórios", icon: BarChart2, href: "/admin/relatorios" },
-                { label: "Custos e Margens", icon: TrendingUp, href: "/admin/custos" },
+                { label: "Financeiro", icon: TrendingUp, href: "/admin/custos" },
                 { label: "Entregas", icon: Truck, href: "/admin/config/taxas" },
                 {
                   label: "Marmita Personalizada",
