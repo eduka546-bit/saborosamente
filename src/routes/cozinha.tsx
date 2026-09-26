@@ -1742,6 +1742,7 @@ function FichaMontagemModal({ produto, dataProducao, producoes, receita, montage
 function FichaProducaoModal({ produto, dataProducao, producoes, receita, montagem, preparacoes, itensPreparacao, itensReceita = [], ingredientes, fechar }: any) {
   const mesmo = nomesCozinhaCorrespondem;
   const porId = new Map((ingredientes as any[]).map((x: any) => [x.id, x]));
+  const prepPorIdLocal = new Map((preparacoes as any[]).map((x: any) => [x.id, x]));
   const quantidades = { "200": 0, "300": 0, "400": 0 } as Record<string, number>;
   (producoes as any[]).forEach((p: any) => { if (quantidades[p.gramatura] != null) quantidades[p.gramatura] += n(p.quantidade_planejada); });
   const montagemTotal = (montagem as any[]).map((m: any) => ({
@@ -1754,7 +1755,12 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const interpretar = (item: any, fator: number) => {
     const texto = String(item.quantidade_texto || "").trim();
     const ingrediente = porId.get(item.ingrediente_id) as any;
+    const prepComponente = prepPorIdLocal.get(item.preparacao_componente_id) as any;
     if (ehQB(texto) || !n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: ehQB(texto) || !texto ? "a gosto" : textoCozinha(texto) };
+    if (prepComponente) {
+      const g = arredondarProducao(n(item.quantidade) * fator, "g");
+      return { tipo: "peso", valor: g, exibicao: formatarQuantidadeProducao(g, "g", prepComponente.nome) + " · preparo compartilhado" };
+    }
     const volumeLitros = /\blitro(s)?\b|\bl\b/i.test(texto);
     if (volumeLitros) {
       const litros = (n(item.quantidade) * fator) / 1000;
@@ -1783,14 +1789,16 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     const fator = n(prep.rendimento_final_g) > 0 ? pronto / n(prep.rendimento_final_g) : 0;
     const itens = (itensPreparacao.get(prep.id) || []).map((item: any) => {
       const ingrediente = porId.get(item.ingrediente_id);
-      const fallbackExato = n(totalReceitaPorIngrediente.get(item.ingrediente_id));
+      const prepComponente = prepPorIdLocal.get(item.preparacao_componente_id);
+      const nomeComponente = ingrediente?.nome || prepComponente?.nome || "Componente";
+      const fallbackExato = item.ingrediente_id ? n(totalReceitaPorIngrediente.get(item.ingrediente_id)) : 0;
       const calculadoBase = interpretar(item, fator);
-      const usarFallback = !(n(prep.rendimento_final_g) > 0) || !(n(item.quantidade) > 0) || calculadoBase.tipo === "texto" || !(n(calculadoBase.valor) > 0);
+      const usarFallback = !item.preparacao_componente_id && (!(n(prep.rendimento_final_g) > 0) || !(n(item.quantidade) > 0) || calculadoBase.tipo === "texto" || !(n(calculadoBase.valor) > 0));
       const calculado = usarFallback && fallbackExato > 0
-        ? { tipo: "peso", valor: fallbackExato, exibicao: formatarQuantidadeProducao(fallbackExato, "g", ingrediente?.nome) }
+        ? { tipo: "peso", valor: fallbackExato, exibicao: formatarQuantidadeProducao(fallbackExato, "g", nomeComponente) }
         : calculadoBase;
       const pendente = usarFallback && !(fallbackExato > 0) && !(n(calculadoBase.valor) > 0);
-      return { ...item, ingrediente, calculado, pendente };
+      return { ...item, ingrediente, prepComponente, nomeComponente, calculado, pendente };
     });
     return { prep, componente, pronto, fator, itens };
   }).filter((x: any) => x.pronto > 0 || x.itens.length);
@@ -1830,7 +1838,10 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       if (ingrediente) addTotal(ingredienteId, ingrediente.nome, "peso", qtd);
     });
   } else {
-    preparacoesCalculadas.forEach((pc: any) => pc.itens.forEach((item: any) => addTotal(item.ingrediente_id, item.ingrediente?.nome || "Ingrediente", item.calculado.tipo, item.calculado.valor, item.calculado.exibicao)));
+    preparacoesCalculadas.forEach((pc: any) => pc.itens.forEach((item: any) => {
+      if (!item.ingrediente_id || !item.ingrediente) return;
+      addTotal(item.ingrediente_id, item.ingrediente.nome, item.calculado.tipo, item.calculado.valor, item.calculado.exibicao);
+    }));
   }
   diretos.forEach((d: any) => {
     if (!d.ingrediente) return;
