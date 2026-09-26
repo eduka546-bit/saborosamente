@@ -1548,6 +1548,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     });
   });
   const formatPeso = (g:number) => formatarQuantidadeProducao(arredondarProducao(g,'g'),'g');
+  const aproximacaoItemPrep = (item:any, fator:number) => {
+    const base=n(item?.quantidade_aproximada);
+    const unidade=String(item?.unidade_aproximada||'').trim();
+    if (!(base>0) || !unidade || !(fator>=0)) return '';
+    const qtd=base*fator;
+    return ` · ≈ ${qtd.toLocaleString('pt-BR',{maximumFractionDigits:2})} ${unidade}`;
+  };
   const fmtItemPrep = (item:any, fator:number) => {
     const ing = ingPorId.get(item.ingrediente_id) as any;
     const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
@@ -1556,19 +1563,19 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     if (ehQB(txt) || !n(item.quantidade)) return `${nomeItem}: QB`;
     if (prepComponente) {
       const qtd = n(item.quantidade) * fator;
-      return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)} · preparo compartilhado`;
+      return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)} · preparo compartilhado${aproximacaoItemPrep(item,fator)}`;
     }
     if (ing?.unidade_medida === "L" || /\blitro(s)?\b|\bl\b/i.test(txt)) {
       const litros = ing?.unidade_medida === "L" ? n(item.quantidade) * fator : (n(item.quantidade) * fator) / 1000;
-      return `${nomeItem}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L`;
+      return `${nomeItem}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L${aproximacaoItemPrep(item,fator)}`;
     }
     const qtd = n(item.quantidade)*fator;
     const unidadeTexto = txt && /^\s*[\d.,]+/.test(txt) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(txt);
     if (unidadeTexto) {
       const complemento = txt.replace(/^\s*[\d.,]+\s*/i,'').trim();
-      return `${nomeItem}: ${arredondarProducao(qtd,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}`;
+      return `${nomeItem}: ${arredondarProducao(qtd,'un').toLocaleString('pt-BR')}${complemento ? ` ${complemento}` : ' un'}${aproximacaoItemPrep(item,fator)}`;
     }
-    return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)}`;
+    return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)}${aproximacaoItemPrep(item,fator)}`;
   };
   const contribuicoesItemGrupo = (item:any,grupo:any) => contribuicoesIngredientes.filter((x)=>x.prepId===grupo.prep.id&&x.itemId===item.id);
   const totalReceitaGrupo = (item:any,grupo:any) => contribuicoesItemGrupo(item,grupo).reduce((s,x)=>s+x.quantidade,0);
@@ -1766,30 +1773,35 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
   const formatPeso = (g: number) => `${arredondarProducao(g, "g").toLocaleString("pt-BR")} g`;
   const interpretar = (item: any, fator: number) => {
     const texto = String(item.quantidade_texto || "").trim();
+    const aproxBase = n(item.quantidade_aproximada);
+    const aproxUn = String(item.unidade_aproximada || "").trim();
+    const aprox = aproxBase > 0 && aproxUn
+      ? ` · ≈ ${(aproxBase*fator).toLocaleString("pt-BR",{maximumFractionDigits:2})} ${aproxUn}`
+      : "";
     const ingrediente = porId.get(item.ingrediente_id) as any;
     const prepComponente = prepPorIdLocal.get(item.preparacao_componente_id) as any;
     if (ehQB(texto) || !n(item.quantidade)) return { tipo: "texto", valor: 0, exibicao: ehQB(texto) || !texto ? "a gosto" : textoCozinha(texto) };
     if (prepComponente) {
       const g = arredondarProducao(n(item.quantidade) * fator, "g");
-      return { tipo: "peso", valor: g, exibicao: formatarQuantidadeProducao(g, "g", prepComponente.nome) + " · preparo compartilhado" };
+      return { tipo: "peso", valor: g, exibicao: formatarQuantidadeProducao(g, "g", prepComponente.nome) + " · preparo compartilhado" + aprox };
     }
     const volumeLitros = ingrediente?.unidade_medida === "L" || /\blitro(s)?\b|\bl\b/i.test(texto);
     if (volumeLitros) {
       const litros = ingrediente?.unidade_medida === "L"
         ? n(item.quantidade) * fator
         : (n(item.quantidade) * fator) / 1000;
-      return { tipo: "volume", valor: litros, exibicao: `${litros.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} L` };
+      return { tipo: "volume", valor: litros, exibicao: `${litros.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} L${aprox}` };
     }
     const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
     if (peso) {
       const bruto = n(item.quantidade) * fator;
       if (ehMicroIngrediente(ingrediente?.nome) && bruto > 0 && bruto < 1) return { tipo: "peso", valor: bruto, exibicao: formatarQuantidadeProducao(bruto, "g", ingrediente?.nome) };
       const g = arredondarProducao(bruto, "g");
-      return { tipo: "peso", valor: g, exibicao: formatPeso(g) };
+      return { tipo: "peso", valor: g, exibicao: formatPeso(g) + aprox };
     }
     const semNumero = textoCozinha(texto.replace(/^\s*[\d.,]+\s*/i, "").trim());
     const un = arredondarProducao(n(item.quantidade) * fator, "un");
-    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}` };
+    return { tipo: "un", valor: un, exibicao: `${un.toLocaleString("pt-BR")}${semNumero ? ` ${semNumero}` : " un"}${aprox}` };
   };
   const totalReceitaPorIngrediente = new Map<string, number>();
   (itensReceita as any[]).filter((x: any) => x.ingrediente_id).forEach((x: any) => {
@@ -2174,8 +2186,11 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
           quantidade: n(x.quantidade),
           rendimento_quebra: n(x.rendimento_quebra || 1),
           quantidade_texto: x.quantidade_texto || "",
+          quantidade_aproximada: x.quantidade_aproximada == null ? "" : String(x.quantidade_aproximada),
+          unidade_aproximada: x.unidade_aproximada || "",
+          aproximacao_observacao: x.aproximacao_observacao || "",
         }))
-      : [{ ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "" }],
+      : [{ ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "", quantidade_aproximada: "", unidade_aproximada: "", aproximacao_observacao: "" }],
   );
   const edit = (i: number, k: string, v: any) =>
     setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
@@ -2230,7 +2245,7 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
         const prepComponente = preparacoes.find((p: any) => p.id === x.preparacao_componente_id);
         return (
           <div key={i} className="mb-2 rounded-xl bg-[#f4f7f4] p-3">
-            <div className="grid gap-2 md:grid-cols-[minmax(260px,1fr)_120px_minmax(220px,1fr)_auto]">
+            <div className="grid gap-2 md:grid-cols-[minmax(250px,1fr)_110px_minmax(210px,1fr)_auto]">
               <select className={input} value={valorComponente(x)} onChange={(e) => selecionarComponente(i, e.target.value)}>
                 <option value="">Ingrediente ou preparo</option>
                 <optgroup label="Ingredientes">
@@ -2242,9 +2257,29 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
                   )}
                 </optgroup>
               </select>
-              <input className={input} type="number" min="0" step="0.001" value={x.quantidade || ""} placeholder="Qtd." onChange={(e) => edit(i, "quantidade", n(e.target.value))} />
-              <input className={input} value={x.quantidade_texto || ""} placeholder={prepComponente ? "Ex.: 530 g de Molho sugo pronto" : "Texto/observação da quantidade"} onChange={(e) => edit(i, "quantidade_texto", e.target.value)} />
+              <input className={input} type="number" min="0" step="0.001" value={x.quantidade || ""} placeholder="Qtd. exata" onChange={(e) => edit(i, "quantidade", n(e.target.value))} />
+              <input className={input} value={x.quantidade_texto || ""} placeholder={prepComponente ? "Ex.: 530 g de Molho sugo pronto" : "Descrição da quantidade exata"} onChange={(e) => edit(i, "quantidade_texto", e.target.value)} />
               <button onClick={() => setLinhas(linhas.filter((_, j) => j !== i))} className="font-bold text-red-500">×</button>
+            </div>
+            <div className="mt-2 grid gap-2 md:grid-cols-[140px_minmax(190px,.7fr)_1fr]">
+              <label className="text-[10px] font-black uppercase tracking-wide text-[#62766b]">
+                Aproximadamente
+                <input className={input+" mt-1"} type="number" min="0" step="0.01" value={x.quantidade_aproximada ?? ""} placeholder="Ex.: 1" onChange={(e)=>edit(i,"quantidade_aproximada",e.target.value)} />
+              </label>
+              <label className="text-[10px] font-black uppercase tracking-wide text-[#62766b]">
+                Medida prática
+                <input
+                  className={input+" mt-1"}
+                  list="medidas-aproximadas-cozinha"
+                  value={x.unidade_aproximada || ""}
+                  placeholder="maço, xícara, colher..."
+                  onChange={(e)=>edit(i,"unidade_aproximada",e.target.value)}
+                />
+              </label>
+              <label className="text-[10px] font-black uppercase tracking-wide text-[#62766b]">
+                Observação da conversão
+                <input className={input+" mt-1"} value={x.aproximacao_observacao || ""} placeholder="Ex.: 1 maço ≈ 250 g; ajustar ao fornecedor" onChange={(e)=>edit(i,"aproximacao_observacao",e.target.value)} />
+              </label>
             </div>
             {prepComponente && (
               <p className="mt-2 text-[11px] font-bold text-[#087443]">
@@ -2255,8 +2290,26 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
         );
       })}
 
+      <datalist id="medidas-aproximadas-cozinha">
+        <option value="maço" />
+        <option value="bandeja" />
+        <option value="xícara" />
+        <option value="xícaras" />
+        <option value="colher de sopa" />
+        <option value="colher de sopa rasa" />
+        <option value="colher de chá" />
+        <option value="unidade" />
+        <option value="unidades" />
+        <option value="folha" />
+        <option value="folhas" />
+        <option value="cabeça" />
+        <option value="dente" />
+        <option value="dentes" />
+        <option value="lata" />
+        <option value="pacote" />
+      </datalist>
       <button
-        onClick={() => setLinhas([...linhas, { ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "" }])}
+        onClick={() => setLinhas([...linhas, { ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "", quantidade_aproximada: "", unidade_aproximada: "", aproximacao_observacao: "" }])}
         className="mt-2 text-sm font-bold text-[#087443]"
       >
         + Adicionar componente
@@ -2277,7 +2330,15 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
           onClick={() => {
             if (!d.nome || !n(d.rendimento_final_g)) return toast.error("Informe nome e rendimento pronto de referência.");
             if (linhas.some((x: any) => x.preparacao_componente_id === item?.id)) return toast.error("Uma preparação não pode usar ela mesma como componente.");
-            salvar({ ...d, rendimento_final_g: n(d.rendimento_final_g) }, linhas);
+            salvar(
+              { ...d, rendimento_final_g: n(d.rendimento_final_g) },
+              linhas.map((linha:any)=>({
+                ...linha,
+                quantidade_aproximada: String(linha.quantidade_aproximada ?? "").trim() === "" ? null : n(linha.quantidade_aproximada),
+                unidade_aproximada: String(linha.unidade_aproximada || "").trim() || null,
+                aproximacao_observacao: String(linha.aproximacao_observacao || "").trim() || null,
+              })),
+            );
           }}
         >
           Salvar preparação
