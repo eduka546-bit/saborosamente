@@ -1159,6 +1159,7 @@ function CozinhaPage() {
         <PreparacaoModal
           item={edit}
           ingredientes={ingredientes as any[]}
+          preparacoes={preparacoes as any[]}
           linhasIniciais={itensPrep.get(edit?.id) || []}
           fechar={() => setModal(null)}
           salvar={async (d: any, linhas: any[]) => {
@@ -1176,7 +1177,7 @@ function CozinhaPage() {
               : await supabase.from("cozinha_preparacoes").insert(payload).select().single();
             if (error || !data) return toast.error(error?.message || "Erro ao salvar.");
             await supabase.from("cozinha_preparacao_itens").delete().eq("preparacao_id", data.id);
-            const validas = linhas.filter((x) => x.ingrediente_id);
+            const validas = linhas.filter((x) => x.ingrediente_id || x.preparacao_componente_id);
             if (validas.length) {
               const { error: e } = await supabase
                 .from("cozinha_preparacao_itens")
@@ -2092,107 +2093,124 @@ function IngredienteModal({ item, nomeInicial = "", fechar, salvar }: any) {
     </Janela>
   );
 }
-function PreparacaoModal({ item, ingredientes, linhasIniciais, fechar, salvar }: any) {
+function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais, fechar, salvar }: any) {
   const [d, setD] = useState<any>({
-      nome: item?.nome || "",
-      rendimento_final_g: String(item?.rendimento_final_g || ""),
-      modo_preparo: item?.modo_preparo || "",
-      observacao: item?.observacao || "",
-    }),
-    [linhas, setLinhas] = useState<any[]>(
-      linhasIniciais.length
-        ? linhasIniciais.map((x: any) => ({
-            ingrediente_id: x.ingrediente_id,
-            quantidade: n(x.quantidade),
-            rendimento_quebra: n(x.rendimento_quebra || 1),
-          }))
-        : [{ ingrediente_id: "", quantidade: 0, rendimento_quebra: 1 }],
-    );
+    nome: item?.nome || "",
+    rendimento_final_g: String(item?.rendimento_final_g || ""),
+    modo_preparo: item?.modo_preparo || "",
+    observacao: item?.observacao || "",
+  });
+  const [linhas, setLinhas] = useState<any[]>(
+    linhasIniciais.length
+      ? linhasIniciais.map((x: any) => ({
+          ingrediente_id: x.ingrediente_id || null,
+          preparacao_componente_id: x.preparacao_componente_id || null,
+          quantidade: n(x.quantidade),
+          rendimento_quebra: n(x.rendimento_quebra || 1),
+          quantidade_texto: x.quantidade_texto || "",
+        }))
+      : [{ ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "" }],
+  );
   const edit = (i: number, k: string, v: any) =>
     setLinhas(linhas.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const valorComponente = (x: any) =>
+    x.preparacao_componente_id ? "p:" + x.preparacao_componente_id : x.ingrediente_id ? "i:" + x.ingrediente_id : "";
+  const selecionarComponente = (i: number, valor: string) => {
+    const [tipo, id] = valor.split(":");
+    setLinhas(linhas.map((x, j) => j === i ? {
+      ...x,
+      ingrediente_id: tipo === "i" ? id : null,
+      preparacao_componente_id: tipo === "p" ? id : null,
+    } : x));
+  };
+  const entradaPrincipal = Math.max(
+    0,
+    ...linhas
+      .filter((x: any) => x.ingrediente_id && n(x.quantidade) > 0)
+      .map((x: any) => n(x.quantidade)),
+  );
+  const saida = n(d.rendimento_final_g);
+  const variacao = entradaPrincipal > 0 && saida > 0 ? ((saida / entradaPrincipal) - 1) * 100 : 0;
+  const resumoRendimento = entradaPrincipal > 0 && saida > 0
+    ? variacao < -0.05
+      ? "Entrada principal " + entradaPrincipal.toLocaleString("pt-BR") + " g → saída " + saida.toLocaleString("pt-BR") + " g · perda " + Math.abs(variacao).toLocaleString("pt-BR",{maximumFractionDigits:1}) + "% neste preparo"
+      : variacao > 0.05
+        ? "Entrada principal " + entradaPrincipal.toLocaleString("pt-BR") + " g → saída " + saida.toLocaleString("pt-BR") + " g · ganho " + variacao.toLocaleString("pt-BR",{maximumFractionDigits:1}) + "% neste preparo"
+        : "Entrada principal " + entradaPrincipal.toLocaleString("pt-BR") + " g → saída " + saida.toLocaleString("pt-BR") + " g · sem variação relevante"
+    : "";
+
   return (
     <Janela titulo={item ? "Editar preparação" : "Nova preparação"} fechar={fechar}>
       <div className="grid gap-4 md:grid-cols-2">
         <Campo label="Nome">
-          <input
-            className={input}
-            value={d.nome}
-            onChange={(e) => setD({ ...d, nome: e.target.value })}
-          />
+          <input className={input} value={d.nome} onChange={(e) => setD({ ...d, nome: e.target.value })} />
         </Campo>
-        <Campo label="Rendimento de referência (g)">
-          <input
-            className={input}
-            type="number"
-            value={d.rendimento_final_g}
-            onChange={(e) => setD({ ...d, rendimento_final_g: e.target.value })}
-          />
+        <Campo label="Rendimento pronto de referência (g)">
+          <input className={input} type="number" min="0" value={d.rendimento_final_g} onChange={(e) => setD({ ...d, rendimento_final_g: e.target.value })} />
         </Campo>
       </div>
-      <p className="mb-2 mt-5 text-sm font-bold">Ingredientes da receita-base</p>
-      <p className="mb-3 text-xs text-[#62766b]">Cadastre aqui o lote de referência. Na produção, todas as quantidades são reduzidas ou aumentadas na mesma proporção.</p>
-      {linhas.map((x, i) => (
-        <div
-          key={i}
-          className="mb-2 grid gap-2 rounded-xl bg-[#f4f7f4] p-3 md:grid-cols-[1fr_110px_110px_auto]"
-        >
-          <select
-            className={input}
-            value={x.ingrediente_id}
-            onChange={(e) => edit(i, "ingrediente_id", e.target.value)}
-          >
-            <option value="">Ingrediente</option>
-            {ingredientes.map((a: any) => (
-              <option key={a.id} value={a.id}>
-                {a.nome}
-              </option>
-            ))}
-          </select>
-          <input
-            className={input}
-            type="number"
-            value={x.quantidade || ""}
-            placeholder="Qtd."
-            onChange={(e) => edit(i, "quantidade", n(e.target.value))}
-          />
-          <input
-            className={input}
-            type="number"
-            step="0.01"
-            value={x.rendimento_quebra}
-            placeholder="Rend."
-            onChange={(e) => edit(i, "rendimento_quebra", n(e.target.value))}
-          />
-          <button
-            onClick={() => setLinhas(linhas.filter((_, j) => j !== i))}
-            className="font-bold text-red-500"
-          >
-            ×
-          </button>
+      {resumoRendimento && (
+        <div className="mt-3 rounded-xl border border-[#cfe1d3] bg-[#f5faf3] px-3 py-2 text-xs font-bold text-[#355445]">
+          {resumoRendimento}
         </div>
-      ))}
+      )}
+
+      <p className="mb-2 mt-5 text-sm font-bold">Componentes da receita-base</p>
+      <p className="mb-3 text-xs text-[#62766b]">
+        O rendimento pertence ao preparo, não ao ingrediente. Assim a mesma Batata Inglesa pode perder peso na Batata Rústica e ganhar peso no Purê. Um preparo também pode usar outro preparo compartilhado, como Bolonhesa → Molho sugo.
+      </p>
+
+      {linhas.map((x, i) => {
+        const prepComponente = preparacoes.find((p: any) => p.id === x.preparacao_componente_id);
+        return (
+          <div key={i} className="mb-2 rounded-xl bg-[#f4f7f4] p-3">
+            <div className="grid gap-2 md:grid-cols-[minmax(260px,1fr)_120px_minmax(220px,1fr)_auto]">
+              <select className={input} value={valorComponente(x)} onChange={(e) => selecionarComponente(i, e.target.value)}>
+                <option value="">Ingrediente ou preparo</option>
+                <optgroup label="Ingredientes">
+                  {ingredientes.map((a: any) => <option key={"i:"+a.id} value={"i:"+a.id}>{a.nome}</option>)}
+                </optgroup>
+                <optgroup label="Preparações compartilhadas">
+                  {preparacoes.filter((a: any) => a.id !== item?.id && a.ativo !== false).map((a: any) =>
+                    <option key={"p:"+a.id} value={"p:"+a.id}>{a.nome}</option>
+                  )}
+                </optgroup>
+              </select>
+              <input className={input} type="number" min="0" step="0.001" value={x.quantidade || ""} placeholder="Qtd." onChange={(e) => edit(i, "quantidade", n(e.target.value))} />
+              <input className={input} value={x.quantidade_texto || ""} placeholder={prepComponente ? "Ex.: 530 g de Molho sugo pronto" : "Texto/observação da quantidade"} onChange={(e) => edit(i, "quantidade_texto", e.target.value)} />
+              <button onClick={() => setLinhas(linhas.filter((_, j) => j !== i))} className="font-bold text-red-500">×</button>
+            </div>
+            {prepComponente && (
+              <p className="mt-2 text-[11px] font-bold text-[#087443]">
+                PREPARO COMPARTILHADO · alterações em {prepComponente.nome} passam a valer aqui automaticamente.
+              </p>
+            )}
+          </div>
+        );
+      })}
+
       <button
-        onClick={() =>
-          setLinhas([...linhas, { ingrediente_id: "", quantidade: 0, rendimento_quebra: 1 }])
-        }
+        onClick={() => setLinhas([...linhas, { ingrediente_id: null, preparacao_componente_id: null, quantidade: 0, rendimento_quebra: 1, quantidade_texto: "" }])}
         className="mt-2 text-sm font-bold text-[#087443]"
       >
-        + Adicionar ingrediente
+        + Adicionar componente
       </button>
+
       <div className="mt-4">
         <Campo label="Modo de preparo">
-          <textarea
-            className={`${input} min-h-24`}
-            value={d.modo_preparo}
-            onChange={(e) => setD({ ...d, modo_preparo: e.target.value })}
-          />
+          <textarea className={input + " min-h-24"} value={d.modo_preparo} onChange={(e) => setD({ ...d, modo_preparo: e.target.value })} />
+        </Campo>
+      </div>
+      <div className="mt-4">
+        <Campo label="Observação">
+          <textarea className={input + " min-h-20"} value={d.observacao} onChange={(e) => setD({ ...d, observacao: e.target.value })} />
         </Campo>
       </div>
       <div className="mt-5">
         <Botao
           onClick={() => {
-            if (!d.nome || !n(d.rendimento_final_g))
-              return toast.error("Informe nome e rendimento de referência.");
+            if (!d.nome || !n(d.rendimento_final_g)) return toast.error("Informe nome e rendimento pronto de referência.");
+            if (linhas.some((x: any) => x.preparacao_componente_id === item?.id)) return toast.error("Uma preparação não pode usar ela mesma como componente.");
             salvar({ ...d, rendimento_final_g: n(d.rendimento_final_g) }, linhas);
           }}
         >
