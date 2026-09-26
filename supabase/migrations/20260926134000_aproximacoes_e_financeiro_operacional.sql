@@ -43,11 +43,11 @@ where id='52c5542a-5f31-455a-a5ce-a6002105fce6';
 
 update public.cozinha_preparacao_itens
 set ingrediente_id='381f633b-3a64-46dc-b184-547029bea84e',
-    quantidade=370,
-    quantidade_texto='370 g de arroz branco parboilizado cru',
+    quantidade=310,
+    quantidade_texto='310 g de arroz branco parboilizado cru',
     quantidade_aproximada=2,
-    unidade_aproximada='xícaras',
-    aproximacao_observacao='Regra da ficha: 1/2 xícara por litro de caldo. Para 4 L: 2 xícaras. Referência inicial ≈185 g/xícara; ajustar à xícara real da cozinha.'
+    unidade_aproximada='xícaras de chá',
+    aproximacao_observacao='Regra da ficha: 1/2 xícara por litro de caldo. Para 4 L: 2 xícaras. Referência operacional inicial ≈155 g por xícara de chá de 200 ml; ajustar à xícara real da cozinha.'
 where id='e7d48faf-ea0f-4802-b922-c2e166754710';
 
 delete from public.cozinha_estoque
