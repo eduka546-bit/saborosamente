@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calculator, DollarSign, Plus, Save, SlidersHorizontal, TrendingUp, WalletCards } from "lucide-react";
+import { Plus, Save, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/custos")({ component: CustosMargensPage, ssr: false });
