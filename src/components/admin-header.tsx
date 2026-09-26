@@ -79,6 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Lançamentos", href: "/admin/financeiro/lancamentos" },
       { label: "Transações", href: "/admin/financeiro/transacoes" },
+      { label: "Controle Operacional", href: "/admin/custos" },
       { label: "Configurar Pagamentos", href: "/admin/config/site" },
     ],
   },
