@@ -105,9 +105,10 @@ const nomeCompletoComponente = (nome: unknown, preparacoes: any[] = [], ingredie
   return capitalizarNomeCozinha(ingrediente?.nome || nome);
 };
 const ehMicroIngrediente = (nome: unknown) => /(^|\b)(sal|salsinha|cebolinha|cheiro verde|tempero|pimenta|oregano|alho em po|paprica|noz moscada)(\b|$)/i.test(normalizarRegraCozinha(nome));
-const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" = "g", nome: unknown = "") => {
+const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" | "L" = "g", nome: unknown = "") => {
   const qtd = Math.max(0, n(v));
   if (unidade === "un") return `${arredondarProducao(qtd, "un").toLocaleString("pt-BR")} un`;
+  if (unidade === "L") return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`;
   if (ehMicroIngrediente(nome) && qtd > 0 && qtd < 1) return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g`;
   return `${arredondarProducao(qtd, "g").toLocaleString("pt-BR")} g`;
 };
@@ -275,7 +276,9 @@ function CozinhaPage() {
     itensRec = useMemo(() => agrupar(receitaItens as any[], "receita_id"), [receitaItens]),
     itensMontagem = useMemo(() => agrupar(montagemItens as any[], "receita_id"), [montagemItens]);
   const custoIng = (x: any) =>
-    x?.unidade_medida === "un" ? n(x.custo_por_unidade) : n(x?.custo_por_kg) / 1000;
+    x?.unidade_medida === "un" || x?.unidade_medida === "L"
+      ? n(x.custo_por_unidade)
+      : n(x?.custo_por_kg) / 1000;
   const quantidadeCorreta = (gramas: number, linha: any) => {
     const fator = n(linha?.fator_producao || 1);
     if (linha?.operacao_producao === "acrescentar") return gramas * (1 + fator);
@@ -301,15 +304,19 @@ function CozinhaPage() {
   };
 
   const separar = useMemo(() => {
-    const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un"; item: any; qb: boolean }>();
-    const unidadeItemPreparacao = (item: any): "g" | "un" => {
+    const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un" | "L"; item: any; qb: boolean }>();
+    const unidadeItemPreparacao = (item: any): "g" | "un" | "L" => {
       if (item?.preparacao_componente_id) return "g";
+      const ingrediente = ing.get(item?.ingrediente_id) as any;
+      if (ingrediente?.unidade_medida === "L") return "L";
+      if (ingrediente?.unidade_medida === "un") return "un";
       const texto = String(item?.quantidade_texto || "").trim();
-      if (/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto)) return "g";
+      if (/\blitro(s)?\b|\bL\b/i.test(texto)) return "L";
+      if (/\bkg\b|\bgr\b|grama|\bg\b|ml/i.test(texto)) return "g";
       if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
-      return ing.get(item?.ingrediente_id)?.unidade_medida === "un" ? "un" : "g";
+      return "g";
     };
-    const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un", qb = false) => {
+    const add = (id: string, q: number, nomePrato: string, unidade: "g" | "un" | "L", qb = false) => {
       const item = ing.get(id);
       if (!item || !Number.isFinite(q) || (q <= 0 && !qb)) return;
       const chave = `${id}:${unidade}`;
@@ -390,7 +397,7 @@ function CozinhaPage() {
           if (idsCobertosPorPreparacao.has(linha.ingrediente_id)) return;
           const ingrediente = ing.get(linha.ingrediente_id);
           if (!ingrediente) return;
-          const unidade = ingrediente.unidade_medida === "un" ? "un" : "g";
+          const unidade = ingrediente.unidade_medida === "un" ? "un" : ingrediente.unidade_medida === "L" ? "L" : "g";
           const componentePronto = montagemReceita.find((montagem: any) =>
             nomesCozinhaCorrespondem(ingrediente.nome, montagem.nome)
             && !preparacoesVinculadas.some((preparacao: any) => nomesCozinhaCorrespondem(preparacao.nome, montagem.nome)),
@@ -796,7 +803,9 @@ function CozinhaPage() {
                       <p className="mt-3 font-bold text-[#087443]">
                         {x.unidade_medida === "un"
                           ? `${valor(n(x.custo_por_unidade))}/un`
-                          : `${valor(n(x.custo_por_kg))}/kg`}
+                          : x.unidade_medida === "L"
+                            ? `${valor(n(x.custo_por_unidade))}/L`
+                            : `${valor(n(x.custo_por_kg))}/kg`}
                       </p>
                       <p className="mt-1 text-xs text-[#62766b]">
                         Último pago:{" "}
@@ -1549,7 +1558,10 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
       const qtd = n(item.quantidade) * fator;
       return `${nomeItem}: ${formatarQuantidadeProducao(arredondarProducao(qtd,'g'),'g',nomeItem)} · preparo compartilhado`;
     }
-    if (/\blitro(s)?\b|\bl\b/i.test(txt)) { const litros=(n(item.quantidade)*fator)/1000; return `${nomeItem}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L`; }
+    if (ing?.unidade_medida === "L" || /\blitro(s)?\b|\bl\b/i.test(txt)) {
+      const litros = ing?.unidade_medida === "L" ? n(item.quantidade) * fator : (n(item.quantidade) * fator) / 1000;
+      return `${nomeItem}: ${litros.toLocaleString('pt-BR',{maximumFractionDigits:3})} L`;
+    }
     const qtd = n(item.quantidade)*fator;
     const unidadeTexto = txt && /^\s*[\d.,]+/.test(txt) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(txt);
     if (unidadeTexto) {
@@ -1761,9 +1773,11 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       const g = arredondarProducao(n(item.quantidade) * fator, "g");
       return { tipo: "peso", valor: g, exibicao: formatarQuantidadeProducao(g, "g", prepComponente.nome) + " · preparo compartilhado" };
     }
-    const volumeLitros = /\blitro(s)?\b|\bl\b/i.test(texto);
+    const volumeLitros = ingrediente?.unidade_medida === "L" || /\blitro(s)?\b|\bl\b/i.test(texto);
     if (volumeLitros) {
-      const litros = (n(item.quantidade) * fator) / 1000;
+      const litros = ingrediente?.unidade_medida === "L"
+        ? n(item.quantidade) * fator
+        : (n(item.quantidade) * fator) / 1000;
       return { tipo: "volume", valor: litros, exibicao: `${litros.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} L` };
     }
     const peso = /\bkg\b|\bgr\b|grama|\bg\b/i.test(texto);
@@ -2056,6 +2070,7 @@ function IngredienteModal({ item, nomeInicial = "", fechar, salvar }: any) {
           >
             <option value="g">Gramas</option>
             <option value="un">Unidade</option>
+            <option value="L">Litros</option>
           </select>
         </Campo>
         <Campo label="Perda ou ganho">
@@ -2080,7 +2095,7 @@ function IngredienteModal({ item, nomeInicial = "", fechar, salvar }: any) {
             onChange={(e) => set("ultimo_valor_pago", e.target.value)}
           />
         </Campo>
-        <Campo label={d.unidade_medida === "g" ? "Custo por kg" : "Custo por unidade"}>
+        <Campo label={d.unidade_medida === "g" ? "Custo por kg" : d.unidade_medida === "L" ? "Custo por litro" : "Custo por unidade"}>
           <input
             className={input}
             type="number"
@@ -2409,7 +2424,11 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
           </button>
         </div>
       </div>
-      {!linhas.length?<div className="mt-4"><Vazio texto="Nenhum ingrediente adicionado ainda."/></div>:<TabelaCabecalho titulo="Ingrediente" tamanhos={tamanhosFicha}>{linhas.map((x,i)=>{const ingrediente=ingredienteDaLinha(x);return <div key={i} className={`grid ${colunasFicha} items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3`}><div><div className="flex flex-wrap items-center gap-2"><b>{nome(x)}</b><span className="rounded-full bg-[#e8f3eb] px-2 py-0.5 text-[10px] font-bold text-[#087443]">{x.preparacao_id ? "PREPARAÇÃO" : "INGREDIENTE"}</span>{ingrediente&&<button type="button" onClick={()=>abrirEditarIngrediente(ingrediente)} className="inline-flex items-center gap-1 rounded-lg border border-[#bcd8c5] px-2 py-1 text-[11px] font-bold text-[#087443]"><Pencil size={12}/>Editar ingrediente</button>}</div>{ingrediente&&<p className="mt-1 text-[11px] text-[#62766b]">{ingrediente.unidade_medida==="un"?`${valor(n(ingrediente.custo_por_unidade))}/un`:`${valor(n(ingrediente.custo_por_kg))}/kg`} · {ingrediente.tipo_rendimento==="perda"?`Perda ${n(ingrediente.quebra_percentual)}%`:ingrediente.tipo_rendimento==="ganho"?`Ganho ×${n(ingrediente.fator_rendimento)}`:"Sem perda/ganho"}</p>}<input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação da ficha" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{tamanhosFicha.map(t=>{const campo=campoGramasReceita(t.id);return <input key={t.id} className={input} type="number" min="0" value={n(x[campo as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,campo,n(e.target.value))}/>})}<button title="Retirar da ficha" onClick={()=>setLinhas(linhas.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>})}</TabelaCabecalho>}
+      {!linhas.length?<div className="mt-4"><Vazio texto="Nenhum ingrediente adicionado ainda."/></div>:<TabelaCabecalho titulo="Ingrediente" tamanhos={tamanhosFicha}>{linhas.map((x,i)=>{const ingrediente=ingredienteDaLinha(x);return <div key={i} className={`grid ${colunasFicha} items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3`}><div><div className="flex flex-wrap items-center gap-2"><b>{nome(x)}</b><span className="rounded-full bg-[#e8f3eb] px-2 py-0.5 text-[10px] font-bold text-[#087443]">{x.preparacao_id ? "PREPARAÇÃO" : "INGREDIENTE"}</span>{ingrediente&&<button type="button" onClick={()=>abrirEditarIngrediente(ingrediente)} className="inline-flex items-center gap-1 rounded-lg border border-[#bcd8c5] px-2 py-1 text-[11px] font-bold text-[#087443]"><Pencil size={12}/>Editar ingrediente</button>}</div>{ingrediente&&<p className="mt-1 text-[11px] text-[#62766b]">{ingrediente.unidade_medida==="un"
+  ? `${valor(n(ingrediente.custo_por_unidade))}/un`
+  : ingrediente.unidade_medida==="L"
+    ? `${valor(n(ingrediente.custo_por_unidade))}/L`
+    : `${valor(n(ingrediente.custo_por_kg))}/kg`} · {ingrediente.tipo_rendimento==="perda"?`Perda ${n(ingrediente.quebra_percentual)}%`:ingrediente.tipo_rendimento==="ganho"?`Ganho ×${n(ingrediente.fator_rendimento)}`:"Sem perda/ganho"}</p>}<input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação da ficha" onChange={e=>editar(i,"observacao",e.target.value)}/></div>{tamanhosFicha.map(t=>{const campo=campoGramasReceita(t.id);return <input key={t.id} className={input} type="number" min="0" value={n(x[campo as keyof ReceitaLinha])||""} placeholder="0 g" onChange={e=>editar(i,campo,n(e.target.value))}/>})}<button title="Retirar da ficha" onClick={()=>setLinhas(linhas.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>})}</TabelaCabecalho>}
     </section>}
     {abaFicha==="montagem" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">2. Lista de montagem</p><p className="mb-3 mt-1 text-sm text-[#62766b]">Cadastre somente os componentes prontos que entram na marmita: por exemplo, frango empanado, molho, arroz e brócolis.</p><Botao onClick={()=>setMontagem([...montagem,novaMontagem()])}><Plus size={17}/>Adicionar componente pronto</Botao>{!montagem.length?<div className="mt-4"><Vazio texto="Nenhum componente pronto cadastrado." /></div>:<div className="mt-4"><TabelaCabecalho titulo="Componente pronto" tamanhos={tamanhosFicha}>{montagem.map((x,i)=><div key={x.id||i} className={`grid ${colunasFicha} items-center gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3`}><div><input className={input} value={x.nome} placeholder="Ex.: Frango empanado americano" onChange={e=>editarMontagem(i,"nome",e.target.value)}/><input className="mt-1 w-full rounded border border-[#dbe7dd] px-2 py-1 text-xs" value={x.observacao||""} placeholder="Observação" onChange={e=>editarMontagem(i,"observacao",e.target.value)}/></div>{tamanhosFicha.map(t=><input key={t.id} className={input} type="number" min="0" value={n(x[`gramas_${t.id}` as keyof MontagemLinha])||""} placeholder="0 g" onChange={e=>editarMontagem(i,`gramas_${t.id}`,n(e.target.value))}/>)}<button onClick={()=>setMontagem(montagem.filter((_,j)=>j!==i))} className="p-2 text-red-600"><Trash2 size={17}/></button></div>)}</TabelaCabecalho></div>}</section>}
     {abaFicha==="preparacoes" && <section><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">3. Preparações vinculadas</p><p className="mb-4 mt-1 text-sm text-[#62766b]">Cada preparação mostra sua receita-base, ingredientes e modo de preparo. Na produção, o lote é reduzido ou aumentado mantendo a mesma proporção.</p>{!preparacoesFicha.length?<Vazio texto="Nenhuma preparação vinculada a esta ficha."/>:<div className="grid gap-4">{preparacoesFicha.map((preparacao:any)=>{const itens=itensPreparacao.get(preparacao.id)||[];return <article key={preparacao.id} className="rounded-2xl border border-[#dbe7dd] bg-white p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-black text-[#173a2d]">{preparacao.nome}</h3><p className="mt-1 text-sm text-[#62766b]">Receita-base proporcional conforme as quantidades abaixo.</p></div><span className="rounded-full bg-[#edf5e6] px-3 py-1 text-xs font-bold text-[#087443]">BASE PROPORCIONAL</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-[#f4f8f4] p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Ingredientes</p>{!itens.length?<p className="mt-2 text-sm text-[#62766b]">Ingredientes não informados.</p>:<div className="mt-2 grid gap-2">{itens.map((item:any)=>{const ingrediente=ingredientes.find((x:any)=>x.id===item.ingrediente_id);return <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"><div className="flex items-center gap-2"><span>{ingrediente?.nome||"Ingrediente"}</span>{ingrediente&&<button type="button" onClick={()=>abrirEditarIngrediente(ingrediente)} className="inline-flex items-center gap-1 rounded-md border border-[#bcd8c5] px-2 py-1 text-[10px] font-bold text-[#087443]"><Pencil size={11}/>Editar</button>}</div><b>{item.quantidade_texto||`${formatarGramas(item.quantidade)} g`}</b></div>})}</div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#527164]">Modo de preparo</p><div className="mt-2 whitespace-pre-line rounded-xl border border-[#e2ebe3] bg-white p-3 text-sm leading-relaxed text-[#355445]">{preparacao.modo_preparo||"Modo de preparo não informado."}</div></div></div></article>})}</div>}</section>}
@@ -2478,5 +2497,13 @@ function TabelaCabecalho({titulo,children,tamanhos=TAMANHOS_RECEITA}:any){
 function TabelaCustos({linhas,ingredientes,nome,custoLinha,custoPrep,formatarGramas,tamanhos=TAMANHOS_RECEITA}:any){
   const grid = `minmax(220px,1fr) 100px ${tamanhos.map(() => "125px").join(" ")}`;
   const visiveis = linhas.filter((x:any)=>tamanhos.some((t:any)=>n(x[campoGramasReceita(t.id)]) > 0));
-  return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[520px]"><div className="grid gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]" style={{gridTemplateColumns:grid}}><span>Componente</span><span>Custo/kg</span>{tamanhos.map((t:any)=><span key={t.id}>{t.label}</span>)}</div>{visiveis.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);const custoKg=x.preparacao_id?valor(n(custoPrep(x.preparacao_id))*1000):item?valor(n(item.custo_por_kg)):"—";return <div key={i} className="grid gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm" style={{gridTemplateColumns:grid}}><b>{nome(x)}</b><span>{custoKg}</span>{tamanhos.map((t:any)=><span key={t.id}>{formatarQuantidadeProducao(x[campoGramasReceita(t.id)], item?.unidade_medida === "un" ? "un" : "g", item?.nome || nome(x))} · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>
+  return <div className="overflow-x-auto rounded-2xl border border-[#dbe7dd]"><div className="min-w-[520px]"><div className="grid gap-2 bg-[#edf5e6] px-3 py-3 text-xs font-bold uppercase tracking-wide text-[#527164]" style={{gridTemplateColumns:grid}}><span>Componente</span><span>Custo base</span>{tamanhos.map((t:any)=><span key={t.id}>{t.label}</span>)}</div>{visiveis.map((x:any,i:number)=>{const item=ingredientes.find((a:any)=>a.id===x.ingrediente_id);const custoKg=x.preparacao_id
+  ? valor(n(custoPrep(x.preparacao_id))*1000)+"/kg pronto"
+  : item
+    ? item.unidade_medida==="un"
+      ? valor(n(item.custo_por_unidade))+"/un"
+      : item.unidade_medida==="L"
+        ? valor(n(item.custo_por_unidade))+"/L"
+        : valor(n(item.custo_por_kg))+"/kg"
+    : "—";return <div key={i} className="grid gap-2 border-t border-[#e2ebe3] bg-white px-3 py-3 text-sm" style={{gridTemplateColumns:grid}}><b>{nome(x)}</b><span>{custoKg}</span>{tamanhos.map((t:any)=><span key={t.id}>{formatarQuantidadeProducao(x[campoGramasReceita(t.id)], item?.unidade_medida === "un" ? "un" : item?.unidade_medida === "L" ? "L" : "g", item?.nome || nome(x))} · <b>{valor(custoLinha(x,t.id))}</b></span>)}</div>})}</div></div>
 }
