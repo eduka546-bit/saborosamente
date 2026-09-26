@@ -3,8 +3,9 @@ import { Printer, ShoppingCart } from "lucide-react";
 
 const n = (v: unknown) => Number(v || 0);
 const dinheiro = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const formatarQtd = (qtd: number, unidade: "g" | "un") => {
+const formatarQtd = (qtd: number, unidade: "g" | "un" | "L") => {
   if (unidade === "un") return `${Math.ceil(qtd).toLocaleString("pt-BR")} un`;
+  if (unidade === "L") return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`;
   if (qtd >= 1000) return `${(qtd / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`;
   return `${Math.ceil(qtd).toLocaleString("pt-BR")} g`;
 };
@@ -18,7 +19,10 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
       const disponivel = Math.max(0, n(saldo?.quantidade_atual));
       const necessario = Math.max(0, n(x.quantidade));
       const comprar = x.qb ? 0 : Math.max(0, necessario - disponivel);
-      const custoUnitario = x.unidade === "un" ? n(x.item?.custo_por_unidade) : n(x.item?.custo_por_kg) / 1000;
+      const custoUnitario =
+        x.unidade === "un" || x.unidade === "L"
+          ? n(x.item?.custo_por_unidade)
+          : n(x.item?.custo_por_kg) / 1000;
       return {
         ...x,
         disponivel,
