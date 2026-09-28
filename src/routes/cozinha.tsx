@@ -122,7 +122,7 @@ const imprimirElemento = (id: string, titulo: string) => {
   if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
   const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style')).map((x) => x.outerHTML).join("");
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>${estilos}<style>
-    @page{size:A4;margin:9mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{margin:0;color:#173a2d}.print-root{width:100%;max-width:none!important;font-size:10px;line-height:1.22}.print-root button,.print-root [data-screen-only]{display:none!important}.print-only{display:block!important}.print-group-break{break-before:page!important;page-break-before:always!important}.print-planned-row,.print-prep-row,.print-ingredient-row,.print-montage-card,article{break-inside:avoid!important;page-break-inside:avoid!important}.print-root .print-prep-row>div{padding:5px!important}.print-root .print-ingredient-row{padding:4px 7px!important}.print-root .print-montage-card>div{padding-top:5px!important;padding-bottom:5px!important}.print-root .print-compact-section{margin-top:6px!important}.print-root .print-compact-section>p{margin-top:0!important;margin-bottom:3px!important}.print-root .print-section-heading,.print-root .print-table-header{break-after:avoid!important;page-break-after:avoid!important}.print-root h2,.print-root h3,.print-root p{orphans:3;widows:3}
+    @page{size:A4;margin:8mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{margin:0;color:#173a2d}.print-root{width:100%;max-width:none!important;font-size:10.5px;line-height:1.22}.print-root button,.print-root [data-screen-only]{display:none!important}.print-only{display:block!important}.print-group-break{break-before:page!important;page-break-before:always!important}.print-planned-row,.print-prep-row,.print-ingredient-row,.print-montage-card,article{break-inside:avoid!important;page-break-inside:avoid!important}.print-root .print-prep-row>div{padding:5px!important}.print-root .print-ingredient-row{padding:4px 7px!important}.print-root .print-montage-card>div{padding-top:5px!important;padding-bottom:5px!important}.print-root .print-compact-section{margin-top:6px!important}.print-root .print-compact-section>p{margin-top:0!important;margin-bottom:3px!important}.print-root .print-section-heading,.print-root .print-table-header{break-after:avoid!important;page-break-after:avoid!important}.print-root h2,.print-root h3,.print-root p{orphans:3;widows:3}.print-root .montagem-visual-page{break-before:page!important;page-break-before:always!important;break-inside:avoid-page!important;page-break-inside:avoid!important}.print-root .montagem-visual-page .montagem-titulo{font-size:24px!important;line-height:1.08!important}.print-root .montagem-visual-page .montagem-subtitulo{font-size:13.5px!important;line-height:1.25!important}.print-root .montagem-visual-page .montagem-cabecalho{font-size:12.5px!important}.print-root .montagem-visual-page .montagem-linha,.print-root .montagem-visual-page .montagem-total{font-size:13.5px!important;line-height:1.2!important}.print-root .montagem-visual-page .montagem-linha{padding-top:6px!important;padding-bottom:6px!important}.print-root .montagem-visual-page .checklist-montagem{margin-top:10px!important}.print-root .montagem-visual-page .checklist-montagem h3,.print-root .montagem-visual-page .referencia-titulo{font-size:17px!important}.print-root .montagem-visual-page .checklist-itens{grid-template-columns:1fr 1fr!important;column-gap:18px!important;row-gap:4px!important}.print-root .montagem-visual-page .checklist-itens p{font-size:12.5px!important;line-height:1.22!important}.print-root .montagem-visual-page .referencia-visual{margin-top:10px!important}.print-root .montagem-visual-page .foto-montagem{width:auto!important;max-width:58%!important;max-height:255px!important}.print-root .montagem-visual-page .foto-legenda{font-size:11.5px!important;margin-top:4px!important}
   </style></head><body><main class="print-root">${elemento.outerHTML}</main></body></html>`);
   janela.document.close();
   janela.focus();
@@ -2026,17 +2026,38 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         </div>
       </section>
 
-      <section className="page-break-before">
-        <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
-        <h2 className="mt-1 text-2xl font-black text-[#173a2d]">{rotuloProduto(produto)}</h2>
-        <p className="mt-1 text-sm text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
-        <div className="mt-3 border border-[#dbe7dd] bg-white">
-          <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><span>Componente pronto</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
-          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><b>{`${idx+1}. ${nomeCompletoComponente(m.nome, preparacoes, ingredientes)}`}</b><span>{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span>{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
-          <div className="grid border-t border-[#dbe7dd] bg-[#edf5e6] px-3 py-2 text-sm font-black" style={{gridTemplateColumns:"minmax(260px,1fr) 100px 100px 100px"}}><span>TOTAL</span><span>200 g</span><span>300 g</span><span>400 g</span></div>
+      <section className="page-break-before montagem-visual-page">
+        <p className="text-base font-black uppercase text-[#087443]">Montagem por tamanho</p>
+        <h2 className="montagem-titulo mt-1 text-3xl font-black leading-tight text-[#173a2d]">{rotuloProduto(produto)}</h2>
+        <p className="montagem-subtitulo mt-1 text-base leading-relaxed text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
+        <div className="mt-3 overflow-hidden border border-[#dbe7dd] bg-white">
+          <div className="montagem-cabecalho grid items-center bg-[#173a2d] px-2 py-2.5 text-sm font-bold text-white" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>Componente pronto</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
+          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="montagem-linha grid min-w-0 items-center border-t border-[#dbe7dd] px-2 py-2.5 text-base" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><b className="min-w-0 pr-2 leading-tight">{`${idx+1}. ${nomeCompletoComponente(m.nome, preparacoes, ingredientes)}`}</b><span className="text-center font-semibold">{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+          <div className="montagem-total grid items-center border-t border-[#dbe7dd] bg-[#edf5e6] px-2 py-2.5 text-base font-black" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>TOTAL</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
         </div>
-        <div className="mt-4"><p className="text-lg font-black uppercase text-[#087443]">Checklist antes de tampar</p><div className="mt-2 grid gap-1"><p className="text-sm">■ Conferir o tamanho da embalagem antes de começar.</p><p className="text-sm">■ Pesar cada componente individualmente pela coluna correta.</p><p className="text-sm">■ Respeitar a ordem das camadas mostrada na tabela.</p><p className="text-sm">■ Conferir o peso total da marmita antes de fechar.</p><p className="text-sm">■ Comparar visualmente o resultado com a foto de referência.</p></div></div>
-        <div className="mt-4" style={{textAlign:"center",breakInside:"avoid",pageBreakInside:"avoid"}}><div style={{width:"90%",margin:"0 auto 8px",borderTop:"1px solid #dbe7dd"}} /><p className="text-lg font-black uppercase text-[#087443]">Referência visual da montagem final</p><div style={{width:"100%",margin:"10px auto 0",textAlign:"center"}}>{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{width:"76%",maxWidth:"none",height:"auto",maxHeight:"400px",objectFit:"contain",objectPosition:"center center",display:"block",margin:"0 auto"}} /> : <div className="grid place-items-center" style={{height:"220px"}}><ChefHat size={48}/></div>}</div><p className="mt-2 text-sm font-bold text-[#087443]">Foto ampliada e centralizada para facilitar a conferência visual do produto pronto.</p></div>
+
+        <div className="checklist-montagem mt-4">
+          <h3 className="text-xl font-black uppercase text-[#087443]">Checklist antes de tampar</h3>
+          <div className="checklist-itens mt-2 grid gap-2">
+            <p className="text-base leading-snug"><b>1.</b> Pesar a embalagem e dar <b>TARA</b> na balança.</p>
+            <p className="text-base leading-snug"><b>2.</b> Pesar cada componente e dar <b>TARA</b> para sair correto.</p>
+            <p className="text-base leading-snug"><b>3.</b> Conferir o peso total da marmita no final <b>(terá o peso da embalagem junto)</b>.</p>
+            <p className="text-base leading-snug"><b>4.</b> Comparar com a foto da marmita abaixo.</p>
+            <p className="text-base leading-snug"><b>5.</b> Fazer o acabamento com papel toalha <b>(deixar limpo as bordas)</b>.</p>
+            <p className="text-base leading-snug"><b>6.</b> Tampar somente quando estiver bem fria para não suar.</p>
+          </div>
+        </div>
+
+        <div className="referencia-visual mt-4" style={{textAlign:"center",breakInside:"avoid",pageBreakInside:"avoid"}}>
+          <div style={{width:"92%",margin:"0 auto 7px",borderTop:"1px solid #dbe7dd"}} />
+          <p className="referencia-titulo text-xl font-black uppercase text-[#087443]">Referência visual da montagem final</p>
+          <div style={{width:"100%",margin:"8px auto 0",textAlign:"center"}}>
+            {produto.imagem_url || produto.imagens?.[0]
+              ? <img className="foto-montagem" src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{width:"58%",maxWidth:"520px",height:"auto",maxHeight:"310px",objectFit:"contain",objectPosition:"center center",display:"block",margin:"0 auto"}} />
+              : <div className="grid place-items-center" style={{height:"180px"}}><ChefHat size={48}/></div>}
+          </div>
+          <p className="foto-legenda mt-1 text-sm font-bold text-[#087443]">Foto de referência para conferir a montagem e o acabamento do produto pronto.</p>
+        </div>
       </section>
     </div>
   </Janela>;
