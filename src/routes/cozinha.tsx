@@ -2408,10 +2408,67 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     if (item?.tipo_rendimento === "ganho") return g / Math.max(0.000001, n(item.fator_rendimento || 1));
     return g;
   };
+  const idsIngredientesPrepLocal = (prepId:string, visitados=new Set<string>()):Set<string> => {
+    if(!prepId || visitados.has(prepId)) return new Set();
+    const proximos=new Set(visitados);proximos.add(prepId);
+    const ids=new Set<string>();
+    (itensPreparacao.get(prepId)||[]).forEach((item:any)=>{
+      if(item.ingrediente_id) ids.add(item.ingrediente_id);
+      if(item.preparacao_componente_id) idsIngredientesPrepLocal(item.preparacao_componente_id,proximos).forEach((id)=>ids.add(id));
+    });
+    return ids;
+  };
+  const idsPrepCusto = Array.from(new Set([
+    ...(Array.isArray(receita?.preparacoes)?receita.preparacoes.map((p:any)=>p?.id).filter(Boolean):[]),
+    ...linhas.map((x)=>x.preparacao_id).filter(Boolean),
+  ]));
+  const prepsCusto = idsPrepCusto.map((id)=>preparacoes.find((p:any)=>p.id===id)).filter(Boolean);
+  const prepsMontagem = prepsCusto.filter((p:any)=>
+    montagem.some((m:any)=>nomesCozinhaCorrespondem(m.nome,p.nome)) &&
+    n(p.rendimento_final_g)>0 &&
+    (itensPreparacao.get(p.id)||[]).some((item:any)=>n(item.quantidade)>0)
+  );
+  const idsCobertosMontagem = new Set<string>();
+  prepsMontagem.forEach((p:any)=>idsIngredientesPrepLocal(p.id).forEach((id)=>idsCobertosMontagem.add(id)));
+  const linhaVirtualMontagem=(m:any,prepId:string|null,ingredienteId:string|null):ReceitaLinha=>({
+    ...receitaVazia(),
+    preparacao_id:prepId,
+    ingrediente_id:ingredienteId,
+    gramas_personalizada:n(m.gramas_150),
+    gramas_200:n(m.gramas_200),
+    gramas_300:n(m.gramas_300),
+    gramas_400:n(m.gramas_400),
+    observacao:m.observacao||"",
+  });
+  const linhasCustoMontagem:ReceitaLinha[] = [];
+  const refsCobertas = new Set<string>();
+  montagem.forEach((m:any)=>{
+    const prep=prepsMontagem.find((p:any)=>nomesCozinhaCorrespondem(m.nome,p.nome));
+    if(prep){
+      linhasCustoMontagem.push(linhaVirtualMontagem(m,prep.id,null));
+      refsCobertas.add("p:"+prep.id);
+      return;
+    }
+    const ingrediente=ingredientes.find((i:any)=>
+      !idsCobertosMontagem.has(i.id) &&
+      nomesCozinhaCorrespondem(m.nome,i.nome) &&
+      !prepsCusto.some((p:any)=>nomesCozinhaCorrespondem(m.nome,p.nome))
+    );
+    if(ingrediente){
+      linhasCustoMontagem.push(linhaVirtualMontagem(m,null,ingrediente.id));
+      refsCobertas.add("i:"+ingrediente.id);
+    }
+  });
+  linhas.forEach((linha)=>{
+    if(linha.ingrediente_id && idsCobertosMontagem.has(linha.ingrediente_id)) return;
+    const chave=linha.preparacao_id?"p:"+linha.preparacao_id:linha.ingrediente_id?"i:"+linha.ingrediente_id:"";
+    if(chave && refsCobertas.has(chave)) return;
+    linhasCustoMontagem.push(linha);
+  });
   const custoLinha = (x:ReceitaLinha,t:Tamanho) => x.preparacao_id
     ? n(x[campoGramasReceita(t) as keyof ReceitaLinha]) * n(custoPrep(x.preparacao_id))
     : qCorreta(n(x[campoGramasReceita(t) as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));
-  const custoIngredientes=(t:Tamanho)=>linhas.reduce((a,x)=>a+custoLinha(x,t),0);
+  const custoIngredientes=(t:Tamanho)=>linhasCustoMontagem.reduce((a,x)=>a+custoLinha(x,t),0);
   const etiquetaCusto = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
   const embalagemDoTamanho=(t:Tamanho)=>{
     const categoria =
@@ -2441,7 +2498,10 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     await qc.invalidateQueries({queryKey:["coz-embalagens"]});
     toast.success(`${item.nome} atualizado. Custos e lucros foram recalculados.`);
   };
-  const peso=(t:Tamanho)=>linhas.reduce((a,x)=>a+n(x[campoGramasReceita(t) as keyof ReceitaLinha]),0);
+  const peso=(t:Tamanho)=>{
+    const totalDaMontagem=montagem.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof MontagemLinha]),0);
+    return totalDaMontagem>0 ? totalDaMontagem : linhasCustoMontagem.reduce((a,x)=>a+n(x[campoGramasReceita(t) as keyof ReceitaLinha]),0);
+  };
   const totalMontagem=(t:Tamanho)=>montagem.reduce((a,x)=>a+n(x[`gramas_${t}` as keyof MontagemLinha]),0);
   const alvoMontagem=(t:Tamanho)=>n(t);
   const diferencaMontagem=(t:Tamanho)=>alvoMontagem(t)-totalMontagem(t);
