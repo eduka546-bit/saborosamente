@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
 import { ArrowDownToLine, Plus, RotateCcw, Save, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,18 +63,21 @@ function CustosMargensPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-financeiro-operacional"],
     queryFn: async () => {
-      const [prod, rec, itens, ings, preps, prepItens, embalagens, despesas, mix] = await Promise.all([
+      const [prod, rec, itens, montagem, ings, preps, prepItens, embalagens, despesas, mix] = await Promise.all([
         supabase
           .from("produtos")
           .select("id,nome,tipo_produto,preco,preco_300g,preco_400g,ativo")
           .in("tipo_produto", ["marmita", "sopa", "complemento"])
           .order("nome"),
-        supabase.from("cozinha_receitas").select("id,produto_id"),
+        supabase.from("cozinha_receitas").select("id,produto_id,preparacoes"),
         supabase
           .from("cozinha_receita_itens")
           .select("receita_id,ingrediente_id,preparacao_id,gramas_personalizada,gramas_200,gramas_300,gramas_400,operacao_producao,fator_producao"),
-        supabase.from("cozinha_ingredientes").select("id,nome,unidade_medida,custo_por_kg,custo_por_unidade"),
-        supabase.from("cozinha_preparacoes").select("id,rendimento_final_g"),
+        supabase
+          .from("cozinha_receita_montagem_itens")
+          .select("receita_id,nome,gramas_150,gramas_200,gramas_300,gramas_400"),
+        supabase.from("cozinha_ingredientes").select("id,nome,unidade_medida,custo_por_kg,custo_por_unidade,tipo_rendimento,quebra_percentual,fator_rendimento"),
+        supabase.from("cozinha_preparacoes").select("id,nome,rendimento_final_g"),
         supabase
           .from("cozinha_preparacao_itens")
           .select("preparacao_id,ingrediente_id,preparacao_componente_id,quantidade"),
@@ -81,16 +85,20 @@ function CustosMargensPage() {
         supabase.from("financeiro_despesas_operacionais").select("*").order("ordem"),
         supabase.from("financeiro_mix_operacional").select("*").order("ordem"),
       ]);
-      for (const r of [prod, rec, itens, ings, preps, prepItens, embalagens, despesas, mix]) {
+      for (const r of [prod, rec, itens, montagem, ings, preps, prepItens, embalagens, despesas, mix]) {
         if (r.error) throw r.error;
       }
 
       const ingMap = new Map((ings.data ?? []).map((x: any) => [x.id, x]));
       const prepMap = new Map((preps.data ?? []).map((x: any) => [x.id, x]));
-      const recByProduct = new Map((rec.data ?? []).map((x: any) => [x.produto_id, x.id]));
+      const recByProduct = new Map((rec.data ?? []).map((x: any) => [x.produto_id, x]));
       const itensByRec = new Map<string, any[]>();
       (itens.data ?? []).forEach((x: any) =>
         itensByRec.set(x.receita_id, [...(itensByRec.get(x.receita_id) || []), x]),
+      );
+      const montagemByRec = new Map<string, any[]>();
+      (montagem.data ?? []).forEach((x: any) =>
+        montagemByRec.set(x.receita_id, [...(montagemByRec.get(x.receita_id) || []), x]),
       );
       const prepItensByPrep = new Map<string, any[]>();
       (prepItens.data ?? []).forEach((x: any) =>
@@ -123,6 +131,20 @@ function CustosMargensPage() {
         return total / rendimento;
       };
 
+      const idsIngredientesPrep = (id: string, visitados = new Set<string>()): Set<string> => {
+        if (!id || visitados.has(id)) return new Set();
+        const proximos = new Set(visitados);
+        proximos.add(id);
+        const ids = new Set<string>();
+        (prepItensByPrep.get(id) || []).forEach((x: any) => {
+          if (x.ingrediente_id) ids.add(x.ingrediente_id);
+          if (x.preparacao_componente_id) {
+            idsIngredientesPrep(x.preparacao_componente_id, proximos).forEach((ingId) => ids.add(ingId));
+          }
+        });
+        return ids;
+      };
+
       const embalagem = (tipo: string, tam: string) => {
         const categoria =
           tipo === "sopa"
@@ -152,16 +174,56 @@ function CustosMargensPage() {
         return base;
       };
 
-      const custoLinha = (x: any, tam: string) => {
-        const qtd = quantidadeLinha(x, tam);
-        if (x.ingrediente_id) return qtd * custoIng(x.ingrediente_id);
-        if (x.preparacao_id) return qtd * custoPrepG(x.preparacao_id);
-        return 0;
+      const custoIngredientesProduto = (produto: any, tam: string) => {
+        const receita: any = recByProduct.get(produto.id);
+        if (!receita) return 0;
+        const linhas = itensByRec.get(receita.id) || [];
+        const montagemReceita = montagemByRec.get(receita.id) || [];
+        const campoMontagem = tam === "150" ? "gramas_150" : `gramas_${tam}`;
+        const prepsVinculadas = (Array.isArray(receita.preparacoes) ? receita.preparacoes : [])
+          .map((ref: any) => prepMap.get(ref?.id))
+          .filter(Boolean) as any[];
+        const estruturadas = prepsVinculadas.filter((p: any) => {
+          const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p.nome));
+          return componente && n(p.rendimento_final_g) > 0 && (prepItensByPrep.get(p.id) || []).some((x: any) => n(x.quantidade) > 0);
+        });
+        const idsCobertos = new Set<string>();
+        estruturadas.forEach((p: any) => idsIngredientesPrep(p.id).forEach((id) => idsCobertos.add(id)));
+
+        let custo = 0;
+        estruturadas.forEach((p: any) => {
+          const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p.nome));
+          custo += n(componente?.[campoMontagem]) * custoPrepG(p.id);
+        });
+
+        linhas.forEach((linha: any) => {
+          if (linha.ingrediente_id) {
+            if (idsCobertos.has(linha.ingrediente_id)) return;
+            const ingrediente: any = ingMap.get(linha.ingrediente_id);
+            if (!ingrediente) return;
+            const componente = montagemReceita.find(
+              (m: any) =>
+                nomesCozinhaCorrespondem(m.nome, ingrediente.nome) &&
+                !prepsVinculadas.some((p: any) => nomesCozinhaCorrespondem(p.nome, m.nome)),
+            );
+            const liquido = componente
+              ? n(componente[campoMontagem])
+              : quantidadeLinha(linha, tam);
+            const bruto = quantidadeBrutaPorRendimento(liquido, ingrediente);
+            custo += bruto * custoIng(linha.ingrediente_id);
+            return;
+          }
+          if (linha.preparacao_id && !estruturadas.some((p: any) => p.id === linha.preparacao_id)) {
+            const p: any = prepMap.get(linha.preparacao_id);
+            const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p?.nome));
+            const qtd = componente ? n(componente[campoMontagem]) : quantidadeLinha(linha, tam);
+            custo += qtd * custoPrepG(linha.preparacao_id);
+          }
+        });
+        return custo;
       };
 
       const produtosCalculados = (prod.data ?? []).map((p: any) => {
-        const recId = recByProduct.get(p.id);
-        const linhas = itensByRec.get(recId) || [];
         const tamanhos =
           p.tipo_produto === "sopa"
             ? ["400"]
@@ -171,7 +233,7 @@ function CustosMargensPage() {
         return {
           ...p,
           tamanhos: tamanhos.map((tam) => {
-            const custoIngredientes = linhas.reduce((s, x) => s + custoLinha(x, tam), 0);
+            const custoIngredientes = custoIngredientesProduto(p, tam);
             const custoEmbalagem = embalagem(p.tipo_produto, tam);
             const custo = custoIngredientes + custoEmbalagem.total;
             const preco =
