@@ -29,12 +29,24 @@ export function quantidadeNoLote(quantidadeBase: number, preparoNecessario: numb
   return Math.max(0, Number(quantidadeBase || 0) * Number(preparoNecessario || 0) / Number(rendimentoBase));
 }
 
-const termosGenericos = new Set(["molho","branco","preto","arroz","feijao","carne","frango","pronto","cozido","cozida","grelhado","grelhada"]);
+const termosGenericos = new Set(["molho","branco","branca","preto","preta","arroz","feijao","carne","frango","pronto","pronta","cozido","cozida","grelhado","grelhada"]);
 const normalizarNome = (valor: unknown) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const raizTermoCozinha = (termo: string) =>
+  termo
+    .replace(/(adas|ados)$/,"ad")
+    .replace(/(ida|ido|idas|idos)$/,"id")
+    .replace(/(ada|ado)$/,"ad")
+    .replace(/(osa|oso|osas|osos)$/,"os")
+    .replace(/(as|os)$/,"");
 
 export function nomesCozinhaCorrespondem(a: unknown, b: unknown) {
   const x=normalizarNome(a), y=normalizarNome(b);
-  return !!x&&!!y&&(x.includes(y)||y.includes(x)||x.split(" ").some((termo)=>termo.length>=4&&!termosGenericos.has(termo)&&y.split(" ").includes(termo)));
+  if (!x || !y) return false;
+  if (x.includes(y) || y.includes(x)) return true;
+  const termosX=x.split(" ").filter((termo)=>termo.length>=4&&!termosGenericos.has(termo));
+  const termosY=y.split(" ").filter((termo)=>termo.length>=4&&!termosGenericos.has(termo));
+  const raizesY=new Set(termosY.map(raizTermoCozinha));
+  return termosX.some((termo)=>raizesY.has(raizTermoCozinha(termo)));
 }
 
 export function ingredientesCozinhaCorrespondem(a: unknown, b: unknown) {
