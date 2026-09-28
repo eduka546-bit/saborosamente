@@ -122,7 +122,7 @@ const imprimirElemento = (id: string, titulo: string) => {
   if (!janela) return toast.error("Permita pop-ups para imprimir a ficha.");
   const estilos = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style')).map((x) => x.outerHTML).join("");
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>${estilos}<style>
-    @page{size:A4;margin:8mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{margin:0;color:#173a2d}.print-root{width:100%;max-width:none!important;font-size:10.5px;line-height:1.22}.print-root button,.print-root [data-screen-only]{display:none!important}.print-only{display:block!important}.print-group-break{break-before:page!important;page-break-before:always!important}.print-planned-row,.print-prep-row,.print-ingredient-row,.print-montage-card,article{break-inside:avoid!important;page-break-inside:avoid!important}.print-root .print-prep-row>div{padding:5px!important}.print-root .print-ingredient-row{padding:4px 7px!important}.print-root .print-montage-card>div{padding-top:5px!important;padding-bottom:5px!important}.print-root .print-compact-section{margin-top:6px!important}.print-root .print-compact-section>p{margin-top:0!important;margin-bottom:3px!important}.print-root .print-section-heading,.print-root .print-table-header{break-after:avoid!important;page-break-after:avoid!important}.print-root h2,.print-root h3,.print-root p{orphans:3;widows:3}.print-root .montagem-visual-page{break-before:page!important;page-break-before:always!important;break-inside:avoid-page!important;page-break-inside:avoid!important}.print-root .montagem-visual-page .montagem-titulo{font-size:24px!important;line-height:1.08!important}.print-root .montagem-visual-page .montagem-subtitulo{font-size:13.5px!important;line-height:1.25!important}.print-root .montagem-visual-page .montagem-cabecalho{font-size:12.5px!important}.print-root .montagem-visual-page .montagem-linha,.print-root .montagem-visual-page .montagem-total{font-size:13.5px!important;line-height:1.2!important}.print-root .montagem-visual-page .montagem-linha{padding-top:6px!important;padding-bottom:6px!important}.print-root .montagem-visual-page .checklist-montagem{margin-top:10px!important}.print-root .montagem-visual-page .checklist-montagem h3,.print-root .montagem-visual-page .referencia-titulo{font-size:17px!important}.print-root .montagem-visual-page .checklist-itens{grid-template-columns:1fr 1fr!important;column-gap:18px!important;row-gap:4px!important}.print-root .montagem-visual-page .checklist-itens p{font-size:12.5px!important;line-height:1.22!important}.print-root .montagem-visual-page .referencia-visual{margin-top:10px!important}.print-root .montagem-visual-page .foto-montagem{width:auto!important;max-width:58%!important;max-height:255px!important}.print-root .montagem-visual-page .foto-legenda{font-size:11.5px!important;margin-top:4px!important}
+    @page{size:A4;margin:8mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{background:#fff!important}body{margin:0;color:#173a2d}.print-root{width:100%;max-width:none!important;font-size:10.5px;line-height:1.22}.print-root button,.print-root [data-screen-only]{display:none!important}.print-only{display:block!important}.print-group-break{break-before:page!important;page-break-before:always!important}.print-planned-row,.print-prep-row,.print-ingredient-row,.print-montage-card,article{break-inside:avoid!important;page-break-inside:avoid!important}.print-root .print-prep-row>div{padding:5px!important}.print-root .print-ingredient-row{padding:4px 7px!important}.print-root .print-montage-card>div{padding-top:5px!important;padding-bottom:5px!important}.print-root .print-compact-section{margin-top:6px!important}.print-root .print-compact-section>p{margin-top:0!important;margin-bottom:3px!important}.print-root .print-section-heading,.print-root .print-table-header{break-after:avoid!important;page-break-after:avoid!important}.print-root h2,.print-root h3,.print-root p{orphans:3;widows:3}.print-root .montagem-visual-page{break-before:page!important;page-break-before:always!important;break-inside:avoid-page!important;page-break-inside:avoid!important}.print-root .montagem-visual-page .montagem-topo{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(210px,.65fr)!important;gap:12px!important;align-items:start!important}.print-root .montagem-visual-page .montagem-titulo{font-size:20px!important;line-height:1.06!important;margin-top:0!important}.print-root .montagem-visual-page .montagem-subtitulo{font-size:11.5px!important;line-height:1.22!important;margin-top:5px!important}.print-root .montagem-visual-page .producao-tamanhos{margin-top:7px!important;gap:5px!important}.print-root .montagem-visual-page .producao-chip{font-size:11.5px!important;padding:4px 7px!important}.print-root .montagem-visual-page .foto-topo-wrap{min-height:150px!important;display:flex!important;align-items:center!important;justify-content:center!important}.print-root .montagem-visual-page .foto-montagem-topo{display:block!important;width:100%!important;height:auto!important;max-width:260px!important;max-height:220px!important;object-fit:contain!important;margin:0 auto!important}.print-root .montagem-visual-page .montagem-cabecalho{font-size:11.5px!important}.print-root .montagem-visual-page .montagem-linha,.print-root .montagem-visual-page .montagem-total{font-size:12.5px!important;line-height:1.15!important}.print-root .montagem-visual-page .montagem-linha{padding-top:5px!important;padding-bottom:5px!important}.print-root .montagem-visual-page .checklist-montagem{margin-top:8px!important}.print-root .montagem-visual-page .checklist-montagem h3{font-size:15.5px!important}.print-root .montagem-visual-page .checklist-itens{grid-template-columns:1fr 1fr!important;column-gap:14px!important;row-gap:3px!important}.print-root .montagem-visual-page .checklist-itens p{font-size:11.5px!important;line-height:1.18!important}
   </style></head><body><main class="print-root">${elemento.outerHTML}</main></body></html>`);
   janela.document.close();
   janela.focus();
@@ -2027,39 +2027,44 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       </section>
 
       <section className="page-break-before montagem-visual-page">
-        <p className="text-base font-black uppercase text-[#087443]">Montagem por tamanho</p>
-        <h2 className="montagem-titulo mt-1 text-3xl font-black leading-tight text-[#173a2d]">{rotuloProduto(produto)}</h2>
-        <p className="montagem-subtitulo mt-1 text-base leading-relaxed text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
-        <div className="mt-3 overflow-hidden border border-[#dbe7dd] bg-white">
-          <div className="montagem-cabecalho grid items-center bg-[#173a2d] px-2 py-2.5 text-sm font-bold text-white" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>Componente pronto</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
-          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="montagem-linha grid min-w-0 items-center border-t border-[#dbe7dd] px-2 py-2.5 text-base" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><b className="min-w-0 pr-2 leading-tight">{`${idx+1}. ${nomeCompletoComponente(m.nome, preparacoes, ingredientes)}`}</b><span className="text-center font-semibold">{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
-          <div className="montagem-total grid items-center border-t border-[#dbe7dd] bg-[#edf5e6] px-2 py-2.5 text-base font-black" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>TOTAL</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
-        </div>
+        <div className="montagem-topo grid gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(230px,.65fr)]">
+          <div className="min-w-0">
+            <p className="text-sm font-black uppercase text-[#087443]">Montagem por tamanho</p>
+            <h2 className="montagem-titulo mt-1 text-2xl font-black leading-tight text-[#173a2d]">{rotuloProduto(produto)}</h2>
+            <p className="montagem-subtitulo mt-2 text-sm leading-relaxed text-[#62766b]">Use a coluna correta para cada tamanho. Os valores abaixo fecham exatamente 200 g, 300 g e 400 g.</p>
 
-        <div className="checklist-montagem mt-4">
-          <h3 className="text-xl font-black uppercase text-[#087443]">Checklist antes de tampar</h3>
-          <div className="checklist-itens mt-2 grid gap-2">
-            <p className="text-base leading-snug"><b>1.</b> Pesar a embalagem e dar <b>TARA</b> na balança.</p>
-            <p className="text-base leading-snug"><b>2.</b> Pesar cada componente e dar <b>TARA</b> para sair correto.</p>
-            <p className="text-base leading-snug"><b>3.</b> Conferir o peso total da marmita no final <b>(terá o peso da embalagem junto)</b>.</p>
-            <p className="text-base leading-snug"><b>4.</b> Comparar com a foto da marmita abaixo.</p>
-            <p className="text-base leading-snug"><b>5.</b> Fazer o acabamento com papel toalha <b>(deixar limpo as bordas)</b>.</p>
-            <p className="text-base leading-snug"><b>6.</b> Tampar somente quando estiver bem fria para não suar.</p>
+            <div className="producao-tamanhos mt-3 flex flex-wrap gap-2">
+              {(["200","300","400"] as const).map((tam)=><div key={tam} className={`producao-chip rounded-lg border px-3 py-2 text-sm font-black ${quantidades[tam]>0?"border-[#b9d6c2] bg-[#edf5e6] text-[#173a2d]":"border-[#e1e8e2] bg-[#f7f9f7] text-[#7c8c82]"}`}>
+                {tam} g: <span className="text-[#087443]">{n(quantidades[tam]).toLocaleString("pt-BR")} un</span>
+              </div>)}
+            </div>
           </div>
-        </div>
 
-        <div className="referencia-visual mt-4" style={{textAlign:"center",breakInside:"avoid",pageBreakInside:"avoid"}}>
-          <div style={{width:"92%",margin:"0 auto 7px",borderTop:"1px solid #dbe7dd"}} />
-          <p className="referencia-titulo text-xl font-black uppercase text-[#087443]">Referência visual da montagem final</p>
-          <div style={{width:"100%",margin:"8px auto 0",textAlign:"center"}}>
+          <div className="foto-topo-wrap overflow-hidden rounded-2xl border border-[#dbe7dd] bg-[#fbf8ef] p-2">
             {produto.imagem_url || produto.imagens?.[0]
-              ? <img className="foto-montagem" src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{width:"58%",maxWidth:"520px",height:"auto",maxHeight:"310px",objectFit:"contain",objectPosition:"center center",display:"block",margin:"0 auto"}} />
-              : <div className="grid place-items-center" style={{height:"180px"}}><ChefHat size={48}/></div>}
+              ? <img className="foto-montagem-topo" src={produto.imagem_url || produto.imagens?.[0]} alt={produto.nome} style={{width:"100%",height:"auto",maxHeight:"260px",objectFit:"contain",objectPosition:"center center",display:"block",margin:"0 auto"}} />
+              : <div className="grid place-items-center" style={{height:"190px"}}><ChefHat size={48}/></div>}
           </div>
-          <p className="foto-legenda mt-1 text-sm font-bold text-[#087443]">Foto de referência para conferir a montagem e o acabamento do produto pronto.</p>
         </div>
-      </section>
-    </div>
+
+        <div className="mt-3 overflow-hidden border border-[#dbe7dd] bg-white">
+          <div className="montagem-cabecalho grid items-center bg-[#173a2d] px-2 py-2 text-sm font-bold text-white" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>Componente pronto</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
+          {(montagem as any[]).map((m:any,idx:number)=><div key={m.id||idx} className="montagem-linha grid min-w-0 items-center border-t border-[#dbe7dd] px-2 py-2 text-base" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><b className="min-w-0 pr-2 leading-tight">{`${idx+1}. ${nomeCompletoComponente(m.nome, preparacoes, ingredientes)}`}</b><span className="text-center font-semibold">{montagem200[idx]>0?`${montagem200[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem300[idx]>0?`${montagem300[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span><span className="text-center font-semibold">{montagem400[idx]>0?`${montagem400[idx]} g`:(ehQB(m.observacao)?"a gosto":"—")}</span></div>)}
+          <div className="montagem-total grid items-center border-t border-[#dbe7dd] bg-[#edf5e6] px-2 py-2 text-base font-black" style={{gridTemplateColumns:"minmax(130px,1.6fr) repeat(3,minmax(58px,.7fr))"}}><span>TOTAL</span><span className="text-center">200 g</span><span className="text-center">300 g</span><span className="text-center">400 g</span></div>
+        </div>
+
+        <div className="checklist-montagem mt-3">
+          <h3 className="text-lg font-black uppercase text-[#087443]">Checklist antes de tampar</h3>
+          <div className="checklist-itens mt-2 grid gap-2 md:grid-cols-2">
+            <p className="text-sm leading-snug"><b>1.</b> Pesar a embalagem e dar <b>TARA</b> na balança.</p>
+            <p className="text-sm leading-snug"><b>2.</b> Pesar cada componente e dar <b>TARA</b> para sair correto.</p>
+            <p className="text-sm leading-snug"><b>3.</b> Conferir o peso total da marmita no final <b>(terá o peso da embalagem junto)</b>.</p>
+            <p className="text-sm leading-snug"><b>4.</b> Comparar com a foto da marmita acima.</p>
+            <p className="text-sm leading-snug"><b>5.</b> Fazer o acabamento com papel toalha <b>(deixar limpo as bordas)</b>.</p>
+            <p className="text-sm leading-snug"><b>6.</b> Tampar somente quando estiver bem fria para não suar.</p>
+          </div>
+        </div>
+      </section>    </div>
   </Janela>;
 }
 function IngredienteModal({ item, nomeInicial = "", fechar, salvar }: any) {
