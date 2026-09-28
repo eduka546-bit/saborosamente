@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
-import { ArrowDownToLine, Plus, RotateCcw, Save, WalletCards } from "lucide-react";
+import { ArrowDownToLine, Plus, RotateCcw, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/custos")({ component: CustosMargensPage, ssr: false });
@@ -428,8 +428,9 @@ function CustosMargensPage() {
     : 0;
 
   const salvarDespesa = async (item: any) => {
+    const patch = edicoesDespesas[item.id];
+    if (!patch || !Object.keys(patch).length) return;
     setSalvando(item.id);
-    const patch = edicoesDespesas[item.id] || {};
     const atualValor = Math.max(0, n(patch.valor_mensal ?? item.valor_mensal));
     const idealRaw = patch.valor_ideal ?? item.valor_ideal;
     const idealValor =
@@ -485,6 +486,8 @@ function CustosMargensPage() {
   };
 
   const salvarMix = async (item: any) => {
+    const patch = edicoesMix[item.chave];
+    if (!patch || !Object.keys(patch).length) return;
     const percentual = Math.max(0, Math.min(100, n(valorMix(item, "percentual"))));
     const custoRaw = valorMix(item, "custo_planejado");
     const vendaRaw = valorMix(item, "venda_planejada");
@@ -517,12 +520,26 @@ function CustosMargensPage() {
     toast.success("Cenário de " + item.nome + " atualizado.");
   };
 
+  const persistirCampoMix = async (
+    item: any,
+    campo: "custo_planejado" | "venda_planejada",
+    valor: number | null,
+  ) => {
+    editarMix(item.chave, campo, valor == null ? "" : valor.toFixed(2));
+    const { error } = await supabase
+      .from("financeiro_mix_operacional")
+      .update({ [campo]: valor, updated_at: new Date().toISOString() })
+      .eq("chave", item.chave);
+    if (error) return toast.error(error.message);
+    await qc.invalidateQueries({ queryKey: ["admin-financeiro-operacional"] });
+  };
+
   const usarRealNoMix = (item: any, campo: "custo_planejado" | "venda_planejada", valor: number) => {
-    editarMix(item.chave, campo, valor.toFixed(2));
+    void persistirCampoMix(item, campo, Math.max(0, valor));
   };
 
   const voltarAutomaticoMix = (item: any, campo: "custo_planejado" | "venda_planejada") => {
-    editarMix(item.chave, campo, "");
+    void persistirCampoMix(item, campo, null);
   };
 
   if (isLoading) return <div className="p-8 text-gray-500">Calculando financeiro e custos...</div>;
@@ -655,7 +672,7 @@ function CustosMargensPage() {
                 <p className="text-xs font-black uppercase tracking-wide text-[#5850ec]">Mix operacional</p>
                 <h2 className="mt-1 text-xl font-black">Distribuição das vendas — real × ideal</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  O valor real continua visível e vem automaticamente do cardápio. No campo Ideal você pode simular negociações de custos ou novos preços sem alterar os cadastros reais.
+                  O valor real continua visível e vem automaticamente do cardápio. No campo Ideal você pode simular negociações de custos ou novos preços sem alterar os cadastros reais. Os resultados mudam enquanto você digita e o valor é salvo automaticamente ao sair do campo.
                 </p>
               </div>
               <div className={`rounded-xl px-3 py-2 text-sm font-black ${Math.abs(somaMix - 100) < 0.001 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
@@ -674,7 +691,6 @@ function CustosMargensPage() {
                     <th colSpan={2} className="border-l px-3 py-2 text-center">Venda média</th>
                     <th colSpan={3} className="border-l px-3 py-2 text-center">Cenário atual</th>
                     <th colSpan={3} className="border-l px-3 py-2 text-center text-[#5850ec]">Cenário ideal</th>
-                    <th rowSpan={2} className="px-3 py-3"></th>
                   </tr>
                   <tr className="border-t">
                     <th className="border-l px-3 py-2 text-right">Real</th>
@@ -707,6 +723,7 @@ function CustosMargensPage() {
                               step="0.1"
                               value={valorMix(original, "percentual")}
                               onChange={(e) => editarMix(f.chave, "percentual", e.target.value)}
+                              onBlur={() => original && salvarMix(original)}
                             />
                             <span>%</span>
                           </div>
@@ -727,6 +744,7 @@ function CustosMargensPage() {
                               value={custoEdit ?? ""}
                               placeholder={f.custoReal.toFixed(2)}
                               onChange={(e) => editarMix(f.chave, "custo_planejado", e.target.value)}
+                              onBlur={() => original && salvarMix(original)}
                             />
                             <div className="mt-1 flex justify-end gap-1">
                               <button
@@ -761,6 +779,7 @@ function CustosMargensPage() {
                               value={vendaEdit ?? ""}
                               placeholder={f.vendaReal.toFixed(2)}
                               onChange={(e) => editarMix(f.chave, "venda_planejada", e.target.value)}
+                              onBlur={() => original && salvarMix(original)}
                             />
                             <div className="mt-1 flex justify-end gap-1">
                               <button
@@ -793,15 +812,6 @@ function CustosMargensPage() {
                           {brl(f.contribuicaoIdeal)}
                         </td>
 
-                        <td className="px-3 py-3 text-right">
-                          <button
-                            onClick={() => original && salvarMix(original)}
-                            disabled={salvando === "mix-" + f.chave}
-                            className="rounded-lg bg-[#5850ec] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-                          >
-                            <Save size={13} className="mr-1 inline"/> Salvar
-                          </button>
-                        </td>
                       </tr>
                     );
                   })}
@@ -809,7 +819,7 @@ function CustosMargensPage() {
               </table>
             </div>
             <p className="mt-3 text-xs text-gray-500">
-              Campo Ideal vazio = acompanha automaticamente o valor real. Se você preencher, o cenário ideal usa o valor manual. “Puxar real/atual” copia o valor correto para o campo e “Auto” volta a acompanhar o cadastro real.
+              Campo Ideal vazio = acompanha automaticamente o valor real. Se você preencher, o cenário ideal usa o valor manual. “Puxar real/atual” copia o valor correto e “Auto” volta a acompanhar o cadastro real. Não há botão Salvar: os resultados atualizam na hora e os dados são persistidos automaticamente ao sair do campo.
             </p>
             {Math.abs(somaMix - 100) >= 0.001 && (
               <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs font-bold text-amber-700">
@@ -823,7 +833,7 @@ function CustosMargensPage() {
               <p className="text-xs font-black uppercase tracking-wide text-[#5850ec]">Despesas operacionais</p>
               <h2 className="mt-1 text-xl font-black">Gastos mensais — atual × ideal</h2>
               <p className="mt-1 text-sm text-gray-500">
-                O valor Atual representa o que é praticado hoje. O valor Ideal é a meta que você quer atingir e alimenta automaticamente o cenário ideal do simulador.
+                O valor Atual representa o que é praticado hoje. O valor Ideal é a meta que você quer atingir e alimenta automaticamente o cenário ideal do simulador. Os resultados mudam imediatamente e as alterações são salvas automaticamente ao sair do campo.
               </p>
             </div>
 
@@ -839,7 +849,6 @@ function CustosMargensPage() {
                     <th className="px-3 py-3">Observação</th>
                     <th className="px-3 py-3">Ativo</th>
                     <th className="px-3 py-3">Vínculo</th>
-                    <th className="px-3 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -851,20 +860,28 @@ function CustosMargensPage() {
                     return (
                       <tr key={item.id} className="border-t align-top">
                         <td className="px-3 py-2">
-                          <input className={input} value={valorDespesa(item, "nome")} onChange={(e) => editarDespesa(item.id, "nome", e.target.value)} />
+                          <input className={input} value={valorDespesa(item, "nome")} onChange={(e) => editarDespesa(item.id, "nome", e.target.value)} onBlur={() => salvarDespesa(item)} />
                         </td>
                         <td className="px-3 py-2">
-                          <input className={input} value={valorDespesa(item, "categoria")} onChange={(e) => editarDespesa(item.id, "categoria", e.target.value)} />
+                          <input className={input} value={valorDespesa(item, "categoria")} onChange={(e) => editarDespesa(item.id, "categoria", e.target.value)} onBlur={() => salvarDespesa(item)} />
                         </td>
                         <td className="px-3 py-2">
-                          <input className={input + " text-right font-bold"} type="number" min="0" step="0.01" value={valorDespesa(item, "valor_mensal")} onChange={(e) => editarDespesa(item.id, "valor_mensal", e.target.value)} />
+                          <input className={input + " text-right font-bold"} type="number" min="0" step="0.01" value={valorDespesa(item, "valor_mensal")} onChange={(e) => editarDespesa(item.id, "valor_mensal", e.target.value)} onBlur={() => salvarDespesa(item)} />
                         </td>
                         <td className="px-3 py-2">
                           <div className="min-w-[150px]">
-                            <input className={input + " text-right font-black text-[#5850ec]"} type="number" min="0" step="0.01" value={valorDespesa(item, "valor_ideal") ?? ""} onChange={(e) => editarDespesa(item.id, "valor_ideal", e.target.value)} />
+                            <input className={input + " text-right font-black text-[#5850ec]"} type="number" min="0" step="0.01" value={valorDespesa(item, "valor_ideal") ?? ""} onChange={(e) => editarDespesa(item.id, "valor_ideal", e.target.value)} onBlur={() => salvarDespesa(item)} />
                             <button
                               type="button"
-                              onClick={() => editarDespesa(item.id, "valor_ideal", String(valorAtual))}
+                              onClick={async () => {
+                                editarDespesa(item.id, "valor_ideal", String(valorAtual));
+                                const { error } = await supabase
+                                  .from("financeiro_despesas_operacionais")
+                                  .update({ valor_ideal: valorAtual, updated_at: new Date().toISOString() })
+                                  .eq("id", item.id);
+                                if (error) return toast.error(error.message);
+                                await qc.invalidateQueries({ queryKey: ["admin-financeiro-operacional"] });
+                              }}
                               className="mt-1 inline-flex w-full items-center justify-center gap-1 rounded border px-2 py-1 text-[10px] font-bold text-[#5850ec]"
                             >
                               <ArrowDownToLine size={11}/> Usar valor atual
@@ -875,20 +892,15 @@ function CustosMargensPage() {
                           {diferenca === 0 ? "—" : `${diferenca > 0 ? "Economia " : "Aumento "}${brl(Math.abs(diferenca))}`}
                         </td>
                         <td className="px-3 py-2">
-                          <input className={input} value={valorDespesa(item, "observacao") || ""} onChange={(e) => editarDespesa(item.id, "observacao", e.target.value)} />
+                          <input className={input} value={valorDespesa(item, "observacao") || ""} onChange={(e) => editarDespesa(item.id, "observacao", e.target.value)} onBlur={() => salvarDespesa(item)} />
                         </td>
                         <td className="px-3 py-3 text-center">
-                          <input type="checkbox" checked={Boolean(valorDespesa(item, "ativo"))} onChange={(e) => editarDespesa(item.id, "ativo", e.target.checked)} />
+                          <input type="checkbox" checked={Boolean(valorDespesa(item, "ativo"))} onChange={(e) => editarDespesa(item.id, "ativo", e.target.checked)} onBlur={() => salvarDespesa(item)} />
                         </td>
                         <td className="px-3 py-3">
                           <span className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-500">
                             {item.financeiro_lancamento_id ? "Vinculado" : "Manual · pronto para vincular"}
                           </span>
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <button onClick={() => salvarDespesa(item)} disabled={salvando === item.id} className="rounded-lg bg-[#5850ec] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
-                            <Save size={13} className="mr-1 inline" /> Salvar
-                          </button>
                         </td>
                       </tr>
                     );
@@ -902,7 +914,7 @@ function CustosMargensPage() {
                     <td className={`px-3 py-3 text-right ${totalFixoAtual - totalFixoIdeal >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {totalFixoAtual === totalFixoIdeal ? "—" : brl(Math.abs(totalFixoAtual - totalFixoIdeal))}
                     </td>
-                    <td colSpan={4}></td>
+                    <td colSpan={3}></td>
                   </tr>
                 </tfoot>
               </table>
