@@ -77,7 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Financeiro",
     icon: CircleDollarSign,
     items: [
-      { label: "Lançamentos", href: "/admin/financeiro/lancamentos" },
+      { label: "Resumo financeiro", href: "/admin/financeiro" },
       { label: "Transações", href: "/admin/financeiro/transacoes" },
       { label: "Controle Operacional", href: "/admin/custos" },
       { label: "Configurar Pagamentos", href: "/admin/config/site" },
@@ -109,7 +109,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Importar Clientes", href: "/admin/config/importar-clientes" },
       { label: "Automações WhatsApp", href: "/admin/automacoes" },
       { label: "Unidades", href: "/admin/config/unidades" },
-      { label: "Horários e Exceções", href: "/admin/config/horarios" },
+      { label: "Horários", href: "/admin/config/horarios" },
       { label: "Entrega (Bairros / Taxas / Área)", href: "/admin/config/taxas" },
       { label: "Informativo", href: "/admin/config/informativo" },
       { label: "Entregador", href: "/admin/config/entregador" },
