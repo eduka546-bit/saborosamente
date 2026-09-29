@@ -248,7 +248,7 @@ function ImportarClientesPage() {
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.txt,.xlsx,.xls"
+              accept=".csv,.txt"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
