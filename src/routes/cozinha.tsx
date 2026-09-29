@@ -1533,6 +1533,35 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const unidade = item.preparacao_componente_id ? "g" : (ingrediente?.unidade_medida || "g");
     return `${nome}: ${formatarQuantidadeProducao(n(item.quantidade), unidade, nome)}`;
   };
+  const ehMassaPanqueca = (prep:any) => normalizarNomeIngrediente(prep?.nome).includes("massa panqueca");
+  const necessidadeMassaPanqueca = (prep:any) => {
+    if (!ehMassaPanqueca(prep)) return null;
+    const usos = pratos.filter((prato:any) =>
+      (Array.isArray(prato.receita?.preparacoes) ? prato.receita.preparacoes : []).some((ref:any)=>ref?.id===prep.id),
+    );
+    const totalPanquecas = usos.reduce((total:number, prato:any) =>
+      total + n(prato.q["200"]) + 2*n(prato.q["300"]) + 3*n(prato.q["400"]), 0);
+    if (!(totalPanquecas > 0)) return null;
+    // Referência operacional já validada na TD22: 35 ml de leite por panqueca.
+    // A receita-base usa 500 ml; portanto equivale a 500/35 panquecas.
+    const panquecasPorReceitaBase = 500 / 35;
+    return { totalPanquecas, fator: totalPanquecas / panquecasPorReceitaBase };
+  };
+  const formatarItemPreparacaoEscalado = (item:any, fator:number) => {
+    const ingrediente = ingPorId.get(item.ingrediente_id) as any;
+    const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
+    const nome = ingrediente?.nome || prepComponente?.nome || "Componente";
+    const texto = String(item.quantidade_texto || "").trim();
+    const quantidade = n(item.quantidade) * fator;
+    if (!(n(item.quantidade) > 0)) {
+      if (/pitada/i.test(texto)) return `${nome}: ≈ ${fator.toLocaleString("pt-BR",{maximumFractionDigits:1})} pitadas`;
+      return `${nome}: ${textoCozinha(texto) || "a gosto"}`;
+    }
+    if (ingrediente?.unidade_medida === "un") return `${nome}: ${Math.ceil(quantidade).toLocaleString("pt-BR")} un`;
+    if (ingrediente?.unidade_medida === "L") return `${nome}: ${quantidade.toLocaleString("pt-BR",{maximumFractionDigits:3})} L`;
+    if (/\bml\b/i.test(texto) || normalizarNomeIngrediente(nome)==="leite") return `${nome}: ${(quantidade/1000).toLocaleString("pt-BR",{maximumFractionDigits:3})} L`;
+    return `${nome}: ${formatarQuantidadeProducao(quantidade,"g",nome)}`;
+  };
   type ContribuicaoIngrediente = { prepId:string; produtoId:string; itemId:string; ingredienteAlvoId:string; quantidade:number };
   const contribuicoesIngredientes:ContribuicaoIngrediente[]=[];
   pratos.forEach((prato:any) => {
@@ -1751,9 +1780,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id}><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-col gap-1 sm:flex-row sm:flex-wrap"><button className="w-full rounded-lg border border-[#b9d4c2] px-2 py-1.5 text-xs font-bold text-[#087443] sm:w-auto" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto((atual)=>({...atual,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))}));}}>Alterar quantidade pronta</button><button className="w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-600 sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:pr.total}))}>Retirar este preparo</button>{pronto>0&&<button className="w-full rounded-lg border px-2 py-1.5 text-xs sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:0}))}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir: {formatPeso(falta)}</p>}</div>})}<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(cru)</span></p>:!itens.length?<p className="font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:itens.map((item:any)=><p key={item.id}>{fmtItemPrepExato(item,g,fatorRecuperado,escala,fator)}</p>)}</div>
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="mb-1 text-xs font-black uppercase text-[#527164] md:hidden">Modo de preparo</p><p className="whitespace-pre-line break-words text-sm leading-snug">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
-          {preparacoesVinculadasInformativas.map((prep:any)=>{const itens=(itensPreparacao.get(prep.id)||[]) as any[]; return <div key={`base-${prep.id}`} className="print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] bg-[#fffdf4] text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="min-w-0 p-2.5"><b className="block break-words text-base leading-tight md:text-sm">{capitalizarNomeCozinha(prep.nome)}</b><p className="mt-1 text-xs font-black uppercase text-amber-700">Receita-base vinculada</p>{n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Rendimento base: <b>{formatPeso(n(prep.rendimento_final_g))}</b></p>}</div>
-            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Ingredientes / quantidades da receita-base</p>{!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:<div className="mt-1 space-y-0.5">{itens.map((item:any)=><p key={item.id}>{formatarItemPreparacaoBase(item)}</p>)}</div>}{prep.observacao&&<p className="mt-2 text-xs leading-snug text-[#62766b]">{textoCozinha(prep.observacao)}</p>}</div>
+          {preparacoesVinculadasInformativas.map((prep:any)=>{const itens=(itensPreparacao.get(prep.id)||[]) as any[]; const necessidadePanqueca=necessidadeMassaPanqueca(prep); const fatorExibicao=necessidadePanqueca?.fator || 1; return <div key={`base-${prep.id}`} className="print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] bg-[#fffdf4] text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="min-w-0 p-2.5"><b className="block break-words text-base leading-tight md:text-sm">{capitalizarNomeCozinha(prep.nome)}</b><p className="mt-1 text-xs font-black uppercase text-amber-700">{necessidadePanqueca?"Quantidade necessária hoje":"Receita-base vinculada"}</p>{necessidadePanqueca?<><p className="mt-1 text-lg font-black text-[#087443]">{necessidadePanqueca.totalPanquecas.toLocaleString("pt-BR")} panquecas</p>{n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Massa pronta estimada: <b>{formatPeso(n(prep.rendimento_final_g)*fatorExibicao)}</b></p>}</>:n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Rendimento base: <b>{formatPeso(n(prep.rendimento_final_g))}</b></p>}</div>
+            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">{necessidadePanqueca?"Ingredientes para a produção de hoje":"Ingredientes / quantidades da receita-base"}</p>{!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:<div className="mt-1 space-y-0.5">{itens.map((item:any)=><p key={item.id}>{necessidadePanqueca?formatarItemPreparacaoEscalado(item,fatorExibicao):formatarItemPreparacaoBase(item)}</p>)}</div>}{necessidadePanqueca&&<p className="mt-2 text-xs font-bold text-[#087443]">Cálculo automático: 1×200 g + 2×300 g + 3×400 g por unidade planejada.</p>}{prep.observacao&&!necessidadePanqueca&&<p className="mt-2 text-xs leading-snug text-[#62766b]">{textoCozinha(prep.observacao)}</p>}</div>
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="mb-1 text-xs font-black uppercase text-[#527164] md:hidden">Modo de preparo</p><p className="whitespace-pre-line break-words text-sm leading-snug">{textoCozinha(prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
         </div>
@@ -1821,7 +1850,7 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
       const g = arredondarProducao(n(item.quantidade) * fator, "g");
       return { tipo: "peso", valor: g, exibicao: formatarQuantidadeProducao(g, "g", prepComponente.nome) + " · preparo compartilhado" + aprox };
     }
-    const volumeLitros = ingrediente?.unidade_medida === "L" || /\blitro(s)?\b|\bl\b/i.test(texto);
+    const volumeLitros = ingrediente?.unidade_medida === "L" || /\blitro(s)?\b|\bml\b|\bl\b/i.test(texto);
     if (volumeLitros) {
       const litros = ingrediente?.unidade_medida === "L"
         ? n(item.quantidade) * fator
@@ -1845,10 +1874,14 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     if (total > 0) totalReceitaPorIngrediente.set(x.ingrediente_id, (totalReceitaPorIngrediente.get(x.ingrediente_id) || 0) + total);
   });
 
+  const totalPanquecasPlanejadas = n(quantidades["200"]) + 2*n(quantidades["300"]) + 3*n(quantidades["400"]);
   const preparacoesCalculadas = preps.map((prep: any) => {
     const componente = montagemTotal.find((m: any) => mesmo(m.nome, prep.nome));
-    const pronto = n(componente?.total);
-    const fator = n(prep.rendimento_final_g) > 0 ? pronto / n(prep.rendimento_final_g) : 0;
+    const massaPanqueca = normalizarNomeIngrediente(prep.nome).includes("massa panqueca");
+    const fatorPanqueca = massaPanqueca && totalPanquecasPlanejadas > 0 ? totalPanquecasPlanejadas / (500/35) : 0;
+    const fatorNormal = n(prep.rendimento_final_g) > 0 ? n(componente?.total) / n(prep.rendimento_final_g) : 0;
+    const fator = massaPanqueca ? fatorPanqueca : fatorNormal;
+    const pronto = massaPanqueca && n(prep.rendimento_final_g) > 0 ? n(prep.rendimento_final_g) * fator : n(componente?.total);
     const itens = (itensPreparacao.get(prep.id) || []).map((item: any) => {
       const ingrediente = porId.get(item.ingrediente_id);
       const prepComponente = prepPorIdLocal.get(item.preparacao_componente_id);
@@ -2025,9 +2058,9 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
             <div className="bg-[#173a2d] px-3 py-2 text-sm font-black text-white">{grupoIdx+1}. {grupo.nome}</div>
             <div className="grid gap-4 p-3 lg:grid-cols-[minmax(230px,.85fr)_minmax(0,1.4fr)]">
               <div className="rounded-xl bg-[#f4f8f4] p-3">
-                <p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes e quantidades da receita-base</p>
+                <p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes e quantidades para este lote</p>
                 {grupo.itens.length > 0 ? <div className="mt-2 space-y-1.5">
-                  {grupo.itens.map((item:any)=><div key={item.id} className="flex items-start justify-between gap-3 border-b border-[#dfe9df] pb-1.5 text-sm last:border-b-0 last:pb-0"><span>{item.nomeComponente}</span><b className="text-right text-[#173a2d]">{item.quantidade_texto || (item.ingrediente?.unidade_medida==="un" ? `${n(item.quantidade).toLocaleString("pt-BR")} un` : item.ingrediente?.unidade_medida==="L" ? `${n(item.quantidade).toLocaleString("pt-BR")} L` : formatPeso(n(item.quantidade)))}</b></div>)}
+                  {grupo.itens.map((item:any)=><div key={item.id} className="flex items-start justify-between gap-3 border-b border-[#dfe9df] pb-1.5 text-sm last:border-b-0 last:pb-0"><span>{item.nomeComponente}</span><b className="text-right text-[#173a2d]">{item.calculado?.exibicao || item.quantidade_texto || (item.ingrediente?.unidade_medida==="un" ? `${n(item.quantidade).toLocaleString("pt-BR")} un` : item.ingrediente?.unidade_medida==="L" ? `${n(item.quantidade).toLocaleString("pt-BR")} L` : formatPeso(n(item.quantidade)))}</b></div>)}
                 </div> : <p className="mt-2 text-sm text-amber-700">Ingredientes não informados.</p>}
                 {n(grupo.prep.rendimento_final_g)>0&&<p className="mt-3 text-xs font-bold text-[#087443]">Rendimento da receita-base: {formatPeso(n(grupo.prep.rendimento_final_g))}</p>}
                 {grupo.prep.observacao&&<p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-[#62766b]">{textoCozinha(grupo.prep.observacao).replace(/\\n/g,"\n")}</p>}
