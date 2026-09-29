@@ -44,11 +44,7 @@ function AdminSiteConfig() {
   const [isImporting, setIsImporting] = useState(false);
   const heroRef = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
-  const promoRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const promoRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   /**
    * Imagens de interface não precisam ser guardadas no tamanho original da câmera.
@@ -204,7 +200,7 @@ function AdminSiteConfig() {
   };
 
   const promoBanners: any[] =
-    Array.isArray(formData.promo_banners) && formData.promo_banners.length === 3
+    Array.isArray(formData.promo_banners) && formData.promo_banners.length > 0
       ? formData.promo_banners
       : [
           { image_url: "", alt: "Banner 1", link: "" },
@@ -214,6 +210,26 @@ function AdminSiteConfig() {
 
   const handlePromoChange = (index: number, field: string, value: string) => {
     const next = promoBanners.map((b, i) => (i === index ? { ...b, [field]: value } : b));
+    setFormData({ ...formData, promo_banners: next });
+  };
+
+  const addPromoBanner = () => {
+    const numero = promoBanners.length + 1;
+    setFormData({
+      ...formData,
+      promo_banners: [...promoBanners, { image_url: "", alt: `Banner ${numero}`, link: "" }],
+    });
+  };
+
+  const removePromoBanner = (index: number) => {
+    if (promoBanners.length <= 1) {
+      return toast.error("Mantenha pelo menos um banner no carrossel.");
+    }
+    const next = promoBanners.filter((_, i) => i !== index).map((banner, i) => ({
+      ...banner,
+      alt: /^Banner\s+\d+$/i.test(String(banner.alt || "")) ? `Banner ${i + 1}` : banner.alt,
+    }));
+    promoRefs.current = promoRefs.current.filter((_, i) => i !== index);
     setFormData({ ...formData, promo_banners: next });
   };
 
@@ -597,14 +613,19 @@ function AdminSiteConfig() {
         <TabsContent value="promos" className="mt-6 space-y-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <ImageIcon className="text-[#5850ec]" size={20} /> Carrossel de 3 Banners (Home)
+              <ImageIcon className="text-[#5850ec]" size={20} /> Carrossel de Banners (Home)
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Troque as três imagens exibidas abaixo da capa. Proporção recomendada: 4:5 (ex.:
-              800x1000px).
-            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Cadastre quantas imagens precisar. Proporção recomendada: 4:5 (ex.: 800x1000px).
+                Atualmente: <strong>{promoBanners.length} banner{promoBanners.length === 1 ? "" : "s"}</strong>.
+              </p>
+              <Button type="button" onClick={addPromoBanner} className="shrink-0 bg-[#087443] hover:bg-[#07663b]">
+                <Plus size={16} className="mr-2" /> Adicionar banner
+              </Button>
+            </div>
 
-            <div className="grid gap-6 sm:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {promoBanners.map((banner, index) => (
                 <div key={index} className="space-y-3 p-3 border rounded-xl bg-gray-50">
                   <Label>Banner {index + 1}</Label>
@@ -623,7 +644,7 @@ function AdminSiteConfig() {
                     <Button
                       size="sm"
                       className="absolute bottom-2 right-2 bg-white text-black hover:bg-gray-100"
-                      onClick={() => promoRefs[index]?.current?.click()}
+                      onClick={() => promoRefs.current[index]?.click()}
                       disabled={isUploading[`promo_${index}`]}
                     >
                       {isUploading[`promo_${index}`] ? (
@@ -634,7 +655,9 @@ function AdminSiteConfig() {
                       Trocar
                     </Button>
                     <input
-                      ref={promoRefs[index]}
+                      ref={(node) => {
+                        promoRefs.current[index] = node;
+                      }}
                       type="file"
                       className="hidden"
                       accept="image/*"
@@ -653,16 +676,28 @@ function AdminSiteConfig() {
                     value={banner.link || ""}
                     onChange={(e) => handlePromoChange(index, "link", e.target.value)}
                   />
-                  {banner.image_url && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {banner.image_url ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-amber-700"
+                        onClick={() => handlePromoChange(index, "image_url", "")}
+                      >
+                        <ImageIcon size={15} className="mr-2" /> Limpar imagem
+                      </Button>
+                    ) : <div />}
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 w-full"
-                      onClick={() => handlePromoChange(index, "image_url", "")}
+                      className="text-red-500 hover:text-red-600"
+                      onClick={() => removePromoBanner(index)}
                     >
-                      <Trash2 size={16} className="mr-2" /> Remover imagem
+                      <Trash2 size={15} className="mr-2" /> Remover banner
                     </Button>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
