@@ -1294,10 +1294,10 @@ function Botao({ children, onClick, leve = false }: any) {
 }
 function Janela({ titulo, fechar, children }: any) {
   return (
-    <div className="fixed inset-0 z-30 overflow-y-auto bg-black/45 p-4">
-      <div className="mx-auto my-4 w-full max-w-6xl rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="mb-5 flex justify-between">
-          <h3 className="text-xl font-black">{titulo}</h3>
+    <div className="fixed inset-0 z-30 overflow-y-auto bg-black/45 p-2 sm:p-4">
+      <div className="mx-auto my-2 w-full max-w-6xl overflow-hidden rounded-2xl bg-white p-3 shadow-2xl sm:my-4 sm:p-5">
+        <div className="mb-3 flex min-w-0 items-start justify-between gap-3 sm:mb-5">
+          <h3 className="min-w-0 break-words text-lg font-black sm:text-xl">{titulo}</h3>
           <button onClick={fechar}>
             <X />
           </button>
@@ -1739,9 +1739,18 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           <p className="mb-1 text-lg font-black uppercase text-[#087443]">4. Ingredientes necessários do dia</p>
           <p className="mb-1 text-sm text-[#62766b]">Quantidades cruas, considerando ganhos ×, perdas % e os preparos marcados como já prontos.</p>
         </div>
-        <div className="border border-[#dbe7dd] bg-white">
-          <div className="print-table-header grid bg-[#173a2d] px-3 py-2 text-xs font-bold text-white" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><span>Ingrediente</span><span>Quantidade</span><span>Usado em</span></div>
-          {ingredientesDiaAjustados.map((x:any)=>{const chave=`${x.id}:${x.unidade}`; const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); const editado=ingredienteAjustado[chave]!==undefined; return <div key={chave} className="print-ingredient-row grid items-center border-t border-[#dbe7dd] px-3 py-2 text-sm" style={{gridTemplateColumns:"minmax(250px,1fr) 140px 1fr"}}><div><b>{x.item?.nome}</b>{!x.qb&&<div data-screen-only className="mt-1 flex gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quantidade disponível de ${x.item?.nome} (${x.unidade}):`,String(x.quantidade));if(valor!==null)setIngredienteAjustado((atual)=>({...atual,[chave]:Math.max(0,n(String(valor).replace(',','.')))}));}}>Editar ingrediente</button>{editado&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setIngredienteAjustado((atual)=>{const novo={...atual};delete novo[chave];return novo;})}>Restaurar</button>}</div>}</div><div><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}{editado&&<p className="text-xs font-bold text-amber-700">necessário: {formatarQuantidadeProducao(x.quantidadeCalculada,x.unidade,x.item?.nome)}</p>}</div><span className="text-xs text-[#62766b]">{pratosUsados.join(" · ")||"—"}</span></div>})}
+        <div className="overflow-hidden border border-[#dbe7dd] bg-white">
+          <div className="print-table-header grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#173a2d] px-3 py-2 text-xs font-bold text-white md:grid-cols-[minmax(250px,1fr)_140px_1fr]">
+            <span>Ingrediente</span><span className="text-right md:text-left">Quantidade</span><span className="hidden md:block">Usado em</span>
+          </div>
+          {ingredientesDiaAjustados.map((x:any)=>{const chave=`${x.id}:${x.unidade}`; const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); const editado=ingredienteAjustado[chave]!==undefined; return <div key={chave} className="print-ingredient-row grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 border-t border-[#dbe7dd] px-3 py-2 text-sm md:grid-cols-[minmax(250px,1fr)_140px_1fr] md:items-center">
+            <div className="min-w-0">
+              <b className="block break-words">{x.item?.nome}</b>
+              {!x.qb&&<div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quantidade disponível de ${x.item?.nome} (${x.unidade}):`,String(x.quantidade));if(valor!==null)setIngredienteAjustado((atual)=>({...atual,[chave]:Math.max(0,n(String(valor).replace(',','.')))}));}}>Editar ingrediente</button>{editado&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setIngredienteAjustado((atual)=>{const novo={...atual};delete novo[chave];return novo;})}>Restaurar</button>}</div>}
+            </div>
+            <div className="whitespace-nowrap text-right md:text-left"><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}{editado&&<p className="text-xs font-bold text-amber-700">necessário: {formatarQuantidadeProducao(x.quantidadeCalculada,x.unidade,x.item?.nome)}</p>}</div>
+            <span className="col-span-2 min-w-0 break-words text-[11px] leading-snug text-[#62766b] md:col-span-1 md:text-xs"><span className="font-bold md:hidden">Usado em: </span>{pratosUsados.join(" · ")||"—"}</span>
+          </div>})}
         </div>
         {simulandoIngredientes&&<div className="mt-2 border border-amber-200 bg-amber-50 p-3 text-sm"><p className="font-black text-amber-800">Capacidade estimada com os ingredientes informados: {(fatorIngredientes*100).toLocaleString('pt-BR',{maximumFractionDigits:1})}% do planejamento</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{pratos.map((prato:any)=><div key={prato.produto.id}><b>{rotuloProduto(prato.produto)}</b><p className="text-xs text-[#62766b]">Sugestão: {TAMANHOS.map((t)=>`${sugerirMarmitas(n(prato.q[t.id]),fatorIngredientes)}×${t.label}`).join(' · ')}</p></div>)}</div><p className="mt-2 text-xs text-[#62766b]">Preparos estimados: {preparacoesConsolidadas.map((g:any)=>`${capitalizarNomeCozinha(g.prep.nome)} ${formatPeso(g.total*fatorIngredientes)}`).join(' · ')}</p></div>}
       </section>
