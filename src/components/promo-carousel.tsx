@@ -57,7 +57,7 @@ export function PromoCarousel({ banners, className, fill = false }: PromoCarouse
         src={imgUrl(currentBanner.image_url)}
         alt={currentBanner.alt || "Banner promocional"}
         loading="eager"
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        className={cn("absolute inset-0 w-full h-full transition-transform duration-700 group-hover:scale-105", fill ? "object-contain" : "object-cover")}
       />
 
       {/* Overlay gradient no hover */}
