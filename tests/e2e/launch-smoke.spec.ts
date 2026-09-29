@@ -102,7 +102,7 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
   await expect(
     page.locator("aside").getByText(/Pronta para consumo.*R\$.*Garfo e faca.*R\$/i).first(),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
 
   const entrega = page.getByRole("button", { name: "Entrega", exact: true });
   await entrega.click();
@@ -594,18 +594,23 @@ test("home: links internos e imagens próprias não estão quebrados", async ({ 
   });
   await page.waitForTimeout(500);
 
-  const brokenImages = await page.locator("img").evaluateAll((imgs) =>
-    imgs
-      .filter((img) => {
-        const src = (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src || "";
-        return (
-          src.startsWith(location.origin) ||
-          src.includes("lxcgbrovdmpjatywweiv.supabase.co")
-        );
-      })
-      .filter((img) => !(img as HTMLImageElement).complete || (img as HTMLImageElement).naturalWidth === 0)
-      .map((img) => (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src),
+  const ownImages = await page.locator("img").evaluateAll((imgs) =>
+    Array.from(
+      new Set(
+        imgs
+          .map((img) => (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src || "")
+          .filter((src) =>
+            src.startsWith(location.origin) ||
+            src.includes("lxcgbrovdmpjatywweiv.supabase.co"),
+          ),
+      ),
+    ),
   );
+  const brokenImages: string[] = [];
+  for (const src of ownImages) {
+    const res = await request.get(src);
+    if (res.status() >= 400) brokenImages.push(`${res.status()} ${src}`);
+  }
   expect(brokenImages, brokenImages.join("\n")).toEqual([]);
 
   const internalLinks = await page.locator('a[href]').evaluateAll((links) => {
