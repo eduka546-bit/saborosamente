@@ -657,3 +657,60 @@ test("home: orçamento básico de desempenho não regrediu", async ({ page }) =>
   expect(metrics.load).toBeLessThan(15_000);
   expect(metrics.maxAssetBytes).toBeLessThan(5_000_000);
 });
+
+
+test("cobertura total: rotas administrativas secundárias e perfil autenticado", async ({ page }) => {
+  const problems = observe(page);
+  await loginE2EAdmin(page);
+
+  const routes = [
+    "/admin/acompanhamentos",
+    "/admin/cashback",
+    "/admin/combos",
+    "/admin/combos-prontos",
+    "/admin/complementos",
+    "/admin/config",
+    "/admin/config/area",
+    "/admin/config/bairros",
+    "/admin/config/cashback",
+    "/admin/config/marmita-personalizada",
+    "/admin/config/mensagens",
+    "/admin/config/origem",
+    "/admin/cupons/novo",
+    "/admin/embalagens",
+    "/admin/ouvidoria",
+    "/admin/pdv",
+    "/admin/pedidos/acompanhamentos",
+    "/admin/pedidos/complementos",
+    "/admin/pedidos/itens",
+    "/admin/registrar-p10",
+    "/admin/relatorios",
+    "/perfil",
+  ];
+
+  for (const route of routes) {
+    const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
+    expect(response?.status(), route).toBeLessThan(500);
+    await expect(page.locator("body")).not.toBeEmpty();
+    if (route.startsWith("/admin")) {
+      await expect(page).not.toHaveURL(/\/admin-login(?:\?|$)/);
+    }
+  }
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("cobertura total: rota pública de produto gerada pelo sitemap", async ({ page, request }) => {
+  const sitemap = await request.get(`${BASE_URL}/sitemap.xml`);
+  expect(sitemap.status()).toBe(200);
+  const xml = await sitemap.text();
+  const match = xml.match(/https:\/\/www\.saborosamente\.com\/produto\/([0-9a-f-]{36})/i);
+  expect(match?.[1], "Sitemap precisa conter ao menos um produto público").toBeTruthy();
+
+  const response = await page.goto(`${BASE_URL}/produto/${match![1]}`, {
+    waitUntil: "domcontentloaded",
+  });
+  expect(response?.status()).toBeLessThan(500);
+  await expect(page.locator("body")).not.toBeEmpty();
+  await expect(page.getByText(/Página não encontrada/i)).toHaveCount(0);
+});
