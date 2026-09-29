@@ -125,6 +125,7 @@ function AdminCuponsPage() {
     saveMutation.mutate({
       ...form,
       valor: Number(form.valor),
+      validade: form.validade === "" ? null : form.validade,
       uso: editingCupom?.uso || 0,
       max_uso,
       apenas_primeira_compra: form.apenas_primeira_compra,
