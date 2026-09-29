@@ -259,6 +259,8 @@ export function SiteHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
+                  type="button"
+                  aria-label="Abrir minha conta"
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary overflow-hidden"
                   style={{ color: navText }}
                 >
@@ -303,6 +305,7 @@ export function SiteHeader() {
             <Link
               to="/auth"
               search={{ redirect: "/" }}
+              aria-label="Entrar ou criar conta"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
             >
               <User size={20} />
