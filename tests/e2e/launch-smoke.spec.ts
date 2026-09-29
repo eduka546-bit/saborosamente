@@ -15,7 +15,9 @@ function observe(page: Page) {
 
 
 async function goToCheckoutThroughCart(page: Page) {
-  const cartButton = page.getByRole("button", { name: "Abrir carrinho" });
+  const cartButton = page
+    .getByRole("banner")
+    .getByRole("button", { name: "Abrir carrinho" });
   await expect(cartButton).toBeVisible();
   await cartButton.click();
   await expect(page.getByRole("heading", { name: "Seu Carrinho" })).toBeVisible();

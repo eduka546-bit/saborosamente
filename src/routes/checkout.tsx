@@ -185,7 +185,7 @@ function Checkout() {
         setAppliedCoupon(null);
         return;
       }
-      if (data.validade && new Date(data.validade) < new Date()) {
+      if (data.validade && new Date(`${data.validade}T23:59:59`) < new Date()) {
         setCouponError("Este cupom expirou.");
         setAppliedCoupon(null);
         return;
