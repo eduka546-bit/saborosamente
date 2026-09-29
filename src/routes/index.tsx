@@ -581,7 +581,7 @@ function Index() {
       <section className="bg-[#fbfaf5] pb-8 pt-6 md:pb-12 md:pt-10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
-            <div className="grid min-h-[430px] lg:grid-cols-[1.02fr_.98fr]">
+            <div className="grid lg:grid-cols-[1.02fr_.98fr]">
               <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-14">
                 <span className="mb-4 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
                   Sabor e praticidade para sua rotina
@@ -601,7 +601,7 @@ function Index() {
                   <span className="inline-flex items-center gap-1.5"><ShoppingBag size={16} />Retirada na loja</span>
                 </div>
               </div>
-              <div className="relative min-h-[290px] overflow-hidden bg-[#087149] lg:min-h-full">
+              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[430px]">
                 {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
                   <PromoCarousel banners={promoBanners} fill className="absolute inset-0 max-w-none" />
                 ) : (
