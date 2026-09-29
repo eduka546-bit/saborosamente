@@ -16,10 +16,15 @@ import {
   ChefHat,
   ShieldCheck,
   ChevronDown,
+  Search,
+  SlidersHorizontal,
+  ShoppingCart,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
+import { CartSheet } from "@/components/cart-sheet";
+import { useCart } from "@/lib/cart";
 import { PromoCarousel } from "@/components/promo-carousel";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProducts } from "@/lib/products.functions";
@@ -238,6 +243,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
+  const { count, selectedCity, setSelectedCity } = useCart();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -351,6 +357,13 @@ function Index() {
     () => new Set((bestSellerRows as any[]).map((row) => row.produto_id)),
     [bestSellerRows],
   );
+  const bestSellerProducts = useMemo(() => {
+    const byId = new Map(products.map((product: any) => [product.id, product]));
+    return (bestSellerRows as any[])
+      .map((row) => byId.get(row.produto_id))
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [products, bestSellerRows]);
 
   const promoBanners: { image_url?: string; alt?: string; link?: string }[] =
     Array.isArray((settings as any)?.promo_banners) && (settings as any).promo_banners.length > 0
@@ -546,13 +559,9 @@ function Index() {
 
   const defaultHeroFeatures = [
     { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
-    { label: "6 MESES DE", value: "VALIDADE" },
-    { label: "TEMPEROS 100%", value: "NATURAIS" },
-    { label: "OPÇÕES SEM", value: "GLÚTEN E LACTOSE" },
-    { label: "CRIADAS POR", value: "CHEFS E NUTRIS" },
-    { label: "ENTREGA", value: "REGIONAL" },
-    { label: "DELIVERY OU", value: "RETIRADA" },
-    { label: "PEDIDOS", value: "24H" },
+    { label: "ATÉ 6 MESES", value: "DE VALIDADE" },
+    { label: "TEMPEROS NATURAIS", value: "0 CONSERVANTES" },
+    { label: "ENTREGA REGIONAL", value: "OU RETIRADA" },
   ];
   // Diferenciais definidos para a nova vitrine. Eles substituem o bloco antigo
   // que ficava encaixado no rodapé do hero.
@@ -657,13 +666,13 @@ function Index() {
               </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {heroFeatures.map((feature: any, index: number) => {
-              const Icon = [Timer, Calendar, Leaf, WheatOff, ChefHat, MapPin, Truck, ShoppingBag][index] ?? Sparkles;
+              const Icon = [Timer, Calendar, Leaf, Truck][index] ?? Sparkles;
               return (
-                <div key={`${feature.label}-${index}`} className="flex min-h-28 flex-col items-center justify-center rounded-[1.35rem] bg-[#087149] px-2 py-4 text-center text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]">
-                  <Icon className="mb-2 size-6" strokeWidth={1.7} />
-                  <p className="text-[10px] font-extrabold leading-[1.2] uppercase tracking-tight"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
+                <div key={`${feature.label}-${index}`} className="flex min-h-24 flex-col items-center justify-center rounded-[1.35rem] bg-[#087149] px-3 py-4 text-center text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]">
+                  <Icon className="mb-2 size-6" strokeWidth={1.8} />
+                  <p className="text-xs font-extrabold leading-[1.25] uppercase tracking-[.03em] md:text-[13px]"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
                 </div>
               );
             })}
@@ -763,8 +772,100 @@ function Index() {
         </div>
       </section>
 
+      {bestSellerProducts.length > 0 && (
+        <section className="bg-white py-10 md:py-14">
+          <div className="mx-auto max-w-7xl px-4">
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">OS FAVORITOS DE QUEM JÁ COMPRA</p>
+                <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Mais pedidos</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
+                  Os sabores mais escolhidos nos últimos 90 dias.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => abrirObjetivo("Mais escolhidas")}
+                className="hidden text-sm font-black text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
+              >
+                Ver todos
+              </button>
+            </div>
+            <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-4">
+              {bestSellerProducts.map((product: any) => (
+                <div key={product.id} className="w-[82vw] max-w-[315px] shrink-0 snap-start md:w-auto md:max-w-none">
+                  <ProductCard
+                    product={{
+                      ...product,
+                      mais_vendido: true,
+                      categoria: product.categorias?.nome || "Marmita",
+                      imagem: imgUrl(product.imagem_url),
+                    }}
+                    allProducts={products.map((p: any) => ({
+                      ...p,
+                      categoria: p.categorias?.nome || "Marmita",
+                      imagem: imgUrl(p.imagem_url),
+                    }))}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Main Content: Filters + Products */}
       <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 md:py-12">
+        <div className="sticky top-[68px] z-30 -mx-2 mb-5 flex items-center gap-2 rounded-2xl border border-[#dce7d5] bg-white/95 p-2 shadow-lg backdrop-blur lg:hidden">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f5f7f2] px-3 py-2.5">
+            <Search size={17} className="shrink-0 text-[#087443]" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar no cardápio"
+              className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#173a2d] outline-none placeholder:text-[#829087]"
+            />
+            {searchTerm && (
+              <button type="button" onClick={() => setSearchTerm("")} className="text-[#708078]">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen((open) => !open)}
+            className={cn(
+              "relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl border",
+              mobileFiltersOpen
+                ? "border-[#087443] bg-[#087443] text-white"
+                : "border-[#cfe0c4] bg-[#f3f7ee] text-[#087443]",
+            )}
+            aria-label="Abrir filtros"
+          >
+            <SlidersHorizontal size={19} />
+            {selectedFilters.length > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-[9px] font-black text-[#173a2d]">
+                {selectedFilters.length}
+              </span>
+            )}
+          </button>
+          <CartSheet>
+            <button
+              type="button"
+              className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#087443] text-white"
+              aria-label="Abrir carrinho"
+            >
+              <ShoppingCart size={19} />
+              {count > 0 && (
+                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-[9px] font-black text-[#173a2d]">
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+            </button>
+          </CartSheet>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
@@ -778,28 +879,6 @@ function Index() {
             </div>
 
             <DiscountProgressWidget className="mb-6" />
-
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen((open) => !open)}
-              className="flex w-full items-center justify-between rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] px-4 py-3 text-left lg:hidden"
-              aria-expanded={mobileFiltersOpen}
-            >
-              <div>
-                <span className="text-[13px] font-black uppercase tracking-[.08em] text-[#075636]">
-                  Filtrar cardápio
-                </span>
-                <span className="mt-0.5 block text-[10px] text-[#5a745f]">
-                  {selectedFilters.length > 0
-                    ? `${selectedFilters.length} filtro${selectedFilters.length > 1 ? "s" : ""} ativo${selectedFilters.length > 1 ? "s" : ""}`
-                    : "Objetivo, restrição, proteína ou categoria"}
-                </span>
-              </div>
-              <ChevronDown
-                size={18}
-                className={cn("text-[#075636] transition-transform", mobileFiltersOpen && "rotate-180")}
-              />
-            </button>
 
             <div className={cn(
               "rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm",
@@ -1104,7 +1183,7 @@ function Index() {
                       return (
                         <div key={category}>
                           {categoryIndex > 0 && <div className="my-6 border-t border-border/30" />}
-                          <h3 className="text-lg font-bold text-primary mb-1 uppercase tracking-wide">
+                          <h3 className="mb-1 text-xl font-black uppercase tracking-[.04em] text-primary">
                             {category}
                           </h3>
                           {(() => {
@@ -1186,6 +1265,69 @@ function Index() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[#e8eadf] bg-[#f7f8f1] py-10 md:py-14">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 lg:grid-cols-[1.05fr_.95fr]">
+          <div>
+            <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">SIMPLES DO INÍCIO AO FIM</p>
+            <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Como funciona</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                { icon: ShoppingBag, title: "1. Escolha", text: "Monte seu pedido com os sabores e tamanhos que preferir." },
+                { icon: Truck, title: "2. Receba", text: "Escolha entrega na sua região ou retirada na loja." },
+                { icon: Timer, title: "3. Aqueça", text: "Do freezer para a mesa em poucos minutos." },
+              ].map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div key={step.title} className="rounded-2xl border border-[#dce4d4] bg-white p-4 shadow-sm">
+                    <div className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#087443]">
+                      <Icon size={20} />
+                    </div>
+                    <h3 className="mt-3 text-base font-black text-[#173a2d]">{step.title}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-[#607168]">{step.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[1.75rem] bg-[#087149] p-5 text-white shadow-sm md:p-6">
+            <div className="flex items-start gap-3">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10">
+                <MapPin size={21} />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[.1em] text-white/70">Onde você quer receber?</p>
+                <h2 className="mt-1 text-2xl font-black">Escolha sua cidade</h2>
+                <p className="mt-1 text-xs leading-relaxed text-white/75">
+                  Você confirma bairro, taxa e disponibilidade no checkout.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => setSelectedCity(city)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-bold transition",
+                    selectedCity === city
+                      ? "border-[#f6d83d] bg-[#f6d83d] text-[#173a2d]"
+                      : "border-white/20 bg-white/10 text-white hover:bg-white/20",
+                  )}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-semibold text-white/85">
+              <ShoppingBag size={16} />
+              Retirada na loja em São Bento do Sul também disponível.
+            </div>
           </div>
         </div>
       </section>
