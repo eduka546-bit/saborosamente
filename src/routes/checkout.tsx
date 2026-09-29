@@ -294,6 +294,10 @@ function Checkout() {
   );
   const datasEntrega = gerarDatasEntrega(entregaCfg);
   const HORARIOS_ENTREGA = entregaCfg.horarios;
+  const minimoEntrega = Number(entregaCfg.minUnidades ?? 0);
+  const faltamParaMinimoEntrega = Math.max(0, minimoEntrega - count);
+  const pedidoAbaixoMinimoEntrega =
+    metodoEntrega === "entrega" && minimoEntrega > 0 && faltamParaMinimoEntrega > 0;
 
   useEffect(() => {
     if (restoringCheckoutDraft.current) return;
@@ -502,6 +506,13 @@ function Checkout() {
         toast.error("Informe cidade, bairro e endereço para entrega.");
         return;
       }
+    }
+
+    if (pedidoAbaixoMinimoEntrega) {
+      toast.error(
+        `Para ${selectedCity}, o pedido mínimo é de ${minimoEntrega} unidades. Faltam ${faltamParaMinimoEntrega}.`,
+      );
+      return;
     }
 
     // Entrega/retirada programada: exige data e horário escolhidos
@@ -797,7 +808,7 @@ function Checkout() {
         ))}
       </div>
 
-      <details className="sticky top-16 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
+      <details className="sticky top-2 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-[#315440]">Resumo do pedido</p>
@@ -1085,6 +1096,22 @@ function Checkout() {
               </div>
             )}
 
+            {pedidoAbaixoMinimoEntrega && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                <strong>Pedido mínimo para {selectedCity}: {minimoEntrega} unidades.</strong>
+                <p className="mt-1 text-xs leading-relaxed">
+                  Faltam {faltamParaMinimoEntrega} {faltamParaMinimoEntrega === 1 ? "unidade" : "unidades"} para liberar a entrega nessa cidade.
+                </p>
+                <Link
+                  to="/"
+                  hash="cardapio"
+                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-xs font-black text-white"
+                >
+                  Adicionar mais itens
+                </Link>
+              </div>
+            )}
+
             {/* ── Data e horário de entrega (entrega programada) ────────────── */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -1096,6 +1123,7 @@ function Checkout() {
                   className={fieldClass}
                   value={dataEntrega}
                   onChange={(e) => setDataEntrega(e.target.value)}
+                  disabled={pedidoAbaixoMinimoEntrega}
                 >
                   <option value="">Selecione uma data</option>
                   {datasEntrega.map((d) => (
@@ -1114,6 +1142,7 @@ function Checkout() {
                   className={fieldClass}
                   value={horarioEntrega}
                   onChange={(e) => setHorarioEntrega(e.target.value)}
+                  disabled={pedidoAbaixoMinimoEntrega}
                 >
                   <option value="">Selecione um horário</option>
                   {HORARIOS_ENTREGA.map((h) => (
@@ -1402,14 +1431,16 @@ function Checkout() {
 
           <button
             type="submit"
-            disabled={isSubmitting || entregaPendenteCalculo}
+            disabled={isSubmitting || entregaPendenteCalculo || pedidoAbaixoMinimoEntrega}
             className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Registrando pedido..."
               : entregaPendenteCalculo
                 ? "Escolha o bairro para calcular a entrega"
-                : session
+                : pedidoAbaixoMinimoEntrega
+                  ? `Adicione mais ${faltamParaMinimoEntrega} para liberar a entrega`
+                  : session
                   ? `Confirmar pedido • ${formatBRL(finalTotal)}`
                   : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
