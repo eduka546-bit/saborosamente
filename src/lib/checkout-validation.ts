@@ -14,7 +14,11 @@ export const checkoutSchema = z
     observacoes: z.string().trim().max(300).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.pagamento === "dinheiro" && data.troco && Number.isNaN(Number(data.troco))) {
+    if (
+      data.pagamento === "dinheiro" &&
+      data.troco &&
+      Number.isNaN(Number(data.troco.replace(",", ".")))
+    ) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Informe um valor numérico para o troco", path: ["troco"] });
     }
   });

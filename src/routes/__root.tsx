@@ -158,6 +158,8 @@ function RootComponent() {
   const [isAccessPath, setIsAccessPath] = useState(false);
   const [isLoginPage, setIsLoginPage] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const hideFloatingPurchaseWidget =
+    pathname.startsWith("/checkout") || pathname.startsWith("/pedido");
 
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
@@ -207,7 +209,7 @@ function RootComponent() {
           {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && <SiteFooter />}
         </div>
         <Toaster position="top-right" closeButton={false} offset={20} />
-        {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && (
+        {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && !hideFloatingPurchaseWidget && (
           <CartSheet>
             <FloatingDiscountWidget />
           </CartSheet>

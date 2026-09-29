@@ -98,6 +98,7 @@ function Checkout() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const checkoutTracked = useRef(false);
   const restoringCheckoutDraft = useRef(false);
+  const checkoutDraftRestored = useRef(false);
   const [feedbackNota, setFeedbackNota] = useState(0);
   const [feedbackComentario, setFeedbackComentario] = useState("");
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
@@ -107,7 +108,7 @@ function Checkout() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [metodoEntrega, setMetodoEntrega] = useState<"entrega" | "retirada">(
-    selectedBairro ? "entrega" : "retirada",
+    selectedCity || selectedBairro ? "entrega" : "retirada",
   );
 
   // ── data e horário de entrega (entrega programada) ─────────────────────────
@@ -261,6 +262,17 @@ function Checkout() {
     0,
     totalCheckout - couponDiscount - descontoIndicacao - cashbackDesconto,
   );
+  const entregaPendenteCalculo =
+    metodoEntrega === "entrega" && (!selectedCity || !selectedBairro);
+  const entregaResumo =
+    metodoEntrega === "retirada"
+      ? "Sem taxa"
+      : entregaPendenteCalculo
+        ? "A calcular"
+        : appliedCoupon?.tipo === "Entrega Grátis"
+          ? "Grátis"
+          : formatBRL(shippingCheckout);
+  const totalResumoLabel = entregaPendenteCalculo ? "Total parcial" : "Total";
 
   // ── buscar configurações de pagamento do banco ────────────────────────────
   const { data: siteSettings } = useQuery({
@@ -296,13 +308,18 @@ function Checkout() {
   const cardFlags = enabledOrDefault(siteSettings?.card_flags, defaultCardFlags);
   const mealFlags = enabledOrDefault(siteSettings?.meal_flags, defaultMealFlags);
 
-  // transforma os métodos do banco em opções com o value correto
-  const PAYMENT_OPTIONS = paymentMethods.map((m) => ({
-    value: (PAYMENT_VALUE_MAP[m.label ?? ""] ?? "pix") as PaymentValue,
-    label: m.label ?? "",
-    sublabel: (m as any).hint ?? (m as any).sublabel ?? "",
-    icon: m.icon ?? "",
-  }));
+  // Transforma somente métodos conhecidos/habilitados em opções do checkout.
+  // Labels desconhecidos não podem cair silenciosamente em PIX.
+  const PAYMENT_OPTIONS = paymentMethods.flatMap((m) => {
+    const value = PAYMENT_VALUE_MAP[m.label ?? ""];
+    if (!value) return [];
+    return [{
+      value,
+      label: m.label ?? "",
+      sublabel: (m as any).hint ?? (m as any).sublabel ?? "",
+      icon: m.icon ?? "",
+    }];
+  });
 
   const {
     register,
@@ -317,6 +334,15 @@ function Checkout() {
       cidade: selectedCity,
     },
   });
+
+  useEffect(() => {
+    if (PAYMENT_OPTIONS.length === 0) return;
+    if (PAYMENT_OPTIONS.some((option) => option.value === selectedPayment)) return;
+    const nextPayment = PAYMENT_OPTIONS[0].value;
+    setSelectedPayment(nextPayment);
+    setSelectedFlag("");
+    setValue("pagamento", nextPayment, { shouldValidate: false });
+  }, [siteSettings, selectedPayment, setValue]);
 
   function saveCheckoutDraft(data: CheckoutForm) {
     if (typeof window === "undefined") return;
@@ -350,6 +376,7 @@ function Checkout() {
       }
 
       restoringCheckoutDraft.current = true;
+      checkoutDraftRestored.current = true;
       reset({ pagamento: "pix", ...(draft.form || {}) });
       if (draft.selectedCity != null) setSelectedCity(draft.selectedCity);
       if (draft.selectedBairro != null) setSelectedBairro(draft.selectedBairro);
@@ -424,15 +451,19 @@ function Checkout() {
 
       if (addrs && addrs.length > 0) {
         setAddresses(addrs);
-        // pré-seleciona o endereço padrão
-        const defaultAddr = addrs.find((a) => a.is_default) ?? addrs[0];
-        applyAddress(defaultAddr);
-        setSelectedAddressId(defaultAddr.id);
+        // Só aplica automaticamente o endereço padrão quando o cliente ainda
+        // não trouxe uma cidade da Home e não há rascunho restaurado do checkout.
+        if (!checkoutDraftRestored.current && !selectedCity && !selectedBairro) {
+          const defaultAddr = addrs.find((a) => a.is_default) ?? addrs[0];
+          applyAddress(defaultAddr);
+          setSelectedAddressId(defaultAddr.id);
+        }
       }
     });
   }, []);
 
   function applyAddress(addr: any) {
+    setMetodoEntrega("entrega");
     if (addr.cidade) {
       setValue("cidade", addr.cidade, { shouldValidate: false });
       setSelectedCity(addr.cidade);
@@ -490,6 +521,14 @@ function Checkout() {
     if (selectedPayment === "alimentacao" && !selectedFlag) {
       toast.error("Selecione o cartão de benefício.");
       return;
+    }
+
+    if (selectedPayment === "dinheiro" && data.troco) {
+      const valorTroco = Number(String(data.troco).replace(",", "."));
+      if (!Number.isFinite(valorTroco) || valorTroco < finalTotal) {
+        toast.error(`O valor para troco precisa ser de pelo menos ${formatBRL(finalTotal)}.`);
+        return;
+      }
     }
 
     // Marmita personalizada: mínimo de unidades por combinação.
@@ -730,7 +769,14 @@ function Checkout() {
 
   // ── formulário principal ─────────────────────────────────────────────────────
   return (
-    <section className="mx-auto max-w-6xl px-4 py-14">
+    <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
+      <Link
+        to="/"
+        hash="cardapio"
+        className="mb-4 inline-flex text-sm font-bold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+      >
+        ← Voltar ao cardápio
+      </Link>
       <h1 className="text-4xl font-extrabold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         Finalize seu pedido em três etapas simples.
@@ -738,7 +784,7 @@ function Checkout() {
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         {[
-          ["1", "Entrega"],
+          ["1", "Dados e entrega"],
           ["2", "Pagamento"],
           ["3", "Confirmar"],
         ].map(([numero, label]) => (
@@ -786,9 +832,17 @@ function Checkout() {
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-[#087443]">
+                <dt className="font-semibold">Preço por quantidade</dt>
+                <dd>− {formatBRL(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Entrega</dt>
-              <dd>{appliedCoupon?.tipo === "Entrega Grátis" || shippingCheckout === 0 ? "Grátis" : formatBRL(shippingCheckout)}</dd>
+              <dd className={cn(!entregaPendenteCalculo && entregaResumo === "Grátis" && "font-semibold text-green-600")}>
+                {entregaResumo}
+              </dd>
             </div>
             {(couponDiscount + descontoIndicacao + cashbackDesconto) > 0 && (
               <div className="flex justify-between text-green-600">
@@ -797,7 +851,7 @@ function Checkout() {
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-2 text-sm">
-              <dt className="font-bold">Total</dt>
+              <dt className="font-bold">{totalResumoLabel}</dt>
               <dd className="font-black text-primary">{formatBRL(finalTotal)}</dd>
             </div>
           </dl>
@@ -985,6 +1039,12 @@ function Checkout() {
                 />
               </div>
             </div>
+
+            {entregaPendenteCalculo && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                Selecione a cidade e o bairro para calcular a taxa de entrega antes de confirmar.
+              </div>
+            )}
 
             <div>
               <label htmlFor="endereco" className="text-sm font-medium">
@@ -1200,9 +1260,8 @@ function Checkout() {
                 </label>
                 <input
                   id="troco"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="Ex: 50,00"
                   className={fieldClass}
                   {...register("troco")}
@@ -1343,14 +1402,16 @@ function Checkout() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
+            disabled={isSubmitting || entregaPendenteCalculo}
+            className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Registrando pedido..."
-              : session
-                ? `Confirmar pedido • ${formatBRL(finalTotal)}`
-                : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
+              : entregaPendenteCalculo
+                ? "Escolha o bairro para calcular a entrega"
+                : session
+                  ? `Confirmar pedido • ${formatBRL(finalTotal)}`
+                  : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1387,7 +1448,7 @@ function Checkout() {
         </form>
 
         {/* ── resumo do pedido ──────────────────────────────────────────────── */}
-        <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:block">
+        <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:sticky lg:top-6 lg:block">
           <h2 className="text-lg font-semibold">Seu pedido</h2>
           <ul className="mt-4 space-y-3 text-sm">
             {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
@@ -1412,14 +1473,16 @@ function Checkout() {
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-[#087443]">
+                <dt className="font-semibold">Preço por quantidade</dt>
+                <dd>− {formatBRL(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Entrega</dt>
-              <dd>
-                {appliedCoupon?.tipo === "Entrega Grátis" || shippingCheckout === 0 ? (
-                  <span className="text-green-600 font-semibold">Grátis</span>
-                ) : (
-                  formatBRL(shippingCheckout)
-                )}
+              <dd className={cn(!entregaPendenteCalculo && entregaResumo === "Grátis" && "font-semibold text-green-600")}>
+                {entregaResumo}
               </dd>
             </div>
             {couponDiscount > 0 && appliedCoupon?.tipo !== "Entrega Grátis" && (
@@ -1447,9 +1510,14 @@ function Checkout() {
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-2 text-base">
-              <dt className="font-semibold">Total</dt>
+              <dt className="font-semibold">{totalResumoLabel}</dt>
               <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
+            {entregaPendenteCalculo && (
+              <p className="text-[11px] leading-relaxed text-amber-700">
+                O total final será atualizado assim que você selecionar o bairro de entrega.
+              </p>
+            )}
           </dl>
         </aside>
       </div>

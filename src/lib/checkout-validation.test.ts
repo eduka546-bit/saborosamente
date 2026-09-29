@@ -6,6 +6,11 @@ const pedidoValido = { nome: "Maria da Silva", email: "maria@example.com", telef
 describe("checkoutSchema", () => {
   it("aceita os dados mínimos para finalizar um pedido", () => expect(checkoutSchema.safeParse(pedidoValido).success).toBe(true));
   it("rejeita e-mail, telefone e endereço inválidos", () => expect(checkoutSchema.safeParse({ ...pedidoValido, email: "invalido", telefone: "123", endereco: "Rua" }).success).toBe(false));
+  it("aceita troco com vírgula no padrão brasileiro", () => {
+    const resultado = checkoutSchema.safeParse({ ...pedidoValido, pagamento: "dinheiro", troco: "50,00" });
+    expect(resultado.success).toBe(true);
+  });
+
   it("exige que o troco em dinheiro seja numérico", () => {
     const resultado = checkoutSchema.safeParse({ ...pedidoValido, pagamento: "dinheiro", troco: "dez reais" });
     expect(resultado.success).toBe(false);

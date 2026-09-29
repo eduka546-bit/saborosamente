@@ -6,6 +6,7 @@ import {
   calcularDescontoProgressivo,
   calcularFrete,
   calcularTotaisCombo,
+  precoMarmitaPorFaixa,
   type CartItemForCalc,
 } from "./combo-rules";
 
@@ -44,6 +45,21 @@ describe("isNoDiscount", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // getComboDiscount / tierDescontoProgressivo — faixas 5/10/20
 // ─────────────────────────────────────────────────────────────────────────────
+describe("preços fixos por faixa das marmitas", () => {
+  it("usa exatamente as faixas 1, 5, 10 e 20+ para 300g", () => {
+    expect(precoMarmitaPorFaixa("300g", 1, 20.9)).toBe(20.9);
+    expect(precoMarmitaPorFaixa("300g", 5, 20.9)).toBe(20.5);
+    expect(precoMarmitaPorFaixa("300g", 10, 20.9)).toBe(19.9);
+    expect(precoMarmitaPorFaixa("300g", 20, 20.9)).toBe(18.9);
+  });
+
+  it("mantém a faixa anterior nos limites intermediários", () => {
+    expect(precoMarmitaPorFaixa("300g", 4, 20.9)).toBe(20.9);
+    expect(precoMarmitaPorFaixa("300g", 9, 20.9)).toBe(20.5);
+    expect(precoMarmitaPorFaixa("300g", 19, 20.9)).toBe(19.9);
+  });
+});
+
 describe("faixas de desconto progressivo", () => {
   it("sem desconto abaixo de 5 unidades", () => {
     expect(tierDescontoProgressivo(0)).toBe(0);

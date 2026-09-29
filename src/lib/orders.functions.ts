@@ -625,6 +625,14 @@ export const createOrder = createServerFn({ method: "POST" })
         subtotalEfetivo + taxaEntrega - descontoCupom - descontoIndicacao - cashbackUsado,
       ),
     );
+
+    if (data.pagamento === "dinheiro" && data.troco) {
+      const valorTroco = Number(String(data.troco).replace(",", "."));
+      if (!Number.isFinite(valorTroco) || valorTroco < valorTotal) {
+        throw new Error(`O valor para troco precisa ser de pelo menos R$ ${valorTotal.toFixed(2)}.`);
+      }
+    }
+
     const descontoTotal = roundMoney(
       descontoProgressivo + descontoCupom + descontoIndicacao + cashbackUsado,
     );
