@@ -1726,7 +1726,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           <p className="mt-1 text-sm text-[#62766b]">As preparações devem estar prontas e separadas. Aqui é somente a montagem final das marmitas.</p>
         </div>
         <div className="mt-2 grid gap-2.5">{pratos.map((x:any)=>{
-          const valores:Record<string,number[]>={"150":exatos(x.montagem,"150"),"200":exatos(x.montagem,"200"),"300":exatos(x.montagem,"300"),"400":exatos(x.montagem,"400")};
+          const valores:any={"150":exatos(x.montagem,"150"),"200":exatos(x.montagem,"200"),"300":exatos(x.montagem,"300"),"400":exatos(x.montagem,"400")};
           const ativos=TAMANHOS.filter(t=>n(x.q[t.id])>0);
           const grade=`minmax(0,1.35fr) repeat(${Math.max(1,ativos.length)},minmax(48px,.55fr))`;
           return <article key={x.produto.id} className="print-montage-card min-w-0 overflow-hidden border border-[#dbe7dd] bg-white">
