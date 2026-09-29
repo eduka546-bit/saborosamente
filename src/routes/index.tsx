@@ -214,6 +214,9 @@ export const Route = createFileRoute("/")({
             { "@type": "City", name: "Rio Negrinho" },
             { "@type": "City", name: "Campo Alegre" },
             { "@type": "City", name: "Corupá" },
+            { "@type": "City", name: "Mafra" },
+            { "@type": "City", name: "Rio Negro" },
+            { "@type": "City", name: "Piên" },
           ],
           openingHoursSpecification: [
             {

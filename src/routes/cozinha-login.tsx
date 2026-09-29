@@ -8,6 +8,9 @@ import { Lock, ChefHat, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/cozinha-login")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow, noarchive" }],
+  }),
   component: CozinhaLogin,
   ssr: false,
 });

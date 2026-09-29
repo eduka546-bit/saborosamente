@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminWhatsappAlerts } from "@/components/admin-whatsapp-alerts";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow, noarchive" }],
+  }),
   component: function AdminLayoutWrapper() {
     return <AdminLayout />;
   },

@@ -30,7 +30,13 @@ import {
   X,
 } from "lucide-react";
 
-export const Route = createFileRoute("/cozinha")({ component: CozinhaPage, ssr: false });
+export const Route = createFileRoute("/cozinha")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow, noarchive" }],
+  }),
+  component: CozinhaPage,
+  ssr: false,
+});
 type Aba = "producao" | "demanda" | "separar" | "compras" | "gestao" | "ingredientes" | "preparacoes" | "marmitas" | "cardapio" | "estoque" | "embalagens" | "relatorio" | "etiquetas";
 type Tamanho = "150" | "200" | "300" | "400" | "personalizada";
 type ReceitaLinha = {

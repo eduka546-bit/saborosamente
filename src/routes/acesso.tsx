@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChefHat, ShoppingBag, ShieldCheck } from "lucide-react";
 
-export const Route = createFileRoute("/acesso")({ component: Acesso, ssr: false });
+export const Route = createFileRoute("/acesso")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow, noarchive" }],
+  }), component: Acesso, ssr: false });
 
 function Acesso() {
   const opcoes = [

@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/admin-login")({
+  head: () => ({
+    meta: [{ name: "robots", content: "noindex, nofollow, noarchive" }],
+  }),
   beforeLoad: async ({ location }) => {
     // Sempre permite acesso à página de login
     return;
@@ -31,6 +34,8 @@ function AdminLogin() {
   // Carrega credenciais salvas ao montar
   useEffect(() => {
     try {
+      // Remove o formato antigo que podia conter senha em texto puro.
+      localStorage.removeItem("saborosamente_admin_creds");
       const savedEmail = localStorage.getItem(STORAGE_KEY);
       if (savedEmail) {
         setEmail(savedEmail);
