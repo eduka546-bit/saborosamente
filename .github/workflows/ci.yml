@@ -32,5 +32,8 @@ jobs:
             exit 1
           fi
 
+      - name: Auditar dependências
+        run: bun audit --audit-level=high
+
       - name: Typecheck, tests and build
         run: bun run check
