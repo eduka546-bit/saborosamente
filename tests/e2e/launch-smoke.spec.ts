@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 const BASE_URL = process.env.E2E_BASE_URL || "https://saborosamente.vercel.app";
 const PRODUCT = "TD24 - Espaguete à Carbonara com Ovos Mexidos e Bacon";
@@ -325,4 +326,123 @@ test("admin autenticado: percorre rotas principais quando credenciais E2E estão
   }
 
   expect(problems, problems.join("\n")).toEqual([]);
+});
+
+
+async function loginE2EAdmin(page: Page) {
+  const email = process.env.E2E_ADMIN_EMAIL;
+  const password = process.env.E2E_ADMIN_PASSWORD;
+  test.skip(!email || !password, "Credenciais E2E de admin não configuradas.");
+
+  await page.goto(\`\${BASE_URL}/admin-login\`, { waitUntil: "domcontentloaded" });
+  await page.getByLabel("E-mail").fill(email!);
+  await page.getByLabel("Senha").fill(password!);
+  await page.getByRole("button", { name: /Entrar no Painel/i }).click();
+  await page.waitForURL(/\/admin(?:\/|\?|$)/, { timeout: 15000 });
+}
+
+test("segurança HTTP e SEO básico de produção", async ({ page, request }) => {
+  const response = await request.get(BASE_URL);
+  expect(response.status()).toBeLessThan(500);
+  const headers = response.headers();
+
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("SAMEORIGIN");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["strict-transport-security"]).toContain("max-age=");
+
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    "https://www.saborosamente.com/",
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /index,\s*follow/i);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Saborosamente/i);
+
+  const structuredData = await page.locator('script[type="application/ld+json"]').allTextContents();
+  const joined = structuredData.join(" ");
+  for (const city of ["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"]) {
+    expect(joined).toContain(city);
+  }
+
+  for (const route of ["/admin-login", "/cozinha-login", "/acesso", "/auth", "/carrinho", "/checkout", "/meus-pedidos"]) {
+    await page.goto(\`\${BASE_URL}\${route}\`, { waitUntil: "domcontentloaded" });
+    const robots = page.locator('meta[name="robots"]').last();
+    await expect(robots, route).toHaveAttribute("content", /noindex/i);
+  }
+});
+
+test("acessibilidade: home sem violações críticas ou sérias", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  await dismissWelcome(page);
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+
+  const blocking = results.violations
+    .filter((v) => v.impact === "critical" || v.impact === "serious")
+    .map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      help: v.help,
+      targets: v.nodes.slice(0, 5).map((n) => n.target),
+    }));
+
+  expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+});
+
+test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
+  await loginE2EAdmin(page);
+  const code = \`E2E\${Date.now().toString().slice(-9)}\`;
+  const description = "Auditoria E2E temporária";
+  let created = false;
+
+  try {
+    await page.goto(\`\${BASE_URL}/admin/cupons\`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("button", { name: /Novo Cupom/i })).toBeVisible();
+    await page.getByRole("button", { name: /Novo Cupom/i }).click();
+
+    await expect(page.getByRole("heading", { name: "Novo Cupom" })).toBeVisible();
+    await page.getByPlaceholder("EX: SABOR20").fill(code);
+    await page.locator("select").last().selectOption("Percentual");
+    await page.getByPlaceholder("0").fill("1");
+    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(description);
+    await page.getByPlaceholder("Deixe vazio para sem limite").fill("1");
+    await page.getByRole("button", { name: "Salvar Cupom" }).click();
+
+    await expect(page.getByText(code, { exact: true })).toBeVisible({ timeout: 10000 });
+    created = true;
+
+    const codeText = page.getByText(code, { exact: true });
+    const card = codeText.locator("xpath=ancestor::div[contains(@class,'relative')][1]");
+    const actionButtons = card.locator("button");
+    await expect(actionButtons).toHaveCount(3);
+
+    await actionButtons.nth(0).click();
+    await expect(page.getByRole("heading", { name: "Editar Cupom" })).toBeVisible();
+    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(\`\${description} editada\`);
+    await page.getByRole("button", { name: "Salvar Cupom" }).click();
+    await expect(page.getByText(\`\${description} editada\`, { exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+
+    const editedCard = page
+      .getByText(code, { exact: true })
+      .locator("xpath=ancestor::div[contains(@class,'relative')][1]");
+    await editedCard.locator("button").nth(2).click();
+    await expect(page.getByText(code, { exact: true })).toHaveCount(0, { timeout: 10000 });
+    created = false;
+  } finally {
+    if (created) {
+      await page.goto(\`\${BASE_URL}/admin/cupons\`, { waitUntil: "domcontentloaded" }).catch(() => {});
+      const leftover = page.getByText(code, { exact: true });
+      if (await leftover.count()) {
+        const card = leftover.locator("xpath=ancestor::div[contains(@class,'relative')][1]");
+        const buttons = card.locator("button");
+        if ((await buttons.count()) >= 3) await buttons.nth(2).click().catch(() => {});
+      }
+    }
+  }
 });
