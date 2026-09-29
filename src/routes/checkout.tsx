@@ -159,6 +159,7 @@ function Checkout() {
     valor: number;
     substitui_desconto_progressivo: boolean;
     excluir_combo_pronto: boolean;
+    apenas_primeira_compra: boolean;
   } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
@@ -226,6 +227,7 @@ function Checkout() {
         valor: Number(data.valor),
         substitui_desconto_progressivo: Boolean(data.substitui_desconto_progressivo),
         excluir_combo_pronto: Boolean(data.excluir_combo_pronto),
+        apenas_primeira_compra: Boolean(data.apenas_primeira_compra),
       });
       setCouponInput(data.codigo);
       setCouponError("");
@@ -1384,6 +1386,11 @@ function Checkout() {
                 {appliedCoupon.excluir_combo_pronto && (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-800">
                     Combos Prontos não participam desta promoção, pois já possuem preço promocional.
+                  </p>
+                )}
+                {appliedCoupon.apenas_primeira_compra && (
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-blue-800">
+                    Exclusivo para primeira compra — 1 uso por cliente.
                   </p>
                 )}
               </div>
