@@ -404,13 +404,15 @@ test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
     await expect(page.getByRole("button", { name: /Novo Cupom/i })).toBeVisible();
     await page.getByRole("button", { name: /Novo Cupom/i }).click();
 
-    await expect(page.getByRole("heading", { name: "Novo Cupom" })).toBeVisible();
-    await page.getByPlaceholder("EX: SABOR20").fill(code);
-    await page.locator("select").last().selectOption("Percentual");
-    await page.getByPlaceholder("0").fill("1");
-    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(description);
-    await page.getByPlaceholder("Deixe vazio para sem limite").fill("1");
-    await page.getByRole("button", { name: "Salvar Cupom" }).click();
+    const newHeading = page.getByRole("heading", { name: "Novo Cupom" });
+    await expect(newHeading).toBeVisible();
+    const newForm = newHeading.locator("xpath=following-sibling::form[1]");
+    await newForm.getByPlaceholder("EX: SABOR20").fill(code);
+    await newForm.locator("select").selectOption("Percentual");
+    await newForm.locator('input[type="number"][placeholder="0"]').fill("1");
+    await newForm.getByPlaceholder("EX: Mínimo R$ 100").fill(description);
+    await newForm.getByPlaceholder("Deixe vazio para sem limite").fill("1");
+    await newForm.getByRole("button", { name: "Salvar Cupom" }).click();
 
     await expect(page.getByText(code, { exact: true })).toBeVisible({ timeout: 10000 });
     created = true;
@@ -421,9 +423,11 @@ test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
     await expect(actionButtons).toHaveCount(3);
 
     await actionButtons.nth(0).click();
-    await expect(page.getByRole("heading", { name: "Editar Cupom" })).toBeVisible();
-    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(`${description} editada`);
-    await page.getByRole("button", { name: "Salvar Cupom" }).click();
+    const editHeading = page.getByRole("heading", { name: "Editar Cupom" });
+    await expect(editHeading).toBeVisible();
+    const editForm = editHeading.locator("xpath=following-sibling::form[1]");
+    await editForm.getByPlaceholder("EX: Mínimo R$ 100").fill(`${description} editada`);
+    await editForm.getByRole("button", { name: "Salvar Cupom" }).click();
     await expect(page.getByText(`${description} editada`, { exact: true })).toBeVisible({
       timeout: 10000,
     });
