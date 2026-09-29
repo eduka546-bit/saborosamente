@@ -47,6 +47,8 @@ jobs:
         run: bunx playwright test tests/e2e/launch-smoke.spec.ts --reporter=list
         env:
           CI: "true"
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
 
       - name: Upload screenshots and traces
         if: always()

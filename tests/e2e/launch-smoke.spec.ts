@@ -271,3 +271,58 @@ test("rotas administrativas expostas estão registradas e protegidas", async ({ 
 
   expect(problems, problems.join("\n")).toEqual([]);
 });
+
+
+test("admin autenticado: percorre rotas principais quando credenciais E2E estão configuradas", async ({ page }) => {
+  const email = process.env.E2E_ADMIN_EMAIL;
+  const password = process.env.E2E_ADMIN_PASSWORD;
+
+  test.skip(!email || !password, "Credenciais E2E de admin não configuradas.");
+
+  const problems = observe(page);
+
+  await page.goto(`${BASE_URL}/admin-login`, { waitUntil: "domcontentloaded" });
+  await page.getByLabel("E-mail").fill(email!);
+  await page.getByLabel("Senha").fill(password!);
+  await page.getByRole("button", { name: /Entrar no Painel/i }).click();
+  await page.waitForURL(/\/admin(?:\/|\?|$)/, { timeout: 15000 });
+
+  const routes = [
+    "/admin",
+    "/admin/pedidos",
+    "/admin/clientes",
+    "/admin/produtos",
+    "/admin/categorias",
+    "/admin/bebidas",
+    "/admin/cupons",
+    "/admin/campanhas",
+    "/admin/financeiro",
+    "/admin/custos",
+    "/admin/relatorios/kpi",
+    "/admin/relatorios/faturamento",
+    "/admin/relatorios/vendas",
+    "/admin/relatorios/estoque",
+    "/admin/config/site",
+    "/admin/config/faq",
+    "/admin/config/cashback-config",
+    "/admin/agente",
+    "/admin/config/respostas",
+    "/admin/automacoes",
+    "/admin/config/unidades",
+    "/admin/config/horarios",
+    "/admin/config/taxas",
+    "/admin/config/informativo",
+    "/admin/config/entregador",
+    "/admin/config/parametros",
+    "/admin/config/impressao",
+  ];
+
+  for (const route of routes) {
+    const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
+    expect(response?.status(), route).toBeLessThan(500);
+    await expect(page).not.toHaveURL(/\/admin-login(?:\?|$)/);
+    await expect(page.locator("body")).not.toBeEmpty();
+  }
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
