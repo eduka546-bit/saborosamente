@@ -1514,6 +1514,25 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
   });
 
   const preparacoesConsolidadas = Array.from(prepDia.values()).sort((a:any,b:any)=>a.prep.nome.localeCompare(b.prep.nome));
+  const idsPreparacoesConsolidadas = new Set(preparacoesConsolidadas.map((g:any)=>g.prep.id));
+  const preparacoesVinculadasInformativas = Array.from(
+    new Map(
+      pratos.flatMap((prato:any)=>
+        (Array.isArray(prato.receita?.preparacoes) ? prato.receita.preparacoes : [])
+          .map((ref:any)=>prepPorId.get(ref?.id))
+          .filter((p:any)=>p?.id && !idsPreparacoesConsolidadas.has(p.id))
+          .map((p:any)=>[p.id,p]),
+      ),
+    ).values(),
+  ).sort((a:any,b:any)=>a.nome.localeCompare(b.nome));
+  const formatarItemPreparacaoBase = (item:any) => {
+    const ingrediente = ingPorId.get(item.ingrediente_id) as any;
+    const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
+    const nome = ingrediente?.nome || prepComponente?.nome || "Componente";
+    if (item.quantidade_texto) return `${nome}: ${textoCozinha(item.quantidade_texto)}`;
+    const unidade = item.preparacao_componente_id ? "g" : (ingrediente?.unidade_medida || "g");
+    return `${nome}: ${formatarQuantidadeProducao(n(item.quantidade), unidade, nome)}`;
+  };
   type ContribuicaoIngrediente = { prepId:string; produtoId:string; itemId:string; ingredienteAlvoId:string; quantidade:number };
   const contribuicoesIngredientes:ContribuicaoIngrediente[]=[];
   pratos.forEach((prato:any) => {
@@ -1732,6 +1751,11 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id}><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-col gap-1 sm:flex-row sm:flex-wrap"><button className="w-full rounded-lg border border-[#b9d4c2] px-2 py-1.5 text-xs font-bold text-[#087443] sm:w-auto" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto((atual)=>({...atual,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))}));}}>Alterar quantidade pronta</button><button className="w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-600 sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:pr.total}))}>Retirar este preparo</button>{pronto>0&&<button className="w-full rounded-lg border px-2 py-1.5 text-xs sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:0}))}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir: {formatPeso(falta)}</p>}</div>})}<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(cru)</span></p>:!itens.length?<p className="font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:itens.map((item:any)=><p key={item.id}>{fmtItemPrepExato(item,g,fatorRecuperado,escala,fator)}</p>)}</div>
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="mb-1 text-xs font-black uppercase text-[#527164] md:hidden">Modo de preparo</p><p className="whitespace-pre-line break-words text-sm leading-snug">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
+          {preparacoesVinculadasInformativas.map((prep:any)=>{const itens=(itensPreparacao.get(prep.id)||[]) as any[]; return <div key={`base-${prep.id}`} className="print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] bg-[#fffdf4] text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="min-w-0 p-2.5"><b className="block break-words text-base leading-tight md:text-sm">{capitalizarNomeCozinha(prep.nome)}</b><p className="mt-1 text-xs font-black uppercase text-amber-700">Receita-base vinculada</p>{n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Rendimento base: <b>{formatPeso(n(prep.rendimento_final_g))}</b></p>}</div>
+            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Ingredientes / quantidades da receita-base</p>{!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:<div className="mt-1 space-y-0.5">{itens.map((item:any)=><p key={item.id}>{formatarItemPreparacaoBase(item)}</p>)}</div>}{prep.observacao&&<p className="mt-2 text-xs leading-snug text-[#62766b]">{textoCozinha(prep.observacao)}</p>}</div>
+            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="mb-1 text-xs font-black uppercase text-[#527164] md:hidden">Modo de preparo</p><p className="whitespace-pre-line break-words text-sm leading-snug">{textoCozinha(prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
+          </div>})}
         </div>
       </section>
       <section className="print-compact-section mt-3">
@@ -1944,6 +1968,8 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
 
   const preparoDetalhado = preparacoesExibicao.map((pc: any) => ({
     nome: textoCozinha(pc.prep.nome).replace(/ • [A-Z]{2}\d{2}$/i, ""),
+    prep: pc.prep,
+    itens: pc.itens,
     passos: limparPassos(pc.prep.modo_preparo),
   }));
 
@@ -1997,13 +2023,24 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
         <div className="mt-4 space-y-4">
           {preparoDetalhado.length > 0 ? preparoDetalhado.map((grupo:any,grupoIdx:number)=><article key={`${grupo.nome}-${grupoIdx}`} className="border border-[#dbe7dd] bg-white">
             <div className="bg-[#173a2d] px-3 py-2 text-sm font-black text-white">{grupoIdx+1}. {grupo.nome}</div>
-            <div className="p-3">
-              {grupo.passos.length > 0 ? <ol className="space-y-2">
-                {grupo.passos.map((passo:string,idx:number)=><li key={`${grupo.nome}-${idx}`} className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[#e3f1e7] text-xs font-black text-[#087443]">{idx+1}</span>
-                  <span>{passo}</span>
-                </li>)}
-              </ol> : <p className="text-sm text-[#62766b]">Sem etapas textuais cadastradas para esta preparação.</p>}
+            <div className="grid gap-4 p-3 lg:grid-cols-[minmax(230px,.85fr)_minmax(0,1.4fr)]">
+              <div className="rounded-xl bg-[#f4f8f4] p-3">
+                <p className="text-xs font-black uppercase tracking-wide text-[#527164]">Ingredientes e quantidades da receita-base</p>
+                {grupo.itens.length > 0 ? <div className="mt-2 space-y-1.5">
+                  {grupo.itens.map((item:any)=><div key={item.id} className="flex items-start justify-between gap-3 border-b border-[#dfe9df] pb-1.5 text-sm last:border-b-0 last:pb-0"><span>{item.nomeComponente}</span><b className="text-right text-[#173a2d]">{item.quantidade_texto || (item.ingrediente?.unidade_medida==="un" ? `${n(item.quantidade).toLocaleString("pt-BR")} un` : item.ingrediente?.unidade_medida==="L" ? `${n(item.quantidade).toLocaleString("pt-BR")} L` : formatPeso(n(item.quantidade)))}</b></div>)}
+                </div> : <p className="mt-2 text-sm text-amber-700">Ingredientes não informados.</p>}
+                {n(grupo.prep.rendimento_final_g)>0&&<p className="mt-3 text-xs font-bold text-[#087443]">Rendimento da receita-base: {formatPeso(n(grupo.prep.rendimento_final_g))}</p>}
+                {grupo.prep.observacao&&<p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-[#62766b]">{textoCozinha(grupo.prep.observacao).replace(/\\n/g,"\n")}</p>}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-[#527164]">Como fazer</p>
+                {grupo.passos.length > 0 ? <ol className="space-y-2">
+                  {grupo.passos.map((passo:string,idx:number)=><li key={`${grupo.nome}-${idx}`} className="grid items-start gap-2 text-sm leading-relaxed" style={{gridTemplateColumns:"26px 1fr"}}>
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-[#e3f1e7] text-xs font-black text-[#087443]">{idx+1}</span>
+                    <span>{passo}</span>
+                  </li>)}
+                </ol> : <p className="text-sm text-[#62766b]">Sem etapas textuais cadastradas para esta preparação.</p>}
+              </div>
             </div>
           </article>) : null}
 
