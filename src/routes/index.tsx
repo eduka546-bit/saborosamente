@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { isHighProteinFlavor, maxProteinForFlavor } from "@/lib/nutrition-rules";
 import {
   Loader2,
   Truck,
@@ -401,7 +402,7 @@ function Index() {
   const quickFilters = [
     "Mais escolhidas",
     "Até 300 kcal",
-    "30g+ proteína",
+    "Alta proteína",
     "Mais leves",
     "Mais calóricas",
     "Mais proteicas",
@@ -471,8 +472,8 @@ function Index() {
         return kcal > 0 && kcal <= 300;
       });
     }
-    if (selectedFilters.includes("30g+ proteína")) {
-      result = result.filter((p: any) => nutritionValue(p, "prot") >= 30);
+    if (selectedFilters.includes("Alta proteína")) {
+      result = result.filter((p: any) => isHighProteinFlavor(p));
     }
     if (selectedFilters.includes("Até 500mg sódio")) {
       result = result.filter((p: any) => {
@@ -517,7 +518,7 @@ function Index() {
         const activeSort = [...selectedFilters].reverse().find((filter) => sortFilters.includes(filter));
         if (activeSort === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
         if (activeSort === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
-        if (activeSort === "Mais proteicas") return nutritionValue(b, "prot") - nutritionValue(a, "prot");
+        if (activeSort === "Mais proteicas") return maxProteinForFlavor(b) - maxProteinForFlavor(a);
         if (activeSort === "Menor preço") return productPrice(a) - productPrice(b);
         const catOrdemA = a.categorias?.ordem_filtro ?? 999;
         const catOrdemB = b.categorias?.ordem_filtro ?? 999;

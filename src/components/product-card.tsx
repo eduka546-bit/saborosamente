@@ -109,6 +109,7 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
   return resultado.join(", ");
 };
 import { cn } from "@/lib/utils";
+import { isHighProteinFlavor } from "@/lib/nutrition-rules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFavorites } from "@/lib/use-favorites";
