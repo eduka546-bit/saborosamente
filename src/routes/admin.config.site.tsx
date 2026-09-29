@@ -617,7 +617,7 @@ function AdminSiteConfig() {
             </h3>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
-                Cadastre quantas imagens precisar. Proporção recomendada: 4:5 (ex.: 800x1000px).
+                Cadastre quantas imagens precisar. Proporção recomendada: 7:5 (1400x1000px).
                 Atualmente: <strong>{promoBanners.length} banner{promoBanners.length === 1 ? "" : "s"}</strong>.
               </p>
               <Button type="button" onClick={addPromoBanner} className="shrink-0 bg-[#087443] hover:bg-[#07663b]">
