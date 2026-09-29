@@ -18,7 +18,7 @@ export const Route = createFileRoute("/admin-login")({
   ssr: false,
 });
 
-const STORAGE_KEY = "saborosamente_admin_creds";
+const STORAGE_KEY = "saborosamente_admin_email";
 
 function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -31,11 +31,9 @@ function AdminLogin() {
   // Carrega credenciais salvas ao montar
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const { email: e, password: p } = JSON.parse(saved);
-        if (e) setEmail(e);
-        if (p) setPassword(p);
+      const savedEmail = localStorage.getItem(STORAGE_KEY);
+      if (savedEmail) {
+        setEmail(savedEmail);
         setRemember(true);
       }
     } catch (_) {
@@ -60,27 +58,22 @@ function AdminLogin() {
 
       const user = data.user;
 
-      // Shortcut para admin principal
-      const isMainAdmin = user.email === "anabolic.foodsbs@gmail.com";
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
 
-      if (!isMainAdmin) {
-        const { data: roleData, error: roleError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-
-        if (roleError || !roleData) {
-          await supabase.auth.signOut();
-          toast.error("Acesso negado. Esta área é restrita a administradores.");
-          return;
-        }
+      if (roleError || !roleData) {
+        await supabase.auth.signOut();
+        toast.error("Acesso negado. Esta área é restrita a administradores.");
+        return;
       }
 
-      // Salva ou limpa credenciais conforme checkbox
+      // Lembra apenas o e-mail. A senha nunca é salva no navegador.
       if (remember) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ email, password }));
+        localStorage.setItem(STORAGE_KEY, email);
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
@@ -167,7 +160,7 @@ function AdminLogin() {
               htmlFor="remember"
               className="text-sm text-muted-foreground cursor-pointer select-none"
             >
-              Lembrar minhas credenciais
+              Lembrar meu e-mail
             </label>
           </div>
 

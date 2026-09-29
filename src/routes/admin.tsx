@@ -10,8 +10,6 @@ export const Route = createFileRoute("/admin")({
   ssr: false,
 });
 
-// E-mail do administrador principal (atalho, além da checagem em user_roles)
-const MAIN_ADMIN_EMAIL = "anabolic.foodsbs@gmail.com";
 
 type AuthState = "checking" | "authorized" | "unauthorized";
 
@@ -29,12 +27,6 @@ function AdminLayout() {
 
       if (!session?.user) {
         if (active) setAuthState("unauthorized");
-        return;
-      }
-
-      // Atalho para o admin principal
-      if (session.user.email === MAIN_ADMIN_EMAIL) {
-        if (active) setAuthState("authorized");
         return;
       }
 
