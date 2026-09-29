@@ -12,21 +12,14 @@ describe("regras regionais de entrega", () => {
     expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
   });
 
-  it("Mafra, Rio Negro, Campo Alegre e Piên entregam sexta à tarde", () => {
-    for (const cidade of ["Mafra", "Rio Negro", "Campo Alegre", "Piên"]) {
+  it("Mafra, Rio Negro, Rio Negrinho, Campo Alegre e Piên entregam sexta à tarde", () => {
+    for (const cidade of ["Mafra", "Rio Negro", "Rio Negrinho", "Campo Alegre", "Piên"]) {
       const regra = regraEntregaCidade(cidade);
       expect(regra.minUnidades).toBe(5);
       expect(regra.diasPermitidos).toEqual([5]);
       expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
       expect(regra.horarios?.every((h) => h.startsWith("1"))).toBe(true);
     }
-  });
-
-  it("Rio Negrinho mantém a agenda padrão, com mínimo de 5 unidades", () => {
-    const regra = regraEntregaCidade("Rio Negrinho");
-    expect(regra.minUnidades).toBe(5);
-    expect(regra.diasPermitidos).toBeUndefined();
-    expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
   });
 
   it("São Bento do Sul mantém a agenda padrão sem mínimo regional", () => {

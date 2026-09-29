@@ -74,21 +74,13 @@ export function regraEntregaCidade(cidade?: string): RegraEntregaCidade {
     };
   }
 
-  if (["mafra", "rio negro", "campo alegre", "pien"].includes(c)) {
+  if (["mafra", "rio negro", "rio negrinho", "campo alegre", "pien"].includes(c)) {
     return {
       diasPermitidos: [5],
       horarios: HORARIOS_TARDE,
       minUnidades: 5,
       cutoffMesmoDia: { hora: 11, minuto: 0 },
       descricao: "Entregas às sextas-feiras à tarde. Pedidos para a sexta devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
-    };
-  }
-
-  if (c === "rio negrinho") {
-    return {
-      minUnidades: 5,
-      cutoffMesmoDia: { hora: 11, minuto: 0 },
-      descricao: "Pedidos para entrega no mesmo dia devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
     };
   }
 
