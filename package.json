@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "check": "npm run build && npm run typecheck && npm run test"
+    "check": "npm run build && npm run typecheck && npm run test",
+    "prebuild": "node scripts/generate-sitemap.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
