@@ -247,7 +247,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           <div className="flex flex-1 flex-col gap-3 p-4">
             {/* Category */}
             <div className="flex items-center justify-end">
-              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[9px] font-black text-white border border-white/40 uppercase tracking-wider">
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-white border border-white/40 uppercase tracking-wider">
                 {product.categoria}
               </span>
             </div>
@@ -393,7 +393,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="min-h-[3.9rem] text-[15px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+            <h3 className="min-h-[3.9rem] text-base md:text-[17px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
 
@@ -420,13 +420,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground font-bold">
                 {product.peso}
               </p>
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-[11px] font-bold">
+              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-xs font-bold">
                 <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
                   {currentNutritional.kcal} kcal
                 </span>
@@ -456,12 +456,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     <span className="text-xs font-bold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-[22px] font-black text-[#086e45] leading-tight">
+                    <span className="text-2xl font-black text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-[22px] font-black text-[#086e45]">
+                  <span className="text-2xl font-black text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -485,13 +485,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {podeTerDesconto &&
               (proximaFaixa ? (
                 <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
-                  <p className="text-[11px] font-bold text-white leading-snug">
+                  <p className="text-xs font-bold text-white leading-snug">
                     Adicione mais{" "}
                     <span className="font-black text-[#86efac]">
                       {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
                     </span>
                   </p>
-                  <p className="text-[11px] font-bold text-white leading-snug">
+                  <p className="text-xs font-bold text-white leading-snug">
                     para liberar o preço da faixa de{" "}
                     <span className="font-black text-[#86efac]">{proximaFaixa}+</span>
                   </p>
