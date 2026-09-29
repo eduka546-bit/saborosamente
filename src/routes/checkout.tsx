@@ -229,7 +229,6 @@ function Checkout() {
       });
       setCouponInput(data.codigo);
       setCouponError("");
-      toast.success(`Cupom ${data.codigo} aplicado!`);
     } catch {
       setCouponError("Erro ao validar cupom. Tente novamente.");
     } finally {
