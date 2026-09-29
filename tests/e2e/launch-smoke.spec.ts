@@ -496,6 +496,9 @@ test("checkout: cupons de lançamento e primeira compra exibem regras corretas",
   await expect(page.getByText(/substitui o desconto progressivo/i)).toBeVisible();
   await expect(page.getByText(/Combos Prontos não participam/i)).toBeVisible();
 
+  await page.getByRole("button", { name: "Remover", exact: true }).click();
+  await expect(input).toBeEnabled();
+
   await input.fill("PRIMEIRACOMPRA");
   await page.getByRole("button", { name: "Aplicar", exact: true }).click();
   await expect(page.getByText(/Cupom.*PRIMEIRACOMPRA.*aplicado/i)).toBeVisible({ timeout: 10000 });
