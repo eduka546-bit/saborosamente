@@ -145,7 +145,7 @@ export function SiteHeader() {
       {announcementVisible && (
         <div
           style={{ backgroundColor: announceBg, color: announceText }}
-          className="relative py-2 px-8 text-center text-[10px] font-bold uppercase tracking-wider sm:text-xs z-[60] pointer-events-auto"
+          className="relative py-2.5 px-10 text-center text-xs sm:text-[13px] font-bold uppercase tracking-[0.06em] leading-snug z-[60] pointer-events-auto"
         >
           {settings?.announcement_text ||
             "PEÇA PARA ENTREGA OU VENHA ESCOLHER PESSOALMENTE EM NOSSA LOJA EM SÃO BENTO DO SUL!"}
@@ -233,7 +233,7 @@ export function SiteHeader() {
                 key={l.label}
                 onClick={() => setOpenDeliveryModal(true)}
                 style={{ color: navText }}
-                className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-2 text-[13px] lg:text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
               >
                 <l.icon size={16} className="opacity-80 hidden sm:block" />
                 {l.label}
@@ -244,7 +244,7 @@ export function SiteHeader() {
                 to={l.to as any}
                 hash={(l as any).hash}
                 style={{ color: navText }}
-                className="flex items-center gap-1 sm:gap-2 text-[11px] sm:text-[13px] font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-2 text-[13px] lg:text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
               >
                 <l.icon size={16} className="opacity-80 hidden sm:block" />
                 {l.label}
