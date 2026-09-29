@@ -208,3 +208,66 @@ test("rotas públicas essenciais respondem sem 5xx", async ({ page }) => {
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });
+
+
+test("rotas administrativas expostas estão registradas e protegidas", async ({ page }) => {
+  const problems = observe(page);
+  const routes = [
+    "/admin",
+    "/admin/pedidos",
+    "/admin/pedidos/carrinhos-abandonados",
+    "/admin/clientes",
+    "/admin/avaliacoes",
+    "/admin/pontuacao",
+    "/admin/produtos",
+    "/admin/categorias",
+    "/admin/bebidas",
+    "/admin/relatorios/estoque",
+    "/admin/config/alerta-estoque",
+    "/admin/cupons",
+    "/admin/campanhas",
+    "/admin/financeiro",
+    "/admin/financeiro/transacoes",
+    "/admin/custos",
+    "/admin/config/site",
+    "/admin/relatorios/kpi",
+    "/admin/relatorios/faturamento",
+    "/admin/relatorios/vendas",
+    "/admin/relatorios/sabores",
+    "/admin/relatorios/fechamento-diario",
+    "/admin/relatorios/clientes",
+    "/admin/relatorios/comunicacao",
+    "/admin/relatorios/inteligencia",
+    "/admin/config/faq",
+    "/admin/config/cashback-config",
+    "/admin/agente",
+    "/admin/config/respostas",
+    "/admin/config/importar-clientes",
+    "/admin/automacoes",
+    "/admin/config/unidades",
+    "/admin/config/horarios",
+    "/admin/config/taxas",
+    "/admin/config/informativo",
+    "/admin/config/entregador",
+    "/admin/config/parametros",
+    "/admin/config/impressao",
+    // Legadas: não podem voltar a quebrar mesmo que alguém tenha o link salvo.
+    "/admin/financeiro/lancamentos",
+    "/admin/config/excecoes",
+    "/admin/config/mesas",
+    "/admin/storage-cleanup",
+  ];
+
+  for (const route of routes) {
+    const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
+    expect(response?.status(), route).toBeLessThan(500);
+    await page.waitForURL(/\/admin-login(?:\?|$)/, { timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /admin|acesso|login/i }).first()).toBeVisible({
+      timeout: 10000,
+    }).catch(async () => {
+      await expect(page.locator("body")).not.toBeEmpty();
+    });
+  }
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
