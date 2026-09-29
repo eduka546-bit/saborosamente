@@ -38,6 +38,75 @@ function isComboProduct(product: Product | any): boolean {
     cat.includes("escolha voce mesmo")
   );
 }
+const normalizarIngredienteCard = (valor: unknown) =>
+  String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const simplificarIngredientesCard = (ingredientes: unknown): string => {
+  const lista = Array.isArray(ingredientes)
+    ? ingredientes
+    : String(ingredientes || "")
+        .replace(/^\{\}|^\[\]$/, "")
+        .split(/[,;]+/);
+
+  const ignorar = new Set([
+    "agua",
+    "sal",
+    "salsinha",
+    "oleo de soja",
+  ]);
+
+  const mapa: Record<string, string> = {
+    "arroz branco parboilizado": "Arroz branco",
+    "extrato de tomate": "Molho de tomate",
+    "sassami": "Frango",
+    "sassami em tiras": "Frango",
+    "file de sassami": "Frango",
+    "file de sassami frango": "Frango",
+    "peito de frango desfiado": "Frango desfiado",
+    "file de coxa e sobrecoxa": "Coxa e sobrecoxa de frango",
+    "carne bovina em cubos pequenos": "Carne bovina",
+    "patinho em tiras": "Tiras de patinho",
+    "macarrao espaguete": "Espaguete",
+    "macarrao penne": "Penne",
+    "massa lasanha": "Massa de lasanha",
+    "demi glace": "Demi-glace",
+    "queijo ralado": "Queijo",
+  };
+
+  const vistos = new Set<string>();
+  const resultado: string[] = [];
+
+  for (const bruto of lista) {
+    let texto = String(bruto || "").trim();
+    if (!texto) continue;
+
+    texto = texto
+      .replace(/\([^)]*(?:industrializad[oa]|industraliad[oa]|marca|in natura)[^)]*\)/gi, "")
+      .replace(/\b(?:industrializad[oa]|industraliad[oa])\b/gi, "")
+      .replace(/\bmarca\s+[\p{L}\d._-]+/giu, "")
+      .replace(/\bin natura\b/gi, "")
+      .replace(/\s*[-–—]\s*$/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    let chave = normalizarIngredienteCard(texto);
+    if (!chave || ignorar.has(chave)) continue;
+
+    const simplificado = mapa[chave] || texto;
+    chave = normalizarIngredienteCard(simplificado);
+    if (!chave || vistos.has(chave)) continue;
+
+    vistos.add(chave);
+    resultado.push(simplificado.charAt(0).toUpperCase() + simplificado.slice(1));
+  }
+
+  return resultado.join(", ");
+};
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,12 +207,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
 
-  const ingredientesTexto = Array.isArray((product as any).ingredientes)
-    ? (product as any).ingredientes
-        .map((item: unknown) => String(item || "").trim())
-        .filter(Boolean)
-        .join(", ")
-    : String((product as any).ingredientes || "").trim();
+  const ingredientesTexto = simplificarIngredientesCard((product as any).ingredientes);
 
   const commercialBadge = soldOut
     ? { label: "Esgotado", className: "bg-neutral-900 text-white" }
@@ -407,9 +471,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {ingredientesTexto && (
               <div className="rounded-xl bg-[#f7f8f3] px-3 py-2.5">
                 <p className="mb-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#527164]">
-                  Ingredientes
+                  Ingredientes principais
                 </p>
-                <p className="text-xs leading-relaxed text-[#48554d]">
+                <p className="text-[11px] leading-[1.45] text-[#48554d]">
                   {ingredientesTexto}
                 </p>
               </div>
