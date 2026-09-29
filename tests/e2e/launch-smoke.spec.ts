@@ -34,6 +34,38 @@ async function dismissWelcome(page: Page) {
   }
 }
 
+async function addMarmitaUnits(page: Page, units: number) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  await dismissWelcome(page);
+  await expect(page.getByText(PRODUCT, { exact: true })).toBeVisible({ timeout: 20000 });
+  await page.getByText(PRODUCT, { exact: true }).click();
+  const addButton = page.getByRole("button", { name: /Adicionar ao (Carrinho|pedido)/i });
+  await expect(addButton).toBeEnabled();
+  await addButton.click();
+
+  if (units <= 1) return;
+  const card = page
+    .getByText(PRODUCT, { exact: true })
+    .locator("xpath=ancestor::article[1]");
+  const plus = card.getByRole("button", { name: "Aumentar quantidade" });
+  await expect(plus).toBeVisible({ timeout: 10000 });
+  for (let i = 1; i < units; i++) {
+    await plus.click();
+  }
+}
+
+async function chooseFirstNeighborhood(page: Page) {
+  const bairro = page.getByLabel("Bairro");
+  await expect(bairro).toBeEnabled();
+  const values = await bairro.locator("option").evaluateAll((els) =>
+    els.map((e) => (e as HTMLOptionElement).value).filter(Boolean),
+  );
+  expect(values.length).toBeGreaterThan(0);
+  await bairro.selectOption(values[0]);
+}
+
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("saborosamente.welcome_popup_dismissed", "true");
@@ -449,4 +481,179 @@ test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
       }
     }
   }
+});
+
+
+test("checkout: cupons de lançamento e primeira compra exibem regras corretas", async ({ page }) => {
+  const problems = observe(page);
+  await addMarmitaUnits(page, 1);
+  await goToCheckoutThroughCart(page);
+
+  const input = page.getByPlaceholder("Digite seu cupom");
+  await input.fill("NOVOSITE");
+  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
+  await expect(page.getByText(/Cupom.*NOVOSITE.*aplicado/i)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/substitui o desconto progressivo/i)).toBeVisible();
+  await expect(page.getByText(/Combos Prontos não participam/i)).toBeVisible();
+
+  await input.fill("PRIMEIRACOMPRA");
+  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
+  await expect(page.getByText(/Cupom.*PRIMEIRACOMPRA.*aplicado/i)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/Exclusivo para primeira compra.*1 uso por cliente/i)).toBeVisible();
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("checkout: rotas regionais exibem os dias e horários comerciais corretos", async ({ page }) => {
+  const problems = observe(page);
+  await addMarmitaUnits(page, 5);
+  await goToCheckoutThroughCart(page);
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+
+  const cidade = page.getByLabel("Cidade");
+
+  await cidade.selectOption({ label: "Corupá" });
+  await chooseFirstNeighborhood(page);
+  const datasCorupa = await page.getByLabel(/Data de entrega/i).locator("option").allTextContents();
+  const opcoesCorupa = datasCorupa.filter((x) => /\d{2}\/\d{2}\/\d{4}/.test(x));
+  expect(opcoesCorupa.length).toBeGreaterThan(0);
+  expect(opcoesCorupa.every((x) => /Terça-feira/.test(x))).toBe(true);
+
+  await cidade.selectOption({ label: "Rio Negrinho" });
+  await chooseFirstNeighborhood(page);
+  const dataRioNegrinho = page.getByLabel(/Data de entrega/i);
+  const datasRioNegrinho = await dataRioNegrinho.locator("option").allTextContents();
+  const opcoesRioNegrinho = datasRioNegrinho.filter((x) => /\d{2}\/\d{2}\/\d{4}/.test(x));
+  expect(opcoesRioNegrinho.length).toBeGreaterThan(0);
+  expect(opcoesRioNegrinho.every((x) => /Sexta-feira/.test(x))).toBe(true);
+  const valoresData = await dataRioNegrinho.locator("option").evaluateAll((els) =>
+    els.map((e) => (e as HTMLOptionElement).value).filter(Boolean),
+  );
+  await dataRioNegrinho.selectOption(valoresData[0]);
+  const horarios = await page.getByLabel(/Horário de entrega/i).locator("option").allTextContents();
+  const opcoesHorario = horarios.filter((x) => /\d{2}:\d{2}/.test(x));
+  expect(opcoesHorario.length).toBeGreaterThan(0);
+  expect(opcoesHorario.every((x) => /^(13:30|14:30|15:30|16:30|17:30)/.test(x))).toBe(true);
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("cozinha autenticada: percorre todos os módulos principais", async ({ page }) => {
+  const problems = observe(page);
+  await loginE2EAdmin(page);
+  await page.goto(`${BASE_URL}/cozinha`, { waitUntil: "domcontentloaded" });
+  await expect(page).not.toHaveURL(/\/cozinha-login/);
+  await expect(page.getByText("Produção e fichas técnicas")).toBeVisible({ timeout: 15000 });
+
+  const tabs = [
+    "Produção",
+    "Demanda",
+    "Separar hoje",
+    "Lista de compras",
+    "Gestão operacional",
+    "Ingredientes",
+    "Marmitas",
+    "Cardápio Completo",
+    "Estoque",
+    "Embalagens",
+    "Relatórios",
+    "Etiquetas",
+  ];
+  for (const label of tabs) {
+    const button = page.getByRole("button", { name: label, exact: true }).first();
+    await expect(button, label).toBeVisible({ timeout: 10000 });
+    await button.click();
+    await page.waitForTimeout(100);
+    await expect(page.getByText("Não foi possível carregar esta página")).toHaveCount(0);
+  }
+
+  const axe = await new AxeBuilder({ page }).analyze();
+  const critical = axe.violations
+    .filter((v) => v.impact === "critical")
+    .map((v) => ({ id: v.id, help: v.help, targets: v.nodes.slice(0, 5).map((n) => n.target) }));
+  expect(critical, JSON.stringify(critical, null, 2)).toEqual([]);
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("home: links internos e imagens próprias não estão quebrados", async ({ page, request }) => {
+  const problems = observe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
+  await dismissWelcome(page);
+
+  await page.evaluate(async () => {
+    const step = Math.max(500, Math.floor(window.innerHeight * 0.8));
+    for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+      window.scrollTo(0, y);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(500);
+
+  const brokenImages = await page.locator("img").evaluateAll((imgs) =>
+    imgs
+      .filter((img) => {
+        const src = (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src || "";
+        return (
+          src.startsWith(location.origin) ||
+          src.includes("lxcgbrovdmpjatywweiv.supabase.co")
+        );
+      })
+      .filter((img) => !(img as HTMLImageElement).complete || (img as HTMLImageElement).naturalWidth === 0)
+      .map((img) => (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src),
+  );
+  expect(brokenImages, brokenImages.join("\n")).toEqual([]);
+
+  const internalLinks = await page.locator('a[href]').evaluateAll((links) => {
+    const origin = location.origin;
+    return Array.from(
+      new Set(
+        links
+          .map((a) => (a as HTMLAnchorElement).href)
+          .filter(Boolean)
+          .filter((href) => {
+            try {
+              const u = new URL(href);
+              return u.origin === origin && !u.hash;
+            } catch {
+              return false;
+            }
+          }),
+      ),
+    ).slice(0, 40);
+  });
+
+  const brokenLinks: string[] = [];
+  for (const href of internalLinks) {
+    const res = await request.get(href);
+    if (res.status() >= 400) brokenLinks.push(`${res.status()} ${href}`);
+  }
+  expect(brokenLinks, brokenLinks.join("\n")).toEqual([]);
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("home: orçamento básico de desempenho não regrediu", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE_URL, { waitUntil: "load" });
+  await dismissWelcome(page);
+
+  const metrics = await page.evaluate(() => {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+    const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+    const appResources = resources
+      .filter((r) => /\.(js|css)(\?|$)/.test(r.name))
+      .map((r) => ({ name: r.name, transferSize: r.transferSize, duration: r.duration }));
+    return {
+      domContentLoaded: nav?.domContentLoadedEventEnd ?? 0,
+      load: nav?.loadEventEnd ?? 0,
+      maxAssetBytes: Math.max(0, ...appResources.map((r) => r.transferSize || 0)),
+      assets: appResources.length,
+    };
+  });
+
+  console.log("AUDIT_PERFORMANCE", metrics);
+  expect(metrics.domContentLoaded).toBeLessThan(10_000);
+  expect(metrics.load).toBeLessThan(15_000);
+  expect(metrics.maxAssetBytes).toBeLessThan(5_000_000);
 });
