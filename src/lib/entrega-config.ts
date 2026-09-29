@@ -65,17 +65,26 @@ function semAcentos(value: string) {
 export function regraEntregaCidade(cidade?: string): RegraEntregaCidade {
   const c = semAcentos(cidade || "");
 
-  if (c === "mafra" || c === "rio negro") {
+  if (c === "corupa") {
+    return {
+      diasPermitidos: [2],
+      minUnidades: 5,
+      cutoffMesmoDia: { hora: 11, minuto: 0 },
+      descricao: "Entregas às terças-feiras. Pedidos para a terça devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
+    };
+  }
+
+  if (["mafra", "rio negro", "campo alegre", "pien"].includes(c)) {
     return {
       diasPermitidos: [5],
       horarios: HORARIOS_TARDE,
       minUnidades: 5,
       cutoffMesmoDia: { hora: 11, minuto: 0 },
-      descricao: "Entregas às sextas-feiras à tarde. Pedidos para a sexta devem ser feitos até 11h.",
+      descricao: "Entregas às sextas-feiras à tarde. Pedidos para a sexta devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
     };
   }
 
-  if (["corupa", "rio negrinho", "campo alegre", "pien"].includes(c)) {
+  if (c === "rio negrinho") {
     return {
       minUnidades: 5,
       cutoffMesmoDia: { hora: 11, minuto: 0 },

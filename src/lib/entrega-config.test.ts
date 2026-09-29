@@ -5,8 +5,15 @@ import {
 } from "./entrega-config";
 
 describe("regras regionais de entrega", () => {
-  it("Mafra e Rio Negro exigem 5 unidades e entregam na sexta à tarde", () => {
-    for (const cidade of ["Mafra", "Rio Negro"]) {
+  it("Corupá entrega às terças-feiras, com mínimo de 5 unidades", () => {
+    const regra = regraEntregaCidade("Corupá");
+    expect(regra.minUnidades).toBe(5);
+    expect(regra.diasPermitidos).toEqual([2]);
+    expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
+  });
+
+  it("Mafra, Rio Negro, Campo Alegre e Piên entregam sexta à tarde", () => {
+    for (const cidade of ["Mafra", "Rio Negro", "Campo Alegre", "Piên"]) {
       const regra = regraEntregaCidade(cidade);
       expect(regra.minUnidades).toBe(5);
       expect(regra.diasPermitidos).toEqual([5]);
@@ -15,12 +22,11 @@ describe("regras regionais de entrega", () => {
     }
   });
 
-  it("Corupá, Rio Negrinho, Campo Alegre e Piên exigem mínimo de 5", () => {
-    for (const cidade of ["Corupá", "Rio Negrinho", "Campo Alegre", "Piên"]) {
-      const regra = regraEntregaCidade(cidade);
-      expect(regra.minUnidades).toBe(5);
-      expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
-    }
+  it("Rio Negrinho mantém a agenda padrão, com mínimo de 5 unidades", () => {
+    const regra = regraEntregaCidade("Rio Negrinho");
+    expect(regra.minUnidades).toBe(5);
+    expect(regra.diasPermitidos).toBeUndefined();
+    expect(regra.cutoffMesmoDia).toEqual({ hora: 11, minuto: 0 });
   });
 
   it("São Bento do Sul mantém a agenda padrão sem mínimo regional", () => {
