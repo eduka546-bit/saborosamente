@@ -334,7 +334,7 @@ async function loginE2EAdmin(page: Page) {
   const password = process.env.E2E_ADMIN_PASSWORD;
   test.skip(!email || !password, "Credenciais E2E de admin não configuradas.");
 
-  await page.goto(\`\${BASE_URL}/admin-login\`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE_URL}/admin-login`, { waitUntil: "domcontentloaded" });
   await page.getByLabel("E-mail").fill(email!);
   await page.getByLabel("Senha").fill(password!);
   await page.getByRole("button", { name: /Entrar no Painel/i }).click();
@@ -366,7 +366,7 @@ test("segurança HTTP e SEO básico de produção", async ({ page, request }) =>
   }
 
   for (const route of ["/admin-login", "/cozinha-login", "/acesso", "/auth", "/carrinho", "/checkout", "/meus-pedidos"]) {
-    await page.goto(\`\${BASE_URL}\${route}\`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
     const robots = page.locator('meta[name="robots"]').last();
     await expect(robots, route).toHaveAttribute("content", /noindex/i);
   }
@@ -395,12 +395,12 @@ test("acessibilidade: home sem violações críticas ou sérias", async ({ page 
 
 test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
   await loginE2EAdmin(page);
-  const code = \`E2E\${Date.now().toString().slice(-9)}\`;
+  const code = `E2E${Date.now().toString().slice(-9)}`;
   const description = "Auditoria E2E temporária";
   let created = false;
 
   try {
-    await page.goto(\`\${BASE_URL}/admin/cupons\`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${BASE_URL}/admin/cupons`, { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("button", { name: /Novo Cupom/i })).toBeVisible();
     await page.getByRole("button", { name: /Novo Cupom/i }).click();
 
@@ -422,9 +422,9 @@ test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
 
     await actionButtons.nth(0).click();
     await expect(page.getByRole("heading", { name: "Editar Cupom" })).toBeVisible();
-    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(\`\${description} editada\`);
+    await page.getByPlaceholder("EX: Mínimo R$ 100").fill(`${description} editada`);
     await page.getByRole("button", { name: "Salvar Cupom" }).click();
-    await expect(page.getByText(\`\${description} editada\`, { exact: true })).toBeVisible({
+    await expect(page.getByText(`${description} editada`, { exact: true })).toBeVisible({
       timeout: 10000,
     });
 
@@ -436,7 +436,7 @@ test("admin autenticado: CRUD temporário de cupom", async ({ page }) => {
     created = false;
   } finally {
     if (created) {
-      await page.goto(\`\${BASE_URL}/admin/cupons\`, { waitUntil: "domcontentloaded" }).catch(() => {});
+      await page.goto(`${BASE_URL}/admin/cupons`, { waitUntil: "domcontentloaded" }).catch(() => {});
       const leftover = page.getByText(code, { exact: true });
       if (await leftover.count()) {
         const card = leftover.locator("xpath=ancestor::div[contains(@class,'relative')][1]");
