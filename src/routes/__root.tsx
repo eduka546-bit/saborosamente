@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@saborosamente" },
+      { name: "twitter:site", content: "@saborosamente.sbs" },
       // PWA — permite instalar o painel como app
       { name: "theme-color", content: "#086e45" },
       { name: "mobile-web-app-capable", content: "yes" },
@@ -118,10 +118,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@400;500;600&family=Poppins:wght@400;500;600;700;800&family=Pacifico&display=swap",
-      },
       // preconnect ao Supabase storage para imagens carregarem mais rápido
       {
         rel: "preconnect",

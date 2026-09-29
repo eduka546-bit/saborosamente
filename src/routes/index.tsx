@@ -816,7 +816,7 @@ function Index() {
 
       {/* Main Content: Filters + Products */}
       <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 md:py-12">
-        <div className="sticky top-[68px] z-30 -mx-2 mb-5 flex items-center gap-2 rounded-2xl border border-[#dce7d5] bg-white/95 p-2 shadow-lg backdrop-blur lg:hidden">
+        <div className="sticky top-2 z-30 -mx-2 mb-5 flex items-center gap-2 rounded-2xl border border-[#dce7d5] bg-white/95 p-2 shadow-lg backdrop-blur lg:hidden">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f5f7f2] px-3 py-2.5">
             <Search size={17} className="shrink-0 text-[#087443]" />
             <input
