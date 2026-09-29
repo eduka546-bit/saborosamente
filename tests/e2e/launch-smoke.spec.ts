@@ -283,7 +283,7 @@ test("admin autenticado: percorre rotas principais quando credenciais E2E estão
   const problems = observe(page);
 
   await page.goto(`${BASE_URL}/admin-login`, { waitUntil: "domcontentloaded" });
-  await page.getByLabel("E-mail").fill(email!);
+  await page.locator("#email").fill(email!);
   await page.getByLabel("Senha").fill(password!);
   await page.getByRole("button", { name: /Entrar no Painel/i }).click();
   await page.waitForURL(/\/admin(?:\/|\?|$)/, { timeout: 15000 });
@@ -335,7 +335,7 @@ async function loginE2EAdmin(page: Page) {
   test.skip(!email || !password, "Credenciais E2E de admin não configuradas.");
 
   await page.goto(`${BASE_URL}/admin-login`, { waitUntil: "domcontentloaded" });
-  await page.getByLabel("E-mail").fill(email!);
+  await page.locator("#email").fill(email!);
   await page.getByLabel("Senha").fill(password!);
   await page.getByRole("button", { name: /Entrar no Painel/i }).click();
   await page.waitForURL(/\/admin(?:\/|\?|$)/, { timeout: 15000 });
