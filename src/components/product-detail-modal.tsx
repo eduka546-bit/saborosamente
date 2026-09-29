@@ -3,7 +3,7 @@ import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
-import { Camera, ChevronDown, ChevronLeft, ChevronRight, Gift, Instagram, Share2, ShoppingCart } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
@@ -312,10 +312,10 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
         <div className="flex flex-col md:flex-row min-h-full">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-1/2">
-            <div className="relative aspect-square w-full md:aspect-auto md:min-h-[500px] bg-muted overflow-hidden">
+            <div className="relative aspect-square w-full overflow-hidden bg-muted md:aspect-auto md:min-h-[500px]">
               <img src={currentImage} alt={product.nome} className="size-full object-cover" />
               <ProductSeals product={product} size={52} />
-              <Badge className="absolute left-4 top-4 bg-sun text-sun-foreground hover:bg-sun z-10">
+              <Badge className="absolute left-4 top-4 z-10 bg-sun text-sun-foreground hover:bg-sun">
                 {categoriaNome}
               </Badge>
               {allImages.length > 1 && (
@@ -324,24 +324,24 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                     onClick={() =>
                       setCurrentImageIndex((p) => (p === 0 ? allImages.length - 1 : p - 1))
                     }
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg hover:bg-white"
+                    className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg hover:bg-white"
                   >
                     <ChevronLeft size={20} />
                   </button>
                   <button
                     onClick={() => setCurrentImageIndex((p) => (p + 1) % allImages.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg hover:bg-white"
+                    className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg hover:bg-white"
                   >
                     <ChevronRight size={20} />
                   </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                  <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
                     {allImages.map((_, idx) => (
                       <button
                         key={idx}
                         onClick={() => setCurrentImageIndex(idx)}
                         className={cn(
                           "rounded-full transition-all",
-                          currentImageIndex === idx ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/50",
+                          currentImageIndex === idx ? "h-2 w-6 bg-white" : "h-2 w-2 bg-white/50",
                         )}
                       />
                     ))}
@@ -352,38 +352,27 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
             <div className="flex flex-1 items-start p-5 md:p-6">
               <div className="w-full rounded-[1.5rem] border border-[#dce7d5] bg-white p-5 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#edf5e6] text-[#087443]">
-                    <Camera size={23} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <img
-                      src="/logo-saborosamente.png"
-                      alt="SaborosaMente"
-                      className="h-7 w-auto max-w-[180px] object-contain object-left"
-                    />
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f3f7ee] px-2.5 py-1 text-[11px] font-black text-[#087443]">
-                      <Instagram size={13} />
-                      @saborosamente.sbs
-                    </div>
-                    <h4 className="mt-3 text-base font-black leading-tight text-[#173a2d]">
-                      Mostre sua SaborosaMente 💚
-                    </h4>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
-                      Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
-                      <strong className="text-[#315440]"> concorra a um mimo</strong>.
-                    </p>
-                    <a
-                      href="https://www.instagram.com/saborosamente.sbs/"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#087443] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
-                    >
-                      <Gift size={15} />
-                      Quero participar
-                    </a>
-                  </div>
-                </div>
+                <img
+                  src="/logo-saborosamente.png"
+                  alt="SaborosaMente"
+                  className="h-7 w-auto max-w-[180px] object-contain object-left"
+                />
+                <p className="mt-3 text-xs font-black text-[#087443]">@saborosamente.sbs</p>
+                <h4 className="mt-2 text-base font-black leading-tight text-[#173a2d]">
+                  Mostre sua SaborosaMente
+                </h4>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
+                  Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
+                  <strong className="text-[#315440]"> concorra a um mimo</strong>.
+                </p>
+                <a
+                  href="https://www.instagram.com/saborosamente.sbs/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
+                >
+                  Quero participar
+                </a>
               </div>
             </div>
           </div>
