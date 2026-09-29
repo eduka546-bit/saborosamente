@@ -146,6 +146,20 @@ describe("calcularFrete", () => {
     expect(calcularFrete({ subtotal: 0, totalUnidades: 0, taxaBase: 14.9 })).toBe(0);
   });
 
+  it("não aplica frete de R$ 5 em outra cidade mesmo com 20 marmitas", () => {
+    expect(
+      calcularFrete({
+        subtotal: 400,
+        totalUnidades: 20,
+        taxaBase: 10,
+        cidade: "Rio Negrinho",
+        freteGratisAPartirDe: 999999,
+        minQuantidadeSBS: 5,
+        fretePromoSBS: 5,
+      }),
+    ).toBe(10);
+  });
+
   it("usa a taxa base fora de São Bento do Sul", () => {
     expect(
       calcularFrete({
@@ -157,7 +171,7 @@ describe("calcularFrete", () => {
     ).toBe(10);
   });
 
-  it("frete promocional de R$ 5,00 em São Bento do Sul com 5+ unidades", () => {
+  it("frete promocional de R$ 5,00 em São Bento do Sul com 5+ marmitas", () => {
     expect(
       calcularFrete({
         subtotal: 150,

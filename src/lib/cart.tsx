@@ -15,6 +15,7 @@ import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import { ExitIntentModal } from "@/components/exit-intent-modal";
 import {
   calcularFrete,
+  isMarmita,
   isNoDiscount,
   precoMarmitaPorFaixa,
   precoCheioMarmita,
@@ -34,8 +35,8 @@ export const SHIPPING_FEE = 14.9;
 
 export const RULES = {
   MIN_ORDER_AMOUNT: 70,
-  MIN_ORDER_QUANTITY: 5, // 5+ unidades → frete promocional em SBS
-  SBS_DISCOUNTED_SHIPPING: 5.0, // R$ 5,00 para São Bento do Sul com 5+ unidades
+  MIN_ORDER_QUANTITY: 5, // 5+ marmitas → frete promocional em SBS
+  SBS_DISCOUNTED_SHIPPING: 5.0, // R$ 5,00 para São Bento do Sul com 5+ marmitas
   // Desconto progressivo — sopas e complementos CONTAM na qtd mas NÃO recebem desconto
   PROGRESSIVE_DISCOUNT: [
     { min: 5, discount: 0.03 },
@@ -667,6 +668,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return acc + line.quantity * un;
     }, 0);
 
+    // A promoção de frete de SBS considera apenas marmitas.
+    // Sopas, complementos e bebidas não liberam o frete de R$ 5.
+    const marmitasParaFreteSBS = linhasResolvidas.reduce((acc, { line, product }) => {
+      if (line.custom) return acc + line.quantity;
+      if (line.comboPronto) return acc + line.quantity * line.comboPronto.totalUnits;
+      return isMarmita(product.nome, product.categoria) ? acc + line.quantity : acc;
+    }, 0);
+
     const detailed = linhasResolvidas.map<CartLineDetailed>(({ line, product }) => {
       // Marmita personalizada: preço fixo próprio, sem desconto de faixa.
       if (line.custom) {
@@ -748,7 +757,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Frete e desconto calculados por funções puras testadas (ver combo-rules.ts).
     const shipping = calcularFrete({
       subtotal,
-      totalUnidades: count,
+      totalUnidades: marmitasParaFreteSBS,
       taxaBase,
       cidade: selectedCity,
       freteGratisAPartirDe: FREE_SHIPPING_FROM,

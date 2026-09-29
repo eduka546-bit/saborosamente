@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
 import {
   calcularFrete,
+  isMarmita,
   isNoDiscount,
   normalizarPrecosMarmita,
   precoCheioMarmita,
@@ -260,6 +261,17 @@ export const createOrder = createServerFn({ method: "POST" })
       if (!p) return acc;
       const categoria = Array.isArray(p.categorias) ? p.categorias[0]?.nome : p.categorias?.nome;
       return acc + item.quantity * unidadesDoItem(p.nome, categoria);
+    }, 0);
+
+    // O frete promocional de São Bento do Sul é liberado por quantidade de marmitas,
+    // sem contar sopas, complementos ou bebidas.
+    const totalMarmitasFreteSBS = data.items.reduce((acc, item) => {
+      if (item.custom) return acc + item.quantity;
+      const p: any = item.productId ? productMap.get(item.productId) : null;
+      if (!p) return acc;
+      const categoria = Array.isArray(p.categorias) ? p.categorias[0]?.nome : p.categorias?.nome;
+      if (item.comboPronto) return acc + item.quantity * item.comboPronto.totalUnits;
+      return isMarmita(p.nome, categoria) ? acc + item.quantity : acc;
     }, 0);
 
     const authoritativeItems = data.items.map((item) => {
@@ -520,7 +532,7 @@ export const createOrder = createServerFn({ method: "POST" })
       taxaEntrega = roundMoney(
         calcularFrete({
           subtotal: subtotalCheio,
-          totalUnidades,
+          totalUnidades: totalMarmitasFreteSBS,
           taxaBase: Number(rateRows[0].valor ?? 0),
           cidade: data.cidade,
           freteGratisAPartirDe: 999999,
