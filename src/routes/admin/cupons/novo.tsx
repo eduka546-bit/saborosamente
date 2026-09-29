@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -21,6 +22,8 @@ function AdminCuponsNovoPage() {
     regra: "",
     validade: "",
     ativo: true,
+    substitui_desconto_progressivo: false,
+    excluir_combo_pronto: false,
   });
 
   const saveMutation = useMutation({
@@ -105,6 +108,26 @@ function AdminCuponsNovoPage() {
             type="date"
             value={form.validade}
             onChange={(e) => setForm({ ...form, validade: e.target.value })}
+          />
+        </div>
+        <div className="flex items-start justify-between rounded-xl border bg-[#f4f8f1] p-3 gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Substitui desconto progressivo</p>
+            <p className="mt-0.5 text-[11px] text-gray-500">Não soma o cupom às faixas 3%/7%/12%.</p>
+          </div>
+          <Switch
+            checked={form.substitui_desconto_progressivo}
+            onCheckedChange={(v) => setForm({ ...form, substitui_desconto_progressivo: v })}
+          />
+        </div>
+        <div className="flex items-start justify-between rounded-xl border bg-amber-50 p-3 gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Não aplicar em Combo Pronto</p>
+            <p className="mt-0.5 text-[11px] text-gray-500">Combos Prontos mantêm o preço final cadastrado.</p>
+          </div>
+          <Switch
+            checked={form.excluir_combo_pronto}
+            onCheckedChange={(v) => setForm({ ...form, excluir_combo_pronto: v })}
           />
         </div>
         <div className="flex gap-3 pt-2">

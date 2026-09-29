@@ -16,6 +16,7 @@ import {
   tamanhoPorPeso,
 } from "@/lib/marmita-personalizada-config";
 import { validarEntregaProgramada } from "@/lib/entrega-config";
+import { calcularRegraCupom } from "@/lib/coupon-rules";
 
 const roundMoney = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
@@ -430,6 +431,13 @@ export const createOrder = createServerFn({ method: "POST" })
       authoritativeItems.reduce((sum, row) => sum + row.effectiveUnitPrice * row.item.quantity, 0),
     );
     const descontoProgressivo = roundMoney(Math.max(0, subtotalCheio - subtotalEfetivo));
+    const subtotalComboPronto = roundMoney(
+      authoritativeItems.reduce(
+        (sum, row) =>
+          sum + (row.item.comboPronto ? row.fullUnitPrice * row.item.quantity : 0),
+        0,
+      ),
+    );
 
     // Indique e Ganhe: 5% para o amigo apenas na primeira compra, com vínculo
     // capturado no cadastro e válido por até 30 dias.
@@ -544,13 +552,15 @@ export const createOrder = createServerFn({ method: "POST" })
 
     let cupomAplicado: string | null = null;
     let cupomTipo: string | null = null;
-    let descontoCupom = 0;
+    let cupomValor = 0;
+    let cupomSubstituiProgressivo = false;
+    let cupomExcluiComboPronto = false;
 
     if (data.cupom) {
       const codigo = data.cupom.trim().toUpperCase();
       const { data: cupom, error: cupomError } = await supabase
         .from("cupons")
-        .select("codigo, tipo, valor, ativo, validade, uso, max_uso, apenas_primeira_compra")
+        .select("codigo, tipo, valor, ativo, validade, uso, max_uso, apenas_primeira_compra, substitui_desconto_progressivo, excluir_combo_pronto")
         .eq("codigo", codigo)
         .maybeSingle();
 
@@ -580,27 +590,29 @@ export const createOrder = createServerFn({ method: "POST" })
         if ((count ?? 0) > 0) throw new Error("Este cupom é exclusivo para a primeira compra.");
       }
 
-      const tipoCupom = String(cupom.tipo ?? "");
-      cupomTipo = tipoCupom;
-      const valorCupom = Number(cupom.valor ?? 0);
-      descontoCupom =
-        tipoCupom === "Percentual"
-          ? subtotalCheio * (valorCupom / 100)
-          : tipoCupom === "Entrega Grátis"
-            ? taxaEntrega
-            : valorCupom;
-      descontoCupom = roundMoney(
-        Math.min(Math.max(0, descontoCupom), subtotalEfetivo + taxaEntrega),
-      );
+      cupomTipo = String(cupom.tipo ?? "");
+      cupomValor = Number(cupom.valor ?? 0);
+      cupomSubstituiProgressivo = Boolean(cupom.substitui_desconto_progressivo);
+      cupomExcluiComboPronto = Boolean(cupom.excluir_combo_pronto);
       cupomAplicado = cupom.codigo;
     }
 
-    const descontoCupomProdutos =
-      cupomTipo === "Entrega Grátis"
-        ? 0
-        : Math.min(descontoCupom, Math.max(0, subtotalEfetivo - descontoIndicacao));
+    const cupomCalc = calcularRegraCupom({
+      tipo: cupomTipo,
+      valor: cupomValor,
+      subtotalCheio,
+      subtotalEfetivo,
+      subtotalComboPronto,
+      taxaEntrega,
+      substituiDescontoProgressivo: cupomSubstituiProgressivo,
+      excluirComboPronto: cupomExcluiComboPronto,
+    });
+    const descontoProgressivoAplicado = cupomCalc.descontoProgressivoAplicado;
+    const descontoCupom = cupomAplicado ? cupomCalc.descontoCupom : 0;
+    const descontoCupomProdutos = cupomAplicado ? cupomCalc.descontoCupomProdutos : 0;
+    const subtotalBaseProdutos = cupomCalc.subtotalBaseProdutos;
     const produtosLiquidos = roundMoney(
-      Math.max(0, subtotalEfetivo - descontoIndicacao - descontoCupomProdutos),
+      Math.max(0, subtotalBaseProdutos - descontoIndicacao - descontoCupomProdutos),
     );
 
     let cashbackUsado = roundMoney(Number(data.cashbackUsado ?? 0));
@@ -634,7 +646,7 @@ export const createOrder = createServerFn({ method: "POST" })
     const valorTotal = roundMoney(
       Math.max(
         0,
-        subtotalEfetivo + taxaEntrega - descontoCupom - descontoIndicacao - cashbackUsado,
+        subtotalBaseProdutos + taxaEntrega - descontoCupom - descontoIndicacao - cashbackUsado,
       ),
     );
 
@@ -646,7 +658,7 @@ export const createOrder = createServerFn({ method: "POST" })
     }
 
     const descontoTotal = roundMoney(
-      descontoProgressivo + descontoCupom + descontoIndicacao + cashbackUsado,
+      descontoProgressivoAplicado + descontoCupom + descontoIndicacao + cashbackUsado,
     );
 
     const insertData: PedidoInsert = {
@@ -684,11 +696,12 @@ export const createOrder = createServerFn({ method: "POST" })
     }
 
     const itemsToInsert = authoritativeItems.flatMap((row: any) => {
-      const { item, effectiveUnitPrice, product, comboComponents } = row;
+      const { item, effectiveUnitPrice, fullUnitPrice, product, comboComponents } = row;
+      const precoBasePedido = cupomSubstituiProgressivo ? fullUnitPrice : effectiveUnitPrice;
 
       if (item.comboPronto && comboComponents?.length) {
         const precoPorMarmita = roundMoney(
-          effectiveUnitPrice / Math.max(1, item.comboPronto.totalUnits),
+          precoBasePedido / Math.max(1, item.comboPronto.totalUnits),
         );
         return comboComponents.map((component: any) => ({
           produto_id: component.productId,
@@ -734,7 +747,7 @@ export const createOrder = createServerFn({ method: "POST" })
           produto_id: item.custom ? null : (item.productId ?? null),
           nome_item: item.custom ? item.custom.label : null,
           quantidade: item.quantity,
-          preco_unitario: effectiveUnitPrice,
+          preco_unitario: precoBasePedido,
           observacao: partes.length > 0 ? partes.join(" | ") : null,
         },
       ];

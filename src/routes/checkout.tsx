@@ -34,6 +34,7 @@ import {
 } from "@/lib/payment-options";
 import { checkoutSchema, type CheckoutForm } from "@/lib/checkout-validation";
 import { trackEvent } from "@/lib/analytics";
+import { calcularRegraCupom } from "@/lib/coupon-rules";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -156,6 +157,8 @@ function Checkout() {
     codigo: string;
     tipo: string;
     valor: number;
+    substitui_desconto_progressivo: boolean;
+    excluir_combo_pronto: boolean;
   } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
@@ -175,7 +178,7 @@ function Checkout() {
     try {
       const { data, error } = await supabase
         .from("cupons")
-        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso, apenas_primeira_compra")
+        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso, apenas_primeira_compra, substitui_desconto_progressivo, excluir_combo_pronto")
         .eq("codigo", c)
         .eq("ativo", true)
         .maybeSingle();
@@ -217,9 +220,16 @@ function Checkout() {
         // visitante não logado — não bloqueia, mas o servidor pode checar e-mail/telefone no onSubmit
       }
 
-      setAppliedCoupon({ codigo: data.codigo, tipo: data.tipo, valor: data.valor });
+      setAppliedCoupon({
+        codigo: data.codigo,
+        tipo: data.tipo,
+        valor: Number(data.valor),
+        substitui_desconto_progressivo: Boolean(data.substitui_desconto_progressivo),
+        excluir_combo_pronto: Boolean(data.excluir_combo_pronto),
+      });
       setCouponInput(data.codigo);
       setCouponError("");
+      toast.success(`Cupom ${data.codigo} aplicado!`);
     } catch {
       setCouponError("Erro ao validar cupom. Tente novamente.");
     } finally {
@@ -229,28 +239,32 @@ function Checkout() {
 
   // Retirada na loja nunca cobra frete. Na entrega, mantém a regra calculada no carrinho.
   const shippingCheckout = metodoEntrega === "retirada" ? 0 : shipping;
-  const totalCheckout = Math.max(0, total - shipping + shippingCheckout);
+  const subtotalEfetivoCarrinho = Math.max(0, subtotal - discount);
+  const subtotalComboPronto = lines.reduce(
+    (sum, line) => sum + (line.comboPronto ? Number(line.subtotal || 0) : 0),
+    0,
+  );
+  const couponCalc = calcularRegraCupom({
+    tipo: appliedCoupon?.tipo,
+    valor: appliedCoupon?.valor,
+    subtotalCheio: subtotal,
+    subtotalEfetivo: subtotalEfetivoCarrinho,
+    subtotalComboPronto,
+    taxaEntrega: shippingCheckout,
+    substituiDescontoProgressivo: appliedCoupon?.substitui_desconto_progressivo,
+    excluirComboPronto: appliedCoupon?.excluir_combo_pronto,
+  });
+  const descontoProgressivoAplicado = couponCalc.descontoProgressivoAplicado;
+  const couponDiscount = appliedCoupon ? couponCalc.descontoCupom : 0;
+  const totalCheckout = couponCalc.subtotalBaseProdutos + shippingCheckout;
 
-  // calcula desconto do cupom
-  const couponDiscount = appliedCoupon
-    ? appliedCoupon.tipo === "Percentual"
-      ? subtotal * (appliedCoupon.valor / 100)
-      : appliedCoupon.tipo === "Entrega Grátis"
-        ? shippingCheckout
-        : appliedCoupon.valor
-    : 0;
-
-  // Benefício de indicação: 5% apenas na primeira compra elegível.
-  // O servidor revalida identidade, prazo e primeira compra antes de aceitar o pedido.
-  const produtosAposFaixa = Math.max(0, totalCheckout - shippingCheckout);
-  const descontoIndicacao = indicacaoElegivel ? produtosAposFaixa * 0.05 : 0;
-  const couponProductDiscount =
-    appliedCoupon?.tipo === "Entrega Grátis"
-      ? 0
-      : Math.min(couponDiscount, Math.max(0, produtosAposFaixa - descontoIndicacao));
+  // Benefício de indicação: preserva a base que já era usada antes desta campanha.
+  const baseIndicacao = subtotalEfetivoCarrinho;
+  const descontoIndicacao = indicacaoElegivel ? baseIndicacao * 0.05 : 0;
+  const couponProductDiscount = appliedCoupon ? couponCalc.descontoCupomProdutos : 0;
   const produtosLiquidos = Math.max(
     0,
-    produtosAposFaixa - descontoIndicacao - couponProductDiscount,
+    couponCalc.subtotalBaseProdutos - descontoIndicacao - couponProductDiscount,
   );
 
   // Máximo de cashback utilizável: saldo válido, mínimo e até 15% dos produtos.
@@ -575,7 +589,7 @@ function Checkout() {
           observacoes: data.observacoes,
           valorTotal: finalTotal,
           taxaEntrega: shippingCheckout,
-          desconto: discount + couponDiscount,
+          desconto: descontoProgressivoAplicado + couponDiscount,
           cupom: appliedCoupon?.codigo,
           troco: data.troco,
           tipoCartao: selectedFlag || undefined,
@@ -843,10 +857,10 @@ function Checkout() {
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
             </div>
-            {discount > 0 && (
+            {descontoProgressivoAplicado > 0 && (
               <div className="flex justify-between text-[#087443]">
                 <dt className="font-semibold">Preço por quantidade</dt>
-                <dd>− {formatBRL(discount)}</dd>
+                <dd>− {formatBRL(descontoProgressivoAplicado)}</dd>
               </div>
             )}
             <div className="flex justify-between">
@@ -1354,14 +1368,26 @@ function Checkout() {
             </div>
             {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
             {appliedCoupon && (
-              <p className="mt-1 text-xs text-green-600 font-semibold">
-                ✓ Cupom <strong>{appliedCoupon.codigo}</strong> aplicado —{" "}
-                {appliedCoupon.tipo === "Percentual"
-                  ? `${appliedCoupon.valor}% de desconto`
-                  : appliedCoupon.tipo === "Entrega Grátis"
-                    ? "frete grátis"
-                    : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-xs font-semibold text-green-600">
+                  ✓ Cupom <strong>{appliedCoupon.codigo}</strong> aplicado —{" "}
+                  {appliedCoupon.tipo === "Percentual"
+                    ? `${appliedCoupon.valor}% de desconto nos itens elegíveis`
+                    : appliedCoupon.tipo === "Entrega Grátis"
+                      ? "frete grátis"
+                      : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
+                </p>
+                {appliedCoupon.substitui_desconto_progressivo && (
+                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-[11px] font-semibold leading-relaxed text-[#315440]">
+                    Este cupom substitui o desconto progressivo do pedido. Os descontos não são somados.
+                  </p>
+                )}
+                {appliedCoupon.excluir_combo_pronto && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-800">
+                    Combos Prontos não participam desta promoção, pois já possuem preço promocional.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
@@ -1504,10 +1530,10 @@ function Checkout() {
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
             </div>
-            {discount > 0 && (
+            {descontoProgressivoAplicado > 0 && (
               <div className="flex justify-between text-[#087443]">
                 <dt className="font-semibold">Preço por quantidade</dt>
-                <dd>− {formatBRL(discount)}</dd>
+                <dd>− {formatBRL(descontoProgressivoAplicado)}</dd>
               </div>
             )}
             <div className="flex justify-between">

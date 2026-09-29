@@ -34,6 +34,8 @@ const EMPTY_FORM = {
   ativo: true,
   max_uso: "",
   apenas_primeira_compra: false,
+  substitui_desconto_progressivo: false,
+  excluir_combo_pronto: false,
 };
 
 function AdminCuponsPage() {
@@ -111,6 +113,8 @@ function AdminCuponsPage() {
       ativo: c.ativo,
       max_uso: c.max_uso !== null && c.max_uso !== undefined ? String(c.max_uso) : "",
       apenas_primeira_compra: c.apenas_primeira_compra ?? false,
+      substitui_desconto_progressivo: c.substitui_desconto_progressivo ?? false,
+      excluir_combo_pronto: c.excluir_combo_pronto ?? false,
     });
     setIsModalOpen(true);
   };
@@ -266,6 +270,16 @@ function AdminCuponsPage() {
                       <ShoppingBag size={10} /> 1ª compra
                     </Badge>
                   )}
+                  {cupom.substitui_desconto_progressivo && (
+                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                      Substitui progressivo
+                    </Badge>
+                  )}
+                  {cupom.excluir_combo_pronto && (
+                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                      Exceto Combo Pronto
+                    </Badge>
+                  )}
                   {cupom.max_uso !== null &&
                     cupom.max_uso !== undefined &&
                     cupom.max_uso > 1 &&
@@ -382,6 +396,30 @@ function AdminCuponsPage() {
                 <Switch
                   checked={!!form.apenas_primeira_compra}
                   onCheckedChange={(v) => setForm({ ...form, apenas_primeira_compra: v })}
+                />
+              </div>
+              <div className="flex items-start justify-between p-3 border rounded-xl bg-[#f4f8f1] gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Substitui desconto progressivo</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    O cupom passa a usar o valor cheio elegível e não soma 3%/7%/12%.
+                  </p>
+                </div>
+                <Switch
+                  checked={!!form.substitui_desconto_progressivo}
+                  onCheckedChange={(v) => setForm({ ...form, substitui_desconto_progressivo: v })}
+                />
+              </div>
+              <div className="flex items-start justify-between p-3 border rounded-xl bg-amber-50 gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Não aplicar em Combo Pronto</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Combos Prontos mantêm o preço promocional cadastrado sem desconto extra.
+                  </p>
+                </div>
+                <Switch
+                  checked={!!form.excluir_combo_pronto}
+                  onCheckedChange={(v) => setForm({ ...form, excluir_combo_pronto: v })}
                 />
               </div>
               <div className="flex gap-3 pt-4">
