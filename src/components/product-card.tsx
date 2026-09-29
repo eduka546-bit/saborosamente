@@ -1,4 +1,5 @@
 import {
+  Minus,
   Plus,
   Info,
   X,
@@ -118,7 +119,7 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
-  const { add, count, lines } = useCart();
+  const { add, count, lines, setQuantity } = useCart();
   const { userId, favoriteIds, toggleFavorite } = useFavorites();
   const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
@@ -209,6 +210,32 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
   const ingredientesTexto = simplificarIngredientesCard((product as any).ingredientes);
 
+  const linhasSelecionadasNoCarrinho = lines.filter(
+    (line) =>
+      !line.custom &&
+      !line.comboPronto &&
+      line.productId === product.id &&
+      line.weight === selectedWeight,
+  );
+  const quantidadeSelecionadaNoCarrinho = linhasSelecionadasNoCarrinho.reduce(
+    (total, line) => total + Number(line.quantity || 0),
+    0,
+  );
+  const ajustarQuantidadeNoCard = (delta: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const alvo = linhasSelecionadasNoCarrinho[linhasSelecionadasNoCarrinho.length - 1];
+    if (!alvo) {
+      if (delta > 0) handleAddToCart(event);
+      return;
+    }
+    setQuantity(
+      alvo.productId,
+      alvo.quantity + delta,
+      alvo.weight,
+      alvo.opcoes,
+    );
+  };
+
   const commercialBadge = soldOut
     ? { label: "Esgotado", className: "bg-neutral-900 text-white" }
     : lowStock
@@ -231,6 +258,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const PROXIMAS_FAIXAS = [5, 10, 20];
   const proximaFaixa = PROXIMAS_FAIXAS.find((m) => count < m);
   const faltamParaDesconto = proximaFaixa ? proximaFaixa - count : 0;
+  const precoProximaFaixa =
+    podeTerDesconto && proximaFaixa
+      ? precoMarmitaPorFaixa(selectedWeight, proximaFaixa, precoCheioCard, tabelaPrecos)
+      : null;
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -548,41 +579,67 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={soldOut}
-                className={cn(
-                  "inline-flex size-9 items-center justify-center rounded-full text-white transition-all shadow-md",
-                  soldOut
-                    ? "cursor-not-allowed bg-gray-300"
-                    : "bg-[#086e45] hover:scale-110 active:scale-95",
-                )}
-              >
-                <Plus className="size-5" aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* Faixa de preço progressiva — sem prometer percentual aproximado */}
-            {podeTerDesconto &&
-              (proximaFaixa ? (
-                <div className="mt-1.5 rounded-lg bg-neutral-900 px-3 py-2.5 text-center">
-                  <p className="text-xs font-bold text-white leading-snug">
-                    Adicione mais{" "}
-                    <span className="font-black text-[#86efac]">
-                      {faltamParaDesconto} {faltamParaDesconto === 1 ? "unidade" : "unidades"}
-                    </span>
-                  </p>
-                  <p className="text-xs font-bold text-white leading-snug">
-                    para liberar o preço da faixa de{" "}
-                    <span className="font-black text-[#86efac]">{proximaFaixa}+</span>
-                  </p>
+              {quantidadeSelecionadaNoCarrinho > 0 && !isComboPronto ? (
+                <div
+                  className="flex items-center gap-1 rounded-full border border-[#cfe0c4] bg-[#f4f8f1] p-1 shadow-sm"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    aria-label="Diminuir quantidade"
+                    onClick={(event) => ajustarQuantidadeNoCard(-1, event)}
+                    className="inline-flex size-8 items-center justify-center rounded-full text-[#086e45] transition hover:bg-white"
+                  >
+                    <Minus className="size-4" />
+                  </button>
+                  <span className="min-w-6 text-center text-sm font-black text-[#173a2d]">
+                    {quantidadeSelecionadaNoCarrinho}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Aumentar quantidade"
+                    onClick={(event) => ajustarQuantidadeNoCard(1, event)}
+                    disabled={soldOut}
+                    className={cn(
+                      "inline-flex size-8 items-center justify-center rounded-full text-white transition",
+                      soldOut ? "cursor-not-allowed bg-gray-300" : "bg-[#086e45] hover:scale-105",
+                    )}
+                  >
+                    <Plus className="size-4" />
+                  </button>
                 </div>
               ) : (
-                <div className="mt-1.5 rounded-lg bg-[#086e45] px-3 py-2 text-center">
-                  <span className="text-[11px] font-black uppercase tracking-wide text-white">
-                    ✓ Melhor faixa de preço aplicada
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={soldOut}
+                  className={cn(
+                    "inline-flex size-10 items-center justify-center rounded-full text-white transition-all shadow-md",
+                    soldOut
+                      ? "cursor-not-allowed bg-gray-300"
+                      : "bg-[#086e45] hover:scale-110 active:scale-95",
+                  )}
+                >
+                  <Plus className="size-5" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {podeTerDesconto &&
+              (proximaFaixa ? (
+                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-[11px] font-bold text-[#527164]">
+                  <span>
+                    Faltam <strong className="text-[#087443]">{faltamParaDesconto}</strong> para {proximaFaixa}+
                   </span>
+                  {precoProximaFaixa != null && (
+                    <span className="shrink-0 font-black text-[#087443]">
+                      {formatBRL(precoProximaFaixa)}/un
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-[11px] font-black text-[#087443]">
+                  ✓ Melhor faixa de preço aplicada
                 </div>
               ))}
           </div>

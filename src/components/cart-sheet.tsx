@@ -32,7 +32,7 @@ function estoqueDaLinha(product: any, weight?: string) {
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { lines, subtotal, discount, shipping, total, setQuantity, remove, clear } = useCart();
+  const { lines, count, subtotal, discount, shipping, total, setQuantity, remove, clear } = useCart();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -40,9 +40,14 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 rounded-l-[2rem] border-l-0 shadow-2xl">
         <SheetHeader className="p-6 border-b bg-white rounded-tl-[2rem]">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-xl font-black text-primary flex items-center gap-2">
+            <SheetTitle className="flex items-center gap-2 text-xl font-black text-primary">
               <ShoppingCart size={20} />
               Seu Carrinho
+              {count > 0 && (
+                <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-[10px] font-black text-[#087443]">
+                  {count} {count === 1 ? "item" : "itens"}
+                </span>
+              )}
             </SheetTitle>
           </div>
         </SheetHeader>
@@ -147,10 +152,15 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   <span>-{formatBRL(discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-lg font-black text-primary-dark border-t border-gray-50 pt-2">
+              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-black text-primary-dark">
                 <span>Total</span>
                 <span>{formatBRL(subtotal - discount)}</span>
               </div>
+              {discount > 0 && (
+                <div className="rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-[11px] font-black text-[#087443]">
+                  Você está economizando {formatBRL(discount)} neste pedido
+                </div>
+              )}
               <p className="text-[9px] text-gray-400 font-medium italic text-center">
                 * Entrega calculada no checkout
               </p>
@@ -161,7 +171,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20"
             >
               <Link to="/checkout" search={{ cupom: undefined }}>
-                Finalizar compra
+                Finalizar compra • {formatBRL(subtotal - discount)}
               </Link>
             </Button>
           </SheetFooter>
