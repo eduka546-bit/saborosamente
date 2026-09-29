@@ -138,6 +138,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
 
+  const ingredientesTexto = Array.isArray((product as any).ingredientes)
+    ? (product as any).ingredientes
+        .map((item: unknown) => String(item || "").trim())
+        .filter(Boolean)
+        .join(", ")
+    : String((product as any).ingredientes || "").trim();
+
   const commercialBadge = soldOut
     ? { label: "Esgotado", className: "bg-neutral-900 text-white" }
     : lowStock
@@ -396,6 +403,17 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             <h3 className="min-h-[3.9rem] text-base md:text-[17px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
+
+            {ingredientesTexto && (
+              <div className="rounded-xl bg-[#f7f8f3] px-3 py-2.5">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#527164]">
+                  Ingredientes
+                </p>
+                <p className="text-xs leading-relaxed text-[#48554d]">
+                  {ingredientesTexto}
+                </p>
+              </div>
+            )}
 
             {/* Seletor de peso */}
             {weights.length > 1 ? (
