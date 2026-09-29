@@ -173,6 +173,24 @@ function RootComponent() {
     setMounted(true);
   }, [pathname]);
 
+  // Se uma aba antiga tentar carregar um chunk que já não existe após um deploy,
+  // recarrega uma única vez para buscar a versão atual do site.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = "saborosamente.chunk_reload_once";
+    const onPreloadError = () => {
+      if (sessionStorage.getItem(key) === "1") return;
+      sessionStorage.setItem(key, "1");
+      window.location.reload();
+    };
+    window.addEventListener("vite:preloadError", onPreloadError as EventListener);
+    const clearGuard = window.setTimeout(() => sessionStorage.removeItem(key), 10_000);
+    return () => {
+      window.removeEventListener("vite:preloadError", onPreloadError as EventListener);
+      window.clearTimeout(clearGuard);
+    };
+  }, []);
+
   // Registra o service worker (PWA) — permite instalar o painel como app.
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
