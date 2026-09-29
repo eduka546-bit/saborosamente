@@ -1,10 +1,10 @@
+/* Imports precisam vir antes de qualquer outra at-rule para o CSS final permanecer válido. */
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pacifico&display=swap");
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
 @import "./styles/image-optimization.css";
 
-/* Importar fontes da identidade visual */
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Pacifico&display=swap");
+@source "../src";
 
 @font-face {
   font-family: "Halimun";
