@@ -18,11 +18,14 @@ function requireEnv(nome: string): string {
 const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
-const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "saborosamente-webhook-2026";
+const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
 // App secret do app Meta, usado para validar a assinatura dos webhooks
-// (X-Hub-Signature-256). Opcional: se não estiver configurado, a verificação
-// é ignorada (degradação graciosa) para não derrubar quem ainda não cadastrou.
+// (X-Hub-Signature-256). A ausência é registrada como alerta de segurança
+// para que o ambiente possa ser corrigido sem mascarar a configuração.
 const WHATSAPP_APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
+if (!WHATSAPP_APP_SECRET) {
+  console.warn("SECURITY_CONFIG_MISSING: WHATSAPP_APP_SECRET");
+}
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -1886,7 +1889,7 @@ Deno.serve(async (req: Request) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
+    if (WHATSAPP_VERIFY_TOKEN && mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
       return new Response(challenge, { status: 200 });
     }
     return new Response("Forbidden", { status: 403 });
