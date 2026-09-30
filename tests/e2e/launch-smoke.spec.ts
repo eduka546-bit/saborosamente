@@ -514,21 +514,48 @@ test("checkout: rotas regionais exibem os dias e horários comerciais corretos",
   expect(opcoesCorupa.length).toBeGreaterThan(0);
   expect(opcoesCorupa.every((x) => /Terça-feira/.test(x))).toBe(true);
 
-  await cidade.selectOption({ label: "Rio Negrinho" });
+  for (const cidadeSexta of ["Mafra", "Rio Negro", "Rio Negrinho", "Campo Alegre", "Piên"]) {
+    await cidade.selectOption({ label: cidadeSexta });
+    await chooseFirstNeighborhood(page);
+    const dataRegional = page.getByLabel(/Data de entrega/i);
+    const datas = await dataRegional.locator("option").allTextContents();
+    const opcoes = datas.filter((x) => /\d{2}\/\d{2}\/\d{4}/.test(x));
+    expect(opcoes.length, cidadeSexta).toBeGreaterThan(0);
+    expect(opcoes.every((x) => /Sexta-feira/.test(x)), cidadeSexta).toBe(true);
+
+    const valoresData = await dataRegional.locator("option").evaluateAll((els) =>
+      els.map((e) => (e as HTMLOptionElement).value).filter(Boolean),
+    );
+    await dataRegional.selectOption(valoresData[0]);
+    const horarios = await page.getByLabel(/Horário de entrega/i).locator("option").allTextContents();
+    const opcoesHorario = horarios.filter((x) => /\d{2}:\d{2}/.test(x));
+    expect(opcoesHorario.length, cidadeSexta).toBeGreaterThan(0);
+    expect(
+      opcoesHorario.every((x) => /^(13:30|14:30|15:30|16:30|17:30)/.test(x)),
+      cidadeSexta,
+    ).toBe(true);
+  }
+
+  expect(problems, problems.join("\n")).toEqual([]);
+});
+
+test("checkout: São Bento do Sul cobra R$ 5 de frete com 5 marmitas", async ({ page }) => {
+  const problems = observe(page);
+  await addMarmitaUnits(page, 5);
+  await goToCheckoutThroughCart(page);
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+
+  const cidade = page.getByLabel("Cidade");
+  await cidade.selectOption({ label: "São Bento do Sul" });
   await chooseFirstNeighborhood(page);
-  const dataRioNegrinho = page.getByLabel(/Data de entrega/i);
-  const datasRioNegrinho = await dataRioNegrinho.locator("option").allTextContents();
-  const opcoesRioNegrinho = datasRioNegrinho.filter((x) => /\d{2}\/\d{2}\/\d{4}/.test(x));
-  expect(opcoesRioNegrinho.length).toBeGreaterThan(0);
-  expect(opcoesRioNegrinho.every((x) => /Sexta-feira/.test(x))).toBe(true);
-  const valoresData = await dataRioNegrinho.locator("option").evaluateAll((els) =>
-    els.map((e) => (e as HTMLOptionElement).value).filter(Boolean),
-  );
-  await dataRioNegrinho.selectOption(valoresData[0]);
-  const horarios = await page.getByLabel(/Horário de entrega/i).locator("option").allTextContents();
-  const opcoesHorario = horarios.filter((x) => /\d{2}:\d{2}/.test(x));
-  expect(opcoesHorario.length).toBeGreaterThan(0);
-  expect(opcoesHorario.every((x) => /^(13:30|14:30|15:30|16:30|17:30)/.test(x))).toBe(true);
+
+  const valoresEntrega = page
+    .locator("dt")
+    .filter({ hasText: /^Entrega$/ })
+    .locator("xpath=following-sibling::dd");
+  await expect(valoresEntrega.filter({ hasText: /R\$\s*5,00/ }).first()).toBeVisible({
+    timeout: 10000,
+  });
 
   expect(problems, problems.join("\n")).toEqual([]);
 });
