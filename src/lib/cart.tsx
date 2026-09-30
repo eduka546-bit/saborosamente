@@ -10,6 +10,7 @@ import {
 import { formatBRL, type Product } from "@/lib/products";
 import { getPublicProducts } from "./products.functions";
 import { getTaxas } from "./taxas.functions";
+import { recoverFromStaleServerFunction } from "./server-function-recovery";
 import { useQuery } from "@tanstack/react-query";
 import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import { ExitIntentModal } from "@/components/exit-intent-modal";
@@ -425,7 +426,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const { data: serverTaxas } = useQuery({
     queryKey: ["taxas"],
-    queryFn: () => getTaxas(),
+    queryFn: async () => {
+      try {
+        return await getTaxas();
+      } catch (error) {
+        recoverFromStaleServerFunction(error);
+        throw error;
+      }
+    },
   });
 
   const taxas = serverTaxas || MOCK_TAXAS;
