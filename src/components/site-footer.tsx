@@ -114,15 +114,15 @@ export function SiteFooter() {
             </Link>
             <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">{description}</p>
             <div className="flex flex-col gap-2 pt-1">
-              <div className="flex items-center gap-2 text-xs opacity-70">
+              <div className="flex items-center gap-2 text-xs opacity-90">
                 <Leaf size={13} className="shrink-0" />
                 <span>Sem conservantes industrializados</span>
               </div>
-              <div className="flex items-center gap-2 text-xs opacity-70">
+              <div className="flex items-center gap-2 text-xs opacity-90">
                 <ShieldCheck size={13} className="shrink-0" />
                 <span>6 meses de validade</span>
               </div>
-              <div className="flex items-center gap-2 text-xs opacity-70">
+              <div className="flex items-center gap-2 text-xs opacity-90">
                 <Clock size={13} className="shrink-0" />
                 <span>Pronto em até 7 minutos</span>
               </div>
@@ -131,7 +131,7 @@ export function SiteFooter() {
 
           {/* coluna 2 — navegação */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
               Navegação
             </h3>
             <nav>
@@ -147,7 +147,7 @@ export function SiteFooter() {
                     <Link
                       to={item.to as any}
                       hash={(item as any).hash}
-                      className="group flex items-center gap-2 opacity-75 transition-all hover:opacity-100"
+                      className="group flex items-center gap-2 opacity-90 transition-all hover:opacity-100"
                     >
                       <span className="h-px w-3 bg-current opacity-0 transition-all group-hover:w-5 group-hover:opacity-60" />
                       {item.label}
@@ -160,7 +160,7 @@ export function SiteFooter() {
 
           {/* coluna 3 — atendimento */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
               Atendimento
             </h3>
             <ul className="space-y-4 text-sm">
@@ -210,7 +210,7 @@ export function SiteFooter() {
 
           {/* coluna 4 — localização */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-50">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
               Localização
             </h3>
             <a
