@@ -285,6 +285,7 @@ test("rotas administrativas expostas estão registradas e protegidas", async ({ 
     "/admin/config/entregador",
     "/admin/config/parametros",
     "/admin/config/impressao",
+    "/admin/config/whatsapp-notificacoes",
     // Legadas: não podem voltar a quebrar mesmo que alguém tenha o link salvo.
     "/admin/financeiro/lancamentos",
     "/admin/config/excecoes",
