@@ -817,7 +817,7 @@ function Checkout() {
         <div className="mt-6 rounded-2xl border border-[#d9e6d2] bg-[#f4f8f1] p-4 text-left text-sm text-[#315440]">
           <strong>Agora é com a gente.</strong>
           <p className="mt-1 text-xs leading-relaxed text-[#5b7064]">
-            Você receberá as próximas atualizações do pedido pelo WhatsApp. A avaliação será solicitada somente depois da entrega.
+            Para acompanhar seu pedido, clique no botão “Acompanhar pedido no WhatsApp” acima. Por lá você poderá consultar as próximas atualizações. A avaliação será solicitada somente depois da entrega.
           </p>
         </div>
 
