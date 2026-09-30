@@ -1,13 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 
 /** Busca configuração pública do programa de cashback. */
 export async function getCashbackConfig() {
-  const { data } = await supabase
-    .from("site_settings")
-    .select(
-      "cashback_percentual, cashback_validade_dias, cashback_minimo_uso, cashback_limite_desconto_pct, cashback_ativo",
-    )
-    .maybeSingle();
+  const data = await getPublicSiteSettings();
 
   return {
     ativo: (data as any)?.cashback_ativo !== false,
