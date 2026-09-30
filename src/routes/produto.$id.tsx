@@ -74,14 +74,10 @@ function ProdutoPage() {
   } = useQuery({
     queryKey: ["produto", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("*, categorias(nome, ordem_filtro)")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-      return data;
+      const products = (await getPublicProducts()) as any[];
+      const product = products.find((item) => item.id === id);
+      if (!product) throw new Error("Produto não encontrado");
+      return product;
     },
   });
 
