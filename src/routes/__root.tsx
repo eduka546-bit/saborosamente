@@ -191,6 +191,46 @@ function RootComponent() {
     };
   }, []);
 
+  // Uma aba aberta durante um deploy pode tentar chamar um Server Function
+  // cujo hash pertencia à versão anterior. Nesse caso recarregamos uma única
+  // vez, evitando erro 500 visível ao usuário.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const originalFetch = window.fetch.bind(window);
+    const reloadKey = "saborosamente.server_fn_reload_once";
+
+    window.fetch = (async (...args: Parameters<typeof fetch>) => {
+      const response = await originalFetch(...args);
+      try {
+        const requestUrl =
+          typeof args[0] === "string"
+            ? args[0]
+            : args[0] instanceof URL
+              ? args[0].toString()
+              : args[0]?.url ?? "";
+        if (response.status >= 500 && requestUrl.includes("/__server")) {
+          const body = await response.clone().text();
+          if (
+            body.includes("Server function info not found") &&
+            sessionStorage.getItem(reloadKey) !== "1"
+          ) {
+            sessionStorage.setItem(reloadKey, "1");
+            window.location.reload();
+          }
+        }
+      } catch {
+        // A resposta original sempre continua sendo devolvida.
+      }
+      return response;
+    }) as typeof window.fetch;
+
+    const clearGuard = window.setTimeout(() => sessionStorage.removeItem(reloadKey), 15_000);
+    return () => {
+      window.fetch = originalFetch;
+      window.clearTimeout(clearGuard);
+    };
+  }, []);
+
   // Registra o service worker (PWA) — permite instalar o painel como app.
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
