@@ -37,6 +37,7 @@ import { checkoutSchema, type CheckoutForm } from "@/lib/checkout-validation";
 import { trackEvent } from "@/lib/analytics";
 import { calcularRegraCupom } from "@/lib/coupon-rules";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -105,6 +106,11 @@ function Checkout() {
   const [feedbackNota, setFeedbackNota] = useState(0);
   const [feedbackComentario, setFeedbackComentario] = useState("");
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
+  const [recoveryConsent, setRecoveryConsent] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("saborosamente.recovery_whatsapp_consent") === "1";
+  });
+  const leadCaptureSignatureRef = useRef("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [selectedFlag, setSelectedFlag] = useState<string>("");
   const [session, setSession] = useState<any>(null);
@@ -343,6 +349,7 @@ function Checkout() {
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
@@ -351,6 +358,91 @@ function Checkout() {
       cidade: selectedCity,
     },
   });
+
+  const recoveryNome = watch("nome");
+  const recoveryEmail = watch("email");
+  const recoveryTelefone = watch("telefone");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      "saborosamente.recovery_whatsapp_consent",
+      recoveryConsent ? "1" : "0",
+    );
+
+    if (!recoveryConsent) {
+      leadCaptureSignatureRef.current = "";
+      void supabase.rpc("capture_checkout_recovery_lead", {
+        p_session_id: getAbandonedCartSessionId(),
+        p_nome: "",
+        p_telefone: "",
+        p_email: "",
+        p_itens: [],
+        p_valor_total: 0,
+        p_consent: false,
+      });
+    }
+  }, [recoveryConsent]);
+
+  useEffect(() => {
+    if (!recoveryConsent || lines.length === 0) return;
+    const nome = String(recoveryNome ?? "").trim();
+    const email = String(recoveryEmail ?? "").trim().toLowerCase();
+    const telefone = String(recoveryTelefone ?? "").replace(/\D/g, "");
+
+    if (nome.length < 3 || telefone.length < 10 || telefone.length > 13) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+    const itens = lines.map((l) => ({
+      productId: l.productId,
+      quantity: l.quantity,
+      weight: l.weight,
+      nome: l.product?.nome ?? l.productId,
+      preco: Number(l.product?.preco ?? 0),
+      subtotal: Number(l.subtotal ?? 0),
+      imagem: l.product?.imagem_url ?? "",
+    }));
+
+    const signature = JSON.stringify({
+      nome,
+      email,
+      telefone,
+      valor: Number(finalTotal || 0).toFixed(2),
+      itens: itens.map((item) => [item.productId, item.quantity, item.weight]),
+    });
+    if (leadCaptureSignatureRef.current === signature) return;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const { error } = await supabase.rpc("capture_checkout_recovery_lead", {
+          p_session_id: getAbandonedCartSessionId(),
+          p_nome: nome,
+          p_telefone: telefone,
+          p_email: email,
+          p_itens: itens,
+          p_valor_total: Number(finalTotal || 0),
+          p_consent: true,
+        });
+        if (error) throw error;
+        leadCaptureSignatureRef.current = signature;
+        trackEvent("recovery_lead_captured", {
+          valor: Number(finalTotal || 0),
+          metadata: { canal: "whatsapp", etapa: "checkout" },
+        });
+      } catch (error) {
+        console.warn("[Checkout] não foi possível registrar lead de recuperação:", error);
+      }
+    }, 900);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    recoveryConsent,
+    recoveryNome,
+    recoveryEmail,
+    recoveryTelefone,
+    lines,
+    finalTotal,
+  ]);
 
   useEffect(() => {
     if (PAYMENT_OPTIONS.length === 0) return;
@@ -923,6 +1015,20 @@ function Checkout() {
                 )}
               </div>
             </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-3">
+              <input
+                type="checkbox"
+                checked={recoveryConsent}
+                onChange={(event) => setRecoveryConsent(event.target.checked)}
+                className="mt-0.5 size-4 accent-[#086e45]"
+              />
+              <span className="text-xs leading-5 text-muted-foreground">
+                Aceito receber uma mensagem no WhatsApp caso eu não conclua este pedido,
+                para receber ajuda na recuperação do carrinho. Posso desmarcar esta opção
+                a qualquer momento.
+              </span>
+            </label>
           </fieldset>
 
           {/* ── entrega ────────────────────────────────────────────────────── */}
