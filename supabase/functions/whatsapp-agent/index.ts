@@ -19,6 +19,9 @@ const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
+if (!WHATSAPP_VERIFY_TOKEN) {
+  console.warn("SECURITY_CONFIG_MISSING: WHATSAPP_VERIFY_TOKEN");
+}
 // App secret do app Meta, usado para validar a assinatura dos webhooks
 // (X-Hub-Signature-256). A ausência é registrada como alerta de segurança
 // para que o ambiente possa ser corrigido sem mascarar a configuração.
