@@ -24,6 +24,7 @@ import {
   MARMITA_PRICE_TABLE,
 } from "@/lib/combo-rules";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { imgUrl } from "@/lib/image-proxy";
 
 // Variável global para cache de produtos no lado do cliente
@@ -433,8 +434,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { data: settingsPrecos } = useQuery({
     queryKey: ["site-settings-precos"],
     queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("parametros_loja").maybeSingle();
-      return data;
+      return getPublicSiteSettings();
     },
     staleTime: 1000 * 60 * 5,
   });
