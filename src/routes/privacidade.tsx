@@ -84,7 +84,10 @@ function PrivacidadePage() {
             <li>Calcular e creditar cashback nas suas compras.</li>
             <li>Prestar atendimento ao cliente, inclusive via assistente virtual (IA).</li>
             <li>Enviar ofertas e promoções (somente com seu consentimento).</li>
-            <li>Recuperar carrinhos abandonados com ofertas personalizadas.</li>
+            <li>
+              Recuperar carrinhos abandonados por WhatsApp somente quando você autorizar
+              expressamente esse contato no checkout.
+            </li>
             <li>Cumprir obrigações legais e fiscais.</li>
             <li>Melhorar nossos produtos, serviços e experiência de compra.</li>
           </ul>
@@ -191,6 +194,11 @@ function PrivacidadePage() {
             O Google Analytics é utilizado para medir páginas visitadas, interações, início de
             checkout e compras. Não enviamos nome, e-mail ou telefone ao Google Analytics e não
             utilizamos essa integração para personalização de anúncios.
+          </p>
+          <p className="mt-2">
+            No checkout, você também pode autorizar separadamente uma mensagem de recuperação por
+            WhatsApp caso não conclua o pedido. Esse consentimento não é necessário para comprar e
+            pode ser retirado desmarcando a opção antes de concluir ou abandonar o checkout.
           </p>
           <button
             type="button"
