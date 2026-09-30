@@ -3,8 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 const SITE_URL = "https://www.saborosamente.com";
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL || "https://lxcgbrovdmpjatywweiv.supabase.co";
-const SUPABASE_KEY =
-  process.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_g8rvhJQtps_agL3lH6amzg_ipC9OWpC";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || "";
 const SITEMAP_PATH = new URL("../public/sitemap.xml", import.meta.url);
 
 const staticUrls = [
@@ -35,24 +34,26 @@ function renderUrl({ loc, lastmod, changefreq, priority }) {
 
 async function main() {
   try {
-    const url = new URL("/rest/v1/produtos", SUPABASE_URL);
-    url.searchParams.set("select", "id,updated_at");
-    url.searchParams.set("ativo", "eq.true");
-    url.searchParams.set("visivel_online", "eq.true");
-    url.searchParams.set("order", "updated_at.desc");
+    if (!SUPABASE_KEY) {
+      throw new Error("VITE_SUPABASE_ANON_KEY não configurada");
+    }
 
+    const url = new URL("/rest/v1/rpc/produtos_publicos", SUPABASE_URL);
     const response = await fetch(url, {
+      method: "POST",
       headers: {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: "{}",
     });
+
     if (!response.ok) throw new Error(`Supabase respondeu ${response.status}`);
 
     const products = await response.json();
     const productUrls = products.map((product) => ({
       loc: `/produto/${product.id}`,
-      lastmod: product.updated_at ? String(product.updated_at).slice(0, 10) : undefined,
       changefreq: "monthly",
       priority: "0.7",
     }));
@@ -68,7 +69,6 @@ async function main() {
     await writeFile(SITEMAP_PATH, xml, "utf8");
     console.log(`Sitemap gerado com ${staticUrls.length + productUrls.length} URLs.`);
   } catch (error) {
-    // Não deixa uma indisponibilidade externa impedir o deploy.
     await readFile(SITEMAP_PATH, "utf8");
     console.warn("Não foi possível atualizar sitemap; mantendo arquivo existente:", error);
   }
