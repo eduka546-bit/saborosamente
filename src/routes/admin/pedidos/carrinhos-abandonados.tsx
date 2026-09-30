@@ -118,7 +118,7 @@ function AdminCarrinhosAbandonadosPage() {
       .map((i: any) => `• ${i.nome ?? i.productId} ×${i.quantity}`)
       .join("\n");
     const coupon = carrinho.cupom_oferta
-      ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para 10% OFF!`
+      ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para garantir seu desconto!`
       : "";
     const msg = encodeURIComponent(
       `Olá${carrinho.nome ? `, ${carrinho.nome}` : ""}! 👋\n\nVimos que você deixou itens no carrinho da Saborosamente:\n\n${itens}\n\n💰 Total: R$ ${Number(carrinho.valor_total).toFixed(2)}${coupon}\n\nPosso te ajudar a finalizar o pedido? 😊`,
