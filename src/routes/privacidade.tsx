@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { clearGoogleAnalyticsConsent } from "@/lib/google-analytics";
 
 export const Route = createFileRoute("/privacidade")({
   head: () => ({
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/privacidade")({
 });
 
 function PrivacidadePage() {
-  const dataAtualizacao = "18 de agosto de 2026";
+  const dataAtualizacao = "30 de setembro de 2026";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -58,8 +59,9 @@ function PrivacidadePage() {
               histórico de compras.
             </li>
             <li>
-              <strong>Dados de navegação:</strong> páginas acessadas, tempo de sessão, dispositivo e
-              navegador (via cookies técnicos).
+              <strong>Dados de navegação:</strong> páginas acessadas, eventos de navegação,
+              dispositivo e navegador. Métricas do Google Analytics só são coletadas quando você
+              aceita cookies de métricas.
             </li>
             <li>
               <strong>Dados de comunicação:</strong> mensagens trocadas via WhatsApp, incluindo
@@ -121,8 +123,9 @@ function PrivacidadePage() {
             </li>
             <li>
               <strong>Plataformas de tecnologia</strong> — Supabase (banco de dados), Meta/WhatsApp
-              (comunicação), Vercel (hospedagem), OpenAI (IA de atendimento) — todos com políticas
-              de privacidade próprias e conformes com a LGPD/GDPR.
+              (comunicação), Vercel (hospedagem), OpenAI (IA de atendimento) e, quando houver
+              consentimento para métricas, Google Analytics. Cada fornecedor possui sua própria
+              política de privacidade e seus próprios termos de tratamento de dados.
             </li>
             <li>
               <strong>Autoridades públicas</strong> — quando exigido por lei.
@@ -178,12 +181,27 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">8. Cookies</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-2">8. Cookies e métricas</h2>
           <p>
-            Utilizamos cookies técnicos essenciais para o funcionamento do site (como manter itens
-            no carrinho e sessão de login). Não utilizamos cookies de rastreamento de terceiros para
-            publicidade.
+            Utilizamos armazenamento e cookies técnicos essenciais para manter o carrinho, a sessão
+            e outras funções necessárias do site. O Google Analytics 4 é opcional e só é carregado
+            depois que você aceita cookies de métricas.
           </p>
+          <p className="mt-2">
+            O Google Analytics é utilizado para medir páginas visitadas, interações, início de
+            checkout e compras. Não enviamos nome, e-mail ou telefone ao Google Analytics e não
+            utilizamos essa integração para personalização de anúncios.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              clearGoogleAnalyticsConsent();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="mt-3 rounded-lg border border-[#086e45]/30 px-3 py-2 text-sm font-semibold text-[#086e45] hover:bg-[#086e45]/5"
+          >
+            Revisar preferências de cookies
+          </button>
         </section>
 
         <section>
