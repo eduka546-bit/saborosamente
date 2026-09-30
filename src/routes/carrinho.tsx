@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { regraEntregaCidade } from "@/lib/entrega-config";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { getPublicProducts } from "@/lib/products.functions";
 import { trackEvent } from "@/lib/analytics";
 import { useEffect, useMemo } from "react";
@@ -67,11 +68,7 @@ function Carrinho() {
   const { data: cashbackConfig } = useQuery({
     queryKey: ["cashback-cart-config"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("site_settings")
-        .select("cashback_ativo,cashback_percentual,parametros_loja")
-        .maybeSingle();
-      return data;
+      return getPublicSiteSettings();
     },
     staleTime: 1000 * 60 * 10,
   });
