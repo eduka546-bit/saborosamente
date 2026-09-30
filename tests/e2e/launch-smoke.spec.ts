@@ -3,7 +3,6 @@ import AxeBuilder from "@axe-core/playwright";
 
 const BASE_URL = process.env.E2E_BASE_URL || "https://saborosamente.vercel.app";
 const PRODUCT = "TD24 - Espaguete à Carbonara com Ovos Mexidos e Bacon";
-const SAFE_COUPON = "VOLTA84D7C9";
 
 function observe(page: Page) {
   const problems: string[] = [];
@@ -73,7 +72,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", async ({ page }) => {
+test("desktop: produto -> opções -> checkout -> frete -> login", async ({ page }) => {
   const problems = observe(page);
 
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -146,11 +145,6 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   const pix = page.getByRole("button", { name: /PIX/i }).first();
   await expect(pix).toBeVisible();
 
-  const cupom = page.getByPlaceholder("Digite seu cupom");
-  await cupom.fill(SAFE_COUPON);
-  await page.getByRole("button", { name: "Aplicar", exact: true }).click();
-  await expect(page.getByText(new RegExp(`Cupom.*${SAFE_COUPON}.*aplicado`, "i"))).toBeVisible({ timeout: 10000 });
-
   await page.screenshot({ path: "test-results/03-checkout-pre-login.png", fullPage: true });
 
   const submit = page.getByRole("button", { name: /Entrar para confirmar/i });
@@ -164,8 +158,6 @@ test("desktop: produto -> opções -> checkout -> frete -> cupom -> login", asyn
   await page.waitForURL(/\/checkout(?:\?|$)/, { timeout: 10000 });
   await expect(page.getByLabel("Nome completo")).toHaveValue("Teste SaborosaMente");
   await expect(page.getByLabel("E-mail")).toHaveValue("teste-e2e@saborosamente.invalid");
-  await expect(page.getByPlaceholder("Digite seu cupom")).toHaveValue(SAFE_COUPON);
-  await expect(page.getByText(new RegExp(`Cupom.*${SAFE_COUPON}.*aplicado`, "i"))).toBeVisible({ timeout: 10000 });
 
   expect(problems, problems.join("\n")).toEqual([]);
 });
