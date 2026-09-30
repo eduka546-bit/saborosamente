@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 import { Loader2, RotateCcw, Package, ChevronRight, Lock, Plus } from "lucide-react";
+import { getProductSummaries } from "@/lib/products.functions";
 
 export const Route = createFileRoute("/meus-pedidos")({
   head: () => ({
@@ -92,7 +93,7 @@ function MeusPedidosPage() {
       ];
       const nomes: Record<string, string> = {};
       if (ids.length > 0) {
-        const { data: prods } = await supabase.from("produtos").select("id, nome").in("id", ids);
+        const prods = await getProductSummaries(ids);
         (prods ?? []).forEach((p: any) => (nomes[p.id] = p.nome));
       }
 
