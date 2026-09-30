@@ -640,27 +640,27 @@ function Index() {
       <section className="bg-[#fbfaf5] pb-8 pt-6 md:pb-12 md:pt-10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
-            <div className="grid lg:grid-cols-[1.02fr_.98fr]">
-              <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-14">
-                <span className="mb-4 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
+            <div className="grid lg:grid-cols-[1.02fr_.98fr] xl:aspect-[20/7]">
+              <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-10 xl:px-10 xl:py-7">
+                <span className="mb-3 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
                   Sabor e praticidade para sua rotina
                 </span>
-                <h1 className="max-w-xl font-display text-4xl font-black leading-[1.04] text-[#075636] md:text-5xl lg:text-6xl">
+                <h1 className="max-w-xl font-display text-4xl font-black leading-[1.04] text-[#075636] md:text-5xl xl:text-5xl">
                   Comida de verdade, pronta em até <span className="font-halimun text-[#91b93a]">7 minutos</span>
                 </h1>
-                <p className="mt-5 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg">
+                <p className="mt-4 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg xl:text-base">
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
-                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <button onClick={() => abrirCardapio()} className="rounded-full bg-[#f6d83d] px-6 py-3 text-sm font-extrabold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Comprar agora</button>
                   <button onClick={() => setMarmitaModalOpen(true)} className="rounded-full border-2 border-[#075636] px-6 py-3 text-sm font-extrabold text-[#075636] transition hover:bg-[#075636] hover:text-white">Montar minha marmita</button>
                 </div>
-                <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#315440]">
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#315440]">
                   <span className="inline-flex items-center gap-1.5"><Truck size={16} />Entrega regional</span>
                   <span className="inline-flex items-center gap-1.5"><ShoppingBag size={16} />Retirada na loja</span>
                 </div>
               </div>
-              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[430px]">
+              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[430px] xl:min-h-0">
                 {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
                   <PromoCarousel banners={promoBanners} fill className="absolute inset-0 max-w-none" />
                 ) : (
