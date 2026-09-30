@@ -7,6 +7,7 @@ on:
     paths:
       - "src/**"
       - "public/**"
+      - "scripts/**"
       - "supabase/functions/**"
       - "supabase/migrations/**"
       - "tests/e2e/**"
