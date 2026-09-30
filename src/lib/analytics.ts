@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { trackGoogleAnalyticsEvent } from "@/lib/google-analytics";
 
 const SESSION_KEY = "saborosamente.analytics.session";
 
@@ -22,6 +23,7 @@ export async function trackEvent(
   } = {},
 ) {
   if (typeof window === "undefined") return;
+  trackGoogleAnalyticsEvent(evento, options);
   try {
     await supabase.rpc("registrar_evento_analytics", {
       p_session_id: getAnalyticsSessionId(),
