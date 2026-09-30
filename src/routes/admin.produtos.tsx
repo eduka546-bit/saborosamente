@@ -1962,6 +1962,26 @@ function AdminProductsPage() {
   const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
+      const codigo = String(data.codigo_integracao ?? "").replace(/\s+/g, "").trim();
+
+      if (codigo) {
+        let duplicateQuery = supabase
+          .from("produtos")
+          .select("id,nome")
+          .eq("codigo_integracao", codigo)
+          .limit(1);
+        if (id) duplicateQuery = duplicateQuery.neq("id", id);
+
+        const { data: duplicado, error: duplicateError } = await duplicateQuery.maybeSingle();
+        if (duplicateError) throw duplicateError;
+        if (duplicado) {
+          throw new Error(
+            `O código de barras ${codigo} já está cadastrado em "${duplicado.nome}". Use um código único.`,
+          );
+        }
+        data.codigo_integracao = codigo;
+      }
+
       if (id) {
         const { error } = await supabase.from("produtos").update(data).eq("id", id);
         if (error) throw error;

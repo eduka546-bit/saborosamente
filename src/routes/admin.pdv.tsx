@@ -189,6 +189,18 @@ function AdminPDV() {
     } else if (searchResults.length === 0 && searchValue.trim()) {
       toast.error(`Produto não encontrado: "${searchValue.trim()}"`);
       setSearchValue("");
+    } else if (/^\d{4,}$/.test(searchValue.trim())) {
+      const lido = searchValue.trim().replace(/^0+/, "") || searchValue.trim();
+      const exatos = searchResults.filter((p: any) => {
+        const ean = String(p.codigo_integracao ?? "").replace(/\s+/g, "").trim();
+        const normalizado = ean.replace(/^0+/, "") || ean;
+        return normalizado === lido;
+      });
+      if (exatos.length > 1) {
+        toast.error(
+          `Código de barras duplicado em ${exatos.length} produtos. Corrija o cadastro antes de usar o leitor automático.`,
+        );
+      }
     }
   }, [searchResults, searchValue]);
 
