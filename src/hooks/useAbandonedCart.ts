@@ -1,16 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-// Gera ou reutiliza um session_id anônimo no localStorage
-function getSessionId(): string {
-  const key = "saborosamente.session_id";
-  let id = typeof window !== "undefined" ? localStorage.getItem(key) : null;
-  if (!id) {
-    id = `sess_${crypto.randomUUID().replaceAll("-", "")}`;
-    if (typeof window !== "undefined") localStorage.setItem(key, id);
-  }
-  return id;
-}
+import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 
 interface UseAbandonedCartOptions {
   lines: Array<{
@@ -26,7 +16,7 @@ interface UseAbandonedCartOptions {
 }
 
 export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCartOptions) {
-  const sessionId = useRef(getSessionId());
+  const sessionId = useRef(getAbandonedCartSessionId());
   const dbIdRef = useRef<string | null>(null);
   const couponRef = useRef<string | null>(null);
   const exitFiredRef = useRef(false);
