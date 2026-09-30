@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
       .from("carrinhos_abandonados")
       .select("*")
       .eq("status", "abandonado")
+      .eq("recuperacao_whatsapp_consentimento", true)
       .is("notificado_em", null) // ainda não notificado
       .lt("updated_at", umaHoraAtras) // abandonado há mais de 1h
       .not("telefone", "is", null) // tem telefone
@@ -142,6 +143,10 @@ async function processarCarrinho(
   // Não enviar se já foi notificado
   if (carrinho.notificado_em) {
     return { id: carrinho.id, ok: false, motivo: "já notificado" };
+  }
+
+  if (carrinho.recuperacao_whatsapp_consentimento !== true) {
+    return { id: carrinho.id, ok: false, motivo: "sem consentimento de recuperação" };
   }
 
   const telefone = carrinho.telefone;
