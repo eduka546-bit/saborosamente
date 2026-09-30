@@ -12,6 +12,7 @@ on:
       - "supabase/migrations/**"
       - "tests/e2e/**"
       - "package.json"
+      - "vercel.json"
       - "bun.lock"
       - ".github/workflows/e2e-launch.yml"
 
