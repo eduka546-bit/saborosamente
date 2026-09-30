@@ -18,6 +18,7 @@ import { formatBRL } from "@/lib/products";
 import { configEntregaParaCidade, gerarDatasEntrega } from "@/lib/entrega-config";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { createOrder } from "@/lib/orders.functions";
@@ -290,8 +291,7 @@ function Checkout() {
   const { data: siteSettings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
-      return data;
+      return getPublicSiteSettings();
     },
   });
 
