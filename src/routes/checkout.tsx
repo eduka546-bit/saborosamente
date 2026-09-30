@@ -177,12 +177,9 @@ function Checkout() {
     setCouponLoading(true);
     setCouponError("");
     try {
-      const { data, error } = await supabase
-        .from("cupons")
-        .select("codigo, tipo, valor, ativo, validade, regra, uso, max_uso, apenas_primeira_compra, substitui_desconto_progressivo, excluir_combo_pronto")
-        .eq("codigo", c)
-        .eq("ativo", true)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("validar_cupom_publico", {
+        p_codigo: c,
+      });
 
       if (error || !data) {
         setCouponError("Cupom inválido ou expirado.");
