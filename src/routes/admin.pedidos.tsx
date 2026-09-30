@@ -45,6 +45,7 @@ import { printReceipt } from "@/components/thermal-receipt";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
+import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminOrdersPage,
@@ -687,19 +688,25 @@ function AdminOrdersPage() {
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error("Sessão expirada.");
 
-      const result = await updateAdminOrderStatusFn({
-        data: {
-          id,
-          status: status as
-            | "pendente"
-            | "preparando"
-            | "saiu para entrega"
-            | "pronto para retirada"
-            | "entregue"
-            | "cancelado",
-          accessToken,
-        },
-      });
+      let result;
+      try {
+        result = await updateAdminOrderStatusFn({
+          data: {
+            id,
+            status: status as
+              | "pendente"
+              | "preparando"
+              | "saiu para entrega"
+              | "pronto para retirada"
+              | "entregue"
+              | "cancelado",
+            accessToken,
+          },
+        });
+      } catch (error) {
+        recoverFromStaleServerFunction(error);
+        throw error;
+      }
 
       const statusEfetivo = String((result as any)?.status ?? status);
 
