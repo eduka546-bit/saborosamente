@@ -36,6 +36,7 @@ import {
 import { checkoutSchema, type CheckoutForm } from "@/lib/checkout-validation";
 import { trackEvent } from "@/lib/analytics";
 import { calcularRegraCupom } from "@/lib/coupon-rules";
+import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
