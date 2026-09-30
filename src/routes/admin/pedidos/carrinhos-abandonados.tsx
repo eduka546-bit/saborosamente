@@ -236,13 +236,24 @@ function AdminCarrinhosAbandonadosPage() {
             </thead>
             <tbody className="divide-y">
               {filtered.map((c: any) => {
-                const waUrl = buildWhatsAppUrl(c);
+                const waUrl = c.recuperacao_whatsapp_consentimento
+                  ? buildWhatsAppUrl(c)
+                  : null;
                 return (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-900">{c.nome ?? "Anônimo"}</p>
                       {c.telefone && <p className="text-xs text-gray-400">{c.telefone}</p>}
                       {c.email && <p className="text-xs text-gray-400">{c.email}</p>}
+                      {c.recuperacao_whatsapp_consentimento ? (
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-green-600">
+                          WhatsApp autorizado
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          Sem consentimento de recuperação
+                        </p>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {Array.isArray(c.itens) && c.itens.length > 0 ? (
@@ -334,6 +345,18 @@ function AdminCarrinhosAbandonadosPage() {
                 {selectedCarrinho.email && (
                   <p className="text-sm text-gray-500">✉️ {selectedCarrinho.email}</p>
                 )}
+                <p className="pt-2 text-xs font-semibold text-gray-500">
+                  Consentimento para recuperação:{" "}
+                  <span
+                    className={
+                      selectedCarrinho.recuperacao_whatsapp_consentimento
+                        ? "text-green-600"
+                        : "text-gray-400"
+                    }
+                  >
+                    {selectedCarrinho.recuperacao_whatsapp_consentimento ? "Sim" : "Não"}
+                  </span>
+                </p>
                 <p className="text-xs text-gray-400 pt-1">
                   {format(new Date(selectedCarrinho.created_at), "dd/MM/yyyy 'às' HH:mm", {
                     locale: ptBR,
