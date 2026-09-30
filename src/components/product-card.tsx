@@ -473,22 +473,38 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
             {/* Selos sem glúten / sem lactose — canto inferior direito da imagem, empilhados vertical */}
             {(product.sem_gluten || product.sem_lactose) && (
-              <div className="absolute bottom-2 right-2 z-10 flex flex-col gap-1">
+              <div className="absolute bottom-2 right-2 z-20 flex flex-col gap-1">
                 {product.sem_gluten && (
-                  <img
-                    src="/selo-sem-gluten.png"
-                    alt="Sem Glúten"
+                  <button
+                    type="button"
+                    aria-label="Sem Glúten"
                     title="Sem Glúten"
-                    className="h-9 w-9 object-contain drop-shadow-md"
-                  />
+                    onClick={(event) => event.stopPropagation()}
+                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                  >
+                    <img
+                      src="/selo-sem-gluten.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                    />
+                  </button>
                 )}
                 {product.sem_lactose && (
-                  <img
-                    src="/selo-sem-lactose.png"
-                    alt="Sem Lactose"
+                  <button
+                    type="button"
+                    aria-label="Sem Lactose"
                     title="Sem Lactose"
-                    className="h-9 w-9 object-contain drop-shadow-md"
-                  />
+                    onClick={(event) => event.stopPropagation()}
+                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                  >
+                    <img
+                      src="/selo-sem-lactose.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                    />
+                  </button>
                 )}
               </div>
             )}
