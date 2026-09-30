@@ -182,14 +182,21 @@ function WhatsAppNotificacoesPage() {
                   </div>
                 </div>
 
-                <label className="text-xs font-bold uppercase text-gray-400">Mensagem</label>
+                <label className="text-xs font-bold uppercase text-gray-400">
+                  {recovery ? "Mensagem do template Marketing" : "Mensagem"}
+                </label>
                 <textarea
                   value={item.texto}
                   onChange={(e) => setEtapa(etapa.key, { texto: e.target.value })}
                   rows={6}
-                  disabled={!item.ativo}
+                  disabled={!item.ativo || recovery}
                   className="mt-1 w-full rounded-xl border px-3 py-2 text-sm resize-y outline-none focus:ring-2 focus:ring-[#5850ec]/20 disabled:bg-gray-50 disabled:text-gray-400"
                 />
+                {recovery && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    O texto faz parte do template aprovado pela Meta. Para mudar a mensagem, é necessário usar outro nome de template para uma nova aprovação.
+                  </p>
+                )}
 
                 <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <div>
