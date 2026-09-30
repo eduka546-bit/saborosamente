@@ -148,6 +148,37 @@ async function garantirTemplate(name: string): Promise<TemplateStatus> {
   return criado;
 }
 
+async function persistirTemplateStatus(status: TemplateStatus) {
+  try {
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("id,parametros_loja")
+      .maybeSingle();
+    if (error || !data?.id) return;
+
+    const parametros = (data.parametros_loja as any) ?? {};
+    const notificacoes = { ...(parametros.whatsapp_notificacoes ?? {}) };
+    notificacoes.recuperacao_carrinho = {
+      ...(notificacoes.recuperacao_carrinho ?? {}),
+      template_aprovado: status === "APPROVED",
+      template_status: status,
+      template_status_at: new Date().toISOString(),
+    };
+
+    await supabase
+      .from("site_settings")
+      .update({
+        parametros_loja: {
+          ...parametros,
+          whatsapp_notificacoes: notificacoes,
+        },
+      })
+      .eq("id", data.id);
+  } catch (error) {
+    console.error("Falha ao persistir status do template:", error);
+  }
+}
+
 async function enviarTemplate(
   to: string,
   templateName: string,
@@ -291,6 +322,7 @@ Deno.serve(async (req) => {
     }
 
     const templateStatus = await garantirTemplate(config.template_meta);
+    await persistirTemplateStatus(templateStatus);
     if (templateStatus !== "APPROVED") {
       return new Response(
         JSON.stringify({
