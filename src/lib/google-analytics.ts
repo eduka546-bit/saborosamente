@@ -111,6 +111,58 @@ export function trackGoogleAnalyticsEvent(
     return;
   }
 
+  if (evento === "product_view") {
+    window.gtag("event", "view_item", {
+      currency: options.valor != null ? "BRL" : undefined,
+      value: options.valor != null ? Number(options.valor) : undefined,
+      items: [
+        {
+          item_id: options.produtoId ?? undefined,
+          item_variant:
+            typeof metadata.gramatura === "string" ? metadata.gramatura.slice(0, 40) : undefined,
+        },
+      ],
+    });
+    return;
+  }
+
+  if (evento === "add_to_cart") {
+    window.gtag("event", "add_to_cart", {
+      currency: "BRL",
+      value: Number(options.valor ?? 0),
+      items: [
+        {
+          item_id: options.produtoId ?? undefined,
+          price: Number(options.valor ?? 0),
+          quantity: 1,
+          item_variant:
+            typeof metadata.gramatura === "string" ? metadata.gramatura.slice(0, 40) : undefined,
+        },
+      ],
+    });
+    return;
+  }
+
+  if (evento === "product_share") {
+    window.gtag("event", "share", {
+      method:
+        typeof metadata.metodo === "string" ? metadata.metodo.slice(0, 40) : undefined,
+      content_type: "product",
+      item_id: options.produtoId ?? undefined,
+    });
+    return;
+  }
+
+  if (evento === "size_select") {
+    window.gtag("event", "select_content", {
+      content_type: "product_size",
+      item_id: options.produtoId ?? undefined,
+      item_variant:
+        typeof metadata.gramatura === "string" ? metadata.gramatura.slice(0, 40) : undefined,
+    });
+    return;
+  }
+
   if (evento === "checkout_start") {
     window.gtag("event", "begin_checkout", {
       currency: "BRL",
