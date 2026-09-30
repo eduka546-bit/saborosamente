@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Users,
   Search,
@@ -11,7 +11,6 @@ import {
   Calendar,
   DollarSign,
   Upload,
-  Loader2,
   Gift,
   MessageCircle,
   Filter,
@@ -23,8 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { importExistingCustomers } from "@/lib/customers.functions";
-import { useServerFn } from "@tanstack/react-start";
 import { Pagination } from "@/components/pagination";
 import { createQueryConfig } from "@/lib/query-config";
 
@@ -57,10 +54,8 @@ function CashbackCliente({ userId }: { userId: string }) {
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [isImporting, setIsImporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const importFn = useServerFn(importExistingCustomers);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
@@ -154,25 +149,6 @@ function AdminClientesPage() {
     return filteredClients.slice(start, start + itemsPerPage);
   }, [filteredClients, currentPage, itemsPerPage]);
 
-  const handleImport = async () => {
-    try {
-      setIsImporting(true);
-      const result = await importFn();
-
-      if (result && (result.success || result.errors)) {
-        toast.success(
-          `Importação concluída: ${result.success} sucessos, ${result.errors} erros/pulados.`,
-          {
-            duration: 5000,
-          },
-        );
-      }
-    } catch (error: any) {
-      toast.error("Falha ao iniciar importação: " + error.message);
-    } finally {
-      setIsImporting(false);
-    }
-  };
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
@@ -185,12 +161,13 @@ function AdminClientesPage() {
         </div>
 
         <Button
-          onClick={handleImport}
-          disabled={isImporting}
+          asChild
           className="bg-[#086e45] hover:bg-[#065a38] text-white flex items-center gap-2"
         >
-          {isImporting ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-          Importar Clientes Antigos
+          <Link to="/admin/config/importar-clientes">
+            <Upload size={18} />
+            Importar Clientes
+          </Link>
         </Button>
       </div>
 
