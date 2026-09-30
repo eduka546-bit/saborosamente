@@ -32,6 +32,7 @@ import { getPublicProducts } from "@/lib/products.functions";
 import { formatBRL } from "@/lib/products";
 import { imgUrl } from "@/lib/image-proxy";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { useState, useMemo, useEffect } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
@@ -341,9 +342,7 @@ function Index() {
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("site_settings").select("*").maybeSingle();
-      if (error) throw error;
-      return data;
+      return getPublicSiteSettings();
     },
   });
 
