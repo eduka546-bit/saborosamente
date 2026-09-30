@@ -549,11 +549,9 @@ test("checkout: São Bento do Sul cobra R$ 5 de frete com 5 marmitas", async ({ 
   await cidade.selectOption({ label: "São Bento do Sul" });
   await chooseFirstNeighborhood(page);
 
-  const valoresEntrega = page
-    .locator("dt")
-    .filter({ hasText: /^Entrega$/ })
-    .locator("xpath=following-sibling::dd");
-  await expect(valoresEntrega.filter({ hasText: /R\$\s*5,00/ }).first()).toBeVisible({
+  const resumoDesktop = page.locator("aside:visible").first();
+  await expect(resumoDesktop.getByText("Entrega", { exact: true })).toBeVisible();
+  await expect(resumoDesktop.getByText(/R\$\s*5,00/, { exact: true })).toBeVisible({
     timeout: 10000,
   });
 
