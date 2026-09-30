@@ -1,7 +1,7 @@
 /**
  * importar-cliente
  *
- * Cria um usuário no auth.users com email + CPF como senha e upsert no profiles.
+ * Cria um usuário no auth.users com senha aleatória forte e upsert no profiles.
  * Só pode ser chamada por admins autenticados (via Authorization com anon key +
  * validação de role dentro da função).
  *
@@ -87,17 +87,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verifica se o usuário já existe por email.
-    const { data: existingList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
-    // listUsers não filtra por email — usa-se o método de criar e checar erro.
-    // Se já existir, o createUser retorna um erro com "User already registered".
-    const senha = cpf; // CPF como senha
+    // Nunca usamos CPF como senha. O cliente importado recebe uma senha aleatória
+    // desconhecida e, no primeiro acesso, usa "Esqueci minha senha" para defini-la.
+    const senhaTemporaria = `${crypto.randomUUID()}-Aa9!${crypto.randomUUID()}`;
 
     const { data: created, error: createErr } = await supabase.auth.admin.createUser({
       email,
-      password: senha,
-      email_confirm: true, // marca como confirmado (sem envio de email)
-      user_metadata: { nome, cpf, telefone, bairro, cidade },
+      password: senhaTemporaria,
+      email_confirm: true,
+      user_metadata: {
+        nome,
+        cpf,
+        telefone,
+        bairro,
+        cidade,
+        importado_prefiro: true,
+        deve_definir_senha: true,
+      },
     });
 
     if (createErr) {
@@ -150,7 +156,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, created: true, userId }),
+      JSON.stringify({
+        ok: true,
+        created: true,
+        userId,
+        msg: "Cliente importado. No primeiro acesso, deve usar a recuperação de senha.",
+      }),
       { headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (e: any) {
