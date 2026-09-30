@@ -2026,6 +2026,45 @@ Deno.serve(async (req: Request) => {
         msg.interactive?.list_reply?.title ??
         "";
 
+      // ── Opt-out de recuperação de carrinho ───────────────────────────────
+      // O template Marketing oferece o botão "Parar lembretes" e também
+      // aceitamos respostas equivalentes digitadas pelo cliente.
+      const textoOptOut = String(texto)
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut)) {
+        const telefoneCompleto = String(telefone ?? "").replace(/\D/g, "");
+        const telefoneLocal = telefoneCompleto.startsWith("55")
+          ? telefoneCompleto.slice(2)
+          : telefoneCompleto;
+        const telefones = Array.from(
+          new Set([telefoneCompleto, telefoneLocal].filter(Boolean)),
+        );
+
+        if (telefones.length > 0) {
+          const { error: optOutError } = await supabase
+            .from("carrinhos_abandonados")
+            .update({
+              recuperacao_whatsapp_consentimento: false,
+              recuperacao_whatsapp_consentido_em: null,
+              updated_at: new Date().toISOString(),
+            })
+            .in("telefone", telefones);
+
+          if (optOutError) {
+            console.error("Falha ao registrar opt-out de recuperação:", optOutError.message);
+          }
+        }
+
+        await sendWhatsAppMessage(
+          telefone,
+          "Tudo certo! 💚 Não enviaremos mais lembretes de carrinho por WhatsApp. Se quiser receber novamente no futuro, você pode autorizar no checkout.",
+        );
+        return new Response("OK", { status: 200 });
+      }
+
       // ── Chave global da IA ───────────────────────────────────────────────
       // Com a IA pausada, a mensagem continua sendo registrada no painel,
       // mas nenhum processamento, indicador de digitação ou resposta é enviado.
