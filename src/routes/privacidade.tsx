@@ -198,7 +198,8 @@ function PrivacidadePage() {
           <p className="mt-2">
             No checkout, você também pode autorizar separadamente uma mensagem de recuperação por
             WhatsApp caso não conclua o pedido. Esse consentimento não é necessário para comprar e
-            pode ser retirado desmarcando a opção antes de concluir ou abandonar o checkout.
+            pode ser retirado desmarcando a opção no checkout ou respondendo <strong>PARAR</strong>
+            ao lembrete recebido.
           </p>
           <button
             type="button"
