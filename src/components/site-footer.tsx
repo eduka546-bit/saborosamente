@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, Phone, Clock, Leaf, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { imgUrl } from "@/lib/image-proxy";
 import {
   defaultCardFlags,
@@ -68,8 +69,7 @@ export function SiteFooter() {
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
-      return data;
+      return getPublicSiteSettings();
     },
     staleTime: 1000 * 60 * 5,
   });
