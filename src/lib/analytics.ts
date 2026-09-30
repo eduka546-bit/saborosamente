@@ -23,7 +23,7 @@ export async function trackEvent(
   } = {},
 ) {
   if (typeof window === "undefined") return;
-  trackGoogleAnalyticsEvent(evento, options);
+  if (evento !== "page_view") trackGoogleAnalyticsEvent(evento, options);
   try {
     await supabase.rpc("registrar_evento_analytics", {
       p_session_id: getAnalyticsSessionId(),
