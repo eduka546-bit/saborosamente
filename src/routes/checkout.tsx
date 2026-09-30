@@ -682,6 +682,7 @@ function Checkout() {
         description: `Protocolo #${order.id.slice(0, 8).toUpperCase()}`,
       });
     } catch (error: any) {
+      if (recoverFromStaleServerFunction(error)) return;
       console.error("[checkout] falha ao registrar pedido", error);
       toast.error("Não foi possível registrar o pedido: " + (error?.message ?? "Tente novamente."));
     }
