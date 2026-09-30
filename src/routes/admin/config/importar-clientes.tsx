@@ -8,7 +8,7 @@
  *
  * Regras de importação:
  * - Precisa ter email E cpf (com dígitos) para ser importado
- * - Senha = CPF (só dígitos)
+ * - O cliente importado define a própria senha pelo fluxo "Esqueci minha senha"
  * - Se já existe (mesmo email ou CPF) → pula
  * - Registros de teste (linceweb, suporte@, etc.) são ignorados
  */
@@ -235,7 +235,7 @@ function ImportarClientesPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Importar Clientes</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Importe clientes do Prefiro Delivery. Login: email · Senha: CPF (só dígitos).
+            Importe clientes do Prefiro Delivery. No primeiro acesso, o cliente usa “Esqueci minha senha” para criar uma senha segura.
           </p>
         </div>
       </div>
