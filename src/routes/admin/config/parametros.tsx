@@ -13,6 +13,7 @@ import {
   normalizarEntregaConfig,
   type EntregaConfig,
 } from "@/lib/entrega-config";
+import { normalizeGoogleAnalyticsId } from "@/lib/google-analytics";
 import {
   normalizarPrecosMarmita,
   MARMITA_PRICE_TABLE,
@@ -31,6 +32,8 @@ const DEFAULT_PARAMS = {
   aceitar_retirada: true,
   aceitar_delivery: true,
   maximo_itens_pedido: "50",
+  google_analytics_ativo: false,
+  google_analytics_id: "",
 };
 
 function AdminConfigParametrosPage() {
@@ -343,6 +346,56 @@ function AdminConfigParametrosPage() {
                   }
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Google Analytics 4 */}
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-800">Google Analytics 4</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Mede acessos, navegação, início de checkout e compras. O rastreamento só é carregado
+                depois que o visitante aceita cookies de métricas.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border p-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Ativar Google Analytics</p>
+                <p className="text-xs text-gray-400">
+                  Áreas administrativas e da cozinha não são rastreadas.
+                </p>
+              </div>
+              <Switch
+                checked={!!params.google_analytics_ativo}
+                onCheckedChange={(v) =>
+                  setParams({ ...params, google_analytics_ativo: v })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase text-gray-400 mb-1 block">
+                ID de medição do GA4
+              </label>
+              <Input
+                type="text"
+                placeholder="G-XXXXXXXXXX"
+                value={params.google_analytics_id ?? ""}
+                onChange={(e) =>
+                  setParams({
+                    ...params,
+                    google_analytics_id: e.target.value.toUpperCase().trim(),
+                  })
+                }
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                {params.google_analytics_id
+                  ? normalizeGoogleAnalyticsId(params.google_analytics_id)
+                    ? "ID válido."
+                    : "Use o formato G-XXXXXXXXXX."
+                  : "Cole aqui o ID do fluxo Web da propriedade GA4."}
+              </p>
             </div>
           </div>
 
