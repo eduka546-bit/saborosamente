@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteSettings } from "@/lib/site-settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -118,8 +119,7 @@ export function SiteHeader() {
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("*").maybeSingle();
-      return data;
+      return getPublicSiteSettings();
     },
     staleTime: 1000 * 60,
   });
