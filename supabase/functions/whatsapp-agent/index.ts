@@ -18,17 +18,10 @@ function requireEnv(nome: string): string {
 const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 const WHATSAPP_TOKEN = requireEnv("WHATSAPP_TOKEN");
 const WHATSAPP_PHONE_NUMBER_ID = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
-const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
-if (!WHATSAPP_VERIFY_TOKEN) {
-  console.warn("SECURITY_CONFIG_MISSING: WHATSAPP_VERIFY_TOKEN");
-}
-// App secret do app Meta, usado para validar a assinatura dos webhooks
-// (X-Hub-Signature-256). A ausência é registrada como alerta de segurança
-// para que o ambiente possa ser corrigido sem mascarar a configuração.
-const WHATSAPP_APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
-if (!WHATSAPP_APP_SECRET) {
-  console.warn("SECURITY_CONFIG_MISSING: WHATSAPP_APP_SECRET");
-}
+const WHATSAPP_VERIFY_TOKEN = requireEnv("WHATSAPP_VERIFY_TOKEN");
+// App secret do app Meta, usado para validar obrigatoriamente a assinatura
+// X-Hub-Signature-256 de todos os POSTs do webhook.
+const WHATSAPP_APP_SECRET = requireEnv("WHATSAPP_APP_SECRET");
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -1847,9 +1840,7 @@ async function verificarAssinaturaWebhook(
   assinatura: string | null,
   corpoBruto: string,
 ): Promise<boolean> {
-  // Sem app secret configurado: não bloqueia (mantém compatibilidade).
-  if (!WHATSAPP_APP_SECRET) return true;
-  // App secret configurado mas sem header de assinatura: rejeita.
+  // Webhook sem assinatura é rejeitado.
   if (!assinatura || !assinatura.startsWith("sha256=")) return false;
 
   const esperadaHex = assinatura.slice("sha256=".length).trim().toLowerCase();
