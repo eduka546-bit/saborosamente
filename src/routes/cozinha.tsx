@@ -1548,9 +1548,9 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const totalPanquecas = usos.reduce((total:number, prato:any) =>
       total + n(prato.q["200"]) + 2*n(prato.q["300"]) + 3*n(prato.q["400"]), 0);
     if (!(totalPanquecas > 0)) return null;
-    // Referência operacional já validada na TD22: 35 ml de leite por panqueca.
-    // A receita-base usa 500 ml; portanto equivale a 500/35 panquecas.
-    const panquecasPorReceitaBase = 500 / 35;
+    // Referência operacional medida na cozinha: 8 ovos = 30 panquecas.
+    // A preparação compartilhada "Massa panqueca" foi normalizada para um lote-base de 30 unidades.
+    const panquecasPorReceitaBase = 30;
     return { totalPanquecas, fator: totalPanquecas / panquecasPorReceitaBase };
   };
   const formatarItemPreparacaoEscalado = (item:any, fator:number) => {
