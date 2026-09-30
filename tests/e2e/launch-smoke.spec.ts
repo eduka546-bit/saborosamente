@@ -110,6 +110,15 @@ test("desktop: produto -> opções -> checkout -> frete -> login", async ({ page
   await page.getByLabel("E-mail").fill("teste-e2e@saborosamente.invalid");
   await page.getByLabel("Telefone / WhatsApp").fill("47999999999");
 
+  const recoveryConsent = page.getByRole("checkbox", {
+    name: /Aceito receber uma mensagem no WhatsApp caso eu não conclua este pedido/i,
+  });
+  await expect(recoveryConsent).toBeVisible();
+  await expect(recoveryConsent).not.toBeChecked();
+  await recoveryConsent.check();
+  await expect(recoveryConsent).toBeChecked();
+  await recoveryConsent.uncheck();
+
   const cidade = page.getByLabel("Cidade");
   const cityOptions = await cidade.locator("option").allTextContents();
   const sbs = cityOptions.find((v) => /São Bento do Sul/i.test(v));
