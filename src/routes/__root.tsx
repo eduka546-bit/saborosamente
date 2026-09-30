@@ -21,6 +21,7 @@ import { AdminHeader } from "@/components/admin-header";
 import { FloatingDiscountWidget } from "@/components/floating-discount-widget";
 import { CartSheet } from "@/components/cart-sheet";
 import { AnalyticsObserver } from "@/components/analytics-observer";
+import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 
 function NotFoundComponent() {
   return (
@@ -228,6 +229,27 @@ function RootComponent() {
     return () => {
       window.fetch = originalFetch;
       window.clearTimeout(clearGuard);
+    };
+  }, []);
+
+  // Abas abertas durante um deploy podem manter IDs antigos das server functions.
+  // Se isso acontecer, recarrega uma única vez para alinhar cliente e servidor.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      recoverFromStaleServerFunction(event.reason);
+    };
+    const onWindowError = (event: ErrorEvent) => {
+      recoverFromStaleServerFunction(event.error ?? event.message);
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    window.addEventListener("error", onWindowError);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onWindowError);
     };
   }, []);
 
