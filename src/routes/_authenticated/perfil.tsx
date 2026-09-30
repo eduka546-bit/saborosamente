@@ -29,6 +29,7 @@ import { getSaldo } from "@/lib/cashback";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { imgUrl } from "@/lib/image-proxy";
+import { getProductSummaries } from "@/lib/products.functions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -126,10 +127,7 @@ function PerfilPage() {
       ];
       const nomesMap: Record<string, string> = {};
       if (produtoIds.length > 0) {
-        const { data: prods } = await supabase
-          .from("produtos")
-          .select("id, nome")
-          .in("id", produtoIds);
+        const prods = await getProductSummaries(produtoIds);
         (prods ?? []).forEach((p: any) => {
           nomesMap[p.id] = p.nome;
         });
@@ -165,12 +163,9 @@ function PerfilPage() {
       return;
     }
 
-    const { data: products } = await supabase
-      .from("produtos")
-      .select("id,nome,imagem_url,preco,preco_300g,ativo,visivel_online")
-      .in("id", ids)
-      .eq("ativo", true)
-      .eq("visivel_online", true);
+    const products = (await getProductSummaries(ids)).filter(
+      (p: any) => p.ativo === true && p.visivel_online === true,
+    );
 
     const orderMap = new Map(ids.map((id: string, index: number) => [id, index]));
     setFavoriteProducts(
