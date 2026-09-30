@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,11 +42,83 @@ function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const senhaForte = (value: string) =>
+    value.length >= 10 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /\d/.test(value);
+
+  const irAposLogin = () => {
+    if (typeof window === "undefined") return;
+    if (redirect && redirect !== "/") window.location.href = redirect;
+    else window.location.href = "/#cardapio";
+  };
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setPasswordChangeRequired(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleForgotPassword = async () => {
+    const emailNormalizado = email.trim().toLowerCase();
+    if (!emailNormalizado || !emailNormalizado.includes("@")) {
+      toast.error("Informe seu e-mail para recuperar a senha.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
+      const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
+        redirectTo,
+      });
+      if (error) throw error;
+      toast.success("Enviamos um link para você criar uma nova senha.");
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível enviar o link de recuperação.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!senhaForte(newPassword)) {
+      toast.error("Use pelo menos 10 caracteres, com maiúscula, minúscula e número.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("As senhas não conferem.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Senha atualizada com segurança.");
+      irAposLogin();
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível atualizar a senha.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,17 +126,41 @@ function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
+        const { data: loginData, error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
           password,
         });
         if (error) throw error;
+
+        // Contas antigas usavam CPF como senha. Permitimos o login uma última vez,
+        // mas exigimos a troca antes de continuar navegando.
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("cpf")
+          .eq("id", loginData.user.id)
+          .maybeSingle();
+        const cpfSalvo = String((profile as any)?.cpf ?? "").replace(/\D/g, "");
+        const senhaDigitada = password.replace(/\D/g, "");
+        if (/^\d{11}$/.test(password) && cpfSalvo && senhaDigitada === cpfSalvo) {
+          setPasswordChangeRequired(true);
+          setPassword("");
+          toast.info("Por segurança, crie uma nova senha antes de continuar.");
+          return;
+        }
+
         toast.success("Bem-vindo de volta!");
       } else {
-        const senhaCpf = cpf.replace(/\D/g, "");
-        if (senhaCpf.length !== 11) {
+        const cpfNormalizado = cpf.replace(/\D/g, "");
+        if (cpfNormalizado.length !== 11) {
           toast.error("Informe um CPF válido com 11 dígitos.");
-          setLoading(false);
+          return;
+        }
+        if (!senhaForte(password)) {
+          toast.error("Use pelo menos 10 caracteres, com maiúscula, minúscula e número.");
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast.error("As senhas não conferem.");
           return;
         }
 
@@ -89,13 +185,13 @@ function AuthPage() {
         }
 
         const { error } = await supabase.auth.signUp({
-          email,
-          password: senhaCpf,
+          email: email.trim().toLowerCase(),
+          password,
           options: {
             data: {
               nome,
               telefone,
-              cpf,
+              cpf: cpfNormalizado,
               indicado_por: referral?.code,
               indicado_por_capturado_em: referral?.capturedAt,
             },
@@ -107,13 +203,7 @@ function AuthPage() {
         }
         toast.success("Cadastro realizado com sucesso!");
       }
-      if (typeof window !== "undefined") {
-        if (redirect && redirect !== "/") {
-          window.location.href = redirect;
-        } else {
-          window.location.href = "/#cardapio";
-        }
-      }
+      irAposLogin();
     } catch (error: any) {
       toast.error(error.message || "Erro na autenticação");
     } finally {
@@ -130,6 +220,7 @@ function AuthPage() {
             onClick={() => {
               setIsLogin(!isLogin);
               setPassword("");
+              setConfirmPassword("");
             }}
             className="text-sm text-primary hover:underline font-medium"
           >
@@ -140,11 +231,44 @@ function AuthPage() {
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {isLogin
-              ? "O login é seu e-mail e a senha é o seu CPF cadastrado"
+              ? "Entre com seu e-mail e sua senha"
               : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
           </p>
         </div>
 
+        {passwordChangeRequired ? (
+          <form onSubmit={handlePasswordChange} className="mt-8 space-y-4">
+            <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
+              Para proteger sua conta, defina uma senha nova que não seja seu CPF.
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nova senha</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Mínimo 10 caracteres"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">Confirmar nova senha</Label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
+              {loading ? "Salvando..." : "Atualizar senha"}
+            </Button>
+          </form>
+        ) : (
         <form onSubmit={handleAuth} className="mt-8 space-y-4">
           {!isLogin && (
             <>
@@ -216,35 +340,56 @@ function AuthPage() {
             </div>
           )}
 
-          {isLogin && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha (seu CPF)</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Digite seu CPF, somente números"
-                  className="pl-10 pr-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                  autoComplete="current-password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">{isLogin ? "Senha" : "Crie uma senha"}</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder={isLogin ? "Sua senha" : "Mínimo 10 caracteres"}
+                className="pl-10 pr-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {!isLogin && (
               <p className="text-xs text-muted-foreground">
-                Sua senha padrão é o CPF cadastrado, somente números.
+                Use 10 ou mais caracteres, incluindo letra maiúscula, minúscula e número.
               </p>
+            )}
+            {isLogin && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            )}
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmar senha</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
             </div>
           )}
 
@@ -252,6 +397,7 @@ function AuthPage() {
             {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
         </form>
+        )}
 
       </div>
     </div>
