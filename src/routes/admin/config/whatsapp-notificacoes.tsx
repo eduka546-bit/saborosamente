@@ -17,6 +17,7 @@ type EtapaConfig = {
   texto: string;
   template_meta: string;
   template_aprovado: boolean;
+  atraso_minutos?: number;
 };
 
 type Config = {
@@ -24,6 +25,7 @@ type Config = {
   saiu_entrega: EtapaConfig;
   pronto_retirada: EtapaConfig;
   feedback: EtapaConfig;
+  recuperacao_carrinho: EtapaConfig;
 };
 
 const DEFAULT_CONFIG: Config = {
@@ -51,18 +53,41 @@ const DEFAULT_CONFIG: Config = {
     template_meta: "feedback_pedido",
     template_aprovado: false,
   },
+  recuperacao_carrinho: {
+    ativo: true,
+    texto: "Oi {nome}! 💚 Seu pedido na SaborosaMente ainda está no carrinho, no valor de {valor}. Se quiser, finalize pelo botão abaixo. Se precisar de ajuda, é só responder esta mensagem.",
+    template_meta: "recuperacao_carrinho_saborosamente",
+    template_aprovado: false,
+    atraso_minutos: 60,
+  },
 };
 
-const ETAPAS: Array<{ key: keyof Config; titulo: string; descricao: string }> = [
-  { key: "confirmado", titulo: "Pedido recebido e confirmado", descricao: "Enviado quando o pedido é confirmado." },
-  { key: "saiu_entrega", titulo: "Pedido saiu para entrega", descricao: "Usado apenas quando o pedido é entrega." },
-  { key: "pronto_retirada", titulo: "Pedido pronto para retirada", descricao: "Usado automaticamente quando o pedido é retirada." },
-  { key: "feedback", titulo: "Pedido finalizado / feedback", descricao: "Pede um feedback escrito após a finalização." },
+const ETAPAS: Array<{
+  key: keyof Config;
+  titulo: string;
+  descricao: string;
+  categoria: "UTILITY" | "MARKETING";
+}> = [
+  { key: "confirmado", titulo: "Pedido recebido e confirmado", descricao: "Enviado quando o pedido é confirmado.", categoria: "UTILITY" },
+  { key: "saiu_entrega", titulo: "Pedido saiu para entrega", descricao: "Usado apenas quando o pedido é entrega.", categoria: "UTILITY" },
+  { key: "pronto_retirada", titulo: "Pedido pronto para retirada", descricao: "Usado automaticamente quando o pedido é retirada.", categoria: "UTILITY" },
+  { key: "feedback", titulo: "Pedido finalizado / feedback", descricao: "Pede um feedback escrito após a finalização.", categoria: "UTILITY" },
+  { key: "recuperacao_carrinho", titulo: "Recuperação de carrinho", descricao: "Reengaja clientes que autorizaram contato no checkout e não concluíram a compra.", categoria: "MARKETING" },
 ];
 
 function WhatsAppNotificacoesPage() {
   const queryClient = useQueryClient();
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
+
+  const { data: metaTemplates = [], refetch: refetchMetaTemplates } = useQuery({
+    queryKey: ["whatsapp-recovery-template-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-templates");
+      if (error) throw error;
+      return (data?.templates ?? []) as any[];
+    },
+    staleTime: 60_000,
+  });
 
   const { isLoading } = useQuery({
     queryKey: ["config-whatsapp-notificacoes"],
@@ -76,6 +101,10 @@ function WhatsAppNotificacoesPage() {
         saiu_entrega: { ...DEFAULT_CONFIG.saiu_entrega, ...(salvo.saiu_entrega ?? {}) },
         pronto_retirada: { ...DEFAULT_CONFIG.pronto_retirada, ...(salvo.pronto_retirada ?? {}) },
         feedback: { ...DEFAULT_CONFIG.feedback, ...(salvo.feedback ?? {}) },
+        recuperacao_carrinho: {
+          ...DEFAULT_CONFIG.recuperacao_carrinho,
+          ...(salvo.recuperacao_carrinho ?? {}),
+        },
       };
       setConfig(merged);
       return data;
@@ -123,7 +152,7 @@ function WhatsAppNotificacoesPage() {
       </div>
 
       <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-        Dentro da janela de atendimento, o sistema pode enviar a mensagem normal. Fora dela, use o nome do template Utility aprovado pela Meta. Variáveis disponíveis: <b>{"{nome}"}</b> e <b>{"{protocolo}"}</b>.
+        Notificações de pedido usam templates Utility fora da janela de atendimento. A recuperação de carrinho usa template Marketing e só é enviada a quem autorizou no checkout. Variáveis: <b>{"{nome}"}</b>, <b>{"{protocolo}"}</b> e, na recuperação, <b>{"{valor}"}</b>.
       </div>
 
       {isLoading ? (
@@ -132,6 +161,14 @@ function WhatsAppNotificacoesPage() {
         <div className="space-y-4">
           {ETAPAS.map((etapa) => {
             const item = config[etapa.key];
+            const recovery = etapa.key === "recuperacao_carrinho";
+            const metaTemplate = recovery
+              ? metaTemplates.find(
+                  (template: any) =>
+                    template?.name === item.template_meta &&
+                    template?.language === "pt_BR",
+                )
+              : null;
             return (
               <div key={etapa.key} className="bg-white border rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -156,7 +193,9 @@ function WhatsAppNotificacoesPage() {
 
                 <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <div>
-                    <label className="text-xs font-bold uppercase text-gray-400">Nome do template Utility na Meta</label>
+                    <label className="text-xs font-bold uppercase text-gray-400">
+                      Nome do template {etapa.categoria} na Meta
+                    </label>
                     <Input
                       value={item.template_meta}
                       onChange={(e) => setEtapa(etapa.key, { template_meta: e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_") })}
@@ -165,14 +204,67 @@ function WhatsAppNotificacoesPage() {
                       className="mt-1"
                     />
                   </div>
-                  <label className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold text-gray-600">
-                    <Switch
-                      checked={item.template_aprovado}
-                      onCheckedChange={(template_aprovado) => setEtapa(etapa.key, { template_aprovado })}
-                      disabled={!item.ativo}
-                    />
-                    Template aprovado
-                  </label>
+                  {recovery ? (
+                    <div className="rounded-xl border px-3 py-2 text-xs font-semibold text-gray-600">
+                      Meta:{" "}
+                      <span
+                        className={
+                          metaTemplate?.status === "APPROVED"
+                            ? "text-green-600"
+                            : metaTemplate?.status === "REJECTED"
+                              ? "text-red-600"
+                              : "text-amber-600"
+                        }
+                      >
+                        {metaTemplate?.status ?? "será criado automaticamente"}
+                      </span>
+                      <button
+                        type="button"
+                        className="ml-2 text-[#5850ec] underline"
+                        onClick={() => refetchMetaTemplates()}
+                      >
+                        atualizar
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold text-gray-600">
+                      <Switch
+                        checked={item.template_aprovado}
+                        onCheckedChange={(template_aprovado) => setEtapa(etapa.key, { template_aprovado })}
+                        disabled={!item.ativo}
+                      />
+                      Template aprovado
+                    </label>
+                  )}
+                {recovery && (
+                  <div className="mt-4 max-w-xs">
+                    <label className="text-xs font-bold uppercase text-gray-400">
+                      Atraso para recuperação
+                    </label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={60}
+                        max={1440}
+                        step={30}
+                        value={item.atraso_minutos ?? 60}
+                        onChange={(e) =>
+                          setEtapa(etapa.key, {
+                            atraso_minutos: Math.min(
+                              1440,
+                              Math.max(60, Number(e.target.value || 60)),
+                            ),
+                          })
+                        }
+                        disabled={!item.ativo}
+                      />
+                      <span className="text-xs text-gray-500">minutos</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">
+                      O cron roda a cada hora. O template é criado automaticamente e só começa a enviar depois de aprovado pela Meta.
+                    </p>
+                  </div>
+                )}
                 </div>
               </div>
             );
