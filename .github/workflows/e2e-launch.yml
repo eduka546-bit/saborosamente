@@ -8,6 +8,7 @@ on:
       - "src/**"
       - "public/**"
       - "supabase/functions/**"
+      - "supabase/migrations/**"
       - "tests/e2e/**"
       - "package.json"
       - "bun.lock"
