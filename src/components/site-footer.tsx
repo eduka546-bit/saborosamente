@@ -58,7 +58,7 @@ function LogoCard({ logo, name }: { logo?: string; name: string }) {
           </span>
         )}
       </div>
-      <span className="text-[8px] font-semibold uppercase tracking-wide opacity-50 text-center leading-tight max-w-[4.5rem]">
+      <span className="text-[8px] font-semibold uppercase tracking-wide opacity-90 text-center leading-tight max-w-[4.5rem]">
         {name}
       </span>
     </div>
@@ -194,7 +194,7 @@ export function SiteFooter() {
                 </a>
               </li>
               <li className="pt-2">
-                <div className="flex items-start gap-3 opacity-75 text-xs leading-relaxed">
+                <div className="flex items-start gap-3 opacity-95 text-xs leading-relaxed">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
                     <Clock size={14} />
                   </span>
@@ -252,7 +252,7 @@ export function SiteFooter() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 whitespace-nowrap">
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-90 whitespace-nowrap">
                     Cartão de Crédito / Débito
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -291,7 +291,7 @@ export function SiteFooter() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40 whitespace-nowrap">
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-90 whitespace-nowrap">
                     Alimentação / Refeição
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -310,12 +310,12 @@ export function SiteFooter() {
       {/* ── barra inferior ──────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-          <p className="text-[10px] font-semibold uppercase tracking-widest opacity-40">
+          <p className="text-[10px] font-semibold uppercase tracking-widest opacity-90">
             © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
           </p>
           <a
             href="/privacidade"
-            className="text-[10px] font-semibold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-80"
+            className="text-[10px] font-semibold uppercase tracking-widest opacity-90 transition-opacity hover:opacity-100"
           >
             Política de Privacidade
           </a>
@@ -323,7 +323,7 @@ export function SiteFooter() {
             href={`https://instagram.com/${credit.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] font-semibold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-80"
+            className="text-[10px] font-semibold uppercase tracking-widest opacity-90 transition-opacity hover:opacity-100"
           >
             Desenvolvido por {credit}
           </a>
