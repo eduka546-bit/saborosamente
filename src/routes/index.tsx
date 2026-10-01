@@ -104,16 +104,16 @@ function InstagramFeedSection() {
   }, []);
 
   return (
-    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-10 md:py-14">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="mb-6 flex flex-col gap-3 text-center md:mb-8">
-          <p className="font-sans text-sm font-semibold text-[#78922f]">
+    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-7 md:py-10">
+      <div className="mx-auto max-w-6xl px-3 md:px-4">
+        <div className="mb-4 flex flex-col gap-1.5 text-center md:mb-6 md:gap-2">
+          <p className="font-sans text-xs font-semibold text-[#78922f] md:text-sm">
             ACOMPANHE A SABOROSAMENTE
           </p>
-          <h2 className="font-display text-3xl font-bold text-[#075636] md:text-4xl">
+          <h2 className="font-display text-2xl font-bold text-[#075636] md:text-3xl">
             Nosso Instagram
           </h2>
-          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#587064] md:text-base">
+          <p className="mx-auto max-w-2xl text-xs leading-relaxed text-[#587064] md:text-sm">
             Novidades, bastidores, lançamentos e muito sabor no
             <a
               href="https://www.instagram.com/saborosamente.sbs/"
@@ -126,8 +126,20 @@ function InstagramFeedSection() {
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-white p-3 shadow-sm md:p-5">
-          <div className="sk-instagram-feed" data-embed-id="25718106"></div>
+        <div className="mx-auto max-w-[430px] md:max-w-5xl">
+          <div className="overflow-hidden rounded-2xl border border-[#e5e1d4] bg-white shadow-sm md:rounded-[1.75rem]">
+            <div className="max-h-[640px] overflow-y-auto overscroll-contain p-1.5 [scrollbar-width:thin] md:max-h-[520px] md:p-3">
+              <div className="sk-instagram-feed" data-embed-id="25718106"></div>
+            </div>
+          </div>
+          <a
+            href="https://www.instagram.com/saborosamente.sbs/"
+            target="_blank"
+            rel="noreferrer"
+            className="mx-auto mt-3 flex w-fit items-center justify-center rounded-full border border-[#d9e2d2] bg-white px-4 py-2 text-xs font-bold text-[#087443] transition hover:border-[#087443] hover:bg-[#f3f8ef] md:hidden"
+          >
+            Ver perfil completo no Instagram
+          </a>
         </div>
       </div>
     </section>
