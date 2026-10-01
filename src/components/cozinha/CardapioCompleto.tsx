@@ -1053,10 +1053,10 @@ export function CardapioCompleto({
       </section>
 
       {fotoProduto && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-4">
-          <div className="mx-auto my-8 max-w-5xl rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
+        <div className="fixed inset-0 z-50 overflow-x-hidden overflow-y-auto bg-black/45 p-1.5 sm:p-4">
+          <div className="mx-auto my-2 w-full max-w-5xl min-w-0 rounded-2xl bg-white p-3 shadow-2xl sm:my-8 sm:p-5">
+            <div className="mb-4 flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase text-[#087443]">{codigoProduto(fotoProduto)}</p>
                 <h3 className="text-xl font-black">{nomeProduto(fotoProduto)}</h3>
               </div>
@@ -1095,17 +1095,17 @@ export function CardapioCompleto({
 
       {nutriProduto && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-4">
-          <div className="mx-auto my-6 max-w-5xl rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="mx-auto my-2 w-full max-w-5xl min-w-0 rounded-2xl bg-white p-3 shadow-2xl sm:my-6 sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase text-[#087443]">Tabela nutricional</p>
-                <h3 className="text-xl font-black">{codigoProduto(nutriProduto)} — {nomeProduto(nutriProduto)}</h3>
+                <h3 className="break-words text-xl font-black">{codigoProduto(nutriProduto)} — {nomeProduto(nutriProduto)}</h3>
                 <p className="mt-1 text-xs text-[#62766b]">Ao salvar, produto e etiqueta do mesmo tamanho são sincronizados.</p>
               </div>
               <button onClick={() => setNutriProduto(null)}><X /></button>
             </div>
 
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               {tamanhos
                 .filter((t) => tamanhosProduto(nutriProduto).includes(t))
                 .map((t) => (
