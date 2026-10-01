@@ -53,12 +53,12 @@ function LogoCard({ logo, name }: { logo?: string; name: string }) {
         {logo ? (
           <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
         ) : (
-          <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">
+          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
             {name}
           </span>
         )}
       </div>
-      <span className="text-[8px] font-semibold uppercase tracking-wide opacity-90 text-center leading-tight max-w-[4.5rem]">
+      <span className="text-xs font-semibold tracking-normal opacity-90 text-center leading-tight max-w-[4.5rem]">
         {name}
       </span>
     </div>
@@ -131,7 +131,7 @@ export function SiteFooter() {
 
           {/* coluna 2 — navegação */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
+            <h3 className="text-xs font-bold tracking-normal opacity-80">
               Navegação
             </h3>
             <nav>
@@ -160,7 +160,7 @@ export function SiteFooter() {
 
           {/* coluna 3 — atendimento */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
+            <h3 className="text-xs font-bold tracking-normal opacity-80">
               Atendimento
             </h3>
             <ul className="space-y-4 text-sm">
@@ -210,7 +210,7 @@ export function SiteFooter() {
 
           {/* coluna 4 — localização */}
           <div className="space-y-5">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] opacity-80">
+            <h3 className="text-xs font-bold tracking-normal opacity-80">
               Localização
             </h3>
             <a
@@ -252,7 +252,7 @@ export function SiteFooter() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-90 whitespace-nowrap">
+                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
                     Cartão de Crédito / Débito
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -272,12 +272,12 @@ export function SiteFooter() {
                             className="h-full w-full object-contain"
                           />
                         ) : (
-                          <span className="text-[8px] font-black uppercase tracking-wide text-neutral-600 text-center leading-tight">
+                          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
                             MP
                           </span>
                         )}
                       </div>
-                      <span className="text-[8px] font-semibold uppercase tracking-wide opacity-50 text-center leading-tight max-w-[4.5rem]">
+                      <span className="text-xs font-semibold tracking-normal opacity-50 text-center leading-tight max-w-[4.5rem]">
                         Mercado Pago
                       </span>
                     </div>
@@ -291,7 +291,7 @@ export function SiteFooter() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-90 whitespace-nowrap">
+                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
                     Alimentação / Refeição
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -310,12 +310,12 @@ export function SiteFooter() {
       {/* ── barra inferior ──────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-          <p className="text-[10px] font-semibold uppercase tracking-widest opacity-90">
+          <p className="text-xs font-semibold tracking-normal opacity-90">
             © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
           </p>
           <a
             href="/privacidade"
-            className="text-[10px] font-semibold uppercase tracking-widest opacity-90 transition-opacity hover:opacity-100"
+            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
           >
             Política de Privacidade
           </a>
@@ -323,7 +323,7 @@ export function SiteFooter() {
             href={`https://instagram.com/${credit.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] font-semibold uppercase tracking-widest opacity-90 transition-opacity hover:opacity-100"
+            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
           >
             Desenvolvido por {credit}
           </a>

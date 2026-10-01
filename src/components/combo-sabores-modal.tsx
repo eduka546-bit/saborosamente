@@ -134,7 +134,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-lg font-black">{combo.nome}</h2>
+            <h2 className="text-lg font-bold">{combo.nome}</h2>
             <p className="text-sm text-white/75">
               Escolha {totalCombo} sabores — {formatBRL(precoCombo)}
             </p>
@@ -154,14 +154,14 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
               key={w.value}
               onClick={() => setSelectedWeight(w.value)}
               className={cn(
-                "flex-1 rounded-xl border-2 py-2.5 text-center text-sm font-bold transition-all",
+                "flex-1 rounded-xl border-2 py-2.5 text-center text-sm font-semibold transition-all",
                 selectedWeight === w.value
                   ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
                   : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
               )}
             >
               {w.label} ({w.value})
-              <span className="block text-[10px] font-medium text-gray-400 mt-0.5">
+              <span className="block text-xs font-medium text-gray-400 mt-0.5">
                 {formatBRL(w.preco)}
               </span>
             </button>
@@ -217,7 +217,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                     </button>
                     <span
                       className={cn(
-                        "w-7 text-center text-sm font-black",
+                        "w-7 text-center text-sm font-semibold",
                         qty > 0 ? "text-[#086e45]" : "text-gray-300",
                       )}
                     >
@@ -252,7 +252,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
             onClick={handleAddToCart}
             disabled={totalSelecionado !== totalCombo}
             className={cn(
-              "w-full rounded-2xl py-3.5 text-sm font-black flex items-center justify-center gap-2 transition-all",
+              "w-full rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all",
               totalSelecionado === totalCombo
                 ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed",

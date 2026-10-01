@@ -160,7 +160,7 @@ function MeusPedidosPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
-      <h1 className="text-2xl md:text-3xl font-black text-gray-900">Meus Pedidos</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Meus Pedidos</h1>
       <p className="text-gray-500 mt-1 text-sm">
         Seu histórico fica disponível somente dentro da sua conta.
       </p>
@@ -209,10 +209,10 @@ function MeusPedidosPage() {
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-gray-900">
+                        <span className="font-bold text-gray-900">
                           #{String(p.id).slice(0, 8).toUpperCase()}
                         </span>
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
                           {st.txt}
                         </span>
                       </div>
@@ -223,7 +223,7 @@ function MeusPedidosPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-black text-[#086e45]">
+                      <p className="text-lg font-bold text-[#086e45]">
                         R$ {Number(p.valor_total ?? 0).toFixed(2).replace(".", ",")}
                       </p>
                     </div>

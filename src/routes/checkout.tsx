@@ -74,7 +74,7 @@ const PAYMENT_VALUE_MAP: Record<string, PaymentValue> = {
 };
 
 const fieldClass =
-  "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
+  "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
 
@@ -785,7 +785,7 @@ function Checkout() {
     return (
       <section className="mx-auto max-w-xl px-4 py-24 text-center">
         <CheckCircle2 className="mx-auto size-14 text-primary" aria-hidden="true" />
-        <h1 className="mt-6 text-3xl font-extrabold">Pedido recebido!</h1>
+        <h1 className="mt-6 text-3xl font-bold">Pedido recebido!</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Protocolo{" "}
           <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em
@@ -828,14 +828,14 @@ function Checkout() {
                 <Gift className="size-5 text-[#315440]" />
               </div>
               <div>
-                <p className="font-black text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
+                <p className="font-bold text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
                 <p className="mt-1 text-xs leading-relaxed text-[#66715f]">
                   Seu amigo ganha 5% na primeira compra e você recebe R$ 5 de cashback depois que o pedido dele for entregue.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     to="/indicar"
-                    className="rounded-full bg-[#086e45] px-4 py-2 text-xs font-black text-white"
+                    className="rounded-full bg-[#086e45] px-4 py-2 text-xs font-bold text-white"
                   >
                     Ver meu link
                   </Link>
@@ -845,7 +845,7 @@ function Checkout() {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full border border-[#086e45] px-4 py-2 text-xs font-black text-[#086e45]"
+                    className="rounded-full border border-[#086e45] px-4 py-2 text-xs font-bold text-[#086e45]"
                   >
                     Compartilhar no WhatsApp
                   </a>
@@ -869,7 +869,7 @@ function Checkout() {
   if (lines.length === 0) {
     return (
       <section className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="text-3xl font-extrabold">Checkout</h1>
+        <h1 className="text-3xl font-semibold">Checkout</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Você ainda não escolheu nenhuma marmita.
         </p>
@@ -894,7 +894,7 @@ function Checkout() {
       >
         ← Voltar ao cardápio
       </Link>
-      <h1 className="text-4xl font-extrabold">Checkout</h1>
+      <h1 className="text-4xl font-bold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         Finalize seu pedido em três etapas simples.
       </p>
@@ -906,10 +906,10 @@ function Checkout() {
           ["3", "Confirmar"],
         ].map(([numero, label]) => (
           <div key={numero} className="rounded-2xl border border-[#dce7d5] bg-[#f7faf4] px-3 py-3 text-center">
-            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-xs font-black text-white">
+            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-xs font-bold text-white">
               {numero}
             </span>
-            <span className="mt-1 block text-[11px] font-extrabold text-[#315440]">{label}</span>
+            <span className="mt-1 block text-xs font-semibold text-[#315440]">{label}</span>
           </div>
         ))}
       </div>
@@ -917,8 +917,8 @@ function Checkout() {
       <details className="sticky top-2 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-wider text-[#315440]">Resumo do pedido</p>
-            <p className="text-[11px] text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
+            <p className="text-sm font-semibold text-[#315440]">Resumo do pedido</p>
+            <p className="text-xs text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
           </div>
           <div className="flex items-center gap-2">
             <strong className="text-base text-primary">{formatBRL(finalTotal)}</strong>
@@ -935,7 +935,7 @@ function Checkout() {
                 <span className="min-w-0 text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-[10px] font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-xs font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -969,7 +969,7 @@ function Checkout() {
             )}
             <div className="flex justify-between border-t border-border pt-2 text-sm">
               <dt className="font-bold">{totalResumoLabel}</dt>
-              <dd className="font-black text-primary">{formatBRL(finalTotal)}</dd>
+              <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
           </dl>
         </div>
@@ -983,7 +983,7 @@ function Checkout() {
         >
           {/* ── dados pessoais ─────────────────────────────────────────────── */}
           <fieldset className="space-y-4">
-            <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <legend className="text-base font-semibold text-foreground">
               1. Seus dados
             </legend>
             <div>
@@ -1033,7 +1033,7 @@ function Checkout() {
 
           {/* ── entrega ────────────────────────────────────────────────────── */}
           <fieldset className="space-y-4">
-            <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <legend className="text-base font-semibold text-foreground">
               Entrega ou retirada
             </legend>
 
@@ -1225,7 +1225,7 @@ function Checkout() {
                 <Link
                   to="/"
                   hash="cardapio"
-                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-xs font-black text-white"
+                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-xs font-bold text-white"
                 >
                   Adicionar mais itens
                 </Link>
@@ -1277,7 +1277,7 @@ function Checkout() {
 
           {/* ── pagamento ──────────────────────────────────────────────────── */}
           <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <legend className="text-base font-semibold text-foreground">
               2. Pagamento
             </legend>
 
@@ -1445,7 +1445,7 @@ function Checkout() {
                 placeholder="Digite seu cupom"
                 className={cn(
                   fieldClass,
-                  "flex-1 mt-0 uppercase tracking-widest font-bold",
+                  "flex-1 mt-0 uppercase tracking-normal font-semibold",
                   appliedCoupon ? "border-green-400 bg-green-50" : "",
                 )}
                 disabled={!!appliedCoupon}
@@ -1484,17 +1484,17 @@ function Checkout() {
                       : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
                 </p>
                 {appliedCoupon.substitui_desconto_progressivo && (
-                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-[11px] font-semibold leading-relaxed text-[#315440]">
+                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-xs font-semibold leading-relaxed text-[#315440]">
                     Este cupom substitui o desconto progressivo do pedido. Os descontos não são somados.
                   </p>
                 )}
                 {appliedCoupon.excluir_combo_pronto && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-800">
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-800">
                     Combos Prontos não participam desta promoção, pois já possuem preço promocional.
                   </p>
                 )}
                 {appliedCoupon.apenas_primeira_compra && (
-                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-blue-800">
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold leading-relaxed text-blue-800">
                     Exclusivo para primeira compra — 1 uso por cliente.
                   </p>
                 )}
@@ -1545,7 +1545,7 @@ function Checkout() {
           )}
 
           <div className="border-t border-border pt-5">
-            <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <p className="text-base font-semibold text-foreground">
               3. Revise e confirme
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1585,19 +1585,19 @@ function Checkout() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <ShieldCheck className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Pedido protegido</span>
+              <span className="mt-1 block text-xs font-bold text-[#315440]">Pedido protegido</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <CreditCard className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Sem taxa no cartão</span>
+              <span className="mt-1 block text-xs font-bold text-[#315440]">Sem taxa no cartão</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <Store className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Loja física em SBS</span>
+              <span className="mt-1 block text-xs font-bold text-[#315440]">Loja física em SBS</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <MessageCircle className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-[10px] font-bold text-[#315440]">Suporte no WhatsApp</span>
+              <span className="mt-1 block text-xs font-bold text-[#315440]">Suporte no WhatsApp</span>
             </div>
           </div>
 
@@ -1627,7 +1627,7 @@ function Checkout() {
                 <span className="text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-[11px] font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-xs font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -1682,7 +1682,7 @@ function Checkout() {
               <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
             {entregaPendenteCalculo && (
-              <p className="text-[11px] leading-relaxed text-amber-700">
+              <p className="text-xs leading-relaxed text-amber-700">
                 O total final será atualizado assim que você selecionar o bairro de entrega.
               </p>
             )}

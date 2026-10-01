@@ -426,7 +426,7 @@ function PerfilPage() {
           <a
             key={id}
             href={`#${id}`}
-            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-xs font-bold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-xs font-semibold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
           >
             {label}
           </a>
@@ -484,19 +484,19 @@ function PerfilPage() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground uppercase">Nome</Label>
+                  <Label className="text-xs text-muted-foreground">Nome</Label>
                   <p className="font-medium">{profile?.nome || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground uppercase">E-mail</Label>
+                  <Label className="text-xs text-muted-foreground">E-mail</Label>
                   <p className="font-medium">{session.user.email}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground uppercase">Telefone</Label>
+                  <Label className="text-xs text-muted-foreground">Telefone</Label>
                   <p className="font-medium">{profile?.telefone || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground uppercase">CPF</Label>
+                  <Label className="text-xs text-muted-foreground">CPF</Label>
                   <p className="font-medium">{profile?.cpf || "Não informado"}</p>
                 </div>
                 <Button
@@ -554,13 +554,13 @@ function PerfilPage() {
                         >
                           {product.nome}
                         </Link>
-                        <p className="mt-1 text-sm font-black text-primary">
+                        <p className="mt-1 text-sm font-bold text-primary">
                           R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
                         </p>
                         <Link
                           to="/produto/$id"
                           params={{ id: product.id }}
-                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                         >
                           Abrir produto <ExternalLink className="size-3" />
                         </Link>
@@ -592,7 +592,7 @@ function PerfilPage() {
                     {topProducts.map((item, index) => (
                       <div key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                             {index + 1}
                           </span>
                           <div className="min-w-0">
@@ -605,7 +605,7 @@ function PerfilPage() {
                         <Link
                           to="/produto/$id"
                           params={{ id: item.id }}
-                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/5"
+                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
                         >
                           Abrir
                         </Link>
@@ -643,13 +643,13 @@ function PerfilPage() {
                     <div className="bg-muted/30 px-6 py-4 flex items-center justify-between border-b">
                       <div className="flex items-center gap-4">
                         <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
                             Pedido
                           </p>
                           <p className="font-bold text-primary">#{order.id.slice(0, 8)}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
                             Data
                           </p>
                           <p className="text-sm font-medium">
@@ -659,7 +659,7 @@ function PerfilPage() {
                       </div>
                       <div className="text-right">
                         <span
-                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+                          className={`text-xs font-semibold tracking-normal px-3 py-1 rounded-full border ${
                             order.status === "Entregue"
                               ? "bg-green-50 text-green-600 border-green-200"
                               : order.status === "Cancelado"
@@ -681,7 +681,7 @@ function PerfilPage() {
                             {order.itens?.slice(0, 5).map((item: any) => (
                               <div
                                 key={item.id}
-                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold"
+                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold"
                                 title={item.produtos?.nome}
                               >
                                 {item.quantidade}
@@ -690,7 +690,7 @@ function PerfilPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
                             Total
                           </p>
                           <p className="text-lg font-bold">
@@ -702,11 +702,11 @@ function PerfilPage() {
                       {order.status && (
                         <div className="mt-4 pt-4 border-t space-y-3">
                           <div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                            <p className="text-xs font-semibold text-muted-foreground tracking-normal mb-2">
                               Status
                             </p>
                             <span
-                              className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
+                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
                                 order.status === "entregue"
                                   ? "bg-green-50 text-green-600 border-green-200"
                                   : order.status === "cancelado"
@@ -746,10 +746,10 @@ function PerfilPage() {
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-yellow-600 mb-1">
+                  <p className="text-xs font-semibold tracking-normal text-yellow-600 mb-1">
                     Saldo disponível
                   </p>
-                  <p className="text-3xl font-black text-yellow-700">
+                  <p className="text-3xl font-bold text-yellow-700">
                     R$ {cashbackSaldo.toFixed(2).replace(".", ",")}
                   </p>
                   <p className="text-xs text-yellow-600 mt-1">
@@ -764,7 +764,7 @@ function PerfilPage() {
 
             {cashbackTransacoes.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                <h3 className="text-sm font-bold text-muted-foreground tracking-normal">
                   Histórico
                 </h3>
                 {cashbackTransacoes.map((t: any) => (
@@ -979,7 +979,7 @@ function PerfilPage() {
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold">{addr.label}</h3>
                             {addr.is_default && (
-                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold tracking-normal">
                                 Padrão
                               </span>
                             )}

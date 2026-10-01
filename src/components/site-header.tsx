@@ -144,10 +144,10 @@ export function SiteHeader() {
       {announcementVisible && (
         <div
           style={{ backgroundColor: announceBg, color: announceText }}
-          className="relative py-2.5 px-10 text-center text-xs sm:text-[13px] font-bold uppercase tracking-[0.06em] leading-snug z-[60] pointer-events-auto"
+          className="relative px-10 py-2.5 text-center text-sm font-medium leading-snug z-[60] pointer-events-auto"
         >
           {settings?.announcement_text ||
-            "PEÇA PARA ENTREGA OU VENHA ESCOLHER PESSOALMENTE EM NOSSA LOJA EM SÃO BENTO DO SUL!"}
+            "Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!"}
           <button
             type="button"
             onClick={() => setAnnouncementVisible(false)}
@@ -177,7 +177,7 @@ export function SiteHeader() {
           </SheetTrigger>
           <SheetContent side="left" className="w-[80vw] max-w-xs bg-white z-[300]">
             <SheetHeader>
-              <SheetTitle className="text-primary font-black uppercase tracking-tight">
+              <SheetTitle className="text-primary font-bold tracking-normal">
                 Menu
               </SheetTitle>
             </SheetHeader>
@@ -232,7 +232,7 @@ export function SiteHeader() {
                 key={l.label}
                 onClick={() => setOpenDeliveryModal(true)}
                 style={{ color: navText }}
-                className="flex items-center gap-1 sm:gap-2 text-[13px] lg:text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-2 text-sm font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
               >
                 <l.icon size={16} className="opacity-80 hidden sm:block" />
                 {l.label}
@@ -243,7 +243,7 @@ export function SiteHeader() {
                 to={l.to as any}
                 hash={(l as any).hash}
                 style={{ color: navText }}
-                className="flex items-center gap-1 sm:gap-2 text-[13px] lg:text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-2 text-sm font-semibold transition-opacity hover:opacity-70 whitespace-nowrap"
               >
                 <l.icon size={16} className="opacity-80 hidden sm:block" />
                 {l.label}
@@ -271,10 +271,10 @@ export function SiteHeader() {
                 className="w-56 rounded-2xl p-2 shadow-soft border-border bg-white z-[300]"
               >
                 <div className="px-2 py-1.5 mb-1 border-b border-border/50">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <p className="text-xs font-bold text-muted-foreground tracking-normal">
                     Sua Conta
                   </p>
-                  <p className="text-xs font-medium truncate opacity-70">{user.email}</p>
+                  <p className="text-sm font-normal truncate opacity-75">{user.email}</p>
                 </div>
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                   <Link to="/perfil" className="flex items-center gap-2 w-full">
@@ -320,7 +320,7 @@ export function SiteHeader() {
             >
               <ShoppingBag size={22} />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-xs font-bold text-white shadow-sm">
                   {count}
                 </span>
               )}
@@ -380,7 +380,7 @@ function DeliveryAreasModal({
               <MapPin className="text-primary size-5" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-black text-primary uppercase tracking-tight">
+              <DialogTitle className="text-xl font-bold text-primary tracking-normal">
                 Áreas de Entrega
               </DialogTitle>
               <p className="text-xs text-muted-foreground font-medium">
@@ -404,7 +404,7 @@ function DeliveryAreasModal({
                 key={city}
                 onClick={() => setSelectedCity(city)}
                 className={cn(
-                  "w-full text-left px-6 py-4 text-xs font-black uppercase tracking-wider transition-all border-l-4",
+                  "w-full text-left px-6 py-4 text-sm font-semibold transition-all border-l-4",
                   selectedCity === city
                     ? "bg-white border-primary text-primary shadow-sm"
                     : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100/50",
@@ -427,7 +427,7 @@ function DeliveryAreasModal({
             {selectedCity ? (
               <>
                 <div className="px-6 py-3 bg-primary/5 border-b shrink-0">
-                  <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-primary tracking-normal flex items-center gap-2">
                     <span className="size-1.5 rounded-full bg-primary" />
                     Bairros em {selectedCity}
                   </h3>
@@ -442,7 +442,7 @@ function DeliveryAreasModal({
                         <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
                           {area.neighborhood}
                         </span>
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                           {area.rate === 0
                             ? "Grátis"
                             : `R$ ${area.rate.toFixed(2).replace(".", ",")}`}

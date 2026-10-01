@@ -210,7 +210,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-black">{combo.nome}</h2>
+            <h2 className="text-xl font-bold">{combo.nome}</h2>
             <p className="text-sm text-white/75 mt-0.5">
               Escolha suas marmitas — quanto mais, maior o desconto!
             </p>
@@ -235,7 +235,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                   <div
                     key={rule.min}
                     className={cn(
-                      "flex items-center gap-2 text-xs font-bold transition-all",
+                      "flex items-center gap-2 text-xs font-semibold transition-all",
                       active ? "text-[#086e45]" : "text-gray-400",
                     )}
                   >
@@ -285,7 +285,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all border",
+                      "shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-all border",
                       selectedCategory === cat
                         ? "bg-[#086e45] text-white border-[#086e45]"
                         : "bg-gray-50 text-gray-500 border-transparent hover:border-[#086e45]/30",
@@ -336,18 +336,18 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 leading-tight">
+                          <p className="text-sm font-semibold text-gray-900 leading-tight">
                             {product.nome}
                           </p>
                           {product.descricao && (
-                            <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
+                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
                               {product.descricao}
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] text-gray-400 uppercase font-bold">{cat}</span>
+                            <span className="text-xs text-gray-400 font-bold">{cat}</span>
                             {noDiscount && (
-                              <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
+                              <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
                                 Preço fixo
                               </span>
                             )}
@@ -367,21 +367,21 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                           const temDesconto = !noDiscount && precoFaixa < precoCheioW;
                           return (
                             <div key={w} className="flex items-center gap-2">
-                              <span className="text-[11px] text-gray-500 w-9 font-bold shrink-0">
+                              <span className="text-xs text-gray-500 w-9 font-bold shrink-0">
                                 {w}
                               </span>
                               <span className="flex flex-col items-end leading-tight w-[72px] shrink-0">
                                 {temDesconto ? (
                                   <>
-                                    <span className="text-[9px] text-gray-400 line-through">
+                                    <span className="text-xs text-gray-400 line-through">
                                       {formatBRL(precoCheioW)}
                                     </span>
-                                    <span className="text-xs font-bold text-green-600">
+                                    <span className="text-xs font-semibold text-green-600">
                                       {formatBRL(precoFaixa)}
                                     </span>
                                   </>
                                 ) : (
-                                  <span className="text-xs font-bold text-[#086e45]">
+                                  <span className="text-xs font-semibold text-[#086e45]">
                                     {formatBRL(price)}
                                   </span>
                                 )}
@@ -401,7 +401,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                                 </button>
                                 <span
                                   className={cn(
-                                    "w-6 text-center text-sm font-black",
+                                    "w-6 text-center text-sm font-semibold",
                                     qty > 0 ? "text-[#086e45]" : "text-gray-300",
                                   )}
                                 >
@@ -428,9 +428,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
           {/* Coluna direita — resumo */}
           <div className="w-full md:w-72 flex flex-col shrink-0 border-t md:border-t-0">
             <div className="px-4 pt-4 pb-2 border-b shrink-0">
-              <h3 className="text-sm font-black text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-700 tracking-normal flex items-center gap-2">
                 <ShoppingCart size={14} /> Seu combo
-                <span className="ml-auto text-[#086e45] font-black text-base">{totalQty}</span>
+                <span className="ml-auto text-[#086e45] font-bold text-base">{totalQty}</span>
               </h3>
             </div>
 
@@ -477,7 +477,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                     <span>− {formatBRL(discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-black text-base text-gray-900 pt-1 border-t">
+                <div className="flex justify-between font-bold text-base text-gray-900 pt-1 border-t">
                   <span>Total</span>
                   <span className="text-[#086e45]">{formatBRL(total)}</span>
                 </div>
@@ -485,7 +485,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
 
               {/* Info sobre sopas */}
               {items.some((i) => isNoDiscountLocal(i.categoria)) && (
-                <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-2.5 text-[10px] text-blue-700">
+                <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-2.5 text-xs text-blue-700">
                   <Info size={12} className="shrink-0 mt-0.5" />
                   <span>
                     Sopas e complementos têm preço fixo e não recebem desconto, mas contam na
@@ -498,7 +498,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                 onClick={handleAddToCart}
                 disabled={items.length === 0}
                 className={cn(
-                  "w-full rounded-2xl py-3.5 text-sm font-black transition-all flex items-center justify-center gap-2",
+                  "w-full rounded-2xl py-3.5 text-sm font-semibold transition-all flex items-center justify-center gap-2",
                   items.length > 0
                     ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg hover:shadow-[#086e45]/30"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed",

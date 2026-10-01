@@ -40,11 +40,11 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 rounded-l-[2rem] border-l-0 shadow-2xl">
         <SheetHeader className="p-6 border-b bg-white rounded-tl-[2rem]">
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2 text-xl font-black text-primary">
+            <SheetTitle className="flex items-center gap-2 text-xl font-bold text-primary">
               <ShoppingCart size={20} />
               Seu Carrinho
               {count > 0 && (
-                <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-[10px] font-black text-[#087443]">
+                <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-xs font-bold text-[#087443]">
                   {count} {count === 1 ? "item" : "itens"}
                 </span>
               )}
@@ -85,7 +85,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       <h4 className="text-xs font-bold text-primary-dark truncate">
                         {product.nome}
                       </h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
+                      <p className="text-xs text-gray-400 font-bold mt-0.5">
                         {weight || product.peso}
                       </p>
                       <div className="mt-2 flex items-center justify-between">
@@ -96,7 +96,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="text-[11px] font-bold min-w-[12px] text-center">
+                          <span className="text-xs font-bold min-w-[12px] text-center">
                             {quantity}
                           </span>
                           <button
@@ -111,7 +111,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                             <Plus className="size-3" />
                           </button>
                         </div>
-                        <span className="text-xs font-black text-primary">
+                        <span className="text-xs font-bold text-primary">
                           {formatBRL(lineTotal)}
                         </span>
                       </div>
@@ -131,7 +131,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
 
               <button
                 onClick={clear}
-                className="text-[10px] font-bold text-gray-400 uppercase hover:text-red-500 transition-colors text-center w-full"
+                className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors text-center w-full"
               >
                 Limpar carrinho
               </button>
@@ -142,33 +142,33 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         {lines.length > 0 && (
           <SheetFooter className="p-6 bg-white border-t border-gray-100 flex-col sm:flex-col gap-4">
             <div className="space-y-2 w-full">
-              <div className="flex justify-between text-xs font-bold text-gray-400 uppercase">
+              <div className="flex justify-between text-xs font-bold text-gray-400">
                 <span>Subtotal</span>
                 <span>{formatBRL(subtotal)}</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-xs font-bold text-primary uppercase">
+                <div className="flex justify-between text-xs font-bold text-primary">
                   <span>Desconto Progressivo</span>
                   <span>-{formatBRL(discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-black text-primary-dark">
+              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-bold text-primary-dark">
                 <span>Total</span>
                 <span>{formatBRL(subtotal - discount)}</span>
               </div>
               {discount > 0 && (
-                <div className="rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-[11px] font-black text-[#087443]">
+                <div className="rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-xs font-bold text-[#087443]">
                   Você está economizando {formatBRL(discount)} neste pedido
                 </div>
               )}
-              <p className="text-[9px] text-gray-400 font-medium italic text-center">
+              <p className="text-xs text-gray-400 font-medium italic text-center">
                 * Entrega calculada no checkout
               </p>
             </div>
             <Button
               onClick={() => setOpen(false)}
               asChild
-              className="w-full h-14 rounded-2xl text-base font-black uppercase shadow-lg shadow-primary/20"
+              className="w-full h-14 rounded-2xl text-base font-semibold shadow-lg shadow-primary/20"
             >
               <Link to="/checkout" search={{ cupom: undefined }}>
                 Finalizar compra • {formatBRL(subtotal - discount)}

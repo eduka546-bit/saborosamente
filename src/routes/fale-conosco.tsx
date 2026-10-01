@@ -61,7 +61,7 @@ function FaleConoscoPage() {
     <div className="mx-auto max-w-3xl px-4 py-14 space-y-12">
       {/* Header */}
       <div className="text-center space-y-3">
-        <h1 className="text-4xl font-extrabold text-[#086e45]">Fale Conosco</h1>
+        <h1 className="text-4xl font-bold text-[#086e45]">Fale Conosco</h1>
         <p className="text-muted-foreground text-base max-w-xl mx-auto">
           Estamos aqui para ajudar. Confira as dúvidas frequentes ou entre em contato diretamente.
         </p>

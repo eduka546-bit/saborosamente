@@ -123,7 +123,7 @@ function Carrinho() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-32 pt-14 lg:pb-14">
-      <h1 className="text-4xl font-extrabold">Seu carrinho</h1>
+      <h1 className="text-4xl font-bold">Seu carrinho</h1>
 
       {lines.length === 0 ? (
         <div className="mt-10 rounded-3xl border border-dashed border-border bg-card p-12 text-center">
@@ -164,7 +164,7 @@ function Carrinho() {
                     {weight || product.peso} • {formatBRL(lineTotal / Math.max(1, quantity))} cada
                   </p>
                   {opcoes && (
-                    <p className="mt-0.5 text-[11px] font-medium text-primary">
+                    <p className="mt-0.5 text-xs font-medium text-primary">
                       {opcoes.consumo === "pronta"
                         ? `Pronta para consumo +${formatBRL(adicionalPronta)}`
                         : "Congelada"}
@@ -174,7 +174,7 @@ function Carrinho() {
                     </p>
                   )}
                   {custom && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {custom.itens.filter((i) => i.gramatura > 0).map((i) => i.nome).join(", ")}
                     </p>
                   )}
@@ -232,7 +232,7 @@ function Carrinho() {
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">
+                <label className="text-sm font-medium text-muted-foreground">
                   Cidade
                 </label>
                 <select
@@ -253,7 +253,7 @@ function Carrinho() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase">
+                <label className="text-sm font-medium text-muted-foreground">
                   Bairro
                 </label>
                 <select
@@ -292,7 +292,7 @@ function Carrinho() {
                     <Gift className="size-4 text-[#78922f]" />
                     Cashback estimado
                   </dt>
-                  <dd className="font-black text-[#086e45]">
+                  <dd className="font-bold text-[#086e45]">
                     +{formatBRL(cashbackEstimado)}
                   </dd>
                 </div>
@@ -316,7 +316,7 @@ function Carrinho() {
             </dl>
 
             {cashbackEstimado > 0 && (
-              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                 Ao concluir e receber este pedido, você pode ganhar cerca de{" "}
                 <strong className="text-[#086e45]">{formatBRL(cashbackEstimado)}</strong> em cashback.
                 O valor final considera as regras vigentes e não inclui a taxa de entrega.
@@ -326,7 +326,7 @@ function Carrinho() {
             {/* Barra de Progresso Frete SBS */}
             {selectedCity.toLowerCase().includes("são bento do sul") && (
               <div className="mt-6 space-y-2">
-                <div className="flex justify-between text-xs font-semibold uppercase tracking-wider">
+                <div className="flex justify-between text-xs font-semibold tracking-normal">
                   <span className="text-muted-foreground">Progresso Frete Reduzido (R$ 5,00)</span>
                   <span className="text-primary">
                     {Math.min(100, Math.max((subtotal / 70) * 100, (count / 5) * 100)).toFixed(0)}%
@@ -340,7 +340,7 @@ function Carrinho() {
                     }}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground italic">
+                <p className="text-xs text-muted-foreground italic">
                   * Em São Bento do Sul, 5 ou mais unidades reduzem o frete para R$ 5,00.
                 </p>
               </div>
@@ -375,10 +375,10 @@ function Carrinho() {
 
             {suggestions.length > 0 && (
               <div className="mt-6 rounded-2xl border border-[#dce7d5] bg-[#f7faf4] p-4">
-                <p className="text-xs font-black uppercase tracking-wider text-[#315440]">
+                <p className="text-xs font-bold tracking-normal text-[#315440]">
                   Complete seu pedido
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Sugestões rápidas com base no que você já escolheu.
                 </p>
                 <div className="mt-3 space-y-2">
@@ -400,7 +400,7 @@ function Carrinho() {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="line-clamp-2 text-xs font-bold">{product.nome}</p>
-                          <p className="mt-0.5 text-xs font-black text-primary">{formatBRL(price)}</p>
+                          <p className="mt-0.5 text-xs font-bold text-primary">{formatBRL(price)}</p>
                         </div>
                         <button
                           type="button"
@@ -412,7 +412,7 @@ function Carrinho() {
                               metadata: { gramatura: weight },
                             });
                           }}
-                          className="rounded-full bg-primary px-3 py-2 text-[10px] font-black text-primary-foreground"
+                          className="rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
                         >
                           Adicionar
                         </button>
@@ -426,7 +426,7 @@ function Carrinho() {
             {/* Widget de Desconto Progressivo */}
             <div className="mt-8 rounded-3xl bg-primary/5 p-6 border-2 border-primary/10">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-black text-primary uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-sm font-bold text-primary tracking-normal flex items-center gap-2">
                   <span className="size-2 rounded-full bg-primary animate-pulse" />
                   Desconto Progressivo
                 </h3>
@@ -444,7 +444,7 @@ function Carrinho() {
                   return (
                     <div className="space-y-3">
                       <div className="flex justify-between text-xs font-bold">
-                        <span className="text-primary-dark uppercase">
+                        <span className="text-primary-dark">
                           Melhor faixa de preço atingida!
                         </span>
                         <span className="text-primary">20+ UNID.</span>
@@ -464,7 +464,7 @@ function Carrinho() {
 
                   return (
                     <div className="space-y-3">
-                      <div className="flex justify-between text-[11px] font-bold uppercase tracking-tight">
+                      <div className="flex justify-between text-xs font-bold tracking-normal">
                         <span className="text-muted-foreground">
                           Faltam <span className="text-primary">{itemsNeeded}</span>{" "}
                           {itemsNeeded === 1 ? "marmita" : "marmitas"}
@@ -480,7 +480,7 @@ function Carrinho() {
                         />
                       </div>
                       {currentTier && (
-                        <p className="text-[10px] text-center font-bold text-primary italic">
+                        <p className="text-xs text-center font-bold text-primary italic">
                           * Preço da faixa de {currentTier}+ unidades já aplicado.
                         </p>
                       )}
@@ -501,8 +501,8 @@ function Carrinho() {
                         : "bg-white text-muted-foreground border-border opacity-70",
                     )}
                   >
-                    <span className="text-[10px] font-black">{q}+ UNID.</span>
-                    <span className="text-xs font-black">PREÇO ESPECIAL</span>
+                    <span className="text-xs font-bold">{q}+ UNID.</span>
+                    <span className="text-xs font-bold">PREÇO ESPECIAL</span>
                   </div>
                 ))}
               </div>
@@ -515,17 +515,17 @@ function Carrinho() {
         <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-border bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_28px_rgba(0,0,0,.08)] backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-6xl items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs font-bold tracking-normal text-muted-foreground">
                 Total do pedido
               </p>
-              <p className="text-xl font-black text-[#086e45]">{formatBRL(total)}</p>
+              <p className="text-xl font-bold text-[#086e45]">{formatBRL(total)}</p>
             </div>
             <Link
               to="/checkout"
               search={{ cupom: undefined }}
               disabled={pedidoRegionalInvalido}
               className={cn(
-                "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-black text-primary-foreground shadow-md",
+                "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-md",
                 pedidoRegionalInvalido && "pointer-events-none opacity-50",
               )}
             >

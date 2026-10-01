@@ -370,7 +370,7 @@ function ProdutoPage() {
                 </div>
                 <span className="text-sm font-semibold text-foreground">{rating.toFixed(1)}</span>
               </div>
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <span className="text-sm font-medium text-muted-foreground tracking-normal">
                 {product.categorias?.nome || "Marmita"}
               </span>
             </div>
@@ -384,7 +384,7 @@ function ProdutoPage() {
           {/* Tamanhos */}
           {weights.length > 1 && (
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-foreground mb-3 tracking-normal">
                 Escolha o tamanho:
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -413,7 +413,7 @@ function ProdutoPage() {
           {ehMarmita && (
             <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-bold text-foreground mb-3 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-foreground mb-3 tracking-normal">
                   Como você quer receber?
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -440,7 +440,7 @@ function ProdutoPage() {
                     )}
                   >
                     Pronta para consumo
-                    <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">
+                    <span className="block text-xs font-medium text-muted-foreground mt-0.5">
                       +R$ 1,00
                     </span>
                   </button>
@@ -457,7 +457,7 @@ function ProdutoPage() {
                   />
                   <span className="text-sm font-medium text-foreground">
                     Quero garfo e faca
-                    <span className="text-[10px] font-medium text-muted-foreground ml-1">
+                    <span className="text-xs font-medium text-muted-foreground ml-1">
                       +R$ 1,00
                     </span>
                   </span>
@@ -468,7 +468,7 @@ function ProdutoPage() {
 
           {/* Tabela Nutricional */}
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">
+            <h3 className="text-sm font-semibold text-foreground tracking-normal">
               Valor Nutricional
             </h3>
             <div className="grid grid-cols-2 gap-4 rounded-xl bg-muted/50 p-4">
@@ -506,12 +506,12 @@ function ProdutoPage() {
           {/* Preço e CTA */}
           <div className="space-y-4 border-t border-border/30 pt-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-xs font-bold text-muted-foreground uppercase">
+              <span className="text-xs font-bold text-muted-foreground">
                 Valor por {selectedWeight || "porção"}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-4xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
+              <span className="text-4xl font-bold text-primary bg-gradient-brand bg-clip-text text-transparent">
                 {formatBRL(currentPrice)}
               </span>
             </div>

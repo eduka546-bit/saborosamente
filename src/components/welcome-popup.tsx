@@ -111,9 +111,9 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
           {/* Título */}
           {config.titulo && (
             <div className="bg-[#086e45] text-white rounded-2xl px-4 py-3 text-center">
-              <p className="font-black text-sm leading-tight">{config.titulo}</p>
+              <p className="font-bold text-sm leading-tight">{config.titulo}</p>
               {config.texto && (
-                <p className="text-white/80 text-[11px] mt-1 leading-relaxed">{config.texto}</p>
+                <p className="text-white/85 text-sm mt-1 leading-relaxed">{config.texto}</p>
               )}
             </div>
           )}
@@ -140,7 +140,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
                 onClick={() => {
                   navigator.clipboard.writeText(config.cupom_codigo!).catch(() => {});
                 }}
-                className="bg-[#086e45] text-white font-black tracking-widest text-sm px-6 py-2.5 rounded-xl hover:bg-[#065a38] transition-colors w-full"
+                className="bg-[#086e45] text-white font-semibold text-sm px-6 py-2.5 rounded-xl hover:bg-[#065a38] transition-colors w-full"
               >
                 {config.cupom_codigo}
               </button>
@@ -182,7 +182,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
           )}
 
           {/* Não exibir mais */}
-          <label className="flex items-center justify-center gap-2 text-[11px] text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">
+          <label className="flex items-center justify-center gap-2 text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors">
             <input
               type="checkbox"
               checked={naoMostrar}

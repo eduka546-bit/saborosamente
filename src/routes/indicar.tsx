@@ -150,14 +150,14 @@ function IndicarPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-2xl border p-5 text-center">
-          <p className="text-3xl font-black text-primary">{totalConvertidas}</p>
-          <p className="text-xs text-gray-400 font-bold uppercase mt-1">Indicações convertidas</p>
+          <p className="text-3xl font-bold text-primary">{totalConvertidas}</p>
+          <p className="text-xs text-gray-400 font-bold mt-1">Indicações convertidas</p>
         </div>
         <div className="bg-white rounded-2xl border p-5 text-center">
-          <p className="text-3xl font-black text-green-600">
+          <p className="text-3xl font-bold text-green-600">
             R$ {totalCashback.toFixed(2).replace(".", ",")}
           </p>
-          <p className="text-xs text-gray-400 font-bold uppercase mt-1">Cashback acumulado</p>
+          <p className="text-xs text-gray-400 font-bold mt-1">Cashback acumulado</p>
         </div>
       </div>
 

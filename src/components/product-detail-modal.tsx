@@ -357,8 +357,8 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   alt="SaborosaMente"
                   className="h-7 w-auto max-w-[180px] object-contain object-left"
                 />
-                <p className="mt-3 text-xs font-black text-[#087443]">@saborosamente.sbs</p>
-                <h4 className="mt-2 text-base font-black leading-tight text-[#173a2d]">
+                <p className="mt-3 text-sm font-semibold text-[#087443]">@saborosamente.sbs</p>
+                <h4 className="mt-2 text-base font-bold leading-tight text-[#173a2d]">
                   Mostre sua SaborosaMente
                 </h4>
                 <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
@@ -369,7 +369,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   href="https://www.instagram.com/saborosamente.sbs/"
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
+                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
                 >
                   Quero participar
                 </a>
@@ -407,7 +407,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
               <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">
+                  <h4 className="text-xs font-bold tracking-normal text-foreground">
                     Valor Nutricional
                   </h4>
                   <div className="text-xs mt-1 flex flex-wrap gap-x-2 text-muted-foreground">
@@ -427,7 +427,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">
+                  <h4 className="text-xs font-bold tracking-normal text-foreground">
                     Restrições
                   </h4>
                   <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
@@ -467,17 +467,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                               : "border-border bg-background text-muted-foreground hover:border-primary/30",
                           )}
                         >
-                          <span className="block text-sm font-black">{weightLabel(w)}</span>
+                          <span className="block text-sm font-bold">{weightLabel(w)}</span>
                           {isComboPronto && (
-                            <span className="block text-[9px] font-normal text-muted-foreground">
+                            <span className="block text-xs font-normal text-muted-foreground">
                               {w}
                             </span>
                           )}
-                          <span className={cn("mt-1 block text-xs font-black", selected ? "text-[#086e45]" : "text-foreground")}>
+                          <span className={cn("mt-1 block text-xs font-bold", selected ? "text-[#086e45]" : "text-foreground")}>
                             {formatBRL(price)}
                           </span>
                           {nutrition?.kcal != null && (
-                            <span className="mt-1 block text-[9px] font-semibold leading-tight text-muted-foreground">
+                            <span className="mt-1 block text-xs font-semibold leading-tight text-muted-foreground">
                               {nutrition.kcal} kcal
                               {nutrition?.prot != null ? ` • ${nutrition.prot}g prot` : ""}
                             </span>
@@ -530,7 +530,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                         )}
                       >
                         Pronta para consumo
-                        <span className="block text-[10px] font-medium text-muted-foreground mt-0.5">
+                        <span className="block text-xs font-medium text-muted-foreground mt-0.5">
                           +R$ 1,00
                         </span>
                       </button>
@@ -547,7 +547,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                       />
                       <span className="text-sm font-medium text-foreground">
                         Quero garfo e faca
-                        <span className="text-[10px] font-medium text-muted-foreground ml-1">
+                        <span className="text-xs font-medium text-muted-foreground ml-1">
                           +R$ 1,00
                         </span>
                       </span>
@@ -560,7 +560,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             {relatedProducts.length > 0 && (
               <section className="mt-2 border-t border-border pt-5">
                 <div className="mb-3">
-                  <p className="text-sm font-black text-foreground">Você também pode gostar</p>
+                  <p className="text-sm font-bold text-foreground">Você também pode gostar</p>
                   <p className="text-xs text-muted-foreground">Outras opções da mesma categoria.</p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
@@ -585,13 +585,13 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           loading="lazy"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-[11px] font-bold leading-snug">{candidate.nome}</p>
-                          <p className="mt-1 text-xs font-black text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
+                          <p className="line-clamp-2 text-xs font-bold leading-snug">{candidate.nome}</p>
+                          <p className="mt-1 text-sm font-semibold text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
                         </div>
                         <button
                           type="button"
                           onClick={() => addRelatedProduct(candidate)}
-                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[10px] font-black text-primary-foreground"
+                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
                         >
                           Adicionar
                         </button>
@@ -629,12 +629,12 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           <span className="text-sm font-bold text-muted-foreground line-through">
                             {formatBRL(precoCheioTotal)}
                           </span>
-                          <span className="text-3xl font-black text-[#086e45]">
+                          <span className="text-3xl font-bold text-[#086e45]">
                             {formatBRL(precoFinal)}
                           </span>
                         </>
                       ) : (
-                        <span className="text-3xl font-black text-primary">
+                        <span className="text-3xl font-bold text-primary">
                           {formatBRL(precoFinal)}
                         </span>
                       )}
@@ -672,7 +672,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                       {restockSending ? "Salvando..." : "Avise-me"}
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Se você estiver logado, pode deixar o campo em branco.
                   </p>
                 </div>
@@ -796,8 +796,8 @@ function TabelaNutricionalExpansivel({
 
       {aberta && (
         <div className="border-t border-border px-4 pb-4 pt-3">
-          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-[11px] sm:text-xs">
-            <div className="border-b border-foreground/20 py-2 text-center font-black uppercase">
+          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-xs sm:text-xs">
+            <div className="border-b border-foreground/20 py-2 text-center font-bold">
               Informação nutricional
             </div>
 
@@ -850,7 +850,7 @@ function TabelaNutricionalExpansivel({
               </>
             )}
           </div>
-          <p className="mt-2 text-[10px] text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             * Percentual de valores diários fornecidos pela porção.
           </p>
         </div>

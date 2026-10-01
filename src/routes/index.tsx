@@ -107,10 +107,10 @@ function InstagramFeedSection() {
     <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-10 md:py-14">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-6 flex flex-col gap-3 text-center md:mb-8">
-          <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">
+          <p className="font-sans text-sm font-semibold text-[#78922f]">
             ACOMPANHE A SABOROSAMENTE
           </p>
-          <h2 className="font-display text-3xl font-black text-[#075636] md:text-4xl">
+          <h2 className="font-display text-3xl font-bold text-[#075636] md:text-4xl">
             Nosso Instagram
           </h2>
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#587064] md:text-base">
@@ -119,7 +119,7 @@ function InstagramFeedSection() {
               href="https://www.instagram.com/saborosamente.sbs/"
               target="_blank"
               rel="noreferrer"
-              className="ml-1 font-black text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+              className="ml-1 font-bold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
             >
               @saborosamente.sbs
             </a>
@@ -561,10 +561,10 @@ function Index() {
   );
 
   const defaultHeroFeatures = [
-    { label: "PRONTO EM ATÉ", value: "7 MINUTOS" },
-    { label: "ATÉ 6 MESES", value: "DE VALIDADE" },
-    { label: "TEMPEROS NATURAIS", value: "0 CONSERVANTES" },
-    { label: "ENTREGA REGIONAL", value: "OU RETIRADA" },
+    { label: "Pronto em até", value: "7 minutos" },
+    { label: "Até 6 meses", value: "de validade" },
+    { label: "Temperos naturais", value: "0 conservantes" },
+    { label: "Entrega regional", value: "ou retirada" },
   ];
   // Diferenciais definidos para a nova vitrine. Eles substituem o bloco antigo
   // que ficava encaixado no rodapé do hero.
@@ -592,35 +592,35 @@ function Index() {
       filtro: "Mais proteicas",
       titulo: "Mais proteína",
       texto: "Veja primeiro as refeições com maior teor de proteína.",
-      destaque: "PROTEÍNA",
+      destaque: "Proteína",
       icon: "💪",
     },
     {
       filtro: "Até 300 kcal",
       titulo: "Até 300 kcal",
       texto: "Opções com até 300 kcal na porção de referência.",
-      destaque: "LEVE",
+      destaque: "Leve",
       icon: "⚡",
     },
     {
       filtro: "Sem Glúten",
       titulo: "Sem glúten",
       texto: "Filtre apenas os produtos identificados como sem glúten.",
-      destaque: "RESTRIÇÃO",
+      destaque: "Restrição",
       icon: "🌾",
     },
     {
       filtro: "Sem Lactose",
       titulo: "Sem lactose",
       texto: "Encontre rapidamente as opções identificadas como sem lactose.",
-      destaque: "RESTRIÇÃO",
+      destaque: "Restrição",
       icon: "🥛",
     },
     {
       filtro: "Sopas",
       titulo: "Sopas e caldos",
       texto: "Opções práticas para variar o cardápio e aquecer a rotina.",
-      destaque: "CONFORTO",
+      destaque: "Conforto",
       icon: "🥣",
     },
   ];
@@ -642,18 +642,18 @@ function Index() {
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
             <div className="grid lg:grid-cols-[1.02fr_.98fr] xl:aspect-[20/7]">
               <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-10 xl:px-10 xl:py-7">
-                <span className="mb-3 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[.12em] text-primary">
+                <span className="mb-3 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-xs font-semibold tracking-normal text-primary">
                   Sabor e praticidade para sua rotina
                 </span>
-                <h1 className="max-w-xl font-display text-4xl font-black leading-[1.04] text-[#075636] md:text-5xl xl:text-5xl">
+                <h1 className="max-w-xl font-display text-4xl font-bold leading-[1.04] text-[#075636] md:text-5xl xl:text-5xl">
                   Comida de verdade, pronta em até <span className="font-halimun text-[#91b93a]">7 minutos</span>
                 </h1>
                 <p className="mt-4 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg xl:text-base">
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <button onClick={() => abrirCardapio()} className="rounded-full bg-[#f6d83d] px-6 py-3 text-sm font-extrabold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Comprar agora</button>
-                  <button onClick={() => setMarmitaModalOpen(true)} className="rounded-full border-2 border-[#075636] px-6 py-3 text-sm font-extrabold text-[#075636] transition hover:bg-[#075636] hover:text-white">Montar minha marmita</button>
+                  <button onClick={() => abrirCardapio()} className="rounded-full bg-[#f6d83d] px-6 py-3 text-sm font-semibold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Comprar agora</button>
+                  <button onClick={() => setMarmitaModalOpen(true)} className="rounded-full border-2 border-[#075636] px-6 py-3 text-sm font-semibold text-[#075636] transition hover:bg-[#075636] hover:text-white">Montar minha marmita</button>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#315440]">
                   <span className="inline-flex items-center gap-1.5"><Truck size={16} />Entrega regional</span>
@@ -675,7 +675,7 @@ function Index() {
               return (
                 <div key={`${feature.label}-${index}`} className="flex min-h-24 flex-col items-center justify-center rounded-[1.35rem] bg-[#087149] px-3 py-4 text-center text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]">
                   <Icon className="mb-2 size-6" strokeWidth={1.8} />
-                  <p className="text-xs font-extrabold leading-[1.25] uppercase tracking-[.03em] md:text-[13px]"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
+                  <p className="text-sm font-semibold leading-snug"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
                 </div>
               );
             })}
@@ -685,11 +685,11 @@ function Index() {
 
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-7 text-center"><p className="font-bebas text-xl tracking-[.12em] text-[#78922f]">SEU PEDIDO, DO SEU JEITO</p><h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span></h2></div>
+          <div className="mb-7 text-center"><p className="font-sans text-sm font-semibold text-[#78922f]">Seu pedido, do seu jeito</p><h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span></h2></div>
           <div className="grid gap-5 md:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
-              badge="COMBINAÇÕES PRONTAS"
+              badge="Combinações prontas"
               title="Combos Prontos"
               text="Opções já montadas para você ter praticidade, sabor e economia na rotina."
               action="Ver Combos"
@@ -699,7 +699,7 @@ function Index() {
             />
             <OrderChoiceBanner
               icon={ShoppingBag}
-              badge="DESCONTO PROGRESSIVO"
+              badge="Desconto progressivo"
               title="Monte seu Combo"
               text="Quanto mais marmitas, maior o desconto. Automático e sem código."
               action="Montar Combo"
@@ -709,7 +709,7 @@ function Index() {
             />
             {marmitaConfig.ativo && <OrderChoiceBanner
               icon={ChefHat}
-              badge="DO SEU JEITO"
+              badge="Do seu jeito"
               title="Monte sua Marmita Personalizada"
               text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
               action="Montar Marmita"
@@ -727,10 +727,10 @@ function Index() {
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">
+              <p className="font-sans text-sm font-semibold text-[#78922f]">
                 ESCOLHA PELO SEU OBJETIVO
               </p>
-              <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">
+              <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">
                 Encontre mais rápido o que combina com você
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
@@ -756,17 +756,17 @@ function Index() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-2xl" aria-hidden="true">{objetivo.icon}</span>
-                  <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-[9px] font-black tracking-[.08em] text-[#658638]">
+                  <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-xs font-bold tracking-normal text-[#658638]">
                     {objetivo.destaque}
                   </span>
                 </div>
-                <h3 className="mt-4 font-display text-lg font-black text-[#075636]">
+                <h3 className="mt-4 font-display text-lg font-bold text-[#075636]">
                   {objetivo.titulo}
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-[#607168]">
                   {objetivo.texto}
                 </p>
-                <span className="mt-auto pt-3 text-xs font-black text-[#087149] transition group-hover:translate-x-1">
+                <span className="mt-auto pt-3 text-xs font-bold text-[#087149] transition group-hover:translate-x-1">
                   Ver opções →
                 </span>
               </button>
@@ -780,8 +780,8 @@ function Index() {
           <div className="mx-auto max-w-7xl px-4">
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
-                <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">OS FAVORITOS DE QUEM JÁ COMPRA</p>
-                <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Mais pedidos</h2>
+                <p className="font-sans text-sm font-semibold text-[#78922f]">Os favoritos de quem já compra</p>
+                <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Mais pedidos</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
                   Os sabores mais escolhidos nos últimos 90 dias.
                 </p>
@@ -789,7 +789,7 @@ function Index() {
               <button
                 type="button"
                 onClick={() => abrirObjetivo("Mais escolhidas")}
-                className="hidden text-sm font-black text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
+                className="hidden text-sm font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
               >
                 Ver todos
               </button>
@@ -848,7 +848,7 @@ function Index() {
           >
             <SlidersHorizontal size={19} />
             {selectedFilters.length > 0 && (
-              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-[9px] font-black text-[#173a2d]">
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-xs font-bold text-[#173a2d]">
                 {selectedFilters.length}
               </span>
             )}
@@ -861,7 +861,7 @@ function Index() {
             >
               <ShoppingCart size={19} />
               {count > 0 && (
-                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-[9px] font-black text-[#173a2d]">
+                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-xs font-bold text-[#173a2d]">
                   {count > 99 ? "99+" : count}
                 </span>
               )}
@@ -873,7 +873,7 @@ function Index() {
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
             <div className="space-y-3">
-              <h2 className="text-2xl font-display font-black text-foreground leading-tight">
+              <h2 className="text-2xl font-display font-bold text-foreground leading-tight">
                 Nosso Cardápio
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -889,8 +889,8 @@ function Index() {
             )}>
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-bebas text-base tracking-[.12em] text-[#78922f]">FILTROS</p>
-                  <h3 className="mt-0.5 font-display text-lg font-black text-[#075636]">Encontre suas favoritas</h3>
+                  <p className="font-sans text-sm font-semibold text-[#78922f]">Filtros</p>
+                  <h3 className="mt-0.5 font-display text-lg font-bold text-[#075636]">Encontre suas favoritas</h3>
                   <p className="mt-1 text-xs leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
                 </div>
                 {selectedFilters.length > 0 && (
@@ -900,7 +900,7 @@ function Index() {
                 )}
               </div>
 
-              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Preferências</p>
+              <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Preferências</p>
               <div className="flex flex-wrap gap-2">
                 {[...quickFilters, ...availableRestrictionFilters].map((filter) => {
                   const selected = selectedFilters.includes(filter);
@@ -927,7 +927,7 @@ function Index() {
               <button
                 type="button"
                 onClick={() => setAdvancedFiltersOpen((open) => !open)}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-[#075636]"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#075636]"
                 aria-expanded={advancedFiltersOpen}
               >
                 Mais filtros nutricionais
@@ -962,7 +962,7 @@ function Index() {
               )}
 
               <div className="my-4 border-t border-[#cfe0c4]" />
-              <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Categorias</p>
+              <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Categorias</p>
               {isLoading ? (
                 <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/30" size={22} /></div>
               ) : (
@@ -991,7 +991,7 @@ function Index() {
               {subgruposDisponiveis.length > 0 && (
                 <>
                   <div className="my-4 border-t border-[#cfe0c4]" />
-                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[.1em] text-[#567044]">Subgrupos</p>
+                  <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Subgrupos</p>
                   <div className="flex flex-wrap gap-2">
                     {subgruposDisponiveis.map((subgrupo) => {
                       const chave = "Subgrupo:" + subgrupo;
@@ -1024,7 +1024,7 @@ function Index() {
             <div className="mb-5">
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
                 <div className="flex-1">
-                  <h1 className="text-3xl md:text-4xl font-display font-black text-foreground">
+                  <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
                     {searchTerm
                       ? `Buscando "${searchTerm}"`
                       : activeFiltersLabel}
@@ -1112,7 +1112,7 @@ function Index() {
             {productsError ? (
               <div className="rounded-3xl border border-[#dce7d5] bg-white px-6 py-12 text-center shadow-sm">
                 <div className="mx-auto grid size-12 place-items-center rounded-full bg-[#eef5e9] text-2xl">🍽️</div>
-                <h3 className="mt-4 text-lg font-black text-[#173a2d]">
+                <h3 className="mt-4 text-lg font-bold text-[#173a2d]">
                   Não conseguimos carregar o cardápio agora
                 </h3>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
@@ -1186,7 +1186,7 @@ function Index() {
                       return (
                         <div key={category}>
                           {categoryIndex > 0 && <div className="my-6 border-t border-border/30" />}
-                          <h3 className="mb-1 text-xl font-black uppercase tracking-[.04em] text-primary">
+                          <h3 className="mb-1 text-xl font-bold tracking-normal text-primary">
                             {category}
                           </h3>
                           {(() => {
@@ -1275,8 +1275,8 @@ function Index() {
       <section className="border-t border-[#e8eadf] bg-[#f7f8f1] py-10 md:py-14">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 lg:grid-cols-[1.05fr_.95fr]">
           <div>
-            <p className="font-bebas text-lg tracking-[.12em] text-[#78922f]">SIMPLES DO INÍCIO AO FIM</p>
-            <h2 className="mt-1 font-display text-3xl font-black text-[#075636]">Como funciona</h2>
+            <p className="font-sans text-sm font-semibold text-[#78922f]">Simples do início ao fim</p>
+            <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Como funciona</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 { icon: ShoppingBag, title: "1. Escolha", text: "Monte seu pedido com os sabores e tamanhos que preferir." },
@@ -1289,7 +1289,7 @@ function Index() {
                     <div className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#087443]">
                       <Icon size={20} />
                     </div>
-                    <h3 className="mt-3 text-base font-black text-[#173a2d]">{step.title}</h3>
+                    <h3 className="mt-3 text-base font-bold text-[#173a2d]">{step.title}</h3>
                     <p className="mt-1 text-xs leading-relaxed text-[#607168]">{step.text}</p>
                   </div>
                 );
@@ -1303,8 +1303,8 @@ function Index() {
                 <MapPin size={21} />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[.1em] text-white/70">Onde você quer receber?</p>
-                <h2 className="mt-1 text-2xl font-black">Escolha sua cidade</h2>
+                <p className="text-xs font-bold tracking-normal text-white/70">Onde você quer receber?</p>
+                <h2 className="mt-1 text-2xl font-bold">Escolha sua cidade</h2>
                 <p className="mt-1 text-xs leading-relaxed text-white/75">
                   Você confirma bairro, taxa e disponibilidade no checkout.
                 </p>
@@ -1368,17 +1368,17 @@ function OrderChoiceBanner({
   return (
     <article className={`flex min-h-[25rem] flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br px-6 py-7 text-white shadow-soft ${styles}`}>
       <div>
-        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-sm tracking-[.1em] text-white/95">
+        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-sm tracking-normal text-white/95">
           <Icon size={17} strokeWidth={1.8} />
           {badge}
         </div>
-        <h3 className="font-display text-2xl font-black leading-tight lg:text-3xl">{title}</h3>
+        <h3 className="font-display text-2xl font-bold leading-tight lg:text-3xl">{title}</h3>
         <p className="mt-3 text-sm leading-relaxed text-white/80">{text}</p>
         <div className="mt-5 flex flex-wrap gap-2">
           {chips.map((chip) => <span key={chip} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/95">{chip}</span>)}
         </div>
       </div>
-      <button onClick={onClick} className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#fff082] px-5 py-3 font-display text-sm font-black text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white">
+      <button onClick={onClick} className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#fff082] px-5 py-3 font-display text-sm font-bold text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white">
         <Icon size={19} strokeWidth={2} />
         {action}
       </button>

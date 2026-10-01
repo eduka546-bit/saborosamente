@@ -297,7 +297,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2">
-            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-[10px] font-black flex items-center gap-1.5 shadow-lg border border-white/40 uppercase tracking-wider">
+            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-lg border border-white/40 tracking-normal">
               <Gift className="size-3.5" />
               Combo
             </div>
@@ -350,7 +350,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           <div className="flex flex-1 flex-col gap-3 p-4">
             {/* Category */}
             <div className="flex items-center justify-end">
-              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-white border border-white/40 uppercase tracking-wider">
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/40 tracking-normal">
                 {product.categoria}
               </span>
             </div>
@@ -367,10 +367,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             </div>
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-[9px] font-black text-muted-foreground uppercase">
+                <span className="text-xs font-medium text-muted-foreground">
                   A partir de
                 </span>
-                <span className="text-xl font-black text-primary bg-gradient-brand bg-clip-text text-transparent">
+                <span className="text-xl font-bold text-primary bg-gradient-brand bg-clip-text text-transparent">
                   {formatBRL(product.preco)}
                 </span>
               </div>
@@ -434,7 +434,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {commercialBadge && (
               <span
                 className={cn(
-                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide shadow-md",
+                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-xs font-bold tracking-normal shadow-md",
                   commercialBadge.className,
                 )}
               >
@@ -518,10 +518,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
             {ingredientesTexto && (
               <div className="rounded-xl bg-[#f7f8f3] px-3 py-2.5">
-                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#527164]">
+                <p className="mb-1 text-xs font-bold tracking-normal text-[#527164]">
                   Ingredientes principais
                 </p>
-                <p className="text-[11px] leading-[1.45] text-[#48554d]">
+                <p className="text-[13px] leading-relaxed text-[#48554d]">
                   {ingredientesTexto}
                 </p>
               </div>
@@ -539,7 +539,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       setSelectedWeight(w);
                     }}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide transition-all",
+                      "rounded-full border px-3 py-1 text-xs font-bold tracking-normal transition-all",
                       selectedWeight === w
                         ? "border-[#086e45] bg-[#086e45] text-white shadow-sm ring-2 ring-[#086e45]/20 ring-offset-1"
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
@@ -550,7 +550,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 ))}
               </div>
             ) : (
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground font-bold">
+              <p className="text-xs tracking-normal text-muted-foreground font-bold">
                 {product.peso}
               </p>
             )}
@@ -577,7 +577,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
                 {selectedWeight && (
-                  <span className="text-[11px] font-bold text-gray-400 uppercase">
+                  <span className="text-xs font-medium text-gray-500">
                     {selectedWeight}
                   </span>
                 )}
@@ -586,12 +586,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     <span className="text-xs font-bold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-2xl font-black text-[#086e45] leading-tight">
+                    <span className="text-2xl font-bold text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-2xl font-black text-[#086e45]">
+                  <span className="text-2xl font-bold text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -609,7 +609,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   >
                     <Minus className="size-4" />
                   </button>
-                  <span className="min-w-6 text-center text-sm font-black text-[#173a2d]">
+                  <span className="min-w-6 text-center text-sm font-bold text-[#173a2d]">
                     {quantidadeSelecionadaNoCarrinho}
                   </span>
                   <button
@@ -644,18 +644,18 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
             {podeTerDesconto &&
               (proximaFaixa ? (
-                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-[11px] font-bold text-[#527164]">
+                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-xs font-bold text-[#527164]">
                   <span>
                     Faltam <strong className="text-[#087443]">{faltamParaDesconto}</strong> para {proximaFaixa}+
                   </span>
                   {precoProximaFaixa != null && (
-                    <span className="shrink-0 font-black text-[#087443]">
+                    <span className="shrink-0 font-bold text-[#087443]">
                       {formatBRL(precoProximaFaixa)}/un
                     </span>
                   )}
                 </div>
               ) : (
-                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-[11px] font-black text-[#087443]">
+                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-xs font-bold text-[#087443]">
                   ✓ Melhor faixa de preço aplicada
                 </div>
               ))}

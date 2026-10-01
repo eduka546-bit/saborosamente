@@ -132,7 +132,7 @@ function RastrearPedidoPage() {
                 onChange={(e) => setProtocolo(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && setBusca(protocolo)}
                 placeholder="Ex: B42018AD"
-                className="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-primary/30 font-mono tracking-wider"
+                className="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-primary/30 font-mono tracking-normal"
                 maxLength={8}
               />
             </div>
@@ -144,7 +144,7 @@ function RastrearPedidoPage() {
               Buscar
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-2 ml-1">
+          <p className="text-xs text-gray-400 mt-2 ml-1">
             O protocolo está no e-mail de confirmação ou na mensagem do WhatsApp
           </p>
         </div>
@@ -175,10 +175,10 @@ function RastrearPedidoPage() {
                   <config.icon size={24} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-gray-500 tracking-normal">
                     Pedido #{pedido.id.slice(-8).toUpperCase()}
                   </p>
-                  <p className={`text-lg font-black ${config.color}`}>{config.label}</p>
+                  <p className={`text-lg font-bold ${config.color}`}>{config.label}</p>
                 </div>
               </div>
 
@@ -207,7 +207,7 @@ function RastrearPedidoPage() {
                       <div key={s.step} className="flex items-center gap-2 flex-1">
                         <div className={`flex flex-col items-center gap-1 flex-1`}>
                           <div
-                            className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                            className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
                               done
                                 ? "bg-primary border-primary text-white"
                                 : "bg-white border-gray-200 text-gray-300"
@@ -216,7 +216,7 @@ function RastrearPedidoPage() {
                             <s.icon size={14} />
                           </div>
                           <span
-                            className={`text-[10px] font-bold text-center ${done ? "text-primary" : "text-gray-300"}`}
+                            className={`text-xs font-semibold text-center ${done ? "text-primary" : "text-gray-300"}`}
                           >
                             {s.label}
                           </span>
@@ -238,17 +238,17 @@ function RastrearPedidoPage() {
               <h3 className="font-bold text-gray-800">Detalhes do Pedido</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Cliente</p>
+                  <p className="text-xs font-semibold text-gray-400">Cliente</p>
                   <p className="font-medium text-gray-900">{pedido.nome_cliente}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Data</p>
+                  <p className="text-xs font-semibold text-gray-400">Data</p>
                   <p className="font-medium text-gray-900">
                     {format(new Date(pedido.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Entrega</p>
+                  <p className="text-xs font-semibold text-gray-400">Entrega</p>
                   <p className="font-medium text-gray-900 flex items-center gap-1">
                     {pedido.metodo_entrega === "entrega" ? (
                       <>
@@ -260,7 +260,7 @@ function RastrearPedidoPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">Pagamento</p>
+                  <p className="text-xs font-semibold text-gray-400">Pagamento</p>
                   <p className="font-medium text-gray-900">{pedido.metodo_pagamento}</p>
                 </div>
               </div>

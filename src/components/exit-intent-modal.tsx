@@ -83,7 +83,7 @@ export function ExitIntentModal({
             <ShoppingBag size={32} className="text-white" />
           </div>
 
-          <h2 className="text-2xl font-black leading-tight mb-1">Espera! Não vá embora.</h2>
+          <h2 className="text-2xl font-bold leading-tight mb-1">Espera! Não vá embora.</h2>
           <p className="text-sm text-white/80 leading-relaxed">
             Você tem{" "}
             <strong className="text-white">
@@ -97,10 +97,10 @@ export function ExitIntentModal({
         <div className="bg-white px-6 py-6 space-y-5">
           {/* Oferta */}
           <div className="rounded-2xl bg-[#086e45]/5 border border-[#086e45]/10 p-4 text-center space-y-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#086e45]/60">
+            <p className="text-xs font-bold tracking-normal text-[#086e45]/60">
               Oferta exclusiva para você
             </p>
-            <p className="text-lg font-black text-gray-900">
+            <p className="text-lg font-bold text-gray-900">
               {discountPercent}% de desconto na sua compra
             </p>
             <p className="text-xs text-gray-500">Use o cupom abaixo antes de finalizar o pedido</p>
@@ -110,7 +110,7 @@ export function ExitIntentModal({
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-3 rounded-xl border-2 border-dashed border-[#086e45]/40 bg-[#086e45]/5 px-4 py-3">
               <Tag size={16} className="text-[#086e45] shrink-0" />
-              <span className="font-black text-lg tracking-widest text-[#086e45]">{coupon}</span>
+              <span className="font-bold text-lg tracking-normal text-[#086e45]">{coupon}</span>
             </div>
             <button
               onClick={handleCopy}

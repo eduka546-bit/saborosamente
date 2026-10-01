@@ -20,17 +20,17 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
     <div className={cn("rounded-2xl border border-primary/10 bg-primary/5 p-4", className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[.08em] text-primary">
+          <h3 className="flex items-center gap-1.5 text-xs font-bold tracking-normal text-primary">
             <ShoppingBag size={15} />
             Desconto progressivo
           </h3>
-          <p className="mt-1 text-[11px] font-medium text-[#587064]">
+          <p className="mt-1 text-xs font-medium text-[#587064]">
             {discount > 0
               ? `Você já economiza ${formatBRL(discount)} neste pedido.`
               : "Quanto mais itens, melhor a faixa de preço das marmitas."}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[11px] font-black text-white">
+        <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-white">
           {count} {count === 1 ? "item" : "itens"}
         </span>
       </div>
@@ -48,7 +48,7 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
               <div key={band.min} className="flex flex-col items-center text-center">
                 <div
                   className={cn(
-                    "z-10 grid size-7 place-items-center rounded-full border-2 text-[10px] font-black",
+                    "z-10 grid size-7 place-items-center rounded-full border-2 text-xs font-bold",
                     active
                       ? "border-primary bg-primary text-white"
                       : "border-[#cfe0c4] bg-white text-[#6a7c70]",
@@ -56,7 +56,7 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
                 >
                   {band.min}
                 </div>
-                <span className={cn("mt-1 text-[10px] font-black", active ? "text-primary" : "text-[#6a7c70]")}>
+                <span className={cn("mt-1 text-xs font-bold", active ? "text-primary" : "text-[#6a7c70]")}>
                   {band.min}+
                 </span>
               </div>
@@ -66,12 +66,12 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
       </div>
 
       {nextLevel ? (
-        <p className="text-center text-[11px] font-bold text-[#527164]">
+        <p className="text-center text-xs font-bold text-[#527164]">
           Faltam <strong className="text-primary">{nextLevel.min - count}</strong>{" "}
           {nextLevel.min - count === 1 ? "unidade" : "unidades"} para a faixa {nextLevel.min}+.
         </p>
       ) : (
-        <p className="text-center text-[11px] font-black text-primary">
+        <p className="text-center text-xs font-bold text-primary">
           ✓ Melhor faixa de preço atingida
         </p>
       )}

@@ -226,7 +226,7 @@ function AuthPage() {
           >
             {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
           </button>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-normal">
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
