@@ -1119,7 +1119,8 @@ export function CardapioCompleto({
                 ))}
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-[#dbe7dd]">
+            <div className="overflow-x-auto rounded-xl border border-[#dbe7dd]">
+              <div className="min-w-[540px]">
               <div className="grid grid-cols-[minmax(210px,1fr)_150px_150px] bg-[#173a2d] px-3 py-2 text-xs font-black uppercase text-white">
                 <span>Nutriente</span>
                 <span>Porção {nutriTamanho}g</span>
@@ -1140,6 +1141,7 @@ export function CardapioCompleto({
                   />
                 </div>
               ))}
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3 rounded-xl bg-[#f5faf3] p-4 sm:grid-cols-2">
