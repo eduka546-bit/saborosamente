@@ -561,6 +561,46 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
     },
   });
 
+  const {
+    data: coexistencia,
+    isLoading: carregandoCoexistencia,
+    refetch: atualizarCoexistencia,
+  } = useQuery({
+    queryKey: ["whatsapp-coexistencia-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: { action: "coexistence_status" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  const [sincronizandoCoexistencia, setSincronizandoCoexistencia] = useState<string | null>(null);
+
+  const iniciarSyncCoexistencia = async (syncType: "history" | "smb_app_state_sync") => {
+    setSincronizandoCoexistencia(syncType);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: { action: "coexistence_sync", sync_type: syncType },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(
+        syncType === "history"
+          ? "Sincronização do histórico iniciada."
+          : "Sincronização dos contatos iniciada.",
+      );
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível iniciar a sincronização.");
+    } finally {
+      setSincronizandoCoexistencia(null);
+    }
+  };
+
   const toggleAtivoMutation = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase.from("agente_arquivos").update({ ativo }).eq("id", id);
@@ -962,7 +1002,10 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
                   val: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-agent`,
                 },
                 { label: "Verify Token", val: "saborosamente-webhook-2026" },
-                { label: "Campo assinado", val: "messages" },
+                {
+                  label: "Campos assinados",
+                  val: "messages, history, smb_app_state_sync, smb_message_echoes",
+                },
               ].map((row) => (
                 <div key={row.label}>
                   <label className={`text-[10px] font-bold uppercase ${t.settingsLabel}`}>
@@ -975,6 +1018,88 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
                   </div>
                 </div>
               ))}
+            </div>
+            <div className={`rounded-xl border p-4 space-y-3 ${t.settingsCard}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-semibold ${t.text}`}>WhatsApp Coexistence</p>
+                  <p className={`text-xs ${t.textSub}`}>
+                    Business App + Cloud API no mesmo número
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => atualizarCoexistencia()}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${t.settingsInput}`}
+                >
+                  Atualizar
+                </button>
+              </div>
+
+              {carregandoCoexistencia ? (
+                <div className={`flex items-center gap-2 text-xs ${t.textSub}`}>
+                  <Loader2 size={14} className="animate-spin" /> Consultando Meta…
+                </div>
+              ) : coexistencia?.success ? (
+                <>
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-xs ${
+                      coexistencia?.is_on_biz_app
+                        ? dark
+                          ? "border-green-700 bg-green-900/20 text-green-300"
+                          : "border-green-200 bg-green-50 text-green-700"
+                        : dark
+                          ? "border-amber-700 bg-amber-900/20 text-amber-300"
+                          : "border-amber-200 bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    <strong>
+                      {coexistencia?.is_on_biz_app
+                        ? "✓ WhatsApp Business conectado"
+                        : "Ainda não está em Coexistence"}
+                    </strong>
+                    <div className="mt-1 opacity-80">
+                      {coexistencia?.display_phone_number || "Número não informado"}
+                      {coexistencia?.platform_type ? ` · ${coexistencia.platform_type}` : ""}
+                    </div>
+                  </div>
+
+                  {coexistencia?.is_on_biz_app && (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        disabled={!!sincronizandoCoexistencia}
+                        onClick={() => iniciarSyncCoexistencia("smb_app_state_sync")}
+                        className="rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {sincronizandoCoexistencia === "smb_app_state_sync"
+                          ? "Sincronizando…"
+                          : "Sincronizar contatos"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!sincronizandoCoexistencia}
+                        onClick={() => iniciarSyncCoexistencia("history")}
+                        className="rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {sincronizandoCoexistencia === "history"
+                          ? "Sincronizando…"
+                          : "Sincronizar histórico"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className={`text-xs leading-relaxed ${t.textSub}`}>
+                  Não foi possível consultar o status agora. Depois que concluirmos o onboarding
+                  na Meta, use “Atualizar” para confirmar a conexão.
+                </p>
+              )}
+
+              <p className={`text-[11px] leading-relaxed ${t.textSub}`}>
+                Mensagens enviadas pelo WhatsApp Business/Web serão espelhadas aqui e a conversa
+                será colocada automaticamente em modo humano para a IA não responder por cima.
+              </p>
             </div>
             <div className={`rounded-xl border p-4 space-y-2 ${t.settingsCard}`}>
               <p className={`text-sm font-semibold flex items-center gap-1.5 text-red-400`}>
@@ -1511,7 +1636,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                 }`}
               >
                 {isOut && isManual && (
-                  <p className="text-[9px] font-bold opacity-60 mb-0.5">👤 Você</p>
+                  <p className="text-[9px] font-bold opacity-60 mb-0.5">
+                    {msg.source === "business_app"
+                      ? "📱 WhatsApp Business"
+                      : msg.source === "business_app_history"
+                        ? "📱 WhatsApp Business · histórico"
+                        : "👤 Você"}
+                  </p>
                 )}
                 {isOut && !isManual && (
                   <p className="text-[9px] font-bold opacity-60 mb-0.5">
