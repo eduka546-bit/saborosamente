@@ -65,9 +65,9 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
         <article className="rounded-2xl bg-white p-4 text-[#173a2d] shadow-sm ring-1 ring-[#dbe7dd]"><p className="text-xs font-bold text-[#62766b]">Custo estimado da reposição</p><p className="text-2xl font-black">{dinheiro(custoTotal)}</p></article>
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="text-sm text-[#62766b]">{faltantes.length ? "Mostrando apenas o que precisa de reposição." : "O estoque cobre toda a produção planejada deste dia."}</p>
-        <button onClick={() => setMostrarTodos((v) => !v)} className="text-sm font-bold text-[#087443]">{mostrarTodos ? "Mostrar só faltantes" : "Ver todos os ingredientes"}</button>
+        <button onClick={() => setMostrarTodos((v) => !v)} className="self-start text-left text-sm font-bold text-[#087443] sm:self-auto sm:text-right">{mostrarTodos ? "Mostrar só faltantes" : "Ver todos os ingredientes"}</button>
       </div>
 
       <div id="lista-compras-impressao" className="overflow-hidden rounded-2xl border bg-white">
@@ -78,7 +78,23 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
         {!visiveis.length ? (
           <div className="grid min-h-40 place-items-center p-6 text-center text-sm text-[#62766b]">Nenhum ingrediente precisa ser comprado para a produção selecionada.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="grid gap-2 p-3 md:hidden">
+            {visiveis.map((x: any) => (
+              <article key={`mobile-${x.id}`} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0"><b className="block break-words">{x.item?.nome}</b>{x.pratos?.length ? <p className="mt-1 break-words text-[11px] text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p> : null}</div>
+                  <b className="shrink-0 text-[#087443]">{x.qb ? "conferir" : x.comprar > 0 ? formatarQtd(x.comprar, x.unidade) : "—"}</b>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-[#f4f8f4] p-2"><span className="text-[#62766b]">Necessário</span><b className="mt-0.5 block">{x.qb ? "a gosto" : formatarQtd(x.necessario, x.unidade)}</b></div>
+                  <div className="rounded-lg bg-[#f4f8f4] p-2"><span className="text-[#62766b]">Em estoque</span><b className="mt-0.5 block">{formatarQtd(x.disponivel, x.unidade)}</b></div>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#edf1ed] pt-2 text-xs"><span className="text-[#62766b]">Estimativa</span><b>{x.qb ? "—" : dinheiro(x.custoEstimado)}</b></div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[700px] text-sm">
               <thead className="bg-[#f4f8f4] text-left text-xs uppercase text-[#527164]"><tr><th className="px-4 py-3">Ingrediente</th><th className="px-4 py-3">Necessário</th><th className="px-4 py-3">Em estoque</th><th className="px-4 py-3">Comprar</th><th className="px-4 py-3 text-right">Estimativa</th></tr></thead>
               <tbody>
@@ -94,6 +110,7 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
       <div className="mt-4 flex items-center gap-2 rounded-xl bg-[#edf5e6] p-3 text-sm text-[#315e49]"><ShoppingCart size={18} /><span>Os valores usam o custo cadastrado em cada ingrediente e servem como estimativa. Ao atualizar o último valor pago, a previsão também muda.</span></div>
