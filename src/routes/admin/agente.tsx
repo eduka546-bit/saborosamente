@@ -101,7 +101,7 @@ const DARK = {
   app: "bg-[#111b21]",
   sidebar: "bg-[#111b21]",
   sidebarHeader: "bg-[#202c33]",
-  sidebarSearch: "bg-[#202c33]",
+  sidebarSearch: "bg-[#111b21]",
   sidebarSearchInput: "bg-[#2a3942] text-[#d1d7db]",
   chatBg: "bg-[#0b141a]",
   chatPattern: "opacity-[0.03]",
@@ -116,7 +116,7 @@ const DARK = {
   textTime: "text-[#8696a0]",
   bubbleOut: "bg-[#005c4b] text-[#e9edef]",
   bubbleIn: "bg-[#202c33] text-[#e9edef]",
-  bubbleManual: "bg-[#1d4b3a] text-[#e9edef]",
+  bubbleManual: "bg-[#005c4b] text-[#e9edef]",
   settingsPanel: "bg-[#111b21]",
   settingsCard: "bg-[#202c33] border-[#2a3942]",
   settingsInput: "bg-[#2a3942] border-[#3b4a54] text-[#e9edef]",
@@ -130,7 +130,7 @@ const LIGHT = {
   app: "bg-[#f0f2f5]",
   sidebar: "bg-white",
   sidebarHeader: "bg-[#f0f2f5]",
-  sidebarSearch: "bg-[#f0f2f5]",
+  sidebarSearch: "bg-white",
   sidebarSearchInput: "bg-white text-[#3b4a54]",
   chatBg: "bg-[#efeae2]",
   chatPattern: "opacity-[0.06]",
@@ -145,7 +145,7 @@ const LIGHT = {
   textTime: "text-[#667781]",
   bubbleOut: "bg-[#d9fdd3] text-[#111b21]",
   bubbleIn: "bg-white text-[#111b21]",
-  bubbleManual: "bg-[#fff3cd] text-[#111b21]",
+  bubbleManual: "bg-[#d9fdd3] text-[#111b21]",
   settingsPanel: "bg-[#f0f2f5]",
   settingsCard: "bg-white border-[#e9edef]",
   settingsInput: "bg-white border-[#e9edef] text-[#111b21]",
@@ -1472,20 +1472,20 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
     else grupos.push({ date: d, msgs: [msg] });
   }
 
-  const avatarColor = isHumano ? "bg-[#f0a202]" : "bg-[#00a884]";
+  const avatarColor = "bg-[#6a7175]";
 
   return (
     <div
       className={`flex flex-col h-full ${t.chatBg}`}
       style={{
         backgroundImage: dark
-          ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23ffffff'/%3E%3C/svg%3E\")"
-          : "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%23000000'/%3E%3C/svg%3E\")",
-        backgroundSize: "60px",
+          ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%238696a0' stroke-opacity='.055' stroke-width='1.4'%3E%3Cpath d='M18 23c8-9 19-6 21 2 2 8-5 15-16 20M117 19l9 9-9 9M72 17c8 0 14 6 14 14s-6 14-14 14-14-6-14-14 6-14 14-14Z'/%3E%3Cpath d='M19 92c9-8 21-5 25 5s-3 20-15 24M102 82l22 0M113 71l0 22M54 105c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z'/%3E%3Cpath d='M132 123c5-6 14-4 16 2 2 7-4 12-12 17M13 143l10-10 10 10'/%3E%3C/g%3E%3C/svg%3E\")"
+          : "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23667781' stroke-opacity='.085' stroke-width='1.4'%3E%3Cpath d='M18 23c8-9 19-6 21 2 2 8-5 15-16 20M117 19l9 9-9 9M72 17c8 0 14 6 14 14s-6 14-14 14-14-6-14-14 6-14 14-14Z'/%3E%3Cpath d='M19 92c9-8 21-5 25 5s-3 20-15 24M102 82l22 0M113 71l0 22M54 105c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z'/%3E%3Cpath d='M132 123c5-6 14-4 16 2 2 7-4 12-12 17M13 143l10-10 10 10'/%3E%3C/g%3E%3C/svg%3E\")",
+        backgroundSize: "160px 160px",
       }}
     >
       {/* Chat header */}
-      <div className={`flex items-center gap-3 px-4 py-3 shrink-0 ${t.chatHeader}`}>
+      <div className={`h-[60px] flex items-center gap-3 px-4 shrink-0 ${t.chatHeader}`}>
         <button onClick={onBack} className={`p-1 rounded-full md:hidden ${t.textSub}`}>
           <ChevronLeft size={20} />
         </button>
@@ -1538,33 +1538,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
               </button>
             </div>
           )}
-          <p className={`text-xs ${t.textSub}`}>{conversa.telefone}</p>
+          {(!pedidosValidos.length || somenteCampanha) && (
+            <p className={`text-xs ${t.textSub}`}>{conversa.telefone}</p>
+          )}
           {!somenteCampanha && pedidosValidos.length > 0 && (
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}>
-                {pedidosValidos.length} {pedidosValidos.length === 1 ? "pedido" : "pedidos"}
-              </span>
-              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}>
-                R$ {totalGastoCliente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              {ultimoPedidoCliente && (
-                <span
-                  title={`Último pedido: ${new Date(ultimoPedidoCliente.created_at).toLocaleString("pt-BR")} · ${ultimoPedidoCliente.status}`}
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${dark ? "bg-[#182229] text-[#aebac1]" : "bg-white text-[#667781]"}`}
-                >
-                  Último: {new Date(ultimoPedidoCliente.created_at).toLocaleDateString("pt-BR")}
-                </span>
-              )}
-            </div>
+            <p
+              className={`text-[11px] truncate ${t.textSub}`}
+              title={`${pedidosValidos.length} ${pedidosValidos.length === 1 ? "pedido" : "pedidos"} · R$ ${totalGastoCliente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${ultimoPedidoCliente ? ` · último em ${new Date(ultimoPedidoCliente.created_at).toLocaleDateString("pt-BR")}` : ""}`}
+            >
+              {conversa.telefone}
+            </p>
           )}
         </div>
         {!somenteCampanha && (
           <button
             onClick={() => onToggleModo(conversa.id, conversa.modo)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 h-9 px-3 rounded-lg text-[12px] font-semibold transition-all ${
               isHumano
-                ? "bg-[#00a884] text-white hover:bg-[#008f72]"
-                : "bg-[#f0a202] text-white hover:bg-[#d99200]"
+                ? dark ? "text-[#00a884] hover:bg-white/5" : "text-[#008069] hover:bg-black/5"
+                : dark ? "text-[#e9edef] hover:bg-white/5" : "text-[#3b4a54] hover:bg-black/5"
             }`}
           >
             {isHumano ? (
@@ -1581,7 +1573,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       </div>
 
       {!somenteCampanha && (isHumano || pedidoEmAndamento || carrinhoAtivo || resumoEquipe) && (
-        <div className={`mx-3 mt-2 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
+        <div className={`mx-4 mt-2 rounded-lg border px-3 py-2 ${dark ? "border-[#25343c] bg-[#111b21]/90" : "border-[#dfe3e5] bg-white/95"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
             {isHumano && (
               <span className="rounded-full bg-[#f0a202] px-2 py-0.5 text-[10px] font-bold text-white">👤 Atendimento humano</span>
@@ -1612,7 +1604,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       )}
 
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+      <div className="flex-1 overflow-y-auto px-[6%] py-3 space-y-0.5">
         {mensagens.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
@@ -1631,8 +1623,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
           return (
             <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"} mb-0.5`}>
               <div
-                className={`relative max-w-[72%] rounded-2xl px-3 py-2 shadow-sm text-sm leading-relaxed ${bubbleClass} ${
-                  isOut ? "rounded-tr-sm" : "rounded-tl-sm"
+                className={`relative max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
+                  isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
                 {isOut && isManual && (
@@ -1658,18 +1650,19 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
                   </span>
-                  {msg.deliveryStatus && (
-                    <span className="text-[10px] opacity-60">
-                      {msg.deliveryStatus === "enviado"
-                        ? "Enviado à Meta"
-                        : msg.deliveryStatus === "entregue"
-                          ? "Entregue"
-                          : msg.deliveryStatus === "lido"
-                            ? "Lido"
-                            : msg.deliveryStatus}
-                    </span>
+                  {isOut && (
+                    <CheckCheck
+                      size={14}
+                      title={
+                        msg.deliveryStatus === "lido"
+                          ? "Lida"
+                          : msg.deliveryStatus === "entregue"
+                            ? "Entregue"
+                            : "Enviada"
+                      }
+                      className={msg.deliveryStatus === "lido" ? "text-[#53bdeb]" : "opacity-50"}
+                    />
                   )}
-                  {isOut && <CheckCheck size={12} className="opacity-50" />}
                 </div>
               </div>
             </div>
@@ -1679,7 +1672,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       </div>
 
       {/* Input */}
-      <div className={`px-3 py-3 shrink-0 ${t.chatInput}`}>
+      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`}>
         {somenteCampanha ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
@@ -1716,7 +1709,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
             )}
             <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
             <div className="flex items-center gap-2">
-              <div className={`flex-1 flex items-center gap-2 rounded-full px-3 py-2.5 ${t.chatInputField} border ${t.divider}`}>
+              <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
                 <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
                 <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 bg-transparent outline-none text-sm" />
                 <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
@@ -2010,26 +2003,26 @@ function AdminAgentePage() {
         className={`flex flex-col w-full md:w-[380px] shrink-0 border-r ${t.sidebar} ${t.divider} ${activeId && !showConfig ? "hidden md:flex" : "flex"}`}
       >
         {/* Header sidebar */}
-        <div className={`flex items-center justify-between px-4 py-3 shrink-0 ${t.sidebarHeader}`}>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#00a884] flex items-center justify-center text-white font-bold text-sm">
+        <div className={`h-[60px] flex items-center justify-between px-4 shrink-0 ${t.sidebarHeader}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-full bg-[#6a7175] flex items-center justify-center text-white font-bold text-sm shrink-0">
               <Bot size={18} />
             </div>
-            <div>
-              <p className={`font-semibold text-sm ${t.text}`}>Saborosa</p>
-              <p className={`text-[10px] ${t.textSub}`}>
-                {config?.ativo ? "🟢 Ativa" : "🔴 Pausada"}
+            <div className="min-w-0">
+              <p className={`font-semibold text-[15px] leading-tight truncate ${t.text}`}>SaborosaMente</p>
+              <p className={`text-[11px] leading-tight mt-0.5 ${config?.ativo ? "text-[#00a884]" : t.textSub}`}>
+                {config?.ativo ? "IA ativa" : "IA pausada"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => toggleAgenteMutation.mutate(!config?.ativo)}
               disabled={!config || toggleAgenteMutation.isPending}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:opacity-50 ${config?.ativo ? "bg-[#00a884] text-white hover:bg-[#008f72]" : "bg-[#f0a202] text-white hover:bg-[#d88900]"}`}
-              title="Ligar ou desligar as respostas automáticas"
+              className={`h-9 w-9 rounded-full grid place-items-center transition-all disabled:opacity-50 hover:bg-black/10 ${config?.ativo ? "text-[#00a884]" : "text-[#f0a202]"}`}
+              title={config?.ativo ? "Pausar respostas da IA" : "Ativar respostas da IA"}
             >
-              {config?.ativo ? "IA ligada" : "IA desligada"}
+              {toggleAgenteMutation.isPending ? <Loader2 size={17} className="animate-spin" /> : <Bot size={18} />}
             </button>
             {humanasCount > 0 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badgeHumano}`}>
@@ -2065,49 +2058,53 @@ function AdminAgentePage() {
 
         {/* Busca */}
         <div className={`px-3 py-2 shrink-0 ${t.sidebarSearch}`}>
-          <div className={`flex items-center gap-2 rounded-full px-4 py-2 ${t.sidebarSearchInput}`}>
-            <Search size={15} className={t.textSub} />
+          <div className={`h-9 flex items-center gap-3 rounded-lg px-3 ${t.sidebarSearchInput}`}>
+            <Search size={16} className={t.textSub} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Pesquisar ou começar nova conversa"
-              className="flex-1 bg-transparent text-sm outline-none"
+              placeholder="Pesquisar ou iniciar nova conversa"
+              className="flex-1 bg-transparent text-[13px] outline-none min-w-0"
             />
           </div>
         </div>
 
         {/* Filtros */}
-        <div className={`flex flex-wrap gap-1.5 px-3 py-2 shrink-0`}>
+        <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(["pendentes", "respondidas", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-[12px] font-medium border transition-all ${
                 filterModo === f
-                  ? "bg-[#00a884] text-white"
-                  : `${dark ? "bg-[#2a3942] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`
+                  ? dark
+                    ? "bg-[#0a332c] border-[#0a332c] text-[#00a884]"
+                    : "bg-[#e7fce8] border-[#e7fce8] text-[#008069]"
+                  : dark
+                    ? "bg-transparent border-[#2a3942] text-[#8696a0] hover:bg-[#202c33]"
+                    : "bg-white border-[#e9edef] text-[#667781] hover:bg-[#f5f6f6]"
               }`}
             >
               {f === "pendentes"
-                ? `🔴 Falta responder (${pendentesCount})`
+                ? `Não respondidas ${pendentesCount ? `(${pendentesCount})` : ""}`
                 : f === "respondidas"
-                  ? `✅ Respondidas (${respondidasCount})`
+                  ? `Respondidas ${respondidasCount ? `(${respondidasCount})` : ""}`
                   : f === "todos"
-                    ? "Tudo"
-                  : f === "humano"
-                    ? "👤 Você"
-                    : f === "ia"
-                      ? "🤖 IA"
-                      : `📣 Campanhas${carregandoCampanhas ? "" : ` (${campanhasSemResposta.length})`}`}
+                    ? "Todas"
+                    : f === "humano"
+                      ? "Humano"
+                      : f === "ia"
+                        ? "IA"
+                        : `Campanhas${carregandoCampanhas ? "" : campanhasSemResposta.length ? ` (${campanhasSemResposta.length})` : ""}`}
             </button>
           ))}
         </div>
 
-        <div className={`px-3 pb-2 shrink-0`}>
+        <div className={`px-3 pt-1 pb-2 shrink-0`}>
           <select
             value={cidadeFiltro}
             onChange={(event) => setCidadeFiltro(event.target.value)}
-            className={`w-full rounded-lg border px-3 py-2 text-xs outline-none ${t.sidebarSearchInput} ${t.divider}`}
+            className={`w-full h-8 rounded-lg border px-3 text-[12px] outline-none ${t.sidebarSearchInput} ${t.divider}`}
           >
             <option value="todas">Todas as cidades</option>
             {(listasDeContatos as any[]).map((lista) => (
@@ -2133,7 +2130,7 @@ function AdminAgentePage() {
               const lastMsg = c.mensagens?.at(-1);
               const pendente = !isCampanha && precisaResponder(c);
               const naoRespondidas = pendente ? [...(c.mensagens || [])].reverse().findIndex((m: any) => m?.role === "assistant") : 0;
-              const avatarColor = isCampanha ? "bg-[#5850ec]" : isHumano ? "bg-[#f0a202]" : "bg-[#00a884]";
+              const avatarColor = "bg-[#6a7175]";
 
               return (
                 <div
@@ -2142,10 +2139,10 @@ function AdminAgentePage() {
                     setActiveId(c.id);
                     setShowConfig(false);
                   }}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all border-b ${t.divider} ${isActive ? t.contactItemActive : t.contactItem}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 min-h-[72px] cursor-pointer transition-all border-b ${t.divider} ${isActive ? t.contactItemActive : t.contactItem}`}
                 >
                   <div
-                    className={`h-12 w-12 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+                    className={`h-[49px] w-[49px] rounded-full ${avatarColor} flex items-center justify-center text-white font-semibold text-sm shrink-0`}
                   >
                     {getInitials(c.nome || c.telefone)}
                   </div>
@@ -2210,8 +2207,8 @@ function AdminAgentePage() {
               <MessageCircle size={36} className={t.textSub} />
             </div>
             <div className="text-center">
-              <p className={`text-lg font-semibold ${t.text}`}>Painel Saborosa</p>
-              <p className={`text-sm ${t.textSub}`}>Selecione uma conversa para começar</p>
+              <p className={`text-[20px] font-light ${t.text}`}>SaborosaMente • WhatsApp</p>
+              <p className={`text-sm mt-1 ${t.textSub}`}>Selecione uma conversa para visualizar as mensagens</p>
             </div>
             <div className={`flex gap-6 text-center mt-2`}>
               {[
