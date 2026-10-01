@@ -107,7 +107,7 @@ export function DemandaProducao() {
             Cruza pedidos confirmados em aberto com o estoque da loja, o saldo pronto na cozinha e o que já está planejado. Assim a cozinha recebe necessidade de produção, não pedidos individuais.
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-end">
           <label className="grid gap-1 text-xs font-bold text-[#527164]">
             Produzir em
             <span className="relative">
@@ -116,14 +116,14 @@ export function DemandaProducao() {
                 type="date"
                 value={dataProducao}
                 onChange={(e) => setDataProducao(e.target.value)}
-                className="rounded-xl border border-[#cbd8ce] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#087443]"
+                className="w-full rounded-xl border border-[#cbd8ce] bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#087443] sm:w-auto"
               />
             </span>
           </label>
           <button
             onClick={adicionarTodas}
             disabled={!pendentes.length || salvando === "todas"}
-            className="flex items-center gap-2 rounded-xl bg-[#087443] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#087443] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <Plus size={17} />
             Adicionar todas à produção
@@ -148,7 +148,28 @@ export function DemandaProducao() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border bg-white">
-          <div className="overflow-x-auto">
+          <div className="grid gap-2 p-3 md:hidden">
+            {demanda.map((item) => {
+              const falta = n(item.necessidade_producao);
+              const chave = `${item.produto_id}-${item.gramatura}`;
+              return <article key={`mobile-${chave}`} className={`rounded-xl border p-3 ${falta > 0 ? "border-amber-200 bg-[#fffdf5]" : "border-[#dbe7dd] bg-white"}`}>
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0"><b className="block break-words text-[#173a2d]">{item.produto_nome}</b><span className="text-xs font-bold text-[#62766b]">{item.gramatura} g</span></div>
+                  <div className="shrink-0 text-right"><p className="text-[10px] font-bold uppercase text-[#62766b]">Falta</p><p className={`text-xl font-black ${falta > 0 ? "text-[#b65a00]" : "text-[#087443]"}`}>{falta}</p></div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-[#f4f7f4] p-2"><span className="text-[#62766b]">Pedidos</span><b className="block text-sm">{item.demanda_pedidos}</b></div>
+                  <div className="rounded-lg bg-[#f4f7f4] p-2"><span className="text-[#62766b]">Loja</span><b className="block text-sm">{item.estoque_loja}</b></div>
+                  <div className="rounded-lg bg-[#f4f7f4] p-2"><span className="text-[#62766b]">Cozinha</span><b className="block text-sm">{item.estoque_cozinha}</b></div>
+                  <div className="rounded-lg bg-[#f4f7f4] p-2"><span className="text-[#62766b]">Planejado</span><b className="block text-sm">{item.producao_planejada}</b></div>
+                </div>
+                <div className="mt-3">
+                  {falta > 0 ? <button onClick={() => adicionar(item)} disabled={salvando === chave || salvando === "todas"} className="w-full rounded-xl border border-[#087443] px-3 py-2 text-xs font-bold text-[#087443] disabled:opacity-50">Adicionar à produção</button> : <p className="text-center text-xs font-bold text-[#087443]">Coberto</p>}
+                </div>
+              </article>;
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[900px] text-sm">
               <thead className="bg-[#f4f7f4] text-left text-xs uppercase tracking-wide text-[#527164]">
                 <tr>
