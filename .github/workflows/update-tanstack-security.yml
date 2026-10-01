@@ -1,0 +1,45 @@
+name: Atualizar TanStack Security
+
+on:
+  push:
+    paths:
+      - ".github/workflows/update-tanstack-security.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Atualizar TanStack Start corrigido
+        run: |
+          bun add @tanstack/react-start@1.168.60 --exact
+          grep -q '"@tanstack/react-start": "1.168.60"' package.json
+          grep -q '@tanstack/react-start@1.168.60' bun.lock
+          grep -Eq '@tanstack/start-server-core@1\.(169\.(3[9]|[4-9][0-9])|1[7-9][0-9]\.)' bun.lock
+
+      - name: Validar projeto
+        run: bun run check
+
+      - name: Commit lockfile atualizado
+        run: |
+          if git diff --quiet -- package.json bun.lock; then
+            echo "Nenhuma alteração necessária."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json bun.lock
+          git commit -m "Atualiza TanStack Start para versão corrigida"
+          git push
