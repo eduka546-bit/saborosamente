@@ -23,7 +23,61 @@ Deno.serve(async (req) => {
     const authorization = await authorizeAdminOrService(req);
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
-    const { to, text, media_url, media_type, filename, caption } = await req.json();
+    const body = await req.json();
+    const { to, text, media_url, media_type, filename, caption, action, sync_type } = body ?? {};
+
+    if (action === "coexistence_status") {
+      const statusUrl =
+        `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}?fields=is_on_biz_app,platform_type,display_phone_number,verified_name,quality_rating`;
+      const statusResponse = await fetch(statusUrl, {
+        headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      });
+      const statusData = await statusResponse.json();
+      if (!statusResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: statusData?.error?.message || "Falha ao consultar Coexistence" }),
+          { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        );
+      }
+      return new Response(JSON.stringify({ success: true, ...statusData }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (action === "coexistence_sync") {
+      if (!["history", "smb_app_state_sync"].includes(String(sync_type))) {
+        return new Response(JSON.stringify({ error: "sync_type inválido" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const syncUrl =
+        `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/smb_app_data`;
+      const syncResponse = await fetch(syncUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          sync_type: String(sync_type),
+        }),
+      });
+      const syncData = await syncResponse.json();
+      if (!syncResponse.ok) {
+        return new Response(
+          JSON.stringify({ error: syncData?.error?.message || "Falha ao iniciar sincronização" }),
+          { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        );
+      }
+      return new Response(JSON.stringify({ success: true, ...syncData }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const normalizedPhone = String(to ?? "").replace(/\D/g, "");
     const normalizedText = String(text ?? "").trim();
     const mediaUrl = String(media_url ?? "").trim();
