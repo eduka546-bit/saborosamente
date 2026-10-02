@@ -776,7 +776,7 @@ function Index() {
             {marmitaConfig.ativo && <OrderChoiceBanner
               icon={ChefHat}
               badge="Do seu jeito"
-              title="Monte sua Marmita Personalizada"
+              title="Marmita Personalizada"
               text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
               action="Marmitas Personalizadas"
               chips={marmitaConfig.tamanhos.map(
