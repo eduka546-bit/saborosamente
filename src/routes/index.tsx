@@ -757,7 +757,7 @@ function Index() {
               icon={Gift}
               badge="Combinações prontas"
               title="Combos Prontos"
-              text="Opções já montadas para você ter praticidade, sabor e economia na rotina."
+              text="Combos de 5 a 20 marmitas com os sabores mais escolhidos."
               action="Ver Combos"
               chips={["Opções para toda a semana", "Escolha e receba"]}
               tone="ready"
@@ -778,7 +778,7 @@ function Index() {
               badge="Do seu jeito"
               title="Monte sua Marmita Personalizada"
               text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
-              action="Montar Marmita"
+              action="Marmitas Personalizadas"
               chips={marmitaConfig.tamanhos.map(
                 (t) => `${t.sigla} → ${formatBRL(t.preco)}`,
               )}
@@ -1462,14 +1462,14 @@ function OrderChoiceBanner({
         </span>
       </div>
 
-      <div className="mt-3.5">
+      <div className="mt-3.5 flex-1">
         <h3 className="max-w-[22ch] font-display text-[1.35rem] font-bold leading-[1.12] text-[#173a2d] md:text-[1.5rem]">
           {title}
         </h3>
-        <p className="mt-2.5 text-[12.5px] leading-relaxed text-[#66766d] md:text-[13px]">
+        <p className="mt-2.5 text-[14px] leading-[1.6] text-[#5f6f66] md:text-[14.5px]">
           {text}
         </p>
-        <div className="mt-3.5 flex flex-wrap gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-1.5 pb-1">
           {chips.map((chip) => (
             <span
               key={chip}
@@ -1483,7 +1483,7 @@ function OrderChoiceBanner({
 
       <button
         onClick={onClick}
-        className={`mt-4 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 md:mt-auto ${styles.button}`}
+        className={`mt-5 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 ${styles.button}`}
       >
         <Icon size={16} strokeWidth={2} />
         {action}
