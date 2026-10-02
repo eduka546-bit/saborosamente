@@ -74,6 +74,13 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const categoriaNome = product.categorias?.nome || product.categoria || "Marmita";
   const ehMarmita = isMarmita(product.nome, categoriaNome);
 
+  const ingredientesDetalhados = Array.isArray(product.ingredientes)
+    ? product.ingredientes.filter(Boolean).join(", ")
+    : String(product.ingredientes || "")
+        .replace(/^\{\}|^\[\]$/, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
   const principal = imgUrl(product.imagem_url || product.imagem);
   const allImages = [principal, ...(Array.isArray(product.imagens) ? product.imagens : [])].filter(
@@ -406,13 +413,19 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-sm text-muted-foreground">
-              <div>
-                <h4 className="mb-1 font-bold text-foreground">Descrição / Ingredientes:</h4>
-                <p className="leading-relaxed">
-                  {product.descricao ||
-                    "Ingredientes frescos e selecionados, preparados com o tempero especial da casa para garantir sabor e saúde na sua mesa."}
-                </p>
-              </div>
+              {product.descricao && (
+                <div>
+                  <h4 className="mb-1 font-bold text-foreground">Descrição</h4>
+                  <p className="leading-relaxed">{product.descricao}</p>
+                </div>
+              )}
+
+              {ingredientesDetalhados && (
+                <div>
+                  <h4 className="mb-1 font-bold text-foreground">Ingredientes</h4>
+                  <p className="leading-relaxed">{ingredientesDetalhados}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
                 <div>
