@@ -60,14 +60,30 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     return combo?.preco_300g ?? combo?.preco ?? 0;
   }, [combo, selectedWeight]);
 
-  if (!isOpen || !combo) return null;
-
-  function estoqueDisponivel(prod: any) {
+  const estoqueDisponivel = (prod: any) => {
     if (!prod?.controle_estoque) return Number.POSITIVE_INFINITY;
     if (selectedWeight === "400g") return Number(prod.estoque_400g ?? 0);
     if (selectedWeight === "300g") return Number(prod.estoque_300g ?? 0);
     return Number(prod.estoque_200g ?? 0);
-  }
+  };
+
+  const estoqueTotalDisponivel = useMemo(() => {
+    if (saboresDisponiveis.some((prod: any) => !prod?.controle_estoque)) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return saboresDisponiveis.reduce((total: number, prod: any) => {
+      if (selectedWeight === "400g") return total + Number(prod.estoque_400g ?? 0);
+      if (selectedWeight === "300g") return total + Number(prod.estoque_300g ?? 0);
+      return total + Number(prod.estoque_200g ?? 0);
+    }, 0);
+  }, [saboresDisponiveis, selectedWeight]);
+
+  const comboIndisponivel =
+    saboresDisponiveis.length > 0 &&
+    Number.isFinite(estoqueTotalDisponivel) &&
+    estoqueTotalDisponivel < totalCombo;
+
+  if (!isOpen || !combo) return null;
 
   function changeQty(produtoId: string, delta: number) {
     setSabores((prev) => {
@@ -92,6 +108,10 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
   }
 
   function handleAddToCart() {
+    if (comboIndisponivel) {
+      toast.error(`Não há ${totalCombo} unidades disponíveis em ${selectedWeight} para montar este combo.`);
+      return;
+    }
     if (totalSelecionado !== totalCombo) {
       toast.error(`Escolha exatamente ${totalCombo} sabores.`);
       return;
@@ -152,7 +172,10 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
           {weights.map((w) => (
             <button
               key={w.value}
-              onClick={() => setSelectedWeight(w.value)}
+              onClick={() => {
+                setSelectedWeight(w.value);
+                setSabores({});
+              }}
               className={cn(
                 "flex-1 rounded-xl border-2 py-2.5 text-center text-sm font-semibold transition-all",
                 selectedWeight === w.value
@@ -169,12 +192,19 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         </div>
 
         {/* Progresso */}
-        <div className="px-4 py-2 border-b flex items-center justify-between text-sm shrink-0">
-          <span className="text-gray-500">
-            Selecionados: <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
-          </span>
-          {totalSelecionado === totalCombo && (
-            <span className="text-[#086e45] font-bold text-xs">✓ Completo!</span>
+        <div className="shrink-0 border-b px-4 py-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">
+              Selecionados: <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
+            </span>
+            {totalSelecionado === totalCombo && !comboIndisponivel && (
+              <span className="text-[#086e45] font-bold text-xs">✓ Completo!</span>
+            )}
+          </div>
+          {comboIndisponivel && (
+            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+              Esta gramatura está temporariamente indisponível: há {estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de {totalCombo}.
+            </div>
           )}
         </div>
 
@@ -187,6 +217,8 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
           ) : (
             saboresDisponiveis.map((prod: any) => {
               const qty = sabores[prod.id] ?? 0;
+              const estoque = estoqueDisponivel(prod);
+              const saborEsgotado = Number.isFinite(estoque) && estoque <= 0;
               return (
                 <div
                   key={prod.id}
@@ -201,6 +233,15 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{prod.nome}</p>
+                    {saborEsgotado ? (
+                      <p className="mt-0.5 text-[11px] font-semibold text-red-500">
+                        Esgotado em {selectedWeight}
+                      </p>
+                    ) : Number.isFinite(estoque) && estoque <= 5 ? (
+                      <p className="mt-0.5 text-[11px] font-semibold text-amber-600">
+                        Restam {estoque}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
@@ -226,11 +267,13 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                     <button
                       onClick={() => changeQty(prod.id, 1)}
                       disabled={
+                        comboIndisponivel ||
                         totalSelecionado >= totalCombo ||
                         (prod.controle_estoque && qty >= estoqueDisponivel(prod))
                       }
                       className={cn(
                         "h-8 w-8 rounded-full flex items-center justify-center transition-all",
+                        !comboIndisponivel &&
                         totalSelecionado < totalCombo &&
                           (!prod.controle_estoque || qty < estoqueDisponivel(prod))
                           ? "bg-[#086e45] text-white hover:bg-[#065a38]"
@@ -250,10 +293,10 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         <div className="px-4 py-3 border-t shrink-0">
           <button
             onClick={handleAddToCart}
-            disabled={totalSelecionado !== totalCombo}
+            disabled={comboIndisponivel || totalSelecionado !== totalCombo}
             className={cn(
               "w-full rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all",
-              totalSelecionado === totalCombo
+              !comboIndisponivel && totalSelecionado === totalCombo
                 ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed",
             )}
