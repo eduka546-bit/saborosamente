@@ -1425,27 +1425,68 @@ function OrderChoiceBanner({
   tone: "ready" | "combo" | "personalizada";
   onClick: () => void;
 }) {
-  const styles = {
-    ready: "from-[#0a5537] via-[#0c7448] to-[#7fac58]",
-    combo: "from-[#0a603d] via-[#167548] to-[#a8cb52]",
-    personalizada: "from-[#06452e] via-[#075b39] to-[#0d6b46]",
+  const toneStyles = {
+    ready: {
+      card: "bg-[#fbfaf5] border-[#e4e0d2]",
+      icon: "bg-[#edf5e6] text-[#087149]",
+      badge: "bg-[#f1f5eb] text-[#527164] border-[#dce7d5]",
+      chip: "bg-white text-[#567044] border-[#dde6d7]",
+      button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffdf4d]",
+    },
+    combo: {
+      card: "bg-[#f4f8f1] border-[#d8e6d1]",
+      icon: "bg-white text-[#087149]",
+      badge: "bg-white text-[#527164] border-[#d7e3d1]",
+      chip: "bg-white/90 text-[#567044] border-[#d7e3d1]",
+      button: "bg-[#087149] text-white hover:bg-[#075f3e]",
+    },
+    personalizada: {
+      card: "bg-white border-[#dfe5dc]",
+      icon: "bg-[#eef3ea] text-[#075636]",
+      badge: "bg-[#f6f7f3] text-[#527164] border-[#e0e5dc]",
+      chip: "bg-[#f7f8f4] text-[#567044] border-[#e0e5dc]",
+      button: "bg-[#173a2d] text-white hover:bg-[#0f2f23]",
+    },
   }[tone];
 
   return (
-    <article className={`flex min-h-[25rem] flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br px-6 py-7 text-white shadow-soft ${styles}`}>
-      <div>
-        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-sm tracking-normal text-white/95">
-          <Icon size={17} strokeWidth={1.8} />
-          {badge}
+    <article
+      className={`group relative flex min-h-[18rem] flex-col overflow-hidden rounded-[1.6rem] border px-5 py-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md md:min-h-[19rem] md:px-6 md:py-6 ${toneStyles.card}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${toneStyles.icon}`}>
+          <Icon size={20} strokeWidth={1.8} />
         </div>
-        <h3 className="font-display text-2xl font-bold leading-tight lg:text-3xl">{title}</h3>
-        <p className="mt-3 text-sm leading-relaxed text-white/80">{text}</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {chips.map((chip) => <span key={chip} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/95">{chip}</span>)}
+        <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${toneStyles.badge}`}>
+          {badge}
+        </span>
+      </div>
+
+      <div className="mt-5">
+        <h3 className="max-w-[18ch] font-display text-[1.65rem] font-bold leading-[1.08] text-[#123c29] md:text-[1.85rem]">
+          {title}
+        </h3>
+        <p className="mt-3 max-w-[34rem] text-[13px] leading-relaxed text-[#607168] md:text-sm">
+          {text}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold ${toneStyles.chip}`}
+            >
+              {chip}
+            </span>
+          ))}
         </div>
       </div>
-      <button onClick={onClick} className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#fff082] px-5 py-3 font-display text-sm font-bold text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white">
-        <Icon size={19} strokeWidth={2} />
+
+      <button
+        onClick={onClick}
+        className={`mt-auto inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-bold shadow-sm transition-all group-hover:translate-x-0.5 ${toneStyles.button}`}
+      >
+        <Icon size={17} strokeWidth={2} />
         {action}
       </button>
     </article>
