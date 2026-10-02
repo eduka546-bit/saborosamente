@@ -13,7 +13,6 @@ import {
   X,
   Timer,
   Leaf,
-  WheatOff,
   ChefHat,
   ShieldCheck,
   ChevronDown,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
+import { FoodTypeIcon } from "@/components/food-type-icon";
 import { DiscountProgressWidget } from "@/components/discount-progress-widget";
 import { CartSheet } from "@/components/cart-sheet";
 import { useCart } from "@/lib/cart";
@@ -976,15 +976,14 @@ function Index() {
                       onClick={() => toggleFilter(filter)}
                       aria-pressed={selected}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-xs font-bold transition-all",
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
                         selected
                           ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                           : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
                       )}
                     >
-                      {filter === "Sem Glúten" && <WheatOff size={14} />}
-                      {filter === "Sem Lactose" && <span className="text-sm leading-none">🥛</span>}
-                      {filter}
+                      <FoodTypeIcon label={filter} size={14} className="shrink-0" />
+                      <span>{filter}</span>
                     </button>
                   );
                 })}
@@ -1014,13 +1013,14 @@ function Index() {
                         onClick={() => toggleFilter(filter)}
                         aria-pressed={selected}
                         className={cn(
-                          "rounded-full border px-3 py-2 text-xs font-bold transition-all",
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                             : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
                         )}
                       >
-                        {filter}
+                        <FoodTypeIcon label={filter} size={14} className="shrink-0" />
+                        <span>{filter}</span>
                       </button>
                     );
                   })}
@@ -1041,7 +1041,7 @@ function Index() {
                         onClick={() => toggleFilter(category)}
                         aria-pressed={selected}
                         className={cn(
-                          "rounded-full border px-3 py-2 text-[13px] font-bold transition-all",
+                          "rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                             : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
@@ -1068,7 +1068,7 @@ function Index() {
                           onClick={() => toggleFilter(chave)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-full border px-3 py-2 text-[13px] font-bold transition-all",
+                            "rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
                             selected
                               ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                               : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
