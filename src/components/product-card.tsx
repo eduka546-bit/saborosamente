@@ -519,19 +519,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="min-h-[3.9rem] text-base md:text-[17px] font-bold leading-snug text-foreground transition-colors group-hover:text-primary">
+            <h3 className="min-h-[3.4rem] text-[15px] md:text-base font-bold leading-[1.35] text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
 
             {ingredientesTexto && (
-              <div className="rounded-xl bg-[#f7f8f3] px-3 py-2.5">
-                <p className="mb-1 text-xs font-bold tracking-normal text-[#527164]">
-                  Ingredientes principais
-                </p>
-                <p className="text-[13px] leading-relaxed text-[#48554d]">
-                  {ingredientesTexto}
-                </p>
-              </div>
+              <p className="text-[12.5px] leading-relaxed text-[#5b685f]">
+                {ingredientesTexto}
+              </p>
             )}
 
             {/* Seletor de peso */}
