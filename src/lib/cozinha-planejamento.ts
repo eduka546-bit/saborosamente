@@ -29,6 +29,14 @@ export function quantidadeNoLote(quantidadeBase: number, preparoNecessario: numb
   return Math.max(0, Number(quantidadeBase || 0) * Number(preparoNecessario || 0) / Number(rendimentoBase));
 }
 
+// A massa é produzida por contagem: lote medido de 8 ovos para 30 discos.
+// O peso das panquecas recheadas não é o rendimento da massa sem recheio.
+export function fatorLoteMassaPanqueca(quantidades: Record<string, number>) {
+  return (Math.max(0, Number(quantidades["200"] || 0))
+    + 2 * Math.max(0, Number(quantidades["300"] || 0))
+    + 3 * Math.max(0, Number(quantidades["400"] || 0))) / 30;
+}
+
 const termosGenericos = new Set(["molho","branco","branca","preto","preta","arroz","feijao","carne","frango","pronto","pronta","cozido","cozida","grelhado","grelhada"]);
 const normalizarNome = (valor: unknown) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const raizTermoCozinha = (termo: string) =>

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { alocarQuantidadePorPesos, fatorCapacidade, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { alocarQuantidadePorPesos, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,7 +81,7 @@ const arredondarProducao = (v: unknown, unidade: "g" | "un" = "g") => {
 const normalizarRegraCozinha = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const normalizarNomeIngrediente = (v: unknown) =>
   normalizarRegraCozinha(v).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-const ehQB = (v: unknown) => /^(q\.?b\.?|qb|quanto baste|a gosto)$/i.test(normalizarRegraCozinha(v));
+const ehQB = (v: unknown) => /^(q\.?b\.?|quanto baste|a gosto)(?:$|\s|[·:—-])/i.test(normalizarRegraCozinha(v));
 const textoCozinha = (v: unknown) => ehQB(v) ? "a gosto" : String(v || "").trim();
 const codigoProduto = (produto: any) => {
   const nome = String(produto?.nome || produto || "");
@@ -345,7 +345,7 @@ function CozinhaPage() {
       });
       return ids;
     };
-    const expandirPreparacao = (prepId: string, prontoTotal: number, nomePrato: string, visitados = new Set<string>()) => {
+    const expandirPreparacao = (prepId: string, prontoTotal: number, nomePrato: string, visitados = new Set<string>(), fatorLote?: number) => {
       if (!prepId || !(prontoTotal > 0) || visitados.has(prepId)) return;
       const preparacao = prep.get(prepId);
       const itens = itensPrep.get(prepId) || [];
@@ -360,7 +360,7 @@ function CozinhaPage() {
         );
       if (!(rendimento > 0)) return;
       itens.forEach((item: any) => {
-        const quantidade = n(item.quantidade) * prontoTotal / rendimento;
+        const quantidade = n(item.quantidade) * (fatorLote ?? prontoTotal / rendimento);
         if (item.preparacao_componente_id) {
           expandirPreparacao(item.preparacao_componente_id, quantidade, nomePrato, proximos);
           return;
@@ -422,7 +422,10 @@ function CozinhaPage() {
           if (!montagemDaPreparacao) return;
           const prontoTotal = n(montagemDaPreparacao[campo]) * multiplicador;
           if (!(prontoTotal > 0)) return;
-          expandirPreparacao(preparacao.id, prontoTotal, prato.nome);
+          const fatorMassa = normalizarNomeIngrediente(preparacao.nome).includes("massa panqueca")
+            ? fatorLoteMassaPanqueca({ [String(p.gramatura || "400")]: multiplicador })
+            : undefined;
+          expandirPreparacao(preparacao.id, prontoTotal, prato.nome, new Set<string>(), fatorMassa);
         });
         return;
       }
@@ -430,7 +433,11 @@ function CozinhaPage() {
       linhasReceita.forEach((linha: any) => {
         if (!linha.preparacao_id) return;
         const prontoTotal = quantidadeCorreta(n(linha[campo]), linha) * multiplicador;
-        expandirPreparacao(linha.preparacao_id, prontoTotal, prato.nome);
+        const preparacao = prep.get(linha.preparacao_id);
+        const fatorMassa = normalizarNomeIngrediente(preparacao?.nome).includes("massa panqueca")
+          ? fatorLoteMassaPanqueca({ [String(p.gramatura || "400")]: multiplicador })
+          : undefined;
+        expandirPreparacao(linha.preparacao_id, prontoTotal, prato.nome, new Set<string>(), fatorMassa);
       });
     });
     return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
@@ -1715,6 +1722,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     });
   };
   preparacoesConsolidadas.forEach((grupo:any) => {
+    const massaPanqueca = necessidadeMassaPanqueca(grupo.prep);
+    if (massaPanqueca) {
+      // O botão desta preparação informa discos prontos, não gramas.
+      const rendimento = n(grupo.prep.rendimento_final_g);
+      descontarPreparacaoPronta(grupo.prep.id, rendimento * massaPanqueca.totalPronto / 30);
+      return;
+    }
     const jaPronto = grupo.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${grupo.prep.id}:${pr.produto_id}`])),0);
     if (!(jaPronto > 0) || !(grupo.total > 0)) return;
     const proporcaoPronta = Math.min(1, jaPronto / grupo.total);
@@ -1967,11 +1981,10 @@ function FichaProducaoModal({ produto, dataProducao, producoes, receita, montage
     if (total > 0) totalReceitaPorIngrediente.set(x.ingrediente_id, (totalReceitaPorIngrediente.get(x.ingrediente_id) || 0) + total);
   });
 
-  const totalPanquecasPlanejadas = n(quantidades["200"]) + 2*n(quantidades["300"]) + 3*n(quantidades["400"]);
   const preparacoesCalculadas = preps.map((prep: any) => {
     const componente = montagemTotal.find((m: any) => mesmo(m.nome, prep.nome));
     const massaPanqueca = normalizarNomeIngrediente(prep.nome).includes("massa panqueca");
-    const fatorPanqueca = massaPanqueca && totalPanquecasPlanejadas > 0 ? totalPanquecasPlanejadas / (500/35) : 0;
+    const fatorPanqueca = massaPanqueca ? fatorLoteMassaPanqueca(quantidades) : 0;
     const fatorNormal = n(prep.rendimento_final_g) > 0 ? n(componente?.total) / n(prep.rendimento_final_g) : 0;
     const fator = massaPanqueca ? fatorPanqueca : fatorNormal;
     const pronto = massaPanqueca && n(prep.rendimento_final_g) > 0 ? n(prep.rendimento_final_g) * fator : n(componente?.total);
@@ -2662,9 +2675,17 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     if(chave && refsCobertas.has(chave)) return;
     linhasCustoMontagem.push(linha);
   });
-  const custoLinha = (x:ReceitaLinha,t:Tamanho) => x.preparacao_id
-    ? n(x[campoGramasReceita(t) as keyof ReceitaLinha]) * n(custoPrep(x.preparacao_id))
-    : qCorreta(n(x[campoGramasReceita(t) as keyof ReceitaLinha]),ingredientes.find((a:any)=>a.id===x.ingrediente_id))*custoIng(ingredientes.find((a:any)=>a.id===x.ingrediente_id));
+  const custoLinha = (x:ReceitaLinha,t:Tamanho) => {
+    if (x.preparacao_id) {
+      const preparo = preparacoes.find((p:any)=>p.id===x.preparacao_id);
+      const pesoCalculo = normalizarNomeIngrediente(preparo?.nome).includes("massa panqueca")
+        ? n(preparo?.rendimento_final_g) * fatorLoteMassaPanqueca({ [t]: 1 })
+        : n(x[campoGramasReceita(t) as keyof ReceitaLinha]);
+      return pesoCalculo * n(custoPrep(x.preparacao_id));
+    }
+    const ingrediente = ingredientes.find((a:any)=>a.id===x.ingrediente_id);
+    return qCorreta(n(x[campoGramasReceita(t) as keyof ReceitaLinha]),ingrediente)*custoIng(ingrediente);
+  };
   const custoIngredientes=(t:Tamanho)=>linhasCustoMontagem.reduce((a,x)=>a+custoLinha(x,t),0);
   const etiquetaCusto = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
   const embalagemDoTamanho=(t:Tamanho)=>{

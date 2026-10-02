@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, ImageIcon, Pencil, RotateCcw, Search, Slider
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizarPrecosMarmita } from "@/lib/combo-rules";
-import { nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
+import { fatorLoteMassaPanqueca, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
 
 type Props = {
   produtos: any[];
@@ -407,7 +407,10 @@ export function CardapioCompleto({
 
     estruturadas.forEach((prep: any) => {
       const componente = montagem.find((m: any) => nomesCozinhaCorrespondem(m.nome, prep.nome));
-      custo += n(componente?.[campo]) * custoPreparacaoPorGrama(prep);
+      const pesoCalculo = String(prep.nome).toLowerCase().includes("massa panqueca")
+        ? n(prep.rendimento_final_g) * fatorLoteMassaPanqueca({ [tamanho]: 1 })
+        : n(componente?.[campo]);
+      custo += pesoCalculo * custoPreparacaoPorGrama(prep);
     });
 
     linhasReceita.forEach((linha: any) => {
@@ -429,7 +432,10 @@ export function CardapioCompleto({
       }
       if (linha.preparacao_id && !estruturadas.some((prep: any) => prep.id === linha.preparacao_id)) {
         const prep = preparacaoPorId.get(linha.preparacao_id);
-        custo += n(linha[campo]) * custoPreparacaoPorGrama(prep);
+        const pesoCalculo = String(prep?.nome).toLowerCase().includes("massa panqueca")
+          ? n(prep?.rendimento_final_g) * fatorLoteMassaPanqueca({ [tamanho]: 1 })
+          : n(linha[campo]);
+        custo += pesoCalculo * custoPreparacaoPorGrama(prep);
       }
     });
 

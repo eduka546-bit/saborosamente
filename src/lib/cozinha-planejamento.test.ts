@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { alocarQuantidadePorPesos, fatorCapacidade, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
+import { alocarQuantidadePorPesos, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
 
 describe("planejamento interligado da cozinha", () => {
+  it("calcula a massa pela contagem de discos e usa 8 ovos para cada 30", () => {
+    const fator = fatorLoteMassaPanqueca({ "200": 5, "400": 25 });
+    expect(fator * 30).toBe(80);
+    expect(fator * 8).toBeCloseTo(21.333333, 5);
+    expect(fatorLoteMassaPanqueca({ "300": 15 }) * 8).toBe(8);
+    expect(fatorLoteMassaPanqueca({})).toBe(0);
+  });
   it("zera a necessidade quando o preparo pronto cobre o total", () => {
     expect(quantidadeRestante(5667, 5667)).toBe(0);
   });

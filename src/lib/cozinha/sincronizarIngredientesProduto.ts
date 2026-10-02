@@ -25,13 +25,27 @@ export async function sincronizarIngredientesProduto(produtoId: string, receitaI
       ? supabase.from("cozinha_ingredientes").select("id,nome,ativo").in("id", [...ingredienteIds])
       : Promise.resolve({ data: [], error: null } as any),
     preparacaoIds.size
-      ? supabase.from("cozinha_preparacao_itens").select("ingrediente_id,preparacao_id,ordem").in("preparacao_id", [...preparacaoIds]).order("ordem")
+      ? supabase.from("cozinha_preparacao_itens").select("ingrediente_id,preparacao_id,preparacao_componente_id,ordem").in("preparacao_id", [...preparacaoIds]).order("ordem")
       : Promise.resolve({ data: [], error: null } as any),
   ]);
   if (ingredientesResult.error) throw ingredientesResult.error;
   if (preparacoesResult.error) throw preparacoesResult.error;
 
-  const prepItens = preparacoesResult.data ?? [];
+  let prepItens: any[] = preparacoesResult.data ?? [];
+  const visitadas = new Set(preparacaoIds);
+  // Um molho compartilhado pode conter outro preparo (ex.: Bolonhesa -> Sugo).
+  // Percorrer cada preparo uma vez evita omitir tomate/extrato e impede ciclos.
+  while (true) {
+    const filhos = [...new Set<string>(prepItens.map((item:any) => item.preparacao_componente_id).filter(Boolean))]
+      .filter((id) => !visitadas.has(id));
+    if (!filhos.length) break;
+    filhos.forEach((id) => visitadas.add(id));
+    const { data, error } = await supabase.from("cozinha_preparacao_itens")
+      .select("ingrediente_id,preparacao_id,preparacao_componente_id,ordem")
+      .in("preparacao_id", filhos).order("ordem");
+    if (error) throw error;
+    prepItens = [...prepItens, ...(data ?? [])];
+  }
   const prepIngredientIds = new Set<string>(
     prepItens.map((item: any) => item.ingrediente_id).filter(Boolean),
   );
