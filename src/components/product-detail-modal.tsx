@@ -3,6 +3,7 @@ import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
+import { FoodTypeIcon } from "@/components/food-type-icon";
 import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
@@ -315,9 +316,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             <div className="relative aspect-square w-full overflow-hidden bg-muted md:aspect-auto md:min-h-[500px]">
               <img src={currentImage} alt={product.nome} className="size-full object-cover" />
               <ProductSeals product={product} size={52} />
-              <Badge className="absolute left-4 top-4 z-10 bg-sun text-sun-foreground hover:bg-sun">
-                {categoriaNome}
-              </Badge>
+              <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
+                <Badge className="bg-sun text-sun-foreground hover:bg-sun">
+                  {categoriaNome}
+                </Badge>
+                {product.proteina && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-[#28513a] shadow-sm backdrop-blur">
+                    <FoodTypeIcon label={String(product.proteina)} size={13} />
+                    {String(product.proteina)}
+                  </span>
+                )}
+              </div>
               {allImages.length > 1 && (
                 <>
                   <button
