@@ -1426,26 +1426,66 @@ function OrderChoiceBanner({
   onClick: () => void;
 }) {
   const styles = {
-    ready: "from-[#0a5537] via-[#0c7448] to-[#7fac58]",
-    combo: "from-[#0a603d] via-[#167548] to-[#a8cb52]",
-    personalizada: "from-[#06452e] via-[#075b39] to-[#0d6b46]",
+    ready: {
+      card: "border-[#e8e1cf] bg-[#fffdf8]",
+      icon: "bg-[#eef5e8] text-[#087149]",
+      badge: "border-[#dfe8d9] bg-[#f6f8f2] text-[#5d725f]",
+      chip: "border-[#e5e8df] bg-white text-[#617065]",
+      button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffe45d]",
+    },
+    combo: {
+      card: "border-[#dce8d5] bg-[#f7faf4]",
+      icon: "bg-white text-[#087149]",
+      badge: "border-[#dbe6d4] bg-white/80 text-[#5d725f]",
+      chip: "border-[#dde7d8] bg-white/85 text-[#617065]",
+      button: "bg-[#087149] text-white hover:bg-[#075f3e]",
+    },
+    personalizada: {
+      card: "border-[#e0e6dc] bg-white",
+      icon: "bg-[#f0f4ed] text-[#075636]",
+      badge: "border-[#e1e7dd] bg-[#f7f8f5] text-[#5d725f]",
+      chip: "border-[#e2e8df] bg-[#fafbf8] text-[#617065]",
+      button: "bg-[#173a2d] text-white hover:bg-[#0f3023]",
+    },
   }[tone];
 
   return (
-    <article className={`flex min-h-[25rem] flex-col overflow-hidden rounded-[2rem] bg-gradient-to-br px-6 py-7 text-white shadow-soft ${styles}`}>
-      <div>
-        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 font-bebas text-sm tracking-normal text-white/95">
-          <Icon size={17} strokeWidth={1.8} />
-          {badge}
+    <article
+      className={`group flex min-h-[16.5rem] flex-col rounded-[1.6rem] border px-5 py-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md md:min-h-[18rem] md:px-6 md:py-6 ${styles.card}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${styles.icon}`}>
+          <Icon size={19} strokeWidth={1.8} />
         </div>
-        <h3 className="font-display text-2xl font-bold leading-tight lg:text-3xl">{title}</h3>
-        <p className="mt-3 text-sm leading-relaxed text-white/80">{text}</p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {chips.map((chip) => <span key={chip} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/95">{chip}</span>)}
+        <span className={`inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${styles.badge}`}>
+          {badge}
+        </span>
+      </div>
+
+      <div className="mt-4">
+        <h3 className="max-w-[20ch] font-display text-[1.45rem] font-bold leading-[1.12] text-[#173a2d] md:text-[1.6rem]">
+          {title}
+        </h3>
+        <p className="mt-2.5 text-[12.5px] leading-relaxed text-[#66766d] md:text-[13px]">
+          {text}
+        </p>
+        <div className="mt-3.5 flex flex-wrap gap-1.5">
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold ${styles.chip}`}
+            >
+              {chip}
+            </span>
+          ))}
         </div>
       </div>
-      <button onClick={onClick} className="mt-auto inline-flex w-fit items-center gap-2 rounded-full bg-[#fff082] px-5 py-3 font-display text-sm font-bold text-[#123c29] shadow-lg transition hover:-translate-y-0.5 hover:bg-white">
-        <Icon size={19} strokeWidth={2} />
+
+      <button
+        onClick={onClick}
+        className={`mt-5 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 md:mt-auto ${styles.button}`}
+      >
+        <Icon size={16} strokeWidth={2} />
         {action}
       </button>
     </article>
