@@ -1,5 +1,4 @@
 import {
-  BadgeDollarSign,
   Beef,
   Drumstick,
   Dumbbell,
@@ -12,7 +11,6 @@ import {
   Soup,
   Star,
   UtensilsCrossed,
-  Vegan,
   WheatOff,
 } from "lucide-react";
 
@@ -42,12 +40,10 @@ export function FoodTypeIcon({
   if (key.includes("mais leves")) return <Feather {...common} />;
   if (key.includes("mais caloricas")) return <Flame {...common} />;
   if (key.includes("mais proteicas")) return <Dumbbell {...common} />;
-  if (key.includes("menor preco")) return <BadgeDollarSign {...common} />;
   if (key.includes("frango")) return <Drumstick {...common} />;
   if (key.includes("carne bovina") || key === "bovina" || key.includes("boi")) return <Beef {...common} />;
   if (key.includes("peixe")) return <Fish {...common} />;
   if (key.includes("suina") || key.includes("porco")) return <Ham {...common} />;
-  if (key.includes("vegetar")) return <Vegan {...common} />;
   if (key.includes("misto")) return <UtensilsCrossed {...common} />;
   if (key.includes("sopa") || key.includes("caldo")) return <Soup {...common} />;
   if (key.includes("sem gluten")) return <WheatOff {...common} />;
