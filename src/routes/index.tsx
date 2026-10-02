@@ -435,19 +435,17 @@ function Index() {
     "Mais leves",
     "Mais calóricas",
     "Mais proteicas",
-    "Menor preço",
     "Frango",
     "Carne bovina",
     "Peixes",
     "Suína",
-    "Vegetariano",
     "Misto",
     "Sopas",
   ];
   const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
   const advancedFilters = ["Até 500mg sódio", "Até 30g carboidratos"];
-  const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas", "Menor preço"];
-  const proteinFilters = ["Frango", "Carne bovina", "Peixes", "Suína", "Vegetariano", "Misto"];
+  const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
+  const proteinFilters = ["Frango", "Carne bovina", "Peixes", "Suína", "Misto"];
   const subgruposDisponiveis = useMemo(
     () =>
       Array.from(new Set(products.map((p: any) => String(p.subgrupo || "").trim()).filter(Boolean))).sort(
