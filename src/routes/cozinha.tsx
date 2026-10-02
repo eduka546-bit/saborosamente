@@ -113,6 +113,7 @@ const nomeCompletoComponente = (nome: unknown, preparacoes: any[] = [], ingredie
 const ehMicroIngrediente = (nome: unknown) => /(^|\b)(sal|salsinha|cebolinha|cheiro verde|tempero|pimenta|oregano|alho em po|paprica|noz moscada)(\b|$)/i.test(normalizarRegraCozinha(nome));
 const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" | "L" = "g", nome: unknown = "") => {
   const qtd = Math.max(0, n(v));
+  if (normalizarNomeIngrediente(nome) === "leite") return `${(unidade === "L" ? qtd : qtd / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`;
   if (unidade === "un") return `${arredondarProducao(qtd, "un").toLocaleString("pt-BR")} un`;
   if (unidade === "L") return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`;
   if (ehMicroIngrediente(nome) && qtd > 0 && qtd < 1) return `${qtd.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} g`;
@@ -314,6 +315,9 @@ function CozinhaPage() {
     const unidadeItemPreparacao = (item: any): "g" | "un" | "L" => {
       if (item?.preparacao_componente_id) return "g";
       const ingrediente = ing.get(item?.ingrediente_id) as any;
+      // O cadastro legado do leite guarda ml equivalentes em g, inclusive quando o texto diz litros.
+      // Consolidar na unidade do cadastro; converter somente a apresentação para litros.
+      if (normalizarNomeIngrediente(ingrediente?.nome) === "leite") return ingrediente.unidade_medida === "L" ? "L" : "g";
       if (ingrediente?.unidade_medida === "L") return "L";
       if (ingrediente?.unidade_medida === "un") return "un";
       const texto = String(item?.quantidade_texto || "").trim();
@@ -1542,6 +1546,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const ingrediente = ingPorId.get(item.ingrediente_id) as any;
     const prepComponente = prepPorId.get(item.preparacao_componente_id) as any;
     const nome = ingrediente?.nome || prepComponente?.nome || "Componente";
+    if (normalizarNomeIngrediente(nome) === "leite") return `${nome}: ${formatarQuantidadeProducao(item.quantidade, ingrediente?.unidade_medida === "L" ? "L" : "g", nome)}`;
     if (item.quantidade_texto) return `${nome}: ${textoCozinha(item.quantidade_texto)}`;
     const unidade = item.preparacao_componente_id ? "g" : (ingrediente?.unidade_medida || "g");
     return `${nome}: ${formatarQuantidadeProducao(n(item.quantidade), unidade, nome)}`;
@@ -1846,7 +1851,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           {ingredientesDiaAjustados.map((x:any)=>{const chave=`${x.id}:${x.unidade}`; const pratosUsados=(x.pratos||[]).map((nome:string)=>rotuloProduto((produtos as any[]).find((produto:any)=>produto.nome===nome)||nome)); const zerado=!x.qb&&!(x.quantidade>0); const editado=ingredienteAjustado[chave]!==undefined; return <div key={chave} className="print-ingredient-row grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 border-t border-[#dbe7dd] px-3 py-2 text-sm md:grid-cols-[minmax(250px,1fr)_140px_1fr] md:items-center">
             <div className="min-w-0">
               <b className="block break-words">{x.item?.nome}</b>
-              {!x.qb&&<div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quantidade disponível de ${x.item?.nome} (${x.unidade}):`,String(x.quantidade));if(valor!==null)setIngredienteAjustado((atual)=>({...atual,[chave]:Math.max(0,n(String(valor).replace(',','.')))}));}}>Editar ingrediente</button>{editado&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setIngredienteAjustado((atual)=>{const novo={...atual};delete novo[chave];return novo;})}>Restaurar</button>}</div>}
+              {!x.qb&&<div data-screen-only className="mt-1 flex flex-wrap gap-1"><button className="rounded-lg border border-[#b9d4c2] px-2 py-1 text-xs font-bold text-[#087443]" onClick={()=>{const valor=window.prompt(`Quantidade disponível de ${x.item?.nome} (${normalizarNomeIngrediente(x.item?.nome)==="leite"?"L":x.unidade}):`,String(normalizarNomeIngrediente(x.item?.nome)==="leite"&&x.unidade!=="L"?x.quantidade/1000:x.quantidade));if(valor!==null)setIngredienteAjustado((atual)=>({...atual,[chave]:Math.max(0,n(String(valor).replace(',','.')))*(normalizarNomeIngrediente(x.item?.nome)==="leite"&&x.unidade!=="L"?1000:1)}));}}>Editar ingrediente</button>{editado&&<button className="rounded-lg border px-2 py-1 text-xs" onClick={()=>setIngredienteAjustado((atual)=>{const novo={...atual};delete novo[chave];return novo;})}>Restaurar</button>}</div>}
             </div>
             <div className="whitespace-nowrap text-right md:text-left"><b className="text-[#087443]">{x.qb?"QB · a gosto":formatarQuantidadeProducao(x.quantidade,x.unidade,x.item?.nome)}</b>{zerado&&<p className="text-xs font-bold text-[#62766b]">já disponível</p>}{editado&&<p className="text-xs font-bold text-amber-700">necessário: {formatarQuantidadeProducao(x.quantidadeCalculada,x.unidade,x.item?.nome)}</p>}</div>
             <span className="col-span-2 min-w-0 break-words text-[11px] leading-snug text-[#62766b] md:col-span-1 md:text-xs"><span className="font-bold md:hidden">Usado em: </span>{pratosUsados.join(" · ")||"—"}</span>
