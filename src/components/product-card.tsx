@@ -203,8 +203,11 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   }, 0);
   const remainingStock =
     stockNumber === null ? null : Math.max(0, stockNumber - quantityAlreadyInCart);
-  const soldOut = remainingStock !== null && remainingStock <= 0;
-  const lowStock = remainingStock !== null && remainingStock > 0 && remainingStock <= 5;
+  // Combos prontos não têm estoque próprio: a disponibilidade real vem da soma
+  // dos sabores elegíveis para a gramatura escolhida no ComboSaboresModal.
+  const soldOut = !isComboPronto && remainingStock !== null && remainingStock <= 0;
+  const lowStock =
+    !isComboPronto && remainingStock !== null && remainingStock > 0 && remainingStock <= 5;
   const isNew =
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
@@ -272,6 +275,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     }
     if (combo) {
       setComboOpen(true);
+      return;
+    }
+    if (isComboPronto) {
+      setComboSaboresOpen(true);
       return;
     }
     // Marmitas precisam da escolha "pronta/congelada" (e garfo e faca).
