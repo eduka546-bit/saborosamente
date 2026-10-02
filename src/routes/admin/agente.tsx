@@ -1653,7 +1653,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   {isOut && (
                     <CheckCheck
                       size={14}
-                      title={
+                      aria-label={
                         msg.deliveryStatus === "lido"
                           ? "Lida"
                           : msg.deliveryStatus === "entregue"
