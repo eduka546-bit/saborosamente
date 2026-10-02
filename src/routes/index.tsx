@@ -1451,7 +1451,7 @@ function OrderChoiceBanner({
 
   return (
     <article
-      className={`group flex min-h-[16.5rem] flex-col rounded-[1.6rem] border px-5 py-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md md:min-h-[18rem] md:px-6 md:py-6 ${styles.card}`}
+      className={`group flex h-full flex-col rounded-[1.5rem] border px-4.5 py-4.5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md md:px-5 md:py-5 ${styles.card}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${styles.icon}`}>
@@ -1462,8 +1462,8 @@ function OrderChoiceBanner({
         </span>
       </div>
 
-      <div className="mt-4">
-        <h3 className="max-w-[20ch] font-display text-[1.45rem] font-bold leading-[1.12] text-[#173a2d] md:text-[1.6rem]">
+      <div className="mt-3.5">
+        <h3 className="max-w-[22ch] font-display text-[1.35rem] font-bold leading-[1.12] text-[#173a2d] md:text-[1.5rem]">
           {title}
         </h3>
         <p className="mt-2.5 text-[12.5px] leading-relaxed text-[#66766d] md:text-[13px]">
@@ -1483,7 +1483,7 @@ function OrderChoiceBanner({
 
       <button
         onClick={onClick}
-        className={`mt-5 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 md:mt-auto ${styles.button}`}
+        className={`mt-4 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 md:mt-auto ${styles.button}`}
       >
         <Icon size={16} strokeWidth={2} />
         {action}
