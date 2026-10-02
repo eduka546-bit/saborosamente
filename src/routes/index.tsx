@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
 import { useState, useMemo, useEffect } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
+import { CombosProntosModal } from "@/components/combos-prontos-modal";
 import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
 import { COMBO_RULES } from "@/lib/combo-rules";
 import {
@@ -158,6 +159,17 @@ function isComboEscolhaVoceMesmo(nome: string, cat?: string): boolean {
     n.includes("escolha voce mesmo") ||
     c.includes("escolha você mesmo") ||
     c.includes("escolha voce mesmo")
+  );
+}
+
+function isComboPronto(nome: string, cat?: string, tipo?: string): boolean {
+  const n = (nome || "").toLowerCase();
+  const c = (cat || "").toLowerCase();
+  const t = (tipo || "").toLowerCase();
+  return (
+    c.includes("combo pronto") ||
+    c.includes("combos prontos") ||
+    (t === "combo" && n.includes("pratos mais vendidos"))
   );
 }
 
@@ -291,6 +303,7 @@ function Index() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
+  const [combosProntosModalOpen, setCombosProntosModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
@@ -345,8 +358,10 @@ function Index() {
         .order("ordem_filtro", { ascending: true })
         .order("ordem", { ascending: true });
       if (error) return [];
-      // Só exclui "escolha você mesmo" — Combos Prontos aparece normalmente
-      return (data ?? []).filter((c: any) => !isComboEscolhaVoceMesmo(c.nome));
+      // Combos têm seus próprios atalhos/modais e não precisam poluir os filtros do cardápio.
+      return (data ?? []).filter(
+        (c: any) => !isComboEscolhaVoceMesmo(c.nome) && !isComboPronto("", c.nome),
+      );
     },
     staleTime: 1000 * 60,
   });
@@ -521,12 +536,15 @@ function Index() {
         );
       });
     }
-    // Remove apenas "Combos Escolha Você Mesmo" do grid — Combos Prontos ficam
+    // Combos prontos e "escolha você mesmo" ficam nos atalhos próprios, fora do grid principal.
     return result
       .filter((p: any) => {
         const cat = p.categorias?.nome || "";
         const nome = p.nome || "";
-        return !isComboEscolhaVoceMesmo(nome, cat);
+        return (
+          !isComboEscolhaVoceMesmo(nome, cat) &&
+          !isComboPronto(nome, cat, p.tipo_produto)
+        );
       })
       .sort((a: any, b: any) => {
         const activeSort = [...selectedFilters].reverse().find((filter) => sortFilters.includes(filter));
@@ -551,7 +569,13 @@ function Index() {
     if (orderedCategories.length > 0) {
       const withProducts = orderedCategories
         .map((c: any) => c.nome)
-        .filter((nome: string) => products.some((p: any) => p.categorias?.nome === nome));
+        .filter((nome: string) =>
+          products.some(
+            (p: any) =>
+              p.categorias?.nome === nome &&
+              !isComboPronto(p.nome || "", p.categorias?.nome || "", p.tipo_produto),
+          ),
+        );
       return ["Todas", ...withProducts, ...filtrosRestricao];
     }
     // Fallback: ordem alfabética sem "Combos Escolha Você Mesmo"
@@ -559,7 +583,10 @@ function Index() {
     products.forEach((p: any) => {
       if (p.categorias?.nome) {
         const cat = p.categorias.nome;
-        if (!isComboEscolhaVoceMesmo("", cat)) set.add(cat);
+        if (
+          !isComboEscolhaVoceMesmo("", cat) &&
+          !isComboPronto(p.nome || "", cat, p.tipo_produto)
+        ) set.add(cat);
       }
     });
     return ["Todas", ...Array.from(set).sort(), ...filtrosRestricao];
@@ -589,8 +616,7 @@ function Index() {
   };
 
   const abrirCombosProntos = () => {
-    const categoria = categoriesWithProducts.find((item) => item.toLowerCase().includes("combo"));
-    abrirCardapio(categoria || "Todas");
+    setCombosProntosModalOpen(true);
   };
 
   const abrirObjetivo = (filter: string) => {
@@ -648,6 +674,34 @@ function Index() {
       {settings?.popup_boas_vindas?.ativo && (
         <WelcomePopup config={settings.popup_boas_vindas as any} />
       )}
+
+      <CombosProntosModal
+        isOpen={combosProntosModalOpen}
+        onClose={() => setCombosProntosModalOpen(false)}
+        products={products
+          .filter((p: any) =>
+            isComboPronto(
+              p.nome || "",
+              p.categorias?.nome || "",
+              p.tipo_produto,
+            ),
+          )
+          .sort((a: any, b: any) => {
+            const qtd = (produto: any) =>
+              Number(String(produto.nome || "").match(/(\d+)\s*un/i)?.[1] || 999);
+            return qtd(a) - qtd(b);
+          })
+          .map((p: any) => ({
+            ...p,
+            categoria: p.categorias?.nome || "Combos Prontos",
+            imagem: imgUrl(p.imagem_url),
+          }))}
+        allProducts={products.map((p: any) => ({
+          ...p,
+          categoria: p.categorias?.nome || "Marmita",
+          imagem: imgUrl(p.imagem_url),
+        }))}
+      />
 
       <section className="bg-[#fbfaf5] pb-8 pt-6 md:pb-12 md:pt-10">
         <div className="mx-auto max-w-7xl px-4">
