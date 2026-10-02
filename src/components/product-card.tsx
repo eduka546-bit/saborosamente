@@ -600,18 +600,18 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </div>
               {quantidadeSelecionadaNoCarrinho > 0 && !isComboPronto ? (
                 <div
-                  className="flex items-center gap-1 rounded-full border border-[#cfe0c4] bg-[#f4f8f1] p-1 shadow-sm"
+                  className="flex items-center gap-0.5 rounded-full border border-[#cfe0c4] bg-[#f4f8f1] p-0.5 shadow-sm"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <button
                     type="button"
                     aria-label="Diminuir quantidade"
                     onClick={(event) => ajustarQuantidadeNoCard(-1, event)}
-                    className="inline-flex size-8 items-center justify-center rounded-full text-[#086e45] transition hover:bg-white"
+                    className="inline-flex size-7 items-center justify-center rounded-full text-[#086e45] transition hover:bg-white"
                   >
-                    <Minus className="size-4" />
+                    <Minus className="size-3.5" />
                   </button>
-                  <span className="min-w-6 text-center text-sm font-bold text-[#173a2d]">
+                  <span className="min-w-5 text-center text-xs font-bold text-[#173a2d]">
                     {quantidadeSelecionadaNoCarrinho}
                   </span>
                   <button
@@ -620,11 +620,11 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     onClick={(event) => ajustarQuantidadeNoCard(1, event)}
                     disabled={soldOut}
                     className={cn(
-                      "inline-flex size-8 items-center justify-center rounded-full text-white transition",
+                      "inline-flex size-7 items-center justify-center rounded-full text-white transition",
                       soldOut ? "cursor-not-allowed bg-gray-300" : "bg-[#086e45] hover:scale-105",
                     )}
                   >
-                    <Plus className="size-4" />
+                    <Plus className="size-3.5" />
                   </button>
                 </div>
               ) : (
