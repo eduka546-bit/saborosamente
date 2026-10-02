@@ -212,8 +212,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     Boolean((product as any).created_at) &&
     Date.now() - new Date((product as any).created_at).getTime() <= 30 * 24 * 60 * 60 * 1000;
 
-  const ingredientesTexto = simplificarIngredientesCard((product as any).ingredientes);
-
   const linhasSelecionadasNoCarrinho = lines.filter(
     (line) =>
       !line.custom &&
@@ -522,12 +520,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             <h3 className="min-h-[3.15rem] text-[14px] md:text-[15px] font-bold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
-
-            {ingredientesTexto && (
-              <p className="text-[12.5px] leading-relaxed text-[#5b685f]">
-                {ingredientesTexto}
-              </p>
-            )}
 
             {/* Seletor de peso */}
             {weights.length > 1 ? (
