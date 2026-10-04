@@ -349,7 +349,14 @@ function CozinhaPage() {
       });
       return ids;
     };
-    const expandirPreparacao = (prepId: string, prontoTotal: number, nomePrato: string, visitados = new Set<string>(), fatorLote?: number) => {
+    const expandirPreparacao = (
+      prepId: string,
+      prontoTotal: number,
+      nomePrato: string,
+      visitados = new Set<string>(),
+      fatorLote?: number,
+      ignorarIngredientes = new Set<string>(),
+    ) => {
       if (!prepId || !(prontoTotal > 0) || visitados.has(prepId)) return;
       const preparacao = prep.get(prepId);
       const itens = itensPrep.get(prepId) || [];
@@ -366,9 +373,17 @@ function CozinhaPage() {
       itens.forEach((item: any) => {
         const quantidade = n(item.quantidade) * (fatorLote ?? prontoTotal / rendimento);
         if (item.preparacao_componente_id) {
-          expandirPreparacao(item.preparacao_componente_id, quantidade, nomePrato, proximos);
+          expandirPreparacao(
+            item.preparacao_componente_id,
+            quantidade,
+            nomePrato,
+            proximos,
+            undefined,
+            ignorarIngredientes,
+          );
           return;
         }
+        if (item.ingrediente_id && ignorarIngredientes.has(item.ingrediente_id)) return;
         const qb = ehQB(item.quantidade_texto);
         add(item.ingrediente_id, qb ? 0 : quantidade, nomePrato, unidadeItemPreparacao(item), qb);
       });
@@ -386,35 +401,18 @@ function CozinhaPage() {
         .filter(Boolean);
       const linhasIngredientes = linhasReceita.filter((linha: any) => linha.ingrediente_id);
       if (linhasIngredientes.length) {
-        const preparacoesEstruturadas = preparacoesVinculadas.filter((preparacao: any) => {
-          const montagemDaPreparacao = montagemReceita.find((montagem: any) =>
-            nomesCozinhaCorrespondem(preparacao.nome, montagem.nome),
-          );
-          const itens = itensPrep.get(preparacao.id) || [];
-          return !!montagemDaPreparacao
-            && n(preparacao.rendimento_final_g) > 0
-            && itens.some((item: any) =>
-              (item.ingrediente_id || item.preparacao_componente_id) &&
-              (n(item.quantidade) > 0 || ehQB(item.quantidade_texto)),
-            );
-        });
-        const idsCobertosPorPreparacao = new Set<string>();
-        preparacoesEstruturadas.forEach((preparacao: any) => {
-          ingredientesDaPreparacao(preparacao.id).forEach((id) => idsCobertosPorPreparacao.add(id));
-        });
+        // A ficha técnica por tamanho é a fonte de verdade para ingredientes.
+        // A preparação vinculada só completa ingredientes que não aparecem
+        // diretamente na ficha, evitando dupla contagem e bases antigas.
+        const idsIngredientesDiretos = new Set<string>(
+          linhasIngredientes.map((linha: any) => linha.ingrediente_id).filter(Boolean),
+        );
 
         linhasIngredientes.forEach((linha: any) => {
-          if (idsCobertosPorPreparacao.has(linha.ingrediente_id)) return;
           const ingrediente = ing.get(linha.ingrediente_id);
           if (!ingrediente) return;
           const unidade = ingrediente.unidade_medida === "un" ? "un" : ingrediente.unidade_medida === "L" ? "L" : "g";
-          const componentePronto = montagemReceita.find((montagem: any) =>
-            nomesCozinhaCorrespondem(ingrediente.nome, montagem.nome)
-            && !preparacoesVinculadas.some((preparacao: any) => nomesCozinhaCorrespondem(preparacao.nome, montagem.nome)),
-          );
-          const liquido = componentePronto
-            ? n(componentePronto[campo])
-            : quantidadeCorreta(n(linha[campo]), linha);
+          const liquido = quantidadeCorreta(n(linha[campo]), linha);
           const qtd = quantidadeBrutaPorRendimento(liquido, ingrediente) * multiplicador;
           add(linha.ingrediente_id, qtd, prato.nome, unidade, ehQB(linha.observacao));
         });
@@ -429,7 +427,14 @@ function CozinhaPage() {
           const fatorMassa = normalizarNomeIngrediente(preparacao.nome).includes("massa panqueca")
             ? fatorLoteMassaPanqueca({ [String(p.gramatura || "400")]: multiplicador })
             : undefined;
-          expandirPreparacao(preparacao.id, prontoTotal, prato.nome, new Set<string>(), fatorMassa);
+          expandirPreparacao(
+            preparacao.id,
+            prontoTotal,
+            prato.nome,
+            new Set<string>(),
+            fatorMassa,
+            idsIngredientesDiretos,
+          );
         });
         return;
       }
@@ -1299,11 +1304,12 @@ function Vazio({ texto }: any) {
     </div>
   );
 }
-function Botao({ children, onClick, leve = false }: any) {
+function Botao({ children, onClick, leve = false, disabled = false }: any) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${leve ? "border border-[#bcd8c5] bg-white text-[#087443]" : "bg-[#087443] text-white"}`}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50 ${leve ? "border border-[#bcd8c5] bg-white text-[#087443]" : "bg-[#087443] text-white"}`}
     >
       {children}
     </button>
@@ -1336,7 +1342,8 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
   const [produto, setProduto] = useState(""),
     [data, setData] = useState(dataInicial || hoje()),
     [q, setQ] = useState<any>({}),
-    [obs, setObs] = useState("");
+    [obs, setObs] = useState(""),
+    [salvando, setSalvando] = useState(false);
   const produtoSelecionado = marmitas.find((x: any) => x.id === produto);
   const tamanhosDisponiveis = tamanhosDoProduto(produtoSelecionado);
   return (
@@ -1376,7 +1383,20 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
             placeholder="Opcional"
           />
         </Campo>
-        <Botao onClick={() => salvar(produto, data, q, obs)}>Adicionar produção</Botao>
+        <Botao
+          disabled={salvando}
+          onClick={async () => {
+            if (salvando) return;
+            setSalvando(true);
+            try {
+              await salvar(produto, data, q, obs);
+            } finally {
+              setSalvando(false);
+            }
+          }}
+        >
+          {salvando ? "Adicionando…" : "Adicionar produção"}
+        </Botao>
       </div>
     </Janela>
   );
@@ -1672,11 +1692,8 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const nomeItem = ing?.nome || prepComponente?.nome || 'Componente';
     const texto = String(item.quantidade_texto || '').trim();
     if (ehQB(texto)) return `${nomeItem}: QB · a gosto`;
-    // Quando a preparação possui rendimento final cadastrado, a própria ficha da
-    // preparação é a fonte de verdade. Escalar os ingredientes pelo peso pronto
-    // solicitado evita reaproveitar quantidades antigas das linhas da marmita e
-    // aplicar rendimento/perda duas vezes (ex.: arroz consolidado do dia).
-    if (fatorPadrao > 0) return fmtItemPrep(item, fatorPadrao);
+    // Quando a própria ficha do prato traz a quantidade do ingrediente, ela é
+    // mais específica que a receita-base e deve prevalecer no lote do dia.
     const contribuicoes=contribuicoesItemGrupo(item,grupo);
     const totalExato = contribuicoes.reduce((s,contribuicao)=>{
       const uso=grupo.pratos.find((pr:any)=>pr.produto_id===contribuicao.produtoId);
@@ -1686,10 +1703,13 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     },0);
     if (totalExato > 0) {
       const fatorAprox = n(item.quantidade) > 0 ? totalExato / n(item.quantidade) : 0;
-      return `${nomeItem}: ${formatarQuantidadeProducao(totalExato,'g',nomeItem)}${aproximacaoItemPrep(item,fatorAprox)}`;
+      const unidadeExata = ing?.unidade_medida === "un" ? "un" : ing?.unidade_medida === "L" ? "L" : "g";
+      return `${nomeItem}: ${formatarQuantidadeProducao(totalExato,unidadeExata,nomeItem)}${aproximacaoItemPrep(item,fatorAprox)}`;
     }
+    // Só usa a receita-base como fallback quando não existe quantidade exata na ficha.
+    if (fatorPadrao > 0) return fmtItemPrep(item, fatorPadrao);
     if (!(fatorRecuperado > 0) || !(n(item.quantidade) > 0)) {
-      return fatorPadrao > 0 ? fmtItemPrep(item, fatorPadrao) : `${nomeItem}: REVISAR CADASTRO`;
+      return `${nomeItem}: REVISAR CADASTRO`;
     }
     const escalado = n(item.quantidade) * fatorRecuperado;
     const unidadeTexto = texto && /^\s*[\d.,]+/.test(texto) && !/\bkg\b|\bgr\b|grama|\bg\b|ml|litro|litros/i.test(texto);
@@ -1814,15 +1834,15 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
           <div className="prep-table-header print-table-header hidden bg-[#173a2d] px-3 py-2 text-xs font-bold text-white md:grid md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]"><span>Preparação</span><span>Quantidade / ingredientes</span><span>Modo de preparo</span></div>
           {preparacoesConsolidadas.filter((g:any)=>!ehMassaPanqueca(g.prep)).map((g:any)=>{const jaPronto=g.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${g.prep.id}:${pr.produto_id}`])),0); const produzir=Math.max(0,g.total-jaPronto); const escala=g.total>0?produzir/g.total:0; const rendimento=n(g.prep.rendimento_final_g); const fator=rendimento>0?produzir/rendimento:0; const itens=(itensPreparacao.get(g.prep.id)||[]) as any[]; const cadastroIncompleto=!g.ingredienteBase&&!(rendimento>0); const fatorRecuperado=cadastroIncompleto?fatorRecuperadoGrupo(itens,g)*escala:0; return <div key={g.prep.id} className="print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="min-w-0 bg-[#f8fbf7] p-2.5 md:bg-white"><b className="block break-words text-base leading-tight md:text-sm">{capitalizarNomeCozinha(g.prep.nome)}</b>{g.ingredienteBase&&<p className="text-xs font-black uppercase text-[#527164]">Ingrediente-base</p>}<p className="text-xs text-[#62766b]">Produzir <b className="text-[#087443]">{normalizarNomeIngrediente(g.prep.nome)==="almondegas" ? `${Math.ceil(produzir/40).toLocaleString("pt-BR")} almôndegas de 40 g · ${formatPeso(produzir)}` : formatPeso(produzir)}</b></p>{jaPronto>0&&<p className="text-xs font-bold text-[#087443]">Já pronto: {formatPeso(jaPronto)}</p>}{cadastroIncompleto&&<p className="text-xs font-bold text-amber-700">Rendimento-base ausente · quantidades recuperadas da ficha do prato</p>}</div>
-            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id}><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{normalizarNomeIngrediente(g.prep.nome)==="almondegas"&&` · ${Math.round(pr.total/40).toLocaleString("pt-BR")} almôndegas`}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-col gap-1 sm:flex-row sm:flex-wrap"><button className="w-full rounded-lg border border-[#b9d4c2] px-2 py-1.5 text-xs font-bold text-[#087443] sm:w-auto" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto((atual)=>({...atual,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))}));}}>Alterar quantidade pronta</button><button className="w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-600 sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:pr.total}))}>Retirar este preparo</button>{pronto>0&&<button className="w-full rounded-lg border px-2 py-1.5 text-xs sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:0}))}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir: {formatPeso(falta)}</p>}</div>})}<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(cru)</span></p>:!itens.length?<p className="font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:itens.map((item:any)=><p key={item.id}>{fmtItemPrepExato(item,g,fatorRecuperado,escala,fator)}</p>)}</div>
+            <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="text-xs font-black uppercase text-[#527164]">Separar por prato</p>{g.pratos.map((pr:any)=>{const chave=`${g.prep.id}:${pr.produto_id}`; const pronto=Math.min(pr.total,n(preparoPronto[chave])); const falta=Math.max(0,pr.total-pronto); return <div key={pr.produto_id}><p><b>{pr.rotulo}</b>: {formatPeso(pr.total)}{normalizarNomeIngrediente(g.prep.nome)==="almondegas"&&` · ${Math.round(pr.total/40).toLocaleString("pt-BR")} almôndegas`}{pronto>0?` · já pronto ${formatPeso(pronto)}`:""}</p><div data-screen-only className="mt-1 flex flex-col gap-1 sm:flex-row sm:flex-wrap"><button className="w-full rounded-lg border border-[#b9d4c2] px-2 py-1.5 text-xs font-bold text-[#087443] sm:w-auto" onClick={()=>{const valor=window.prompt(`Quanto de ${g.prep.nome} já está pronto para ${pr.rotulo}? (em gramas)`,String(pronto)); if(valor!==null)setPreparoPronto((atual)=>({...atual,[chave]:Math.min(pr.total,Math.max(0,n(String(valor).replace(',','.'))))}));}}>Alterar quantidade pronta</button><button className="w-full rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-600 sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:pr.total}))}>Retirar este preparo</button>{pronto>0&&<button className="w-full rounded-lg border px-2 py-1.5 text-xs sm:w-auto" onClick={()=>setPreparoPronto((atual)=>({...atual,[chave]:0}))}>Restaurar</button>}</div>{pronto>0&&<p className="text-xs text-[#62766b]">Falta produzir: {formatPeso(falta)}</p>}</div>})}<p className="mt-1 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>{produzir<=0?<p className="font-bold text-[#087443]">Nada a produzir · preparo já disponível</p>:g.ingredienteBase?<p><b>{g.ingredienteBase.nome}</b>: {formatarQuantidadeProducao(g.bruto*escala,g.ingredienteBase.unidade_medida==="un"?"un":"g",g.ingredienteBase.nome)} <span className="text-xs text-[#62766b]">(cru)</span></p>:!itens.length?<p className="font-bold text-red-600">REVISAR CADASTRO · ingredientes não informados</p>:itens.map((item:any)=><p key={item.id}>{fmtItemPrepExato(item,g,fatorRecuperado,escala,fator)}</p>)}</div>
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0"><p className="mb-1 text-xs font-black uppercase text-[#527164] md:hidden">Modo de preparo</p><p className="whitespace-pre-line break-words text-sm leading-snug">{textoCozinha(g.prep.modo_preparo).replace(/\\n/g,"\n") || "Modo de preparo não informado."}</p></div>
           </div>})}
-          {preparacoesVinculadasInformativas.map((prep:any)=>{const itens=(itensPreparacao.get(prep.id)||[]) as any[]; const necessidadePanqueca=necessidadeMassaPanqueca(prep); const fatorExibicao=necessidadePanqueca?.fator ?? 1; return <div key={`base-${prep.id}`} className={`print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)] ${necessidadePanqueca?"bg-white":"bg-[#fffdf4]"}`}>
+          {preparacoesVinculadasInformativas.map((prep:any)=>{const itens=(itensPreparacao.get(prep.id)||[]) as any[]; const necessidadePanqueca=necessidadeMassaPanqueca(prep); const fatorExibicao=necessidadePanqueca?.fator ?? 1; return <div key={`base-${prep.id}`} className="print-prep-row grid min-w-0 grid-cols-1 border-t border-[#dbe7dd] bg-white text-sm md:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="min-w-0 p-2.5">
               <b className="block break-words text-base leading-tight md:text-sm">{capitalizarNomeCozinha(prep.nome)}</b>
               {necessidadePanqueca
                 ? <><p className="mt-1 text-sm text-[#62766b]">Produzir <b className="text-[#087443]">{necessidadePanqueca.faltaPanquecas.toLocaleString("pt-BR")} panquecas</b></p>{necessidadePanqueca.totalPronto>0&&<p className="text-xs font-bold text-[#087443]">Já prontas: {necessidadePanqueca.totalPronto.toLocaleString("pt-BR")} de {necessidadePanqueca.totalPanquecas.toLocaleString("pt-BR")}</p>}</>
-                : <><p className="mt-1 text-xs font-black uppercase text-amber-700">Receita-base vinculada</p>{n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Rendimento base: <b>{formatPeso(n(prep.rendimento_final_g))}</b></p>}</>}
+                : <><p className="mt-1 text-xs font-black uppercase text-[#527164]">Preparo vinculado</p>{n(prep.rendimento_final_g)>0&&<p className="text-xs text-[#62766b]">Rendimento de referência: <b>{formatPeso(n(prep.rendimento_final_g))}</b></p>}</>}
             </div>
             <div className="min-w-0 border-t border-[#dbe7dd] p-2.5 md:border-l md:border-t-0">
               {necessidadePanqueca&&<>
@@ -1831,7 +1851,7 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
                 <p className="mt-2 text-xs font-black uppercase text-[#527164]">Ingredientes do lote</p>
               </>}
               {!necessidadePanqueca&&<p className="text-xs font-black uppercase text-[#527164]">Ingredientes / quantidades da receita-base</p>}
-              {!itens.length?<p className="mt-1 font-bold text-amber-700">REVISAR CADASTRO · ingredientes não informados</p>:<div className="mt-1 space-y-0.5">{itens.map((item:any)=><p key={item.id}>{necessidadePanqueca?formatarItemPreparacaoEscalado(item,fatorExibicao):formatarItemPreparacaoBase(item)}</p>)}</div>}
+              {!itens.length?<p className="mt-1 font-bold text-red-600">REVISAR CADASTRO · ingredientes não informados</p>:<div className="mt-1 space-y-0.5">{itens.map((item:any)=><p key={item.id}>{necessidadePanqueca?formatarItemPreparacaoEscalado(item,fatorExibicao):formatarItemPreparacaoBase(item)}</p>)}</div>}
               {necessidadePanqueca&&<p className="mt-2 text-xs text-[#62766b]">Lote-base: 30 panquecas = 8 ovos. Cada disco pesa 25 g; usar 1/2/3 panquecas nas marmitas de 200/300/400 g. Quantidades acima escaladas automaticamente para a produção.</p>}
               {prep.observacao&&!necessidadePanqueca&&<p className="mt-2 text-xs leading-snug text-[#62766b]">{textoCozinha(prep.observacao)}</p>}
             </div>
