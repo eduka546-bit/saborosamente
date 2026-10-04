@@ -1,4 +1,8 @@
 -- Corrige classificação e quantidades de patinho, estrutura o empanamento do TD09
+-- A migração roda fora de uma sessão autenticada; os gatilhos de sincronização
+-- reconhecem service_role via auth.jwt().
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
 -- e elimina duplicidade acidental da produção de 05/10/2026.
 
 do $$
