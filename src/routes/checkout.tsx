@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
-import { configEntregaParaCidade, gerarDatasEntrega } from "@/lib/entrega-config";
+import {
+  configEntregaParaCidade,
+  gerarDatasEntrega,
+  horariosDisponiveisParaData,
+} from "@/lib/entrega-config";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
@@ -136,6 +140,13 @@ function Checkout() {
   // ── data e horário de entrega (entrega programada) ─────────────────────────
   const [dataEntrega, setDataEntrega] = useState<string>("");
   const [horarioEntrega, setHorarioEntrega] = useState<string>("");
+  const [agendaTick, setAgendaTick] = useState(0);
+
+  // Mantém a agenda do mesmo dia atualizada se o cliente deixar o checkout aberto.
+  useEffect(() => {
+    const timer = window.setInterval(() => setAgendaTick((value) => value + 1), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // ── cashback ──────────────────────────────────────────────────────────────
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
@@ -336,7 +347,9 @@ function Checkout() {
     metodoEntrega === "entrega" ? selectedCity : "São Bento do Sul",
   );
   const datasEntrega = gerarDatasEntrega(entregaCfg);
-  const HORARIOS_ENTREGA = entregaCfg.horarios;
+  const HORARIOS_ENTREGA = horariosDisponiveisParaData(entregaCfg, dataEntrega);
+  // agendaTick força novo cálculo a cada 30 s sem alterar a configuração.
+  void agendaTick;
   const minimoEntrega = Number(entregaCfg.minUnidades ?? 0);
   const faltamParaMinimoEntrega = Math.max(0, minimoEntrega - count);
   const pedidoAbaixoMinimoEntrega =
@@ -347,6 +360,13 @@ function Checkout() {
     setDataEntrega("");
     setHorarioEntrega("");
   }, [selectedCity, metodoEntrega]);
+
+  useEffect(() => {
+    if (!horarioEntrega) return;
+    if (!HORARIOS_ENTREGA.includes(horarioEntrega)) {
+      setHorarioEntrega("");
+    }
+  }, [dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
 
   // Há marmita personalizada no carrinho? (para o aviso de prazo)
   const temMarmitaPersonalizada = lines.some((l) => l.custom);
@@ -1286,15 +1306,26 @@ function Checkout() {
                   className={fieldClass}
                   value={horarioEntrega}
                   onChange={(e) => setHorarioEntrega(e.target.value)}
-                  disabled={pedidoAbaixoMinimoEntrega}
+                  disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
                 >
-                  <option value="">Selecione um horário</option>
+                  <option value="">
+                    {!dataEntrega
+                      ? "Selecione primeiro a data"
+                      : HORARIOS_ENTREGA.length === 0
+                        ? "Sem horários disponíveis hoje"
+                        : "Selecione um horário"}
+                  </option>
                   {HORARIOS_ENTREGA.map((h) => (
                     <option key={h} value={h}>
                       {h}
                     </option>
                   ))}
                 </select>
+                {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
+                  <p className="mt-1.5 text-xs font-medium text-amber-700">
+                    Os horários de hoje já encerraram. Escolha outra data.
+                  </p>
+                )}
               </div>
             </div>
           </fieldset>
