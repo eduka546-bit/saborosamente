@@ -157,6 +157,55 @@ export function configEntregaParaCidade(raw: any, cidade?: string): EntregaConfi
   };
 }
 
+function minutosInicioFaixa(horario: string) {
+  const match = String(horario || "").match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hora = Number(match[1]);
+  const minuto = Number(match[2]);
+  if (
+    !Number.isInteger(hora) ||
+    !Number.isInteger(minuto) ||
+    hora < 0 ||
+    hora > 23 ||
+    minuto < 0 ||
+    minuto > 59
+  ) {
+    return null;
+  }
+  return hora * 60 + minuto;
+}
+
+/**
+ * Remove faixas cujo horário inicial já passou quando a data escolhida é hoje.
+ * Usa o fuso oficial da operação (America/Sao_Paulo), independentemente do
+ * fuso configurado no aparelho do cliente.
+ */
+export function horariosDisponiveisParaData(
+  cfg: Pick<EntregaConfig, "horarios">,
+  data: string,
+) {
+  if (!data) return cfg.horarios;
+
+  const parsed = parseDataBR(data);
+  if (!parsed) return cfg.horarios;
+
+  const agora = agoraSaoPaulo();
+  const mesmoDia =
+    parsed.yyyy === agora.year &&
+    parsed.mm === agora.month &&
+    parsed.dd === agora.day;
+
+  if (!mesmoDia) return cfg.horarios;
+
+  const agoraMinutos = agora.hour * 60 + agora.minute;
+  return cfg.horarios.filter((horario) => {
+    const inicio = minutosInicioFaixa(horario);
+    // Se a faixa não seguir o padrão HH:MM, preserva para não quebrar
+    // configurações personalizadas de texto livre.
+    return inicio === null || inicio > agoraMinutos;
+  });
+}
+
 export function gerarDatasEntrega(
   cfg: EntregaConfig & Pick<RegraEntregaCidade, "cutoffMesmoDia">,
 ): { valor: string; label: string }[] {
@@ -224,6 +273,17 @@ export function validarEntregaProgramada(args: {
 
   const mesmoDia =
     parsed.yyyy === agora.year && parsed.mm === agora.month && parsed.dd === agora.day;
+
+  if (mesmoDia) {
+    const inicio = minutosInicioFaixa(args.horario);
+    const agoraMinutos = agora.hour * 60 + agora.minute;
+    if (inicio !== null && inicio <= agoraMinutos) {
+      return {
+        ok: false as const,
+        erro: "Esse horário já passou. Escolha um próximo horário disponível.",
+      };
+    }
+  }
   if (mesmoDia && cfg.cutoffMesmoDia) {
     const passou =
       agora.hour > cfg.cutoffMesmoDia.hora ||
