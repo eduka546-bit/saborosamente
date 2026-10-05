@@ -289,7 +289,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     const url =
       typeof window !== "undefined"
         ? `${window.location.origin}/produto/${product.id}`
-        : `https://www.saborosamente.com/produto/${product.id}`;
+        : `https://saborosamente.com/produto/${product.id}`;
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share({ title: product.nome, text: product.nome, url });
