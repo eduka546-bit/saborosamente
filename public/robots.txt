@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://www.saborosamente.com/sitemap.xml
+Sitemap: https://saborosamente.com/sitemap.xml
