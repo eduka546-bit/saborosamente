@@ -64,6 +64,19 @@ export const Route = createFileRoute("/checkout")({
 
 type PaymentValue = CheckoutForm["pagamento"];
 
+type AvailableCoupon = {
+  codigo: string;
+  tipo: string;
+  valor: number;
+  regra?: string | null;
+  validade?: string | null;
+  apenas_primeira_compra: boolean;
+  substitui_desconto_progressivo: boolean;
+  excluir_combo_pronto: boolean;
+  personalizado: boolean;
+  origem: "recuperacao" | "campanha";
+};
+
 // mapeamento entre a chave interna e o label exibido ao admin
 const PAYMENT_VALUE_MAP: Record<string, PaymentValue> = {
   PIX: "pix",
@@ -171,6 +184,17 @@ function Checkout() {
   } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+
+  const { data: availableCoupons = [] } = useQuery({
+    queryKey: ["checkout-available-coupons", session?.user?.id ?? "visitante"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("cupons_disponiveis_checkout");
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as AvailableCoupon[];
+    },
+    staleTime: 15_000,
+    refetchOnMount: "always",
+  });
 
   // aplica cupom que vier da URL automaticamente
   useEffect(() => {
@@ -1473,6 +1497,82 @@ function Checkout() {
               )}
             </div>
             {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
+
+            {availableCoupons.length > 0 && (
+              <div className="mt-3 rounded-2xl border border-green-100 bg-green-50/40 p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#086e45]">
+                  <Gift size={15} />
+                  Cupons disponíveis para você
+                </div>
+                <div className="mt-2 space-y-2">
+                  {availableCoupons.map((coupon) => {
+                    const isApplied = appliedCoupon?.codigo === coupon.codigo;
+                    const benefit =
+                      coupon.tipo === "Percentual"
+                        ? `${Number(coupon.valor)}% OFF`
+                        : coupon.tipo === "Entrega Grátis"
+                          ? "Frete grátis"
+                          : `${formatBRL(Number(coupon.valor))} OFF`;
+
+                    return (
+                      <div
+                        key={coupon.codigo}
+                        className={cn(
+                          "flex flex-col gap-2 rounded-xl border bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between",
+                          coupon.personalizado
+                            ? "border-green-300 shadow-sm"
+                            : "border-border",
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <strong className="text-sm text-foreground">{coupon.codigo}</strong>
+                            <span className="rounded-full bg-[#edf5e6] px-2 py-0.5 text-[10px] font-bold text-[#315440]">
+                              {benefit}
+                            </span>
+                            {coupon.personalizado && (
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                                Exclusivo para você
+                              </span>
+                            )}
+                            {coupon.apenas_primeira_compra && (
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                1ª compra
+                              </span>
+                            )}
+                          </div>
+                          {coupon.regra && (
+                            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                              {coupon.regra}
+                            </p>
+                          )}
+                          {coupon.validade && (
+                            <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+                              Válido até{" "}
+                              {new Date(`${coupon.validade}T12:00:00`).toLocaleDateString("pt-BR")}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => applyCoupon(coupon.codigo)}
+                          disabled={couponLoading || isApplied}
+                          className={cn(
+                            "shrink-0 rounded-xl px-3 py-2 text-xs font-bold transition-colors",
+                            isApplied
+                              ? "bg-green-100 text-green-700"
+                              : "bg-primary text-primary-foreground hover:bg-brand-dark",
+                          )}
+                        >
+                          {isApplied ? "✓ Aplicado" : "Aplicar"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {appliedCoupon && (
               <div className="mt-2 space-y-2">
                 <p className="text-xs font-semibold text-green-600">
