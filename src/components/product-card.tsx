@@ -588,7 +588,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     {currentNutritional.prot}g proteína
                   </span>
                 )}
-                {Number(currentNutritional?.prot || 0) >= 30 && (
+                {isHighProteinFlavor(product) && (
                   <span className="rounded-full bg-[#086e45] px-2 py-1 text-white">
                     alta proteína
                   </span>
