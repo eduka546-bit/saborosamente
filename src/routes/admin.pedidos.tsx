@@ -864,6 +864,16 @@ function AdminOrdersPage() {
             </span>
             <span className="text-xl font-black text-yellow-500">{stats.pendingCount}</span>
           </div>
+          {/* Atalho rápido para lançar pedido recebido pelo WhatsApp */}
+          <a
+            href="/admin/pedidos/whatsapp"
+            className="bg-green-50 px-4 py-3 rounded-xl border border-green-200 flex items-center gap-2 text-xs font-bold text-green-700 hover:bg-green-100 transition-all"
+            title="Lançar pedido do WhatsApp"
+          >
+            <Smartphone size={15} />
+            WhatsApp
+          </a>
+
           {/* Atalho rápido para registrar pedido P10 */}
           <a
             href="/admin/registrar-p10"
