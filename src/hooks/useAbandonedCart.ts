@@ -145,26 +145,5 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [hasCart, saveToDb, issueCoupon, onExitIntent, total, isCheckout]);
 
-  // ── beforeunload: salva se ainda tiver carrinho ───────────────────────────
-  useEffect(() => {
-    if (!hasCart) return;
-
-    const handleUnload = () => {
-      // Usa sendBeacon para garantir envio mesmo ao fechar aba
-      const payload = JSON.stringify({
-        session_id: sessionId.current,
-        itens: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-        valor_total: total,
-        status: "abandonado",
-        origem: "timeout",
-        updated_at: new Date().toISOString(),
-      });
-      navigator.sendBeacon?.("/api/abandoned-cart", payload);
-    };
-
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [hasCart, lines, total]);
-
   return { markConverted };
 }

@@ -5,6 +5,20 @@ import { imgUrl } from "@/lib/image-proxy";
 
 const STORAGE_KEY = "saborosamente.welcome_popup_dismissed";
 
+function normalizePopupLink(value?: string) {
+  const raw = value?.trim() || "#cardapio";
+  let decoded = raw;
+
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    // Mantém o valor original quando não for uma URL codificada válida.
+  }
+
+  if (decoded.startsWith("/#")) return decoded.slice(1);
+  return decoded;
+}
+
 interface WelcomePopupProps {
   config: {
     ativo: boolean;
@@ -27,6 +41,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
   const [naoMostrar, setNaoMostrar] = useState(false);
+  const buttonLink = normalizePopupLink(config.botao_link);
 
   useEffect(() => {
     if (!config?.ativo) return;
@@ -56,11 +71,11 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
   };
 
   const handleBotao = (e: React.MouseEvent) => {
-    if (config.botao_link?.startsWith("#")) {
+    if (buttonLink.startsWith("#")) {
       e.preventDefault();
       fechar();
       setTimeout(() => {
-        const el = document.getElementById(config.botao_link!.replace("#", ""));
+        const el = document.getElementById(buttonLink.slice(1));
         el?.scrollIntoView({ behavior: "smooth" });
       }, 350);
     } else {
@@ -173,7 +188,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
           {/* Botão CTA */}
           {config.botao_texto && (
             <a
-              href={config.botao_link ?? "#cardapio"}
+              href={buttonLink}
               onClick={handleBotao}
               className="block w-full text-center bg-[#086e45] text-white font-bold py-3 rounded-2xl hover:bg-[#065a38] transition-colors text-sm"
             >

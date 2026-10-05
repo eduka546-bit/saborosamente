@@ -23,6 +23,8 @@ import { CartSheet } from "@/components/cart-sheet";
 import { AnalyticsObserver } from "@/components/analytics-observer";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 
+const SUPABASE_PUBLIC_ORIGIN = "https://lxcgbrovdmpjatywweiv.supabase.co";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -122,7 +124,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // preconnect ao Supabase storage para imagens carregarem mais rápido
       {
         rel: "preconnect",
-        href: import.meta.env.VITE_SUPABASE_URL ?? "",
+        href: SUPABASE_PUBLIC_ORIGIN,
         crossOrigin: "anonymous",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
@@ -209,7 +211,9 @@ function RootComponent() {
             : args[0] instanceof URL
               ? args[0].toString()
               : args[0]?.url ?? "";
-        if (response.status >= 500 && requestUrl.includes("/__server")) {
+        const isServerFunctionRequest =
+          requestUrl.includes("/_serverFn/") || requestUrl.includes("/__server");
+        if (response.status >= 500 && isServerFunctionRequest) {
           const body = await response.clone().text();
           if (
             body.includes("Server function info not found") &&
