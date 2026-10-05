@@ -37,8 +37,8 @@ export const Route = createFileRoute("/produto/$id")({
     const description =
       product?.descricao ||
       "Marmita congelada artesanal SaborosaMente. Veja tamanhos, preço e informações nutricionais.";
-    const image = product?.imagem || "https://www.saborosamente.com/icon-app.jpg";
-    const url = `https://www.saborosamente.com/produto/${params.id}`;
+    const image = product?.imagem || "https://saborosamente.com/icon-app.jpg";
+    const url = `https://saborosamente.com/produto/${params.id}`;
     return {
       meta: [
         { title },
@@ -122,14 +122,50 @@ function ProdutoPage() {
       const sizes: string[] = ["200g"];
       if (product.preco_300g) sizes.push("300g");
       if (product.preco_400g) sizes.push("400g");
-      if (!selectedWeight) setSelectedWeight(sizes.includes("300g") ? "300g" : sizes[0]);
       return sizes;
     }
     if (product.peso?.includes("-")) return product.peso.split("-").map((w: string) => w.trim());
     if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
-    if (!selectedWeight && product.peso) setSelectedWeight(product.peso);
     return product.peso ? [product.peso] : [];
   })();
+
+  useEffect(() => {
+    if (!product?.id || !weights.length) return;
+
+    const stockForWeight = (weight: string) => {
+      const raw =
+        weight === "200g"
+          ? product.estoque_200g
+          : weight === "300g"
+            ? product.estoque_300g
+            : weight === "400g"
+              ? product.estoque_400g
+              : product.estoque ?? product.estoque_200g;
+      if (raw === null || raw === undefined || raw === "") return null;
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : null;
+    };
+
+    const preferred = weights.includes("300g") ? "300g" : weights[0];
+    const isAvailable = (weight: string) => {
+      const stock = stockForWeight(weight);
+      return stock === null || stock > 0;
+    };
+    const initialWeight =
+      (preferred && isAvailable(preferred) ? preferred : weights.find(isAvailable)) ||
+      preferred ||
+      weights[0];
+
+    setSelectedWeight(initialWeight);
+  }, [
+    product?.id,
+    product?.estoque_200g,
+    product?.estoque_300g,
+    product?.estoque_400g,
+    product?.preco_300g,
+    product?.preco_400g,
+    product?.peso,
+  ]);
 
   // Rating
   const rating = product.rating ?? ((product.id as any) % 2 === 0 ? 5.0 : 4.9);
@@ -181,7 +217,7 @@ function ProdutoPage() {
         : product.tabela_nutricional;
 
   const handleShare = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : `https://www.saborosamente.com/produto/${product.id}`;
+    const url = typeof window !== "undefined" ? window.location.href : `https://saborosamente.com/produto/${product.id}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: product.nome, text: product.nome, url });
