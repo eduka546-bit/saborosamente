@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 
-const SITE_URL = "https://www.saborosamente.com";
+const SITE_URL = "https://saborosamente.com";
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL || "https://lxcgbrovdmpjatywweiv.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || "";
