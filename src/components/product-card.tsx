@@ -108,6 +108,35 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
 
   return resultado.join(", ");
 };
+
+const stockForWeight = (product: Product | any, weight: string): number | null => {
+  const raw =
+    weight === "200g"
+      ? product?.estoque_200g
+      : weight === "300g"
+        ? product?.estoque_300g
+        : weight === "400g"
+          ? product?.estoque_400g
+          : product?.estoque ?? product?.estoque_200g;
+
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+};
+
+const initialAvailableWeight = (product: Product | any, weights: string[]): string => {
+  if (!weights.length) return "";
+
+  const preferred = weights.includes("300g") ? "300g" : weights[0];
+  const isAvailable = (weight: string) => {
+    const stock = stockForWeight(product, weight);
+    return stock === null || stock > 0;
+  };
+
+  if (preferred && isAvailable(preferred)) return preferred;
+  return weights.find(isAvailable) || preferred || weights[0];
+};
+
 import { cn } from "@/lib/utils";
 import { isHighProteinFlavor } from "@/lib/nutrition-rules";
 import { Button } from "@/components/ui/button";
@@ -142,8 +171,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
     return product.peso ? [product.peso] : [];
   })();
-  const [selectedWeight, setSelectedWeight] = useState(
-    weights.includes("300g") ? "300g" : weights[0] || "",
+  const [selectedWeight, setSelectedWeight] = useState(() =>
+    initialAvailableWeight(product, weights),
   );
 
   // Para combos prontos (não "Monte Você Mesmo"), abre modal de sabores
