@@ -418,7 +418,7 @@ export function CardapioCompleto({
         const prep = preparacaoPorId.get(linha.preparacao_id);
         const pesoCalculo = String(prep?.nome).toLowerCase().includes("massa panqueca")
           ? n(prep?.rendimento_final_g) * fatorLoteMassaPanqueca({ [tamanho]: 1 })
-          : n(linha[campo]);
+          : quantidadeCorreta(n(linha[campo]), linha);
         custo += pesoCalculo * custoPreparacaoPorGrama(prep);
       }
     });
