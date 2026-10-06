@@ -1331,9 +1331,24 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       };
     })
     .filter(Boolean);
-  const mensagens: any[] = [...mensagensDaConversa, ...mensagensDeCampanha].sort(
-    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime(),
+  // A ordem gravada em whatsapp_conversas.mensagens é a sequência real da conversa.
+  // Mensagens antigas do webhook não tinham timestamp; ordenar tudo por timestamp
+  // jogava essas mensagens para 1970 e fazia todas as falas do cliente aparecerem
+  // acima das nossas respostas. Preservamos a ordem do histórico e só usamos
+  // ordenação cronológica quando todas as mensagens já possuem timestamp válido.
+  const historicoTemTimestamps = mensagensDaConversa.every((msg: any) => {
+    const ts = msg?.timestamp ? new Date(msg.timestamp).getTime() : NaN;
+    return Number.isFinite(ts);
+  });
+  const campanhasOrdenadas = [...mensagensDeCampanha].sort(
+    (a: any, b: any) =>
+      new Date(a?.timestamp ?? 0).getTime() - new Date(b?.timestamp ?? 0).getTime(),
   );
+  const mensagens: any[] = historicoTemTimestamps
+    ? [...mensagensDaConversa, ...campanhasOrdenadas].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      )
+    : [...campanhasOrdenadas, ...mensagensDaConversa];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1627,20 +1642,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
                   isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
-                {isOut && isManual && (
-                  <p className="text-[9px] font-bold opacity-60 mb-0.5">
-                    {msg.source === "business_app"
-                      ? "📱 WhatsApp Business"
-                      : msg.source === "business_app_history"
-                        ? "📱 WhatsApp Business · histórico"
-                        : "👤 Você"}
-                  </p>
-                )}
-                {isOut && !isManual && (
-                  <p className="text-[9px] font-bold opacity-60 mb-0.5">
-                    {msg.campaignName ? `📣 Campanha: ${msg.campaignName}` : "🤖 Saborosa"}
-                  </p>
-                )}
+                <p className="text-[9px] font-bold opacity-60 mb-0.5">
+                  {isOut
+                    ? msg.campaignName
+                      ? `SaborosaMente · Campanha: ${msg.campaignName}`
+                      : "SaborosaMente"
+                    : conversa.nome || "Cliente"}
+                </p>
                 {msg.content && !msg.media_path && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
