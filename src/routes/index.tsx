@@ -43,6 +43,7 @@ import {
   type MarmitaGrupo,
 } from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
+import { HomeInfoModal } from "@/components/home-info-modal";
 import heroMarmitas from "@/assets/hero-marmitas.jpg";
 
 const normalizeText = (value: unknown) =>
@@ -308,6 +309,9 @@ function Index() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
+  const [discountModalOpen, setDiscountModalOpen] = useState(false);
 
   const {
     data: products = [],
@@ -673,6 +677,10 @@ function Index() {
         <WelcomePopup config={settings.popup_boas_vindas as any} />
       )}
 
+      <HomeInfoModal kind="delivery" open={deliveryModalOpen} onOpenChange={setDeliveryModalOpen} />
+      <HomeInfoModal kind="store" open={storeModalOpen} onOpenChange={setStoreModalOpen} />
+      <HomeInfoModal kind="discount" open={discountModalOpen} onOpenChange={setDiscountModalOpen} />
+
       <CombosProntosModal
         isOpen={combosProntosModalOpen}
         onClose={() => setCombosProntosModalOpen(false)}
@@ -732,7 +740,7 @@ function Index() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => document.getElementById("areas-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    onClick={() => setDeliveryModalOpen(true)}
                     className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                   >
                     <Truck size={16} strokeWidth={1.9} />
@@ -740,7 +748,7 @@ function Index() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => document.getElementById("areas-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    onClick={() => setStoreModalOpen(true)}
                     className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                   >
                     <ShoppingBag size={16} strokeWidth={1.9} />
@@ -748,7 +756,7 @@ function Index() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => document.getElementById("descontos")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    onClick={() => setDiscountModalOpen(true)}
                     className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                   >
                     <Tag size={16} strokeWidth={1.9} />
