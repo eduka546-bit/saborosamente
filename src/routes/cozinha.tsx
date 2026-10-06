@@ -385,14 +385,10 @@ function CozinhaPage() {
         }
         if (item.ingrediente_id && ignorarIngredientes.has(item.ingrediente_id)) return;
         const qb = ehQB(item.quantidade_texto);
-        const ingrediente = ing.get(item.ingrediente_id);
-        // A preparação informa a necessidade líquida do ingrediente. A lista
-        // de compras precisa voltar ao peso bruto uma única vez, exatamente
-        // como já ocorre nas linhas diretas da receita.
-        const quantidadeBruta = qb || !ingrediente
-          ? 0
-          : quantidadeBrutaPorRendimento(quantidade, ingrediente);
-        add(item.ingrediente_id, quantidadeBruta, nomePrato, unidadeItemPreparacao(item), qb);
+        // Os itens da receita-base são insumos de entrada (inclusive arroz
+        // cru). O rendimento final do preparo já contempla a transformação;
+        // inverter o fator aqui aplicaria perda/ganho uma segunda vez.
+        add(item.ingrediente_id, quantidade, nomePrato, unidadeItemPreparacao(item), qb);
       });
     };
 
