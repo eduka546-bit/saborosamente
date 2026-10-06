@@ -1,3 +1,4 @@
+import { linhasCustoReceita, custoLinhaReceita, custoComMargemReceita } from "@/lib/cozinha-custos";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -69,7 +70,7 @@ function CustosMargensPage() {
           .select("id,nome,tipo_produto,preco,preco_300g,preco_400g,ativo")
           .in("tipo_produto", ["marmita", "sopa", "complemento"])
           .order("nome"),
-        supabase.from("cozinha_receitas").select("id,produto_id,preparacoes"),
+        supabase.from("cozinha_receitas").select("id,produto_id,preparacoes,margem_custo_percentual"),
         supabase
           .from("cozinha_receita_itens")
           .select("receita_id,ingrediente_id,preparacao_id,gramas_personalizada,gramas_200,gramas_300,gramas_400,operacao_producao,fator_producao"),
@@ -174,53 +175,11 @@ function CustosMargensPage() {
         return base;
       };
 
-      const custoIngredientesProduto = (produto: any, tam: string) => {
-        const receita: any = recByProduct.get(produto.id);
-        if (!receita) return 0;
-        const linhas = itensByRec.get(receita.id) || [];
-        const montagemReceita = montagemByRec.get(receita.id) || [];
-        const campoMontagem = tam === "150" ? "gramas_150" : `gramas_${tam}`;
-        const prepsVinculadas = (Array.isArray(receita.preparacoes) ? receita.preparacoes : [])
-          .map((ref: any) => prepMap.get(ref?.id))
-          .filter(Boolean) as any[];
-        const estruturadas = prepsVinculadas.filter((p: any) => {
-          const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p.nome));
-          return componente && n(p.rendimento_final_g) > 0 && (prepItensByPrep.get(p.id) || []).some((x: any) => n(x.quantidade) > 0);
-        });
-        const idsCobertos = new Set<string>();
-        estruturadas.forEach((p: any) => idsIngredientesPrep(p.id).forEach((id) => idsCobertos.add(id)));
-
-        let custo = 0;
-        estruturadas.forEach((p: any) => {
-          const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p.nome));
-          custo += n(componente?.[campoMontagem]) * custoPrepG(p.id);
-        });
-
-        linhas.forEach((linha: any) => {
-          if (linha.ingrediente_id) {
-            if (idsCobertos.has(linha.ingrediente_id)) return;
-            const ingrediente: any = ingMap.get(linha.ingrediente_id);
-            if (!ingrediente) return;
-            const componente = montagemReceita.find(
-              (m: any) =>
-                nomesCozinhaCorrespondem(m.nome, ingrediente.nome) &&
-                !prepsVinculadas.some((p: any) => nomesCozinhaCorrespondem(p.nome, m.nome)),
-            );
-            const liquido = componente
-              ? n(componente[campoMontagem])
-              : quantidadeLinha(linha, tam);
-            const bruto = quantidadeBrutaPorRendimento(liquido, ingrediente);
-            custo += bruto * custoIng(linha.ingrediente_id);
-            return;
-          }
-          if (linha.preparacao_id && !estruturadas.some((p: any) => p.id === linha.preparacao_id)) {
-            const p: any = prepMap.get(linha.preparacao_id);
-            const componente = montagemReceita.find((m: any) => nomesCozinhaCorrespondem(m.nome, p?.nome));
-            const qtd = componente ? n(componente[campoMontagem]) : quantidadeLinha(linha, tam);
-            custo += qtd * custoPrepG(linha.preparacao_id);
-          }
-        });
-        return custo;
+      const custoIngredientesProduto = (produto:any,tam:string) => {
+        const receita=recByProduct.get(produto.id);
+        if(!receita) return 0;
+        const linhas=linhasCustoReceita(receita,itensByRec.get(receita.id)||[],montagemByRec.get(receita.id)||[],[...prepMap.values()],prepItensByPrep,[...ingMap.values()]);
+        return linhas.reduce((total,linha)=>total+custoLinhaReceita(linha,Number(tam),prepMap,prepItensByPrep,ingMap),0);
       };
 
       const produtosCalculados = (prod.data ?? []).map((p: any) => {
@@ -235,7 +194,7 @@ function CustosMargensPage() {
           tamanhos: tamanhos.map((tam) => {
             const custoIngredientes = custoIngredientesProduto(p, tam);
             const custoEmbalagem = embalagem(p.tipo_produto, tam);
-            const custo = custoIngredientes + custoEmbalagem.total;
+            const custo = custoComMargemReceita(custoIngredientes + custoEmbalagem.total, recByProduct.get(p.id)?.margem_custo_percentual ?? 10).total;
             const preco =
               p.tipo_produto === "complemento" || tam === "200"
                 ? n(p.preco)

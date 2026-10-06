@@ -1,0 +1,5 @@
+begin;select set_config('request.jwt.claims','{"role":"service_role"}',true);
+insert into cozinha_preparacao_itens(preparacao_id,ingrediente_id,quantidade,quantidade_texto,ordem)
+select p.id,i.id,v.q,v.texto,v.ordem from cozinha_preparacoes p cross join (values ('Cebola',233.333::numeric,'233,333 g — proporcional à ficha TD05 (7 g por porção, lote com 1 kg de bacon)',9),('Sal',66.667::numeric,'66,667 g — proporcional à ficha TD05 (2 g por porção)',10),('Salsinha',33.333::numeric,'33,333 g — proporcional à ficha TD05 (1 g por porção)',11)) v(nome,q,texto,ordem) join cozinha_ingredientes i on i.nome=v.nome where p.nome='Carreteiro' and not exists(select 1 from cozinha_preparacao_itens x where x.preparacao_id=p.id and x.ingrediente_id=i.id);
+update cozinha_preparacoes set rendimento_final_g=13106.333,observacao=observacao || ' Cebola, sal e salsinha incorporados conforme gramaturas da ficha TD05. Carne desfiada usa a perda cadastrada de 30% no rendimento.' where nome='Carreteiro';
+commit;

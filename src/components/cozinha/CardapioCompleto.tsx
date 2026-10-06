@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizarPrecosMarmita } from "@/lib/combo-rules";
 import { fatorLoteMassaPanqueca, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
-import { calcularCustoPreparacao, custoComMargemReceita, custoUnitarioIngrediente } from "@/lib/cozinha-custos";
+import { calcularCustoPreparacao, linhasCustoReceita, custoLinhaReceita, custoComMargemReceita, custoUnitarioIngrediente, MARGEM_SEGURANCA_RECEITA } from "@/lib/cozinha-custos";
 
 type Props = {
   produtos: any[];
@@ -114,6 +114,17 @@ export function CardapioCompleto({
   onOpenRecipe,
 }: Props) {
   const qc = useQueryClient();
+  const [margensEditadas, setMargensEditadas] = useState<Record<string,string>>({});
+  const margemProduto = (produto:any) => Number(margensEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA);
+  const salvarMargem = async (produto:any) => {
+    const receita = receitaPorProduto.get(produto.id);
+    if (!receita) return toast.error("Cadastre a ficha técnica antes de salvar a margem.");
+    const draft = margensEditadas[produto.id];
+    const {error} = await supabase.from("cozinha_receitas").update({margem_custo_percentual: Math.max(0,margemProduto(produto)),updated_at:new Date().toISOString()}).eq("id",receita.id);
+    if (error) return toast.error(error.message);
+    await Promise.all([qc.invalidateQueries({queryKey:["coz-rec"]}),qc.invalidateQueries({queryKey:["admin-financeiro-operacional"]})]);
+    setMargensEditadas((a)=>{if(a[produto.id]!==draft)return a;const novo={...a};delete novo[produto.id];return novo;});
+  };
   const [busca, setBusca] = useState("");
   const [filtroSubgrupo, setFiltroSubgrupo] = useState("Todos");
   const [filtroProteina, setFiltroProteina] = useState("Todas");
@@ -370,60 +381,11 @@ export function CardapioCompleto({
   const custoProduto = (produto: any, tamanho: TamanhoCardapio) => {
     if (!tamanhosProduto(produto).includes(tamanho)) return 0;
     const receita = receitaPorProduto.get(produto.id);
-    if (!receita) return custoComMargemReceita(n(produto.preco_custo)).total;
-    const linhasReceita = itensReceita.get(receita.id) || [];
-    const montagem = itensMontagem.get(receita.id) || [];
-    const campo = "gramas_" + tamanho;
-    const prepsVinculadas = (Array.isArray(receita.preparacoes) ? receita.preparacoes : [])
-      .map((ref: any) => preparacaoPorId.get(ref?.id))
-      .filter(Boolean);
-    const estruturadas = prepsVinculadas.filter((prep: any) => {
-      const itemMontagem = montagem.find((m: any) => nomesCozinhaCorrespondem(m.nome, prep.nome));
-      const itens = itensPreparacao.get(prep.id) || [];
-      return itemMontagem && n(prep.rendimento_final_g) > 0 && itens.some((x: any) => n(x.quantidade) > 0);
-    });
-    const idsCobertos = new Set<string>();
-    estruturadas.forEach((prep: any) => {
-      idsIngredientesPreparacao(prep.id).forEach((id) => idsCobertos.add(id));
-    });
+    if (!receita) return custoComMargemReceita(n(produto.preco_custo), margemProduto(produto)).total;
+    const linhas = linhasCustoReceita(receita,itensReceita.get(receita.id)||[],itensMontagem.get(receita.id)||[],preparacoes,itensPreparacao,ingredientes);
+    const custo = linhas.reduce((total,linha)=>total+custoLinhaReceita(linha,tamanho,preparacaoPorId,itensPreparacao,ingredientePorId),0);
 
-    let custo = 0;
-
-    estruturadas.forEach((prep: any) => {
-      const componente = montagem.find((m: any) => nomesCozinhaCorrespondem(m.nome, prep.nome));
-      const pesoCalculo = String(prep.nome).toLowerCase().includes("massa panqueca")
-        ? n(prep.rendimento_final_g) * fatorLoteMassaPanqueca({ [tamanho]: 1 })
-        : n(componente?.[campo]);
-      custo += pesoCalculo * custoPreparacaoPorGrama(prep);
-    });
-
-    linhasReceita.forEach((linha: any) => {
-      if (linha.ingrediente_id) {
-        if (idsCobertos.has(linha.ingrediente_id)) return;
-        const ing = ingredientePorId.get(linha.ingrediente_id);
-        if (!ing) return;
-        const componente = montagem.find(
-          (m: any) =>
-            nomesCozinhaCorrespondem(m.nome, ing.nome) &&
-            !prepsVinculadas.some((prep: any) => nomesCozinhaCorrespondem(prep.nome, m.nome)),
-        );
-        const liquido = componente
-          ? n(componente[campo])
-          : quantidadeCorreta(n(linha[campo]), linha);
-        const bruto = quantidadeBrutaPorRendimento(liquido, ing);
-        custo += bruto * custoIngrediente(ing);
-        return;
-      }
-      if (linha.preparacao_id && !estruturadas.some((prep: any) => prep.id === linha.preparacao_id)) {
-        const prep = preparacaoPorId.get(linha.preparacao_id);
-        const pesoCalculo = String(prep?.nome).toLowerCase().includes("massa panqueca")
-          ? n(prep?.rendimento_final_g) * fatorLoteMassaPanqueca({ [tamanho]: 1 })
-          : quantidadeCorreta(n(linha[campo]), linha);
-        custo += pesoCalculo * custoPreparacaoPorGrama(prep);
-      }
-    });
-
-    return custoComMargemReceita(custo + custoEmbalagem(produto, tamanho)).total;
+    return custoComMargemReceita(custo + custoEmbalagem(produto, tamanho), margemProduto(produto)).total;
   };
 
   const precoProduto = (produto: any, tamanho: TamanhoCardapio, faixa: FaixaPreco) => {
@@ -829,7 +791,7 @@ export function CardapioCompleto({
               )}
               {!ocultos.custos && (
                 <>
-                  <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Custo + margem de segurança 10%</th>
+                  <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Custo final com margem</th>
                   <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Lucro</th>
                 </>
               )}
@@ -864,7 +826,7 @@ export function CardapioCompleto({
                     />
                   </td>
                   <td style={fixed(192)} className="border-b border-r bg-inherit px-2 py-2 font-black text-[#087443]">{codigoProduto(produto)}</td>
-                  <td style={fixed(272)} className="border-b border-r bg-inherit px-3 py-2 font-bold">{nomeProduto(produto)}</td>
+                  <td style={fixed(272)} className="border-b border-r bg-inherit px-3 py-2 font-bold">{nomeProduto(produto)}<label className="mt-1 flex items-center gap-1 text-[11px] font-normal">Margem<input aria-label={"Margem de custo de "+nomeProduto(produto)} className="w-14 rounded border border-[#cbd8ce] bg-white p-1" type="number" min="0" step="0.1" value={margensEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA} onChange={(e)=>setMargensEditadas((a)=>({...a,[produto.id]:e.target.value}))} onBlur={()=>salvarMargem(produto)}/>%</label></td>
                   <td className="border-b border-r px-2 py-2 text-center font-semibold">{tamanhosAtivos.map((x) => x + "g").join(" · ")}</td>
                   <td className="border-b border-r px-2 py-2 text-center">
                     <button type="button" onClick={() => setFotoProduto(produto)} className="inline-flex items-center gap-1 rounded-lg border border-[#b9d4c2] px-2 py-1 font-bold text-[#087443]">

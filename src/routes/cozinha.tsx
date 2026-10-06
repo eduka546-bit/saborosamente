@@ -3,7 +3,7 @@ import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, f
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { calcularCustoPreparacao, custoComMargemReceita, custoUnitarioIngrediente, MARGEM_SEGURANCA_RECEITA } from "@/lib/cozinha-custos";
+import { calcularCustoPreparacao, linhasCustoReceita, custoLinhaReceita, custoComMargemReceita, custoUnitarioIngrediente, MARGEM_SEGURANCA_RECEITA } from "@/lib/cozinha-custos";
 import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProducaoSinergia";
 import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
 import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
@@ -1228,7 +1228,7 @@ function CozinhaPage() {
             return resultado;
           }}
           fechar={() => setModal(null)}
-          salvar={async (linhas: any[], montagem: MontagemLinha[]) => {
+          salvar={async (linhas: any[], montagem: MontagemLinha[], margemPercentual: number) => {
             const { data: { user } } = await supabase.auth.getUser();
             const preparacoesExistentes = Array.isArray(rec.get(edit?.id)?.preparacoes) ? rec.get(edit?.id)?.preparacoes : [];
             const preparacoesFicha = Array.from(
@@ -1247,8 +1247,9 @@ function CozinhaPage() {
                 ].filter(([id]) => id),
               ).values(),
             );
-            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, ingredientes: [], modo_preparo: null, preparacoes: preparacoesFicha, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
+            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, margem_custo_percentual: Math.max(0,margemPercentual), ingredientes: [], modo_preparo: null, preparacoes: preparacoesFicha, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
             if (error || !data) return toast.error(error?.message || "Erro ao salvar.");
+            await qc.invalidateQueries({queryKey:["admin-financeiro-operacional"]});
             const { error: apagarIngredientes } = await supabase.from("cozinha_receita_itens").delete().eq("receita_id", data.id);
             if (apagarIngredientes) return toast.error(apagarIngredientes.message);
             const validas = linhas.filter((x) => x.ingrediente_id || x.preparacao_id);
@@ -2571,6 +2572,7 @@ function PreparacaoModal({ item, ingredientes, preparacoes = [], linhasIniciais,
 }
 function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingredientes, preparacoes = [], embalagens = [], itensPreparacao, custoIng, custoPrep, salvarIngredienteFicha, fechar, salvar }: any) {
   const qc = useQueryClient();
+  const [margemPercentual, setMargemPercentual] = useState(String(receita?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA));
   const [abaFicha, setAbaFicha] = useState<"ingredientes" | "montagem" | "preparacoes" | "custos">("ingredientes");
   const [custosInsumosEditados, setCustosInsumosEditados] = useState<Record<string,string>>({});
   const [salvandoInsumo, setSalvandoInsumo] = useState<string | null>(null);
@@ -2627,78 +2629,10 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
     if (item?.tipo_rendimento === "ganho") return g / Math.max(0.000001, n(item.fator_rendimento || 1));
     return g;
   };
-  const idsIngredientesPrepLocal = (prepId:string, visitados=new Set<string>()):Set<string> => {
-    if(!prepId || visitados.has(prepId)) return new Set();
-    const proximos=new Set(visitados);proximos.add(prepId);
-    const ids=new Set<string>();
-    (itensPreparacao.get(prepId)||[]).forEach((item:any)=>{
-      if(item.ingrediente_id) ids.add(item.ingrediente_id);
-      if(item.preparacao_componente_id) idsIngredientesPrepLocal(item.preparacao_componente_id,proximos).forEach((id)=>ids.add(id));
-    });
-    return ids;
-  };
-  const idsPrepCusto = Array.from(new Set([
-    ...(Array.isArray(receita?.preparacoes)?receita.preparacoes.map((p:any)=>p?.id).filter(Boolean):[]),
-    ...linhas.map((x)=>x.preparacao_id).filter(Boolean),
-  ]));
-  const prepsCusto = idsPrepCusto.map((id)=>preparacoes.find((p:any)=>p.id===id)).filter(Boolean);
-  const prepsMontagem = prepsCusto.filter((p:any)=>
-    montagem.some((m:any)=>nomesCozinhaCorrespondem(m.nome,p.nome)) &&
-    n(p.rendimento_final_g)>0 &&
-    (itensPreparacao.get(p.id)||[]).some((item:any)=>n(item.quantidade)>0)
-  );
-  const idsCobertosMontagem = new Set<string>();
-  prepsMontagem.forEach((p:any)=>idsIngredientesPrepLocal(p.id).forEach((id)=>idsCobertosMontagem.add(id)));
-  const linhaVirtualMontagem=(m:any,prepId:string|null,ingredienteId:string|null):ReceitaLinha=>({
-    ...receitaVazia(),
-    preparacao_id:prepId,
-    ingrediente_id:ingredienteId,
-    gramas_personalizada:n(m.gramas_150),
-    gramas_200:n(m.gramas_200),
-    gramas_300:n(m.gramas_300),
-    gramas_400:n(m.gramas_400),
-    observacao:m.observacao||"",
-  });
-  const linhasCustoMontagem:ReceitaLinha[] = [];
-  const refsCobertas = new Set<string>();
-  montagem.forEach((m:any)=>{
-    const prep=prepsMontagem.find((p:any)=>nomesCozinhaCorrespondem(m.nome,p.nome));
-    if(prep){
-      linhasCustoMontagem.push(linhaVirtualMontagem(m,prep.id,null));
-      refsCobertas.add("p:"+prep.id);
-      return;
-    }
-    const ingrediente=ingredientes.find((i:any)=>
-      !idsCobertosMontagem.has(i.id) &&
-      nomesCozinhaCorrespondem(m.nome,i.nome) &&
-      !prepsCusto.some((p:any)=>nomesCozinhaCorrespondem(m.nome,p.nome))
-    );
-    if(ingrediente){
-      linhasCustoMontagem.push(linhaVirtualMontagem(m,null,ingrediente.id));
-      refsCobertas.add("i:"+ingrediente.id);
-    }
-  });
-  linhas.forEach((linha)=>{
-    if(linha.ingrediente_id && idsCobertosMontagem.has(linha.ingrediente_id)) return;
-    const chave=linha.preparacao_id?"p:"+linha.preparacao_id:linha.ingrediente_id?"i:"+linha.ingrediente_id:"";
-    if(chave && refsCobertas.has(chave)) return;
-    linhasCustoMontagem.push(linha);
-  });
-  const custoLinha = (x:ReceitaLinha,t:Tamanho) => {
-    const base = n(x[campoGramasReceita(t) as keyof ReceitaLinha]);
-    const fator = n(x.fator_producao || 1);
-    const quantidade = x.operacao_producao === "acrescentar" ? base * (1 + fator)
-      : x.operacao_producao === "dividir" ? base / Math.max(0.000001, fator) : base;
-    if (x.preparacao_id) {
-      const preparo = preparacoes.find((p:any)=>p.id===x.preparacao_id);
-      const pesoCalculo = normalizarNomeIngrediente(preparo?.nome).includes("massa panqueca")
-        ? n(preparo?.rendimento_final_g) * fatorLoteMassaPanqueca({ [t]: 1 })
-        : quantidade;
-      return pesoCalculo * n(custoPrep(x.preparacao_id));
-    }
-    const ingrediente = ingredientes.find((a:any)=>a.id===x.ingrediente_id);
-    return qCorreta(quantidade,ingrediente)*custoIng(ingrediente);
-  };
+  const preparacoesCustoPorId = new Map<string,any>(preparacoes.map((p:any)=>[p.id,p]));
+  const ingredientesCustoPorId = new Map<string,any>(ingredientes.map((i:any)=>[i.id,i]));
+  const linhasCustoMontagem:ReceitaLinha[] = linhasCustoReceita(receita,linhas,montagem,preparacoes,itensPreparacao,ingredientes);
+  const custoLinha = (x:ReceitaLinha,t:Tamanho) => custoLinhaReceita(x,t,preparacoesCustoPorId,itensPreparacao,ingredientesCustoPorId);
   const custoIngredientes=(t:Tamanho)=>linhasCustoMontagem.reduce((a,x)=>a+custoLinha(x,t),0);
   const etiquetaCusto = embalagens.find((x:any)=>x.categoria === "etiqueta" && x.ativo !== false);
   const embalagemDoTamanho=(t:Tamanho)=>{
@@ -2714,10 +2648,8 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const custoSomenteEtiqueta=()=>n(etiquetaCusto?.custo_unitario);
   const custoEmbalagem=(t:Tamanho)=>custoSomenteEmbalagem(t)+custoSomenteEtiqueta();
   const custoBase=(t:Tamanho)=>custoIngredientes(t)+custoEmbalagem(t);
-  const margemCusto=(t:Tamanho)=>custoComMargemReceita(custoBase(t)).margem;
-  const custo=(t:Tamanho)=>custoComMargemReceita(custoBase(t)).total;
-  const preparacoesCustoPorId = new Map(preparacoes.map((p:any)=>[p.id,p]));
-  const ingredientesCustoPorId = new Map(ingredientes.map((i:any)=>[i.id,i]));
+  const margemCusto=(t:Tamanho)=>custoComMargemReceita(custoBase(t), n(margemPercentual)).margem;
+  const custo=(t:Tamanho)=>custoComMargemReceita(custoBase(t), n(margemPercentual)).total;
   const pendenciasCusto = [...new Set(linhasCustoMontagem.flatMap((linha) => {
     if (!tamanhosFicha.some((t)=>n(linha[campoGramasReceita(t) as keyof ReceitaLinha])>0)) return [];
     if (linha.preparacao_id) return calcularCustoPreparacao(linha.preparacao_id,
@@ -2865,8 +2797,8 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
       </div>
       <div className="mb-5 rounded-2xl bg-[#edf5e6] p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Resumo de custos</p>
-        <label className="mt-3 flex items-center gap-3 text-sm font-bold text-[#355445]">Margem de segurança da receita<input aria-label="Margem de segurança da receita (%)" readOnly value={MARGEM_SEGURANCA_RECEITA} className="w-16 rounded-lg border border-[#cbd8ce] bg-white p-2 text-center" />%</label>
-        <p className="mt-1 text-xs text-[#62766b]">Aplicada uma vez sobre ingredientes, embalagem e etiqueta. O custo das preparações usa os insumos da base divididos pelo rendimento pronto.</p>
+        <label className="mt-3 flex items-center gap-3 text-sm font-bold text-[#355445]">Margem de segurança da receita<input aria-label="Margem de segurança da receita (%)" type="number" min="0" step="0.1" value={margemPercentual} onChange={(e)=>setMargemPercentual(e.target.value)} className="w-16 rounded-lg border border-[#cbd8ce] bg-white p-2 text-center" />%</label>
+        <p className="mt-1 text-xs text-[#62766b]">Padrão de 10%, editável. Salve a ficha para manter a margem nos totais e no Cardápio Completo. Aplicada uma vez sobre ingredientes, embalagem e etiqueta. O custo das preparações usa os insumos da base divididos pelo rendimento pronto.</p>
         {pendenciasCusto.length>0&&<div role="status" className="mt-3 rounded-lg border border-[#cbd8ce] bg-white p-3 text-sm text-[#355445]"><b>Custo parcial — completar cadastro:</b><ul className="mt-1 list-inside list-disc">{pendenciasCusto.map((p)=><li key={p}>{p}</li>)}</ul></div>}
         <div className="mt-3 grid gap-2 sm:grid-cols-3">{tamanhosFicha.map(t=><div key={t.id} className="rounded-xl bg-white p-3">
           <p className="text-xs font-bold text-[#62766b]">{t.label}</p>
@@ -2877,14 +2809,14 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
             <p className="flex justify-between gap-3"><span>Embalagem</span><b>{embalagemDoTamanho(t.id)?valor(custoSomenteEmbalagem(t.id)):"—"}</b></p>
             <p className="flex justify-between gap-3"><span>Etiqueta</span><b>{etiquetaCusto?valor(custoSomenteEtiqueta()):"—"}</b></p>
             <p className="flex justify-between gap-3"><span>Subtotal</span><b>{valor(custoBase(t.id))}</b></p>
-            <p className="flex justify-between gap-3"><span>Margem de segurança (10%)</span><b>{valor(margemCusto(t.id))}</b></p>
+            <p className="flex justify-between gap-3"><span>Margem de segurança ({margemPercentual || 0}%)</span><b>{valor(margemCusto(t.id))}</b></p>
             <p className="flex justify-between gap-3 border-t border-[#dbe7dd] pt-1 font-black text-[#355445]"><span>Total</span><span>{valor(custo(t.id))}</span></p>
           </div>
         </div>)}</div>
       </div>
       {!linhasCustoMontagem.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhasCustoMontagem} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} tamanhos={tamanhosFicha}/>}
     </section>}
-    <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem)}>Salvar ficha técnica</Botao></div>
+    <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem,n(margemPercentual))}>Salvar ficha técnica</Botao></div>
     {ingredienteEditorAberto && <IngredienteModal
       item={ingredienteEdicao}
       nomeInicial={nomeNovoIngrediente}
