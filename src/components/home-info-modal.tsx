@@ -129,15 +129,22 @@ function BrazilDeliveryMap({
   selectedCity: string;
   onSelect: (city: string) => void;
 }) {
+  const selected =
+    deliveryCities.find((city) => city.name === selectedCity) ?? deliveryCities[0];
+  const selectedPoint = projectCity(selected.lon, selected.lat);
+  const originX = (selectedPoint.x / MAP_BOUNDS.width) * 100;
+  const originY = (selectedPoint.y / MAP_BOUNDS.height) * 100;
+
   return (
     <div className="overflow-hidden rounded-[1.65rem] border border-[#dfe7d6] bg-[#f4f7ed] p-3 sm:p-4">
       <div className="grid items-center gap-4 lg:grid-cols-[0.72fr_1.28fr]">
         <div className="relative hidden min-h-[310px] lg:block">
           <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-[2rem] bg-[#eaf2e2]" />
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Brazilian_States.PNG"
               alt="Mapa do Brasil por estados"
-              className="w-[245px] opacity-45 grayscale"
+              className="relative z-10 w-[245px] opacity-70 sepia saturate-[1.35] hue-rotate-[55deg] brightness-[0.92]"
             />
             <div className="absolute bottom-[52px] right-[35px] size-10 rounded-full bg-[#075636]/15 ring-2 ring-[#075636]/30" />
             <div className="absolute bottom-[61px] right-[44px] size-5 rounded-full bg-[#075636] shadow-md ring-4 ring-white/90" />
@@ -156,12 +163,19 @@ function BrazilDeliveryMap({
         </div>
 
         <div className="relative mx-auto aspect-[1.15/1] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-[#cbdcc2] bg-gradient-to-br from-[#eaf2e2] to-[#dbe9d1] lg:rounded-full">
-          <svg
-            viewBox="0 0 560 380"
-            className="h-full w-full"
-            role="img"
-            aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas nas posições geográficas da sede municipal"
+          <div
+            className="absolute inset-0 transition-transform duration-500 ease-out will-change-transform"
+            style={{
+              transform: "scale(1.13)",
+              transformOrigin: `${originX}% ${originY}%`,
+            }}
           >
+            <svg
+              viewBox="0 0 560 380"
+              className="h-full w-full"
+              role="img"
+              aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas nas posições geográficas da sede municipal"
+            >
             <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="2.2" />
             <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="2.2" />
 
@@ -203,6 +217,30 @@ function BrazilDeliveryMap({
                     strokeDasharray={active ? "0" : "3 3"}
                   />
 
+                  {active && (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r="11"
+                      fill="none"
+                      stroke="#f6d83d"
+                      strokeWidth="3"
+                      opacity="0.8"
+                    >
+                      <animate
+                        attributeName="r"
+                        values="10;20;10"
+                        dur="0.75s"
+                        repeatCount="1"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0.85;0;0.85"
+                        dur="0.75s"
+                        repeatCount="1"
+                      />
+                    </circle>
+                  )}
                   <circle
                     cx={p.x}
                     cy={p.y}
@@ -253,10 +291,11 @@ function BrazilDeliveryMap({
                 </g>
               );
             })()}
-          </svg>
+            </svg>
+          </div>
 
-          <div className="absolute right-3 top-3 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
-            POSIÇÕES REAIS
+          <div className="absolute right-3 top-3 z-30 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
+            LOCALIZAÇÃO REAL
           </div>
         </div>
       </div>
