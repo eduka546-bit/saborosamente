@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellRing } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const STORAGE_KEY = "saborosamente:whatsapp-alerts";
+const SETTINGS_QUERY_KEY = ["admin-whatsapp-alerts-setting"] as const;
+const SETTINGS_EVENT = "saborosamente:whatsapp-alerts-changed";
 
 type Conversa = {
   id: string;
@@ -42,17 +43,61 @@ function tocarAlerta(contexto: AudioContext | null) {
 }
 
 export function AdminWhatsappAlerts() {
-  const [ativo, setAtivo] = useState(false);
+  const [ativoNesteNavegador, setAtivoNesteNavegador] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mensagensVistas = useRef(new Map<string, string>());
 
+  const { data: ativoNaLoja = true } = useQuery({
+    queryKey: SETTINGS_QUERY_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("parametros_loja")
+        .maybeSingle();
+      if (error) throw error;
+      const parametros = (data?.parametros_loja as any) ?? {};
+      return parametros.notificacoes_admin?.whatsapp_novas_mensagens !== false;
+    },
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
-    const preferenciaAtiva = localStorage.getItem(STORAGE_KEY) === "true";
-    setAtivo(preferenciaAtiva && Notification.permission === "granted");
+    const sincronizarPreferenciaLocal = () => {
+      if (typeof window === "undefined" || !("Notification" in window)) {
+        setAtivoNesteNavegador(false);
+        return;
+      }
+      setAtivoNesteNavegador(
+        localStorage.getItem(STORAGE_KEY) === "true" && Notification.permission === "granted",
+      );
+    };
+
+    sincronizarPreferenciaLocal();
+    window.addEventListener(SETTINGS_EVENT, sincronizarPreferenciaLocal);
+    window.addEventListener("storage", sincronizarPreferenciaLocal);
+
+    return () => {
+      window.removeEventListener(SETTINGS_EVENT, sincronizarPreferenciaLocal);
+      window.removeEventListener("storage", sincronizarPreferenciaLocal);
+    };
   }, []);
+
+  const ativo = ativoNaLoja && ativoNesteNavegador;
 
   useEffect(() => {
     if (!ativo) return;
+
+    const prepararAudio = async () => {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioContextRef.current ??= new AudioContextClass();
+      if (audioContextRef.current.state !== "running") {
+        await audioContextRef.current.resume().catch(() => undefined);
+      }
+    };
+
+    window.addEventListener("pointerdown", prepararAudio, { once: true });
+    window.addEventListener("keydown", prepararAudio, { once: true });
 
     let inscrito = true;
     const carregarEstadoInicial = async () => {
@@ -95,45 +140,13 @@ export function AdminWhatsappAlerts() {
 
     return () => {
       inscrito = false;
+      window.removeEventListener("pointerdown", prepararAudio);
+      window.removeEventListener("keydown", prepararAudio);
       supabase.removeChannel(channel);
     };
   }, [ativo]);
 
-  const ativar = async () => {
-    if (!("Notification" in window) || !("AudioContext" in window || "webkitAudioContext" in window)) {
-      toast.error("Este navegador não oferece suporte a alertas.");
-      return;
-    }
-    const permissao = await Notification.requestPermission();
-    if (permissao !== "granted") {
-      toast.error("Permita as notificações do navegador para receber os avisos.");
-      return;
-    }
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    audioContextRef.current ??= new AudioContextClass();
-    await audioContextRef.current.resume();
-    tocarAlerta(audioContextRef.current);
-    localStorage.setItem(STORAGE_KEY, "true");
-    setAtivo(true);
-    toast.success("Alertas do WhatsApp ativados.");
-  };
-
-  if (ativo) {
-    return (
-      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-lg">
-        <BellRing size={15} /> Alertas do WhatsApp ativos
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={ativar}
-      className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-[#5850ec] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-[#4740c9]"
-      title="Ativar notificação e som para novas mensagens do WhatsApp"
-    >
-      <Bell size={17} /> Ativar alertas do WhatsApp
-    </button>
-  );
+  // O controle agora fica em Configurações > Parâmetros.
+  // Este componente não exibe mais nenhum botão ou aviso flutuante no admin.
+  return null;
 }
