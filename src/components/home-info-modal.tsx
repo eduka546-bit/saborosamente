@@ -8,6 +8,7 @@ import {
   Store,
   Truck,
 } from "lucide-react";
+import { useCart } from "@/lib/cart";
 import {
   Dialog,
   DialogContent,
@@ -90,6 +91,8 @@ function BrazilDeliveryMap() {
 }
 
 function DeliveryContent() {
+  const { selectedCity, setSelectedCity } = useCart();
+
   return (
     <>
       <DialogHeader className="pr-8">
@@ -107,18 +110,24 @@ function DeliveryContent() {
       <BrazilDeliveryMap />
 
       <div className="flex flex-wrap gap-2">
-        {cities.map((city) => (
-          <span
-            key={city}
-            className={
-              city === "São Bento do Sul"
-                ? "rounded-full bg-[#f6d83d] px-3 py-2 text-xs font-bold text-[#174229]"
-                : "rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-xs font-bold text-[#416150]"
-            }
-          >
-            {city}
-          </span>
-        ))}
+        {cities.map((city) => {
+          const active = selectedCity === city;
+          return (
+            <button
+              key={city}
+              type="button"
+              onClick={() => setSelectedCity(city)}
+              aria-pressed={active}
+              className={
+                active
+                  ? "cursor-pointer rounded-full border border-[#f6d83d] bg-[#f6d83d] px-3 py-2 text-xs font-bold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  : "cursor-pointer rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-xs font-bold text-[#416150] transition hover:-translate-y-0.5 hover:border-[#9fbd91] hover:bg-white hover:shadow-sm"
+              }
+            >
+              {city}
+            </button>
+          );
+        })}
       </div>
 
       <div className="rounded-2xl bg-[#eef5e8] px-4 py-3 text-xs leading-relaxed text-[#476457]">
