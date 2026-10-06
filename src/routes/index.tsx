@@ -701,30 +701,62 @@ function Index() {
         }))}
       />
 
-      <section className="bg-[#fbfaf5] pb-8 pt-6 md:pb-12 md:pt-10">
-        <div className="mx-auto max-w-7xl px-4">
+      <section className="bg-[#fbfaf5] pb-6 pt-4 md:pb-8 md:pt-6">
+        <div className="mx-auto max-w-7xl px-3 md:px-4">
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
-            <div className="grid lg:grid-cols-[1.02fr_.98fr] xl:aspect-[20/7]">
-              <div className="flex flex-col justify-center px-7 py-10 md:px-12 lg:py-10 xl:px-10 xl:py-7">
-                <span className="mb-3 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-xs font-semibold tracking-normal text-primary">
+            <div className="grid lg:min-h-[390px] lg:grid-cols-[1.12fr_.88fr]">
+              <div className="flex flex-col justify-center px-6 py-7 md:px-9 md:py-8 lg:px-10 lg:py-8 xl:px-12">
+                <span className="mb-2.5 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-xs font-semibold tracking-normal text-primary">
                   Sabor e praticidade para sua rotina
                 </span>
-                <h1 className="max-w-xl font-display text-4xl font-bold leading-[1.04] text-[#075636] md:text-5xl xl:text-5xl">
-                  Comida de verdade, pronta em até <span className="font-halimun text-[#91b93a]">7 minutos</span>
+                <h1 className="max-w-2xl font-display text-4xl font-bold leading-[1.02] text-[#075636] md:text-5xl">
+                  <span className="block">Comida de verdade,</span>
+                  <span className="block">
+                    pronta em até <span className="font-halimun font-normal text-[#91b93a]">7 minutos</span>
+                  </span>
                 </h1>
-                <p className="mt-4 max-w-md text-base leading-relaxed text-[#48554d] md:text-lg xl:text-base">
+                <p className="mt-3 max-w-none text-sm leading-6 text-[#48554d] md:text-[15px] lg:whitespace-nowrap">
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <button onClick={() => abrirCardapio()} className="rounded-full bg-[#f6d83d] px-6 py-3 text-sm font-semibold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">Comprar agora</button>
-                  <button onClick={() => setMarmitaModalOpen(true)} className="rounded-full border-2 border-[#075636] px-6 py-3 text-sm font-semibold text-[#075636] transition hover:bg-[#075636] hover:text-white">Montar minha marmita</button>
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => abrirCardapio()}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#f6d83d] px-7 py-3 text-sm font-bold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f8dc4e] hover:shadow-md"
+                  >
+                    Comprar agora
+                  </button>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#315440]">
-                  <span className="inline-flex items-center gap-1.5"><Truck size={16} />Entrega regional</span>
-                  <span className="inline-flex items-center gap-1.5"><ShoppingBag size={16} />Retirada na loja</span>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("areas-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                  >
+                    <Truck size={16} strokeWidth={1.9} />
+                    Áreas de Entrega
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("areas-entrega")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                  >
+                    <ShoppingBag size={16} strokeWidth={1.9} />
+                    Retire em nossa loja
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("descontos")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                  >
+                    <Tag size={16} strokeWidth={1.9} />
+                    Como ganhar desconto
+                  </button>
                 </div>
               </div>
-              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[430px] xl:min-h-0">
+              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[390px]">
                 {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
                   <PromoCarousel banners={promoBanners} fill className="absolute inset-0 max-w-none" />
                 ) : (
@@ -945,7 +977,9 @@ function Index() {
               </p>
             </div>
 
-            <DiscountProgressWidget className="mb-6" />
+            <div id="descontos" className="scroll-mt-32">
+              <DiscountProgressWidget className="mb-6" />
+            </div>
 
             <div className={cn(
               "rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm",
@@ -1361,7 +1395,7 @@ function Index() {
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] bg-[#087149] p-5 text-white shadow-sm md:p-6">
+          <div id="areas-entrega" className="scroll-mt-32 rounded-[1.75rem] bg-[#087149] p-5 text-white shadow-sm md:p-6">
             <div className="flex items-start gap-3">
               <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10">
                 <MapPin size={21} />
