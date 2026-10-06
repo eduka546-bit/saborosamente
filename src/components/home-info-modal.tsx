@@ -38,52 +38,47 @@ const cities = [
 const MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=Rua+Augusto+Wunderwald,+7,+Progresso,+São+Bento+do+Sul,+SC";
 
-function BrazilDeliveryMap() {
+const cityMapPositions: Record<string, { left: string; top: string }> = {
+  "São Bento do Sul": { left: "62.5%", top: "76.8%" },
+  "Rio Negrinho": { left: "61.7%", top: "76.9%" },
+  "Campo Alegre": { left: "63.2%", top: "76.2%" },
+  "Corupá": { left: "63.7%", top: "77.7%" },
+  "Mafra": { left: "60.6%", top: "76.0%" },
+  "Rio Negro": { left: "60.7%", top: "75.3%" },
+  "Piên": { left: "61.8%", top: "75.5%" },
+};
+
+function BrazilDeliveryMap({ selectedCity }: { selectedCity: string }) {
+  const position = cityMapPositions[selectedCity] ?? cityMapPositions["São Bento do Sul"];
+
   return (
     <div className="relative overflow-hidden rounded-[1.6rem] border border-[#dfe7d6] bg-[#f4f7ed] px-4 py-3">
-      <svg
-        viewBox="0 0 260 245"
-        className="mx-auto block h-[205px] w-full max-w-[330px]"
-        role="img"
-        aria-label="Mapa ilustrativo do Brasil com destaque para a região de entrega no Sul"
-      >
-        <defs>
-          <linearGradient id="br-map" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#dfe9d5" />
-            <stop offset="100%" stopColor="#cbdcbe" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M89 17 124 11l19 11 26-3 17 18 24 7 8 20 18 12-9 22 5 20-18 12-2 25-15 17-11 25-17 8-9 23-18-10-12 7-14-17-17-5-7-22-14-9-1-20-16-13 3-23-15-12 6-19-9-19 15-10 5-18 16-2Z"
-          fill="url(#br-map)"
-          stroke="#9fb991"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
+      <div className="relative mx-auto aspect-square w-full max-w-[360px]">
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Brazilian_States.PNG"
+          alt="Mapa do Brasil dividido por estados"
+          className="h-full w-full object-contain opacity-80"
         />
-        <path
-          d="m117 181 15 5 11-3 8 8-4 13-11 8-14-5-9-11Z"
-          fill="#176343"
-          stroke="#0d4d34"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path
-          d="m136 210 10-5 10 4 1 11-8 10-11-3-5-9Z"
-          fill="#075636"
-          stroke="#0d4d34"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <text x="119" y="198" fontSize="8" fontWeight="700" fill="#ffffff">PR</text>
-        <text x="140" y="221" fontSize="8" fontWeight="700" fill="#ffffff">SC</text>
-      </svg>
 
-      <div className="absolute bottom-8 left-[51%] flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-[#f6d83d] px-2.5 py-1.5 text-[10px] font-extrabold text-[#174229] shadow-md">
-        <House size={13} strokeWidth={2.2} />
-        São Bento do Sul
+        <div
+          className="absolute z-20 -translate-x-1/2 -translate-y-full transition-all duration-300"
+          style={{ left: position.left, top: position.top }}
+        >
+          <div className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#f6d83d] px-2.5 py-1.5 text-[10px] font-extrabold text-[#174229] shadow-md ring-2 ring-white">
+            <MapPin size={13} strokeWidth={2.4} />
+            {selectedCity}
+          </div>
+          <div className="mx-auto h-0 w-0 border-x-[5px] border-t-[7px] border-x-transparent border-t-[#f6d83d]" />
+        </div>
+
+        <div
+          className="absolute z-10 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#075636] shadow-sm transition-all duration-300"
+          style={{ left: position.left, top: position.top }}
+          aria-hidden="true"
+        />
       </div>
 
-      <div className="absolute right-3 top-3 rounded-full border border-[#d4dfc9] bg-white/90 px-2.5 py-1 text-[10px] font-bold text-[#527164]">
+      <div className="absolute right-3 top-3 rounded-full border border-[#d4dfc9] bg-white/90 px-2.5 py-1 text-[10px] font-bold text-[#527164] shadow-sm">
         SC + PR
       </div>
     </div>
@@ -107,7 +102,7 @@ function DeliveryContent() {
         </DialogDescription>
       </DialogHeader>
 
-      <BrazilDeliveryMap />
+      <BrazilDeliveryMap selectedCity={selectedCity} />
 
       <div className="flex flex-wrap gap-2">
         {cities.map((city) => {
