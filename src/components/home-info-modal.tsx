@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BadgeDollarSign,
   Clock3,
@@ -124,11 +125,27 @@ function projectCity(lon: number, lat: number) {
 
 function BrazilDeliveryMap({
   selectedCity,
+  zoomed,
   onSelect,
+  onShowRegion,
 }: {
   selectedCity: string;
+  zoomed: boolean;
   onSelect: (city: string) => void;
+  onShowRegion: () => void;
 }) {
+  const selected = deliveryCities.find((city) => city.name === selectedCity);
+  const selectedPoint = selected ? projectCity(selected.lon, selected.lat) : null;
+
+  const zoomWidth = 150;
+  const zoomHeight = 104;
+  const zoomX = selectedPoint
+    ? Math.max(20, Math.min(MAP_BOUNDS.width - zoomWidth - 20, selectedPoint.x - zoomWidth / 2))
+    : 0;
+  const zoomY = selectedPoint
+    ? Math.max(20, Math.min(MAP_BOUNDS.height - zoomHeight - 20, selectedPoint.y - zoomHeight / 2))
+    : 0;
+
   return (
     <div className="overflow-hidden rounded-[1.65rem] border border-[#dfe7d6] bg-[#f4f7ed] p-3 sm:p-4">
       <div className="grid items-center gap-4 lg:grid-cols-[0.72fr_1.28fr]">
@@ -138,7 +155,11 @@ function BrazilDeliveryMap({
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Brazilian_States.PNG"
               alt="Mapa do Brasil por estados"
-              className="relative z-10 w-[245px] opacity-70 sepia saturate-[1.35] hue-rotate-[55deg] brightness-[0.92]"
+              className="relative z-10 w-[245px] opacity-75 mix-blend-multiply"
+              style={{
+                filter:
+                  "sepia(1) saturate(1.9) hue-rotate(72deg) brightness(.72) contrast(.9)",
+              }}
             />
             <div className="absolute bottom-[52px] right-[35px] size-10 rounded-full bg-[#075636]/15 ring-2 ring-[#075636]/30" />
             <div className="absolute bottom-[61px] right-[44px] size-5 rounded-full bg-[#075636] shadow-md ring-4 ring-white/90" />
@@ -146,7 +167,7 @@ function BrazilDeliveryMap({
 
           <div className="absolute bottom-4 left-3 space-y-2 text-[11px] font-semibold text-[#496557]">
             <div className="flex items-center gap-2">
-              <span className="size-3 rounded-full bg-[#dce7d3]" />
+              <span className="size-3 rounded-full bg-[#cbdcc2]" />
               Demais estados
             </div>
             <div className="flex items-center gap-2">
@@ -159,9 +180,9 @@ function BrazilDeliveryMap({
         <div className="relative mx-auto aspect-[1.15/1] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-[#cbdcc2] bg-gradient-to-br from-[#eaf2e2] to-[#dbe9d1] lg:rounded-full">
           <svg
             viewBox="0 0 560 380"
-            className="h-full w-full"
+            className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${zoomed ? "opacity-20" : "opacity-100"}`}
             role="img"
-            aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas nas posições geográficas da sede municipal"
+            aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas"
           >
             <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="2.2" />
             <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="2.2" />
@@ -203,53 +224,6 @@ function BrazilDeliveryMap({
                     strokeWidth={active ? 2 : 1.25}
                     strokeDasharray={active ? "0" : "3 3"}
                   />
-
-                  {active && (
-                    <>
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="26"
-                        fill="#f6d83d"
-                        opacity="0.12"
-                      >
-                        <animate
-                          attributeName="r"
-                          values="18;30;18"
-                          dur="0.9s"
-                          repeatCount="1"
-                        />
-                        <animate
-                          attributeName="opacity"
-                          values="0.20;0.05;0.12"
-                          dur="0.9s"
-                          repeatCount="1"
-                        />
-                      </circle>
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="13"
-                        fill="none"
-                        stroke="#f6d83d"
-                        strokeWidth="3"
-                        opacity="0.9"
-                      >
-                        <animate
-                          attributeName="r"
-                          values="10;18;13"
-                          dur="0.65s"
-                          repeatCount="1"
-                        />
-                        <animate
-                          attributeName="opacity"
-                          values="1;0.15;0.9"
-                          dur="0.65s"
-                          repeatCount="1"
-                        />
-                      </circle>
-                    </>
-                  )}
                   <circle
                     cx={p.x}
                     cy={p.y}
@@ -259,7 +233,6 @@ function BrazilDeliveryMap({
                     strokeWidth={active ? 3 : 2}
                   />
                   <circle cx={p.x} cy={p.y} r={2.2} fill="#075636" />
-
                   <rect
                     x={city.labelX}
                     y={city.labelY}
@@ -302,21 +275,108 @@ function BrazilDeliveryMap({
             })()}
           </svg>
 
-          <div className="absolute right-3 top-3 z-30 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
-            LOCALIZAÇÃO REAL
-          </div>
+          {zoomed && selected && selectedPoint && (
+            <div
+              key={selected.name}
+              className="absolute inset-3 z-20 animate-in overflow-hidden rounded-[1.7rem] border border-white/70 bg-[#e5efdc] shadow-lg fade-in zoom-in-95 duration-500 lg:rounded-full"
+            >
+              <svg
+                viewBox={`${zoomX} ${zoomY} ${zoomWidth} ${zoomHeight}`}
+                className="h-full w-full"
+                role="img"
+                aria-label={`Visão aproximada de ${selected.name}`}
+              >
+                <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="0.9" />
+                <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="0.9" />
+
+                {deliveryCities.map((city) => {
+                  const p = projectCity(city.lon, city.lat);
+                  const active = city.name === selected.name;
+                  return (
+                    <g key={`zoom-${city.name}`}>
+                      {active && (
+                        <circle cx={p.x} cy={p.y} r="9" fill="#f6d83d" opacity="0.2">
+                          <animate attributeName="r" values="6;13;9" dur="0.65s" repeatCount="1" />
+                        </circle>
+                      )}
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={active ? 3.6 : 1.7}
+                        fill="#f6d83d"
+                        stroke="#fffef9"
+                        strokeWidth={active ? 1.6 : 0.7}
+                        opacity={active ? 1 : 0.75}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-4 whitespace-nowrap rounded-full bg-[#f6d83d] px-3 py-1.5 text-[11px] font-extrabold text-[#174229] shadow-md ring-2 ring-white">
+                <MapPin className="mr-1 inline-block" size={13} strokeWidth={2.4} />
+                {selected.name}
+              </div>
+
+              <div className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
+                VISÃO APROXIMADA
+              </div>
+
+              <button
+                type="button"
+                onClick={onShowRegion}
+                className="absolute bottom-3 right-3 rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[10px] font-extrabold text-[#075636] shadow-sm transition hover:bg-white"
+              >
+                Ver região inteira
+              </button>
+            </div>
+          )}
+
+          {!zoomed && (
+            <div className="absolute right-3 top-3 z-30 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
+              SC + PR
+            </div>
+          )}
         </div>
       </div>
 
       <p className="mt-3 text-center text-[10px] font-semibold leading-relaxed text-[#648072]">
-        Os marcadores representam as coordenadas geográficas da sede de cada município.
+        Clique em uma cidade para aproximar a região e conferir a localização.
       </p>
     </div>
   );
 }
 
+function formatDeliveryRate(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value || 0));
+}
+
 function DeliveryContent() {
-  const { selectedCity, setSelectedCity } = useCart();
+  const {
+    selectedCity,
+    setSelectedCity,
+    selectedBairro,
+    setSelectedBairro,
+    taxas,
+  } = useCart();
+  const [mapZoomed, setMapZoomed] = useState(false);
+
+  const cityRates = taxas
+    .filter((item: any) => item.ativo !== false && item.cidade === selectedCity)
+    .sort((a: any, b: any) =>
+      String(a.bairro || "").localeCompare(String(b.bairro || ""), "pt-BR"),
+    );
+
+  const selectCity = (city: string) => {
+    if (city !== selectedCity) {
+      setSelectedBairro("");
+    }
+    setSelectedCity(city);
+    setMapZoomed(true);
+  };
 
   return (
     <>
@@ -332,7 +392,12 @@ function DeliveryContent() {
         </DialogDescription>
       </DialogHeader>
 
-      <BrazilDeliveryMap selectedCity={selectedCity} onSelect={setSelectedCity} />
+      <BrazilDeliveryMap
+        selectedCity={selectedCity}
+        zoomed={mapZoomed}
+        onSelect={selectCity}
+        onShowRegion={() => setMapZoomed(false)}
+      />
 
       <div className="flex flex-wrap gap-2">
         {cities.map((city) => {
@@ -341,7 +406,7 @@ function DeliveryContent() {
             <button
               key={city}
               type="button"
-              onClick={() => setSelectedCity(city)}
+              onClick={() => selectCity(city)}
               aria-pressed={active}
               className={
                 active
@@ -355,8 +420,72 @@ function DeliveryContent() {
         })}
       </div>
 
-      <div className="rounded-2xl bg-[#eef5e8] px-4 py-3 text-xs leading-relaxed text-[#476457]">
-        Você confirma bairro, taxa e disponibilidade no checkout.
+      <div className="rounded-[1.45rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
+        {!selectedCity ? (
+          <div className="flex items-center gap-3 text-sm font-semibold text-[#587064]">
+            <MapPin size={18} className="text-[#075636]" />
+            Escolha uma cidade acima para ver os bairros atendidos e as taxas.
+          </div>
+        ) : (
+          <>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#7a8b82]">
+                  Bairros e taxas
+                </p>
+                <h3 className="mt-0.5 text-base font-extrabold text-[#173a2d]">
+                  {selectedCity}
+                </h3>
+              </div>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#587064] shadow-sm">
+                {cityRates.length} {cityRates.length === 1 ? "bairro" : "bairros"}
+              </span>
+            </div>
+
+            <div className="max-h-52 overflow-y-auto pr-1">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {cityRates.map((item: any) => {
+                  const active = selectedBairro === item.bairro;
+                  return (
+                    <button
+                      key={`${item.cidade}-${item.bairro}`}
+                      type="button"
+                      onClick={() => setSelectedBairro(item.bairro)}
+                      className={
+                        active
+                          ? "flex items-center justify-between gap-3 rounded-xl border border-[#e7c81d] bg-[#fff8c9] px-3 py-2.5 text-left shadow-sm"
+                          : "flex items-center justify-between gap-3 rounded-xl border border-[#dfe8d7] bg-white px-3 py-2.5 text-left transition hover:border-[#a9c39b] hover:shadow-sm"
+                      }
+                    >
+                      <span className="min-w-0 truncate text-xs font-bold text-[#355546]">
+                        {item.bairro}
+                      </span>
+                      <span
+                        className={
+                          active
+                            ? "shrink-0 rounded-full bg-[#f6d83d] px-2 py-1 text-[10px] font-extrabold text-[#174229]"
+                            : "shrink-0 rounded-full bg-[#edf4e7] px-2 py-1 text-[10px] font-extrabold text-[#075636]"
+                        }
+                      >
+                        {formatDeliveryRate(Number(item.taxa || 0))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {cityRates.length === 0 && (
+              <p className="text-xs leading-relaxed text-[#607168]">
+                Nenhum bairro ativo foi encontrado para esta cidade.
+              </p>
+            )}
+
+            <p className="mt-3 text-[10px] leading-relaxed text-[#708077]">
+              Toque no bairro para deixá-lo selecionado. O valor final do frete considera as regras e promoções aplicáveis ao pedido.
+            </p>
+          </>
+        )}
       </div>
     </>
   );
