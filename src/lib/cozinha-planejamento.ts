@@ -1,3 +1,12 @@
+// Volumes escritos no modo de preparo pertencem à receita-base. Na ficha de
+// produção usam o mesmo fator dos ingredientes, sem alterar tempos de cocção.
+export function escalarVolumesModoPreparo(texto: string, fator: number) {
+  const escala = Number.isFinite(fator) ? Math.max(0, fator) : 1;
+  return texto.replace(/\b(\d+(?:[.,]\d+)?)\s*(L|litros?)\b/gi, (_trecho, valor: string) =>
+    `${(Number(valor.replace(",", ".")) * escala).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`,
+  );
+}
+
 export function quantidadeRestante(necessaria: number, disponivelPronto: number) {
   return Math.max(0, Number(necessaria || 0) - Number(disponivelPronto || 0));
 }
