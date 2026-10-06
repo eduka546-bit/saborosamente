@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, Plus, Trash2, Clock } from "lucide-react";
+import { Loader2, Save, Plus, Trash2, Clock, BellRing } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ const DEFAULT_PARAMS = {
   maximo_itens_pedido: "50",
   google_analytics_ativo: false,
   google_analytics_id: "",
+  notificacoes_admin: {
+    whatsapp_novas_mensagens: true,
+  },
 };
 
 function AdminConfigParametrosPage() {
@@ -43,6 +46,13 @@ function AdminConfigParametrosPage() {
   const [novoHorario, setNovoHorario] = useState("");
   const [precos, setPrecos] = useState<TabelaPrecosMarmita>(MARMITA_PRICE_TABLE);
   const [acrescimos, setAcrescimos] = useState({ pronta: 1.0, garfoEFaca: 1.0 });
+  const [notificacaoPermissao, setNotificacaoPermissao] = useState<
+    "default" | "granted" | "denied" | "unsupported"
+  >(() =>
+    typeof window !== "undefined" && "Notification" in window
+      ? Notification.permission
+      : "unsupported",
+  );
 
   const { isLoading } = useQuery({
     queryKey: ["config-parametros"],
@@ -75,6 +85,7 @@ function AdminConfigParametrosPage() {
       queryClient.invalidateQueries({ queryKey: ["config-parametros"] });
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
       queryClient.invalidateQueries({ queryKey: ["site-settings-precos"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-whatsapp-alerts-setting"] });
       toast.success("Parâmetros salvos!");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
@@ -102,6 +113,50 @@ function AdminConfigParametrosPage() {
 
   const removeHorario = (h: string) => {
     setEntrega((prev) => ({ ...prev, horarios: prev.horarios.filter((x) => x !== h) }));
+  };
+
+  const alterarAlertasWhatsApp = async (ativo: boolean) => {
+    if (!ativo) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("saborosamente:whatsapp-alerts", "false");
+        window.dispatchEvent(new Event("saborosamente:whatsapp-alerts-changed"));
+      }
+      setParams((prev: any) => ({
+        ...prev,
+        notificacoes_admin: {
+          ...(prev.notificacoes_admin ?? {}),
+          whatsapp_novas_mensagens: false,
+        },
+      }));
+      return;
+    }
+
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setNotificacaoPermissao("unsupported");
+      toast.error("Este navegador não oferece suporte a notificações.");
+      return;
+    }
+
+    const permissao = await Notification.requestPermission();
+    setNotificacaoPermissao(permissao);
+
+    if (permissao !== "granted") {
+      localStorage.setItem("saborosamente:whatsapp-alerts", "false");
+      window.dispatchEvent(new Event("saborosamente:whatsapp-alerts-changed"));
+      toast.error("Permita as notificações do navegador para ativar os alertas.");
+      return;
+    }
+
+    localStorage.setItem("saborosamente:whatsapp-alerts", "true");
+    window.dispatchEvent(new Event("saborosamente:whatsapp-alerts-changed"));
+    setParams((prev: any) => ({
+      ...prev,
+      notificacoes_admin: {
+        ...(prev.notificacoes_admin ?? {}),
+        whatsapp_novas_mensagens: true,
+      },
+    }));
+    toast.success("Alertas de novas mensagens ativados neste navegador.");
   };
 
   return (
@@ -347,6 +402,49 @@ function AdminConfigParametrosPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Notificações do admin */}
+          <div id="notificacoes" className="bg-white rounded-xl border p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <BellRing size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-800">Notificações do Admin</h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Controle os avisos do painel sem deixar botões ou indicadores flutuantes na tela.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Novas mensagens do WhatsApp</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Mostra a notificação do navegador e toca o alerta quando um cliente enviar uma nova mensagem.
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Permissão neste navegador:{" "}
+                  {notificacaoPermissao === "granted"
+                    ? "permitida"
+                    : notificacaoPermissao === "denied"
+                      ? "bloqueada"
+                      : notificacaoPermissao === "unsupported"
+                        ? "não suportada"
+                        : "ainda não concedida"}
+                </p>
+              </div>
+              <Switch
+                checked={params.notificacoes_admin?.whatsapp_novas_mensagens !== false}
+                onCheckedChange={(v) => void alterarAlertasWhatsApp(v)}
+              />
+            </div>
+
+            <p className="text-xs text-gray-400">
+              A configuração geral é salva nos parâmetros da loja. Cada computador também precisa permitir
+              notificações no navegador ao ativar pela primeira vez.
+            </p>
           </div>
 
           {/* Google Analytics 4 */}
