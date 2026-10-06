@@ -125,11 +125,28 @@ function AdminRelatoriosEstoquePage() {
       const p = prods[0] as any;
       const ehSopa = p.tipo_produto === "sopa" || /^SO/i.test(identificador);
 
+      const ehComplementoOuBebida =
+        p.tipo_produto === "complemento" ||
+        p.tipo_produto === "bebida" ||
+        /^CO/i.test(identificador);
+
       let novo200: number, novo300: number, novo400: number;
       if (modo === "substituir") {
-        novo200 = n200;
-        novo300 = n300 ?? 0;
-        novo400 = n400 ?? 0;
+        if (n300 === null && ehSopa) {
+          // Sopas são vendidas em tamanho único de 400g.
+          novo200 = 0;
+          novo300 = 0;
+          novo400 = n200;
+        } else if (n300 === null && ehComplementoOuBebida) {
+          // Complementos/bebidas usam o campo de estoque unitário (200g/UN).
+          novo200 = n200;
+          novo300 = 0;
+          novo400 = 0;
+        } else {
+          novo200 = n200;
+          novo300 = n300 ?? 0;
+          novo400 = n400 ?? 0;
+        }
       } else {
         if (n300 === null) {
           // Tamanho único
