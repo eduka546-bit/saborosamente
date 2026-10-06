@@ -87,6 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Relatórios",
     icon: BarChart3,
     items: [
+      { label: "Estoque", href: "/admin/relatorios/estoque" },
       { label: "KPI e indicadores", href: "/admin/relatorios/kpi" },
       { label: "Faturamento e evolução", href: "/admin/relatorios/faturamento" },
       { label: "Pedidos e Vendas", href: "/admin/relatorios/vendas" },
