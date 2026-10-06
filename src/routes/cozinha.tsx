@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomeComponenteMontagem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,10 +105,7 @@ const capitalizarNomeCozinha = (v: unknown) => {
   return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : "Componente";
 };
 const nomeCompletoComponente = (nome: unknown, preparacoes: any[] = [], ingredientes: any[] = []) => {
-  const preparacao = preparacoes.find((x: any) => nomesCozinhaCorrespondem(x.nome, nome));
-  if (preparacao) return capitalizarNomeCozinha(preparacao.nome);
-  const ingrediente = ingredientes.find((x: any) => nomesCozinhaCorrespondem(x.nome, nome));
-  return capitalizarNomeCozinha(ingrediente?.nome || nome);
+  return capitalizarNomeCozinha(nomeComponenteMontagem(nome, preparacoes, ingredientes));
 };
 const ehMicroIngrediente = (nome: unknown) => /(^|\b)(sal|salsinha|cebolinha|cheiro verde|tempero|pimenta|oregano|alho em po|paprica|noz moscada)(\b|$)/i.test(normalizarRegraCozinha(nome));
 const formatarQuantidadeProducao = (v: unknown, unidade: "g" | "un" | "L" = "g", nome: unknown = "") => {

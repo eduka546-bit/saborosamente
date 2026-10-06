@@ -48,6 +48,18 @@ export function fatorLoteMassaPanqueca(quantidades: Record<string, number>) {
 
 const termosGenericos = new Set(["molho","branco","branca","preto","preta","arroz","feijao","carne","frango","pronto","pronta","cozido","cozida","grelhado","grelhada"]);
 const normalizarNome = (valor: unknown) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export function nomeComponenteMontagem(nome: unknown, preparacoes: Array<{ nome: string }> = [], ingredientes: Array<{ nome: string }> = []) {
+  const texto = String(nome || "").trim();
+  // Cada sopa pronta já traz seu nome na montagem. Uma palavra compartilhada
+  // como "sopa" ou "creme" não identifica outro cadastro.
+  if (/^(sopa|canja|creme|caldo)\b/i.test(texto)) return texto.replace(/\s*•\s*SO\d{2}$/i, "");
+  const exato = [...preparacoes, ...ingredientes].find((x) => normalizarNome(x.nome) === normalizarNome(texto));
+  if (exato) return exato.nome;
+  return preparacoes.find((x) => nomesCozinhaCorrespondem(x.nome, texto))?.nome
+    || ingredientes.find((x) => nomesCozinhaCorrespondem(x.nome, texto))?.nome
+    || texto;
+}
+
 const raizTermoCozinha = (termo: string) =>
   termo
     .replace(/(adas|ados)$/,"ad")
