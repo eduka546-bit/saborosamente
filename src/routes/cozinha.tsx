@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 50446)
-Total output lines: 2926
-
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { alocarQuantidadePorPesos, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -1742,7 +1739,41 @@ function FichaProducaoDiaModal({ dataProducao, producoes, produtos, receitas, mo
     const preparo = prepPorId.get(prepId) as any;
     const itens = (itensPreparacao.get(prepId) || []) as any[];
     if (!preparo || !itens.length) return;
-    const proximos = …446 tokens truncated…ntidadeRestante(n(x.quantidade), descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0),
+    const proximos = new Set(visitados);
+    proximos.add(prepId);
+    const rendimento = n(preparo.rendimento_final_g) || itens.reduce((s:number,item:any)=>s+n(item.quantidade),0);
+    if (!(rendimento > 0)) return;
+    itens.forEach((item:any) => {
+      if (ehQB(item.quantidade_texto) || !(n(item.quantidade) > 0)) return;
+      const quantidade = n(item.quantidade) * pronto / rendimento;
+      if (item.preparacao_componente_id) {
+        descontarPreparacaoPronta(item.preparacao_componente_id, quantidade, proximos);
+      } else if (item.ingrediente_id) {
+        somarDesconto(item.ingrediente_id, quantidade);
+      }
+    });
+  };
+  preparacoesConsolidadas.forEach((grupo:any) => {
+    const massaPanqueca = necessidadeMassaPanqueca(grupo.prep);
+    if (massaPanqueca) {
+      // O botão desta preparação informa discos prontos, não gramas.
+      const rendimento = n(grupo.prep.rendimento_final_g);
+      descontarPreparacaoPronta(grupo.prep.id, rendimento * massaPanqueca.totalPronto / 30);
+      return;
+    }
+    const jaPronto = grupo.pratos.reduce((s:number,pr:any)=>s+Math.min(pr.total,n(preparoPronto[`${grupo.prep.id}:${pr.produto_id}`])),0);
+    if (!(jaPronto > 0) || !(grupo.total > 0)) return;
+    const proporcaoPronta = Math.min(1, jaPronto / grupo.total);
+    if (grupo.ingredienteBase) {
+      somarDesconto(grupo.ingredienteBase.id, grupo.bruto * proporcaoPronta);
+      return;
+    }
+    descontarPreparacaoPronta(grupo.prep.id, jaPronto);
+  });
+  const ingredientesDiaAjustados = (separar as any[]).map((x:any) => ({
+    ...x,
+    quantidade: x.qb ? x.quantidade : Math.max(0, ingredienteAjustado[`${x.id}:${x.unidade}`] ?? quantidadeRestante(n(x.quantidade), descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0)),
+    quantidadeCalculada: x.qb ? x.quantidade : quantidadeRestante(n(x.quantidade), descontosIngredientes.get(`${x.id}:${x.unidade}`) || 0),
   }));
   const ajustesComBase = ingredientesDiaAjustados.filter((x:any)=>!x.qb&&ingredienteAjustado[`${x.id}:${x.unidade}`]!==undefined&&x.quantidadeCalculada>0);
   const fatorIngredientes = fatorCapacidade(ajustesComBase.map((x:any)=>({disponivel:x.quantidade,necessario:x.quantidadeCalculada})));
