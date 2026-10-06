@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizarPrecosMarmita } from "@/lib/combo-rules";
 import { fatorLoteMassaPanqueca, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
+import { calcularCustoPreparacao, custoComMargemReceita, custoUnitarioIngrediente } from "@/lib/cozinha-custos";
 
 type Props = {
   produtos: any[];
@@ -324,44 +325,27 @@ export function CardapioCompleto({
     ingredientePorId,
   ]);
 
-  const custoIngrediente = (ingrediente: any) =>
-    ingrediente?.unidade_medida === "un" || ingrediente?.unidade_medida === "L"
-      ? n(ingrediente?.custo_por_unidade)
-      : n(ingrediente?.custo_por_kg) / 1000;
-
-  const unidadeItemPreparacao = (item: any): "g" | "un" | "L" => {
-    if (item?.preparacao_componente_id) return "g";
-    const ingrediente = ingredientePorId.get(item?.ingrediente_id);
-    if (ingrediente?.unidade_medida === "L") return "L";
-    if (ingrediente?.unidade_medida === "un") return "un";
-    const texto = String(item?.quantidade_texto || "").trim();
-    if (/\blitro(s)?\b|\bL\b/i.test(texto)) return "L";
-    if (/\bkg\b|\bgr\b|grama|\bg\b|ml/i.test(texto)) return "g";
-    if (texto && /^\s*[\d.,]+/.test(texto)) return "un";
-    return "g";
-  };
+  const custoIngrediente = custoUnitarioIngrediente;
 
   const custoPreparacaoPorGrama = (preparacao: any, visitados = new Set<string>()): number => {
-    if (!preparacao || !(n(preparacao.rendimento_final_g) > 0) || visitados.has(preparacao.id)) return 0;
-    const proximos = new Set(visitados);
-    proximos.add(preparacao.id);
-    const itens = itensPreparacao.get(preparacao.id) || [];
-    const custoTotal = itens.reduce((soma: number, item: any) => {
-      if (!(n(item.quantidade) > 0)) return soma;
-      if (item.preparacao_componente_id) {
-        const filho = preparacaoPorId.get(item.preparacao_componente_id);
-        return soma + n(item.quantidade) * custoPreparacaoPorGrama(filho, proximos);
-      }
-      const ing = ingredientePorId.get(item.ingrediente_id);
-      if (!ing) return soma;
-      const unidade = unidadeItemPreparacao(item);
-      const unitario =
-        unidade === "un" || unidade === "L"
-          ? n(ing.custo_por_unidade)
-          : n(ing.custo_por_kg) / 1000;
-      return soma + n(item.quantidade) * unitario;
-    }, 0);
-    return custoTotal / n(preparacao.rendimento_final_g);
+    return calcularCustoPreparacao(preparacao?.id, preparacaoPorId, itensPreparacao, ingredientePorId, visitados).porGrama;
+  };
+  const pendenciasCustoProduto = (produto: any): string[] => {
+    const receita = receitaPorProduto.get(produto.id);
+    if (!receita) return ["Ficha técnica não cadastrada"];
+    const linhas = itensReceita.get(receita.id) || [];
+    const ids = new Set<string>([
+      ...(Array.isArray(receita.preparacoes) ? receita.preparacoes.map((p:any)=>p.id) : []),
+      ...linhas.map((l:any)=>l.preparacao_id),
+    ].filter(Boolean));
+    const pendenciasIngredientes = linhas.flatMap((linha:any) => {
+      if (!linha.ingrediente_id || !tamanhosProduto(produto).some((t)=>n(linha["gramas_"+t])>0)) return [];
+      const ingrediente = ingredientePorId.get(linha.ingrediente_id);
+      if (!ingrediente) return ["Ingrediente não cadastrado"];
+      return !(custoIngrediente(ingrediente)>0) && !/^água$/i.test(String(ingrediente.nome).trim())
+        ? [`${ingrediente.nome}: preço não cadastrado`] : [];
+    });
+    return [...new Set([...pendenciasIngredientes, ...[...ids].flatMap((id)=>calcularCustoPreparacao(id, preparacaoPorId, itensPreparacao, ingredientePorId).pendencias)])];
   };
 
   const quantidadeCorreta = (gramas: number, linha: any) => {
@@ -386,7 +370,7 @@ export function CardapioCompleto({
   const custoProduto = (produto: any, tamanho: TamanhoCardapio) => {
     if (!tamanhosProduto(produto).includes(tamanho)) return 0;
     const receita = receitaPorProduto.get(produto.id);
-    if (!receita) return n(produto.preco_custo);
+    if (!receita) return custoComMargemReceita(n(produto.preco_custo)).total;
     const linhasReceita = itensReceita.get(receita.id) || [];
     const montagem = itensMontagem.get(receita.id) || [];
     const campo = "gramas_" + tamanho;
@@ -439,7 +423,7 @@ export function CardapioCompleto({
       }
     });
 
-    return custo + custoEmbalagem(produto, tamanho);
+    return custoComMargemReceita(custo + custoEmbalagem(produto, tamanho)).total;
   };
 
   const precoProduto = (produto: any, tamanho: TamanhoCardapio, faixa: FaixaPreco) => {
@@ -845,7 +829,7 @@ export function CardapioCompleto({
               )}
               {!ocultos.custos && (
                 <>
-                  <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Custo</th>
+                  <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Custo + margem de segurança 10%</th>
                   <th colSpan={3} className="sticky top-[33px] z-20 border-b border-r bg-[#28513f] px-2 py-2 text-white">Lucro</th>
                 </>
               )}
@@ -866,6 +850,7 @@ export function CardapioCompleto({
             {linhas.map((produto: any, indice) => {
               const tamanhosAtivos = tamanhosProduto(produto);
               const custos = Object.fromEntries(tamanhos.map((t) => [t, custoProduto(produto, t)]));
+              const pendenciasCusto = pendenciasCustoProduto(produto);
               return (
                 <tr key={produto.id} className="group even:bg-[#fbfcfa] hover:bg-[#f1f7ef]">
                   <td style={fixed(0)} className="border-b border-r bg-inherit px-2 py-2 text-center font-black">{indice + 1}</td>
@@ -944,7 +929,7 @@ export function CardapioCompleto({
                     <>
                       {tamanhos.map((t) => (
                         <td key={"cost-" + t} className="border-b border-r px-2 py-2 text-right font-semibold">
-                          {tamanhosAtivos.includes(t) ? brl(n(custos[t])) : "—"}
+                          {tamanhosAtivos.includes(t) ? <>{brl(n(custos[t]))}{pendenciasCusto.length>0&&<span title={pendenciasCusto.join("; ")} className="block text-[10px] font-normal text-[#62766b]">Custo parcial</span>}</> : "—"}
                         </td>
                       ))}
                       {tamanhos.map((t) => {
