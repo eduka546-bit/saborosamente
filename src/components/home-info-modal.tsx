@@ -129,12 +129,6 @@ function BrazilDeliveryMap({
   selectedCity: string;
   onSelect: (city: string) => void;
 }) {
-  const selected =
-    deliveryCities.find((city) => city.name === selectedCity) ?? deliveryCities[0];
-  const selectedPoint = projectCity(selected.lon, selected.lat);
-  const originX = (selectedPoint.x / MAP_BOUNDS.width) * 100;
-  const originY = (selectedPoint.y / MAP_BOUNDS.height) * 100;
-
   return (
     <div className="overflow-hidden rounded-[1.65rem] border border-[#dfe7d6] bg-[#f4f7ed] p-3 sm:p-4">
       <div className="grid items-center gap-4 lg:grid-cols-[0.72fr_1.28fr]">
@@ -163,19 +157,12 @@ function BrazilDeliveryMap({
         </div>
 
         <div className="relative mx-auto aspect-[1.15/1] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-[#cbdcc2] bg-gradient-to-br from-[#eaf2e2] to-[#dbe9d1] lg:rounded-full">
-          <div
-            className="absolute inset-0 transition-transform duration-500 ease-out will-change-transform"
-            style={{
-              transform: "scale(1.13)",
-              transformOrigin: `${originX}% ${originY}%`,
-            }}
+          <svg
+            viewBox="0 0 560 380"
+            className="h-full w-full"
+            role="img"
+            aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas nas posições geográficas da sede municipal"
           >
-            <svg
-              viewBox="0 0 560 380"
-              className="h-full w-full"
-              role="img"
-              aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas nas posições geográficas da sede municipal"
-            >
             <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="2.2" />
             <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="2.2" />
 
@@ -218,28 +205,50 @@ function BrazilDeliveryMap({
                   />
 
                   {active && (
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r="11"
-                      fill="none"
-                      stroke="#f6d83d"
-                      strokeWidth="3"
-                      opacity="0.8"
-                    >
-                      <animate
-                        attributeName="r"
-                        values="10;20;10"
-                        dur="0.75s"
-                        repeatCount="1"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0.85;0;0.85"
-                        dur="0.75s"
-                        repeatCount="1"
-                      />
-                    </circle>
+                    <>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="26"
+                        fill="#f6d83d"
+                        opacity="0.12"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="18;30;18"
+                          dur="0.9s"
+                          repeatCount="1"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.20;0.05;0.12"
+                          dur="0.9s"
+                          repeatCount="1"
+                        />
+                      </circle>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="13"
+                        fill="none"
+                        stroke="#f6d83d"
+                        strokeWidth="3"
+                        opacity="0.9"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="10;18;13"
+                          dur="0.65s"
+                          repeatCount="1"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="1;0.15;0.9"
+                          dur="0.65s"
+                          repeatCount="1"
+                        />
+                      </circle>
+                    </>
                   )}
                   <circle
                     cx={p.x}
@@ -259,7 +268,7 @@ function BrazilDeliveryMap({
                     rx="12"
                     fill={active ? "#f6d83d" : "#fffef9"}
                     stroke={active ? "#dcbf1f" : "rgba(7,86,54,.12)"}
-                    strokeWidth="1"
+                    strokeWidth={active ? 1.5 : 1}
                   />
                   <text
                     x={city.labelX + city.labelW / 2}
@@ -291,8 +300,7 @@ function BrazilDeliveryMap({
                 </g>
               );
             })()}
-            </svg>
-          </div>
+          </svg>
 
           <div className="absolute right-3 top-3 z-30 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
             LOCALIZAÇÃO REAL
