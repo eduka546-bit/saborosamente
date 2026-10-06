@@ -436,10 +436,37 @@ function conversaComecouNovamente(conversa: any, historico: any[]): boolean {
 }
 
 async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
-  const atualizado = [...mensagens, novaMensagem].slice(-30);
+  const mensagemComTimestamp = {
+    ...novaMensagem,
+    timestamp: novaMensagem?.timestamp ?? new Date().toISOString(),
+  };
+
+  // Sempre parte do estado mais recente salvo. Isso evita que uma resposta
+  // manual ou outra mensagem gravada poucos instantes antes seja sobrescrita
+  // por um histórico antigo mantido em memória pelo webhook.
+  const { data: conversaAtual } = await supabase
+    .from("whatsapp_conversas")
+    .select("mensagens,ultima_msg")
+    .eq("id", id)
+    .maybeSingle();
+
+  const base = Array.isArray(conversaAtual?.mensagens) ? conversaAtual.mensagens : mensagens;
+  const atualizado = [...base, mensagemComTimestamp].slice(-30);
+
+  const timestampNova = new Date(mensagemComTimestamp.timestamp).getTime();
+  const timestampAtual = conversaAtual?.ultima_msg
+    ? new Date(conversaAtual.ultima_msg).getTime()
+    : 0;
+  const ultimaMsg = new Date(
+    Math.max(
+      Number.isFinite(timestampAtual) ? timestampAtual : 0,
+      Number.isFinite(timestampNova) ? timestampNova : Date.now(),
+    ),
+  ).toISOString();
+
   await supabase
     .from("whatsapp_conversas")
-    .update({ mensagens: atualizado, ultima_msg: new Date().toISOString() })
+    .update({ mensagens: atualizado, ultima_msg: ultimaMsg })
     .eq("id", id);
   return atualizado;
 }
