@@ -25,6 +25,7 @@ import {
   WheatOff,
   MilkOff,
   Soup,
+  CreditCard,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
@@ -1590,65 +1591,93 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-t border-[#e8eadf] bg-[#f7f8f1] py-10 md:py-14">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 lg:grid-cols-[1.05fr_.95fr]">
-          <div>
-            <p className="font-sans text-sm font-semibold text-[#78922f]">Simples do início ao fim</p>
-            <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Como funciona</h2>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {[
-                { icon: ShoppingBag, title: "1. Escolha", text: "Monte seu pedido com os sabores e tamanhos que preferir." },
-                { icon: Truck, title: "2. Receba", text: "Escolha entrega na sua região ou retirada na loja." },
-                { icon: Timer, title: "3. Aqueça", text: "Do freezer para a mesa em poucos minutos." },
-              ].map((step) => {
-                const Icon = step.icon;
-                return (
-                  <div key={step.title} className="rounded-2xl border border-[#dce4d4] bg-white p-4 shadow-sm">
-                    <div className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#087443]">
-                      <Icon size={20} />
-                    </div>
-                    <h3 className="mt-3 text-base font-bold text-[#173a2d]">{step.title}</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-[#607168]">{step.text}</p>
-                  </div>
-                );
-              })}
+      <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
+                Simples do início ao fim
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
+                Como funciona
+              </h2>
             </div>
+            <p className="max-w-sm text-xs leading-relaxed text-[#6a7a71] md:text-right">
+              Do seu pedido à sua mesa, sem complicação.
+            </p>
           </div>
 
-          <div id="areas-entrega" className="scroll-mt-32 rounded-[1.75rem] bg-[#087149] p-5 text-white shadow-sm md:p-6">
-            <div className="flex items-start gap-3">
-              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10">
-                <MapPin size={21} />
-              </div>
-              <div>
-                <p className="text-xs font-bold tracking-normal text-white/70">Onde você quer receber?</p>
-                <h2 className="mt-1 text-2xl font-bold">Escolha sua cidade</h2>
-                <p className="mt-1 text-xs leading-relaxed text-white/75">
-                  Você confirma bairro, taxa e disponibilidade no checkout.
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  onClick={() => setSelectedCity(city)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-bold transition",
-                    selectedCity === city
-                      ? "border-[#f6d83d] bg-[#f6d83d] text-[#173a2d]"
-                      : "border-white/20 bg-white/10 text-white hover:bg-white/20",
-                  )}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: ShoppingCart,
+                title: "Escolha seus produtos",
+                text: "Monte seu pedido com os sabores e tamanhos que preferir.",
+                card: "border-[#d9e7bb] bg-[#eef6dc]",
+                bubble: "bg-[#91b93a] text-white",
+                titleColor: "text-[#315b2f]",
+                textColor: "text-[#607157]",
+              },
+              {
+                icon: CreditCard,
+                title: "Finalize a compra",
+                text: "Selecione entrega ou retirada e conclua seu pedido.",
+                card: "border-[#cde2b0] bg-[#dff0c9]",
+                bubble: "bg-[#76b64a] text-white",
+                titleColor: "text-[#2d5d36]",
+                textColor: "text-[#58705a]",
+              },
+              {
+                icon: Truck,
+                title: "Receba ou retire",
+                text: "Entregamos na sua região ou você retira diretamente na loja.",
+                card: "border-[#9fd7a2] bg-[#bfe9b8]",
+                bubble: "bg-[#13955e] text-white",
+                titleColor: "text-[#1d6040]",
+                textColor: "text-[#416c55]",
+              },
+              {
+                icon: Timer,
+                title: "É só aquecer e aproveitar",
+                text: "Pronto em até 7 minutos, com sabor e praticidade para o seu dia.",
+                card: "border-[#076342] bg-[#087149]",
+                bubble: "bg-[#123d30] text-[#f6d83d]",
+                titleColor: "text-white",
+                textColor: "text-white/76",
+              },
+            ].map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className={`group relative min-h-[160px] overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] ${step.card}`}
                 >
-                  {city}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-semibold text-white/85">
-              <ShoppingBag size={16} />
-              Retirada na loja em São Bento do Sul também disponível.
-            </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>
+                      <Icon size={20} strokeWidth={1.9} />
+                    </div>
+                    <span className={`grid size-6 place-items-center rounded-full text-[10px] font-black ${
+                      index === 3 ? "bg-white/10 text-white/80" : "bg-white/70 text-[#45684f]"
+                    }`}>
+                      {index + 1}
+                    </span>
+                  </div>
+
+                  <h3 className={`mt-4 text-[14px] font-extrabold leading-tight ${step.titleColor}`}>
+                    {step.title}
+                  </h3>
+                  <p className={`mt-1.5 text-[10.5px] leading-[1.5] ${step.textColor}`}>
+                    {step.text}
+                  </p>
+
+                  <div
+                    className={`pointer-events-none absolute -bottom-9 -right-7 size-24 rounded-full ${
+                      index === 3 ? "bg-white/5" : "bg-white/28"
+                    }`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
