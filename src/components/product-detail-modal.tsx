@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { experimentVariant, trackEvent } from "@/lib/analytics";
+import { publicIngredientsText } from "@/lib/public-ingredients";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ProductDetailModalProps {
@@ -115,12 +116,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const categoriaNome = product.categorias?.nome || product.categoria || "Marmita";
   const ehMarmita = isMarmita(product.nome, categoriaNome);
 
-  const ingredientesDetalhados = Array.isArray(product.ingredientes)
-    ? product.ingredientes.filter(Boolean).join(", ")
-    : String(product.ingredientes || "")
-        .replace(/^\{\}|^\[\]$/, "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+  const ingredientesDetalhados = publicIngredientsText(product.ingredientes);
 
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
   const principal = imgUrl(product.imagem_url || product.imagem);
