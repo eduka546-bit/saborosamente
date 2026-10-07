@@ -51,7 +51,7 @@ import {
   type MarmitaGrupo,
 } from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
-import { HomeInfoModal } from "@/components/home-info-modal";
+import { DeliveryRegionMiniMap, HomeInfoModal } from "@/components/home-info-modal";
 import heroMarmitas from "@/assets/hero-marmitas.jpg";
 
 const normalizeText = (value: unknown) =>
@@ -121,7 +121,7 @@ function InstagramFeedSection() {
             <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
               Dicas, novidades e uma comida boa
             </p>
-            <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
+            <h2 className="mt-1 font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
               Acompanhe no Instagram
             </h2>
           </div>
@@ -141,10 +141,8 @@ function InstagramFeedSection() {
         </div>
 
         <div className="overflow-hidden rounded-[1.55rem] border border-[#e5e1d4] bg-white shadow-sm">
-          <div className="h-[350px] overflow-hidden p-2 sm:h-[330px] md:h-[300px] md:p-3">
-            <div className="w-[112%] origin-top-left scale-[.89] md:w-[122%] md:scale-[.82]">
-              <div className="sk-instagram-feed" data-embed-id="25718106"></div>
-            </div>
+          <div className="h-[430px] overflow-hidden p-2 sm:h-[420px] md:h-[400px] md:p-3">
+            <div className="sk-instagram-feed" data-embed-id="25718106"></div>
           </div>
         </div>
       </div>
@@ -810,42 +808,7 @@ function Index() {
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
 
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={() => abrirCardapio()}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#f6d83d] px-7 py-3 text-sm font-bold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f8dc4e] hover:shadow-md"
-                  >
-                    Comprar agora
-                  </button>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDeliveryModalOpen(true)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                  >
-                    <Truck size={16} strokeWidth={1.9} />
-                    Áreas de Entrega
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStoreModalOpen(true)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                  >
-                    <ShoppingBag size={16} strokeWidth={1.9} />
-                    Retire em nossa loja
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountModalOpen(true)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#0b6847] bg-white/55 px-4 py-2 text-xs font-bold text-[#075636] shadow-[0_1px_2px_rgba(7,86,54,.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-                  >
-                    <Tag size={16} strokeWidth={1.9} />
-                    Como ganhar desconto
-                  </button>
-                </div>
+                <div className="mt-2 h-1" aria-hidden="true" />
               </div>
               <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[390px]">
                 {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
@@ -917,16 +880,176 @@ function Index() {
 
       <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
+          <div className="mb-6">
+            <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f] sm:text-[11px]">
+              Tudo o que você precisa saber
+            </p>
+            <div className="mt-1 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <h2 className="font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
+                Entrega, retirada e descontos
+              </h2>
+              <p className="text-[12px] leading-relaxed text-[#6a7a71] md:text-[13px]">
+                Clique nos cards para ver todos os detalhes.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => setDeliveryModalOpen(true)}
+              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
+                    <Truck size={19} />
+                  </span>
+                  <div>
+                    <p className="text-[16px] font-extrabold text-[#173a2d]">Áreas de Entrega</p>
+                    <p className="text-[11px] leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
+                  </div>
+                </div>
+                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+              </div>
+
+              <div className="p-4">
+                <DeliveryRegionMiniMap className="h-[190px] w-full" />
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
+                    <span
+                      key={city}
+                      className="rounded-full border border-[#dfe6d9] bg-[#fafbf8] px-2 py-1 text-[10px] font-bold text-[#557061]"
+                    >
+                      {city}
+                    </span>
+                  ))}
+                </div>
+
+                <p className="mt-3 text-[12px] leading-relaxed text-[#6a7a71]">
+                  Veja bairros atendidos, taxas e a localização correta de cada cidade.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStoreModalOpen(true)}
+              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
+                    <ShoppingBag size={19} />
+                  </span>
+                  <div>
+                    <p className="text-[16px] font-extrabold text-[#173a2d]">Retire em nossa loja</p>
+                    <p className="text-[11px] leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
+                  </div>
+                </div>
+                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+              </div>
+
+              <div className="grid min-h-[275px] sm:grid-cols-[0.9fr_1.1fr]">
+                <div className="flex flex-col justify-center p-4">
+                  <div className="space-y-3 text-[12px] leading-relaxed text-[#607168]">
+                    <p className="flex items-start gap-2">
+                      <MapPin size={15} className="mt-0.5 shrink-0 text-[#075636]" />
+                      <span>Rua Augusto Wunderwald, 7 — Progresso</span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <Clock size={15} className="mt-0.5 shrink-0 text-[#075636]" />
+                      <span>Seg–Sex 9h30–19h<br />Sáb 9h30–13h</span>
+                    </p>
+                    <p className="flex items-start gap-2 font-bold text-[#315c46]">
+                      <Calendar size={15} className="mt-0.5 shrink-0" />
+                      <span>Encomendas em tempo integral</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center bg-[#f7f5ed] p-3">
+                  <img
+                    src="/loja-saborosamente.jpg"
+                    alt="Loja física SaborosaMente"
+                    className="max-h-[250px] w-full rounded-2xl object-contain shadow-sm"
+                  />
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDiscountModalOpen(true)}
+              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-[#fff4bf] text-[#6d5b00]">
+                    <Tag size={19} />
+                  </span>
+                  <div>
+                    <p className="text-[16px] font-extrabold text-[#173a2d]">Como ganhar desconto</p>
+                    <p className="text-[11px] leading-relaxed text-[#708078]">Desconto progressivo automático</p>
+                  </div>
+                </div>
+                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+              </div>
+
+              <div className="p-4">
+                <p className="text-center text-[13px] font-extrabold leading-snug text-[#173a2d]">
+                  Quanto mais você compra,<br />mais você economiza.
+                </p>
+
+                <div className="mt-4 space-y-2">
+                  {COMBO_RULES.map((rule, index) => (
+                    <div
+                      key={rule.min}
+                      className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+                        index === 0
+                          ? "bg-[#f6f8ed]"
+                          : index === 1
+                            ? "bg-[#edf5e6]"
+                            : "bg-[#e3f0d9]"
+                      }`}
+                    >
+                      <span className="text-[12px] font-extrabold text-[#315c46]">
+                        {rule.min} marmitas
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#075636] shadow-sm">
+                        {rule.badge}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-xl bg-[#075636] px-3 py-3 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-white/65">São Bento do Sul</p>
+                  <p className="mt-1 text-[11px] font-extrabold leading-relaxed">
+                    Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#fbfaf5] py-9 md:py-11">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-6 text-center">
+            <div className="mx-auto flex max-w-xl items-center justify-center gap-3">
+              <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
+              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.34em] text-[#315c46] sm:text-[11px]">
                 Simples do início ao fim
               </p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
-                Como funciona
-              </h2>
+              <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
             </div>
-            <p className="max-w-sm text-xs leading-relaxed text-[#6a7a71] md:text-right">
+            <h2 className="mt-2 font-display text-[2rem] font-bold leading-none text-[#075636] md:text-[2.4rem]">
+              Como funciona
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-[12px] leading-relaxed text-[#6a7a71] md:text-[13px]">
               Do seu pedido à sua mesa, sem complicação.
             </p>
           </div>
@@ -987,10 +1110,10 @@ function Index() {
                     </span>
                   </div>
 
-                  <h3 className={`mt-4 text-[14px] font-extrabold leading-tight ${step.titleColor}`}>
+                  <h3 className={`mt-4 text-[15px] font-extrabold leading-tight ${step.titleColor}`}>
                     {step.title}
                   </h3>
-                  <p className={`mt-1.5 text-[10.5px] leading-[1.5] ${step.textColor}`}>
+                  <p className={`mt-1.5 text-[12px] leading-[1.5] ${step.textColor}`}>
                     {step.text}
                   </p>
 
@@ -1000,169 +1123,6 @@ function Index() {
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-6">
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#78922f]">
-                  Tudo o que você precisa saber
-                </p>
-                <h3 className="mt-1 font-display text-xl font-bold text-[#075636] md:text-2xl">
-                  Entrega, retirada e descontos
-                </h3>
-              </div>
-              <span className="hidden text-[10px] font-semibold text-[#7a897f] md:block">
-                Clique nos cards para ver todos os detalhes
-              </span>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => setDeliveryModalOpen(true)}
-                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
-                      <Truck size={19} />
-                    </span>
-                    <div>
-                      <p className="text-[15px] font-extrabold text-[#173a2d]">Áreas de Entrega</p>
-                      <p className="text-[10px] text-[#708078]">SC + PR</p>
-                    </div>
-                  </div>
-                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
-                </div>
-
-                <div className="p-4">
-                  <div className="relative h-28 overflow-hidden rounded-2xl bg-[#f2f7ec]">
-                    <div className="absolute inset-0 grid place-items-center">
-                      <div className="relative h-20 w-28 rounded-[50%_44%_52%_48%] border-2 border-[#c9dbc0] bg-[#e3eddc]">
-                        <div className="absolute bottom-2 right-2 h-7 w-7 rounded-[45%_55%_50%_50%] bg-[#075636]" />
-                        <div className="absolute bottom-2 right-10 h-6 w-8 rounded-[50%_45%_55%_50%] bg-[#0b6847]" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-3 left-3 rounded-full bg-[#f6d83d] px-2.5 py-1 text-[9px] font-extrabold text-[#174229]">
-                      São Bento do Sul
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
-                      <span key={city} className="rounded-full border border-[#dfe6d9] bg-[#fafbf8] px-2 py-1 text-[9px] font-bold text-[#557061]">
-                        {city}
-                      </span>
-                    ))}
-                  </div>
-
-                  <p className="mt-3 text-[10px] leading-relaxed text-[#6a7a71]">
-                    Veja bairros atendidos, taxas e localização de cada cidade.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStoreModalOpen(true)}
-                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
-                      <ShoppingBag size={19} />
-                    </span>
-                    <div>
-                      <p className="text-[15px] font-extrabold text-[#173a2d]">Retire em nossa loja</p>
-                      <p className="text-[10px] text-[#708078]">São Bento do Sul/SC</p>
-                    </div>
-                  </div>
-                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
-                </div>
-
-                <div className="p-4">
-                  <div className="overflow-hidden rounded-2xl border border-[#e6e6df] bg-[#f7f5ed]">
-                    <img
-                      src="/loja-saborosamente.jpg"
-                      alt="Loja física SaborosaMente"
-                      className="h-32 w-full object-cover"
-                    />
-                  </div>
-
-                  <div className="mt-3 space-y-2 text-[10px] leading-relaxed text-[#607168]">
-                    <p className="flex items-center gap-2">
-                      <MapPin size={13} className="text-[#075636]" />
-                      Rua Augusto Wunderwald, 7 — Progresso
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <Clock size={13} className="text-[#075636]" />
-                      Seg–Sex 9h30–19h · Sáb 9h30–13h
-                    </p>
-                    <p className="flex items-center gap-2 font-bold text-[#315c46]">
-                      <Calendar size={13} />
-                      Encomendas em tempo integral
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDiscountModalOpen(true)}
-                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-10 place-items-center rounded-xl bg-[#fff4bf] text-[#6d5b00]">
-                      <Tag size={19} />
-                    </span>
-                    <div>
-                      <p className="text-[15px] font-extrabold text-[#173a2d]">Como ganhar desconto</p>
-                      <p className="text-[10px] text-[#708078]">Desconto progressivo automático</p>
-                    </div>
-                  </div>
-                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
-                </div>
-
-                <div className="p-4">
-                  <p className="text-center text-[12px] font-extrabold leading-tight text-[#173a2d]">
-                    Quanto mais você compra,<br />mais você economiza.
-                  </p>
-
-                  <div className="mt-4 space-y-2">
-                    {[
-                      ["5 marmitas", "3% OFF"],
-                      ["10 marmitas", "7% OFF"],
-                      ["20 marmitas", "12% OFF"],
-                    ].map(([qty, discount], index) => (
-                      <div
-                        key={qty}
-                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
-                          index === 0
-                            ? "bg-[#f6f8ed]"
-                            : index === 1
-                              ? "bg-[#edf5e6]"
-                              : "bg-[#e3f0d9]"
-                        }`}
-                      >
-                        <span className="text-[10px] font-extrabold text-[#315c46]">{qty}</span>
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black text-[#075636] shadow-sm">
-                          {discount}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 rounded-xl bg-[#075636] px-3 py-3 text-white">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-white/65">São Bento do Sul</p>
-                    <p className="mt-1 text-[10px] font-extrabold leading-relaxed">
-                      Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
           </div>
         </div>
       </section>
@@ -1177,7 +1137,7 @@ function Index() {
               </p>
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
             </div>
-            <h2 className="mt-2 font-display text-3xl font-bold leading-none text-[#075636] md:text-[2.55rem]">
+            <h2 className="mt-2 font-display text-[2rem] font-bold leading-none text-[#075636] md:text-[2.4rem]">
               Escolha <span className="font-pacifico text-[.92em] font-normal text-[#6faa2d]">do seu jeito</span>
             </h2>
           </div>
