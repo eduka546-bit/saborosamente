@@ -1196,7 +1196,7 @@ function Index() {
               <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.24em] text-[#78922f]">
                 Escolha pelo seu objetivo
               </p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
+              <h2 className="mt-1 font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
                 Encontre mais rápido o que combina com você
               </h2>
             </div>
@@ -1274,7 +1274,7 @@ function Index() {
                     <h3 className={`font-display text-[15px] font-bold leading-tight ${style.title}`}>
                       {objetivo.titulo}
                     </h3>
-                    <p className="mt-1 text-[10.5px] font-medium leading-[1.45] text-[#586b61]">
+                    <p className="mt-1 text-[11.5px] font-medium leading-[1.5] text-[#586b61] md:text-[12px]">
                       {objetivo.texto}
                     </p>
                   </div>
