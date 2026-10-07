@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
+import { sendOrderStatusEmail } from "@/lib/resend-email";
 
 const itemSchema = z.object({
   productId: z.string().uuid(),
@@ -132,6 +133,21 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
 
     if (error || !order) {
       throw new Error(error?.message || "Não foi possível registrar o pedido do WhatsApp.");
+    }
+
+    const emailCliente = data.email.trim().toLowerCase();
+    if (emailCliente && emailCliente.includes("@")) {
+      try {
+        await sendOrderStatusEmail({
+          orderId: String((order as any).id),
+          email: emailCliente,
+          nome: data.nome,
+          status: "pendente",
+          metodoEntrega: data.metodoEntrega,
+        });
+      } catch (emailError) {
+        console.error("Falha ao disparar e-mail do pedido do WhatsApp:", emailError);
+      }
     }
 
     return {
