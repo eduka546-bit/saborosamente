@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { User, Lock, Mail, Phone, Fingerprint, Eye, EyeOff } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
+import { checkCpfAlreadyRegistered, notifyPasswordChanged } from "@/lib/signup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -41,6 +41,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { redirect } = Route.useSearch();
   const checkCpfFn = useServerFn(checkCpfAlreadyRegistered);
+  const notifyPasswordChangedFn = useServerFn(notifyPasswordChanged);
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -114,6 +115,20 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await notifyPasswordChangedFn({
+            data: { accessToken: session.access_token },
+          });
+        }
+      } catch (notificationError) {
+        console.warn("Falha ao enviar aviso de senha alterada:", notificationError);
+      }
+
       toast.success("Senha atualizada com segurança.");
       irAposLogin();
     } catch (error: any) {
