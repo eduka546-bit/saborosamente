@@ -602,10 +602,10 @@ function Index() {
   );
 
   const defaultHeroFeatures = [
-    { label: "Pronto em até", value: "7 minutos" },
-    { label: "Até 6 meses", value: "de validade" },
-    { label: "Temperos naturais", value: "0 conservantes" },
-    { label: "Entrega regional", value: "ou retirada" },
+    { label: "Pronto em até", value: "7min" },
+    { label: "6 meses", value: "de validade" },
+    { label: "Temperos", value: "100% Naturais" },
+    { label: "Zero Conservantes", value: "e Industrializados" },
   ];
   // Diferenciais definidos para a nova vitrine. Eles substituem o bloco antigo
   // que ficava encaixado no rodapé do hero.
@@ -773,13 +773,52 @@ function Index() {
               </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {heroFeatures.map((feature: any, index: number) => {
-              const Icon = [Timer, Calendar, Leaf, Truck][index] ?? Sparkles;
+              const Icon = [Timer, Calendar, Leaf, ShieldCheck][index] ?? Sparkles;
+              const styles = [
+                {
+                  card: "border-[#064b30] bg-[#075636] text-white",
+                  icon: "bg-white/10 text-[#f6d83d] ring-white/10",
+                  accent: "bg-[#f6d83d]",
+                  value: "text-white/82",
+                },
+                {
+                  card: "border-[#0b6244] bg-[#0b6847] text-white",
+                  icon: "bg-white/10 text-[#d9ef83] ring-white/10",
+                  accent: "bg-[#d9ef83]",
+                  value: "text-white/82",
+                },
+                {
+                  card: "border-[#789f3d] bg-[#88ad42] text-white",
+                  icon: "bg-white/14 text-white ring-white/10",
+                  accent: "bg-[#f6d83d]",
+                  value: "text-white/90",
+                },
+                {
+                  card: "border-[#cfddb5] bg-[#eaf1d7] text-[#075636]",
+                  icon: "bg-[#075636] text-[#f6d83d] ring-[#075636]/10",
+                  accent: "bg-[#075636]",
+                  value: "text-[#315c46]",
+                },
+              ][index];
+
               return (
-                <div key={`${feature.label}-${index}`} className="flex min-h-24 flex-col items-center justify-center rounded-[1.35rem] bg-[#087149] px-3 py-4 text-center text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]">
-                  <Icon className="mb-2 size-6" strokeWidth={1.8} />
-                  <p className="text-sm font-semibold leading-snug"><span className="block">{feature.label}</span><span className="block text-white/85">{feature.value}</span></p>
+                <div
+                  key={`${feature.label}-${index}`}
+                  className={`group relative min-h-[122px] overflow-hidden rounded-[1.55rem] border px-4 py-4 shadow-[0_7px_20px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_14px_28px_rgba(7,86,54,.14)] ${styles.card}`}
+                >
+                  <div className="pointer-events-none absolute -right-7 -top-7 size-24 rounded-full bg-white/7 transition duration-300 group-hover:scale-110" />
+                  <span className={`absolute inset-x-5 top-0 h-[3px] rounded-b-full ${styles.accent}`} />
+
+                  <div className={`relative mb-3 grid size-10 place-items-center rounded-2xl ring-1 ${styles.icon}`}>
+                    <Icon size={20} strokeWidth={2} />
+                  </div>
+
+                  <p className="relative text-[13px] font-extrabold leading-tight sm:text-sm">
+                    <span className="block">{feature.label}</span>
+                    <span className={`mt-0.5 block font-bold ${styles.value}`}>{feature.value}</span>
+                  </p>
                 </div>
               );
             })}
