@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { publicIngredientsText } from "@/lib/public-ingredients";
 
 export async function getAdminProducts() {
   try {
@@ -9,7 +10,10 @@ export async function getAdminProducts() {
       return [];
     }
 
-    return (data as any[]) || [];
+    return ((data as any[]) || []).map((product: any) => ({
+      ...product,
+      ingredientes: publicIngredientsText(product?.ingredientes),
+    }));
   } catch (err) {
     console.error("Unexpected error in getAdminProducts:", err);
     return [];
