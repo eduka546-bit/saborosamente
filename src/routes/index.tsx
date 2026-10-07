@@ -19,6 +19,7 @@ import {
   Search,
   SlidersHorizontal,
   ShoppingCart,
+  ArrowRight,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
@@ -614,27 +615,32 @@ function Index() {
   const comboReadyImage = imgUrl(
     products.find(
       (p: any) =>
-        p.tipo_produto === "combo" &&
-        normalizeText(p.nome).includes("pratos mais vendidos") &&
-        normalizeText(p.nome).includes("10un"),
-    )?.imagem_url,
+        p.tipo_produto === "marmita" &&
+        normalizeText(p.nome).includes("frango grelhado ao molho sugo"),
+    )?.imagem_url ||
+      products.find((p: any) => p.tipo_produto === "marmita" && p.imagem_url)?.imagem_url,
   );
   const comboBuildImage = imgUrl(
     products.find(
       (p: any) =>
-        p.tipo_produto === "combo" &&
-        normalizeText(p.nome).includes("combo a escolha") &&
-        normalizeText(p.nome).includes("10 a 19"),
-    )?.imagem_url,
+        p.tipo_produto === "marmita" &&
+        normalizeText(p.nome).includes("file de tilapia"),
+    )?.imagem_url ||
+      products.find((p: any) => p.tipo_produto === "marmita" && p.imagem_url)?.imagem_url,
   );
   const comboSoupImage = imgUrl(
-    products.find((p: any) => p.tipo_produto === "sopa" && p.imagem_url)?.imagem_url,
+    products.find(
+      (p: any) =>
+        p.tipo_produto === "sopa" &&
+        normalizeText(p.nome).includes("sopa de frango"),
+    )?.imagem_url ||
+      products.find((p: any) => p.tipo_produto === "sopa" && p.imagem_url)?.imagem_url,
   );
   const personalizadaImage = imgUrl(
     products.find(
       (p: any) =>
         p.tipo_produto === "marmita" &&
-        normalizeText(p.nome).includes("file de tilapia"),
+        normalizeText(p.nome).includes("parmegiana de frango"),
     )?.imagem_url ||
       products.find((p: any) => p.tipo_produto === "marmita" && p.imagem_url)?.imagem_url,
   );
@@ -856,10 +862,16 @@ function Index() {
 
       <section className="bg-white py-8 md:py-10">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-5 text-center">
-            <p className="font-sans text-sm font-semibold text-[#78922f]">Seu pedido, do seu jeito</p>
-            <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">
-              Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span>
+          <div className="mb-6 text-center">
+            <div className="mx-auto flex max-w-xl items-center justify-center gap-3">
+              <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
+              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.34em] text-[#315c46] sm:text-[11px]">
+                Seu pedido, ao seu jeito
+              </p>
+              <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
+            </div>
+            <h2 className="mt-2 font-display text-3xl font-bold leading-none text-[#075636] md:text-[2.55rem]">
+              Escolha <span className="font-pacifico text-[.92em] font-normal text-[#6faa2d]">do seu jeito</span>
             </h2>
           </div>
 
@@ -1555,111 +1567,117 @@ function OrderChoiceBanner({
 }) {
   const styles = {
     ready: {
-      card: "border-[#efdf9f] bg-[#fff6cf]",
-      title: "text-[#173a2d]",
-      text: "text-[#5e6d61]",
-      icon: "bg-white/80 text-[#075636]",
-      badge: "border-[#ead98d] bg-white/70 text-[#6a632c]",
-      chip: "border-[#eadb9a] bg-white/75 text-[#5d654b]",
-      button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffe45d]",
-      imageWrap: "bg-[#fff2b9]",
-      ruleWrap: "bg-white/55 border-[#eadb9a]",
+      card: "border-[#efd66a] bg-[linear-gradient(145deg,#fff8db_0%,#fff2b7_100%)]",
+      title: "text-[#073e2b]",
+      text: "text-[#345849]",
+      icon: "border-[#ead88a] bg-white/80 text-[#075636]",
+      badge: "border-[#e7d581] bg-white/62 text-[#365b46]",
+      chip: "border-[#e5cf6b] bg-white/72 text-[#365846]",
+      arrow: "bg-white text-[#075636]",
+      vignette: "from-transparent via-transparent to-[#f6d83d]/20",
     },
     combo: {
-      card: "border-[#cfe0bc] bg-[#eaf4df]",
-      title: "text-[#173a2d]",
-      text: "text-[#5e6d61]",
-      icon: "bg-white/80 text-[#087149]",
-      badge: "border-[#c8dbb3] bg-white/70 text-[#58724c]",
-      chip: "border-[#cfe0bc] bg-white/75 text-[#557149]",
-      button: "bg-[#087149] text-white hover:bg-[#075f3e]",
-      imageWrap: "bg-[#dfeecf]",
-      ruleWrap: "bg-white/55 border-[#cfe0bc]",
+      card: "border-[#c6dca8] bg-[linear-gradient(145deg,#eff8e6_0%,#dcefc8_100%)]",
+      title: "text-[#073e2b]",
+      text: "text-[#345849]",
+      icon: "border-[#c8dcad] bg-white/78 text-[#075636]",
+      badge: "border-[#c5d9a9] bg-white/62 text-[#365b46]",
+      chip: "border-[#bfd5a1] bg-white/70 text-[#365846]",
+      arrow: "bg-white text-[#075636]",
+      vignette: "from-transparent via-transparent to-[#91b93a]/15",
     },
     personalizada: {
-      card: "border-[#06472f] bg-[#075636]",
+      card: "border-[#06472f] bg-[linear-gradient(145deg,#075636_0%,#06482f_100%)]",
       title: "text-white",
-      text: "text-white/78",
-      icon: "bg-white/10 text-[#f6d83d]",
-      badge: "border-white/15 bg-white/10 text-white/80",
-      chip: "border-white/10 bg-white/8 text-white",
-      button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffe45d]",
-      imageWrap: "bg-[#0b6847]",
-      ruleWrap: "bg-[#04442d] border-white/8",
+      text: "text-white/82",
+      icon: "border-white/15 bg-white/10 text-[#f6d83d]",
+      badge: "border-white/20 bg-white/8 text-white/82",
+      chip: "border-white/18 bg-black/10 text-white",
+      arrow: "bg-white text-[#075636]",
+      vignette: "from-transparent via-transparent to-black/15",
     },
   }[tone];
 
   return (
     <article
-      className={`group relative flex h-full min-h-[330px] flex-col overflow-hidden rounded-[1.55rem] border shadow-[0_8px_22px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.13)] ${styles.card}`}
+      className={`group relative min-h-[310px] overflow-hidden rounded-[1.7rem] border shadow-[0_10px_26px_rgba(7,86,54,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(7,86,54,.15)] ${styles.card}`}
     >
-      <div className="grid min-h-[185px] grid-cols-[1.08fr_.92fr]">
-        <div className="flex flex-col px-4 pb-3 pt-4">
-          <div className="flex items-center gap-2">
-            <div className={`grid size-9 shrink-0 place-items-center rounded-xl ${styles.icon}`}>
-              <Icon size={17} strokeWidth={1.9} />
-            </div>
+      <div className="relative z-20 flex max-w-[62%] flex-col p-5 pb-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <div className={`grid size-10 shrink-0 place-items-center rounded-full border ${styles.icon}`}>
+            <Icon size={18} strokeWidth={1.9} />
+          </div>
+          <span
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.04em] ${styles.badge}`}
+          >
+            {badge}
+          </span>
+        </div>
+
+        <h3 className={`mt-5 font-display text-[1.55rem] font-bold leading-[1.02] md:text-[1.7rem] ${styles.title}`}>
+          {title}
+        </h3>
+
+        <p className={`mt-3 max-w-[29ch] text-[12px] leading-[1.55] md:text-[12.5px] ${styles.text}`}>
+          {text}
+        </p>
+
+        <div className="mt-5 flex max-w-[250px] flex-col gap-2">
+          {chips.map((chip) => (
             <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.05em] ${styles.badge}`}
+              key={chip}
+              className={`w-fit rounded-full border px-3 py-1.5 text-[10px] font-bold ${styles.chip}`}
             >
-              {badge}
+              {chip}
             </span>
-          </div>
-
-          <h3 className={`mt-3 font-display text-[1.22rem] font-bold leading-[1.08] md:text-[1.3rem] ${styles.title}`}>
-            {title}
-          </h3>
-          <p className={`mt-2 text-[11.5px] leading-[1.5] md:text-[12px] ${styles.text}`}>
-            {text}
-          </p>
-        </div>
-
-        <div className={`relative overflow-hidden ${styles.imageWrap}`}>
-          {image ? (
-            <img
-              src={image}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-            />
-          ) : (
-            <div className="absolute inset-0 grid place-items-center opacity-35">
-              <Icon size={54} />
-            </div>
-          )}
-
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/0 via-black/0 to-black/[.03]" />
-
-          {secondaryImage && (
-            <div className="absolute bottom-2.5 right-2.5 size-12 overflow-hidden rounded-xl border-2 border-white bg-white shadow-md">
-              <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
-            </div>
-          )}
+          ))}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-4 pb-4">
-        <div className={`rounded-[1.05rem] border p-2.5 ${styles.ruleWrap}`}>
-          <div className="flex flex-wrap gap-1.5">
-            {chips.map((chip) => (
-              <span
-                key={chip}
-                className={`rounded-full border px-2 py-1 text-[9.5px] font-bold ${styles.chip}`}
-              >
-                {chip}
-              </span>
-            ))}
+      <div className="absolute inset-y-0 right-0 w-[55%] overflow-hidden">
+        {image ? (
+          <img
+            src={image}
+            alt=""
+            className={`absolute h-[78%] w-[115%] max-w-none object-cover transition duration-500 group-hover:scale-[1.035] ${
+              tone === "personalizada"
+                ? "bottom-0 right-[-12%] object-center"
+                : "bottom-0 right-[-8%] rounded-tl-[45%] object-center"
+            }`}
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center opacity-20">
+            <Icon size={70} />
           </div>
-        </div>
+        )}
 
-        <button
-          type="button"
-          onClick={onClick}
-          className={`mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2 text-[11.5px] font-bold shadow-sm transition duration-200 group-hover:translate-x-0.5 ${styles.button}`}
-        >
-          <Icon size={16} strokeWidth={2} />
-          {action}
-        </button>
+        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${styles.vignette}`} />
+
+        {secondaryImage && (
+          <div className="absolute bottom-5 right-4 size-[74px] overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
+            <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
+          </div>
+        )}
       </div>
+
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={action}
+        title={action}
+        className={`absolute right-4 top-4 z-30 grid size-11 place-items-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,.12)] transition duration-200 hover:scale-105 ${styles.arrow}`}
+      >
+        <ArrowRight size={21} strokeWidth={2.2} />
+      </button>
+
+      <button
+        type="button"
+        onClick={onClick}
+        className="absolute inset-0 z-10 cursor-pointer"
+        aria-label={action}
+      >
+        <span className="sr-only">{action}</span>
+      </button>
     </article>
   );
 }
