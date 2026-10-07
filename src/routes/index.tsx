@@ -20,6 +20,11 @@ import {
   SlidersHorizontal,
   ShoppingCart,
   ArrowRight,
+  Trophy,
+  Dumbbell,
+  WheatOff,
+  MilkOff,
+  Soup,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
@@ -392,6 +397,16 @@ function Index() {
     () => new Set((bestSellerRows as any[]).map((row) => row.produto_id)),
     [bestSellerRows],
   );
+  const bestSellerRank = useMemo(
+    () =>
+      new Map(
+        (bestSellerRows as any[]).map((row, index) => [
+          row.produto_id,
+          index,
+        ]),
+      ),
+    [bestSellerRows],
+  );
   const bestSellerProducts = useMemo(() => {
     const byId = new Map(products.map((product: any) => [product.id, product]));
     return (bestSellerRows as any[])
@@ -550,6 +565,12 @@ function Index() {
         );
       })
       .sort((a: any, b: any) => {
+        if (selectedFilters.includes("Mais escolhidas")) {
+          return (
+            (bestSellerRank.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+            (bestSellerRank.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+          );
+        }
         const activeSort = [...selectedFilters].reverse().find((filter) => sortFilters.includes(filter));
         if (activeSort === "Mais calóricas") return nutritionValue(b, "kcal") - nutritionValue(a, "kcal");
         if (activeSort === "Mais leves") return nutritionValue(a, "kcal") - nutritionValue(b, "kcal");
@@ -560,7 +581,7 @@ function Index() {
         if (catOrdemA !== catOrdemB) return catOrdemA - catOrdemB;
         return (a.ordem ?? 999) - (b.ordem ?? 999);
       });
-  }, [products, selectedFilters, searchTerm, bestSellerIds]);
+  }, [products, selectedFilters, searchTerm, bestSellerIds, bestSellerRank]);
 
   const categoriesWithProducts = useMemo(() => {
     // Filtros especiais por selo de restrição (só se houver produtos com o selo).
@@ -661,41 +682,71 @@ function Index() {
     window.setTimeout(() => scrollToSection("cardapio"), 0);
   };
 
+  const quickCardImage = (predicate: (product: any) => boolean) =>
+    imgUrl(products.find((product: any) => product.imagem_url && predicate(product))?.imagem_url);
+
+  const lightestProductImage = imgUrl(
+    [...products]
+      .filter((product: any) => product.imagem_url && nutritionValue(product, "kcal") > 0)
+      .sort((a: any, b: any) => nutritionValue(a, "kcal") - nutritionValue(b, "kcal"))[0]
+      ?.imagem_url,
+  );
+
   const objetivos = [
+    {
+      filtro: "Mais escolhidas",
+      titulo: "Mais escolhidas",
+      texto: "Nossos pratos mais amados.",
+      icon: Trophy,
+      tone: "rose",
+      image: imgUrl(bestSellerProducts[0]?.imagem_url) || quickCardImage((p) => p.tipo_produto === "marmita"),
+      rank: true,
+    },
     {
       filtro: "Mais proteicas",
       titulo: "Mais proteína",
-      texto: "Veja primeiro as refeições com maior teor de proteína.",
-      destaque: "Proteína",
-      icon: "💪",
+      texto: "Para quem busca mais proteína.",
+      icon: Dumbbell,
+      tone: "orange",
+      image:
+        quickCardImage((p) => p.tipo_produto === "marmita" && isHighProteinFlavor(p)) ||
+        quickCardImage((p) => p.tipo_produto === "marmita"),
     },
     {
-      filtro: "Até 300 kcal",
-      titulo: "Até 300 kcal",
-      texto: "Opções com até 300 kcal na porção de referência.",
-      destaque: "Leve",
-      icon: "⚡",
+      filtro: "Mais leves",
+      titulo: "Mais Leves",
+      texto: "Opções equilibradas e nutritivas.",
+      icon: Leaf,
+      tone: "green",
+      image: lightestProductImage || quickCardImage((p) => p.tipo_produto === "marmita"),
     },
     {
       filtro: "Sem Glúten",
-      titulo: "Sem glúten",
-      texto: "Filtre apenas os produtos identificados como sem glúten.",
-      destaque: "Restrição",
-      icon: "🌾",
+      titulo: "Sem Glúten",
+      texto: "Sabor e segurança para o seu dia.",
+      icon: WheatOff,
+      tone: "yellow",
+      image:
+        quickCardImage((p) => Boolean(p.sem_gluten) && p.tipo_produto === "marmita") ||
+        quickCardImage((p) => Boolean(p.sem_gluten)),
     },
     {
       filtro: "Sem Lactose",
-      titulo: "Sem lactose",
-      texto: "Encontre rapidamente as opções identificadas como sem lactose.",
-      destaque: "Restrição",
-      icon: "🥛",
+      titulo: "Sem Lactose",
+      texto: "Opções deliciosas sem lactose.",
+      icon: MilkOff,
+      tone: "blue",
+      image:
+        quickCardImage((p) => Boolean(p.sem_lactose) && p.tipo_produto === "marmita") ||
+        quickCardImage((p) => Boolean(p.sem_lactose)),
     },
     {
       filtro: "Sopas",
-      titulo: "Sopas e caldos",
-      texto: "Opções práticas para variar o cardápio e aquecer a rotina.",
-      destaque: "Conforto",
-      icon: "🥣",
+      titulo: "Sopas e Caldos",
+      texto: "Conforto em qualquer momento.",
+      icon: Soup,
+      tone: "purple",
+      image: quickCardImage((p) => p.tipo_produto === "sopa"),
     },
   ];
 
@@ -922,54 +973,120 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-y border-[#e8eadf] bg-[#f7f8f1] py-10 md:py-14">
+      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-sans text-sm font-semibold text-[#78922f]">
-                ESCOLHA PELO SEU OBJETIVO
+              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.24em] text-[#78922f]">
+                Escolha pelo seu objetivo
               </p>
-              <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">
+              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
                 Encontre mais rápido o que combina com você
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
-                Atalhos baseados nos dados nutricionais e restrições cadastrados nas etiquetas dos produtos.
-              </p>
             </div>
             <button
               type="button"
               onClick={() => abrirCardapio()}
-              className="w-fit text-sm font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+              className="hidden text-xs font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
             >
               Ver cardápio completo
             </button>
           </div>
 
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-5">
-            {objetivos.map((objetivo) => (
-              <button
-                key={objetivo.filtro}
-                type="button"
-                onClick={() => abrirObjetivo(objetivo.filtro)}
-                className="group flex min-h-[170px] w-[78vw] max-w-[280px] shrink-0 snap-start flex-col rounded-[1.5rem] border border-[#dce4d4] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#8eb85a] hover:shadow-md md:w-auto md:max-w-none"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-2xl" aria-hidden="true">{objetivo.icon}</span>
-                  <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-xs font-bold tracking-normal text-[#658638]">
-                    {objetivo.destaque}
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-6">
+            {objetivos.map((objetivo) => {
+              const Icon = objetivo.icon;
+              const tones: Record<string, { card: string; icon: string; title: string; badge: string }> = {
+                rose: {
+                  card: "border-[#f2caca] bg-[#fde8e7]",
+                  icon: "bg-white/72 text-[#dc4545]",
+                  title: "text-[#b52f36]",
+                  badge: "bg-[#f6d83d] text-[#173a2d]",
+                },
+                orange: {
+                  card: "border-[#efc6a8] bg-[#fae2cf]",
+                  icon: "bg-white/72 text-[#df7d26]",
+                  title: "text-[#bf5d1e]",
+                  badge: "bg-white/82 text-[#bf5d1e]",
+                },
+                green: {
+                  card: "border-[#cde1b9] bg-[#e5f2d5]",
+                  icon: "bg-white/72 text-[#4b9c3c]",
+                  title: "text-[#358332]",
+                  badge: "bg-white/82 text-[#358332]",
+                },
+                yellow: {
+                  card: "border-[#ebdda1] bg-[#fff3c9]",
+                  icon: "bg-white/72 text-[#d99516]",
+                  title: "text-[#b87800]",
+                  badge: "bg-white/82 text-[#b87800]",
+                },
+                blue: {
+                  card: "border-[#c3ddef] bg-[#deeffb]",
+                  icon: "bg-white/72 text-[#3d82c7]",
+                  title: "text-[#276cab]",
+                  badge: "bg-white/82 text-[#276cab]",
+                },
+                purple: {
+                  card: "border-[#d8c9ee] bg-[#eee5fb]",
+                  icon: "bg-white/72 text-[#8055c8]",
+                  title: "text-[#6e42b5]",
+                  badge: "bg-white/82 text-[#6e42b5]",
+                },
+              };
+              const style = tones[objetivo.tone];
+
+              return (
+                <button
+                  key={objetivo.filtro}
+                  type="button"
+                  onClick={() => abrirObjetivo(objetivo.filtro)}
+                  className={`group relative flex min-h-[188px] w-[62vw] max-w-[210px] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-3.5 text-left shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] md:w-auto md:max-w-none ${style.card}`}
+                >
+                  <div className="relative z-20 flex items-start justify-between gap-2">
+                    <span className={`grid size-9 place-items-center rounded-xl shadow-sm ${style.icon}`}>
+                      <Icon size={18} strokeWidth={2} />
+                    </span>
+                    {objetivo.rank && (
+                      <span className={`grid size-7 place-items-center rounded-full text-[11px] font-black shadow-sm ${style.badge}`}>
+                        1
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative z-20 mt-3 max-w-[90%]">
+                    <h3 className={`font-display text-[15px] font-bold leading-tight ${style.title}`}>
+                      {objetivo.titulo}
+                    </h3>
+                    <p className="mt-1 text-[10.5px] font-medium leading-[1.45] text-[#586b61]">
+                      {objetivo.texto}
+                    </p>
+                  </div>
+
+                  {objetivo.image && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-[47%]"
+                      style={{
+                        WebkitMaskImage:
+                          "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.55) 20%, #000 48%)",
+                        maskImage:
+                          "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.55) 20%, #000 48%)",
+                      }}
+                    >
+                      <img
+                        src={objetivo.image}
+                        alt=""
+                        className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.04]"
+                      />
+                    </div>
+                  )}
+
+                  <span className="relative z-20 mt-auto pt-10 text-[10px] font-extrabold text-[#365c49] opacity-0 transition group-hover:opacity-100">
+                    Ver opções →
                   </span>
-                </div>
-                <h3 className="mt-4 font-display text-lg font-bold text-[#075636]">
-                  {objetivo.titulo}
-                </h3>
-                <p className="mt-1 text-xs leading-relaxed text-[#607168]">
-                  {objetivo.texto}
-                </p>
-                <span className="mt-auto pt-3 text-xs font-bold text-[#087149] transition group-hover:translate-x-1">
-                  Ver opções →
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
