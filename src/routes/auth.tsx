@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { User, Lock, Mail, Phone, Fingerprint, Eye, EyeOff } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const { redirect } = Route.useSearch();
+  const checkCpfFn = useServerFn(checkCpfAlreadyRegistered);
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -184,6 +187,17 @@ function AuthPage() {
           }
         }
 
+        const cpfCheck = await checkCpfFn({ data: { cpf: cpfNormalizado } });
+        if (cpfCheck?.exists) {
+          setIsLogin(true);
+          setPassword("");
+          setConfirmPassword("");
+          toast.error(
+            "Este CPF já possui uma conta. Entre na conta existente ou use “Esqueci minha senha”.",
+          );
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
@@ -205,7 +219,14 @@ function AuthPage() {
       }
       irAposLogin();
     } catch (error: any) {
-      toast.error(error.message || "Erro na autenticação");
+      const message = String(error?.message || "");
+      if (/database error saving new user/i.test(message)) {
+        toast.error(
+          "Não foi possível concluir o cadastro. Verifique se CPF ou e-mail já possuem uma conta.",
+        );
+      } else {
+        toast.error(message || "Erro na autenticação");
+      }
     } finally {
       setLoading(false);
     }
