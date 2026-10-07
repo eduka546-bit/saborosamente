@@ -151,10 +151,21 @@ function openOrderWhatsapp(order: any) {
 
 function OrderDetailsModal({ isOpen, onClose, order }: any) {
   const queryClient = useQueryClient();
+  const updateAdminOrderStatusFn = useServerFn(updateAdminOrderStatus);
   const confirmMutation = useMutation({
     mutationFn: async (pedidoId: string) => {
-      const { confirmarPedidoRascunho } = await import("@/lib/order-confirmation");
-      return await confirmarPedidoRascunho(pedidoId);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão administrativa expirada.");
+
+      return await updateAdminOrderStatusFn({
+        data: {
+          id: pedidoId,
+          status: "pendente",
+          accessToken: session.access_token,
+        },
+      });
     },
     onSuccess: async (data) => {
       toast.success(`✓ Pedido #${order.id.slice(0, 8)} confirmado!`);

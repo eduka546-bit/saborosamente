@@ -33,13 +33,14 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       redirect: (search.redirect as string) || "/",
+      confirmed: search.confirmed === "1" || search.confirmed === true,
     };
   },
   component: AuthPage,
 });
 
 function AuthPage() {
-  const { redirect } = Route.useSearch();
+  const { redirect, confirmed } = Route.useSearch();
   const checkCpfFn = useServerFn(checkCpfAlreadyRegistered);
 
   const [isLogin, setIsLogin] = useState(true);
@@ -78,6 +79,16 @@ function AuthPage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!confirmed) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        toast.success("E-mail confirmado com sucesso!");
+        irAposLogin();
+      }
+    });
+  }, [confirmed]);
+
   const handleForgotPassword = async () => {
     const emailNormalizado = email.trim().toLowerCase();
     if (!emailNormalizado || !emailNormalizado.includes("@")) {
@@ -92,7 +103,9 @@ function AuthPage() {
         redirectTo,
       });
       if (error) throw error;
-      toast.success("Enviamos um link para você criar uma nova senha.");
+      toast.success(
+        "Se houver uma conta com este e-mail, você receberá um link para criar uma nova senha.",
+      );
     } catch (error: any) {
       toast.error(error.message || "Não foi possível enviar o link de recuperação.");
     } finally {
@@ -198,10 +211,15 @@ function AuthPage() {
           return;
         }
 
-        const { error } = await supabase.auth.signUp({
+        const emailRedirectTo =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth?confirmed=1`
+            : undefined;
+        const { data: signupData, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
           options: {
+            emailRedirectTo,
             data: {
               nome,
               telefone,
@@ -215,6 +233,15 @@ function AuthPage() {
         if (typeof window !== "undefined") {
           localStorage.removeItem("saborosamente.referral");
         }
+
+        if (!signupData.session) {
+          setIsLogin(true);
+          setPassword("");
+          setConfirmPassword("");
+          toast.success("Cadastro realizado! Confira seu e-mail para confirmar sua conta.");
+          return;
+        }
+
         toast.success("Cadastro realizado com sucesso!");
       }
       irAposLogin();
