@@ -10,10 +10,7 @@ export async function getAdminProducts() {
       return [];
     }
 
-    return ((data as any[]) || []).map((product: any) => ({
-      ...product,
-      ingredientes: publicIngredientsText(product?.ingredientes),
-    }));
+    return (data as any[]) || [];
   } catch (err) {
     console.error("Unexpected error in getAdminProducts:", err);
     return [];
@@ -29,7 +26,10 @@ export async function getPublicProducts() {
       return [];
     }
 
-    return (data as any[]) || [];
+    return ((data as any[]) || []).map((product: any) => ({
+      ...product,
+      ingredientes: publicIngredientsText(product?.ingredientes),
+    }));
   } catch (err) {
     console.error("Unexpected error in getPublicProducts:", err);
     return [];
