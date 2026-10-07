@@ -17,6 +17,7 @@ import {
 } from "@/lib/marmita-personalizada-config";
 import { validarEntregaProgramada } from "@/lib/entrega-config";
 import { calcularRegraCupom } from "@/lib/coupon-rules";
+import { sendOrderReceivedEmail, sendOrderStatusEmail } from "@/lib/resend-email";
 
 const roundMoney = (value: number) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
@@ -831,6 +832,21 @@ export const createOrder = createServerFn({ method: "POST" })
       console.error("Falha ao disparar push de novo pedido:", pushError);
     }
 
+    // E-mail transacional via Resend é best-effort: nunca bloqueia a criação do pedido.
+    try {
+      await sendOrderReceivedEmail({
+        orderId: String(order.id),
+        email: data.email,
+        nome: data.nome,
+        valorTotal,
+        metodoEntrega: data.metodoEntrega,
+        dataProgramada: data.dataProgramada,
+        faixaHorario: data.faixaHorario,
+      });
+    } catch (emailError) {
+      console.error("Falha ao disparar e-mail de novo pedido:", emailError);
+    }
+
     return {
       ...order,
       valor_total: valorTotal,
@@ -876,7 +892,7 @@ export const updateAdminOrderStatus = createServerFn({ method: "POST" })
 
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
-      .select("id,status,metodo_entrega")
+      .select("id,status,metodo_entrega,email_cliente,nome_cliente")
       .eq("id", data.id)
       .maybeSingle();
     if (pedidoError || !pedido) throw new Error("Pedido não encontrado.");
@@ -890,6 +906,19 @@ export const updateAdminOrderStatus = createServerFn({ method: "POST" })
         p_pedido_id: data.id,
       });
       if (error) throw new Error(error.message);
+
+      try {
+        await sendOrderStatusEmail({
+          orderId: data.id,
+          email: String(pedido.email_cliente ?? ""),
+          nome: String(pedido.nome_cliente ?? "cliente"),
+          status: "cancelado",
+          metodoEntrega: String(pedido.metodo_entrega ?? ""),
+        });
+      } catch (emailError) {
+        console.error("Falha ao disparar e-mail de cancelamento:", emailError);
+      }
+
       return result;
     }
 
@@ -907,5 +936,18 @@ export const updateAdminOrderStatus = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw new Error(error.message);
+
+    try {
+      await sendOrderStatusEmail({
+        orderId: data.id,
+        email: String(pedido.email_cliente ?? ""),
+        nome: String(pedido.nome_cliente ?? "cliente"),
+        status: statusEfetivo,
+        metodoEntrega: String(pedido.metodo_entrega ?? ""),
+      });
+    } catch (emailError) {
+      console.error("Falha ao disparar e-mail de status:", emailError);
+    }
+
     return atualizado;
   });
