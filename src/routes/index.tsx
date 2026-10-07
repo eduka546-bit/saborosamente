@@ -611,6 +611,34 @@ function Index() {
   // que ficava encaixado no rodapé do hero.
   const heroFeatures = defaultHeroFeatures;
 
+  const comboReadyImage = imgUrl(
+    products.find(
+      (p: any) =>
+        p.tipo_produto === "combo" &&
+        normalizeText(p.nome).includes("pratos mais vendidos") &&
+        normalizeText(p.nome).includes("10un"),
+    )?.imagem_url,
+  );
+  const comboBuildImage = imgUrl(
+    products.find(
+      (p: any) =>
+        p.tipo_produto === "combo" &&
+        normalizeText(p.nome).includes("combo a escolha") &&
+        normalizeText(p.nome).includes("10 a 19"),
+    )?.imagem_url,
+  );
+  const comboSoupImage = imgUrl(
+    products.find((p: any) => p.tipo_produto === "sopa" && p.imagem_url)?.imagem_url,
+  );
+  const personalizadaImage = imgUrl(
+    products.find(
+      (p: any) =>
+        p.tipo_produto === "marmita" &&
+        normalizeText(p.nome).includes("file de tilapia"),
+    )?.imagem_url ||
+      products.find((p: any) => p.tipo_produto === "marmita" && p.imagem_url)?.imagem_url,
+  );
+
   const abrirCardapio = (categoria = "Todas") => {
     setSelectedFilters(categoria === "Todas" ? [] : [categoria]);
     setSearchTerm("");
@@ -828,40 +856,57 @@ function Index() {
 
       <section className="bg-white py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-7 text-center"><p className="font-sans text-sm font-semibold text-[#78922f]">Seu pedido, do seu jeito</p><h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span></h2></div>
+          <div className="mb-7 text-center">
+            <p className="font-sans text-sm font-semibold text-[#78922f]">Seu pedido, do seu jeito</p>
+            <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">
+              Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span>
+            </h2>
+          </div>
+
           <div className="grid gap-5 md:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
               badge="Combinações prontas"
               title="Combos Prontos"
-              text="Combos de 5 a 20 marmitas com os sabores mais escolhidos."
+              text="Combos Prontos para facilitar na correria, separados especialmente pra você"
               action="Ver Combos"
-              chips={["Opções para toda a semana", "Escolha e receba"]}
+              chips={["5, 10 ou 20 marmitas"]}
+              image={comboReadyImage}
               tone="ready"
               onClick={abrirCombosProntos}
             />
+
             <OrderChoiceBanner
               icon={ShoppingBag}
-              badge="Desconto progressivo"
+              badge="Monte como quiser"
               title="Monte seu Combo"
-              text="Quanto mais marmitas, maior o desconto. Automático e sem código."
+              text="Monte seu combo como quiser, quanto mais comprar, mais desconto tem!"
               action="Montar Combo"
-              chips={["5+ → preço especial", "10+ → economize mais", "20+ → melhor preço"]}
+              chips={["Desconto automático"]}
+              image={comboBuildImage}
+              secondaryImage={comboSoupImage}
               tone="combo"
               onClick={() => setComboModalOpen(true)}
             />
-            {marmitaConfig.ativo && <OrderChoiceBanner
-              icon={ChefHat}
-              badge="Do seu jeito"
-              title="Marmita Personalizada"
-              text="Escolha os ingredientes, o modo de preparo e a gramatura da sua marmita. Preço pelo tamanho, mínimo 3 unidades."
-              action="Marmitas Personalizadas"
-              chips={marmitaConfig.tamanhos.map(
-                (t) => `${t.sigla} → ${formatBRL(t.preco)}`,
-              )}
-              tone="personalizada"
-              onClick={() => setMarmitaModalOpen(true)}
-            />}
+
+            {marmitaConfig.ativo && (
+              <OrderChoiceBanner
+                icon={ChefHat}
+                badge="Do seu jeito"
+                title="Marmita Personalizada"
+                text="Escolha os ingredientes, o modo de preparo e a gramatura."
+                action="Marmitas Personalizadas"
+                chips={[
+                  "Mínimo 3 unidades",
+                  ...marmitaConfig.tamanhos.map(
+                    (t) => `${t.sigla} • ${formatBRL(t.preco)}`,
+                  ),
+                ]}
+                image={personalizadaImage}
+                tone="personalizada"
+                onClick={() => setMarmitaModalOpen(true)}
+              />
+            )}
           </div>
         </div>
       </section>
@@ -1492,6 +1537,8 @@ function OrderChoiceBanner({
   text,
   action,
   chips,
+  image,
+  secondaryImage,
   tone,
   onClick,
 }: {
@@ -1501,72 +1548,118 @@ function OrderChoiceBanner({
   text: string;
   action: string;
   chips: string[];
+  image?: string;
+  secondaryImage?: string;
   tone: "ready" | "combo" | "personalizada";
   onClick: () => void;
 }) {
   const styles = {
     ready: {
-      card: "border-[#e8e1cf] bg-[#fffdf8]",
-      icon: "bg-[#eef5e8] text-[#087149]",
-      badge: "border-[#dfe8d9] bg-[#f6f8f2] text-[#5d725f]",
-      chip: "border-[#e5e8df] bg-white text-[#617065]",
+      card: "border-[#efdf9f] bg-[#fff6cf]",
+      title: "text-[#173a2d]",
+      text: "text-[#5e6d61]",
+      icon: "bg-white/80 text-[#075636]",
+      badge: "border-[#ead98d] bg-white/70 text-[#6a632c]",
+      chip: "border-[#eadb9a] bg-white/75 text-[#5d654b]",
       button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffe45d]",
+      imageWrap: "bg-[#fff2b9]",
+      ruleWrap: "bg-white/55 border-[#eadb9a]",
     },
     combo: {
-      card: "border-[#dce8d5] bg-[#f7faf4]",
-      icon: "bg-white text-[#087149]",
-      badge: "border-[#dbe6d4] bg-white/80 text-[#5d725f]",
-      chip: "border-[#dde7d8] bg-white/85 text-[#617065]",
+      card: "border-[#cfe0bc] bg-[#eaf4df]",
+      title: "text-[#173a2d]",
+      text: "text-[#5e6d61]",
+      icon: "bg-white/80 text-[#087149]",
+      badge: "border-[#c8dbb3] bg-white/70 text-[#58724c]",
+      chip: "border-[#cfe0bc] bg-white/75 text-[#557149]",
       button: "bg-[#087149] text-white hover:bg-[#075f3e]",
+      imageWrap: "bg-[#dfeecf]",
+      ruleWrap: "bg-white/55 border-[#cfe0bc]",
     },
     personalizada: {
-      card: "border-[#e0e6dc] bg-white",
-      icon: "bg-[#f0f4ed] text-[#075636]",
-      badge: "border-[#e1e7dd] bg-[#f7f8f5] text-[#5d725f]",
-      chip: "border-[#e2e8df] bg-[#fafbf8] text-[#617065]",
-      button: "bg-[#173a2d] text-white hover:bg-[#0f3023]",
+      card: "border-[#06472f] bg-[#075636]",
+      title: "text-white",
+      text: "text-white/78",
+      icon: "bg-white/10 text-[#f6d83d]",
+      badge: "border-white/15 bg-white/10 text-white/80",
+      chip: "border-white/10 bg-white/8 text-white",
+      button: "bg-[#f6d83d] text-[#173a2d] hover:bg-[#ffe45d]",
+      imageWrap: "bg-[#0b6847]",
+      ruleWrap: "bg-[#04442d] border-white/8",
     },
   }[tone];
 
   return (
     <article
-      className={`group flex h-full flex-col rounded-[1.5rem] border px-4.5 py-4.5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md md:px-5 md:py-5 ${styles.card}`}
+      className={`group relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-[1.75rem] border shadow-[0_10px_28px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(7,86,54,.14)] ${styles.card}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${styles.icon}`}>
-          <Icon size={19} strokeWidth={1.8} />
-        </div>
-        <span className={`inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${styles.badge}`}>
-          {badge}
-        </span>
-      </div>
-
-      <div className="mt-3.5 flex-1">
-        <h3 className="max-w-[22ch] font-display text-[1.35rem] font-bold leading-[1.12] text-[#173a2d] md:text-[1.5rem]">
-          {title}
-        </h3>
-        <p className="mt-2.5 text-[14px] leading-[1.6] text-[#5f6f66] md:text-[14.5px]">
-          {text}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-1.5 pb-1">
-          {chips.map((chip) => (
+      <div className="grid min-h-[230px] grid-cols-[1.08fr_.92fr]">
+        <div className="flex flex-col px-5 pb-4 pt-5">
+          <div className="flex items-center gap-2">
+            <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${styles.icon}`}>
+              <Icon size={19} strokeWidth={1.9} />
+            </div>
             <span
-              key={chip}
-              className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold ${styles.chip}`}
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-[0.06em] ${styles.badge}`}
             >
-              {chip}
+              {badge}
             </span>
-          ))}
+          </div>
+
+          <h3 className={`mt-4 font-display text-[1.45rem] font-bold leading-[1.06] md:text-[1.55rem] ${styles.title}`}>
+            {title}
+          </h3>
+          <p className={`mt-2.5 text-[13px] leading-[1.55] md:text-[13.5px] ${styles.text}`}>
+            {text}
+          </p>
+        </div>
+
+        <div className={`relative overflow-hidden ${styles.imageWrap}`}>
+          {image ? (
+            <img
+              src={image}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center opacity-35">
+              <Icon size={54} />
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/0 via-black/0 to-black/[.03]" />
+
+          {secondaryImage && (
+            <div className="absolute bottom-3 right-3 size-16 overflow-hidden rounded-2xl border-2 border-white bg-white shadow-lg">
+              <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
+            </div>
+          )}
         </div>
       </div>
 
-      <button
-        onClick={onClick}
-        className={`mt-5 inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition group-hover:translate-x-0.5 ${styles.button}`}
-      >
-        <Icon size={16} strokeWidth={2} />
-        {action}
-      </button>
+      <div className="flex flex-1 flex-col px-5 pb-5">
+        <div className={`rounded-[1.25rem] border p-3 ${styles.ruleWrap}`}>
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((chip) => (
+              <span
+                key={chip}
+                className={`rounded-full border px-2.5 py-1.5 text-[10.5px] font-bold ${styles.chip}`}
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClick}
+          className={`mt-auto inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition duration-200 group-hover:translate-x-0.5 ${styles.button}`}
+        >
+          <Icon size={16} strokeWidth={2} />
+          {action}
+        </button>
+      </div>
     </article>
   );
 }
