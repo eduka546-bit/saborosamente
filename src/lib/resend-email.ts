@@ -7,19 +7,13 @@ type OrderEmailStatus =
   | "entregue"
   | "cancelado";
 
-interface EmailTag {
-  name: string;
-  value: string;
-}
-
 interface SendResendEmailInput {
   to: string;
   subject: string;
   html: string;
-  text?: string;
   idempotencyKey: string;
   category: string;
-  tags?: EmailTag[];
+  orderId: string;
 }
 
 interface OrderReceivedEmailInput {
@@ -78,7 +72,6 @@ function emailShell({
   details,
   ctaLabel,
   ctaUrl,
-  footer = "Este é um e-mail automático da SaborosaMente.",
 }: {
   preheader: string;
   title: string;
@@ -87,7 +80,6 @@ function emailShell({
   details?: Array<{ label: string; value: string }>;
   ctaLabel?: string;
   ctaUrl?: string;
-  footer?: string;
 }) {
   const detailsHtml =
     details && details.length
@@ -137,7 +129,7 @@ function emailShell({
           ${detailsHtml}
           ${ctaHtml}
           <p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#7a847c;text-align:center">
-            ${escapeHtml(footer)}
+            Este é um e-mail automático sobre seu pedido na SaborosaMente.
           </p>
         </div>
       </div>
@@ -167,9 +159,11 @@ async function sendResendEmail(input: SendResendEmailInput) {
     to: [to],
     subject: input.subject,
     html: input.html,
-    tags: [{ name: "category", value: input.category }, ...(input.tags ?? [])],
+    tags: [
+      { name: "category", value: input.category },
+      { name: "order_id", value: input.orderId },
+    ],
   };
-  if (input.text) body.text = input.text;
   if (replyTo) body.reply_to = replyTo;
 
   try {
@@ -188,6 +182,7 @@ async function sendResendEmail(input: SendResendEmailInput) {
       console.error("[resend] falha ao enviar e-mail", {
         status: response.status,
         category: input.category,
+        orderId: input.orderId,
         error: errorBody,
       });
       return { ok: false as const, skipped: false as const, status: response.status };
@@ -198,6 +193,7 @@ async function sendResendEmail(input: SendResendEmailInput) {
   } catch (error) {
     console.error("[resend] erro de rede ao enviar e-mail", {
       category: input.category,
+      orderId: input.orderId,
       error,
     });
     return { ok: false as const, skipped: false as const };
@@ -235,7 +231,7 @@ export async function sendOrderReceivedEmail(input: OrderReceivedEmailInput) {
     html,
     idempotencyKey: `pedido-recebido/${input.orderId}`,
     category: "pedido_recebido",
-    tags: [{ name: "order_id", value: input.orderId }],
+    orderId: input.orderId,
   });
 }
 
@@ -310,104 +306,6 @@ export async function sendOrderStatusEmail(input: OrderStatusEmailInput) {
     html,
     idempotencyKey: `pedido-status/${input.orderId}/${input.status.replaceAll(" ", "-")}`,
     category: `pedido_${input.status.replaceAll(" ", "_")}`,
-    tags: [{ name: "order_id", value: input.orderId }],
-  });
-}
-
-
-interface AccountActionEmailInput {
-  email: string;
-  nome?: string;
-  actionUrl: string;
-  userId: string;
-}
-
-interface PasswordChangedEmailInput {
-  email: string;
-  nome?: string;
-  userId: string;
-  eventId: string;
-}
-
-export async function sendAccountConfirmationEmail(input: AccountActionEmailInput) {
-  const nome = firstName(input.nome || "");
-  const html = emailShell({
-    preheader: "Confirme seu e-mail para ativar sua conta SaborosaMente.",
-    title: "Confirme seu e-mail",
-    greeting: nome,
-    body:
-      "Seu cadastro está quase pronto. Confirme este endereço de e-mail para ativar sua conta e acessar seus pedidos, cashback e benefícios.",
-    ctaLabel: "Confirmar meu e-mail",
-    ctaUrl: input.actionUrl,
-    footer:
-      "Se você não criou uma conta na SaborosaMente, pode ignorar este e-mail com segurança.",
-  });
-
-  return sendResendEmail({
-    to: input.email,
-    subject: "Confirme seu e-mail | SaborosaMente",
-    html,
-    text:
-      "Confirme seu e-mail para ativar sua conta SaborosaMente. Acesse o link: " +
-      input.actionUrl +
-      "\n\nSe você não criou uma conta, ignore esta mensagem.",
-    idempotencyKey: `auth-confirmacao/${input.userId}`,
-    category: "auth_confirmacao_email",
-    tags: [{ name: "user_id", value: input.userId }],
-  });
-}
-
-export async function sendPasswordRecoveryEmail(input: AccountActionEmailInput) {
-  const nome = firstName(input.nome || "");
-  const html = emailShell({
-    preheader: "Use este link para criar uma nova senha da sua conta.",
-    title: "Crie uma nova senha",
-    greeting: nome,
-    body:
-      "Recebemos uma solicitação para redefinir a senha da sua conta. Use o botão abaixo para escolher uma nova senha.",
-    ctaLabel: "Criar nova senha",
-    ctaUrl: input.actionUrl,
-    footer:
-      "Se você não solicitou a redefinição de senha, ignore este e-mail. Sua senha atual continuará válida.",
-  });
-
-  return sendResendEmail({
-    to: input.email,
-    subject: "Redefina sua senha | SaborosaMente",
-    html,
-    text:
-      "Recebemos uma solicitação para redefinir sua senha. Crie uma nova senha pelo link: " +
-      input.actionUrl +
-      "\n\nSe você não solicitou essa alteração, ignore esta mensagem.",
-    idempotencyKey: `auth-recuperacao/${input.userId}/${Date.now()}`,
-    category: "auth_recuperacao_senha",
-    tags: [{ name: "user_id", value: input.userId }],
-  });
-}
-
-export async function sendPasswordChangedEmail(input: PasswordChangedEmailInput) {
-  const nome = firstName(input.nome || "");
-  const html = emailShell({
-    preheader: "A senha da sua conta SaborosaMente foi alterada.",
-    title: "Senha alterada com sucesso",
-    greeting: nome,
-    body:
-      "A senha da sua conta foi alterada com sucesso. Se foi você, nenhuma outra ação é necessária.",
-    ctaLabel: "Acessar minha conta",
-    ctaUrl: `${siteUrl}/auth`,
-    footer:
-      "Não reconhece esta alteração? Redefina sua senha imediatamente e entre em contato com a SaborosaMente.",
-  });
-
-  return sendResendEmail({
-    to: input.email,
-    subject: "Sua senha foi alterada | SaborosaMente",
-    html,
-    text:
-      "A senha da sua conta SaborosaMente foi alterada. Se foi você, nenhuma ação é necessária. " +
-      "Se não reconhece esta alteração, acesse https://saborosamente.com/auth e redefina sua senha.",
-    idempotencyKey: `auth-senha-alterada/${input.userId}/${input.eventId}`,
-    category: "auth_senha_alterada",
-    tags: [{ name: "user_id", value: input.userId }],
+    orderId: input.orderId,
   });
 }
