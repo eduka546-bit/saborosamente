@@ -113,42 +113,38 @@ function InstagramFeedSection() {
   }, []);
 
   return (
-    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-7 md:py-10">
-      <div className="mx-auto max-w-6xl px-3 md:px-4">
-        <div className="mb-4 flex flex-col gap-1.5 text-center md:mb-6 md:gap-2">
-          <p className="font-sans text-xs font-semibold text-[#78922f] md:text-sm">
-            ACOMPANHE A SABOROSAMENTE
-          </p>
-          <h2 className="font-display text-2xl font-bold text-[#075636] md:text-3xl">
-            Nosso Instagram
-          </h2>
-          <p className="mx-auto max-w-2xl text-xs leading-relaxed text-[#587064] md:text-sm">
-            Novidades, bastidores, lançamentos e muito sabor no
-            <a
-              href="https://www.instagram.com/saborosamente.sbs/"
-              target="_blank"
-              rel="noreferrer"
-              className="ml-1 font-bold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
-            >
-              @saborosamente.sbs
-            </a>
-          </p>
-        </div>
-
-        <div className="mx-auto max-w-[430px] md:max-w-5xl">
-          <div className="overflow-hidden rounded-2xl border border-[#e5e1d4] bg-white shadow-sm md:rounded-[1.75rem]">
-            <div className="max-h-[640px] overflow-y-auto overscroll-contain p-1.5 [scrollbar-width:thin] md:max-h-[520px] md:p-3">
-              <div className="sk-instagram-feed" data-embed-id="25718106"></div>
-            </div>
+    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-8 md:py-9">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
+              Dicas, novidades e uma comida boa
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
+              Acompanhe no Instagram
+            </h2>
           </div>
+
           <a
             href="https://www.instagram.com/saborosamente.sbs/"
             target="_blank"
             rel="noreferrer"
-            className="mx-auto mt-3 flex w-fit items-center justify-center rounded-full border border-[#d9e2d2] bg-white px-4 py-2 text-xs font-bold text-[#087443] transition hover:border-[#087443] hover:bg-[#f3f8ef] md:hidden"
+            className="inline-flex w-fit items-center gap-2 text-xs font-extrabold text-[#075636] transition hover:translate-x-0.5"
           >
-            Ver perfil completo no Instagram
+            <span className="grid size-7 place-items-center rounded-lg border border-[#d9e2d2] bg-white text-[#087443]">
+              @
+            </span>
+            @saborosamente.sbs
+            <ArrowRight size={14} />
           </a>
+        </div>
+
+        <div className="overflow-hidden rounded-[1.55rem] border border-[#e5e1d4] bg-white shadow-sm">
+          <div className="h-[350px] overflow-hidden p-2 sm:h-[330px] md:h-[300px] md:p-3">
+            <div className="w-[112%] origin-top-left scale-[.89] md:w-[122%] md:scale-[.82]">
+              <div className="sk-instagram-feed" data-embed-id="25718106"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
