@@ -123,6 +123,67 @@ function projectCity(lon: number, lat: number) {
   };
 }
 
+export function DeliveryRegionMiniMap({ className = "" }: { className?: string }) {
+  const sbs = deliveryCities[0];
+  const sbsPoint = projectCity(sbs.lon, sbs.lat);
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-[#d9e5d2] bg-[#eef5e8] ${className}`}>
+      <svg
+        viewBox="0 0 560 380"
+        className="h-full w-full"
+        role="img"
+        aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas"
+      >
+        <path d={PR_PATH} fill="#0b6847" stroke="#f8faf4" strokeWidth="2.4" />
+        <path d={SC_PATH} fill="#075636" stroke="#f8faf4" strokeWidth="2.4" />
+
+        <text x="136" y="118" fill="rgba(255,255,255,.34)" fontSize="34" fontWeight="800">
+          PR
+        </text>
+        <text x="218" y="306" fill="rgba(255,255,255,.34)" fontSize="34" fontWeight="800">
+          SC
+        </text>
+
+        {deliveryCities.map((city) => {
+          const p = projectCity(city.lon, city.lat);
+          return (
+            <g key={city.name}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={city.name === "São Bento do Sul" ? 7.5 : 5.3}
+                fill="#f6d83d"
+                stroke="#ffffff"
+                strokeWidth={city.name === "São Bento do Sul" ? 2.6 : 1.8}
+              />
+              <circle cx={p.x} cy={p.y} r="1.8" fill="#075636" />
+            </g>
+          );
+        })}
+
+        <g transform={`translate(${sbsPoint.x - 17} ${sbsPoint.y + 19})`}>
+          <circle cx="0" cy="0" r="10" fill="#fffef9" stroke="#075636" strokeWidth="1.4" />
+          <path
+            d="M-5 0 L0 -4.5 L5 0 V5 H1.5 V1.5 H-1.5 V5 H-5 Z"
+            fill="none"
+            stroke="#075636"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+        </g>
+      </svg>
+
+      <div className="absolute bottom-2 left-2 rounded-full bg-[#f6d83d] px-2.5 py-1 text-[9px] font-extrabold text-[#174229] shadow-sm">
+        São Bento do Sul
+      </div>
+      <div className="absolute right-2 top-2 rounded-full border border-white/80 bg-white/90 px-2 py-1 text-[9px] font-extrabold text-[#4a6758] shadow-sm">
+        SC + PR
+      </div>
+    </div>
+  );
+}
+
 function BrazilDeliveryMap({
   selectedCity,
   zoomed,
