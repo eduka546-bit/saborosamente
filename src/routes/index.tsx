@@ -861,49 +861,307 @@ function Index() {
               const styles = [
                 {
                   card: "border-[#064b30] bg-[#075636] text-white",
-                  icon: "bg-white/10 text-[#f6d83d] ring-white/10",
-                  accent: "bg-[#f6d83d]",
-                  value: "text-white/82",
+                  icon: "text-[#f6d83d]",
+                  value: "text-white",
+                  deco: "text-[#2b8a62]",
                 },
                 {
                   card: "border-[#0b6244] bg-[#0b6847] text-white",
-                  icon: "bg-white/10 text-[#d9ef83] ring-white/10",
-                  accent: "bg-[#d9ef83]",
-                  value: "text-white/82",
+                  icon: "text-[#d9ef83]",
+                  value: "text-white",
+                  deco: "text-[#79a83b]",
                 },
                 {
                   card: "border-[#789f3d] bg-[#88ad42] text-white",
-                  icon: "bg-white/14 text-white ring-white/10",
-                  accent: "bg-[#f6d83d]",
-                  value: "text-white/90",
+                  icon: "text-white",
+                  value: "text-white",
+                  deco: "text-[#6fa533]",
                 },
                 {
                   card: "border-[#cfddb5] bg-[#eaf1d7] text-[#075636]",
-                  icon: "bg-[#075636] text-[#f6d83d] ring-[#075636]/10",
-                  accent: "bg-[#075636]",
-                  value: "text-[#315c46]",
+                  icon: "text-[#075636]",
+                  value: "text-[#075636]",
+                  deco: "text-[#7ead3f]",
                 },
               ][index];
 
               return (
                 <div
                   key={`${feature.label}-${index}`}
-                  className={`group relative min-h-[122px] overflow-hidden rounded-[1.55rem] border px-4 py-4 shadow-[0_7px_20px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_14px_28px_rgba(7,86,54,.14)] ${styles.card}`}
+                  className={`group relative min-h-[96px] overflow-hidden rounded-[1.25rem] border px-4 py-3 shadow-[0_6px_16px_rgba(7,86,54,.07)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(7,86,54,.12)] ${styles.card}`}
                 >
-                  <div className="pointer-events-none absolute -right-7 -top-7 size-24 rounded-full bg-white/7 transition duration-300 group-hover:scale-110" />
-                  <span className={`absolute inset-x-5 top-0 h-[3px] rounded-b-full ${styles.accent}`} />
+                  <div className="relative z-10 flex h-full items-center gap-4">
+                    <div className={`grid size-11 shrink-0 place-items-center ${styles.icon}`}>
+                      <Icon size={34} strokeWidth={1.8} />
+                    </div>
 
-                  <div className={`relative mb-3 grid size-10 place-items-center rounded-2xl ring-1 ${styles.icon}`}>
-                    <Icon size={20} strokeWidth={2} />
+                    <p className="text-[12.5px] font-extrabold leading-[1.18] sm:text-[13.5px]">
+                      <span className="block">{feature.label}</span>
+                      <span className={`mt-1 block text-[1.12em] font-extrabold ${styles.value}`}>
+                        {feature.value}
+                      </span>
+                    </p>
                   </div>
 
-                  <p className="relative text-[13px] font-extrabold leading-tight sm:text-sm">
-                    <span className="block">{feature.label}</span>
-                    <span className={`mt-0.5 block font-bold ${styles.value}`}>{feature.value}</span>
-                  </p>
+                  <Leaf
+                    className={`pointer-events-none absolute -bottom-2 right-2 size-10 rotate-[-20deg] opacity-60 ${styles.deco}`}
+                    strokeWidth={1.4}
+                  />
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
+                Simples do início ao fim
+              </p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
+                Como funciona
+              </h2>
+            </div>
+            <p className="max-w-sm text-xs leading-relaxed text-[#6a7a71] md:text-right">
+              Do seu pedido à sua mesa, sem complicação.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: ShoppingCart,
+                title: "Escolha seus produtos",
+                text: "Monte seu pedido com os sabores e tamanhos que preferir.",
+                card: "border-[#d9e7bb] bg-[#eef6dc]",
+                bubble: "bg-[#91b93a] text-white",
+                titleColor: "text-[#315b2f]",
+                textColor: "text-[#607157]",
+              },
+              {
+                icon: CreditCard,
+                title: "Finalize a compra",
+                text: "Selecione entrega ou retirada e conclua seu pedido.",
+                card: "border-[#cde2b0] bg-[#dff0c9]",
+                bubble: "bg-[#76b64a] text-white",
+                titleColor: "text-[#2d5d36]",
+                textColor: "text-[#58705a]",
+              },
+              {
+                icon: Truck,
+                title: "Receba ou retire",
+                text: "Entregamos na sua região ou você retira diretamente na loja.",
+                card: "border-[#9fd7a2] bg-[#bfe9b8]",
+                bubble: "bg-[#13955e] text-white",
+                titleColor: "text-[#1d6040]",
+                textColor: "text-[#416c55]",
+              },
+              {
+                icon: Timer,
+                title: "É só aquecer e aproveitar",
+                text: "Pronto em até 7 minutos, com sabor e praticidade para o seu dia.",
+                card: "border-[#076342] bg-[#087149]",
+                bubble: "bg-[#123d30] text-[#f6d83d]",
+                titleColor: "text-white",
+                textColor: "text-white/76",
+              },
+            ].map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className={`group relative min-h-[160px] overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] ${step.card}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>
+                      <Icon size={20} strokeWidth={1.9} />
+                    </div>
+                    <span className={`grid size-6 place-items-center rounded-full text-[10px] font-black ${
+                      index === 3 ? "bg-white/10 text-white/80" : "bg-white/70 text-[#45684f]"
+                    }`}>
+                      {index + 1}
+                    </span>
+                  </div>
+
+                  <h3 className={`mt-4 text-[14px] font-extrabold leading-tight ${step.titleColor}`}>
+                    {step.title}
+                  </h3>
+                  <p className={`mt-1.5 text-[10.5px] leading-[1.5] ${step.textColor}`}>
+                    {step.text}
+                  </p>
+
+                  <div className={`pointer-events-none absolute -bottom-9 -right-7 size-24 rounded-full ${
+                    index === 3 ? "bg-white/5" : "bg-white/28"
+                  }`} />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#78922f]">
+                  Tudo o que você precisa saber
+                </p>
+                <h3 className="mt-1 font-display text-xl font-bold text-[#075636] md:text-2xl">
+                  Entrega, retirada e descontos
+                </h3>
+              </div>
+              <span className="hidden text-[10px] font-semibold text-[#7a897f] md:block">
+                Clique nos cards para ver todos os detalhes
+              </span>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => setDeliveryModalOpen(true)}
+                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
+                      <Truck size={19} />
+                    </span>
+                    <div>
+                      <p className="text-[15px] font-extrabold text-[#173a2d]">Áreas de Entrega</p>
+                      <p className="text-[10px] text-[#708078]">SC + PR</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                </div>
+
+                <div className="p-4">
+                  <div className="relative h-28 overflow-hidden rounded-2xl bg-[#f2f7ec]">
+                    <div className="absolute inset-0 grid place-items-center">
+                      <div className="relative h-20 w-28 rounded-[50%_44%_52%_48%] border-2 border-[#c9dbc0] bg-[#e3eddc]">
+                        <div className="absolute bottom-2 right-2 h-7 w-7 rounded-[45%_55%_50%_50%] bg-[#075636]" />
+                        <div className="absolute bottom-2 right-10 h-6 w-8 rounded-[50%_45%_55%_50%] bg-[#0b6847]" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-3 left-3 rounded-full bg-[#f6d83d] px-2.5 py-1 text-[9px] font-extrabold text-[#174229]">
+                      São Bento do Sul
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
+                      <span key={city} className="rounded-full border border-[#dfe6d9] bg-[#fafbf8] px-2 py-1 text-[9px] font-bold text-[#557061]">
+                        {city}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-[10px] leading-relaxed text-[#6a7a71]">
+                    Veja bairros atendidos, taxas e localização de cada cidade.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStoreModalOpen(true)}
+                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-xl bg-[#edf5e6] text-[#075636]">
+                      <ShoppingBag size={19} />
+                    </span>
+                    <div>
+                      <p className="text-[15px] font-extrabold text-[#173a2d]">Retire em nossa loja</p>
+                      <p className="text-[10px] text-[#708078]">São Bento do Sul/SC</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                </div>
+
+                <div className="p-4">
+                  <div className="overflow-hidden rounded-2xl border border-[#e6e6df] bg-[#f7f5ed]">
+                    <img
+                      src="/loja-saborosamente.jpg"
+                      alt="Loja física SaborosaMente"
+                      className="h-32 w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-[10px] leading-relaxed text-[#607168]">
+                    <p className="flex items-center gap-2">
+                      <MapPin size={13} className="text-[#075636]" />
+                      Rua Augusto Wunderwald, 7 — Progresso
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Clock size={13} className="text-[#075636]" />
+                      Seg–Sex 9h30–19h · Sáb 9h30–13h
+                    </p>
+                    <p className="flex items-center gap-2 font-bold text-[#315c46]">
+                      <Calendar size={13} />
+                      Encomendas em tempo integral
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDiscountModalOpen(true)}
+                className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-10 place-items-center rounded-xl bg-[#fff4bf] text-[#6d5b00]">
+                      <Tag size={19} />
+                    </span>
+                    <div>
+                      <p className="text-[15px] font-extrabold text-[#173a2d]">Como ganhar desconto</p>
+                      <p className="text-[10px] text-[#708078]">Desconto progressivo automático</p>
+                    </div>
+                  </div>
+                  <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                </div>
+
+                <div className="p-4">
+                  <p className="text-center text-[12px] font-extrabold leading-tight text-[#173a2d]">
+                    Quanto mais você compra,<br />mais você economiza.
+                  </p>
+
+                  <div className="mt-4 space-y-2">
+                    {[
+                      ["5 marmitas", "3% OFF"],
+                      ["10 marmitas", "7% OFF"],
+                      ["20 marmitas", "12% OFF"],
+                    ].map(([qty, discount], index) => (
+                      <div
+                        key={qty}
+                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+                          index === 0
+                            ? "bg-[#f6f8ed]"
+                            : index === 1
+                              ? "bg-[#edf5e6]"
+                              : "bg-[#e3f0d9]"
+                        }`}
+                      >
+                        <span className="text-[10px] font-extrabold text-[#315c46]">{qty}</span>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black text-[#075636] shadow-sm">
+                          {discount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 rounded-xl bg-[#075636] px-3 py-3 text-white">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-white/65">São Bento do Sul</p>
+                    <p className="mt-1 text-[10px] font-extrabold leading-relaxed">
+                      Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1088,49 +1346,6 @@ function Index() {
         </div>
       </section>
 
-      {bestSellerProducts.length > 0 && (
-        <section className="bg-white py-10 md:py-14">
-          <div className="mx-auto max-w-7xl px-4">
-            <div className="mb-6 flex items-end justify-between gap-4">
-              <div>
-                <p className="font-sans text-sm font-semibold text-[#78922f]">Os favoritos de quem já compra</p>
-                <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">Mais pedidos</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#587064]">
-                  Os sabores mais escolhidos nos últimos 90 dias.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => abrirObjetivo("Mais escolhidas")}
-                className="hidden text-sm font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
-              >
-                Ver todos
-              </button>
-            </div>
-            <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-4">
-              {bestSellerProducts.map((product: any) => (
-                <div key={product.id} className="w-[82vw] max-w-[315px] shrink-0 snap-start md:w-auto md:max-w-none">
-                  <ProductCard
-                    product={{
-                      ...product,
-                      mais_vendido: true,
-                      categoria: product.categorias?.nome || "Marmita",
-                      imagem: imgUrl(product.imagem_url),
-                    }}
-                    allProducts={products.map((p: any) => ({
-                      ...p,
-                      categoria: p.categorias?.nome || "Marmita",
-                      imagem: imgUrl(p.imagem_url),
-                    }))}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Main Content: Filters + Products */}
       <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 md:py-12">
         <div className="sticky top-2 z-30 -mx-2 mb-5 flex items-center gap-2 rounded-2xl border border-[#dce7d5] bg-white/95 p-2 shadow-lg backdrop-blur lg:hidden">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f5f7f2] px-3 py-2.5">
@@ -1583,97 +1798,6 @@ function Index() {
                 )}
               </>
             )}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
-                Simples do início ao fim
-              </p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-[#075636] md:text-3xl">
-                Como funciona
-              </h2>
-            </div>
-            <p className="max-w-sm text-xs leading-relaxed text-[#6a7a71] md:text-right">
-              Do seu pedido à sua mesa, sem complicação.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                icon: ShoppingCart,
-                title: "Escolha seus produtos",
-                text: "Monte seu pedido com os sabores e tamanhos que preferir.",
-                card: "border-[#d9e7bb] bg-[#eef6dc]",
-                bubble: "bg-[#91b93a] text-white",
-                titleColor: "text-[#315b2f]",
-                textColor: "text-[#607157]",
-              },
-              {
-                icon: CreditCard,
-                title: "Finalize a compra",
-                text: "Selecione entrega ou retirada e conclua seu pedido.",
-                card: "border-[#cde2b0] bg-[#dff0c9]",
-                bubble: "bg-[#76b64a] text-white",
-                titleColor: "text-[#2d5d36]",
-                textColor: "text-[#58705a]",
-              },
-              {
-                icon: Truck,
-                title: "Receba ou retire",
-                text: "Entregamos na sua região ou você retira diretamente na loja.",
-                card: "border-[#9fd7a2] bg-[#bfe9b8]",
-                bubble: "bg-[#13955e] text-white",
-                titleColor: "text-[#1d6040]",
-                textColor: "text-[#416c55]",
-              },
-              {
-                icon: Timer,
-                title: "É só aquecer e aproveitar",
-                text: "Pronto em até 7 minutos, com sabor e praticidade para o seu dia.",
-                card: "border-[#076342] bg-[#087149]",
-                bubble: "bg-[#123d30] text-[#f6d83d]",
-                titleColor: "text-white",
-                textColor: "text-white/76",
-              },
-            ].map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.title}
-                  className={`group relative min-h-[160px] overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] ${step.card}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>
-                      <Icon size={20} strokeWidth={1.9} />
-                    </div>
-                    <span className={`grid size-6 place-items-center rounded-full text-[10px] font-black ${
-                      index === 3 ? "bg-white/10 text-white/80" : "bg-white/70 text-[#45684f]"
-                    }`}>
-                      {index + 1}
-                    </span>
-                  </div>
-
-                  <h3 className={`mt-4 text-[14px] font-extrabold leading-tight ${step.titleColor}`}>
-                    {step.title}
-                  </h3>
-                  <p className={`mt-1.5 text-[10.5px] leading-[1.5] ${step.textColor}`}>
-                    {step.text}
-                  </p>
-
-                  <div
-                    className={`pointer-events-none absolute -bottom-9 -right-7 size-24 rounded-full ${
-                      index === 3 ? "bg-white/5" : "bg-white/28"
-                    }`}
-                  />
-                </div>
-              );
-            })}
           </div>
         </div>
       </section>
