@@ -854,16 +854,16 @@ function Index() {
         </div>
       </section>
 
-      <section className="bg-white py-10 md:py-14">
+      <section className="bg-white py-8 md:py-10">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-7 text-center">
+          <div className="mb-5 text-center">
             <p className="font-sans text-sm font-semibold text-[#78922f]">Seu pedido, do seu jeito</p>
             <h2 className="mt-1 font-display text-3xl font-bold text-[#075636]">
               Escolha <span className="font-pacifico text-[.9em] font-normal text-[#87a833]">do seu jeito</span>
             </h2>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
               badge="Combinações prontas"
@@ -1591,25 +1591,25 @@ function OrderChoiceBanner({
 
   return (
     <article
-      className={`group relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-[1.75rem] border shadow-[0_10px_28px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(7,86,54,.14)] ${styles.card}`}
+      className={`group relative flex h-full min-h-[330px] flex-col overflow-hidden rounded-[1.55rem] border shadow-[0_8px_22px_rgba(7,86,54,.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.13)] ${styles.card}`}
     >
-      <div className="grid min-h-[230px] grid-cols-[1.08fr_.92fr]">
-        <div className="flex flex-col px-5 pb-4 pt-5">
+      <div className="grid min-h-[185px] grid-cols-[1.08fr_.92fr]">
+        <div className="flex flex-col px-4 pb-3 pt-4">
           <div className="flex items-center gap-2">
-            <div className={`grid size-10 shrink-0 place-items-center rounded-2xl ${styles.icon}`}>
-              <Icon size={19} strokeWidth={1.9} />
+            <div className={`grid size-9 shrink-0 place-items-center rounded-xl ${styles.icon}`}>
+              <Icon size={17} strokeWidth={1.9} />
             </div>
             <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-[0.06em] ${styles.badge}`}
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.05em] ${styles.badge}`}
             >
               {badge}
             </span>
           </div>
 
-          <h3 className={`mt-4 font-display text-[1.45rem] font-bold leading-[1.06] md:text-[1.55rem] ${styles.title}`}>
+          <h3 className={`mt-3 font-display text-[1.22rem] font-bold leading-[1.08] md:text-[1.3rem] ${styles.title}`}>
             {title}
           </h3>
-          <p className={`mt-2.5 text-[13px] leading-[1.55] md:text-[13.5px] ${styles.text}`}>
+          <p className={`mt-2 text-[11.5px] leading-[1.5] md:text-[12px] ${styles.text}`}>
             {text}
           </p>
         </div>
@@ -1630,20 +1630,20 @@ function OrderChoiceBanner({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/0 via-black/0 to-black/[.03]" />
 
           {secondaryImage && (
-            <div className="absolute bottom-3 right-3 size-16 overflow-hidden rounded-2xl border-2 border-white bg-white shadow-lg">
+            <div className="absolute bottom-2.5 right-2.5 size-12 overflow-hidden rounded-xl border-2 border-white bg-white shadow-md">
               <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-5 pb-5">
-        <div className={`rounded-[1.25rem] border p-3 ${styles.ruleWrap}`}>
+      <div className="flex flex-1 flex-col px-4 pb-4">
+        <div className={`rounded-[1.05rem] border p-2.5 ${styles.ruleWrap}`}>
           <div className="flex flex-wrap gap-1.5">
             {chips.map((chip) => (
               <span
                 key={chip}
-                className={`rounded-full border px-2.5 py-1.5 text-[10.5px] font-bold ${styles.chip}`}
+                className={`rounded-full border px-2 py-1 text-[9.5px] font-bold ${styles.chip}`}
               >
                 {chip}
               </span>
@@ -1654,7 +1654,7 @@ function OrderChoiceBanner({
         <button
           type="button"
           onClick={onClick}
-          className={`mt-auto inline-flex w-fit items-center gap-2 rounded-full px-4 py-2.5 text-[12.5px] font-bold shadow-sm transition duration-200 group-hover:translate-x-0.5 ${styles.button}`}
+          className={`mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-2 text-[11.5px] font-bold shadow-sm transition duration-200 group-hover:translate-x-0.5 ${styles.button}`}
         >
           <Icon size={16} strokeWidth={2} />
           {action}
