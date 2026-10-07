@@ -98,7 +98,7 @@ export function SiteFooter() {
   );
 
   return (
-    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-24 overflow-hidden">
+    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-10 overflow-hidden">
       {/* ── corpo principal ─────────────────────────────────────────────── */}
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
@@ -175,7 +175,6 @@ export function SiteFooter() {
                     <WhatsAppIcon className="size-4" />
                   </span>
                   <span>
-                    (+55){" "}
                     {whatsapp.replace(/^55/, "").replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
                   </span>
                 </a>
@@ -199,9 +198,10 @@ export function SiteFooter() {
                     <Clock size={14} />
                   </span>
                   <div>
-                    <p className="font-semibold text-sm mb-0.5">Horário de atendimento</p>
-                    <p>Encomendas em tempo integral</p>
-                    <p>Entregas: consulte disponibilidade</p>
+                    <p className="font-semibold text-sm mb-1">Horário da loja</p>
+                    <p>Seg–Sex 9h30–19h</p>
+                    <p>Sáb 9h30–13h</p>
+                    <p className="mt-1 font-semibold">Encomendas em tempo integral</p>
                   </div>
                 </div>
               </li>
