@@ -909,10 +909,9 @@ function Index() {
                 text="Escolha os ingredientes, o modo de preparo e a gramatura."
                 action="Marmitas Personalizadas"
                 chips={[
+                  "Mais de 30 opções",
+                  "Tamanhos e valores por tamanho",
                   "Mínimo 3 unidades",
-                  ...marmitaConfig.tamanhos.map(
-                    (t) => `${t.sigla} • ${formatBRL(t.preco)}`,
-                  ),
                 ]}
                 image={personalizadaImage}
                 tone="personalizada"
@@ -1567,42 +1566,57 @@ function OrderChoiceBanner({
 }) {
   const styles = {
     ready: {
-      card: "border-[#efd66a] bg-[linear-gradient(145deg,#fff8db_0%,#fff2b7_100%)]",
+      card: "border-[#efd66a] bg-[linear-gradient(145deg,#fff8db_0%,#fff1b2_100%)]",
       title: "text-[#073e2b]",
       text: "text-[#345849]",
-      icon: "border-[#ead88a] bg-white/80 text-[#075636]",
-      badge: "border-[#e7d581] bg-white/62 text-[#365b46]",
-      chip: "border-[#e5cf6b] bg-white/72 text-[#365846]",
+      icon: "border-[#ead88a] bg-white/82 text-[#075636]",
+      badge: "border-[#e7d581] bg-white/66 text-[#365b46]",
+      chip: "border-[#e4cc65] bg-white/76 text-[#365846]",
       arrow: "bg-white text-[#075636]",
-      vignette: "from-transparent via-transparent to-[#f6d83d]/20",
+      deco: "text-[#78a938]",
+      orb: "bg-[#f6d83d]/18",
     },
     combo: {
-      card: "border-[#c6dca8] bg-[linear-gradient(145deg,#eff8e6_0%,#dcefc8_100%)]",
+      card: "border-[#c6dca8] bg-[linear-gradient(145deg,#f0f8e8_0%,#dcefc8_100%)]",
       title: "text-[#073e2b]",
       text: "text-[#345849]",
-      icon: "border-[#c8dcad] bg-white/78 text-[#075636]",
-      badge: "border-[#c5d9a9] bg-white/62 text-[#365b46]",
-      chip: "border-[#bfd5a1] bg-white/70 text-[#365846]",
+      icon: "border-[#c8dcad] bg-white/80 text-[#075636]",
+      badge: "border-[#c5d9a9] bg-white/65 text-[#365b46]",
+      chip: "border-[#bfd5a1] bg-white/74 text-[#365846]",
       arrow: "bg-white text-[#075636]",
-      vignette: "from-transparent via-transparent to-[#91b93a]/15",
+      deco: "text-[#5d9131]",
+      orb: "bg-[#91b93a]/16",
     },
     personalizada: {
-      card: "border-[#06472f] bg-[linear-gradient(145deg,#075636_0%,#06482f_100%)]",
+      card: "border-[#06472f] bg-[linear-gradient(145deg,#075b3b_0%,#06462f_100%)]",
       title: "text-white",
-      text: "text-white/82",
+      text: "text-white/84",
       icon: "border-white/15 bg-white/10 text-[#f6d83d]",
-      badge: "border-white/20 bg-white/8 text-white/82",
+      badge: "border-white/20 bg-white/8 text-white/84",
       chip: "border-white/18 bg-black/10 text-white",
       arrow: "bg-white text-[#075636]",
-      vignette: "from-transparent via-transparent to-black/15",
+      deco: "text-[#8bc23f]",
+      orb: "bg-white/5",
     },
   }[tone];
 
+  const isCustom = tone === "personalizada";
+
   return (
     <article
-      className={`group relative min-h-[310px] overflow-hidden rounded-[1.7rem] border shadow-[0_10px_26px_rgba(7,86,54,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(7,86,54,.15)] ${styles.card}`}
+      className={`group relative min-h-[340px] overflow-hidden rounded-[1.75rem] border shadow-[0_10px_26px_rgba(7,86,54,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_17px_34px_rgba(7,86,54,.15)] ${styles.card}`}
     >
-      <div className="relative z-20 flex max-w-[62%] flex-col p-5 pb-4 sm:p-5">
+      <div className={`pointer-events-none absolute -right-16 top-16 size-52 rounded-full ${styles.orb}`} />
+      <Leaf
+        className={`pointer-events-none absolute bottom-6 left-5 size-16 rotate-[-18deg] opacity-50 ${styles.deco}`}
+        strokeWidth={1.1}
+      />
+      <Leaf
+        className={`pointer-events-none absolute bottom-20 right-[31%] size-10 rotate-[34deg] opacity-45 ${styles.deco}`}
+        strokeWidth={1.1}
+      />
+
+      <div className={`relative z-20 p-5 ${isCustom ? "max-w-[58%]" : "max-w-[74%]"}`}>
         <div className="flex items-center gap-2">
           <div className={`grid size-10 shrink-0 place-items-center rounded-full border ${styles.icon}`}>
             <Icon size={18} strokeWidth={1.9} />
@@ -1614,58 +1628,81 @@ function OrderChoiceBanner({
           </span>
         </div>
 
-        <h3 className={`mt-5 font-display text-[1.55rem] font-bold leading-[1.02] md:text-[1.7rem] ${styles.title}`}>
+        <h3
+          className={`mt-5 font-display font-bold leading-[1.02] ${styles.title} ${
+            isCustom ? "text-[1.6rem] md:text-[1.78rem]" : "text-[1.5rem] md:text-[1.65rem]"
+          }`}
+        >
           {title}
         </h3>
 
-        <p className={`mt-3 max-w-[29ch] text-[12px] leading-[1.55] md:text-[12.5px] ${styles.text}`}>
+        <p
+          className={`mt-3 text-[12px] leading-[1.58] md:text-[12.5px] ${styles.text} ${
+            isCustom ? "max-w-[25ch]" : "max-w-[31ch]"
+          }`}
+        >
           {text}
         </p>
 
-        <div className="mt-5 flex max-w-[250px] flex-col gap-2">
-          {chips.map((chip) => (
+        <div className={`${isCustom ? "mt-6 space-y-2" : "mt-5 flex flex-wrap gap-2"}`}>
+          {chips.map((chip, index) => (
             <span
               key={chip}
-              className={`w-fit rounded-full border px-3 py-1.5 text-[10px] font-bold ${styles.chip}`}
+              className={`${
+                isCustom
+                  ? "flex w-fit max-w-[220px] items-center gap-2 rounded-full border px-3.5 py-2 text-[10px] font-bold"
+                  : "inline-flex w-fit rounded-full border px-3 py-1.5 text-[10px] font-bold"
+              } ${styles.chip} ${isCustom && index === 2 ? "opacity-80" : ""}`}
             >
+              {isCustom && index < 2 && (
+                <span className="grid size-5 place-items-center rounded-full border border-current/20">
+                  {index === 0 ? <Sparkles size={11} /> : <ShoppingBag size={11} />}
+                </span>
+              )}
               {chip}
             </span>
           ))}
         </div>
       </div>
 
-      <div className="absolute inset-y-0 right-0 w-[55%] overflow-hidden">
-        {image ? (
+      {image && (
+        <div
+          className={`pointer-events-none absolute z-10 ${
+            isCustom
+              ? "inset-y-0 right-0 w-[58%]"
+              : "bottom-0 right-[-4%] h-[62%] w-[79%]"
+          }`}
+          style={{
+            WebkitMaskImage: isCustom
+              ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
+              : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
+            maskImage: isCustom
+              ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
+              : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
+          }}
+        >
           <img
             src={image}
             alt=""
-            className={`absolute h-[78%] w-[115%] max-w-none object-cover transition duration-500 group-hover:scale-[1.035] ${
-              tone === "personalizada"
-                ? "bottom-0 right-[-12%] object-center"
-                : "bottom-0 right-[-8%] rounded-tl-[45%] object-center"
+            className={`h-full w-full max-w-none object-cover transition duration-500 group-hover:scale-[1.035] ${
+              isCustom ? "object-center" : "object-[55%_52%]"
             }`}
           />
-        ) : (
-          <div className="absolute inset-0 grid place-items-center opacity-20">
-            <Icon size={70} />
-          </div>
-        )}
+        </div>
+      )}
 
-        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${styles.vignette}`} />
-
-        {secondaryImage && (
-          <div className="absolute bottom-5 right-4 size-[74px] overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
-            <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
-          </div>
-        )}
-      </div>
+      {secondaryImage && !isCustom && (
+        <div className="pointer-events-none absolute bottom-4 right-4 z-20 size-[76px] overflow-hidden rounded-2xl border-[3px] border-white bg-white shadow-lg">
+          <img src={secondaryImage} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
 
       <button
         type="button"
         onClick={onClick}
         aria-label={action}
         title={action}
-        className={`absolute right-4 top-4 z-30 grid size-11 place-items-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,.12)] transition duration-200 hover:scale-105 ${styles.arrow}`}
+        className={`absolute right-4 top-4 z-40 grid size-11 place-items-center rounded-full shadow-[0_6px_16px_rgba(0,0,0,.12)] transition duration-200 hover:scale-105 ${styles.arrow}`}
       >
         <ArrowRight size={21} strokeWidth={2.2} />
       </button>
@@ -1673,7 +1710,7 @@ function OrderChoiceBanner({
       <button
         type="button"
         onClick={onClick}
-        className="absolute inset-0 z-10 cursor-pointer"
+        className="absolute inset-0 z-30 cursor-pointer"
         aria-label={action}
       >
         <span className="sr-only">{action}</span>
