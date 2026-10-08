@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HomeInfoModal } from "@/components/home-info-modal";
+import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { CartSheet } from "./cart-sheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -272,7 +273,9 @@ export function SiteHeader() {
           ) : (
             <Link
               to="/auth"
-              search={{ redirect: location.pathname + location.searchStr + (location.hash ? `#${location.hash}` : ""), confirmed: false }}
+              search={{ redirect: location.pathname === "/auth"
+                ? commerceReturnPath((location.search as Record<string, unknown>).redirect)
+                : location.pathname + location.searchStr + (location.hash ? `#${location.hash}` : ""), confirmed: false }}
               aria-label="Entrar ou criar conta"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
             >
