@@ -1051,34 +1051,61 @@ function Index() {
               </div>
 
               <div className="p-4">
-                <p className="text-center text-[13px] font-extrabold leading-snug text-[#173a2d]">
-                  Quanto mais você compra,<br />mais você economiza.
-                </p>
+                <div className="rounded-2xl border border-[#f0df9e] bg-[linear-gradient(135deg,#fff8d7_0%,#fffdf4_100%)] px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f6d83d] text-[#174229] shadow-sm">
+                      <BadgeDollarSign size={17} />
+                    </span>
+                    <div>
+                      <p className="text-[12px] font-extrabold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
+                      <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#6a715d]">
+                        O desconto entra automaticamente conforme a quantidade.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                <div className="mt-4 space-y-2">
+                <div className="relative mt-4 space-y-2.5">
+                  <div className="absolute bottom-4 left-[17px] top-4 w-px bg-[#dce7d3]" />
                   {COMBO_RULES.map((rule, index) => (
                     <div
                       key={rule.min}
-                      className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
-                        index === 0
-                          ? "bg-[#f6f8ed]"
-                          : index === 1
-                            ? "bg-[#edf5e6]"
-                            : "bg-[#e3f0d9]"
-                      }`}
+                      className="relative z-10 flex items-center gap-3 rounded-xl border border-[#e2e9dd] bg-[#fbfcf9] px-3 py-2.5"
                     >
-                      <span className="text-[12px] font-extrabold text-[#315c46]">
-                        {rule.min} marmitas
+                      <span
+                        className={`grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-black shadow-sm ${
+                          index === 0
+                            ? "bg-[#f6d83d] text-[#174229]"
+                            : index === 1
+                              ? "bg-[#a8bf52] text-white"
+                              : "bg-[#78922f] text-white"
+                        }`}
+                      >
+                        {rule.min}
                       </span>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#075636] shadow-sm">
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11.5px] font-extrabold text-[#315c46]">
+                          {rule.min} marmitas
+                        </p>
+                        <p className="text-[9.5px] text-[#7a897f]">
+                          {index === 0
+                            ? "Primeira faixa de economia"
+                            : index === 1
+                              ? "Economize ainda mais"
+                              : "Melhor faixa disponível"}
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#075636] shadow-sm ring-1 ring-[#dce5d5]">
                         {rule.badge}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-4 rounded-xl bg-[#075636] px-3 py-3 text-white">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-white/65">São Bento do Sul</p>
+                <div className="mt-4 rounded-xl bg-[#78922f] px-3 py-3 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-white/75">São Bento do Sul</p>
                   <p className="mt-1 text-[11px] font-extrabold leading-relaxed">
                     Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
                   </p>
