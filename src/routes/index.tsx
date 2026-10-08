@@ -143,7 +143,7 @@ function InstagramFeedSection() {
         </div>
 
         <div className="overflow-hidden rounded-[1.55rem] border border-[#e5e1d4] bg-white shadow-sm">
-          <div className="h-[430px] overflow-hidden p-2 sm:h-[420px] md:h-[400px] md:p-3">
+          <div className="h-[442px] overflow-hidden p-2 sm:h-[432px] md:h-[412px] md:p-3">
             <div className="sk-instagram-feed" data-embed-id="25718106"></div>
           </div>
         </div>
@@ -816,7 +816,7 @@ function Index() {
                         key={`hero-legend-${feature.label}`}
                         className="flex min-w-0 items-center gap-3 text-[#315c46]"
                       >
-                        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#eaf3e3] text-[#075636] md:size-12">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#075636] text-[#f7f5ed] md:size-12">
                           <Icon size={22} strokeWidth={1.9} />
                         </span>
                         <span className="min-w-0 leading-[1.2]">
@@ -1076,11 +1076,11 @@ function Index() {
                     {COMBO_RULES.map((rule) => <div key={rule.min} className="rounded-xl bg-white/80 px-1 py-2"><p className="text-sm text-[#607168]">{rule.min} marmitas</p><p className="mt-1 font-semibold text-[#075636]">{rule.badge}</p></div>)}
                   </div>
                 </div>
-                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#dce5d5] bg-[#f5f8f1] p-3">
+                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#ecdfa9] bg-[#fff7d6] p-3">
                   <BadgeDollarSign size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Cashback</p><p className="text-sm text-[#607168]">Ganhe cashback para a próxima compra.</p></div>
                 </div>
-                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#dce5d5] bg-[#f5f8f1] p-3">
+                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#f0e5ba] bg-[#fffbed] p-3">
                   <Gift size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
@@ -1472,7 +1472,7 @@ function Index() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#dce7d5] bg-white/70 px-3 py-2 text-sm text-[#315440]">
                   <span className="font-semibold">Legenda</span>
-                  <span className="inline-flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-white text-primary shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
+                  <span className="inline-flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
                   <span className="inline-flex items-center gap-2"><img src="/selo-sem-gluten.png" alt="" className="size-6" />Sem glúten</span>
                   <span className="inline-flex items-center gap-2"><img src="/selo-sem-lactose.png" alt="" className="size-6" />Sem lactose</span>
                 </div>

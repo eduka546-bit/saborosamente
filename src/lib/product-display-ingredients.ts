@@ -40,6 +40,9 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
     else if (key === "massa lasanha" || key === "massa de lasanha") continue;
     else if (code === "SO12" && key.startsWith("tilapia")) text = "Tilápia";
     else if ((code === "TD19" || code === "TD20") && (key === "agua" || key === "agua mineral")) text = "Água mineral";
+    if (/^carne bovina|^carne de boi|^carne de patinho|^carne bovina em cubos pequenos/.test(normalize(text))) text = "Carne de patinho";
+    else if (/^carne moida(?: de patinho)?$/.test(normalize(text))) text = "Carne moída de patinho";
+    else if (/^carne desfiada(?: de patinho)?$/.test(normalize(text))) text = "Carne de patinho desfiada";
     add(text);
   }
   if (["TD01", "TD28", "CO06"].includes(code || "")) add("Molho madeira");
@@ -50,5 +53,5 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
 }
 
 export function withDisplayIngredients<T extends { nome?: string; ingredientes?: unknown }>(product: T) {
-  return { ...product, ingredientes: displayIngredients(product) };
+  return { ...product, nome: product.nome?.replace(/alcatra/gi, "Patinho").replace(/carne bovina/gi, "Carne de patinho").replace(/carne moída(?! de patinho)/gi, "Carne moída de patinho"), ingredientes: displayIngredients(product) };
 }

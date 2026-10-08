@@ -442,7 +442,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
             <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10 cursor-pointer" />
             {isHighProteinFlavor(product) && (
-              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-[22px] cursor-default place-items-center rounded-full bg-white/95 text-primary shadow">
+              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-[22px] cursor-default place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow">
                 <Dumbbell size={14} />
                 <span className="pointer-events-none absolute left-0 top-full mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/protein:block group-focus-visible/protein:block">Alta proteína</span>
               </button>
@@ -490,7 +490,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 pt-3 sm:p-4 [container-type:inline-size]">
             <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
               <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{displayName}</button>
             </h3>
@@ -521,7 +521,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             ) : null}
 
             {currentNutritional?.kcal != null && (
-              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex cursor-pointer items-center justify-start gap-2 whitespace-nowrap text-xs font-normal text-[#315440] hover:text-primary">
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex w-full min-w-0 cursor-pointer items-center justify-between gap-1 whitespace-nowrap text-[clamp(8px,4.8cqw,12px)] font-normal text-[#315440] hover:text-primary">
                 <span>{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                 {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
@@ -529,7 +529,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
 
             {simplificarIngredientesCard(product.ingredientes) && (
-              <button type="button" onClick={openInformation} className="cursor-pointer text-left text-sm leading-relaxed text-muted-foreground hover:text-primary">
+              <button type="button" onClick={openInformation} className="w-full min-w-0 cursor-pointer text-justify text-sm leading-relaxed text-muted-foreground hover:text-primary">
                 {simplificarIngredientesCard(product.ingredientes)}
               </button>
             )}
