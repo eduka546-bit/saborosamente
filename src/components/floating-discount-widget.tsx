@@ -1,16 +1,19 @@
-import { useCart } from "@/lib/cart";
+import { RULES, useCart } from "@/lib/cart";
 import { ShoppingBag } from "lucide-react";
-import { formatBRL } from "@/lib/products";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
-  const { count, discount } = useCart();
-  const next = [5, 10, 20].find((minimum) => count < minimum);
-  const message = count === 0 ? "Desconto em 5+" : next ? `Faltam ${next - count} para ${next}+` : "Melhor faixa ativa";
+  const { count } = useCart();
+  const next = RULES.PROGRESSIVE_DISCOUNT.find((tier) => count < tier.min);
+  const current = [...RULES.PROGRESSIVE_DISCOUNT].reverse().find((tier) => count >= tier.min);
+  const percentage = Math.round((next?.discount ?? current?.discount ?? 0) * 100);
+  const title = `Desconto de ${percentage}%`;
+  const detail = next ? `em +${next.min - count}un` : "Faixa máxima ativa";
+  const message = `${title} ${detail}`;
   return (
       <button type="button" onClick={onClick} aria-label={`Abrir carrinho. ${message}`} className="fixed bottom-24 right-4 z-50 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/95 py-2 pl-3 pr-2 text-primary shadow-md backdrop-blur">
         <span className="flex flex-col text-left text-xs font-medium leading-snug">
-          <span>{message}</span>
-          {discount > 0 && <span className="text-[12px]">Economia {formatBRL(discount)}</span>}
+          <span>{title}</span>
+          <span>{detail}</span>
         </span>
         <span className="relative grid size-9 place-items-center rounded-full bg-primary text-white">
           <ShoppingBag size={18} />

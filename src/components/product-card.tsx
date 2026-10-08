@@ -442,8 +442,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
             <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10 cursor-pointer" />
             {isHighProteinFlavor(product) && (
-              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-[22px] cursor-default place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow">
-                <Dumbbell size={14} />
+              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-7 sm:size-[22px] cursor-default place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow">
+                <Dumbbell className="size-[18px] sm:size-[14px]" />
                 <span className="pointer-events-none absolute left-0 top-full mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm text-foreground shadow group-hover/protein:block group-focus-visible/protein:block">Alta proteína</span>
               </button>
             )}
@@ -457,13 +457,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Glúten"
                     title="Sem Glúten"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-7 sm:size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-gluten.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-7 sm:size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Glúten</span>
                   </button>
@@ -474,13 +474,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Lactose"
                     title="Sem Lactose"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-7 sm:size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-lactose.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-7 sm:size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Lactose</span>
                   </button>
@@ -497,7 +497,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
             {/* Seletor de peso */}
             {weights.length > 1 ? (
-              <div className="flex min-h-7 items-center gap-1.5">
+              <div className="flex min-h-7 items-center justify-center gap-1.5">
                 {weights.map((w) => (
                   <button
                     key={w}
@@ -521,7 +521,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             ) : null}
 
             {currentNutritional?.kcal != null && (
-              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex min-h-7 w-full min-w-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap text-[12px] leading-4 font-medium text-[#315440] hover:text-primary">
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex min-h-7 w-full min-w-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap text-[12px] leading-4 font-semibold text-[#086e45] hover:text-primary">
                 <span className="shrink-0">{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                 {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}

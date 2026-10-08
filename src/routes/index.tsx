@@ -116,7 +116,7 @@ function InstagramFeedSection() {
   }, []);
 
   return (
-    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-6 md:py-8">
+    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-4 md:py-5">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
@@ -846,7 +846,7 @@ function Index() {
 
       <section className="bg-[#fbfaf5] py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-4 text-center">
+          <div className="mb-3 text-center">
             <div className="mx-auto flex max-w-xl items-center justify-center gap-3">
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
               <p className="font-sans text-sm font-semibold uppercase tracking-[0.14em] text-[#315c46] sm:text-sm">
@@ -857,12 +857,12 @@ function Index() {
             <h2 className="mt-2 font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
               Como funciona
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-[#6a7a71] md:text-base">
+            <p className="mx-auto mt-1.5 max-w-xl text-base leading-relaxed text-[#6a7a71] md:text-base">
               Do seu pedido à sua mesa, sem complicação.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-4">
             {[
               {
                 icon: ShoppingCart,
@@ -905,7 +905,7 @@ function Index() {
               return (
                 <div
                   key={step.title}
-                  className={`group relative min-h-[160px] overflow-hidden rounded-[1.45rem] border p-4 shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] ${step.card}`}
+                  className={`group relative min-h-[160px] w-[82%] shrink-0 snap-start overflow-hidden sm:w-auto rounded-[1.45rem] border p-4 shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] ${step.card}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>

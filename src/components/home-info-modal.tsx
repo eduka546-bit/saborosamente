@@ -648,7 +648,7 @@ function StoreContent() {
               <MapPin size={17} />
             </span>
             <span>
-              <strong className="block text-sm text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
+              <strong className="block text-lg font-semibold text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
               <span className="mt-0.5 block text-base leading-relaxed text-[#607168]">
                 Progresso — São Bento do Sul/SC · CEP 89281-060
               </span>
@@ -663,7 +663,7 @@ function StoreContent() {
               <Clock3 size={17} />
             </span>
             <span>
-              <strong className="block text-sm text-[#173a2d]">Horário da loja</strong>
+              <strong className="block text-lg font-semibold text-[#173a2d]">Horário da loja</strong>
               <span className="mt-0.5 block text-base leading-relaxed text-[#607168]">
                 Seg–Sex 9h30–19h · Sáb 9h30–13h
               </span>
@@ -718,16 +718,16 @@ function DiscountContent() {
             <div
               className={
                 index === 2
-                  ? "mx-auto grid size-11 place-items-center rounded-full bg-[#075636] text-sm font-semibold text-white shadow-sm"
+                  ? "mx-auto grid size-11 place-items-center rounded-full bg-[#075636] text-base font-semibold text-white shadow-sm"
                   : index === 1
-                    ? "mx-auto grid size-11 place-items-center rounded-full bg-[#91b93a] text-sm font-semibold text-white shadow-sm"
-                    : "mx-auto grid size-11 place-items-center rounded-full bg-[#f6d83d] text-sm font-semibold text-[#174229] shadow-sm"
+                    ? "mx-auto grid size-11 place-items-center rounded-full bg-[#91b93a] text-base font-semibold text-white shadow-sm"
+                    : "mx-auto grid size-11 place-items-center rounded-full bg-[#f6d83d] text-base font-semibold text-[#174229] shadow-sm"
               }
             >
               {tier.qty}
             </div>
-            <p className="mt-2 text-sm font-semibold text-[#173a2d]">{tier.title}</p>
-            <p className="mt-0.5 text-sm leading-snug text-[#6b7a72]">{tier.text}</p>
+            <p className="mt-2 text-base font-semibold text-[#173a2d]">{tier.title}</p>
+            <p className="mt-0.5 text-base leading-snug text-[#6b7a72]">{tier.text}</p>
           </div>
         ))}
       </div>
@@ -738,7 +738,7 @@ function DiscountContent() {
             <ShoppingBag size={18} />
           </span>
           <div>
-            <p className="text-sm font-semibold text-[#173a2d]">Desconto progressivo automático</p>
+            <p className="text-base font-semibold text-[#173a2d]">Desconto progressivo automático</p>
             <p className="mt-1 text-base leading-relaxed text-[#607168]">
               Não precisa de código: ao aumentar a quantidade do pedido, o site aplica a faixa correspondente automaticamente.
             </p>
@@ -746,14 +746,14 @@ function DiscountContent() {
         </div>
       </div>
 
-      <div className="rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
+      <a href="/perfil#cashback" className="block rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
         <h3 className="text-lg font-semibold text-[#075636]">Cashback</h3>
         <p className="mt-1 text-base leading-relaxed text-[#607168]">Após a entrega do pedido, o cashback é creditado na sua conta para usar como desconto em uma próxima compra. Entre na sua conta para consultar o saldo, a validade e as condições de uso; no fechamento do pedido você pode aplicar o saldo disponível.</p>
-      </div>
-      <div className="rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
+      </a>
+      <a href="/indicar" className="block rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
         <h3 className="text-lg font-semibold text-[#075636]">Indique e Ganhe</h3>
         <p className="mt-1 text-base leading-relaxed text-[#607168]">Entre na sua conta e abra Indique e Ganhe para compartilhar seu link. Seu amigo ganha 5% na primeira compra e, quando esse pedido for entregue, você recebe R$ 5,00 de cashback.</p>
-      </div>
+      </a>
     </>
   );
 }
