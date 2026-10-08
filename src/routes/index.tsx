@@ -1113,7 +1113,7 @@ function Index() {
               text="Combos Prontos para facilitar na correria, separados especialmente pra você"
               action="Ver Combos"
               chips={["5, 10 ou 20 marmitas"]}
-              image={comboReadyImage}
+              image="/combos-trio.webp"
               tone="ready"
               onClick={abrirCombosProntos}
             />
@@ -1795,7 +1795,9 @@ function OrderChoiceBanner({
           className={`pointer-events-none absolute z-10 ${
             isCustom
               ? "inset-y-0 right-0 w-[58%]"
-              : "bottom-0 right-[-4%] h-[62%] w-[79%]"
+              : tone === "ready"
+                ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
+                : "bottom-0 right-[-4%] h-[62%] w-[79%]"
           }`}
           style={{
             WebkitMaskImage: isCustom
@@ -1810,7 +1812,7 @@ function OrderChoiceBanner({
             src={image}
             alt=""
             className={`h-full w-full max-w-none object-cover transition duration-500 group-hover:scale-[1.035] ${
-              isCustom ? "object-center" : "object-[55%_52%]"
+              isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-[55%_52%]"
             }`}
           />
         </div>
