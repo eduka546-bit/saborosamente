@@ -1125,7 +1125,7 @@ function Index() {
               text="Monte seu combo como quiser, quanto mais comprar, mais desconto tem!"
               action="Montar Combo"
               chips={["Desconto automático"]}
-              image="/monte-combo-transparent.webp"
+              image="/monte-combo-horizontal.webp"
               tone="combo"
               onClick={() => setComboModalOpen(true)}
             />
@@ -1796,7 +1796,7 @@ function OrderChoiceBanner({
               ? "inset-y-0 right-0 w-[58%]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
-                : "bottom-[-12%] right-[-8%] h-[85%] w-[85%]"
+                : "bottom-[-2%] right-[-3%] h-[43%] w-[98%]"
           }`}
           style={{
             WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
