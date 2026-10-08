@@ -26,7 +26,7 @@ export const Route = createFileRoute("/produto/$id")({
       ? {
           id: product.id,
           nome: product.nome,
-          descricao: product.descricao,
+          descricao: `Veja ingredientes, tamanhos e informações nutricionais de ${product.nome}.`,
           imagem: imgUrl(product.imagem_url || product.imagem),
         }
       : null;
@@ -422,16 +422,12 @@ function ProdutoPage() {
               </span>
             </div>
 
-            {/* Descrição */}
-            {product.descricao && (
-              <p className="text-muted-foreground leading-relaxed">{product.descricao}</p>
-            )}
           </div>
 
           {/* Tamanhos */}
           {weights.length > 1 && (
             <div>
-              <h3 className="text-base font-semibold text-foreground mb-3 tracking-normal">
+              <h3 className="text-lg font-semibold text-[#075636] mb-3 tracking-normal">
                 Escolha o tamanho:
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -460,7 +456,7 @@ function ProdutoPage() {
           {ehMarmita && (
             <div className="space-y-3">
               <div>
-                <h3 className="text-base font-semibold text-foreground mb-3 tracking-normal">
+                <h3 className="text-lg font-semibold text-[#075636] mb-3 tracking-normal">
                   Como você quer receber?
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -515,36 +511,32 @@ function ProdutoPage() {
 
           {Array.isArray(product.ingredientes) && product.ingredientes.length > 0 && (
             <section className="space-y-2">
-              <h3 className="text-lg font-semibold text-primary-dark">Ingredientes</h3>
+              <h3 className="text-lg font-semibold text-[#075636]">Ingredientes</h3>
               <p className="text-base leading-relaxed text-muted-foreground">{product.ingredientes.join(", ")}</p>
             </section>
           )}
-          {/* Tabela Nutricional */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-primary-dark tracking-normal">
-              Valor Nutricional
-            </h3>
-            <div className="grid grid-cols-1 gap-4 rounded-xl bg-muted/50 p-4">
-              <div>
-                {currentNutritional?.kcal ? (
-                  <div className="flex items-center justify-center gap-2 whitespace-nowrap text-base">
-                    <span className="font-semibold text-primary">{currentNutritional.kcal} KCAL</span>
-                    {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
-                    {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
-                  </div>
-                ) : (
-                  <span className="text-base text-muted-foreground italic">
-                    Consulte a embalagem para detalhes
-                  </span>
-                )}
+          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
+            <section>
+              <h3 className="text-lg font-semibold text-[#075636]">Valor Nutricional</h3>
+              <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
+                {currentNutritional?.kcal ? <>
+                  <span className="font-semibold text-primary">{currentNutritional.kcal} KCAL</span>
+                  <span>{currentNutritional.prot}g PROT</span>
+                  <span>{currentNutritional.carb}g CARB</span>
+                </> : <span>Consulte a embalagem para detalhes</span>}
               </div>
-              <div>
-                <h4 className="text-lg font-semibold text-primary-dark mb-2">Restrições</h4>
-                <p className="text-base text-muted-foreground">
-                  Glúten: {product.sem_gluten ? "não contém" : "contém"} · Lactose: {product.sem_lactose ? "não contém" : "contém"}
+            </section>
+            <section>
+              <h3 className="text-lg font-semibold text-[#075636]">Restrições</h3>
+              <div className="mt-1 space-y-1 text-base text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-2"><strong>Glúten:</strong> {product.sem_gluten ? "não contém" : "contém"}
+                  {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
+                </p>
+                <p className="flex flex-wrap items-center gap-2"><strong>Lactose:</strong> {product.sem_lactose ? "não contém" : "contém"}
+                  {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
                 </p>
               </div>
-            </div>
+            </section>
           </div>
 
           {/* Preço e CTA */}

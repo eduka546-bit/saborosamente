@@ -503,7 +503,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
           <div className="flex min-w-0 flex-1 flex-col p-6 md:overflow-y-auto">
             <DialogHeader className="mb-4">
               <div className="flex items-start justify-between gap-3 pr-8">
-                <DialogTitle className="text-2xl font-semibold text-primary-dark">
+                <DialogTitle className="text-2xl font-semibold text-[#075636]">
                   {product.tipo_produto === "complemento" ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome}
                 </DialogTitle>
                 <button
@@ -521,14 +521,14 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             <div className="mb-6 space-y-4 text-base text-muted-foreground">
               {ingredientesDetalhados && (
                 <div>
-                  <h4 className="mb-1 text-lg font-semibold text-primary-dark">Ingredientes</h4>
+                  <h4 className="mb-1 text-lg font-semibold text-[#075636]">Ingredientes</h4>
                   <p className="leading-relaxed">{ingredientesDetalhados}</p>
                 </div>
               )}
 
               <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2 rounded-2xl bg-muted/50 p-4">
                 <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-primary-dark">
+                  <h4 className="text-lg font-semibold tracking-normal text-[#075636]">
                     Valor Nutricional
                   </h4>
                   <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
@@ -546,7 +546,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-primary-dark">
+                  <h4 className="text-lg font-semibold tracking-normal text-[#075636]">
                     Restrições
                   </h4>
                   <div className="mt-1 flex flex-col gap-1 text-base text-muted-foreground">
@@ -564,7 +564,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
               {weights.length > 1 && (
                 <div>
-                  <h4 className="mb-2 text-lg font-semibold text-primary-dark">Escolha o tamanho:</h4>
+                  <h4 className="mb-2 text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
                   <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
                     {weights.map((w: string) => {
                       const nutrition = nutritionalForWeight(w);
@@ -598,7 +598,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                             {formatBRL(price)}
                           </span>
                           {nutrition?.kcal != null && (
-                            <span className="mt-1 flex flex-wrap justify-center gap-1 text-sm font-normal leading-tight text-muted-foreground">
+                            <span className="mt-1 flex justify-center gap-1 whitespace-nowrap text-[12px] font-medium leading-tight text-[#075636]">
                               <span>{nutrition.kcal} KCAL</span>
                               {nutrition?.prot != null && <><span aria-hidden="true">•</span><span>{nutrition.prot}g PROT</span></>}
                               {nutrition?.carb != null && <><span aria-hidden="true">•</span><span>{nutrition.carb}g CARB</span></>}
@@ -625,7 +625,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               {ehMarmita && (
                 <div className="space-y-3">
                   <div>
-                    <h4 className="mb-2 text-lg font-semibold text-primary-dark">Como você quer receber?</h4>
+                    <h4 className="mb-2 text-lg font-semibold text-[#075636]">Como você quer receber?</h4>
                     <div className="flex gap-2">
                       <button
                         type="button"

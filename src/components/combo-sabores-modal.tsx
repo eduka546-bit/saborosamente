@@ -1,3 +1,4 @@
+import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
  * ComboSaboresModal — Modal de escolha de sabores para combos prontos.
  * O cliente escolhe os sabores (com +/-) até completar a quantidade do combo.
@@ -22,6 +23,7 @@ interface ComboSaboresModalProps {
 }
 
 export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalProps) {
+  const dialogRef = useCommerceDialog(isOpen, onClose);
   const { addComboPronto } = useCart();
   const [selectedWeight, setSelectedWeight] = useState("300g");
   const [sabores, setSabores] = useState<Record<string, number>>({}); // produto_id → qty
@@ -153,7 +155,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl max-h-[100dvh] md:max-h-[90vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Escolha os sabores do combo" className="relative w-full max-w-2xl max-h-[100dvh] md:max-h-[90vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>

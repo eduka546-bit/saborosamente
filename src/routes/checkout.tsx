@@ -391,6 +391,7 @@ function Checkout() {
   const {
     register,
     handleSubmit,
+    getValues,
     setValue,
     reset,
     watch,
@@ -967,6 +968,16 @@ function Checkout() {
       <p className="mt-3 text-base text-muted-foreground">
         Finalize seu pedido em três etapas simples.
       </p>
+
+      {!session && (
+        <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-base text-[#075636]">
+          Para confirmar o pedido, entre ou crie sua conta. Seu carrinho fica salvo.{" "}
+          <button type="button" className="font-semibold underline underline-offset-4" onClick={() => {
+            saveCheckoutDraft(getValues());
+            navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false } });
+          }}>Entrar ou criar conta</button>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         {[

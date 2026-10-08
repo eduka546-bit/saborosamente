@@ -1,3 +1,4 @@
+import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
  * MarmitaPersonalizadaModal
  *
@@ -48,6 +49,7 @@ export function MarmitaPersonalizadaModal({
   grupos,
   config,
 }: MarmitaPersonalizadaModalProps) {
+  const dialogRef = useCommerceDialog(isOpen, onClose);
   const { addCustom } = useCart();
   const [selecoes, setSelecoes] = useState<Record<string, Selecao>>({});
   const [quantidade, setQuantidade] = useState(config.minUnidades);
@@ -180,7 +182,7 @@ export function MarmitaPersonalizadaModal({
     <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Marmita Personalizada" className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>

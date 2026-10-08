@@ -82,7 +82,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       className="size-12 sm:size-16 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-base font-semibold leading-snug text-primary-dark">
+                      <h4 className="text-base font-semibold leading-snug text-[#075636]">
                         {product.nome}
                       </h4>
                       <p className="text-base text-gray-600 font-semibold mt-0.5">
@@ -155,7 +155,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                   <span>-{formatBRL(discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-semibold text-primary-dark">
+              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-semibold text-[#075636]">
                 <span>Total</span>
                 <span>{formatBRL(subtotal - discount)}</span>
               </div>

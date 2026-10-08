@@ -1,3 +1,4 @@
+import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 import { createPortal } from "react-dom";
 import { Gift, X } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
@@ -15,6 +16,7 @@ export function CombosProntosModal({
   products,
   allProducts,
 }: CombosProntosModalProps) {
+  const dialogRef = useCommerceDialog(isOpen, onClose);
   if (!isOpen) return null;
 
   const modal = (
@@ -25,7 +27,7 @@ export function CombosProntosModal({
         aria-hidden="true"
       />
 
-      <div className="relative flex max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] bg-[#fbfaf5] shadow-2xl md:max-h-[92vh] md:rounded-[2rem]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Combos Prontos" className="relative flex max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] bg-[#fbfaf5] shadow-2xl md:max-h-[92vh] md:rounded-[2rem]">
         <div className="flex shrink-0 items-start justify-between gap-4 bg-[#086e45] px-5 py-4 text-white md:px-7 md:py-5">
           <div className="min-w-0">
             <div className="mb-1.5 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-white/75">
@@ -42,7 +44,6 @@ export function CombosProntosModal({
 
           <button
             type="button"
-            aria-label="Fechar modal"
             onClick={onClose}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
             aria-label="Fechar combos prontos"

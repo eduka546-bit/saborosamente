@@ -1,3 +1,4 @@
+import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
  * ComboBuilderModal
  *
@@ -24,6 +25,7 @@ import {
   precoMarmitaPorFaixa,
   precoCheioMarmita,
   faixaPorQuantidade,
+  getComboDiscount,
 } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { imgUrl } from "@/lib/image-proxy";
@@ -56,6 +58,7 @@ interface ComboBuilderModalProps {
 }
 
 export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBuilderModalProps) {
+  const dialogRef = useCommerceDialog(isOpen, onClose);
   const { add } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<ComboItem[]>([]);
@@ -195,10 +198,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
     setSelectedCategory("Todas");
   }
 
-  const nextRule = COMBO_RULES.slice()
-    .reverse()
-    .find((r) => r.min > totalQty);
-  const currentRule = COMBO_RULES.find((r) => totalQty >= r.min);
+  const nextRule = [...COMBO_RULES].sort((a, b) => a.min - b.min).find((r) => r.min > totalQty);
+  const currentRule = getComboDiscount(totalQty);
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">
@@ -206,7 +207,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Monte seu Combo" className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
@@ -228,7 +229,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
         <div className="bg-[#086e45]/5 border-b px-6 py-3 shrink-0">
           <div className="flex items-center gap-6 flex-wrap">
             {COMBO_RULES.slice()
-              .reverse()
+              .sort((a, b) => a.min - b.min)
               .map((rule) => {
                 const active = totalQty >= rule.min;
                 const isCurrent = currentRule?.min === rule.min;
@@ -340,9 +341,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products }: ComboBui
                           <p className="text-base font-semibold text-gray-900 leading-tight">
                             {product.nome}
                           </p>
-                          {product.descricao && (
+                          {Array.isArray(product.ingredientes) && product.ingredientes.length > 0 && (
                             <p className="text-sm text-gray-500 leading-relaxed line-clamp-2 mt-0.5">
-                              {product.descricao}
+                              {product.ingredientes.join(", ")}
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-1">

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { User, Lock, Mail, Phone, Fingerprint, Eye, EyeOff } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
 
 export const Route = createFileRoute("/auth")({
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/auth")({
   }),
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      redirect: (search.redirect as string) || "/",
+      redirect: commerceReturnPath(search.redirect),
       confirmed: search.confirmed === "1" || search.confirmed === true,
     };
   },
@@ -209,7 +210,7 @@ function AuthPage() {
 
         const emailRedirectTo =
           typeof window !== "undefined"
-            ? `${window.location.origin}/auth?confirmed=1`
+            ? `${window.location.origin}/auth?confirmed=1&redirect=${encodeURIComponent(redirect)}`
             : undefined;
         const { data: signupData, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),

@@ -16,7 +16,7 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
   };
 
   if (code === "TD04") {
-    return ["Aipim", "Carne de patinho", "Água", "Tomate", "Cebola", "Sal marinho", "Salsinha", "Alho"];
+    return ["Aipim", "Carne de patinho", "Água", "Tomate", "Cebola", "Sal marinho", "Salsinha", "Alho", "Óleo de girassol"];
   }
 
   for (const raw of ingredients) {
@@ -34,7 +34,7 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
     }
     if (key.startsWith("molho 4 queijos")) continue;
     if (key === "margarina" || key.startsWith("manteiga")) text = "Manteiga";
-    else if (/^oleo (?:de )?(?:soja|girassol)/.test(key)) text = "Óleo de girassol";
+    else if (/^oleo(?: de)? /.test(key)) text = "Óleo de girassol";
     else if (/^sal(?: marinho| mineral| refinado)?$/.test(key)) text = "Sal marinho";
     else if (key === "nhoque" || key === "nhoque de batata") text = "Nhoque de batata";
     else if (key === "massa lasanha" || key === "massa de lasanha") continue;
@@ -49,6 +49,7 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
   if (code === "TD27") ["Mussarela", "Queijo prato", "Catupiry", "Requeijão"].forEach(add);
   if (code === "TD19" || code === "TD20") ["Farinha de trigo", "Água mineral", "Ovo", "Leite"].forEach(add);
   if (code === "SO12") ["Tilápia", "Água", "Sal marinho", "Cebola", "Tomate", "Batata", "Óleo de girassol", "Salsinha"].forEach(add);
+  if (code) add("Óleo de girassol");
   return result;
 }
 

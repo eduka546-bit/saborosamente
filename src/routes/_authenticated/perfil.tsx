@@ -46,12 +46,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      throw redirect({ to: "/auth", search: { redirect: "/perfil", confirmed: false } });
+      throw redirect({ to: "/auth", search: { redirect: location.pathname + location.searchStr + (location.hash ? `#${location.hash}` : ""), confirmed: false } });
     }
     return { session };
   },
