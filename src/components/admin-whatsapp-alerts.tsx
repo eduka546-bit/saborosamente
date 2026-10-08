@@ -6,25 +6,58 @@ const STORAGE_KEY = "saborosamente:whatsapp-alerts";
 const SETTINGS_QUERY_KEY = ["admin-whatsapp-alerts-setting"] as const;
 const SETTINGS_EVENT = "saborosamente:whatsapp-alerts-changed";
 
+type Mensagem = {
+  role?: string;
+  direction?: string;
+  campaign_id?: string;
+  manual?: boolean;
+  source?: string;
+  content?: string;
+  timestamp?: string;
+  whatsapp_message_id?: string;
+};
+
 type Conversa = {
   id: string;
   nome?: string | null;
   telefone?: string | null;
   ultima_msg?: string | null;
-  mensagens?: Array<{ role?: string; direction?: string; campaign_id?: string; content?: string; timestamp?: string }> | null;
+  mensagens?: Mensagem[] | null;
 };
 
-function mensagemAtual(conversa: Conversa) {
-  const ultima = conversa.mensagens?.at(-1);
-  // Apenas mensagens recebidas do cliente geram alertas. Campanhas, mensagens
-  // enviadas pela empresa e alterações de status não são pedidos de atendimento.
-  if (!ultima || ultima.role !== "user" || ultima.campaign_id || ultima.direction === "out") return null;
+function ehMensagemRecebida(mensagem?: Mensagem): boolean {
+  return mensagem?.role === "user" &&
+    mensagem.direction !== "out" &&
+    mensagem.manual !== true &&
+    !mensagem.campaign_id &&
+    !String(mensagem.source ?? "").includes("history");
+}
+
+// A identidade da mensagem depende do evento recebido, NUNCA de ultima_msg.
+// ultima_msg tambem muda ao ENVIAR mensagens e provocava alertas falsos.
+function identificarMensagem(mensagem: Mensagem) {
+  const timestamp = mensagem.timestamp ?? "";
+  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) return null;
   return {
-    role: ultima.role,
-    content: ultima.content || "Nova mensagem",
-    timestamp: ultima.timestamp || conversa.ultima_msg || "",
-    key: `${ultima.timestamp || conversa.ultima_msg || ""}:${ultima.role || ""}:${ultima.content || ""}`,
+    content: mensagem.content || "Nova mensagem",
+    timestamp,
+    key: `${mensagem.whatsapp_message_id ?? ""}:${timestamp}:${mensagem.content ?? ""}`,
   };
+}
+
+function ultimaMensagemRecebida(conversa: Conversa) {
+  const mensagens = conversa.mensagens ?? [];
+  for (let i = mensagens.length - 1; i >= 0; i--) {
+    if (ehMensagemRecebida(mensagens[i])) {
+      return identificarMensagem(mensagens[i]);
+    }
+  }
+  return null;
+}
+
+function novaMensagemRecebida(conversa: Conversa) {
+  const ultima = conversa.mensagens?.at(-1);
+  return ehMensagemRecebida(ultima) && ultima ? identificarMensagem(ultima) : null;
 }
 
 function tocarAlerta(contexto: AudioContext | null) {
@@ -110,8 +143,10 @@ export function AdminWhatsappAlerts() {
         .order("ultima_msg", { ascending: false })
         .limit(100);
       if (!inscrito) return;
+      // Registra tambem o ultimo recebimento de conversas cuja mensagem mais
+      // recente foi enviada pela loja. Um envio nosso nao vira evento novo.
       (data || []).forEach((conversa: Conversa) => {
-        const mensagem = mensagemAtual(conversa);
+        const mensagem = ultimaMensagemRecebida(conversa);
         if (mensagem) mensagensVistas.current.set(conversa.id, mensagem.key);
       });
     };
@@ -124,15 +159,20 @@ export function AdminWhatsappAlerts() {
         { event: "*", schema: "public", table: "whatsapp_conversas" },
         (payload) => {
           const conversa = payload.new as Conversa;
-          const mensagem = mensagemAtual(conversa);
-          if (!mensagem) return;
+          if (!conversa?.id) return;
+          // Atualizacoes do historico, status, nome ou envios nossos nao notificam.
+          // Mesmo que a ultima mensagem RECEBIDA seja de segundos atras, ela nao
+          // deve ser avisada novamente quando o atendente envia uma resposta.
+          const ultimaRecebida = ultimaMensagemRecebida(conversa);
+          if (!ultimaRecebida) return;
           const anterior = mensagensVistas.current.get(conversa.id);
-          mensagensVistas.current.set(conversa.id, mensagem.key);
-          if (anterior === mensagem.key) return;
-          // Evita alertas atrasados em atualizações não relacionadas (inclusive
-          // depois de recarregar o painel durante uma campanha em andamento).
+          mensagensVistas.current.set(conversa.id, ultimaRecebida.key);
+          if (anterior === ultimaRecebida.key) return;
+          const mensagem = novaMensagemRecebida(conversa);
+          if (!mensagem || mensagem.key !== ultimaRecebida.key) return;
+          // Mensagens antigas/sincronizadas nao geram avisos retroativos.
           const instante = Date.parse(mensagem.timestamp);
-          if (!Number.isFinite(instante) || Math.abs(Date.now() - instante) > 5 * 60_000) return;
+          if (!Number.isFinite(instante) || Math.abs(Date.now() - instante) > 2 * 60_000) return;
 
           const remetente = conversa.nome || conversa.telefone || "Cliente";
           tocarAlerta(audioContextRef.current);
