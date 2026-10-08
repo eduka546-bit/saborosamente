@@ -1,64 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ultimaMensagemRecebida, novaMensagemRecebida, type ConversaNotificacao } from "@/lib/whatsapp-notification-rules";
 
 const STORAGE_KEY = "saborosamente:whatsapp-alerts";
 const SETTINGS_QUERY_KEY = ["admin-whatsapp-alerts-setting"] as const;
 const SETTINGS_EVENT = "saborosamente:whatsapp-alerts-changed";
-
-type Mensagem = {
-  role?: string;
-  direction?: string;
-  campaign_id?: string;
-  manual?: boolean;
-  source?: string;
-  content?: string;
-  timestamp?: string;
-  whatsapp_message_id?: string;
-};
-
-type Conversa = {
-  id: string;
-  nome?: string | null;
-  telefone?: string | null;
-  ultima_msg?: string | null;
-  mensagens?: Mensagem[] | null;
-};
-
-function ehMensagemRecebida(mensagem?: Mensagem): boolean {
-  return mensagem?.role === "user" &&
-    mensagem.direction !== "out" &&
-    mensagem.manual !== true &&
-    !mensagem.campaign_id &&
-    !String(mensagem.source ?? "").includes("history");
-}
-
-// A identidade da mensagem depende do evento recebido, NUNCA de ultima_msg.
-// ultima_msg tambem muda ao ENVIAR mensagens e provocava alertas falsos.
-function identificarMensagem(mensagem: Mensagem) {
-  const timestamp = mensagem.timestamp ?? "";
-  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) return null;
-  return {
-    content: mensagem.content || "Nova mensagem",
-    timestamp,
-    key: `${mensagem.whatsapp_message_id ?? ""}:${timestamp}:${mensagem.content ?? ""}`,
-  };
-}
-
-function ultimaMensagemRecebida(conversa: Conversa) {
-  const mensagens = conversa.mensagens ?? [];
-  for (let i = mensagens.length - 1; i >= 0; i--) {
-    if (ehMensagemRecebida(mensagens[i])) {
-      return identificarMensagem(mensagens[i]);
-    }
-  }
-  return null;
-}
-
-function novaMensagemRecebida(conversa: Conversa) {
-  const ultima = conversa.mensagens?.at(-1);
-  return ehMensagemRecebida(ultima) && ultima ? identificarMensagem(ultima) : null;
-}
 
 function tocarAlerta(contexto: AudioContext | null) {
   if (!contexto || contexto.state !== "running") return;
@@ -145,7 +92,7 @@ export function AdminWhatsappAlerts() {
       if (!inscrito) return;
       // Registra tambem o ultimo recebimento de conversas cuja mensagem mais
       // recente foi enviada pela loja. Um envio nosso nao vira evento novo.
-      (data || []).forEach((conversa: Conversa) => {
+      (data || []).forEach((conversa: ConversaNotificacao) => {
         const mensagem = ultimaMensagemRecebida(conversa);
         if (mensagem) mensagensVistas.current.set(conversa.id, mensagem.key);
       });
@@ -158,7 +105,7 @@ export function AdminWhatsappAlerts() {
         "postgres_changes",
         { event: "*", schema: "public", table: "whatsapp_conversas" },
         (payload) => {
-          const conversa = payload.new as Conversa;
+          const conversa = payload.new as ConversaNotificacao;
           if (!conversa?.id) return;
           // Atualizacoes do historico, status, nome ou envios nossos nao notificam.
           // Mesmo que a ultima mensagem RECEBIDA seja de segundos atras, ela nao
