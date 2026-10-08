@@ -23,6 +23,10 @@ import {
   RotateCcw,
   Heart,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  ReceiptText,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSaldo } from "@/lib/cashback";
@@ -56,6 +60,42 @@ export const Route = createFileRoute("/_authenticated/perfil")({
 
 import { useCart } from "@/lib/cart";
 
+
+function orderItemWeight(observacao?: string | null) {
+  const match = String(observacao ?? "").match(/Peso:\s*(200g|300g|400g)/i);
+  return match?.[1] ?? null;
+}
+
+function orderMoney(value: unknown) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function orderStatusLabel(status: unknown) {
+  const value = String(status ?? "").toLowerCase();
+  if (value === "pendente") return "Pendente";
+  if (value === "pagamento_confirmado") return "Confirmado";
+  if (value === "preparando") return "Preparando";
+  if (value === "saiu para entrega") return "Saiu para entrega";
+  if (value === "pronto para retirada") return "Pronto para retirada";
+  if (value === "entregue") return "Entregue";
+  if (value === "cancelado") return "Cancelado";
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "—";
+}
+
+function orderStatusClass(status: unknown) {
+  const value = String(status ?? "").toLowerCase();
+  if (value === "entregue") return "bg-green-50 text-green-700 border-green-200";
+  if (value === "cancelado") return "bg-red-50 text-red-600 border-red-200";
+  if (value === "preparando") return "bg-blue-50 text-blue-700 border-blue-200";
+  if (value === "saiu para entrega") return "bg-indigo-50 text-indigo-700 border-indigo-200";
+  if (value === "pronto para retirada") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (value === "pagamento_confirmado") return "bg-sky-50 text-sky-700 border-sky-200";
+  return "bg-yellow-50 text-yellow-700 border-yellow-200";
+}
+
 function PerfilPage() {
   const { session } = Route.useRouteContext();
   const { add } = useCart();
@@ -73,6 +113,7 @@ function PerfilPage() {
   const [cashbackSaldo, setCashbackSaldo] = useState(0);
   const [cashbackTransacoes, setCashbackTransacoes] = useState<any[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<any[]>([]);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const [profileForm, setProfileForm] = useState({
     nome: "",
@@ -125,11 +166,11 @@ function PerfilPage() {
           ),
         ),
       ];
-      const nomesMap: Record<string, string> = {};
+      const produtosMap: Record<string, any> = {};
       if (produtoIds.length > 0) {
         const prods = await getProductSummaries(produtoIds);
         (prods ?? []).forEach((p: any) => {
-          nomesMap[p.id] = p.nome;
+          produtosMap[p.id] = p;
         });
       }
 
@@ -137,7 +178,10 @@ function PerfilPage() {
         ...pedido,
         itens: (pedido.itens ?? []).map((item: any) => ({
           ...item,
-          produtos: { nome: nomesMap[item.produto_id] ?? "Produto" },
+          produtos: {
+            nome: produtosMap[item.produto_id]?.nome ?? item.nome_item ?? "Produto",
+            imagem_url: produtosMap[item.produto_id]?.imagem_url ?? null,
+          },
         })),
         historico: [],
       }));
@@ -638,55 +682,245 @@ function PerfilPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {orders.map((order) => (
-                  <Card key={order.id} className="overflow-hidden">
-                    <div className="bg-muted/30 px-6 py-4 flex items-center justify-between border-b">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
-                            Pedido
-                          </p>
-                          <p className="font-bold text-primary">#{order.id.slice(0, 8)}</p>
+                {orders.map((order) => {
+                  const isExpanded = expandedOrderId === order.id;
+                  const totalUnits = (order.itens ?? []).reduce(
+                    (sum: number, item: any) => sum + Number(item.quantidade || 0),
+                    0,
+                  );
+                  const itemsSubtotal = (order.itens ?? []).reduce(
+                    (sum: number, item: any) =>
+                      sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0),
+                    0,
+                  );
+                  const entrega = String(order.metodo_entrega ?? "").toLowerCase() === "entrega";
+                  const endereco = [
+                    [order.endereco_rua, order.endereco_numero].filter(Boolean).join(", "),
+                    order.endereco_complemento,
+                    order.endereco_bairro,
+                    order.endereco_cidade,
+                  ].filter(Boolean);
+
+                  return (
+                    <Card key={order.id} className="overflow-hidden">
+                      <div className="bg-muted/30 px-4 py-4 md:px-6 flex items-center justify-between border-b gap-4">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                              Pedido
+                            </p>
+                            <p className="font-bold text-primary">
+                              #{order.id.slice(0, 8).toUpperCase()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                              Data
+                            </p>
+                            <p className="text-sm font-medium">
+                              {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
-                            Data
-                          </p>
-                          <p className="text-sm font-medium">
-                            {new Date(order.created_at).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
                         <span
-                          className={`text-xs font-semibold tracking-normal px-3 py-1 rounded-full border ${
-                            order.status === "Entregue"
-                              ? "bg-green-50 text-green-600 border-green-200"
-                              : order.status === "Cancelado"
-                                ? "bg-red-50 text-red-600 border-red-200"
-                                : "bg-yellow-50 text-yellow-600 border-yellow-200"
-                          }`}
+                          className={`text-xs font-semibold tracking-normal px-3 py-1 rounded-full border ${orderStatusClass(order.status)}`}
                         >
-                          {order.status}
+                          {orderStatusLabel(order.status)}
                         </span>
                       </div>
-                    </div>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-muted-foreground mb-2">
-                            {order.itens?.length} {order.itens?.length === 1 ? "item" : "itens"}
-                          </p>
-                          <div className="flex -space-x-2">
-                            {order.itens?.slice(0, 5).map((item: any) => (
-                              <div
-                                key={item.id}
-                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold"
-                                title={item.produtos?.nome}
-                              >
-                                {item.quantidade}
+
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground">
+                              {totalUnits} {totalUnits === 1 ? "unidade" : "unidades"}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {(order.itens ?? []).length} {(order.itens ?? []).length === 1 ? "produto" : "produtos"} diferentes
+                            </p>
+                            <div className="mt-3 flex -space-x-2">
+                              {(order.itens ?? []).slice(0, 5).map((item: any) => (
+                                item.produtos?.imagem_url ? (
+                                  <img
+                                    key={item.id}
+                                    src={imgUrl(item.produtos.imagem_url)}
+                                    alt={item.produtos?.nome ?? "Produto"}
+                                    title={item.produtos?.nome}
+                                    className="h-9 w-9 rounded-full border-2 border-background object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    key={item.id}
+                                    className="h-9 w-9 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold"
+                                    title={item.produtos?.nome}
+                                  >
+                                    {item.quantidade}
+                                  </div>
+                                )
+                              ))}
+                              {(order.itens ?? []).length > 5 && (
+                                <div className="h-9 min-w-9 px-2 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-[11px] font-bold text-primary">
+                                  +{(order.itens ?? []).length - 5}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                              Total
+                            </p>
+                            <p className="text-lg font-bold">{orderMoney(order.valor_total)}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                          className="mt-4 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-bold text-primary transition hover:bg-primary/10"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ReceiptText size={16} />
+                            {isExpanded ? "Ocultar detalhes" : "Ver detalhes do pedido"}
+                          </span>
+                          {isExpanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-4 space-y-5 border-t pt-4">
+                            <div>
+                              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                Itens do pedido
+                              </p>
+                              <div className="space-y-3">
+                                {(order.itens ?? []).map((item: any) => {
+                                  const peso = orderItemWeight(item.observacao);
+                                  const lineTotal =
+                                    Number(item.quantidade || 0) * Number(item.preco_unitario || 0);
+
+                                  return (
+                                    <div key={item.id} className="flex items-center gap-3">
+                                      {item.produtos?.imagem_url ? (
+                                        <img
+                                          src={imgUrl(item.produtos.imagem_url)}
+                                          alt={item.produtos?.nome ?? "Produto"}
+                                          className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                                        />
+                                      ) : (
+                                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted text-xs font-bold text-muted-foreground">
+                                          {item.quantidade}x
+                                        </div>
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-bold leading-snug text-foreground">
+                                          {item.quantidade}x {item.produtos?.nome ?? item.nome_item ?? "Produto"}
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                          {peso ? `${peso} • ` : ""}
+                                          {orderMoney(item.preco_unitario)} por unidade
+                                        </p>
+                                      </div>
+                                      <span className="shrink-0 text-sm font-bold text-foreground">
+                                        {orderMoney(lineTotal)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ))}
+                            </div>
+
+                            <div className="grid gap-3 rounded-2xl bg-muted/35 p-4 sm:grid-cols-2">
+                              <div className="flex gap-2">
+                                <Truck size={17} className="mt-0.5 shrink-0 text-primary" />
+                                <div>
+                                  <p className="text-xs font-bold text-muted-foreground">
+                                    {entrega ? "Entrega" : "Retirada"}
+                                  </p>
+                                  <p className="text-sm font-semibold">
+                                    {entrega
+                                      ? endereco.length
+                                        ? endereco.join(" - ")
+                                        : "Endereço informado no pedido"
+                                      : "Retirada na loja"}
+                                  </p>
+                                  {order.horario_recebimento && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {order.horario_recebimento}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2">
+                                <CreditCard size={17} className="mt-0.5 shrink-0 text-primary" />
+                                <div>
+                                  <p className="text-xs font-bold text-muted-foreground">
+                                    Pagamento
+                                  </p>
+                                  <p className="text-sm font-semibold capitalize">
+                                    {order.metodo_pagamento || "—"}
+                                    {order.tipo_cartao ? ` • ${order.tipo_cartao}` : ""}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {order.observacao && !/^Cartão:/i.test(String(order.observacao)) && (
+                              <div className="rounded-xl border bg-background p-3">
+                                <p className="text-xs font-bold text-muted-foreground">
+                                  Observações
+                                </p>
+                                <p className="mt-1 text-sm">{order.observacao}</p>
+                              </div>
+                            )}
+
+                            <div className="space-y-2 border-t pt-4 text-sm">
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Produtos</span>
+                                <span>{orderMoney(itemsSubtotal)}</span>
+                              </div>
+                              {Number(order.taxa_entrega || 0) > 0 && (
+                                <div className="flex justify-between text-muted-foreground">
+                                  <span>Taxa de entrega</span>
+                                  <span>{orderMoney(order.taxa_entrega)}</span>
+                                </div>
+                              )}
+                              {order.cupom_codigo && (
+                                <div className="flex justify-between text-green-700">
+                                  <span>Cupom utilizado</span>
+                                  <span className="font-bold">{order.cupom_codigo}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t pt-3 text-base font-black">
+                                <span>Total pago</span>
+                                <span className="text-primary">{orderMoney(order.valor_total)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <Link
+                                to="/pedido/"
+                                search={{ p: order.id.slice(0, 8).toUpperCase() }}
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+                              >
+                                <Truck size={16} />
+                                Acompanhar pedido
+                              </Link>
+                              <Button
+                                onClick={() => handleRepeatOrder(order)}
+                                variant="outline"
+                                className="flex-1 gap-2 border-primary text-primary hover:bg-primary/5"
+                              >
+                                <RotateCcw size={16} />
+                                Repetir pedido
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
                           </div>
                         </div>
                         <div className="text-right">
