@@ -567,49 +567,51 @@ function StoreContent() {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="overflow-hidden rounded-[1.5rem] border border-[#e5e1d4] bg-[#f7f5ed]">
-        <img
-          src="/loja-saborosamente.jpg"
-          alt="Loja física SaborosaMente em São Bento do Sul"
-          className="h-52 w-full object-cover sm:h-60"
-        />
-      </div>
-
-      <div className="grid gap-2.5">
-        <a
-          href={MAPS_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-start gap-3 rounded-2xl border border-[#dde6d7] bg-white px-4 py-3 transition hover:bg-[#f8faf5]"
-        >
-          <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#edf4e7] text-[#075636]">
-            <MapPin size={17} />
-          </span>
-          <span>
-            <strong className="block text-sm text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
-            <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
-              Progresso — São Bento do Sul/SC · CEP 89281-060
+      <div className="grid overflow-hidden rounded-[1.65rem] border border-[#dde6d7] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
+        <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
+          <a
+            href={MAPS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-start gap-3 rounded-2xl border border-[#dde6d7] bg-[#fbfcf9] px-4 py-3 transition hover:bg-[#f8faf5]"
+          >
+            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#edf4e7] text-[#075636]">
+              <MapPin size={17} />
             </span>
-          </span>
-        </a>
-
-        <div className="flex items-start gap-3 rounded-2xl border border-[#dde6d7] bg-white px-4 py-3">
-          <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#edf4e7] text-[#075636]">
-            <Clock3 size={17} />
-          </span>
-          <span>
-            <strong className="block text-sm text-[#173a2d]">Horário da loja</strong>
-            <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
-              Seg–Sex 9h30–19h · Sáb 9h30–13h
+            <span>
+              <strong className="block text-sm text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
+              <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
+                Progresso — São Bento do Sul/SC · CEP 89281-060
+              </span>
             </span>
-          </span>
+          </a>
+
+          <div className="flex items-start gap-3 rounded-2xl border border-[#dde6d7] bg-[#fbfcf9] px-4 py-3">
+            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-[#edf4e7] text-[#075636]">
+              <Clock3 size={17} />
+            </span>
+            <span>
+              <strong className="block text-sm text-[#173a2d]">Horário da loja</strong>
+              <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
+                Seg–Sex 9h30–19h · Sáb 9h30–13h
+              </span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl bg-[#075636] px-4 py-3 text-white">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10">
+              <PackageCheck size={17} />
+            </span>
+            <span className="text-sm font-bold">Encomendas em tempo integral</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-2xl bg-[#075636] px-4 py-3 text-white">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10">
-            <PackageCheck size={17} />
-          </span>
-          <span className="text-sm font-bold">Encomendas em tempo integral</span>
+        <div className="flex min-h-[260px] items-center justify-center bg-[#f7f5ed] p-3 sm:min-h-[310px]">
+          <img
+            src="/loja-saborosamente.jpg"
+            alt="Loja física SaborosaMente em São Bento do Sul"
+            className="h-full max-h-[340px] w-full rounded-[1.35rem] object-contain"
+          />
         </div>
       </div>
     </>
@@ -692,7 +694,7 @@ function DiscountContent() {
 export function HomeInfoModal({ kind, open, onOpenChange }: HomeInfoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-h-[92vh] w-[calc(100%-1.25rem)] gap-4 overflow-y-auto rounded-[1.9rem] border-[#e1e6db] bg-[#fffef9] p-5 shadow-2xl sm:p-6 ${kind === "delivery" ? "max-w-4xl" : "max-w-xl"}`}>
+      <DialogContent className={`max-h-[92vh] w-[calc(100%-1.25rem)] gap-4 overflow-y-auto rounded-[1.9rem] border-[#e1e6db] bg-[#fffef9] p-5 shadow-2xl sm:p-6 ${kind === "delivery" || kind === "store" ? "max-w-4xl" : "max-w-xl"}`}>
         {kind === "delivery" ? (
           <DeliveryContent />
         ) : kind === "store" ? (
