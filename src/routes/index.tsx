@@ -8,6 +8,7 @@ import {
   Calendar,
   ShoppingBag,
   Tag,
+  BadgeDollarSign,
   Sparkles,
   Gift,
   X,
