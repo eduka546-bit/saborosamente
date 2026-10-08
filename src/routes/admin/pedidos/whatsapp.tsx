@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
+import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { toast } from "sonner";
 
@@ -125,6 +126,8 @@ function WhatsappAdminOrderPage() {
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [observacao, setObservacao] = useState("");
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
+  const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
+  const [totalAcumulado, setTotalAcumulado] = useState<number | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
 
   // A lista de clientes é protegida pelas políticas RLS de administradores.
@@ -243,98 +246,64 @@ function WhatsappAdminOrderPage() {
       return;
     }
 
-    const lines = pasteText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const interpretado = interpretarResumoWhatsapp(pasteText);
+    if (interpretado.nome && !selectedCustomer) {
+      setNome(interpretado.nome);
+      // Sugere a conta do cliente sem vinculá-la automaticamente pelo nome.
+      // Ex.: "Marcela Feliski" encontra "Marcela Bastos Feliski".
+      const sobrenome = interpretado.nome.split(/\s+/).at(-1) ?? "";
+      if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
+    }
+    if (interpretado.cidadeSigla === "SBS") setCidade("São Bento do Sul");
 
-    const firstLine = lines.find((line) => /^\*?Pedido\s+/i.test(line));
-    if (firstLine) {
-      const m = firstLine.match(/^\*?Pedido\s+(.+?)(?:\s*-\s*([A-Z]{2,5}))?\s*:??\*?$/i);
-      if (m?.[1] && !selectedCustomer) setNome(m[1].replace(/\*+/g, "").trim());
-      if (m?.[2]?.toUpperCase() === "SBS") setCidade("São Bento do Sul");
+    const faltantes = [...new Set(interpretado.itens
+      .filter((item) => !productsByCode.has(item.codigo))
+      .map((item) => item.codigo))];
+    if (faltantes.length > 0) {
+      setItems([]);
+      toast.error(`Produto(s) não encontrado(s): ${faltantes.join(", ")}. Confira os códigos.`);
+      return;
+    }
+    const quantidadeInterpretada = interpretado.itens.reduce((total, item) => total + item.quantidade, 0);
+    if (quantidadeInterpretada === 0) {
+      setItems([]);
+      toast.error("Não encontrei os sabores. Use 1xTD01 ou 1xTD(1-9-11-16-28).");
+      return;
+    }
+    if (interpretado.quantidadeDeclarada !== null &&
+        quantidadeInterpretada !== interpretado.quantidadeDeclarada) {
+      setItems([]);
+      toast.error(`Foram declaradas ${interpretado.quantidadeDeclarada} refeições, mas os códigos representam ${quantidadeInterpretada}. Confira o resumo.`);
+      return;
     }
 
-    const weightMatch = pasteText.match(/Refei(?:ç|c)[õo]es?\s+(200|300|400)g/i);
-    const parsedWeight = (`${weightMatch?.[1] ?? "300"}g`) as DraftItem["weight"];
-
-    const unitPriceMatch =
-      pasteText.match(/\b\d+\s*x\s*R?\$?\s*([\d.,]+)\s*\/\s*un/i) ??
-      pasteText.match(/\b\d+\s*x\s*([\d.,]+)\s*\/\s*un/i);
-    const parsedUnitPrice = unitPriceMatch ? parseMoney(unitPriceMatch[1]) : null;
-
-    const parsedItems: DraftItem[] = [];
-    const itemRegex = /(\d+)\s*x\s*([A-Z]{2})\s*\(?\s*0?(\d{1,2})\s*\)?/gi;
-    let match: RegExpExecArray | null;
-    while ((match = itemRegex.exec(pasteText)) !== null) {
-      const qty = Number(match[1]);
-      const code = `${match[2].toUpperCase()}${String(Number(match[3])).padStart(2, "0")}`;
-      const product = productsByCode.get(code);
-      if (!product) {
-        toast.error(`Não encontrei ${code} no cardápio atual.`);
-        continue;
-      }
-      parsedItems.push({
+    const novosItens: DraftItem[] = interpretado.itens.map((item) => {
+      const product = productsByCode.get(item.codigo)!;
+      return {
         key: newKey(),
         productId: product.id,
-        quantity: qty,
-        weight: parsedWeight,
-        unitPrice: parsedUnitPrice ?? priceFor(product, parsedWeight),
+        quantity: item.quantidade,
+        weight: interpretado.peso,
+        unitPrice: interpretado.precoUnitario ?? priceFor(product, interpretado.peso),
         observacao: "",
-      });
+      };
+    });
+
+    setItems(novosItens);
+    if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
+    if (interpretado.metodoEntrega) setMetodoEntrega(interpretado.metodoEntrega);
+    if (interpretado.endereco) {
+      setRua(interpretado.endereco.rua);
+      setNumero(interpretado.endereco.numero);
+      setBairro(interpretado.endereco.bairro);
+      setCidade(interpretado.endereco.cidade);
     }
-
-    if (parsedItems.length) setItems(parsedItems);
-    else toast.error("Não encontrei itens no padrão 5xTD(02), 4xTD26 etc.");
-
-    const feeMatch = pasteText.match(/Entrega\s*\/\s*Retirada\s*:\s*R?\$?\s*([\d.,]+)/i);
-    if (feeMatch) setTaxaEntrega(parseMoney(feeMatch[1]));
-
-    const locationMatch = pasteText.match(
-      /Local\s+de\s+Entrega\s*\/\s*Retirada\s*:\s*([^\n\r]+)/i,
-    );
-    if (locationMatch) {
-      const location = locationMatch[1].replace(/\*+/g, "").trim();
-      if (/retirada/i.test(location) && !/\d/.test(location)) {
-        setMetodoEntrega("retirada");
-      } else {
-        setMetodoEntrega("entrega");
-        const parts = location.split(/\s+-\s+/).map((p) => p.trim());
-        const streetPart = parts[0] ?? "";
-        const streetMatch = streetPart.match(/^(.*?),\s*([^,]+)$/);
-        if (streetMatch) {
-          setRua(streetMatch[1].trim());
-          setNumero(streetMatch[2].trim());
-        } else {
-          setRua(streetPart);
-        }
-        if (parts[1]) setBairro(parts[1]);
-        if (parts[2]) setCidade(parts[2]);
-      }
-    }
-
-    const timeMatch = pasteText.match(/Hor[aá]rio\s+de\s+Entrega\s*:\s*([^\n\r]+)/i);
-    if (timeMatch) setHorario(timeMatch[1].replace(/\*+/g, "").trim());
-
-    const paymentMatch = pasteText.match(/Forma\s+de\s+Pagamento\s*:\s*([^\n\r]+)/i);
-    if (paymentMatch) {
-      const value = paymentMatch[1].replace(/\*+/g, "").trim().toLowerCase();
-      if (value.includes("pix")) setPagamento("pix");
-      else if (value.includes("alimenta") || value.includes("refei")) setPagamento("alimentacao");
-      else if (value.includes("mercado")) setPagamento("mercadopago");
-      else if (value.includes("dinheiro")) setPagamento("dinheiro");
-      else setPagamento("cartao");
-    }
-
-    const totalMatches = [...pasteText.matchAll(/R\$\s*([\d.,]+)/gi)];
-    if (totalMatches.length) {
-      setDeclaredTotal(parseMoney(totalMatches[totalMatches.length - 1][1]));
-    } else {
-      const totalMatch = pasteText.match(/Total\s*:[^\n\r]*?=\s*([\d.,]+)/i);
-      if (totalMatch) setDeclaredTotal(parseMoney(totalMatch[1]));
-    }
-
-    toast.success("Pedido interpretado. Confira os dados antes de salvar.");
+    if (interpretado.horario) setHorario(interpretado.horario);
+    if (interpretado.pagamento) setPagamento(interpretado.pagamento);
+    setDeclaredTotal(interpretado.totalPedido);
+    setSaldoAnterior(interpretado.saldoAnterior);
+    setTotalAcumulado(interpretado.totalAcumulado);
+    toast.success(`${quantidadeInterpretada} refeições interpretadas. Confira os dados antes de salvar.`);
   };
 
   const createMutation = useMutation({
@@ -790,6 +759,18 @@ function WhatsappAdminOrderPage() {
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Total informado no WhatsApp</span>
                   <span>{money(declaredTotal)}</span>
+                </div>
+              )}
+              {saldoAnterior !== null && (
+                <div className="flex justify-between text-xs text-amber-700">
+                  <span>Saldo anterior (não somado a este pedido)</span>
+                  <span>{money(saldoAnterior)}</span>
+                </div>
+              )}
+              {totalAcumulado !== null && (
+                <div className="flex justify-between text-sm font-bold text-gray-700">
+                  <span>Total acumulado informado para cobrança</span>
+                  <span>{money(totalAcumulado)}</span>
                 </div>
               )}
             </div>
