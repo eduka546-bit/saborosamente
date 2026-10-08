@@ -2306,11 +2306,15 @@ Deno.serve(async (req: Request) => {
         msg.interactive?.button_reply?.id ??
         identificarOpcaoMenu(msg.text?.body ?? "");
 
-      // Suporte a texto, botão interativo e lista interativa
+      // Suporte a texto, lista interativa, botoes interativos e respostas
+      // rapidas de templates da Meta (type=button, campo button.text).
+      // Sem este campo, respostas de campanhas aparecem como "[button recebido]".
       let texto =
         msg.text?.body ??
         msg.interactive?.button_reply?.title ??
         msg.interactive?.list_reply?.title ??
+        msg.button?.text ??
+        msg.button?.payload ??
         "";
 
       // ── Opt-out de recuperação de carrinho ───────────────────────────────
