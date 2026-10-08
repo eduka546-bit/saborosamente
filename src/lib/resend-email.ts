@@ -209,12 +209,12 @@ export async function sendOrderReceivedEmail(input: OrderReceivedEmailInput) {
   const schedule = scheduleParts.length ? scheduleParts.join(" · ") : "A confirmar";
 
   const html = emailShell({
-    preheader: `Recebemos seu pedido #${protocolo}.`,
-    title: "Pedido recebido!",
+    preheader: `Seu pedido #${protocolo} foi confirmado.`,
+    title: "Pedido confirmado!",
     greeting: firstName(input.nome),
     body:
-      `Recebemos o seu pedido <strong>#${escapeHtml(protocolo)}</strong> com sucesso. ` +
-      "Agora vamos conferir tudo e, assim que estiver confirmado, você será avisado.",
+      `Seu pedido <strong>#${escapeHtml(protocolo)}</strong> foi confirmado com sucesso. ` +
+      "Ele já entrou na nossa fila de preparação e você pode acompanhar as próximas atualizações pelo site.",
     details: [
       { label: "Protocolo", value: `#${protocolo}` },
       { label: "Total", value: money(input.valorTotal) },
@@ -227,10 +227,10 @@ export async function sendOrderReceivedEmail(input: OrderReceivedEmailInput) {
 
   return sendResendEmail({
     to: input.email,
-    subject: `Pedido #${protocolo} recebido | SaborosaMente`,
+    subject: `Pedido #${protocolo} confirmado | SaborosaMente`,
     html,
-    idempotencyKey: `pedido-recebido/${input.orderId}`,
-    category: "pedido_recebido",
+    idempotencyKey: `pedido-confirmado/${input.orderId}`,
+    category: "pedido_confirmado",
     orderId: input.orderId,
   });
 }
