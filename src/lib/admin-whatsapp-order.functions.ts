@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
-import { sendOrderStatusEmail } from "@/lib/resend-email";
+import { sendOrderReceivedEmail } from "@/lib/resend-email";
 
 const itemSchema = z.object({
   productId: z.string().uuid(),
@@ -143,6 +143,19 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       }
     }
 
+    // A conta de login é a fonte confiável do e-mail. O perfil público
+    // não possui coluna email, portanto selecionar um cliente não preenche
+    // automaticamente esse campo na tela do admin.
+    let emailCliente = data.email.trim().toLowerCase();
+    if (linkedUserId) {
+      const { data: linkedAccount, error: accountError } = await supabase.auth.admin.getUserById(linkedUserId);
+      if (accountError || !linkedAccount?.user) {
+        throw new Error("Não foi possível conferir o e-mail da conta vinculada. Tente novamente.");
+      }
+      const registeredEmail = String(linkedAccount.user.email ?? "").trim().toLowerCase();
+      if (registeredEmail.includes("@")) emailCliente = registeredEmail;
+    }
+
     const pItems = data.items.map((item) => ({
       produto_id: item.productId,
       quantidade: item.quantity,
@@ -156,7 +169,7 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
         user_id: linkedUserId,
         nome_cliente: data.nome,
         telefone_cliente: data.telefone || null,
-        email_cliente: data.email || null,
+        email_cliente: emailCliente || null,
         metodo_entrega: data.metodoEntrega,
         horario_recebimento: data.horarioEntrega || null,
         metodo_pagamento: data.pagamento,
@@ -178,23 +191,33 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       throw new Error(error?.message || "Não foi possível registrar o pedido do WhatsApp.");
     }
 
-    const emailCliente = data.email.trim().toLowerCase();
-    if (emailCliente && emailCliente.includes("@")) {
+    // Falha no envio nunca desfaz o pedido que já foi salvo nem gera
+    // uma segunda baixa de estoque. Informa ao atendente o resultado real.
+    let emailStatus: "enviado" | "sem_email" | "falhou" = "sem_email";
+    if (emailCliente.includes("@")) {
       try {
-        await sendOrderStatusEmail({
+        const enviado = await sendOrderReceivedEmail({
           orderId: String((order as any).id),
           email: emailCliente,
           nome: data.nome,
-          status: "pendente",
+          valorTotal: Number((order as any).valor_total),
           metodoEntrega: data.metodoEntrega,
+          faixaHorario: data.horarioEntrega || undefined,
+        });
+        emailStatus = enviado.ok ? "enviado" : "falhou";
+        if (!enviado.ok) console.error("E-mail não foi enviado no pedido manual:", {
+          orderId: String((order as any).id),
+          reason: "reason" in enviado ? enviado.reason : "service_error",
         });
       } catch (emailError) {
-        console.error("Falha ao disparar e-mail do pedido do WhatsApp:", emailError);
+        emailStatus = "falhou";
+        console.error("Falha ao disparar e-mail do pedido manual:", emailError);
       }
     }
 
     return {
       ...(order as any),
       linkedUserId,
+      emailStatus,
     };
   });
