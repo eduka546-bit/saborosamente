@@ -32,8 +32,11 @@ jobs:
             exit 1
           fi
 
-      - name: Auditar dependências
-        run: bun audit --audit-level=high
-
+      # Execute os testes mesmo se houver vulnerabilidades conhecidas.
+      # A auditoria continua obrigatória e pode reprovar o workflow.
       - name: Typecheck, tests and build
         run: bun run check
+
+      - name: Auditar dependências
+        if: success() || failure()
+        run: bun audit --audit-level=high
