@@ -357,7 +357,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto md:overflow-hidden p-0 sm:max-w-4xl lg:max-w-5xl">
+      <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto md:overflow-hidden p-0 sm:max-w-5xl lg:max-w-7xl">
         <div className="flex flex-col md:flex-row min-h-full md:h-[90vh]">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">

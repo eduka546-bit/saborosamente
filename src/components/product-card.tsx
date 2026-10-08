@@ -432,9 +432,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               )}
             />
             {gallery.length > 1 && (
-              <div className="absolute inset-x-2 top-1/2 z-20 flex -translate-y-1/2 justify-between">
-                <button type="button" aria-label="Foto anterior" onClick={() => setImageIndex((i) => (i - 1 + gallery.length) % gallery.length)} className="grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronLeft size={20} /></button>
-                <button type="button" aria-label="Próxima foto" onClick={() => setImageIndex((i) => (i + 1) % gallery.length)} className="grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronRight size={20} /></button>
+              <div className="pointer-events-none absolute inset-x-2 top-1/2 z-20 flex -translate-y-1/2 justify-between">
+                <button type="button" aria-label="Foto anterior" onClick={() => setImageIndex((i) => (i - 1 + gallery.length) % gallery.length)} className="pointer-events-auto grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronLeft size={20} /></button>
+                <button type="button" aria-label="Próxima foto" onClick={() => setImageIndex((i) => (i + 1) % gallery.length)} className="pointer-events-auto grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronRight size={20} /></button>
               </div>
             )}
             <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10" />
