@@ -121,7 +121,7 @@ export function AdminWhatsappAlerts() {
       .channel(`whatsapp-alertas-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "whatsapp_conversas" },
+        { event: "*", schema: "public", table: "whatsapp_conversas" },
         (payload) => {
           const conversa = payload.new as Conversa;
           const mensagem = mensagemAtual(conversa);
