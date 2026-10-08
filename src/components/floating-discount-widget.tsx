@@ -41,11 +41,11 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
         </div>
 
         <div className="flex flex-col min-w-[120px]">
-          <span className="text-xs font-bold text-primary leading-none mb-1 flex items-center gap-1">
+          <span className="text-sm font-semibold text-primary leading-none mb-1 flex items-center gap-1">
             {currentLevel ? `${(currentLevel.discount * 100).toFixed(0)}% OFF ATIVO` : "Seu Pedido"}
           </span>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-bold text-primary-dark">
+            <span className="text-sm font-semibold text-primary-dark">
               {count} {count === 1 ? "item" : "itens"}
             </span>
             <ChevronRight
@@ -54,7 +54,7 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
             />
           </div>
           {nextLevel && (
-            <span className="text-xs font-bold text-accent mt-1">
+            <span className="text-sm font-semibold text-accent mt-1">
               +{nextLevel.min - count} para {(nextLevel.discount * 100).toFixed(0)}% OFF
             </span>
           )}
@@ -64,7 +64,7 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
       {/* Floating indicator for mobile or simple view */}
       <div className="md:hidden bg-primary text-white size-14 rounded-full flex items-center justify-center shadow-xl border-4 border-white relative">
         <ShoppingBag size={20} />
-        <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs font-bold size-5 rounded-full flex items-center justify-center border-2 border-white">
+        <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-sm font-semibold size-5 rounded-full flex items-center justify-center border-2 border-white">
           {count}
         </span>
       </div>

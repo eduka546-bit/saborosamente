@@ -212,8 +212,8 @@ function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-soft">
+    <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-4 py-6">
+      <div className="w-full max-w-md space-y-5 rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-soft">
         <div className="text-center">
           <button
             type="button"
@@ -226,7 +226,7 @@ function AuthPage() {
           >
             {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
           </button>
-          <h2 className="text-2xl font-bold tracking-normal">
+          <h2 className="text-2xl font-semibold tracking-normal">
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -237,7 +237,7 @@ function AuthPage() {
         </div>
 
         {passwordChangeRequired ? (
-          <form onSubmit={handlePasswordChange} className="mt-8 space-y-4">
+          <form onSubmit={handlePasswordChange} className="mt-5 space-y-4">
             <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
               Para proteger sua conta, defina uma senha nova que não seja seu CPF.
             </div>
@@ -264,12 +264,12 @@ function AuthPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
+            <Button type="submit" className="w-full rounded-full py-6 font-semibold" disabled={loading}>
               {loading ? "Salvando..." : "Atualizar senha"}
             </Button>
           </form>
         ) : (
-        <form onSubmit={handleAuth} className="mt-8 space-y-4">
+        <form onSubmit={handleAuth} className="mt-5 space-y-4">
           {!isLogin && (
             <>
               <div className="space-y-2">
@@ -364,7 +364,7 @@ function AuthPage() {
               </button>
             </div>
             {!isLogin && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Use 10 ou mais caracteres, incluindo letra maiúscula, minúscula e número.
               </p>
             )}
@@ -372,7 +372,7 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="text-sm font-semibold text-primary hover:underline"
               >
                 Esqueci minha senha
               </button>
@@ -393,7 +393,7 @@ function AuthPage() {
             </div>
           )}
 
-          <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
+          <Button type="submit" className="w-full rounded-full py-6 font-semibold" disabled={loading}>
             {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
         </form>

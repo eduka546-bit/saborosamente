@@ -317,7 +317,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     add(product.id, 1, selectedWeight);
     toast.success("Adicionado", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
-      className: "max-w-[280px] text-xs font-medium",
+      className: "max-w-[280px] text-sm font-medium",
     });
   };
 
@@ -331,7 +331,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2">
-            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-lg border border-white/40 tracking-normal">
+            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1.5 shadow-lg border border-white/40 tracking-normal">
               <Gift className="size-3.5" />
               Combo
             </div>
@@ -384,27 +384,27 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           <div className="flex flex-1 flex-col gap-3 p-4">
             {/* Category */}
             <div className="flex items-center justify-end">
-              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/40 tracking-normal">
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-sm font-semibold text-white border border-white/40 tracking-normal">
                 {product.categoria}
               </span>
             </div>
 
             <div>
-              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
+              <h3 className="text-base font-semibold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
                 {product.nome}
               </h3>
               {product.descricao && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
                   {product.descricao}
                 </p>
               )}
             </div>
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-xs font-medium text-muted-foreground">
+                <span className="text-sm font-medium text-muted-foreground">
                   A partir de
                 </span>
-                <span className="text-xl font-bold text-primary bg-gradient-brand bg-clip-text text-transparent">
+                <span className="text-xl font-semibold text-primary bg-gradient-brand bg-clip-text text-transparent">
                   {formatBRL(product.preco)}
                 </span>
               </div>
@@ -414,7 +414,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   e.stopPropagation();
                   setComboOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <ShoppingCart className="size-4" /> Montar
               </button>
@@ -468,7 +468,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {commercialBadge && (
               <span
                 className={cn(
-                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-xs font-bold tracking-normal shadow-md",
+                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-sm font-semibold tracking-normal shadow-md",
                   commercialBadge.className,
                 )}
               >
@@ -545,8 +545,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="min-h-[3.15rem] text-[14px] md:text-[15px] font-bold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
+          <div className="flex flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
+            <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
               {product.nome}
             </h3>
 
@@ -562,7 +562,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                       setSelectedWeight(w);
                     }}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-bold tracking-normal transition-all",
+                      "rounded-full border px-3 py-1 text-sm font-medium tracking-normal transition-all",
                       selectedWeight === w
                         ? "border-[#086e45] bg-[#086e45] text-white shadow-sm ring-2 ring-[#086e45]/20 ring-offset-1"
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
@@ -573,13 +573,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 ))}
               </div>
             ) : (
-              <p className="text-xs tracking-normal text-muted-foreground font-bold">
+              <p className="text-sm tracking-normal text-muted-foreground font-semibold">
                 {product.peso}
               </p>
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-xs font-bold">
+              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-sm font-medium">
                 <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
                   {currentNutritional.kcal} kcal
                 </span>
@@ -600,21 +600,21 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
                 {selectedWeight && (
-                  <span className="text-xs font-medium text-gray-500">
+                  <span className="text-sm font-medium text-gray-500">
                     {selectedWeight}
                   </span>
                 )}
                 {temDescontoAtivo ? (
                   <>
-                    <span className="text-xs font-bold text-gray-400 line-through leading-none">
+                    <span className="text-sm font-semibold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-2xl font-bold text-[#086e45] leading-tight">
+                    <span className="text-2xl font-semibold text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-2xl font-bold text-[#086e45]">
+                  <span className="text-2xl font-semibold text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -632,7 +632,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   >
                     <Minus className="size-3.5" />
                   </button>
-                  <span className="min-w-5 text-center text-xs font-bold text-[#173a2d]">
+                  <span className="min-w-5 text-center text-sm font-semibold text-[#173a2d]">
                     {quantidadeSelecionadaNoCarrinho}
                   </span>
                   <button
@@ -667,18 +667,18 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
             {podeTerDesconto &&
               (proximaFaixa ? (
-                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-xs font-bold text-[#527164]">
+                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-sm font-semibold text-[#527164]">
                   <span>
                     Faltam <strong className="text-[#087443]">{faltamParaDesconto}</strong> para {proximaFaixa}+
                   </span>
                   {precoProximaFaixa != null && (
-                    <span className="shrink-0 font-bold text-[#087443]">
+                    <span className="shrink-0 font-semibold text-[#087443]">
                       {formatBRL(precoProximaFaixa)}/un
                     </span>
                   )}
                 </div>
               ) : (
-                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-xs font-bold text-[#087443]">
+                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-sm font-semibold text-[#087443]">
                   ✓ Melhor faixa de preço aplicada
                 </div>
               ))}

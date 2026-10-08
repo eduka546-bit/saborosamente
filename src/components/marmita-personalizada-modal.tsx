@@ -184,7 +184,7 @@ export function MarmitaPersonalizadaModal({
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-bold">{config.titulo}</h2>
+            <h2 className="text-xl font-semibold">{config.titulo}</h2>
             <p className="text-sm text-white/75 mt-0.5">{config.descricao}</p>
           </div>
           <button
@@ -212,9 +212,9 @@ export function MarmitaPersonalizadaModal({
                 >
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-sm font-semibold text-white">{t.sigla}</span>
-                    <span className="text-xs text-white/70">{t.label}</span>
+                    <span className="text-sm text-white/70">{t.label}</span>
                   </div>
-                  <div className="text-xs font-semibold text-white">{formatBRL(t.preco)}</div>
+                  <div className="text-sm font-semibold text-white">{formatBRL(t.preco)}</div>
                 </div>
               );
             })}
@@ -261,7 +261,7 @@ export function MarmitaPersonalizadaModal({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900">{ing.nome}</p>
                             {ing.observacao && (
-                              <p className="text-xs text-gray-400">{ing.observacao}</p>
+                              <p className="text-sm text-gray-400">{ing.observacao}</p>
                             )}
                           </div>
                         </button>
@@ -277,7 +277,7 @@ export function MarmitaPersonalizadaModal({
                                     type="button"
                                     onClick={() => setModo(ing.id, modo)}
                                     className={cn(
-                                      "px-2.5 py-1 rounded-full text-xs font-semibold transition-all border",
+                                      "px-2.5 py-1 rounded-full text-sm font-semibold transition-all border",
                                       sel?.modoPreparo === modo
                                         ? "bg-[#086e45] text-white border-[#086e45]"
                                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
@@ -290,7 +290,7 @@ export function MarmitaPersonalizadaModal({
                             )}
                             {/* Gramatura */}
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400 font-bold">
+                              <span className="text-sm text-gray-400 font-semibold">
                                 Gramatura
                               </span>
                               <div className="flex items-center gap-1 ml-auto">
@@ -332,9 +332,9 @@ export function MarmitaPersonalizadaModal({
                 <Scale size={14} className="text-gray-500 shrink-0 hidden md:block" />
                 <div className="flex-1">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-lg md:text-2xl font-bold text-[#086e45]">{pesoTotal}g</span>
+                    <span className="text-lg md:text-2xl font-semibold text-[#086e45]">{pesoTotal}g</span>
                     {tamanho && !acimaDoMax && (
-                      <span className="text-xs font-semibold text-gray-500">
+                      <span className="text-sm font-semibold text-gray-500">
                         {tamanho.sigla} — {formatBRL(precoUnitario)}
                       </span>
                     )}
@@ -354,14 +354,14 @@ export function MarmitaPersonalizadaModal({
               </div>
 
               {acimaDoMax && (
-                <p className="text-xs text-red-600 font-medium">
+                <p className="text-sm text-red-600 font-medium">
                   Peso máximo {config.pesoMaximo}g excedido. Reduza a gramatura.
                 </p>
               )}
 
               {/* Proteína — só mostra se excedeu ou se está no desktop */}
               {excedenteProteina > 0 && (
-                <p className="text-xs text-red-600 font-medium">
+                <p className="text-sm text-red-600 font-medium">
                   Proteína excedeu {limiteProt}g (+{excedenteProteina}g = {formatBRL(adicionalProteina)}/un)
                 </p>
               )}
@@ -372,12 +372,12 @@ export function MarmitaPersonalizadaModal({
               {selecionados.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="text-3xl mb-2">🍱</div>
-                  <p className="text-xs text-gray-400">Monte sua marmita ao lado</p>
+                  <p className="text-sm text-gray-400">Monte sua marmita ao lado</p>
                 </div>
               ) : (
                 selecionados.map((s) => (
-                  <div key={s.ingredienteId} className="flex items-center gap-2 text-xs">
-                    <span className="font-bold text-[#086e45] w-12 text-right shrink-0">
+                  <div key={s.ingredienteId} className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-[#086e45] w-12 text-right shrink-0">
                       {s.gramatura}g
                     </span>
                     <div className="flex-1 min-w-0">
@@ -394,7 +394,7 @@ export function MarmitaPersonalizadaModal({
             {/* Quantidade + CTA */}
             <div className="px-4 pb-3 md:pb-4 pt-2 md:pt-3 border-t space-y-2 md:space-y-3 shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs md:text-xs font-semibold text-gray-500">
+                <span className="text-sm md:text-sm font-semibold text-gray-500">
                   Qtd <span className="text-gray-400 normal-case">(mín {config.minUnidades})</span>
                 </span>
                 <div className="flex items-center gap-1">
@@ -419,7 +419,7 @@ export function MarmitaPersonalizadaModal({
               </div>
 
               {/* Aviso de prazo — compacto no mobile */}
-              <p className="text-xs md:text-xs text-amber-700 leading-tight">
+              <p className="text-sm md:text-sm text-amber-700 leading-tight">
                 ⏳ Preparo em ~1 semana. Entrega na semana seguinte.
               </p>
 

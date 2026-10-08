@@ -118,14 +118,14 @@ function IndicarPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center space-y-4">
         <Gift size={48} className="text-primary/30" />
-        <h1 className="text-2xl font-bold">Indique e Ganhe</h1>
+        <h1 className="text-2xl font-semibold">Indique e Ganhe</h1>
         <p className="text-gray-500 max-w-xs">
           Faça login para gerar seu link de indicação e ganhar cashback a cada amigo que comprar.
         </p>
         <Link
           to="/auth"
           search={{ redirect: "/indicar" }}
-          className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold text-sm hover:bg-primary/90 transition-all"
+          className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold text-sm hover:bg-primary/90 transition-all"
         >
           Entrar / Cadastrar
         </Link>
@@ -134,13 +134,13 @@ function IndicarPage() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-12">
+    <div className="max-w-lg mx-auto px-4 py-8">
       {/* Hero */}
       <div className="text-center mb-8">
         <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
           <Gift size={32} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Indique e Ganhe</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Indique e Ganhe</h1>
         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
           Seu amigo ganha <strong>5% na primeira compra</strong> e, quando esse pedido for
           entregue, você ganha <strong>R$ 5,00</strong> de cashback 🎉
@@ -150,25 +150,25 @@ function IndicarPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-2xl border p-5 text-center">
-          <p className="text-3xl font-bold text-primary">{totalConvertidas}</p>
-          <p className="text-xs text-gray-400 font-bold mt-1">Indicações convertidas</p>
+          <p className="text-3xl font-semibold text-primary">{totalConvertidas}</p>
+          <p className="text-sm text-gray-400 font-semibold mt-1">Indicações convertidas</p>
         </div>
         <div className="bg-white rounded-2xl border p-5 text-center">
-          <p className="text-3xl font-bold text-green-600">
+          <p className="text-3xl font-semibold text-green-600">
             R$ {totalCashback.toFixed(2).replace(".", ",")}
           </p>
-          <p className="text-xs text-gray-400 font-bold mt-1">Cashback acumulado</p>
+          <p className="text-sm text-gray-400 font-semibold mt-1">Cashback acumulado</p>
         </div>
       </div>
 
       {/* Link */}
       <div className="bg-white rounded-2xl border p-5 space-y-4 mb-6">
-        <p className="font-bold text-gray-800 text-sm">Seu link de indicação</p>
+        <p className="font-semibold text-gray-800 text-sm">Seu link de indicação</p>
         {isLoading || !profile?.codigo_indicacao ? (
           <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
         ) : (
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-50 border rounded-xl px-3 py-2.5 text-xs font-mono text-gray-600 truncate">
+            <div className="flex-1 bg-gray-50 border rounded-xl px-3 py-2.5 text-sm font-mono text-gray-600 truncate">
               {linkIndicacao}
             </div>
             <button
@@ -181,7 +181,7 @@ function IndicarPage() {
         )}
         <button
           onClick={compartilhar}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition-all"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all"
         >
           <Share2 size={16} /> Compartilhar link
         </button>
@@ -189,7 +189,7 @@ function IndicarPage() {
 
       {/* Como funciona */}
       <div className="bg-white rounded-2xl border p-5 mb-6">
-        <p className="font-bold text-gray-800 mb-4">Como funciona</p>
+        <p className="font-semibold text-gray-800 mb-4">Como funciona</p>
         <div className="space-y-3">
           {[
             { icon: Share2, texto: "Compartilhe seu link com amigos" },
@@ -211,20 +211,20 @@ function IndicarPage() {
       {indicacoes.length > 0 && (
         <div className="bg-white rounded-2xl border overflow-hidden">
           <div className="px-5 py-4 border-b">
-            <p className="font-bold text-gray-800 text-sm">Histórico de Indicações</p>
+            <p className="font-semibold text-gray-800 text-sm">Histórico de Indicações</p>
           </div>
           <div className="divide-y">
             {(indicacoes as any[]).map((ind) => (
               <div key={ind.id} className="px-5 py-3.5 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-800">{mascararTelefone(ind.indicado_telefone)}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm text-gray-400">
                     {new Date(ind.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <div className="text-right">
                   <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    className={`text-sm font-semibold px-2 py-0.5 rounded-full ${
                       ind.status === "convertido" || ind.status === "pago"
                         ? "bg-green-50 text-green-700"
                         : "bg-yellow-50 text-yellow-700"
@@ -235,7 +235,7 @@ function IndicarPage() {
                       : "Aguardando"}
                   </span>
                   {ind.cashback_gerado > 0 && (
-                    <p className="text-xs text-green-600 font-bold mt-0.5">
+                    <p className="text-sm text-green-600 font-semibold mt-0.5">
                       +R$ {Number(ind.cashback_gerado).toFixed(2)}
                     </p>
                   )}

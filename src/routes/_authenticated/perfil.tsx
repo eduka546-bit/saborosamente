@@ -407,7 +407,7 @@ function PerfilPage() {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <div className="mb-6 space-y-2">
-        <h1 className="text-3xl font-bold">Meu Perfil</h1>
+        <h1 className="text-3xl font-semibold">Meu Perfil</h1>
         <p className="text-muted-foreground">Gerencie suas informações e pedidos.</p>
       </div>
 
@@ -426,7 +426,7 @@ function PerfilPage() {
           <a
             key={id}
             href={`#${id}`}
-            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-xs font-semibold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
           >
             {label}
           </a>
@@ -484,19 +484,19 @@ function PerfilPage() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Nome</Label>
+                  <Label className="text-sm text-muted-foreground">Nome</Label>
                   <p className="font-medium">{profile?.nome || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">E-mail</Label>
+                  <Label className="text-sm text-muted-foreground">E-mail</Label>
                   <p className="font-medium">{session.user.email}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Telefone</Label>
+                  <Label className="text-sm text-muted-foreground">Telefone</Label>
                   <p className="font-medium">{profile?.telefone || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">CPF</Label>
+                  <Label className="text-sm text-muted-foreground">CPF</Label>
                   <p className="font-medium">{profile?.cpf || "Não informado"}</p>
                 </div>
                 <Button
@@ -515,11 +515,11 @@ function PerfilPage() {
           {/* Meus Favoritos */}
           <section id="favoritos" className="scroll-mt-28 space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Heart className="h-5 w-5 fill-primary text-primary" />
                 Meus Favoritos
               </h2>
-              <Link to="/" hash="cardapio" className="text-sm font-bold text-primary hover:underline">
+              <Link to="/" hash="cardapio" className="text-sm font-semibold text-primary hover:underline">
                 Ver cardápio
               </Link>
             </div>
@@ -550,17 +550,17 @@ function PerfilPage() {
                         <Link
                           to="/produto/$id"
                           params={{ id: product.id }}
-                          className="line-clamp-2 text-sm font-bold leading-snug hover:text-primary"
+                          className="line-clamp-2 text-sm font-semibold leading-snug hover:text-primary"
                         >
                           {product.nome}
                         </Link>
-                        <p className="mt-1 text-sm font-bold text-primary">
+                        <p className="mt-1 text-sm font-semibold text-primary">
                           R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
                         </p>
                         <Link
                           to="/produto/$id"
                           params={{ id: product.id }}
-                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                          className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
                         >
                           Abrir produto <ExternalLink className="size-3" />
                         </Link>
@@ -582,7 +582,7 @@ function PerfilPage() {
 
           {topProducts.length > 0 && (
             <section id="mais-pedidos" className="scroll-mt-28 space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-primary" />
                 Seus mais pedidos
               </h2>
@@ -592,12 +592,12 @@ function PerfilPage() {
                     {topProducts.map((item, index) => (
                       <div key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                             {index + 1}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold">{item.nome}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="truncate text-sm font-semibold">{item.nome}</p>
+                            <p className="text-sm text-muted-foreground">
                               {item.quantidade} {item.quantidade === 1 ? "unidade pedida" : "unidades pedidas"}
                             </p>
                           </div>
@@ -605,7 +605,7 @@ function PerfilPage() {
                         <Link
                           to="/produto/$id"
                           params={{ id: item.id }}
-                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
+                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/5"
                         >
                           Abrir
                         </Link>
@@ -619,7 +619,7 @@ function PerfilPage() {
 
           {/* Meus Pedidos */}
           <section id="pedidos" className="scroll-mt-28 space-y-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-primary" />
               Meus Pedidos
             </h2>
@@ -643,13 +643,13 @@ function PerfilPage() {
                     <div className="bg-muted/30 px-6 py-4 flex items-center justify-between border-b">
                       <div className="flex items-center gap-4">
                         <div>
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                          <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                             Pedido
                           </p>
-                          <p className="font-bold text-primary">#{order.id.slice(0, 8)}</p>
+                          <p className="font-semibold text-primary">#{order.id.slice(0, 8)}</p>
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                          <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                             Data
                           </p>
                           <p className="text-sm font-medium">
@@ -659,7 +659,7 @@ function PerfilPage() {
                       </div>
                       <div className="text-right">
                         <span
-                          className={`text-xs font-semibold tracking-normal px-3 py-1 rounded-full border ${
+                          className={`text-sm font-semibold tracking-normal px-3 py-1 rounded-full border ${
                             order.status === "Entregue"
                               ? "bg-green-50 text-green-600 border-green-200"
                               : order.status === "Cancelado"
@@ -681,7 +681,7 @@ function PerfilPage() {
                             {order.itens?.slice(0, 5).map((item: any) => (
                               <div
                                 key={item.id}
-                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold"
+                                className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-sm font-semibold"
                                 title={item.produtos?.nome}
                               >
                                 {item.quantidade}
@@ -690,10 +690,10 @@ function PerfilPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                          <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                             Total
                           </p>
-                          <p className="text-lg font-bold">
+                          <p className="text-lg font-semibold">
                             R$ {order.valor_total.toFixed(2).replace(".", ",")}
                           </p>
                         </div>
@@ -702,11 +702,11 @@ function PerfilPage() {
                       {order.status && (
                         <div className="mt-4 pt-4 border-t space-y-3">
                           <div>
-                            <p className="text-xs font-semibold text-muted-foreground tracking-normal mb-2">
+                            <p className="text-sm font-semibold text-muted-foreground tracking-normal mb-2">
                               Status
                             </p>
                             <span
-                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                              className={`text-sm font-semibold px-3 py-1.5 rounded-full border ${
                                 order.status === "entregue"
                                   ? "bg-green-50 text-green-600 border-green-200"
                                   : order.status === "cancelado"
@@ -739,20 +739,20 @@ function PerfilPage() {
 
           {/* Meu Cashback */}
           <section id="cashback" className="scroll-mt-28 space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
               <Gift className="h-5 w-5 text-yellow-500" />
               Meu Cashback
             </h2>
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold tracking-normal text-yellow-600 mb-1">
+                  <p className="text-sm font-semibold tracking-normal text-yellow-600 mb-1">
                     Saldo disponível
                   </p>
-                  <p className="text-3xl font-bold text-yellow-700">
+                  <p className="text-3xl font-semibold text-yellow-700">
                     R$ {cashbackSaldo.toFixed(2).replace(".", ",")}
                   </p>
-                  <p className="text-xs text-yellow-600 mt-1">
+                  <p className="text-sm text-yellow-600 mt-1">
                     Use no checkout em até 30 dias. O sistema usa primeiro o crédito que vence antes.
                   </p>
                 </div>
@@ -764,7 +764,7 @@ function PerfilPage() {
 
             {cashbackTransacoes.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-muted-foreground tracking-normal">
+                <h3 className="text-sm font-semibold text-muted-foreground tracking-normal">
                   Histórico
                 </h3>
                 {cashbackTransacoes.map((t: any) => (
@@ -782,7 +782,7 @@ function PerfilPage() {
                       )}
                       <div>
                         <p className="text-sm font-medium text-gray-800 capitalize">{t.tipo}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm text-gray-400">
                           {format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}
                           {t.tipo === "recebido" && t.expira_em && Number(t.saldo_restante ?? 0) > 0
                             ? ` • vence em ${format(new Date(t.expira_em), "dd/MM/yyyy", { locale: ptBR })}`
@@ -791,7 +791,7 @@ function PerfilPage() {
                       </div>
                     </div>
                     <span
-                      className={`font-bold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}
+                      className={`font-semibold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}
                     >
                       {t.tipo === "recebido" ? "+" : "−"} R$ {Math.abs(t.valor).toFixed(2)}
                     </span>
@@ -803,21 +803,21 @@ function PerfilPage() {
 
           {/* Indique e Ganhe */}
           <section id="indicacao" className="scroll-mt-28 space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
               <Gift className="h-5 w-5 text-primary" />
               Indique e Ganhe
             </h2>
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-6 flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-bold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
+                  <p className="font-semibold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
                   <p className="text-sm text-gray-500">
                     Seu amigo ganha 5% na primeira compra e você recebe R$ 5,00 após a entrega.
                   </p>
                 </div>
                 <Link
                   to="/indicar"
-                  className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold hover:bg-primary/90 transition-all whitespace-nowrap"
+                  className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:bg-primary/90 transition-all whitespace-nowrap"
                 >
                   Ver meu link
                 </Link>
@@ -828,7 +828,7 @@ function PerfilPage() {
           {/* Gerenciamento de Endereços */}
           <section id="enderecos" className="scroll-mt-28 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
                 <MapPinned className="h-5 w-5 text-primary" />
                 Meus Endereços
               </h2>
@@ -884,7 +884,7 @@ function PerfilPage() {
                     {currentTaxa && (
                       <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
                         <Truck size={18} />
-                        <span className="text-sm font-bold">
+                        <span className="text-sm font-semibold">
                           Taxa de entrega para este local: R${" "}
                           {currentTaxa.taxa.toFixed(2).replace(".", ",")}
                         </span>
@@ -977,9 +977,9 @@ function PerfilPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{addr.label}</h3>
+                            <h3 className="font-semibold">{addr.label}</h3>
                             {addr.is_default && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold tracking-normal">
+                              <span className="text-sm bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold tracking-normal">
                                 Padrão
                               </span>
                             )}
@@ -1026,7 +1026,7 @@ function PerfilPage() {
       >
         <AlertDialogContent className="rounded-3xl border-none">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Excluir endereço?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-semibold">Excluir endereço?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. O endereço será removido permanentemente da sua
               conta.

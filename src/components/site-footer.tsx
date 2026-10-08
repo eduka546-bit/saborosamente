@@ -53,12 +53,12 @@ function LogoCard({ logo, name }: { logo?: string; name: string }) {
         {logo ? (
           <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
         ) : (
-          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
+          <span className="text-sm font-semibold tracking-normal text-neutral-600 text-center leading-tight">
             {name}
           </span>
         )}
       </div>
-      <span className="text-xs font-semibold tracking-normal opacity-90 text-center leading-tight max-w-[4.5rem]">
+      <span className="text-sm font-semibold tracking-normal opacity-90 text-center leading-tight max-w-[4.5rem]">
         {name}
       </span>
     </div>
@@ -98,12 +98,12 @@ export function SiteFooter() {
   );
 
   return (
-    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-10 overflow-hidden">
+    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-0 overflow-hidden">
       {/* ── corpo principal ─────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-6xl px-4 py-8 md:py-10">
+        <div className="grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* coluna 1 — marca */}
-          <div className="space-y-5 lg:col-span-1">
+          <div className="space-y-3 lg:col-span-1">
             <Link to="/" aria-label="Início" className="inline-block">
               <img
                 src={imgUrl(logoUrl)}
@@ -114,15 +114,15 @@ export function SiteFooter() {
             </Link>
             <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">{description}</p>
             <div className="flex flex-col gap-2 pt-1">
-              <div className="flex items-center gap-2 text-xs opacity-90">
+              <div className="flex items-center gap-2 text-sm opacity-90">
                 <Leaf size={13} className="shrink-0" />
                 <span>Sem conservantes industrializados</span>
               </div>
-              <div className="flex items-center gap-2 text-xs opacity-90">
+              <div className="flex items-center gap-2 text-sm opacity-90">
                 <ShieldCheck size={13} className="shrink-0" />
                 <span>6 meses de validade</span>
               </div>
-              <div className="flex items-center gap-2 text-xs opacity-90">
+              <div className="flex items-center gap-2 text-sm opacity-90">
                 <Clock size={13} className="shrink-0" />
                 <span>Pronto em até 7 minutos</span>
               </div>
@@ -130,8 +130,8 @@ export function SiteFooter() {
           </div>
 
           {/* coluna 2 — navegação */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold tracking-normal opacity-80">
               Navegação
             </h3>
             <nav>
@@ -159,8 +159,8 @@ export function SiteFooter() {
           </div>
 
           {/* coluna 3 — atendimento */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold tracking-normal opacity-80">
               Atendimento
             </h3>
             <ul className="space-y-4 text-sm">
@@ -193,7 +193,7 @@ export function SiteFooter() {
                 </a>
               </li>
               <li className="pt-2">
-                <div className="flex items-start gap-3 opacity-95 text-xs leading-relaxed">
+                <div className="flex items-start gap-3 opacity-95 text-sm leading-relaxed">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
                     <Clock size={14} />
                   </span>
@@ -209,15 +209,15 @@ export function SiteFooter() {
           </div>
 
           {/* coluna 4 — localização */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold tracking-normal opacity-80">
               Localização
             </h3>
             <a
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-start gap-3 text-xs leading-relaxed opacity-80 transition-opacity hover:opacity-100"
+              className="group flex items-start gap-3 text-sm leading-relaxed opacity-80 transition-opacity hover:opacity-100"
             >
               <MapPin size={15} className="shrink-0 mt-0.5" />
               <address className="not-italic">
@@ -244,15 +244,15 @@ export function SiteFooter() {
         </div>
 
         {/* ── formas de pagamento ─────────────────────────────────────────── */}
-        <div className="mt-16 pt-12 space-y-10">
+        <div className="mt-8 border-t border-white/10 pt-6 space-y-6">
           {/* dois módulos lado a lado em desktop */}
-          <div className="grid gap-10 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {/* cartão de crédito/débito + mercado pago */}
             {(cardFlags.length > 0 || mercadoPago) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
+                  <p className="text-sm font-semibold tracking-normal opacity-90 whitespace-nowrap">
                     Cartão de Crédito / Débito
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -272,12 +272,12 @@ export function SiteFooter() {
                             className="h-full w-full object-contain"
                           />
                         ) : (
-                          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
+                          <span className="text-sm font-semibold tracking-normal text-neutral-600 text-center leading-tight">
                             MP
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-semibold tracking-normal opacity-50 text-center leading-tight max-w-[4.5rem]">
+                      <span className="text-sm font-semibold tracking-normal opacity-50 text-center leading-tight max-w-[4.5rem]">
                         Mercado Pago
                       </span>
                     </div>
@@ -291,7 +291,7 @@ export function SiteFooter() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
+                  <p className="text-sm font-semibold tracking-normal opacity-90 whitespace-nowrap">
                     Alimentação / Refeição
                   </p>
                   <div className="h-px flex-1 bg-white/10" />
@@ -309,13 +309,13 @@ export function SiteFooter() {
 
       {/* ── barra inferior ──────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-          <p className="text-xs font-semibold tracking-normal opacity-90">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 sm:flex-row">
+          <p className="text-sm font-semibold tracking-normal opacity-90">
             © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
           </p>
           <a
             href="/privacidade"
-            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
+            className="text-sm font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
           >
             Política de Privacidade
           </a>
@@ -323,7 +323,7 @@ export function SiteFooter() {
             href={`https://instagram.com/${credit.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
+            className="text-sm font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
           >
             Desenvolvido por {credit}
           </a>

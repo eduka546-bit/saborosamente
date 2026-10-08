@@ -159,7 +159,7 @@ function MeusPedidosPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
+    <div className="max-w-3xl mx-auto px-4 py-8 md:py-8">
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Meus Pedidos</h1>
       <p className="text-gray-500 mt-1 text-sm">
         Seu histórico fica disponível somente dentro da sua conta.
@@ -175,14 +175,14 @@ function MeusPedidosPage() {
       {!loading && !session && (
         <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
           <Lock size={32} className="mx-auto text-[#086e45] mb-3" />
-          <p className="font-bold text-gray-900">Entre para ver seus pedidos</p>
+          <p className="font-semibold text-gray-900">Entre para ver seus pedidos</p>
           <p className="mt-1 text-sm text-gray-500">
             Por segurança, o histórico não pode ser consultado apenas pelo telefone.
           </p>
           <Link
             to="/auth"
             search={{ redirect: "/meus-pedidos" }}
-            className="mt-5 inline-flex rounded-full bg-[#086e45] px-6 py-3 text-sm font-bold text-white"
+            className="mt-5 inline-flex rounded-full bg-[#086e45] px-6 py-3 text-sm font-semibold text-white"
           >
             Entrar na minha conta
           </Link>
@@ -192,7 +192,7 @@ function MeusPedidosPage() {
       {!loading && session && pedidos !== null && (
         <div className="mt-8 space-y-4">
           {pedidos.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 border border-dashed rounded-2xl">
+            <div className="text-center py-10 text-gray-400 border border-dashed rounded-2xl">
               <Package size={40} className="mx-auto mb-3 opacity-30" />
               Você ainda não tem pedidos nesta conta.
             </div>
@@ -209,21 +209,21 @@ function MeusPedidosPage() {
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900">
+                        <span className="font-semibold text-gray-900">
                           #{String(p.id).slice(0, 8).toUpperCase()}
                         </span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
+                        <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>
                           {st.txt}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-sm text-gray-400 mt-0.5">
                         {data.toLocaleDateString("pt-BR")} às{" "}
                         {data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {p.metodo_entrega ? ` • ${p.metodo_entrega}` : ""}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-[#086e45]">
+                      <p className="text-lg font-semibold text-[#086e45]">
                         R$ {Number(p.valor_total ?? 0).toFixed(2).replace(".", ",")}
                       </p>
                     </div>
@@ -263,7 +263,7 @@ function MeusPedidosPage() {
                     <button
                       onClick={() => pedirDeNovo(p)}
                       disabled={repetindo === p.id}
-                      className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#086e45]/10 text-[#086e45] font-bold text-sm hover:bg-[#086e45]/20 transition disabled:opacity-60"
+                      className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#086e45]/10 text-[#086e45] font-semibold text-sm hover:bg-[#086e45]/20 transition disabled:opacity-60"
                     >
                       {repetindo === p.id ? (
                         <Loader2 size={16} className="animate-spin" />

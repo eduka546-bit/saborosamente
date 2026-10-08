@@ -21,13 +21,13 @@ function PrivacidadePage() {
   const dataAtualizacao = "30 de setembro de 2026";
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-16">
-      <h1 className="text-3xl font-bold text-[#086e45] mb-2">Política de Privacidade</h1>
+    <div className="max-w-3xl mx-auto px-4 py-10">
+      <h1 className="text-3xl font-semibold text-[#086e45] mb-2">Política de Privacidade</h1>
       <p className="text-sm text-gray-400 mb-10">Última atualização: {dataAtualizacao}</p>
 
       <div className="prose prose-sm max-w-none text-gray-700 space-y-8">
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">1. Sobre a SaborosaMente</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">1. Sobre a SaborosaMente</h2>
           <p>
             A <strong>SaborosaMente</strong> é uma empresa especializada em marmitas congeladas
             artesanais, com sede em São Bento do Sul/SC. Fornecemos refeições práticas, saudáveis e
@@ -42,7 +42,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">2. Dados que coletamos</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">2. Dados que coletamos</h2>
           <p>Coletamos as seguintes categorias de dados:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>
@@ -75,7 +75,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">3. Como utilizamos seus dados</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">3. Como utilizamos seus dados</h2>
           <p>Seus dados são utilizados para:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Processar e entregar seus pedidos.</li>
@@ -94,7 +94,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
             4. Assistente virtual (WhatsApp IA)
           </h2>
           <p>
@@ -110,7 +110,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">5. Compartilhamento de dados</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">5. Compartilhamento de dados</h2>
           <p>
             Seus dados <strong>não são vendidos</strong> a terceiros. Podemos compartilhá-los apenas
             com:
@@ -137,7 +137,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
             6. Base legal para tratamento (LGPD)
           </h2>
           <p>
@@ -162,7 +162,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">7. Seus direitos</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">7. Seus direitos</h2>
           <p>Conforme a LGPD, você tem direito a:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Confirmar a existência de tratamento dos seus dados.</li>
@@ -184,7 +184,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">8. Cookies e métricas</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">8. Cookies e métricas</h2>
           <p>
             Utilizamos armazenamento e cookies técnicos essenciais para manter o carrinho, a sessão
             e outras funções necessárias do site. O Google Analytics 4 é opcional e só é carregado
@@ -214,7 +214,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">9. Segurança</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">9. Segurança</h2>
           <p>
             Adotamos medidas técnicas e organizacionais adequadas para proteger seus dados contra
             acesso não autorizado, alteração, divulgação ou destruição. Nossos dados são armazenados
@@ -223,7 +223,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">10. Retenção de dados</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">10. Retenção de dados</h2>
           <p>
             Mantemos seus dados pelo tempo necessário para cumprir as finalidades descritas nesta
             política ou conforme exigido por lei. Dados de pedidos são mantidos por 5 anos para fins
@@ -232,7 +232,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">11. Menores de idade</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">11. Menores de idade</h2>
           <p>
             Nossos serviços não são direcionados a menores de 18 anos. Não coletamos
             intencionalmente dados de crianças ou adolescentes.
@@ -240,7 +240,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">12. Alterações nesta política</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">12. Alterações nesta política</h2>
           <p>
             Podemos atualizar esta política periodicamente. Notificaremos sobre mudanças
             significativas via WhatsApp ou e-mail. A data de última atualização está sempre no topo
@@ -249,7 +249,7 @@ function PrivacidadePage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">13. Contato</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">13. Contato</h2>
           <p>Para dúvidas, solicitações ou exercício dos seus direitos:</p>
           <ul className="list-none mt-2 space-y-1">
             <li>

@@ -178,10 +178,10 @@ export function DeliveryRegionMiniMap({ className = "" }: { className?: string }
         </g>
       </svg>
 
-      <div className="absolute bottom-2 left-2 rounded-full bg-[#f6d83d] px-2.5 py-1 text-[9px] font-extrabold text-[#174229] shadow-sm">
+      <div className="absolute bottom-2 left-2 rounded-full bg-[#f6d83d] px-2.5 py-1 text-sm font-semibold text-[#174229] shadow-sm">
         São Bento do Sul
       </div>
-      <div className="absolute right-2 top-2 rounded-full border border-white/80 bg-white/90 px-2 py-1 text-[9px] font-extrabold text-[#4a6758] shadow-sm">
+      <div className="absolute right-2 top-2 rounded-full border border-white/80 bg-white/90 px-2 py-1 text-sm font-semibold text-[#4a6758] shadow-sm">
         SC + PR
       </div>
     </div>
@@ -223,8 +223,8 @@ function BrazilDeliveryMap({
       <div className="grid gap-4 lg:grid-cols-[0.34fr_0.66fr]">
         <div className="hidden rounded-[1.5rem] border border-[#dce9d3] bg-white p-4 lg:flex lg:flex-col">
           <div>
-            <p className="text-sm font-extrabold text-[#075636]">Onde entregamos no Brasil</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#698071]">
+            <p className="text-sm font-semibold text-[#075636]">Onde entregamos no Brasil</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#698071]">
               Cidades selecionadas de Santa Catarina e Paraná.
             </p>
           </div>
@@ -236,7 +236,7 @@ function BrazilDeliveryMap({
               loading="lazy"
             />
           </div>
-          <div className="border-t border-[#e8eee4] pt-3 text-[11px] font-semibold text-[#496557]">
+          <div className="border-t border-[#e8eee4] pt-3 text-sm font-semibold text-[#496557]">
             <span className="inline-block size-3 rounded-full bg-[#075636] align-middle" /> PR + SC — região atendida
           </div>
         </div>
@@ -327,22 +327,22 @@ function BrazilDeliveryMap({
               })}
             </g>
           </svg>
-          <span className="absolute right-3 top-3 rounded-full border border-[#d9e7d2] bg-white/95 px-3 py-1.5 text-[11px] font-extrabold text-[#456955] shadow-sm">
+          <span className="absolute right-3 top-3 rounded-full border border-[#d9e7d2] bg-white/95 px-3 py-1.5 text-sm font-semibold text-[#456955] shadow-sm">
             SC + PR
           </span>
           {zoomed && selected && (
             <>
-              <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f6d83d] px-4 py-2 text-xs font-extrabold text-[#174229] shadow-md ring-2 ring-white/80">
+              <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f6d83d] px-4 py-2 text-sm font-semibold text-[#174229] shadow-md ring-2 ring-white/80">
                 <MapPin size={14} className="mr-1 inline-block" />
                 {selected.name}
               </span>
               <button type="button" onClick={onShowRegion}
-                className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-[11px] font-extrabold text-[#075636] shadow-sm">
+                className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-sm font-semibold text-[#075636] shadow-sm">
                 ← Ver região inteira
               </button>
             </>
           )}
-          {!zoomed && <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] font-medium text-[#658070]">Clique em um município para aproximar.</p>}
+          {!zoomed && <p className="absolute bottom-2 left-0 right-0 text-center text-sm font-medium text-[#658070]">Clique em um município para aproximar.</p>}
         </div>
       </div>
     </div>
@@ -442,7 +442,7 @@ function DeliveryContent() {
         <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-[#e8f1dd] text-[#075636]">
           <Truck size={22} />
         </div>
-        <DialogTitle className="font-display text-2xl font-bold text-[#075636]">
+        <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Áreas de Entrega
         </DialogTitle>
         <DialogDescription className="text-sm leading-relaxed text-[#587064]">
@@ -468,8 +468,8 @@ function DeliveryContent() {
               aria-pressed={active}
               className={
                 active
-                  ? "cursor-pointer rounded-full border border-[#f6d83d] bg-[#f6d83d] px-3 py-2 text-xs font-bold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  : "cursor-pointer rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-xs font-bold text-[#416150] transition hover:-translate-y-0.5 hover:border-[#9fbd91] hover:bg-white hover:shadow-sm"
+                  ? "cursor-pointer rounded-full border border-[#f6d83d] bg-[#f6d83d] px-3 py-2 text-sm font-semibold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  : "cursor-pointer rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-sm font-semibold text-[#416150] transition hover:-translate-y-0.5 hover:border-[#9fbd91] hover:bg-white hover:shadow-sm"
               }
             >
               {city}
@@ -483,29 +483,29 @@ function DeliveryContent() {
           <div className="flex items-start gap-3">
             <Clock3 size={19} className="mt-0.5 shrink-0 text-[#075636]" />
             <div>
-              <p className="text-[13px] font-extrabold text-[#173a2d]">Dias e horários de entrega em {selectedCity}</p>
-              <p className="mt-1 text-xs font-semibold text-[#416150]">{daysDescription}</p>
-              <p className="mt-1 text-xs text-[#607168]">
+              <p className="text-sm font-semibold text-[#173a2d]">Dias e horários de entrega em {selectedCity}</p>
+              <p className="mt-1 text-sm font-semibold text-[#416150]">{daysDescription}</p>
+              <p className="mt-1 text-sm text-[#607168]">
                 {selectedCity === "São Bento do Sul" ? "Entregas durante o dia" : "Faixas de entrega cadastradas"}
                 {timeStart && timeEnd ? ` · ${timeStart} às ${timeEnd}` : ""}
               </p>
               {citySchedule.cutoffMesmoDia && (
-                <p className="mt-1 text-[11px] text-[#607168]">
+                <p className="mt-1 text-sm text-[#607168]">
                   Pedidos para o mesmo dia até {String(citySchedule.cutoffMesmoDia.hora).padStart(2, "0")}:{String(citySchedule.cutoffMesmoDia.minuto).padStart(2, "0")}.
                 </p>
               )}
               {citySchedule.minUnidades && (
-                <p className="mt-1 text-[11px] text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
+                <p className="mt-1 text-sm text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
               )}
-              <p className="mt-1 text-[10px] text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
+              <p className="mt-1 text-sm text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
             </div>
           </div>
           {selectedCity === "São Bento do Sul" && (
             <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#78922f] px-3 py-3 text-white">
               <House size={18} className="mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs font-extrabold">Frete promocional em São Bento do Sul</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
+                <p className="text-sm font-semibold">Frete promocional em São Bento do Sul</p>
+                <p className="mt-0.5 text-sm leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
               </div>
             </div>
           )}
@@ -513,8 +513,8 @@ function DeliveryContent() {
       )}
 
       <div className="rounded-[1.35rem] border border-[#dfe8d7] bg-white p-4">
-        <p className="text-[13px] font-extrabold text-[#173a2d]">Descubra se entregamos no seu CEP</p>
-        <p className="mt-1 text-xs text-[#607168]">Consulte o endereço e confira se o bairro está na nossa área de atendimento.</p>
+        <p className="text-sm font-semibold text-[#173a2d]">Descubra se entregamos no seu CEP</p>
+        <p className="mt-1 text-sm text-[#607168]">Consulte o endereço e confira se o bairro está na nossa área de atendimento.</p>
         <form onSubmit={(event) => { event.preventDefault(); void checkCep(); }} className="mt-3 flex gap-2">
           <input
             inputMode="numeric"
@@ -530,12 +530,12 @@ function DeliveryContent() {
             maxLength={9}
             className="min-w-0 flex-1 rounded-xl border border-[#d5e2cd] bg-[#f7faf4] px-3 py-2.5 text-sm outline-none focus:border-[#78922f]"
           />
-          <button type="submit" disabled={cepLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#075636] px-4 py-2 text-xs font-extrabold text-white disabled:opacity-60">
+          <button type="submit" disabled={cepLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#075636] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
             <Search size={16} /> {cepLoading ? "Consultando..." : "Consultar"}
           </button>
         </form>
         {cepResult && (
-          <p role="status" className={`mt-3 rounded-xl px-3 py-2.5 text-xs leading-relaxed ${
+          <p role="status" className={`mt-3 rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
             cepResult.status === "success" ? "bg-[#e4f3dc] text-[#195c38]" :
             cepResult.status === "warning" ? "bg-[#fff7d6] text-[#69571c]" :
             "bg-[#fff0ec] text-[#8b3f31]"
@@ -555,14 +555,14 @@ function DeliveryContent() {
           <>
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#7a8b82]">
+                <p className="text-sm font-semibold uppercase tracking-wide text-[#7a8b82]">
                   Bairros e taxas
                 </p>
-                <h3 className="mt-0.5 text-base font-extrabold text-[#173a2d]">
+                <h3 className="mt-0.5 text-base font-semibold text-[#173a2d]">
                   {selectedCity}
                 </h3>
               </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#587064] shadow-sm">
+              <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-[#587064] shadow-sm">
                 {cityRates.length} {cityRates.length === 1 ? "bairro" : "bairros"}
               </span>
             </div>
@@ -582,14 +582,14 @@ function DeliveryContent() {
                           : "flex items-center justify-between gap-3 rounded-xl border border-[#dfe8d7] bg-white px-3 py-2.5 text-left transition hover:border-[#a9c39b] hover:shadow-sm"
                       }
                     >
-                      <span className="min-w-0 truncate text-xs font-bold text-[#355546]">
+                      <span className="min-w-0 truncate text-sm font-semibold text-[#355546]">
                         {item.bairro}
                       </span>
                       <span
                         className={
                           active
-                            ? "shrink-0 rounded-full bg-[#f6d83d] px-2 py-1 text-[10px] font-extrabold text-[#174229]"
-                            : "shrink-0 rounded-full bg-[#edf4e7] px-2 py-1 text-[10px] font-extrabold text-[#075636]"
+                            ? "shrink-0 rounded-full bg-[#f6d83d] px-2 py-1 text-sm font-semibold text-[#174229]"
+                            : "shrink-0 rounded-full bg-[#edf4e7] px-2 py-1 text-sm font-semibold text-[#075636]"
                         }
                       >
                         {formatDeliveryRate(Number(item.taxa || 0))}
@@ -601,12 +601,12 @@ function DeliveryContent() {
             </div>
 
             {cityRates.length === 0 && (
-              <p className="text-xs leading-relaxed text-[#607168]">
+              <p className="text-sm leading-relaxed text-[#607168]">
                 Nenhum bairro ativo foi encontrado para esta cidade.
               </p>
             )}
 
-            <p className="mt-3 text-[10px] leading-relaxed text-[#708077]">
+            <p className="mt-3 text-sm leading-relaxed text-[#708077]">
               Toque no bairro para deixá-lo selecionado. O valor final do frete considera as regras e promoções aplicáveis ao pedido.
             </p>
           </>
@@ -623,7 +623,7 @@ function StoreContent() {
         <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-[#e8f1dd] text-[#075636]">
           <Store size={22} />
         </div>
-        <DialogTitle className="font-display text-2xl font-bold text-[#075636]">
+        <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Retire em nossa loja
         </DialogTitle>
         <DialogDescription className="text-sm leading-relaxed text-[#587064]">
@@ -634,8 +634,8 @@ function StoreContent() {
       <div className="grid overflow-hidden rounded-[1.65rem] border border-[#dde6d7] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
           <div className="rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
-            <p className="text-sm font-extrabold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
+            <p className="text-sm font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
           </div>
           <a
             href={MAPS_URL}
@@ -648,12 +648,12 @@ function StoreContent() {
             </span>
             <span>
               <strong className="block text-sm text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
-              <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
+              <span className="mt-0.5 block text-sm leading-relaxed text-[#607168]">
                 Progresso — São Bento do Sul/SC · CEP 89281-060
               </span>
             </span>
           </a>
-          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-xs font-extrabold text-[#075636] underline decoration-[#91b93a] underline-offset-4">
+          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-[#075636] underline decoration-[#91b93a] underline-offset-4">
             <MapPin size={15} /> Abrir endereço no Google Maps
           </a>
 
@@ -663,7 +663,7 @@ function StoreContent() {
             </span>
             <span>
               <strong className="block text-sm text-[#173a2d]">Horário da loja</strong>
-              <span className="mt-0.5 block text-xs leading-relaxed text-[#607168]">
+              <span className="mt-0.5 block text-sm leading-relaxed text-[#607168]">
                 Seg–Sex 9h30–19h · Sáb 9h30–13h
               </span>
             </span>
@@ -673,7 +673,7 @@ function StoreContent() {
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10">
               <PackageCheck size={17} />
             </span>
-            <span className="text-sm font-bold">Encomendas em tempo integral</span>
+            <span className="text-sm font-semibold">Encomendas em tempo integral</span>
           </div>
         </div>
 
@@ -702,7 +702,7 @@ function DiscountContent() {
         <div className="mb-2 flex size-11 items-center justify-center rounded-2xl bg-[#fff4bf] text-[#6e5c00]">
           <BadgeDollarSign size={22} />
         </div>
-        <DialogTitle className="font-display text-2xl font-bold text-[#075636]">
+        <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Como ganhar desconto
         </DialogTitle>
         <DialogDescription className="text-sm leading-relaxed text-[#587064]">
@@ -717,16 +717,16 @@ function DiscountContent() {
             <div
               className={
                 index === 2
-                  ? "mx-auto grid size-11 place-items-center rounded-full bg-[#075636] text-sm font-extrabold text-white shadow-sm"
+                  ? "mx-auto grid size-11 place-items-center rounded-full bg-[#075636] text-sm font-semibold text-white shadow-sm"
                   : index === 1
-                    ? "mx-auto grid size-11 place-items-center rounded-full bg-[#91b93a] text-sm font-extrabold text-white shadow-sm"
-                    : "mx-auto grid size-11 place-items-center rounded-full bg-[#f6d83d] text-sm font-extrabold text-[#174229] shadow-sm"
+                    ? "mx-auto grid size-11 place-items-center rounded-full bg-[#91b93a] text-sm font-semibold text-white shadow-sm"
+                    : "mx-auto grid size-11 place-items-center rounded-full bg-[#f6d83d] text-sm font-semibold text-[#174229] shadow-sm"
               }
             >
               {tier.qty}
             </div>
-            <p className="mt-2 text-xs font-extrabold text-[#173a2d]">{tier.title}</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-[#6b7a72]">{tier.text}</p>
+            <p className="mt-2 text-sm font-semibold text-[#173a2d]">{tier.title}</p>
+            <p className="mt-0.5 text-sm leading-snug text-[#6b7a72]">{tier.text}</p>
           </div>
         ))}
       </div>
@@ -737,8 +737,8 @@ function DiscountContent() {
             <ShoppingBag size={18} />
           </span>
           <div>
-            <p className="text-sm font-extrabold text-[#173a2d]">Desconto progressivo automático</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#607168]">
+            <p className="text-sm font-semibold text-[#173a2d]">Desconto progressivo automático</p>
+            <p className="mt-1 text-sm leading-relaxed text-[#607168]">
               Não precisa de código: ao aumentar a quantidade do pedido, o site aplica a faixa correspondente automaticamente.
             </p>
           </div>
@@ -751,8 +751,8 @@ function DiscountContent() {
             <House size={18} />
           </span>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-white/70">São Bento do Sul</p>
-            <p className="mt-1 text-sm font-extrabold leading-relaxed">
+            <p className="text-sm font-semibold uppercase tracking-wide text-white/70">São Bento do Sul</p>
+            <p className="mt-1 text-sm font-semibold leading-relaxed">
               Frete R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.
             </p>
           </div>

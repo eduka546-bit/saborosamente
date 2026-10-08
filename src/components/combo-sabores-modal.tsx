@@ -154,7 +154,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         {/* Header */}
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-lg font-bold">{combo.nome}</h2>
+            <h2 className="text-lg font-semibold">{combo.nome}</h2>
             <p className="text-sm text-white/75">
               Escolha {totalCombo} sabores — {formatBRL(precoCombo)}
             </p>
@@ -184,7 +184,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
               )}
             >
               {w.label} ({w.value})
-              <span className="block text-xs font-medium text-gray-400 mt-0.5">
+              <span className="block text-sm font-medium text-gray-400 mt-0.5">
                 {formatBRL(w.preco)}
               </span>
             </button>
@@ -198,11 +198,11 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
               Selecionados: <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
             </span>
             {totalSelecionado === totalCombo && !comboIndisponivel && (
-              <span className="text-[#086e45] font-bold text-xs">✓ Completo!</span>
+              <span className="text-[#086e45] font-semibold text-sm">✓ Completo!</span>
             )}
           </div>
           {comboIndisponivel && (
-            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
               Esta gramatura está temporariamente indisponível: há {estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de {totalCombo}.
             </div>
           )}
@@ -234,11 +234,11 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{prod.nome}</p>
                     {saborEsgotado ? (
-                      <p className="mt-0.5 text-[11px] font-semibold text-red-500">
+                      <p className="mt-0.5 text-sm font-semibold text-red-500">
                         Esgotado em {selectedWeight}
                       </p>
                     ) : Number.isFinite(estoque) && estoque <= 5 ? (
-                      <p className="mt-0.5 text-[11px] font-semibold text-amber-600">
+                      <p className="mt-0.5 text-sm font-semibold text-amber-600">
                         Restam {estoque}
                       </p>
                     ) : null}

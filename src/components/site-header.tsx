@@ -177,7 +177,7 @@ export function SiteHeader() {
           </SheetTrigger>
           <SheetContent side="left" className="w-[80vw] max-w-xs bg-white z-[300]">
             <SheetHeader>
-              <SheetTitle className="text-primary font-bold tracking-normal">
+              <SheetTitle className="text-primary font-semibold tracking-normal">
                 Menu
               </SheetTitle>
             </SheetHeader>
@@ -271,7 +271,7 @@ export function SiteHeader() {
                 className="w-56 rounded-2xl p-2 shadow-soft border-border bg-white z-[300]"
               >
                 <div className="px-2 py-1.5 mb-1 border-b border-border/50">
-                  <p className="text-xs font-bold text-muted-foreground tracking-normal">
+                  <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                     Sua Conta
                   </p>
                   <p className="text-sm font-normal truncate opacity-75">{user.email}</p>
@@ -279,14 +279,14 @@ export function SiteHeader() {
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                   <Link to="/perfil" className="flex items-center gap-2 w-full">
                     <User className="h-4 w-4" />
-                    <span className="font-semibold text-xs">Meu Perfil</span>
+                    <span className="font-semibold text-sm">Meu Perfil</span>
                   </Link>
                 </DropdownMenuItem>
                 {mounted && isAdmin && (
                   <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                     <Link to="/admin" className="flex items-center gap-2 w-full">
                       <Lock className="h-4 w-4" />
-                      <span className="font-semibold text-xs">Painel Admin</span>
+                      <span className="font-semibold text-sm">Painel Admin</span>
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -296,7 +296,7 @@ export function SiteHeader() {
                   className="rounded-xl cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  <span className="font-semibold text-xs">Sair</span>
+                  <span className="font-semibold text-sm">Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -320,7 +320,7 @@ export function SiteHeader() {
             >
               <ShoppingBag size={22} />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-xs font-bold text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-sm font-semibold text-white shadow-sm">
                   {count}
                 </span>
               )}
@@ -380,10 +380,10 @@ function DeliveryAreasModal({
               <MapPin className="text-primary size-5" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-primary tracking-normal">
+              <DialogTitle className="text-xl font-semibold text-primary tracking-normal">
                 Áreas de Entrega
               </DialogTitle>
-              <p className="text-xs text-muted-foreground font-medium">
+              <p className="text-sm text-muted-foreground font-medium">
                 Selecione uma cidade para ver os bairros
               </p>
             </div>
@@ -427,7 +427,7 @@ function DeliveryAreasModal({
             {selectedCity ? (
               <>
                 <div className="px-6 py-3 bg-primary/5 border-b shrink-0">
-                  <h3 className="text-xs font-bold text-primary tracking-normal flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-primary tracking-normal flex items-center gap-2">
                     <span className="size-1.5 rounded-full bg-primary" />
                     Bairros em {selectedCity}
                   </h3>
@@ -442,7 +442,7 @@ function DeliveryAreasModal({
                         <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
                           {area.neighborhood}
                         </span>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        <span className="text-sm font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                           {area.rate === 0
                             ? "Grátis"
                             : `R$ ${area.rate.toFixed(2).replace(".", ",")}`}

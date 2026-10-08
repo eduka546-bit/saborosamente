@@ -115,14 +115,14 @@ function InstagramFeedSection() {
   }, []);
 
   return (
-    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-8 md:py-9">
+    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-6 md:py-8">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f]">
+            <p className="font-sans text-sm font-semibold uppercase tracking-[0.12em] text-[#78922f]">
               Dicas, novidades e uma comida boa
             </p>
-            <h2 className="mt-1 font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
+            <h2 className="mt-1 font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
               Acompanhe no Instagram
             </h2>
           </div>
@@ -131,7 +131,7 @@ function InstagramFeedSection() {
             href="https://www.instagram.com/saborosamente.sbs/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-fit items-center gap-2 text-xs font-extrabold text-[#075636] transition hover:translate-x-0.5"
+            className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-[#075636] transition hover:translate-x-0.5"
           >
             <span className="grid size-7 place-items-center rounded-lg border border-[#d9e2d2] bg-white text-[#087443]">
               @
@@ -796,16 +796,16 @@ function Index() {
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
             <div className="grid lg:min-h-[390px] lg:grid-cols-[1.12fr_.88fr]">
               <div className="flex flex-col justify-center px-6 py-7 md:px-9 md:py-8 lg:px-10 lg:py-8 xl:px-12">
-                <span className="mb-2.5 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-xs font-semibold tracking-normal text-primary">
+                <span className="mb-2.5 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-sm font-semibold tracking-normal text-primary">
                   Sabor e praticidade para sua rotina
                 </span>
-                <h1 className="max-w-2xl font-display text-4xl font-bold leading-[1.02] text-[#075636] md:text-5xl">
+                <h1 className="max-w-2xl font-sans text-4xl font-semibold leading-[1.02] text-[#075636] md:text-5xl">
                   <span className="block">Comida de verdade,</span>
                   <span className="block">
                     pronta em até <span className="font-halimun font-normal text-[#91b93a]">7 minutos</span>
                   </span>
                 </h1>
-                <p className="mt-3 max-w-none text-sm leading-6 text-[#48554d] md:text-[15px] lg:whitespace-nowrap">
+                <p className="mt-3 max-w-none text-base leading-6 text-[#48554d] md:text-base">
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
 
@@ -821,7 +821,7 @@ function Index() {
                           <Icon size={22} strokeWidth={1.9} />
                         </span>
                         <span className="min-w-0 leading-[1.2]">
-                          <span className="block text-[15px] font-extrabold text-[#173a2d] md:text-[16px]">
+                          <span className="block text-[15px] font-semibold text-[#173a2d] md:text-[16px]">
                             {feature.label}
                           </span>
                           <span className="mt-1 block text-[14px] font-semibold text-[#426252] md:text-[15px]">
@@ -845,20 +845,20 @@ function Index() {
         </div>
       </section>
 
-      <section className="bg-[#fbfaf5] py-9 md:py-11">
+      <section className="bg-[#fbfaf5] py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 text-center">
+          <div className="mb-4 text-center">
             <div className="mx-auto flex max-w-xl items-center justify-center gap-3">
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
-              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.34em] text-[#315c46] sm:text-[11px]">
+              <p className="font-sans text-sm font-semibold uppercase tracking-[0.14em] text-[#315c46] sm:text-sm">
                 Simples do início ao fim
               </p>
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
             </div>
-            <h2 className="mt-2 font-display text-[2rem] font-bold leading-none text-[#075636] md:text-[2.4rem]">
+            <h2 className="mt-2 font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
               Como funciona
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-[12px] leading-relaxed text-[#6a7a71] md:text-[13px]">
+            <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-[#6a7a71] md:text-base">
               Do seu pedido à sua mesa, sem complicação.
             </p>
           </div>
@@ -912,17 +912,17 @@ function Index() {
                     <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>
                       <Icon size={20} strokeWidth={1.9} />
                     </div>
-                    <span className={`grid size-6 place-items-center rounded-full text-[10px] font-black ${
+                    <span className={`grid size-6 place-items-center rounded-full text-sm font-semibold ${
                       index === 3 ? "bg-white/10 text-white/80" : "bg-white/70 text-[#45684f]"
                     }`}>
                       {index + 1}
                     </span>
                   </div>
 
-                  <h3 className={`mt-4 text-[15px] font-extrabold leading-tight ${step.titleColor}`}>
+                  <h3 className={`mt-4 text-[15px] font-semibold leading-tight ${step.titleColor}`}>
                     {step.title}
                   </h3>
-                  <p className={`mt-1.5 text-[12px] leading-[1.5] ${step.textColor}`}>
+                  <p className={`mt-1.5 text-base leading-[1.5] ${step.textColor}`}>
                     {step.text}
                   </p>
 
@@ -936,17 +936,17 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
+      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6">
-            <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#78922f] sm:text-[11px]">
+          <div className="mb-4">
+            <p className="font-sans text-sm font-semibold uppercase tracking-[0.12em] text-[#78922f] sm:text-sm">
               Tudo o que você precisa saber
             </p>
             <div className="mt-1 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <h2 className="font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
+              <h2 className="font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
                 Entrega, retirada e descontos
               </h2>
-              <p className="text-[12px] leading-relaxed text-[#6a7a71] md:text-[13px]">
+              <p className="text-base leading-relaxed text-[#6a7a71] md:text-base">
                 Clique nos cards para ver todos os detalhes.
               </p>
             </div>
@@ -956,7 +956,7 @@ function Index() {
             <button
               type="button"
               onClick={() => setDeliveryModalOpen(true)}
-              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -964,8 +964,8 @@ function Index() {
                     <Truck size={19} />
                   </span>
                   <div>
-                    <p className="text-[16px] font-extrabold text-[#173a2d]">Áreas de Entrega</p>
-                    <p className="text-[11px] leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
+                    <p className="text-[16px] font-semibold text-[#173a2d]">Áreas de Entrega</p>
+                    <p className="text-base leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
@@ -978,14 +978,14 @@ function Index() {
                   {["São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Corupá", "Mafra", "Rio Negro", "Piên"].map((city) => (
                     <span
                       key={city}
-                      className="rounded-full border border-[#dfe6d9] bg-[#fafbf8] px-2 py-1 text-[10px] font-bold text-[#557061]"
+                      className="rounded-full border border-[#dfe6d9] bg-[#fafbf8] px-2 py-1 text-sm font-semibold text-[#557061]"
                     >
                       {city}
                     </span>
                   ))}
                 </div>
 
-                <p className="mt-3 text-[12px] leading-relaxed text-[#6a7a71]">
+                <p className="mt-3 text-base leading-relaxed text-[#6a7a71]">
                   Veja bairros atendidos, taxas e a localização correta de cada cidade.
                 </p>
               </div>
@@ -994,7 +994,7 @@ function Index() {
             <button
               type="button"
               onClick={() => setStoreModalOpen(true)}
-              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -1002,30 +1002,30 @@ function Index() {
                     <ShoppingBag size={19} />
                   </span>
                   <div>
-                    <p className="text-[16px] font-extrabold text-[#173a2d]">Retire em nossa loja</p>
-                    <p className="text-[11px] leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
+                    <p className="text-[16px] font-semibold text-[#173a2d]">Retire em nossa loja</p>
+                    <p className="text-base leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
               </div>
 
-              <div className="grid min-h-[305px] grid-cols-[0.95fr_1.05fr] overflow-hidden">
-                <div className="flex min-w-0 flex-col justify-center gap-3 p-3 sm:p-4">
+              <div className="grid flex-1 grid-cols-[1.1fr_.9fr] overflow-hidden">
+                <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
                   <div className="flex items-start gap-2 rounded-xl border border-[#d4e6c8] bg-[#eef6e7] p-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#dceccf] text-[#075636]">
                       <ChefHat size={20} strokeWidth={1.8} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-extrabold leading-snug text-[#075636]">
+                      <p className="text-base font-semibold leading-snug text-[#075636]">
                         Todos os sabores à pronta entrega!
                       </p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-[#426752]">
+                      <p className="mt-1 text-base leading-relaxed text-[#426752]">
                         Venha conhecer e escolher pessoalmente suas marmitas favoritas.
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-2.5 text-[11px] leading-relaxed text-[#607168]">
+                  <div className="space-y-2.5 text-sm leading-relaxed text-[#607168]">
                     <p className="flex items-start gap-2">
                       <MapPin size={15} className="mt-0.5 shrink-0 text-[#075636]" />
                       <span>Rua Augusto Wunderwald, 7 — Progresso</span>
@@ -1034,7 +1034,7 @@ function Index() {
                       <Clock size={15} className="mt-0.5 shrink-0 text-[#075636]" />
                       <span>Seg–Sex 9h30–19h · Sáb 9h30–13h</span>
                     </p>
-                    <p className="flex items-start gap-2 font-bold text-[#315c46]">
+                    <p className="flex items-start gap-2 font-semibold text-[#315c46]">
                       <Calendar size={15} className="mt-0.5 shrink-0" />
                       <span>Encomendas em tempo integral</span>
                     </p>
@@ -1045,7 +1045,7 @@ function Index() {
                   <img
                     src="/loja-saborosamente.jpg"
                     alt="Foto real da loja SaborosaMente"
-                    className="max-h-[290px] h-full w-full rounded-2xl object-contain"
+                    className="max-h-[320px] h-full w-full rounded-2xl object-contain"
                     loading="lazy"
                   />
                 </div>
@@ -1055,7 +1055,7 @@ function Index() {
             <button
               type="button"
               onClick={() => setDiscountModalOpen(true)}
-              className="group overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -1063,8 +1063,8 @@ function Index() {
                     <Tag size={19} />
                   </span>
                   <div>
-                    <p className="text-[16px] font-extrabold text-[#173a2d]">Como ganhar desconto</p>
-                    <p className="text-[11px] leading-relaxed text-[#708078]">Desconto progressivo automático</p>
+                    <p className="text-[16px] font-semibold text-[#173a2d]">Como ganhar desconto</p>
+                    <p className="text-base leading-relaxed text-[#708078]">Desconto progressivo automático</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
@@ -1077,8 +1077,8 @@ function Index() {
                       <BadgeDollarSign size={17} />
                     </span>
                     <div>
-                      <p className="text-[12px] font-extrabold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
-                      <p className="mt-0.5 text-[10.5px] leading-relaxed text-[#6a715d]">
+                      <p className="text-base font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
+                      <p className="mt-0.5 text-base leading-relaxed text-[#6a715d]">
                         O desconto entra automaticamente conforme a quantidade.
                       </p>
                     </div>
@@ -1093,7 +1093,7 @@ function Index() {
                       className="relative z-10 flex items-center gap-3 rounded-xl border border-[#e2e9dd] bg-[#fbfcf9] px-3 py-2.5"
                     >
                       <span
-                        className={`grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-black shadow-sm ${
+                        className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold shadow-sm ${
                           index === 0
                             ? "bg-[#f6d83d] text-[#174229]"
                             : index === 1
@@ -1105,10 +1105,10 @@ function Index() {
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11.5px] font-extrabold text-[#315c46]">
+                        <p className="text-base font-semibold text-[#315c46]">
                           {rule.min} marmitas
                         </p>
-                        <p className="text-[9.5px] text-[#7a897f]">
+                        <p className="text-base text-[#7a897f]">
                           {index === 0
                             ? "Primeira faixa de economia"
                             : index === 1
@@ -1117,7 +1117,7 @@ function Index() {
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#075636] shadow-sm ring-1 ring-[#dce5d5]">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-[#075636] shadow-sm ring-1 ring-[#dce5d5]">
                         {rule.badge}
                       </span>
                     </div>
@@ -1125,8 +1125,8 @@ function Index() {
                 </div>
 
                 <div className="mt-4 rounded-xl bg-[#78922f] px-3 py-3 text-white">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-white/75">São Bento do Sul</p>
-                  <p className="mt-1 text-[11px] font-extrabold leading-relaxed">
+                  <p className="text-base font-semibold uppercase tracking-wide text-white/75">São Bento do Sul</p>
+                  <p className="mt-1 text-base font-semibold leading-relaxed">
                     Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
                   </p>
                 </div>
@@ -1136,17 +1136,17 @@ function Index() {
         </div>
       </section>
 
-      <section className="bg-white py-8 md:py-10">
+      <section className="bg-white py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 text-center">
+          <div className="mb-4 text-center">
             <div className="mx-auto flex max-w-xl items-center justify-center gap-3">
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
-              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.34em] text-[#315c46] sm:text-[11px]">
+              <p className="font-sans text-sm font-semibold uppercase tracking-[0.14em] text-[#315c46] sm:text-sm">
                 Seu pedido, ao seu jeito
               </p>
               <span className="hidden h-px w-16 bg-[#9bbd5d] sm:block" />
             </div>
-            <h2 className="mt-2 font-display text-[2rem] font-bold leading-none text-[#075636] md:text-[2.4rem]">
+            <h2 className="mt-2 font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
               Escolha <span className="font-pacifico text-[.92em] font-normal text-[#6faa2d]">do seu jeito</span>
             </h2>
           </div>
@@ -1198,21 +1198,21 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-9 md:py-11">
+      <section className="border-y border-[#e8eadf] bg-[#fbfaf5] py-6 md:py-8">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-sans text-[10px] font-extrabold uppercase tracking-[0.24em] text-[#78922f]">
+              <p className="font-sans text-sm font-semibold uppercase tracking-[0.12em] text-[#78922f]">
                 Escolha pelo seu objetivo
               </p>
-              <h2 className="mt-1 font-display text-[2rem] font-bold leading-tight text-[#075636] md:text-[2.4rem]">
+              <h2 className="mt-1 font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
                 Encontre mais rápido o que combina com você
               </h2>
             </div>
             <button
               type="button"
               onClick={() => abrirCardapio()}
-              className="hidden text-xs font-bold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
+              className="hidden text-sm font-semibold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
             >
               Ver cardápio completo
             </button>
@@ -1266,24 +1266,24 @@ function Index() {
                   key={objetivo.filtro}
                   type="button"
                   onClick={() => abrirObjetivo(objetivo.filtro)}
-                  className={`group relative flex min-h-[188px] w-[62vw] max-w-[210px] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-3.5 text-left shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] md:w-auto md:max-w-none ${style.card}`}
+                  className={`group relative flex min-h-[220px] w-[62vw] max-w-[210px] shrink-0 snap-start flex-col overflow-hidden rounded-[1.45rem] border p-3.5 text-left shadow-[0_6px_16px_rgba(7,86,54,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(7,86,54,.11)] md:w-auto md:max-w-none ${style.card}`}
                 >
                   <div className="relative z-20 flex items-start justify-between gap-2">
                     <span className={`grid size-9 place-items-center rounded-xl shadow-sm ${style.icon}`}>
                       <Icon size={18} strokeWidth={2} />
                     </span>
                     {objetivo.rank && (
-                      <span className={`grid size-7 place-items-center rounded-full text-[11px] font-black shadow-sm ${style.badge}`}>
+                      <span className={`grid size-7 place-items-center rounded-full text-sm font-semibold shadow-sm ${style.badge}`}>
                         1
                       </span>
                     )}
                   </div>
 
                   <div className="relative z-20 mt-3 max-w-[90%]">
-                    <h3 className={`font-display text-[15px] font-bold leading-tight ${style.title}`}>
+                    <h3 className={`font-sans text-[15px] font-semibold leading-tight ${style.title}`}>
                       {objetivo.titulo}
                     </h3>
-                    <p className="mt-1 text-[11.5px] font-medium leading-[1.5] text-[#586b61] md:text-[12px]">
+                    <p className="mt-1 text-base font-normal leading-[1.5] text-[#586b61] md:text-base">
                       {objetivo.texto}
                     </p>
                   </div>
@@ -1306,7 +1306,7 @@ function Index() {
                     </div>
                   )}
 
-                  <span className="relative z-20 mt-auto pt-10 text-[10px] font-extrabold text-[#365c49] opacity-0 transition group-hover:opacity-100">
+                  <span className="relative z-20 mt-auto pt-10 text-sm font-semibold text-[#365c49] opacity-0 transition group-hover:opacity-100">
                     Ver opções →
                   </span>
                 </button>
@@ -1316,7 +1316,7 @@ function Index() {
         </div>
       </section>
 
-      <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 md:py-12">
+      <section id="cardapio" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-6 md:py-8">
         <div className="sticky top-2 z-30 -mx-2 mb-5 flex items-center gap-2 rounded-2xl border border-[#dce7d5] bg-white/95 p-2 shadow-lg backdrop-blur lg:hidden">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f5f7f2] px-3 py-2.5">
             <Search size={17} className="shrink-0 text-[#087443]" />
@@ -1346,7 +1346,7 @@ function Index() {
           >
             <SlidersHorizontal size={19} />
             {selectedFilters.length > 0 && (
-              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-xs font-bold text-[#173a2d]">
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-sm font-semibold text-[#173a2d]">
                 {selectedFilters.length}
               </span>
             )}
@@ -1359,7 +1359,7 @@ function Index() {
             >
               <ShoppingCart size={19} />
               {count > 0 && (
-                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-xs font-bold text-[#173a2d]">
+                <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[#f6d83d] text-sm font-semibold text-[#173a2d]">
                   {count > 99 ? "99+" : count}
                 </span>
               )}
@@ -1376,18 +1376,18 @@ function Index() {
             )}>
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-sans text-sm font-semibold text-[#78922f]">Filtros</p>
-                  <h3 className="mt-0.5 font-display text-lg font-bold text-[#075636]">Encontre suas favoritas</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
+                  <p className="font-sans text-base font-semibold text-[#78922f]">Filtros</p>
+                  <h3 className="mt-0.5 font-sans text-lg font-semibold text-[#075636]">Encontre suas favoritas</h3>
+                  <p className="mt-1 text-base leading-relaxed text-[#487156]">Combine os filtros para achar exatamente o que você quer comer.</p>
                 </div>
                 {selectedFilters.length > 0 && (
-                  <button onClick={() => setSelectedFilters([])} className="shrink-0 pt-1 text-xs font-bold text-[#075636] underline underline-offset-2">
+                  <button onClick={() => setSelectedFilters([])} className="shrink-0 pt-1 text-sm font-semibold text-[#075636] underline underline-offset-2">
                     Limpar
                   </button>
                 )}
               </div>
 
-              <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Preferências</p>
+              <p className="mb-2 text-base font-semibold tracking-normal text-[#567044]">Preferências</p>
               <div className="flex flex-wrap gap-2">
                 {[...quickFilters, ...availableRestrictionFilters].map((filter) => {
                   const selected = selectedFilters.includes(filter);
@@ -1397,7 +1397,7 @@ function Index() {
                       onClick={() => toggleFilter(filter)}
                       aria-pressed={selected}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-sm font-semibold uppercase tracking-[0.03em] transition-all",
                         selected
                           ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                           : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
@@ -1413,7 +1413,7 @@ function Index() {
               <button
                 type="button"
                 onClick={() => setAdvancedFiltersOpen((open) => !open)}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#075636]"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#075636]"
                 aria-expanded={advancedFiltersOpen}
               >
                 Mais filtros nutricionais
@@ -1434,7 +1434,7 @@ function Index() {
                         onClick={() => toggleFilter(filter)}
                         aria-pressed={selected}
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-semibold uppercase tracking-[0.03em] transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                             : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
@@ -1449,7 +1449,7 @@ function Index() {
               )}
 
               <div className="my-4 border-t border-[#cfe0c4]" />
-              <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Categorias</p>
+              <p className="mb-2 text-base font-semibold tracking-normal text-[#567044]">Categorias</p>
               {isLoading ? (
                 <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary/30" size={22} /></div>
               ) : (
@@ -1462,7 +1462,7 @@ function Index() {
                         onClick={() => toggleFilter(category)}
                         aria-pressed={selected}
                         className={cn(
-                          "rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
+                          "rounded-full border px-3 py-2 text-sm font-semibold uppercase tracking-[0.03em] transition-all",
                           selected
                             ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                             : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
@@ -1478,7 +1478,7 @@ function Index() {
               {subgruposDisponiveis.length > 0 && (
                 <>
                   <div className="my-4 border-t border-[#cfe0c4]" />
-                  <p className="mb-2 text-xs font-semibold tracking-normal text-[#567044]">Subgrupos</p>
+                  <p className="mb-2 text-base font-semibold tracking-normal text-[#567044]">Subgrupos</p>
                   <div className="flex flex-wrap gap-2">
                     {subgruposDisponiveis.map((subgrupo) => {
                       const chave = "Subgrupo:" + subgrupo;
@@ -1489,7 +1489,7 @@ function Index() {
                           onClick={() => toggleFilter(chave)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.03em] transition-all",
+                            "rounded-full border px-3 py-2 text-sm font-semibold uppercase tracking-[0.03em] transition-all",
                             selected
                               ? "border-[#075636] bg-[#075636] text-white shadow-sm"
                               : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
@@ -1508,7 +1508,7 @@ function Index() {
           {/* Products Grid */}
           <div className="flex-1 w-full" id="produtos-grid">
             {/* Busca e resultados alinhados ao topo dos filtros e do desconto */}
-            <div className="mb-6 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+            <div className="mb-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
               <div className="min-w-0">
                 {/* Busca no topo do Cardápio Completo (desktop); no mobile, usa a busca fixa acima */}
                 <div className="relative hidden w-full max-w-[560px] items-center gap-2 lg:flex">
@@ -1559,7 +1559,7 @@ function Index() {
                                 className="size-9 shrink-0 rounded-lg object-cover"
                                 loading="lazy"
                               />
-                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
+                              <span className="line-clamp-1 text-sm font-semibold text-[#315440]">
                                 {product.nome}
                               </span>
                             </button>
@@ -1571,20 +1571,20 @@ function Index() {
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm("")}
-                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+                      className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                       title="Limpar busca"
                     >
                       <X size={20} />
                     </button>
                   )}
                 </div>
-                <div className="mt-3 lg:mt-6">
-                  <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl">
+                <div className="mt-3">
+                  <h1 className="font-sans text-2xl font-semibold leading-tight text-foreground md:text-3xl">
                     {searchTerm
                       ? `Buscando "${searchTerm}"`
                       : activeFiltersLabel}
                   </h1>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 text-base text-muted-foreground">
                     {searchTerm
                       ? `Encontramos ${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}.`
                       : selectedFilters.length === 0
@@ -1603,10 +1603,10 @@ function Index() {
             {productsError ? (
               <div className="rounded-3xl border border-[#dce7d5] bg-white px-6 py-12 text-center shadow-sm">
                 <div className="mx-auto grid size-12 place-items-center rounded-full bg-[#eef5e9] text-2xl">🍽️</div>
-                <h3 className="mt-4 text-lg font-bold text-[#173a2d]">
+                <h3 className="mt-4 text-lg font-semibold text-[#173a2d]">
                   Não conseguimos carregar o cardápio agora
                 </h3>
-                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                <p className="mx-auto mt-2 max-w-md text-base text-muted-foreground">
                   Sua conexão pode ter oscilado por alguns instantes. Tente novamente — seu carrinho continua salvo.
                 </p>
                 {productsErrorDetail instanceof Error && (
@@ -1616,7 +1616,7 @@ function Index() {
                   type="button"
                   onClick={() => refetchProducts()}
                   disabled={productsFetching}
-                  className="mt-5 inline-flex min-w-40 items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
+                  className="mt-5 inline-flex min-w-40 items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:opacity-60"
                 >
                   {productsFetching ? "Tentando novamente..." : "Tentar novamente"}
                 </button>
@@ -1624,7 +1624,7 @@ function Index() {
             ) : isLoading ? (
               <div aria-label="Carregando cardápio" className="space-y-6">
                 <div className="h-5 w-40 animate-pulse rounded-full bg-[#e7ece3]" />
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {Array.from({ length: 8 }).map((_, index) => (
                     <div
                       key={index}
@@ -1644,7 +1644,7 @@ function Index() {
                 </div>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="py-24 text-center">
+              <div className="py-10 text-center">
                 <div className="text-5xl mb-3">🔍</div>
                 <p className="text-muted-foreground text-base font-medium">
                   Nenhum produto encontrado.
@@ -1654,7 +1654,7 @@ function Index() {
                     setSearchTerm("");
                     setSelectedFilters([]);
                   }}
-                  className="mt-4 text-sm font-bold text-primary hover:underline"
+                  className="mt-4 text-sm font-semibold text-primary hover:underline"
                 >
                   Ver todos os produtos
                 </button>
@@ -1677,16 +1677,16 @@ function Index() {
                       return (
                         <div key={category}>
                           {categoryIndex > 0 && <div className="my-6 border-t border-border/30" />}
-                          <h3 className="mb-1 text-xl font-bold tracking-normal text-primary">
+                          <h3 className="mb-1 text-xl font-semibold tracking-normal text-primary">
                             {category}
                           </h3>
                           {(() => {
                             const catInfo = orderedCategories.find((c: any) => c.nome === category);
                             return catInfo?.descricao ? (
-                              <p className="text-sm font-medium text-gray-600 mb-4">{catInfo.descricao}</p>
+                              <p className="text-base font-medium text-gray-600 mb-4">{catInfo.descricao}</p>
                             ) : <div className="mb-4" />;
                           })()}
-                          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                             {categoryProducts.map((product: any) => (
                               <ProductCard
                                 key={product.id}
@@ -1709,7 +1709,7 @@ function Index() {
                     })
                   ) : (
                     // Categoria selecionada - sem separador
-                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                       {filteredProducts.map((product: any) => (
                         <ProductCard
                           key={product.id}
@@ -1831,7 +1831,7 @@ function OrderChoiceBanner({
 
   return (
     <article
-      className={`group relative min-h-[340px] overflow-hidden rounded-[1.75rem] border shadow-[0_10px_26px_rgba(7,86,54,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_17px_34px_rgba(7,86,54,.15)] ${styles.card}`}
+      className={`group relative min-h-[320px] overflow-hidden rounded-[1.75rem] border shadow-[0_10px_26px_rgba(7,86,54,.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_17px_34px_rgba(7,86,54,.15)] ${styles.card}`}
     >
       <div className={`pointer-events-none absolute -right-16 top-16 size-52 rounded-full ${styles.orb}`} />
       <Leaf
@@ -1843,20 +1843,20 @@ function OrderChoiceBanner({
         strokeWidth={1.1}
       />
 
-      <div className={`relative z-20 p-5 ${isCustom ? "max-w-[58%]" : "max-w-[74%]"}`}>
+      <div className={`relative z-20 p-5 ${isCustom ? "max-w-[68%]" : "max-w-[78%]"}`}>
         <div className="flex items-center gap-2">
           <div className={`grid size-10 shrink-0 place-items-center rounded-full border ${styles.icon}`}>
             <Icon size={18} strokeWidth={1.9} />
           </div>
           <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.04em] ${styles.badge}`}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold uppercase tracking-[0.04em] ${styles.badge}`}
           >
             {badge}
           </span>
         </div>
 
         <h3
-          className={`mt-5 font-display font-bold leading-[1.02] ${styles.title} ${
+          className={`mt-3 font-sans font-semibold leading-[1.02] ${styles.title} ${
             isCustom ? "text-[1.6rem] md:text-[1.78rem]" : "text-[1.5rem] md:text-[1.65rem]"
           }`}
         >
@@ -1864,21 +1864,21 @@ function OrderChoiceBanner({
         </h3>
 
         <p
-          className={`mt-3 text-[12px] leading-[1.58] md:text-[12.5px] ${styles.text} ${
+          className={`mt-3 text-base leading-relaxed ${styles.text} ${
             isCustom ? "max-w-[25ch]" : "max-w-[31ch]"
           }`}
         >
           {text}
         </p>
 
-        <div className={`${isCustom ? "mt-6 space-y-2" : "mt-5 flex flex-wrap gap-2"}`}>
+        <div className={`${isCustom ? "mt-4 space-y-2" : "mt-4 flex flex-wrap gap-2"}`}>
           {chips.map((chip, index) => (
             <span
               key={chip}
               className={`${
                 isCustom
-                  ? "flex w-fit max-w-[220px] items-center gap-2 rounded-full border px-3.5 py-2 text-[10px] font-bold"
-                  : "inline-flex w-fit rounded-full border px-3 py-1.5 text-[10px] font-bold"
+                  ? "flex w-fit max-w-[220px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold"
+                  : "inline-flex w-fit rounded-full border px-3 py-1.5 text-sm font-semibold"
               } ${styles.chip} ${isCustom && index === 2 ? "opacity-80" : ""}`}
             >
               {isCustom && index < 2 && (
