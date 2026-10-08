@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -9,6 +9,8 @@ import {
   Save,
   Smartphone,
   Trash2,
+  UserRoundCheck,
+  X,
   WandSparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
   component: WhatsappAdminOrderPage,
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    cliente: typeof search.cliente === "string" ? search.cliente : undefined,
+  }),
 });
 
 type Product = {
@@ -33,6 +38,18 @@ type Product = {
   estoque_200g?: number | null;
   estoque_300g?: number | null;
   estoque_400g?: number | null;
+};
+
+type RegisteredCustomer = {
+  id: string;
+  nome: string | null;
+  telefone: string | null;
+  cidade: string | null;
+  bairro: string | null;
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  cep: string | null;
 };
 
 type DraftItem = {
@@ -86,12 +103,15 @@ const newKey = () =>
 
 function WhatsappAdminOrderPage() {
   const navigate = useNavigate();
+  const { cliente: initialCustomerId } = Route.useSearch();
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
 
   const [pasteText, setPasteText] = useState("");
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<RegisteredCustomer | null>(null);
   const [metodoEntrega, setMetodoEntrega] = useState<"entrega" | "retirada">("entrega");
   const [cidade, setCidade] = useState("São Bento do Sul");
   const [bairro, setBairro] = useState("");
@@ -106,6 +126,67 @@ function WhatsappAdminOrderPage() {
   const [observacao, setObservacao] = useState("");
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
   const [items, setItems] = useState<DraftItem[]>([]);
+
+  // A lista de clientes é protegida pelas políticas RLS de administradores.
+  // Busca apenas quando o operador digita; não baixa a base inteira.
+  const searchTerm = customerSearch.trim().replace(/[%_,()]/g, "");
+  const { data: registeredCustomers = [], isFetching: customersLoading } = useQuery({
+    queryKey: ["whatsapp-customer-search", searchTerm],
+    queryFn: async () => {
+      const columns = "id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep";
+      const nameQuery = supabase.from("profiles").select(columns).ilike("nome", `%${searchTerm}%`).limit(12);
+      const digits = searchTerm.replace(/\D/g, "");
+      const result = await Promise.all([
+        nameQuery,
+        ...(digits.length >= 4
+          ? [supabase.from("profiles").select(columns).ilike("telefone", `%${digits.slice(-4)}%`).limit(30)]
+          : []),
+      ]);
+      const profiles = new Map<string, RegisteredCustomer>();
+      for (const response of result) {
+        if (response.error) throw response.error;
+        for (const profile of (response.data ?? []) as unknown as RegisteredCustomer[]) {
+          profiles.set(profile.id, profile);
+        }
+      }
+      const lower = searchTerm.toLocaleLowerCase("pt-BR");
+      const filtered = [...profiles.values()].filter((profile) =>
+        String(profile.nome ?? "").toLocaleLowerCase("pt-BR").includes(lower) ||
+        (digits.length >= 4 && String(profile.telefone ?? "").replace(/\D/g, "").includes(digits)),
+      );
+      return filtered.slice(0, 15);
+    },
+    enabled: searchTerm.length >= 2,
+    staleTime: 20_000,
+  });
+
+  const selecionarConta = (profile: RegisteredCustomer) => {
+    setSelectedCustomer(profile);
+    setCustomerSearch("");
+    setNome(profile.nome || "");
+    setTelefone(profile.telefone || "");
+    if (profile.cidade) setCidade(profile.cidade);
+    if (profile.bairro) setBairro(profile.bairro);
+    if (profile.endereco) setRua(profile.endereco);
+    if (profile.numero) setNumero(profile.numero);
+    if (profile.complemento) setComplemento(profile.complemento);
+    if (profile.cep) setCep(profile.cep);
+  };
+
+  useEffect(() => {
+    if (!initialCustomerId || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(initialCustomerId)) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep")
+      .eq("id", initialCustomerId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data) selecionarConta(data as RegisteredCustomer);
+        if (!cancelled && (error || !data)) toast.error("Não foi possível carregar a conta selecionada.");
+      });
+    return () => { cancelled = true; };
+  }, [initialCustomerId]);
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["whatsapp-admin-products"],
@@ -170,7 +251,7 @@ function WhatsappAdminOrderPage() {
     const firstLine = lines.find((line) => /^\*?Pedido\s+/i.test(line));
     if (firstLine) {
       const m = firstLine.match(/^\*?Pedido\s+(.+?)(?:\s*-\s*([A-Z]{2,5}))?\s*:??\*?$/i);
-      if (m?.[1]) setNome(m[1].replace(/\*+/g, "").trim());
+      if (m?.[1] && !selectedCustomer) setNome(m[1].replace(/\*+/g, "").trim());
       if (m?.[2]?.toUpperCase() === "SBS") setCidade("São Bento do Sul");
     }
 
@@ -276,6 +357,7 @@ function WhatsappAdminOrderPage() {
           nome,
           telefone,
           email,
+          linkedUserId: selectedCustomer?.id ?? null,
           metodoEntrega,
           horarioEntrega: horario,
           pagamento,
@@ -299,7 +381,9 @@ function WhatsappAdminOrderPage() {
       });
     },
     onSuccess: (data: any) => {
-      toast.success(`Pedido do WhatsApp lançado! Total ${money(Number(data?.valor_total ?? total))}`);
+      toast.success(
+        `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
+      );
       navigate({ to: "/admin/pedidos" as any });
     },
     onError: (error: any) => {
@@ -344,6 +428,63 @@ function WhatsappAdminOrderPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.4fr] gap-6">
         <div className="space-y-6">
+          <section className="bg-white border rounded-xl p-5 space-y-3">
+            <h2 className="font-bold text-gray-800 flex items-center gap-2">
+              <UserRoundCheck size={18} className="text-green-700" />
+              Vincular à conta do cliente
+            </h2>
+            <p className="text-xs text-gray-500">
+              Selecione quem já possui conta no site. Este pedido aparecerá em Meus Pedidos,
+              junto com as compras online. Nenhum cadastro novo será criado.
+            </p>
+            {selectedCustomer ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-green-800 truncate">
+                    Conta vinculada: {selectedCustomer.nome || "Cliente cadastrado"}
+                  </p>
+                  <p className="text-xs text-green-700">
+                    {selectedCustomer.telefone || "Telefone não informado"} · Histórico do site
+                  </p>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => setSelectedCustomer(null)}>
+                  <X size={14} className="mr-1" /> Alterar
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={customerSearch}
+                  onChange={(event) => setCustomerSearch(event.target.value)}
+                  placeholder="Pesquisar conta pelo nome ou telefone"
+                  aria-label="Pesquisar conta do cliente"
+                />
+                {customersLoading && <p className="text-xs text-gray-500">Buscando contas...</p>}
+                {searchTerm.length >= 2 && !customersLoading && registeredCustomers.length === 0 && (
+                  <p className="text-xs text-amber-700">Nenhuma conta encontrada. Confira o nome ou registre o pedido sem vínculo.</p>
+                )}
+                {registeredCustomers.length > 0 && (
+                  <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 divide-y">
+                    {registeredCustomers.map((profile) => (
+                      <button
+                        type="button"
+                        key={profile.id}
+                        onClick={() => selecionarConta(profile)}
+                        className="w-full px-3 py-2 text-left hover:bg-green-50 transition-colors"
+                      >
+                        <p className="text-sm font-medium text-gray-800">{profile.nome || "Cliente sem nome"}</p>
+                        <p className="text-xs text-gray-500">{profile.telefone || "Telefone não cadastrado"}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Sem seleção, o sistema só vincula automaticamente se identificar uma única conta pelo telefone.
+                  Caso contrário, o pedido fica como atendimento de convidado.
+                </p>
+              </>
+            )}
+          </section>
           <section className="bg-white border rounded-xl p-5">
             <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
               <WandSparkles size={18} className="text-[#5850ec]" />
