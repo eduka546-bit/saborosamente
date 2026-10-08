@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   Menu,
   ShoppingBag,
@@ -11,13 +11,12 @@ import {
   Lock,
   Gift,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { HomeInfoModal } from "@/components/home-info-modal";
 import { CartSheet } from "./cart-sheet";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
@@ -41,7 +39,7 @@ const links = [
 
 export function SiteHeader() {
   const { count } = useCart();
-  const queryClient = useQueryClient();
+  const location = useLocation();
   const [openDeliveryModal, setOpenDeliveryModal] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -86,35 +84,6 @@ export function SiteHeader() {
       window.location.href = "/";
     }
   };
-
-  const { data: areas, isLoading } = useQuery({
-    queryKey: ["delivery-areas"],
-    queryFn: async () => {
-      // Prioridade 1: Buscar do Supabase se houver tabela
-      const { data, error } = await supabase
-        .from("delivery_rates")
-        .select("*")
-        .eq("ativo", true)
-        .order("cidade", { ascending: true })
-        .order("bairro", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        // Mapeia para o formato esperado pelo componente
-        return data.map((d: any) => ({
-          ...d,
-          neighborhood: d.bairro,
-          city: d.cidade,
-          rate: d.valor,
-        }));
-      }
-
-      // Se o banco estiver indisponível, não exibimos taxas antigas ou estimadas.
-      // É mais seguro mostrar a indisponibilidade temporária do que informar um frete incorreto.
-      return [];
-
-    },
-    staleTime: 1000 * 60 * 60,
-  });
 
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
@@ -187,7 +156,7 @@ export function SiteHeader() {
                   <button
                     key={l.label}
                     onClick={() => setOpenDeliveryModal(true)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary text-left"
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold text-foreground hover:bg-secondary text-left"
                   >
                     <l.icon size={18} className="text-primary" />
                     {l.label}
@@ -197,7 +166,7 @@ export function SiteHeader() {
                     key={l.label}
                     to={l.to as any}
                     hash={(l as any).hash}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold text-foreground hover:bg-secondary"
                   >
                     <l.icon size={18} className="text-primary" />
                     {l.label}
@@ -271,7 +240,7 @@ export function SiteHeader() {
                 className="w-56 rounded-2xl p-2 shadow-soft border-border bg-white z-[300]"
               >
                 <div className="px-2 py-1.5 mb-1 border-b border-border/50">
-                  <p className="text-xs font-bold text-muted-foreground tracking-normal">
+                  <p className="text-sm font-bold text-muted-foreground tracking-normal">
                     Sua Conta
                   </p>
                   <p className="text-sm font-normal truncate opacity-75">{user.email}</p>
@@ -279,14 +248,14 @@ export function SiteHeader() {
                 <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                   <Link to="/perfil" className="flex items-center gap-2 w-full">
                     <User className="h-4 w-4" />
-                    <span className="font-semibold text-xs">Meu Perfil</span>
+                    <span className="font-semibold text-sm">Meu Perfil</span>
                   </Link>
                 </DropdownMenuItem>
                 {mounted && isAdmin && (
                   <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                     <Link to="/admin" className="flex items-center gap-2 w-full">
                       <Lock className="h-4 w-4" />
-                      <span className="font-semibold text-xs">Painel Admin</span>
+                      <span className="font-semibold text-sm">Painel Admin</span>
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -296,14 +265,14 @@ export function SiteHeader() {
                   className="rounded-xl cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  <span className="font-semibold text-xs">Sair</span>
+                  <span className="font-semibold text-sm">Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Link
               to="/auth"
-              search={{ redirect: "/" }}
+              search={{ redirect: location.pathname + location.searchStr + (location.hash ? `#${location.hash}` : ""), confirmed: false }}
               aria-label="Entrar ou criar conta"
               className="flex h-10 w-10 items-center justify-center rounded-full border border-border transition-colors hover:bg-secondary"
             >
@@ -320,7 +289,7 @@ export function SiteHeader() {
             >
               <ShoppingBag size={22} />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-xs font-bold text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 grid min-size-5 place-items-center rounded-full bg-primary px-1.5 text-sm font-bold text-white shadow-sm">
                   {count}
                 </span>
               )}
@@ -329,142 +298,11 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <DeliveryAreasModal
+      <HomeInfoModal
+        kind="delivery"
         open={openDeliveryModal}
         onOpenChange={setOpenDeliveryModal}
-        areas={areas}
-        isLoading={isLoading}
       />
     </header>
-  );
-}
-
-function DeliveryAreasModal({
-  open,
-  onOpenChange,
-  areas,
-  isLoading,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  areas: any[] | undefined;
-  isLoading: boolean;
-}) {
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-
-  const cities = useMemo(() => {
-    if (!areas) return [];
-    return Array.from(new Set(areas.map((a) => a.city))).sort();
-  }, [areas]);
-
-  const neighborhoods = useMemo(() => {
-    if (!areas || !selectedCity) return [];
-    return areas
-      .filter((a) => a.city === selectedCity)
-      .sort((a, b) => a.neighborhood.localeCompare(b.neighborhood));
-  }, [areas, selectedCity]);
-
-  // Reset selected city when modal opens
-  useEffect(() => {
-    if (open && cities.length > 0 && !selectedCity) {
-      setSelectedCity(cities[0]);
-    }
-  }, [open, cities]);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl">
-        <DialogHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b bg-gray-50/50 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-full">
-              <MapPin className="text-primary size-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-bold text-primary tracking-normal">
-                Áreas de Entrega
-              </DialogTitle>
-              <p className="text-xs text-muted-foreground font-medium">
-                Selecione uma cidade para ver os bairros
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-gray-400" />
-          </button>
-        </DialogHeader>
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* Cidades - Sidebar */}
-          <div className="w-1/3 border-r bg-gray-50/30 overflow-y-auto shrink-0">
-            {cities.map((city) => (
-              <button
-                key={city}
-                onClick={() => setSelectedCity(city)}
-                className={cn(
-                  "w-full text-left px-6 py-4 text-sm font-semibold transition-all border-l-4",
-                  selectedCity === city
-                    ? "bg-white border-primary text-primary shadow-sm"
-                    : "border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-100/50",
-                )}
-              >
-                {city}
-              </button>
-            ))}
-            {isLoading && cities.length === 0 && (
-              <div className="p-6 space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-8 bg-gray-100 animate-pulse rounded" />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Bairros - Content Area */}
-          <div className="flex-1 flex flex-col bg-white overflow-hidden">
-            {selectedCity ? (
-              <>
-                <div className="px-6 py-3 bg-primary/5 border-b shrink-0">
-                  <h3 className="text-xs font-bold text-primary tracking-normal flex items-center gap-2">
-                    <span className="size-1.5 rounded-full bg-primary" />
-                    Bairros em {selectedCity}
-                  </h3>
-                </div>
-                <ScrollArea className="flex-1 px-6 py-4">
-                  <div className="grid grid-cols-1 gap-2 pb-6">
-                    {neighborhoods.map((area: any) => (
-                      <div
-                        key={area.id}
-                        className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-white hover:border-primary/20 hover:shadow-sm transition-all group"
-                      >
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                          {area.neighborhood}
-                        </span>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {area.rate === 0
-                            ? "Grátis"
-                            : `R$ ${area.rate.toFixed(2).replace(".", ",")}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground p-12 text-center">
-                <div className="space-y-2">
-                  <MapPin className="size-8 mx-auto opacity-20" />
-                  <p className="text-sm font-medium">
-                    Selecione uma cidade ao lado para ver os bairros e taxas.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

@@ -52,7 +52,7 @@ function PaymentLogo({ logo, name }: { logo?: string; name: string }) {
       {logo ? (
         <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
       ) : (
-        <span className="text-[10px] font-bold leading-tight text-neutral-600">{name}</span>
+        <span className="text-sm font-bold leading-tight text-neutral-600">{name}</span>
       )}
     </div>
   );
@@ -128,7 +128,7 @@ export function SiteFooter() {
                 href={`https://wa.me/${whatsapp}?text=Olá! Gostaria de fazer um pedido.`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-sm font-bold"
               >
                 <WhatsAppIcon className="size-4" />
                 WhatsApp
@@ -137,7 +137,7 @@ export function SiteFooter() {
                 href={`https://instagram.com/${instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-sm font-bold"
               >
                 <InstagramIcon className="size-4" />
                 Instagram
@@ -146,7 +146,7 @@ export function SiteFooter() {
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-sm font-bold"
               >
                 <MapPin size={15} />
                 Como chegar
@@ -155,7 +155,7 @@ export function SiteFooter() {
           </div>
 
           <div className="hidden md:block">
-            <h3 className="text-xs font-bold opacity-70">Navegação</h3>
+            <h3 className="text-lg font-semibold opacity-100">Navegação</h3>
             <nav className="mt-4">
               <ul className="space-y-2.5 text-sm">
                 <li>
@@ -178,7 +178,7 @@ export function SiteFooter() {
           </div>
 
           <div className="hidden md:block">
-            <h3 className="text-xs font-bold opacity-70">Atendimento</h3>
+            <h3 className="text-lg font-semibold opacity-100">Atendimento</h3>
             <div className="mt-4 grid gap-3 text-sm">
               <div className="flex flex-wrap gap-2">
                 <a
@@ -201,7 +201,7 @@ export function SiteFooter() {
                 </a>
               </div>
 
-              <div className="flex items-start gap-2 text-xs leading-relaxed opacity-80">
+              <div className="flex items-start gap-2 text-sm leading-relaxed opacity-80">
                 <Clock size={14} className="mt-0.5 shrink-0" />
                 <span>Encomendas em tempo integral · Entregas conforme disponibilidade</span>
               </div>
@@ -210,7 +210,7 @@ export function SiteFooter() {
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-start gap-2 text-xs leading-relaxed opacity-80 hover:opacity-100"
+                className="flex items-start gap-2 text-sm leading-relaxed opacity-80 hover:opacity-100"
               >
                 <MapPin size={14} className="mt-0.5 shrink-0" />
                 <span>
@@ -237,7 +237,7 @@ export function SiteFooter() {
           <div className="grid gap-5 lg:grid-cols-2">
             {(cardFlags.length > 0 || mercadoPago) && (
               <div>
-                <p className="mb-3 text-[11px] font-bold opacity-70">Crédito / Débito</p>
+                <p className="mb-3 text-lg font-semibold opacity-100">Crédito / Débito</p>
                 <div className="flex flex-wrap gap-2">
                   {cardFlags.map((flag) => (
                     <PaymentLogo key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
@@ -254,7 +254,7 @@ export function SiteFooter() {
 
             {mealFlags.length > 0 && (
               <div>
-                <p className="mb-3 text-[11px] font-bold opacity-70">Alimentação / Refeição</p>
+                <p className="mb-3 text-lg font-semibold opacity-100">Alimentação / Refeição</p>
                 <div className="flex flex-wrap gap-2">
                   {mealFlags.map((flag) => (
                     <PaymentLogo key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
@@ -267,7 +267,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-4 text-center text-[11px] font-semibold opacity-80 sm:flex-row sm:text-left">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-4 text-center text-sm font-semibold opacity-80 sm:flex-row sm:text-left">
           <p>© {new Date().getFullYear()} SaborosaMente</p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:justify-end">
             <Link to="/privacidade" className="hover:opacity-100">

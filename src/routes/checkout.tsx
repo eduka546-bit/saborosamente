@@ -278,8 +278,10 @@ function Checkout() {
     }
   }
 
-  // Retirada na loja nunca cobra frete. Na entrega, mantém a regra calculada no carrinho.
-  const shippingCheckout = metodoEntrega === "retirada" ? 0 : shipping;
+  // Enquanto o endereço não está definido, o total parcial inclui apenas produtos.
+  const entregaPendenteCalculo =
+    metodoEntrega === "entrega" && (!selectedCity || !selectedBairro);
+  const shippingCheckout = metodoEntrega === "retirada" || entregaPendenteCalculo ? 0 : shipping;
   const subtotalEfetivoCarrinho = Math.max(0, subtotal - discount);
   const subtotalComboPronto = lines.reduce(
     (sum, line) => sum + (line.comboPronto ? Number(line.subtotal || 0) : 0),
@@ -317,8 +319,6 @@ function Checkout() {
     0,
     totalCheckout - couponDiscount - descontoIndicacao - cashbackDesconto,
   );
-  const entregaPendenteCalculo =
-    metodoEntrega === "entrega" && (!selectedCity || !selectedBairro);
   const entregaResumo =
     metodoEntrega === "retirada"
       ? "Sem taxa"
@@ -830,7 +830,7 @@ function Checkout() {
       <section className="mx-auto max-w-xl px-4 py-24 text-center">
         <CheckCircle2 className="mx-auto size-14 text-primary" aria-hidden="true" />
         <h1 className="mt-6 text-3xl font-semibold">Pedido recebido!</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-base text-muted-foreground">
           Protocolo{" "}
           <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em
           breve entraremos em contato para confirmar.
@@ -850,7 +850,7 @@ function Checkout() {
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-[#1ebe5b]"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-base font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-[#1ebe5b]"
             >
               <MessageCircle className="size-5" aria-hidden="true" />
               Acompanhar pedido no WhatsApp
@@ -858,9 +858,9 @@ function Checkout() {
           );
         })()}
 
-        <div className="mt-6 rounded-2xl border border-[#d9e6d2] bg-[#f4f8f1] p-4 text-left text-sm text-[#315440]">
+        <div className="mt-6 rounded-2xl border border-[#d9e6d2] bg-[#f4f8f1] p-4 text-left text-base text-[#315440]">
           <strong>Agora é com a gente.</strong>
-          <p className="mt-1 text-sm leading-relaxed text-[#5b7064]">
+          <p className="mt-1 text-base leading-relaxed text-[#5b7064]">
             Para acompanhar seu pedido, clique no botão “Acompanhar pedido no WhatsApp” acima. Por lá você poderá consultar as próximas atualizações. A avaliação será solicitada somente depois da entrega.
           </p>
         </div>
@@ -872,11 +872,11 @@ function Checkout() {
                   alt="SaborosaMente"
                   className="h-7 w-auto max-w-[180px] object-contain object-left"
                 />
-                <p className="mt-3 text-sm font-semibold text-[#087443]">@saborosamente.sbs</p>
+                <p className="mt-3 text-base font-semibold text-[#087443]">@saborosamente.sbs</p>
                 <h4 className="mt-2 text-base font-semibold leading-tight text-[#173a2d]">
                   Mostre sua SaborosaMente
                 </h4>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
+                <p className="mt-1.5 text-base leading-relaxed text-[#587064]">
                   Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
                   <strong className="text-[#315440]"> concorra a um mimo</strong>.
                 </p>
@@ -884,7 +884,7 @@ function Checkout() {
                   href="https://www.instagram.com/saborosamente.sbs/"
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
+                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-base font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
                 >
                   Quero participar
                 </a>
@@ -898,13 +898,13 @@ function Checkout() {
               </div>
               <div>
                 <p className="font-semibold text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
-                <p className="mt-1 text-sm leading-relaxed text-[#66715f]">
+                <p className="mt-1 text-base leading-relaxed text-[#66715f]">
                   Seu amigo ganha 5% na primeira compra e você recebe R$ 5 de cashback depois que o pedido dele for entregue.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     to="/indicar"
-                    className="rounded-full bg-[#086e45] px-4 py-2 text-sm font-semibold text-white"
+                    className="rounded-full bg-[#086e45] px-4 py-2 text-base font-semibold text-white"
                   >
                     Ver meu link
                   </Link>
@@ -914,7 +914,7 @@ function Checkout() {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full border border-[#086e45] px-4 py-2 text-sm font-semibold text-[#086e45]"
+                    className="rounded-full border border-[#086e45] px-4 py-2 text-base font-semibold text-[#086e45]"
                   >
                     Compartilhar no WhatsApp
                   </a>
@@ -926,7 +926,7 @@ function Checkout() {
 
         <Link
           to="/"
-          className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
+          className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-base font-semibold text-primary-foreground"
         >
           Continuar comprando
         </Link>
@@ -939,13 +939,13 @@ function Checkout() {
     return (
       <section className="mx-auto max-w-xl px-4 py-24 text-center">
         <h1 className="text-3xl font-semibold">Checkout</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-base text-muted-foreground">
           Você ainda não escolheu nenhuma marmita.
         </p>
         <button
           type="button"
           onClick={() => navigate({ to: "/" })}
-          className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground"
+          className="mt-8 inline-flex rounded-full bg-primary px-7 py-3 text-base font-semibold text-primary-foreground"
         >
           Ver catálogo
         </button>
@@ -959,12 +959,12 @@ function Checkout() {
       <Link
         to="/"
         hash="cardapio"
-        className="mb-4 inline-flex text-sm font-semibold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+        className="mb-4 inline-flex text-base font-semibold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
       >
         ← Voltar ao cardápio
       </Link>
       <h1 className="text-4xl font-semibold">Checkout</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
+      <p className="mt-3 text-base text-muted-foreground">
         Finalize seu pedido em três etapas simples.
       </p>
 
@@ -975,10 +975,10 @@ function Checkout() {
           ["3", "Confirmar"],
         ].map(([numero, label]) => (
           <div key={numero} className="rounded-2xl border border-[#dce7d5] bg-[#f7faf4] px-3 py-3 text-center">
-            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-sm font-semibold text-white">
+            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-base font-semibold text-white">
               {numero}
             </span>
-            <span className="mt-1 block text-sm font-semibold text-[#315440]">{label}</span>
+            <span className="mt-1 block text-base font-semibold text-[#315440]">{label}</span>
           </div>
         ))}
       </div>
@@ -986,8 +986,8 @@ function Checkout() {
       <details className="sticky top-2 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-[#315440]">Resumo do pedido</p>
-            <p className="text-sm text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
+            <p className="text-base font-semibold text-[#315440]">Resumo do pedido</p>
+            <p className="text-base text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
           </div>
           <div className="flex items-center gap-2">
             <strong className="text-base text-primary">{formatBRL(finalTotal)}</strong>
@@ -995,7 +995,7 @@ function Checkout() {
           </div>
         </summary>
         <div className="border-t border-border px-4 py-3">
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-base">
             {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
                 key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
@@ -1004,7 +1004,7 @@ function Checkout() {
                 <span className="min-w-0 text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-sm font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-base font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -1013,7 +1013,7 @@ function Checkout() {
               </li>
             ))}
           </ul>
-          <dl className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
+          <dl className="mt-3 space-y-2 border-t border-border pt-3 text-base">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
@@ -1036,7 +1036,7 @@ function Checkout() {
                 <dd>− {formatBRL(couponDiscount + descontoIndicacao + cashbackDesconto)}</dd>
               </div>
             )}
-            <div className="flex justify-between border-t border-border pt-2 text-sm">
+            <div className="flex justify-between border-t border-border pt-2 text-base">
               <dt className="font-semibold">{totalResumoLabel}</dt>
               <dd className="font-semibold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
@@ -1056,31 +1056,31 @@ function Checkout() {
               1. Seus dados
             </legend>
             <div>
-              <label htmlFor="nome" className="text-sm font-medium">
+              <label htmlFor="nome" className="text-base font-medium">
                 Nome completo
               </label>
               <input id="nome" className={fieldClass} {...register("nome")} />
               {errors.nome && (
-                <p className="mt-1 text-sm text-destructive">{errors.nome.message}</p>
+                <p className="mt-1 text-base text-destructive">{errors.nome.message}</p>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="email" className="text-sm font-medium">
+                <label htmlFor="email" className="text-base font-medium">
                   E-mail
                 </label>
                 <input id="email" type="email" className={fieldClass} {...register("email")} />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>
+                  <p className="mt-1 text-base text-destructive">{errors.email.message}</p>
                 )}
               </div>
               <div>
-                <label htmlFor="telefone" className="text-sm font-medium">
+                <label htmlFor="telefone" className="text-base font-medium">
                   Telefone / WhatsApp
                 </label>
                 <input id="telefone" className={fieldClass} {...register("telefone")} />
                 {errors.telefone && (
-                  <p className="mt-1 text-sm text-destructive">{errors.telefone.message}</p>
+                  <p className="mt-1 text-base text-destructive">{errors.telefone.message}</p>
                 )}
               </div>
             </div>
@@ -1092,7 +1092,7 @@ function Checkout() {
                 onChange={(event) => setRecoveryConsent(event.target.checked)}
                 className="mt-0.5 size-4 accent-[#086e45]"
               />
-              <span className="text-sm leading-5 text-muted-foreground">
+              <span className="text-base leading-5 text-muted-foreground">
                 Aceito receber uma mensagem no WhatsApp caso eu não conclua este pedido,
                 para receber ajuda na recuperação do carrinho. Posso desmarcar esta opção
                 a qualquer momento.
@@ -1111,7 +1111,7 @@ function Checkout() {
                 type="button"
                 onClick={() => setMetodoEntrega("entrega")}
                 className={cn(
-                  "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
+                  "rounded-2xl border px-4 py-3 text-base font-semibold transition-colors",
                   metodoEntrega === "entrega"
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:border-primary",
@@ -1126,7 +1126,7 @@ function Checkout() {
                   setSelectedBairro("");
                 }}
                 className={cn(
-                  "rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors",
+                  "rounded-2xl border px-4 py-3 text-base font-semibold transition-colors",
                   metodoEntrega === "retirada"
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:border-primary",
@@ -1137,7 +1137,7 @@ function Checkout() {
             </div>
 
             {metodoEntrega === "retirada" && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-base text-foreground">
                 Retirada na loja de São Bento do Sul — sem taxa de entrega.
               </div>
             )}
@@ -1147,7 +1147,7 @@ function Checkout() {
             {/* seletor de endereços salvos — só aparece quando logado */}
             {addresses.length > 0 && (
               <div>
-                <label className="text-sm font-medium flex items-center gap-1.5">
+                <label className="text-base font-medium flex items-center gap-1.5">
                   <MapPin size={14} className="text-primary" />
                   Meus endereços salvos
                 </label>
@@ -1175,7 +1175,7 @@ function Checkout() {
             )}
 
             <div>
-              <label htmlFor="cidade" className="text-sm font-medium">
+              <label htmlFor="cidade" className="text-base font-medium">
                 Cidade
               </label>
               <select
@@ -1197,13 +1197,13 @@ function Checkout() {
                 ))}
               </select>
               {errors.cidade && (
-                <p className="mt-1 text-sm text-destructive">{errors.cidade.message}</p>
+                <p className="mt-1 text-base text-destructive">{errors.cidade.message}</p>
               )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="bairro" className="text-sm font-medium">
+                <label htmlFor="bairro" className="text-base font-medium">
                   Bairro
                 </label>
                 <select
@@ -1228,7 +1228,7 @@ function Checkout() {
                 </select>
               </div>
               <div>
-                <label htmlFor="cep" className="text-sm font-medium">
+                <label htmlFor="cep" className="text-base font-medium">
                   CEP (opcional)
                 </label>
                 <input
@@ -1241,22 +1241,22 @@ function Checkout() {
             </div>
 
             {entregaPendenteCalculo && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-base font-semibold text-amber-800">
                 Selecione a cidade e o bairro para calcular a taxa de entrega antes de confirmar.
               </div>
             )}
 
             <div>
-              <label htmlFor="endereco" className="text-sm font-medium">
+              <label htmlFor="endereco" className="text-base font-medium">
                 Endereço e número
               </label>
               <input id="endereco" className={fieldClass} {...register("endereco")} />
               {errors.endereco && (
-                <p className="mt-1 text-sm text-destructive">{errors.endereco.message}</p>
+                <p className="mt-1 text-base text-destructive">{errors.endereco.message}</p>
               )}
             </div>
             <div>
-              <label htmlFor="complemento" className="text-sm font-medium">
+              <label htmlFor="complemento" className="text-base font-medium">
                 Complemento (opcional)
               </label>
               <input id="complemento" className={fieldClass} {...register("complemento")} />
@@ -1268,7 +1268,7 @@ function Checkout() {
 
             {/* Aviso de prazo — marmitas personalizadas */}
             {temMarmitaPersonalizada && (
-              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-base text-amber-800">
                 <span className="text-base leading-none">⏳</span>
                 <span>
                   Seu pedido tem <strong>marmita(s) personalizada(s)</strong>. Você escolhe a data
@@ -1280,21 +1280,21 @@ function Checkout() {
             )}
 
             {metodoEntrega === "entrega" && entregaCfg.descricao && (
-              <div className="rounded-2xl border border-[#086e45]/20 bg-[#086e45]/5 px-4 py-3 text-sm text-[#086e45]">
+              <div className="rounded-2xl border border-[#086e45]/20 bg-[#086e45]/5 px-4 py-3 text-base text-[#086e45]">
                 {entregaCfg.descricao}
               </div>
             )}
 
             {pedidoAbaixoMinimoEntrega && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-base text-amber-900">
                 <strong>Pedido mínimo para {selectedCity}: {minimoEntrega} unidades.</strong>
-                <p className="mt-1 text-sm leading-relaxed">
+                <p className="mt-1 text-base leading-relaxed">
                   Faltam {faltamParaMinimoEntrega} {faltamParaMinimoEntrega === 1 ? "unidade" : "unidades"} para liberar a entrega nessa cidade.
                 </p>
                 <Link
                   to="/"
                   hash="cardapio"
-                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-sm font-semibold text-white"
+                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-base font-semibold text-white"
                 >
                   Adicionar mais itens
                 </Link>
@@ -1304,7 +1304,7 @@ function Checkout() {
             {/* ── Data e horário de entrega (entrega programada) ────────────── */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="dataEntrega" className="text-sm font-medium">
+                <label htmlFor="dataEntrega" className="text-base font-medium">
                   {metodoEntrega === "entrega" ? "Data de entrega" : "Data de retirada"}
                 </label>
                 <select
@@ -1323,7 +1323,7 @@ function Checkout() {
                 </select>
               </div>
               <div>
-                <label htmlFor="horarioEntrega" className="text-sm font-medium">
+                <label htmlFor="horarioEntrega" className="text-base font-medium">
                   {metodoEntrega === "entrega" ? "Horário de entrega" : "Horário de retirada"}
                 </label>
                 <select
@@ -1347,7 +1347,7 @@ function Checkout() {
                   ))}
                 </select>
                 {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
-                  <p className="mt-1.5 text-sm font-medium text-amber-700">
+                  <p className="mt-1.5 text-base font-medium text-amber-700">
                     Os horários de hoje já encerraram. Escolha outra data.
                   </p>
                 )}
@@ -1392,8 +1392,8 @@ function Checkout() {
                         💳
                       </span>
                     )}
-                    <span className="text-sm font-semibold leading-tight">{opt.label}</span>
-                    <span className="text-sm text-muted-foreground">{opt.sublabel}</span>
+                    <span className="text-base font-semibold leading-tight">{opt.label}</span>
+                    <span className="text-base text-muted-foreground">{opt.sublabel}</span>
                   </button>
                 );
               })}
@@ -1402,7 +1402,7 @@ function Checkout() {
             {/* ── conteúdo condicional por método ─────────────────────────── */}
 
             {(selectedPayment === "pix" || selectedPayment === "mercadopago") && (
-              <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 text-base text-green-800">
                 <MessageCircle
                   className="mt-0.5 size-5 shrink-0 text-green-600"
                   aria-hidden="true"
@@ -1417,7 +1417,7 @@ function Checkout() {
 
             {selectedPayment === "cartao" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
-                <p className="text-sm font-semibold">💳 Selecione a bandeira do cartão</p>
+                <p className="text-base font-semibold">💳 Selecione a bandeira do cartão</p>
                 <div className="flex flex-wrap gap-2">
                   {cardFlags.map((flag) => {
                     const isSelected = selectedFlag === flag.name;
@@ -1427,7 +1427,7 @@ function Checkout() {
                         type="button"
                         onClick={() => setSelectedFlag(flag.name ?? "")}
                         className={cn(
-                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
+                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-base transition-all",
                           isSelected
                             ? "border-primary bg-primary/10 font-semibold shadow-sm"
                             : "border-border bg-background hover:border-primary",
@@ -1436,13 +1436,13 @@ function Checkout() {
                         {flag.logo ? (
                           <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
                         ) : null}
-                        <span className="text-sm">{flag.name}</span>
+                        <span className="text-base">{flag.name}</span>
                       </button>
                     );
                   })}
                 </div>
                 {!selectedFlag && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Selecione a bandeira para continuar
                   </p>
                 )}
@@ -1451,7 +1451,7 @@ function Checkout() {
 
             {selectedPayment === "alimentacao" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
-                <p className="text-sm font-semibold">🍴 Selecione o cartão de benefício</p>
+                <p className="text-base font-semibold">🍴 Selecione o cartão de benefício</p>
                 <div className="flex flex-wrap gap-2">
                   {mealFlags.map((flag) => {
                     const isSelected = selectedFlag === flag.name;
@@ -1461,7 +1461,7 @@ function Checkout() {
                         type="button"
                         onClick={() => setSelectedFlag(flag.name ?? "")}
                         className={cn(
-                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all",
+                          "flex items-center gap-2 rounded-xl border px-3 py-2 text-base transition-all",
                           isSelected
                             ? "border-primary bg-primary/10 font-semibold shadow-sm"
                             : "border-border bg-background hover:border-primary",
@@ -1470,21 +1470,21 @@ function Checkout() {
                         {flag.logo ? (
                           <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
                         ) : null}
-                        <span className="text-sm">{flag.name}</span>
+                        <span className="text-base">{flag.name}</span>
                       </button>
                     );
                   })}
                 </div>
                 {!selectedFlag && (
-                  <p className="text-sm text-muted-foreground">Selecione o cartão para continuar</p>
+                  <p className="text-base text-muted-foreground">Selecione o cartão para continuar</p>
                 )}
               </div>
             )}
 
             {selectedPayment === "dinheiro" && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2">
-                <p className="text-sm font-semibold">💵 Troco</p>
-                <label htmlFor="troco" className="text-sm text-muted-foreground">
+                <p className="text-base font-semibold">💵 Troco</p>
+                <label htmlFor="troco" className="text-base text-muted-foreground">
                   Precisa de troco? Informe o valor que vai pagar (opcional)
                 </label>
                 <input
@@ -1496,21 +1496,21 @@ function Checkout() {
                   {...register("troco")}
                 />
                 {errors.troco && (
-                  <p className="mt-1 text-sm text-destructive">{errors.troco.message}</p>
+                  <p className="mt-1 text-base text-destructive">{errors.troco.message}</p>
                 )}
               </div>
             )}
           </fieldset>
 
           {indicacaoElegivel && (
-            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-base text-green-800">
               <strong>Indicação aplicada:</strong> você recebe 5% de desconto nesta primeira compra.
             </div>
           )}
 
           {/* ── cupom de desconto ─────────────────────────────────────── */}
           <div>
-            <label className="text-sm font-medium">Cupom de desconto</label>
+            <label className="text-base font-medium">Cupom de desconto</label>
             <div className="mt-1.5 flex gap-2">
               <input
                 value={couponInput}
@@ -1537,7 +1537,7 @@ function Checkout() {
                     setAppliedCoupon(null);
                     setCouponInput("");
                   }}
-                  className="rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-500 hover:bg-red-100 transition-colors"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 text-base font-semibold text-red-500 hover:bg-red-100 transition-colors"
                 >
                   Remover
                 </button>
@@ -1546,17 +1546,17 @@ function Checkout() {
                   type="button"
                   onClick={() => applyCoupon(couponInput)}
                   disabled={couponLoading || !couponInput.trim()}
-                  className="rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-brand-dark transition-colors disabled:opacity-50"
+                  className="rounded-2xl bg-primary px-4 text-base font-semibold text-primary-foreground hover:bg-brand-dark transition-colors disabled:opacity-50"
                 >
                   {couponLoading ? "..." : "Aplicar"}
                 </button>
               )}
             </div>
-            {couponError && <p className="mt-1 text-sm text-destructive">{couponError}</p>}
+            {couponError && <p className="mt-1 text-base text-destructive">{couponError}</p>}
 
             {availableCoupons.length > 0 && (
               <div className="mt-3 rounded-2xl border border-green-100 bg-green-50/40 p-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#086e45]">
+                <div className="flex items-center gap-2 text-base font-semibold text-[#086e45]">
                   <Gift size={15} />
                   Cupons disponíveis para você
                 </div>
@@ -1582,28 +1582,28 @@ function Checkout() {
                       >
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <strong className="text-sm text-foreground">{coupon.codigo}</strong>
-                            <span className="rounded-full bg-[#edf5e6] px-2 py-0.5 text-sm font-semibold text-[#315440]">
+                            <strong className="text-base text-foreground">{coupon.codigo}</strong>
+                            <span className="rounded-full bg-[#edf5e6] px-2 py-0.5 text-base font-semibold text-[#315440]">
                               {benefit}
                             </span>
                             {coupon.personalizado && (
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-sm font-semibold text-green-700">
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-base font-semibold text-green-700">
                                 Exclusivo para você
                               </span>
                             )}
                             {coupon.apenas_primeira_compra && (
-                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-sm font-semibold text-blue-700">
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-base font-semibold text-blue-700">
                                 1ª compra
                               </span>
                             )}
                           </div>
                           {coupon.regra && (
-                            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                            <p className="mt-1 text-base leading-relaxed text-muted-foreground">
                               {coupon.regra}
                             </p>
                           )}
                           {coupon.validade && (
-                            <p className="mt-1 text-sm font-medium text-muted-foreground">
+                            <p className="mt-1 text-base font-medium text-muted-foreground">
                               Válido até{" "}
                               {new Date(`${coupon.validade}T12:00:00`).toLocaleDateString("pt-BR")}
                             </p>
@@ -1614,7 +1614,7 @@ function Checkout() {
                           onClick={() => applyCoupon(coupon.codigo)}
                           disabled={couponLoading || isApplied}
                           className={cn(
-                            "shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition-colors",
+                            "shrink-0 rounded-xl px-3 py-2 text-base font-semibold transition-colors",
                             isApplied
                               ? "bg-green-100 text-green-700"
                               : "bg-primary text-primary-foreground hover:bg-brand-dark",
@@ -1631,7 +1631,7 @@ function Checkout() {
 
             {appliedCoupon && (
               <div className="mt-2 space-y-2">
-                <p className="text-sm font-semibold text-green-600">
+                <p className="text-base font-semibold text-green-600">
                   ✓ Cupom <strong>{appliedCoupon.codigo}</strong> aplicado —{" "}
                   {appliedCoupon.tipo === "Percentual"
                     ? `${appliedCoupon.valor}% de desconto nos itens elegíveis`
@@ -1640,17 +1640,17 @@ function Checkout() {
                       : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
                 </p>
                 {appliedCoupon.substitui_desconto_progressivo && (
-                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-sm font-semibold leading-relaxed text-[#315440]">
+                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-base font-semibold leading-relaxed text-[#315440]">
                     Este cupom substitui o desconto progressivo do pedido. Os descontos não são somados.
                   </p>
                 )}
                 {appliedCoupon.excluir_combo_pronto && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-relaxed text-amber-800">
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-base font-semibold leading-relaxed text-amber-800">
                     Combos Prontos não participam desta promoção, pois já possuem preço promocional.
                   </p>
                 )}
                 {appliedCoupon.apenas_primeira_compra && (
-                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold leading-relaxed text-blue-800">
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-base font-semibold leading-relaxed text-blue-800">
                     Exclusivo para primeira compra — 1 uso por cliente.
                   </p>
                 )}
@@ -1669,7 +1669,7 @@ function Checkout() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Gift size={15} className="text-yellow-600" />
-                  <span className="text-sm font-semibold">
+                  <span className="text-base font-semibold">
                     Cashback disponível:{" "}
                     <strong className="text-yellow-700">{formatBRL(cashbackSaldo)}</strong>
                   </span>
@@ -1678,7 +1678,7 @@ function Checkout() {
                   type="button"
                   onClick={() => setCashbackAtivado(!cashbackAtivado)}
                   className={cn(
-                    "text-sm font-semibold px-3 py-1.5 rounded-full transition-all",
+                    "text-base font-semibold px-3 py-1.5 rounded-full transition-all",
                     cashbackAtivado
                       ? "bg-yellow-500 text-white"
                       : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
@@ -1688,12 +1688,12 @@ function Checkout() {
                 </button>
               </div>
               {cashbackAtivado && cashbackDesconto > 0 && (
-                <p className="text-sm text-yellow-700">
+                <p className="text-base text-yellow-700">
                   Desconto de <strong>{formatBRL(cashbackDesconto)}</strong> aplicado.
                 </p>
               )}
               {cashbackSaldo < (cashbackConfig?.minimo_uso ?? 5) && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Saldo mínimo para usar: {formatBRL(cashbackConfig?.minimo_uso ?? 5)}
                 </p>
               )}
@@ -1704,14 +1704,14 @@ function Checkout() {
             <p className="text-base font-semibold text-foreground">
               3. Revise e confirme
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Confira o resumo ao lado, deixe alguma observação se precisar e confirme o pedido.
+            <p className="mt-1 text-base text-muted-foreground">
+              Confira o resumo do pedido, deixe alguma observação se precisar e confirme.
             </p>
           </div>
 
           {/* ── observações ────────────────────────────────────────────────── */}
           <div>
-            <label htmlFor="observacoes" className="text-sm font-medium">
+            <label htmlFor="observacoes" className="text-base font-medium">
               Observações (opcional)
             </label>
             <textarea
@@ -1725,7 +1725,7 @@ function Checkout() {
           <button
             type="submit"
             disabled={isSubmitting || entregaPendenteCalculo || pedidoAbaixoMinimoEntrega}
-            className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Registrando pedido..."
@@ -1741,24 +1741,24 @@ function Checkout() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <ShieldCheck className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-sm font-semibold text-[#315440]">Pedido protegido</span>
+              <span className="mt-1 block text-base font-semibold text-[#315440]">Pedido protegido</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <CreditCard className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-sm font-semibold text-[#315440]">Sem taxa no cartão</span>
+              <span className="mt-1 block text-base font-semibold text-[#315440]">Sem taxa no cartão</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <Store className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-sm font-semibold text-[#315440]">Loja física em SBS</span>
+              <span className="mt-1 block text-base font-semibold text-[#315440]">Loja física em SBS</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <MessageCircle className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-sm font-semibold text-[#315440]">Suporte no WhatsApp</span>
+              <span className="mt-1 block text-base font-semibold text-[#315440]">Suporte no WhatsApp</span>
             </div>
           </div>
 
           {!session && (
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-base text-muted-foreground">
               <button
                 type="button"
                 onClick={() => navigate({ to: "/auth", search: { redirect: "/checkout" } as any })}
@@ -1774,7 +1774,7 @@ function Checkout() {
         {/* ── resumo do pedido ──────────────────────────────────────────────── */}
         <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:sticky lg:top-6 lg:block">
           <h2 className="text-lg font-semibold">Seu pedido</h2>
-          <ul className="mt-4 space-y-3 text-sm">
+          <ul className="mt-4 space-y-3 text-base">
             {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
                 key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
@@ -1783,7 +1783,7 @@ function Checkout() {
                 <span className="text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-sm font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-base font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -1792,7 +1792,7 @@ function Checkout() {
               </li>
             ))}
           </ul>
-          <dl className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+          <dl className="mt-5 space-y-2 border-t border-border pt-4 text-base">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
@@ -1838,7 +1838,7 @@ function Checkout() {
               <dd className="font-semibold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
             {entregaPendenteCalculo && (
-              <p className="text-sm leading-relaxed text-amber-700">
+              <p className="text-base leading-relaxed text-amber-700">
                 O total final será atualizado assim que você selecionar o bairro de entrega.
               </p>
             )}

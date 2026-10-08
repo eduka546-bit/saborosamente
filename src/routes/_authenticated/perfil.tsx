@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/perfil")({
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      throw redirect({ to: "/auth", search: { redirect: "/perfil" } });
+      throw redirect({ to: "/auth", search: { redirect: "/perfil", confirmed: false } });
     }
     return { session };
   },
@@ -470,7 +470,7 @@ function PerfilPage() {
           <a
             key={id}
             href={`#${id}`}
-            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-xs font-semibold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+            className="shrink-0 snap-start rounded-full border border-primary/15 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
           >
             {label}
           </a>
@@ -528,19 +528,19 @@ function PerfilPage() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Nome</Label>
+                  <Label className="text-sm text-muted-foreground">Nome</Label>
                   <p className="font-medium">{profile?.nome || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">E-mail</Label>
+                  <Label className="text-sm text-muted-foreground">E-mail</Label>
                   <p className="font-medium">{session.user.email}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Telefone</Label>
+                  <Label className="text-sm text-muted-foreground">Telefone</Label>
                   <p className="font-medium">{profile?.telefone || "Não informado"}</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">CPF</Label>
+                  <Label className="text-sm text-muted-foreground">CPF</Label>
                   <p className="font-medium">{profile?.cpf || "Não informado"}</p>
                 </div>
                 <Button
@@ -563,7 +563,7 @@ function PerfilPage() {
                 <Heart className="h-5 w-5 fill-primary text-primary" />
                 Meus Favoritos
               </h2>
-              <Link to="/" hash="cardapio" className="text-sm font-bold text-primary hover:underline">
+              <Link to="/" hash="cardapio" className="text-base font-bold text-primary hover:underline">
                 Ver cardápio
               </Link>
             </div>
@@ -572,7 +572,7 @@ function PerfilPage() {
               <Card className="border-dashed">
                 <CardContent className="py-8 text-center">
                   <Heart className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Toque no coração das suas marmitas favoritas para encontrá-las aqui.
                   </p>
                 </CardContent>
@@ -594,17 +594,17 @@ function PerfilPage() {
                         <Link
                           to="/produto/$id"
                           params={{ id: product.id }}
-                          className="line-clamp-2 text-sm font-bold leading-snug hover:text-primary"
+                          className="line-clamp-2 text-base font-bold leading-snug hover:text-primary"
                         >
                           {product.nome}
                         </Link>
-                        <p className="mt-1 text-sm font-bold text-primary">
+                        <p className="mt-1 text-base font-bold text-primary">
                           R$ {Number(product.preco_300g || product.preco || 0).toFixed(2).replace(".", ",")}
                         </p>
                         <Link
                           to="/produto/$id"
                           params={{ id: product.id }}
-                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                          className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
                         >
                           Abrir produto <ExternalLink className="size-3" />
                         </Link>
@@ -636,12 +636,12 @@ function PerfilPage() {
                     {topProducts.map((item, index) => (
                       <div key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                             {index + 1}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold">{item.nome}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="truncate text-base font-bold">{item.nome}</p>
+                            <p className="text-sm text-muted-foreground">
                               {item.quantidade} {item.quantidade === 1 ? "unidade pedida" : "unidades pedidas"}
                             </p>
                           </div>
@@ -649,7 +649,7 @@ function PerfilPage() {
                         <Link
                           to="/produto/$id"
                           params={{ id: item.id }}
-                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
+                          className="shrink-0 rounded-full border border-primary/20 px-3 py-1.5 text-sm font-semibold text-primary hover:bg-primary/5"
                         >
                           Abrir
                         </Link>
@@ -706,7 +706,7 @@ function PerfilPage() {
                       <div className="bg-muted/30 px-4 py-4 md:px-6 flex items-center justify-between border-b gap-4">
                         <div className="flex items-center gap-4">
                           <div>
-                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                            <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                               Pedido
                             </p>
                             <p className="font-bold text-primary">
@@ -714,16 +714,16 @@ function PerfilPage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                            <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                               Data
                             </p>
-                            <p className="text-sm font-medium">
+                            <p className="text-base font-medium">
                               {new Date(order.created_at).toLocaleDateString("pt-BR")}
                             </p>
                           </div>
                         </div>
                         <span
-                          className={`text-xs font-semibold tracking-normal px-3 py-1 rounded-full border ${orderStatusClass(order.status)}`}
+                          className={`text-sm font-semibold tracking-normal px-3 py-1 rounded-full border ${orderStatusClass(order.status)}`}
                         >
                           {orderStatusLabel(order.status)}
                         </span>
@@ -732,10 +732,10 @@ function PerfilPage() {
                       <CardContent className="p-4 md:p-6">
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="text-base font-semibold text-foreground">
                               {totalUnits} {totalUnits === 1 ? "unidade" : "unidades"}
                             </p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
+                            <p className="mt-0.5 text-sm text-muted-foreground">
                               {(order.itens ?? []).length} {(order.itens ?? []).length === 1 ? "produto" : "produtos"} diferentes
                             </p>
                             <div className="mt-3 flex -space-x-2">
@@ -751,7 +751,7 @@ function PerfilPage() {
                                 ) : (
                                   <div
                                     key={item.id}
-                                    className="h-9 w-9 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-semibold"
+                                    className="h-9 w-9 rounded-full bg-muted border-2 border-background flex items-center justify-center text-sm font-semibold"
                                     title={item.produtos?.nome}
                                   >
                                     {item.quantidade}
@@ -767,7 +767,7 @@ function PerfilPage() {
                           </div>
 
                           <div className="text-right shrink-0">
-                            <p className="text-xs font-semibold text-muted-foreground tracking-normal">
+                            <p className="text-sm font-semibold text-muted-foreground tracking-normal">
                               Total
                             </p>
                             <p className="text-lg font-bold">{orderMoney(order.valor_total)}</p>
@@ -777,7 +777,7 @@ function PerfilPage() {
                         <button
                           type="button"
                           onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                          className="mt-4 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-bold text-primary transition hover:bg-primary/10"
+                          className="mt-4 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-base font-bold text-primary transition hover:bg-primary/10"
                         >
                           <span className="flex items-center gap-2">
                             <ReceiptText size={16} />
@@ -789,7 +789,7 @@ function PerfilPage() {
                         {isExpanded && (
                           <div className="mt-4 space-y-5 border-t pt-4">
                             <div>
-                              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-muted-foreground">
                                 Itens do pedido
                               </p>
                               <div className="space-y-3">
@@ -807,20 +807,20 @@ function PerfilPage() {
                                           className="h-12 w-12 shrink-0 rounded-xl object-cover"
                                         />
                                       ) : (
-                                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted text-xs font-bold text-muted-foreground">
+                                        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted text-sm font-bold text-muted-foreground">
                                           {item.quantidade}x
                                         </div>
                                       )}
                                       <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold leading-snug text-foreground">
+                                        <p className="text-base font-bold leading-snug text-foreground">
                                           {item.quantidade}x {item.produtos?.nome ?? item.nome_item ?? "Produto"}
                                         </p>
-                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                        <p className="mt-0.5 text-sm text-muted-foreground">
                                           {peso ? `${peso} • ` : ""}
                                           {orderMoney(item.preco_unitario)} por unidade
                                         </p>
                                       </div>
-                                      <span className="shrink-0 text-sm font-bold text-foreground">
+                                      <span className="shrink-0 text-base font-bold text-foreground">
                                         {orderMoney(lineTotal)}
                                       </span>
                                     </div>
@@ -833,10 +833,10 @@ function PerfilPage() {
                               <div className="flex gap-2">
                                 <Truck size={17} className="mt-0.5 shrink-0 text-primary" />
                                 <div>
-                                  <p className="text-xs font-bold text-muted-foreground">
+                                  <p className="text-sm font-bold text-muted-foreground">
                                     {entrega ? "Entrega" : "Retirada"}
                                   </p>
-                                  <p className="text-sm font-semibold">
+                                  <p className="text-base font-semibold">
                                     {entrega
                                       ? endereco.length
                                         ? endereco.join(" - ")
@@ -844,7 +844,7 @@ function PerfilPage() {
                                       : "Retirada na loja"}
                                   </p>
                                   {order.horario_recebimento && (
-                                    <p className="mt-1 text-xs text-muted-foreground">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                       {order.horario_recebimento}
                                     </p>
                                   )}
@@ -854,10 +854,10 @@ function PerfilPage() {
                               <div className="flex gap-2">
                                 <CreditCard size={17} className="mt-0.5 shrink-0 text-primary" />
                                 <div>
-                                  <p className="text-xs font-bold text-muted-foreground">
+                                  <p className="text-sm font-bold text-muted-foreground">
                                     Pagamento
                                   </p>
-                                  <p className="text-sm font-semibold capitalize">
+                                  <p className="text-base font-semibold capitalize">
                                     {order.metodo_pagamento || "—"}
                                     {order.tipo_cartao ? ` • ${order.tipo_cartao}` : ""}
                                   </p>
@@ -867,14 +867,14 @@ function PerfilPage() {
 
                             {order.observacao && !/^Cartão:/i.test(String(order.observacao)) && (
                               <div className="rounded-xl border bg-background p-3">
-                                <p className="text-xs font-bold text-muted-foreground">
+                                <p className="text-sm font-bold text-muted-foreground">
                                   Observações
                                 </p>
-                                <p className="mt-1 text-sm">{order.observacao}</p>
+                                <p className="mt-1 text-base">{order.observacao}</p>
                               </div>
                             )}
 
-                            <div className="space-y-2 border-t pt-4 text-sm">
+                            <div className="space-y-2 border-t pt-4 text-base">
                               <div className="flex justify-between text-muted-foreground">
                                 <span>Produtos</span>
                                 <span>{orderMoney(itemsSubtotal)}</span>
@@ -899,9 +899,9 @@ function PerfilPage() {
 
                             <div className="flex flex-col gap-2 sm:flex-row">
                               <Link
-                                to="/pedido/"
+                                to="/pedido"
                                 search={{ p: order.id.slice(0, 8).toUpperCase() }}
-                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-base font-bold text-primary-foreground transition hover:bg-primary/90"
                               >
                                 <Truck size={16} />
                                 Acompanhar pedido
@@ -934,13 +934,13 @@ function PerfilPage() {
             <Card className="border-yellow-200 bg-yellow-50">
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold tracking-normal text-yellow-600 mb-1">
+                  <p className="text-sm font-semibold tracking-normal text-yellow-600 mb-1">
                     Saldo disponível
                   </p>
                   <p className="text-3xl font-bold text-yellow-700">
                     R$ {cashbackSaldo.toFixed(2).replace(".", ",")}
                   </p>
-                  <p className="text-xs text-yellow-600 mt-1">
+                  <p className="text-sm text-yellow-600 mt-1">
                     Use no checkout em até 30 dias. O sistema usa primeiro o crédito que vence antes.
                   </p>
                 </div>
@@ -952,7 +952,7 @@ function PerfilPage() {
 
             {cashbackTransacoes.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-muted-foreground tracking-normal">
+                <h3 className="text-base font-bold text-muted-foreground tracking-normal">
                   Histórico
                 </h3>
                 {cashbackTransacoes.map((t: any) => (
@@ -969,8 +969,8 @@ function PerfilPage() {
                         <Clock size={16} className="text-red-400 shrink-0" />
                       )}
                       <div>
-                        <p className="text-sm font-medium text-gray-800 capitalize">{t.tipo}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-base font-medium text-gray-800 capitalize">{t.tipo}</p>
+                        <p className="text-sm text-gray-600">
                           {format(new Date(t.created_at), "dd/MM/yyyy", { locale: ptBR })}
                           {t.tipo === "recebido" && t.expira_em && Number(t.saldo_restante ?? 0) > 0
                             ? ` • vence em ${format(new Date(t.expira_em), "dd/MM/yyyy", { locale: ptBR })}`
@@ -979,7 +979,7 @@ function PerfilPage() {
                       </div>
                     </div>
                     <span
-                      className={`font-bold text-sm ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}
+                      className={`font-bold text-base ${t.tipo === "recebido" ? "text-green-600" : "text-red-500"}`}
                     >
                       {t.tipo === "recebido" ? "+" : "−"} R$ {Math.abs(t.valor).toFixed(2)}
                     </span>
@@ -999,13 +999,13 @@ function PerfilPage() {
               <CardContent className="p-6 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-bold text-gray-900 mb-1">Ganhe R$ 5,00 por indicação!</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-base text-gray-500">
                     Seu amigo ganha 5% na primeira compra e você recebe R$ 5,00 após a entrega.
                   </p>
                 </div>
                 <Link
                   to="/indicar"
-                  className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold hover:bg-primary/90 transition-all whitespace-nowrap"
+                  className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground rounded-full text-base font-bold hover:bg-primary/90 transition-all whitespace-nowrap"
                 >
                   Ver meu link
                 </Link>
@@ -1072,7 +1072,7 @@ function PerfilPage() {
                     {currentTaxa && (
                       <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-1">
                         <Truck size={18} />
-                        <span className="text-sm font-bold">
+                        <span className="text-base font-bold">
                           Taxa de entrega para este local: R${" "}
                           {currentTaxa.taxa.toFixed(2).replace(".", ",")}
                         </span>
@@ -1167,16 +1167,16 @@ function PerfilPage() {
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold">{addr.label}</h3>
                             {addr.is_default && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold tracking-normal">
+                              <span className="text-sm bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold tracking-normal">
                                 Padrão
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-base text-muted-foreground mt-1">
                             {addr.rua}, {addr.numero}
                             {addr.complemento ? ` - ${addr.complemento}` : ""}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-base text-muted-foreground">
                             {addr.bairro}, {addr.cidade}
                           </p>
                         </div>

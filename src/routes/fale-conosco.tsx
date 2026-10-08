@@ -81,8 +81,8 @@ function FaleConoscoPage() {
             </svg>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-sm">WhatsApp</p>
-            <p className="text-sm text-white/80 mt-0.5">Resposta rápida</p>
+            <p className="font-semibold text-base">WhatsApp</p>
+            <p className="text-base text-white/80 mt-0.5">Resposta rápida</p>
           </div>
         </a>
 
@@ -108,8 +108,8 @@ function FaleConoscoPage() {
             </svg>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-sm">Instagram</p>
-            <p className="text-sm text-white/80 mt-0.5">@{instagram.replace("@", "")}</p>
+            <p className="font-semibold text-base">Instagram</p>
+            <p className="text-base text-white/80 mt-0.5">@{instagram.replace("@", "")}</p>
           </div>
         </a>
 
@@ -122,25 +122,25 @@ function FaleConoscoPage() {
               <Mail className="size-6" />
             </div>
             <div className="text-center">
-              <p className="font-semibold text-sm">E-mail</p>
-              <p className="text-sm text-white/80 mt-0.5 truncate max-w-[120px]">{email}</p>
+              <p className="font-semibold text-base">E-mail</p>
+              <p className="text-base text-white/80 mt-0.5 truncate max-w-[120px]">{email}</p>
             </div>
           </a>
         ) : (
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-gray-100 p-6 text-gray-400">
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-gray-100 p-6 text-gray-600">
             <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
               <Phone className="size-6" />
             </div>
             <div className="text-center">
-              <p className="font-semibold text-sm text-gray-500">Horário</p>
-              <p className="text-sm mt-0.5">Encomendas 24h</p>
+              <p className="font-semibold text-base text-gray-500">Horário</p>
+              <p className="text-base mt-0.5">Encomendas 24h</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Opções de atendimento: bot x atendente humano */}
-      <div className="rounded-2xl border border-green-100 bg-green-50/60 p-4 text-sm text-gray-600">
+      <div className="rounded-2xl border border-green-100 bg-green-50/60 p-4 text-base text-gray-600">
         <p className="font-semibold text-[#086e45] mb-1">Como funciona o atendimento?</p>
         <p>
           No WhatsApp principal{" "}
@@ -178,11 +178,11 @@ function FaleConoscoPage() {
                   {openFaq === faq.id ? (
                     <ChevronUp size={18} className="text-[#086e45] shrink-0" />
                   ) : (
-                    <ChevronDown size={18} className="text-gray-400 shrink-0" />
+                    <ChevronDown size={18} className="text-gray-600 shrink-0" />
                   )}
                 </button>
                 {openFaq === faq.id && (
-                  <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">
+                  <div className="px-6 pb-5 text-base text-muted-foreground leading-relaxed border-t border-border pt-4">
                     {faq.resposta}
                   </div>
                 )}
@@ -195,7 +195,7 @@ function FaleConoscoPage() {
       {/* CTA final */}
       <div className="rounded-3xl bg-[#086e45] p-8 text-white text-center space-y-4">
         <p className="font-semibold text-lg">Não encontrou o que procurava?</p>
-        <p className="text-white/80 text-sm">
+        <p className="text-white/80 text-base">
           Fale diretamente com a gente no WhatsApp. Respondemos rápido!
         </p>
         <a

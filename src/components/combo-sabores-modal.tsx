@@ -158,11 +158,12 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-lg font-bold">{combo.nome}</h2>
-            <p className="text-sm text-white/75">
+            <p className="text-base text-white/75">
               Escolha {totalCombo} sabores — {formatBRL(precoCombo)}
             </p>
           </div>
           <button
+            aria-label="Fechar modal"
             onClick={onClose}
             className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
           >
@@ -180,14 +181,14 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                 setSabores({});
               }}
               className={cn(
-                "flex-1 rounded-xl border-2 py-2.5 text-center text-sm font-semibold transition-all",
+                "flex-1 rounded-xl border-2 py-2.5 text-center text-base font-semibold transition-all",
                 selectedWeight === w.value
                   ? "border-[#086e45] bg-[#086e45]/5 text-[#086e45]"
                   : "border-gray-200 text-gray-500 hover:border-[#086e45]/30",
               )}
             >
               {w.label} ({w.value})
-              <span className="block text-xs font-medium text-gray-400 mt-0.5">
+              <span className="block text-sm font-medium text-gray-600 mt-0.5">
                 {formatBRL(w.preco)}
               </span>
             </button>
@@ -196,16 +197,16 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
 
         {/* Progresso */}
         <div className="shrink-0 border-b px-4 py-2">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-base">
             <span className="text-gray-500">
               Selecionados: <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
             </span>
             {totalSelecionado === totalCombo && !comboIndisponivel && (
-              <span className="text-[#086e45] font-bold text-xs">✓ Completo!</span>
+              <span className="text-[#086e45] font-bold text-sm">✓ Completo!</span>
             )}
           </div>
           {comboIndisponivel && (
-            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
               Esta gramatura está temporariamente indisponível: há {estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de {totalCombo}.
             </div>
           )}
@@ -214,15 +215,15 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         {/* Lista de sabores */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
           {saboresLoading ? (
-            <div className="py-12 text-center text-gray-400 text-sm">
+            <div className="py-12 text-center text-gray-600 text-base">
               Carregando sabores...
             </div>
           ) : saboresError ? (
-            <div className="py-12 text-center text-red-500 text-sm">
+            <div className="py-12 text-center text-red-500 text-base">
               Não foi possível carregar os sabores agora. Tente novamente.
             </div>
           ) : saboresDisponiveis.length === 0 ? (
-            <div className="py-12 text-center text-gray-400 text-sm">
+            <div className="py-12 text-center text-gray-600 text-base">
               Nenhum sabor disponível para este combo no momento.
             </div>
           ) : (
@@ -243,23 +244,24 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{prod.nome}</p>
+                    <p className="text-base font-semibold text-gray-900 leading-snug line-clamp-3">{prod.nome}</p>
                     {saborEsgotado ? (
-                      <p className="mt-0.5 text-[11px] font-semibold text-red-500">
+                      <p className="mt-0.5 text-sm font-semibold text-red-500">
                         Esgotado em {selectedWeight}
                       </p>
                     ) : Number.isFinite(estoque) && estoque <= 5 ? (
-                      <p className="mt-0.5 text-[11px] font-semibold text-amber-600">
+                      <p className="mt-0.5 text-sm font-semibold text-amber-600">
                         Restam {estoque}
                       </p>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
+                      aria-label={`Diminuir ${prod.nome}`}
                       onClick={() => changeQty(prod.id, -1)}
                       disabled={qty === 0}
                       className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center border transition-all",
+                        "h-10 w-10 rounded-full flex items-center justify-center border transition-all",
                         qty > 0
                           ? "border-[#086e45] text-[#086e45] hover:bg-[#086e45] hover:text-white"
                           : "border-gray-200 text-gray-300 cursor-not-allowed",
@@ -269,13 +271,14 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                     </button>
                     <span
                       className={cn(
-                        "w-7 text-center text-sm font-semibold",
+                        "w-7 text-center text-base font-semibold",
                         qty > 0 ? "text-[#086e45]" : "text-gray-300",
                       )}
                     >
                       {qty}
                     </span>
                     <button
+                      aria-label={`Aumentar ${prod.nome}`}
                       onClick={() => changeQty(prod.id, 1)}
                       disabled={
                         comboIndisponivel ||
@@ -283,7 +286,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                         (prod.controle_estoque && qty >= estoqueDisponivel(prod))
                       }
                       className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center transition-all",
+                        "h-10 w-10 rounded-full flex items-center justify-center transition-all",
                         !comboIndisponivel &&
                         totalSelecionado < totalCombo &&
                           (!prod.controle_estoque || qty < estoqueDisponivel(prod))
@@ -306,10 +309,10 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
             onClick={handleAddToCart}
             disabled={comboIndisponivel || totalSelecionado !== totalCombo}
             className={cn(
-              "w-full rounded-2xl py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all",
+              "w-full rounded-2xl py-3.5 text-base font-semibold flex items-center justify-center gap-2 transition-all",
               !comboIndisponivel && totalSelecionado === totalCombo
                 ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed",
+                : "bg-gray-100 text-gray-600 cursor-not-allowed",
             )}
           >
             <ShoppingCart size={16} />

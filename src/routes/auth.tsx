@@ -266,14 +266,14 @@ function AuthPage() {
               setPassword("");
               setConfirmPassword("");
             }}
-            className="text-sm text-primary hover:underline font-medium"
+            className="text-base text-primary hover:underline font-medium"
           >
             {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
           </button>
           <h2 className="text-2xl font-bold tracking-normal">
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             {isLogin
               ? "Entre com seu e-mail e sua senha"
               : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
@@ -282,12 +282,13 @@ function AuthPage() {
 
         {passwordChangeRequired ? (
           <form onSubmit={handlePasswordChange} className="mt-8 space-y-4">
-            <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
+            <div className="rounded-2xl bg-primary/5 p-4 text-base text-foreground">
               Para proteger sua conta, defina uma senha nova que não seja seu CPF.
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-password">Nova senha</Label>
+              <Label className="text-base" htmlFor="new-password">Nova senha</Label>
               <Input
+                className="h-11 text-base md:text-base"
                 id="new-password"
                 type="password"
                 value={newPassword}
@@ -298,8 +299,9 @@ function AuthPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-new-password">Confirmar nova senha</Label>
+              <Label className="text-base" htmlFor="confirm-new-password">Confirmar nova senha</Label>
               <Input
+                className="h-11 text-base md:text-base"
                 id="confirm-new-password"
                 type="password"
                 value={confirmNewPassword}
@@ -317,13 +319,14 @@ function AuthPage() {
           {!isLogin && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome Completo</Label>
+                <Label className="text-base" htmlFor="nome">Nome Completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+
                     id="nome"
                     placeholder="Seu nome"
-                    className="pl-10"
+                    className="h-11 text-base md:text-base pl-10"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     required
@@ -331,13 +334,14 @@ function AuthPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
+                <Label className="text-base" htmlFor="telefone">Telefone</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+
                     id="telefone"
                     placeholder="(00) 00000-0000"
-                    className="pl-10"
+                    className="h-11 text-base md:text-base pl-10"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
                     required
@@ -348,14 +352,15 @@ function AuthPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label className="text-base" htmlFor="email">E-mail</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
+
                 id="email"
                 type="email"
                 placeholder="seu@email.com"
-                className="pl-10"
+                className="h-11 text-base md:text-base pl-10"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -366,16 +371,17 @@ function AuthPage() {
 
           {!isLogin && (
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label className="text-base" htmlFor="cpf">CPF</Label>
               <div className="relative">
                 <Fingerprint className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+
                   id="cpf"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   placeholder="Seu CPF"
-                  className="pl-10"
+                  className="h-11 text-base md:text-base pl-10"
                   value={cpf}
                   onChange={(e) => setCpf(e.target.value.replace(/\D/g, ""))}
                   required
@@ -385,14 +391,15 @@ function AuthPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="password">{isLogin ? "Senha" : "Crie uma senha"}</Label>
+            <Label className="text-base" htmlFor="password">{isLogin ? "Senha" : "Crie uma senha"}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
+
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder={isLogin ? "Sua senha" : "Crie sua senha"}
-                className="pl-10 pr-10"
+                className="h-11 text-base md:text-base pl-10 pr-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isLogin ? "current-password" : "new-password"}
@@ -411,7 +418,7 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="text-sm font-semibold text-primary hover:underline"
               >
                 Esqueci minha senha
               </button>
@@ -420,8 +427,9 @@ function AuthPage() {
 
           {!isLogin && (
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirmar senha</Label>
+              <Label className="text-base" htmlFor="confirm-password">Confirmar senha</Label>
               <Input
+                className="h-11 text-base md:text-base"
                 id="confirm-password"
                 type="password"
                 value={confirmPassword}

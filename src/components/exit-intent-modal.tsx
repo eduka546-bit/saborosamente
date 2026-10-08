@@ -97,13 +97,13 @@ export function ExitIntentModal({
         <div className="bg-white px-6 py-6 space-y-5">
           {/* Oferta */}
           <div className="rounded-2xl bg-[#086e45]/5 border border-[#086e45]/10 p-4 text-center space-y-1">
-            <p className="text-xs font-bold tracking-normal text-[#086e45]/60">
+            <p className="text-sm font-bold tracking-normal text-[#086e45]/60">
               Oferta exclusiva para você
             </p>
             <p className="text-lg font-bold text-gray-900">
               {discountPercent}% de desconto na sua compra
             </p>
-            <p className="text-xs text-gray-500">Use o cupom abaixo antes de finalizar o pedido</p>
+            <p className="text-sm text-gray-500">Use o cupom abaixo antes de finalizar o pedido</p>
           </div>
 
           {/* Cupom */}
@@ -127,7 +127,7 @@ export function ExitIntentModal({
           {/* CTA principal */}
           <button
             onClick={handleApply}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#086e45] px-6 py-4 text-sm font-bold text-white hover:bg-[#065a38] transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#086e45] px-6 py-4 text-base font-bold text-white hover:bg-[#065a38] transition-colors"
           >
             Aplicar desconto e finalizar
             <ArrowRight size={16} />
@@ -136,9 +136,9 @@ export function ExitIntentModal({
           {/* Link secundário */}
           <button
             onClick={onClose}
-            className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+            className="w-full text-center text-sm text-gray-600 hover:text-gray-600 transition-colors py-1"
           >
-            Não, obrigado. Vou sair sem o desconto.
+            Continuar navegando
           </button>
         </div>
       </div>

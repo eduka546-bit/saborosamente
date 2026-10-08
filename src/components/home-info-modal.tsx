@@ -469,8 +469,8 @@ function DeliveryContent() {
               aria-pressed={active}
               className={
                 active
-                  ? "cursor-pointer rounded-full border border-[#f6d83d] bg-[#f6d83d] px-3 py-2 text-sm font-semibold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  : "cursor-pointer rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-sm font-semibold text-[#416150] transition hover:-translate-y-0.5 hover:border-[#9fbd91] hover:bg-white hover:shadow-sm"
+                  ? "cursor-pointer rounded-full border border-[#f6d83d] bg-[#f6d83d] px-3 py-2 text-base font-semibold text-[#174229] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  : "cursor-pointer rounded-full border border-[#d6e2cd] bg-[#f7f9f3] px-3 py-2 text-base font-semibold text-[#416150] transition hover:-translate-y-0.5 hover:border-[#9fbd91] hover:bg-white hover:shadow-sm"
               }
             >
               {city}
@@ -484,28 +484,28 @@ function DeliveryContent() {
           <div className="flex items-start gap-3">
             <Clock3 size={19} className="mt-0.5 shrink-0 text-[#075636]" />
             <div>
-              <p className="text-sm font-semibold text-[#173a2d]">Dias e horários de entrega em {selectedCity}</p>
-              <p className="mt-1 text-sm font-semibold text-[#416150]">{daysDescription}</p>
-              <p className="mt-1 text-sm text-[#607168]">
+              <p className="text-base font-semibold text-[#173a2d]">Dias e horários de entrega em {selectedCity}</p>
+              <p className="mt-1 text-base font-semibold text-[#416150]">{daysDescription}</p>
+              <p className="mt-1 text-base text-[#607168]">
                 {selectedCity === "São Bento do Sul" ? "Entregas durante o dia" : "Faixas de entrega cadastradas"}
                 {timeStart && timeEnd ? ` · ${timeStart} às ${timeEnd}` : ""}
               </p>
               {citySchedule.cutoffMesmoDia && (
-                <p className="mt-1 text-sm text-[#607168]">
+                <p className="mt-1 text-base text-[#607168]">
                   Pedidos para o mesmo dia até {String(citySchedule.cutoffMesmoDia.hora).padStart(2, "0")}:{String(citySchedule.cutoffMesmoDia.minuto).padStart(2, "0")}.
                 </p>
               )}
               {citySchedule.minUnidades && (
-                <p className="mt-1 text-sm text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
+                <p className="mt-1 text-base text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
               )}
-              <p className="mt-1 text-sm text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
+              <p className="mt-1 text-base text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
             </div>
           </div>
           {selectedCity === "São Bento do Sul" && (
             <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#78922f] px-3 py-3 text-white">
               <House size={18} className="mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold">Frete promocional em São Bento do Sul</p>
+                <p className="text-base font-semibold">Frete promocional em São Bento do Sul</p>
                 <p className="mt-0.5 text-base leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
               </div>
             </div>
@@ -514,8 +514,8 @@ function DeliveryContent() {
       )}
 
       <div className="rounded-[1.35rem] border border-[#dfe8d7] bg-white p-4">
-        <p className="text-sm font-semibold text-[#173a2d]">Descubra se entregamos no seu CEP</p>
-        <p className="mt-1 text-sm text-[#607168]">Consulte o endereço e confira se o bairro está na nossa área de atendimento.</p>
+        <p className="text-base font-semibold text-[#173a2d]">Descubra se entregamos no seu CEP</p>
+        <p className="mt-1 text-base text-[#607168]">Consulte o endereço e confira se o bairro está na nossa área de atendimento.</p>
         <form onSubmit={(event) => { event.preventDefault(); void checkCep(); }} className="mt-3 flex gap-2">
           <input
             inputMode="numeric"
@@ -529,9 +529,9 @@ function DeliveryContent() {
             placeholder="00000-000"
             aria-label="Digite seu CEP"
             maxLength={9}
-            className="min-w-0 flex-1 rounded-xl border border-[#d5e2cd] bg-[#f7faf4] px-3 py-2.5 text-sm outline-none focus:border-[#78922f]"
+            className="min-w-0 flex-1 rounded-xl border border-[#d5e2cd] bg-[#f7faf4] px-3 py-2.5 text-base outline-none focus:border-[#78922f]"
           />
-          <button type="submit" disabled={cepLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#075636] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          <button type="submit" disabled={cepLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#075636] px-4 py-2 text-base font-semibold text-white disabled:opacity-60">
             <Search size={16} /> {cepLoading ? "Consultando..." : "Consultar"}
           </button>
         </form>
@@ -548,7 +548,7 @@ function DeliveryContent() {
 
       <div className="rounded-[1.45rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
         {!selectedCity ? (
-          <div className="flex items-center gap-3 text-sm font-semibold text-[#587064]">
+          <div className="flex items-center gap-3 text-base font-semibold text-[#587064]">
             <MapPin size={18} className="text-[#075636]" />
             Escolha uma cidade acima para ver os bairros atendidos e as taxas.
           </div>
@@ -556,14 +556,14 @@ function DeliveryContent() {
           <>
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-[#7a8b82]">
+                <p className="text-base font-semibold uppercase tracking-wide text-[#7a8b82]">
                   Bairros e taxas
                 </p>
                 <h3 className="mt-0.5 text-base font-semibold text-[#173a2d]">
                   {selectedCity}
                 </h3>
               </div>
-              <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-[#587064] shadow-sm">
+              <span className="rounded-full bg-white px-2.5 py-1 text-base font-semibold text-[#587064] shadow-sm">
                 {cityRates.length} {cityRates.length === 1 ? "bairro" : "bairros"}
               </span>
             </div>
@@ -583,14 +583,14 @@ function DeliveryContent() {
                           : "flex items-center justify-between gap-3 rounded-xl border border-[#dfe8d7] bg-white px-3 py-2.5 text-left transition hover:border-[#a9c39b] hover:shadow-sm"
                       }
                     >
-                      <span className="min-w-0 truncate text-sm font-semibold text-[#355546]">
+                      <span className="min-w-0 truncate text-base font-semibold text-[#355546]">
                         {item.bairro}
                       </span>
                       <span
                         className={
                           active
-                            ? "shrink-0 rounded-full bg-[#f6d83d] px-2 py-1 text-sm font-semibold text-[#174229]"
-                            : "shrink-0 rounded-full bg-[#edf4e7] px-2 py-1 text-sm font-semibold text-[#075636]"
+                            ? "shrink-0 rounded-full bg-[#f6d83d] px-2 py-1 text-base font-semibold text-[#174229]"
+                            : "shrink-0 rounded-full bg-[#edf4e7] px-2 py-1 text-base font-semibold text-[#075636]"
                         }
                       >
                         {formatDeliveryRate(Number(item.taxa || 0))}
@@ -635,7 +635,7 @@ function StoreContent() {
       <div className="grid overflow-hidden rounded-[1.65rem] border border-[#dde6d7] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
           <div className="rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
-            <p className="text-sm font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
+            <p className="text-base font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
             <p className="mt-1 text-base leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
           </div>
           <a
@@ -654,7 +654,7 @@ function StoreContent() {
               </span>
             </span>
           </a>
-          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-[#075636] underline decoration-[#91b93a] underline-offset-4">
+          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-base font-semibold text-[#075636] underline decoration-[#91b93a] underline-offset-4">
             <MapPin size={15} /> Abrir endereço no Google Maps
           </a>
 
@@ -674,7 +674,7 @@ function StoreContent() {
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10">
               <PackageCheck size={17} />
             </span>
-            <span className="text-sm font-semibold">Encomendas em tempo integral</span>
+            <span className="text-base font-semibold">Encomendas em tempo integral</span>
           </div>
         </div>
 

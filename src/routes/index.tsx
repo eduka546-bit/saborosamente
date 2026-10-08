@@ -1268,7 +1268,7 @@ function Index() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar no cardápio"
-              className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#173a2d] outline-none placeholder:text-[#829087]"
+              className="min-w-0 flex-1 bg-transparent text-base font-medium text-[#173a2d] outline-none placeholder:text-[#829087]"
             />
             {searchTerm && (
               <button type="button" onClick={() => setSearchTerm("")} className="text-[#708078]">

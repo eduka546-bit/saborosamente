@@ -28,20 +28,21 @@ export function CombosProntosModal({
       <div className="relative flex max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-[2rem] bg-[#fbfaf5] shadow-2xl md:max-h-[92vh] md:rounded-[2rem]">
         <div className="flex shrink-0 items-start justify-between gap-4 bg-[#086e45] px-5 py-4 text-white md:px-7 md:py-5">
           <div className="min-w-0">
-            <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/75">
+            <div className="mb-1.5 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-white/75">
               <Gift size={16} />
               Combinações prontas
             </div>
             <h2 className="font-display text-2xl font-bold md:text-3xl">
               Combos Prontos
             </h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/80">
+            <p className="mt-1 max-w-2xl text-base leading-relaxed text-white/80">
               Escolha o combo, selecione o tamanho e depois monte as unidades com os sabores disponíveis.
             </p>
           </div>
 
           <button
             type="button"
+            aria-label="Fechar modal"
             onClick={onClose}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
             aria-label="Fechar combos prontos"
@@ -56,7 +57,7 @@ export function CombosProntosModal({
               <div className="mx-auto grid size-12 place-items-center rounded-full bg-[#edf5e6] text-[#086e45]">
                 <Gift size={22} />
               </div>
-              <p className="mt-4 text-sm font-semibold text-[#315440]">
+              <p className="mt-4 text-base font-semibold text-[#315440]">
                 Nenhum combo pronto disponível no momento.
               </p>
             </div>

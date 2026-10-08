@@ -89,37 +89,9 @@ function ProdutoPage() {
     trackEvent("product_view", { produtoId: product.id, metadata: { origem: "product_page" } });
   }, [product?.id]);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-primary" size={48} />
-          <p className="text-muted-foreground">Carregando produto...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="flex flex-col items-center justify-center gap-4 py-24">
-          <div className="text-5xl">🔍</div>
-          <h1 className="text-2xl font-semibold text-foreground">Produto não encontrado</h1>
-          <p className="text-muted-foreground">O produto que você procura não existe.</p>
-          <Link to="/" className="mt-4">
-            <Button variant="default" className="gap-2">
-              <ArrowLeft size={16} />
-              Voltar para Início
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // Determinar tamanhos disponíveis
   const weights = (() => {
+    if (!product) return [];
     const hasSizes = product.preco_300g || product.preco_400g;
     if (hasSizes) {
       const sizes: string[] = ["200g"];
@@ -170,8 +142,37 @@ function ProdutoPage() {
     product?.peso,
   ]);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-primary" size={48} />
+          <p className="text-muted-foreground">Carregando produto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12">
+        <div className="flex flex-col items-center justify-center gap-4 py-24">
+          <div className="text-5xl">🔍</div>
+          <h1 className="text-2xl font-semibold text-foreground">Produto não encontrado</h1>
+          <p className="text-muted-foreground">O produto que você procura não existe.</p>
+          <Link to="/" className="mt-4">
+            <Button variant="default" className="gap-2">
+              <ArrowLeft size={16} />
+              Voltar para Início
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // Rating
-  const rating = product.rating ?? ((product.id as any) % 2 === 0 ? 5.0 : 4.9);
+  const rating = Number(product.rating);
 
   // Imagens
   const allImages = [imgUrl(product.imagem_url)];
@@ -279,7 +280,7 @@ function ProdutoPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Breadcrumb */}
-      <div className="mb-8 flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="mb-8 flex items-center gap-2 text-base text-muted-foreground">
         <Link to="/" className="hover:text-foreground transition-colors">
           Home
         </Link>
@@ -399,7 +400,7 @@ function ProdutoPage() {
 
             {/* Rating + Categoria */}
             <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-2">
+              {Number.isFinite(rating) && rating > 0 && <div className="flex items-center gap-2">
                 <div className="flex gap-0.5">
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -414,9 +415,9 @@ function ProdutoPage() {
                     />
                   ))}
                 </div>
-                <span className="text-sm font-semibold text-foreground">{rating.toFixed(1)}</span>
-              </div>
-              <span className="text-sm font-medium text-muted-foreground tracking-normal">
+                <span className="text-base font-semibold text-foreground">{rating.toFixed(1)}</span>
+              </div>}
+              <span className="text-base font-medium text-muted-foreground tracking-normal">
                 {product.categorias?.nome || "Marmita"}
               </span>
             </div>
@@ -430,7 +431,7 @@ function ProdutoPage() {
           {/* Tamanhos */}
           {weights.length > 1 && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3 tracking-normal">
+              <h3 className="text-base font-semibold text-foreground mb-3 tracking-normal">
                 Escolha o tamanho:
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -442,7 +443,7 @@ function ProdutoPage() {
                       trackEvent("size_select", { produtoId: product.id, metadata: { gramatura: w, origem: "product_page" } });
                     }}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
+                      "rounded-xl border-2 py-4 text-base font-semibold transition-all",
                       selectedWeight === w
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
@@ -459,7 +460,7 @@ function ProdutoPage() {
           {ehMarmita && (
             <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3 tracking-normal">
+                <h3 className="text-base font-semibold text-foreground mb-3 tracking-normal">
                   Como você quer receber?
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -467,7 +468,7 @@ function ProdutoPage() {
                     type="button"
                     onClick={() => setConsumo("congelada")}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
+                      "rounded-xl border-2 py-4 text-base font-semibold transition-all",
                       consumo === "congelada"
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
@@ -479,14 +480,14 @@ function ProdutoPage() {
                     type="button"
                     onClick={() => setConsumo("pronta")}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
+                      "rounded-xl border-2 py-4 text-base font-semibold transition-all",
                       consumo === "pronta"
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
                     )}
                   >
                     Pronta para consumo
-                    <span className="block text-sm font-medium text-muted-foreground mt-0.5">
+                    <span className="block text-base font-medium text-muted-foreground mt-0.5">
                       +R$ 1,00
                     </span>
                   </button>
@@ -501,9 +502,9 @@ function ProdutoPage() {
                     onChange={(e) => setGarfoEFaca(e.target.checked)}
                     className="size-4 accent-primary"
                   />
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-base font-medium text-foreground">
                     Quero garfo e faca
-                    <span className="text-sm font-medium text-muted-foreground ml-1">
+                    <span className="text-base font-medium text-muted-foreground ml-1">
                       +R$ 1,00
                     </span>
                   </span>
@@ -512,29 +513,35 @@ function ProdutoPage() {
             </div>
           )}
 
+          {Array.isArray(product.ingredientes) && product.ingredientes.length > 0 && (
+            <section className="space-y-2">
+              <h3 className="text-lg font-semibold text-primary-dark">Ingredientes</h3>
+              <p className="text-base leading-relaxed text-muted-foreground">{product.ingredientes.join(", ")}</p>
+            </section>
+          )}
           {/* Tabela Nutricional */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground tracking-normal">
+            <h3 className="text-lg font-semibold text-primary-dark tracking-normal">
               Valor Nutricional
             </h3>
             <div className="grid grid-cols-1 gap-4 rounded-xl bg-muted/50 p-4">
               <div>
                 {currentNutritional?.kcal ? (
-                  <div className="flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                  <div className="flex items-center justify-center gap-2 whitespace-nowrap text-base">
                     <span className="font-semibold text-primary">{currentNutritional.kcal} KCAL</span>
                     {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                     {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground italic">
+                  <span className="text-base text-muted-foreground italic">
                     Consulte a embalagem para detalhes
                   </span>
                 )}
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-2">Informações</h4>
-                <p className="text-sm text-muted-foreground">
-                  {product.informacao_nutricional || "Sem Glúten | Sem Lactose"}
+                <h4 className="text-lg font-semibold text-primary-dark mb-2">Restrições</h4>
+                <p className="text-base text-muted-foreground">
+                  Glúten: {product.sem_gluten ? "não contém" : "contém"} · Lactose: {product.sem_lactose ? "não contém" : "contém"}
                 </p>
               </div>
             </div>
@@ -543,7 +550,7 @@ function ProdutoPage() {
           {/* Preço e CTA */}
           <div className="space-y-4 border-t border-border/30 pt-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-semibold text-muted-foreground">
+              <span className="text-base font-semibold text-muted-foreground">
                 Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
               </span>
             </div>
@@ -554,7 +561,7 @@ function ProdutoPage() {
             </div>
 
             {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-              <p className="text-sm font-semibold text-[#9a5b00]">
+              <p className="text-base font-semibold text-[#9a5b00]">
                 {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
               </p>
             )}

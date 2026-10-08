@@ -364,7 +364,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   {categoriaNome}
                 </Badge>
                 {product.proteina && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-sm font-semibold uppercase tracking-[0.04em] text-[#28513a] shadow-sm backdrop-blur">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-base font-semibold uppercase tracking-[0.04em] text-[#28513a] shadow-sm backdrop-blur">
                     <FoodTypeIcon label={String(product.proteina)} size={13} />
                     {String(product.proteina)}
                   </span>
@@ -424,10 +424,10 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 return (
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-muted-foreground">Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}</span>
+                      <span className="text-base font-semibold text-muted-foreground">Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}</span>
                       {precoComFaixa < precoCheio ? (
                         <>
-                          <span className="text-sm font-semibold text-muted-foreground line-through">
+                          <span className="text-base font-semibold text-muted-foreground line-through">
                             {formatBRL(precoCheioTotal * quantity)}
                           </span>
                           <span className="text-3xl font-semibold text-[#086e45]">
@@ -451,7 +451,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
               {!soldOut && (
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">Quantidade</span>
+                  <span className="text-base font-medium">Quantidade</span>
                   <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
                     <button type="button" aria-label="Diminuir quantidade do produto" disabled={quantity <= 1} onClick={() => setRequestedQuantity(quantity - 1)} className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"><Minus size={18} /></button>
                     <span aria-live="polite" className="min-w-6 text-center text-base font-semibold">{quantity}</span>
@@ -460,7 +460,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 </div>
               )}
               {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-                <p className="mb-2 text-center text-sm font-semibold text-[#9a5b00]">
+                <p className="mb-2 text-center text-base font-semibold text-[#9a5b00]">
                   {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
                 </p>
               )}
@@ -472,7 +472,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                       onChange={(e) => setRestockContact(e.target.value)}
                       placeholder="WhatsApp ou e-mail"
                       aria-label="WhatsApp ou e-mail para aviso de reposição"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-primary/20"
                     />
                     <Button
                       type="button"
@@ -483,7 +483,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                       {restockSending ? "Salvando..." : "Avise-me"}
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Se você estiver logado, pode deixar o campo em branco.
                   </p>
                 </div>
@@ -518,17 +518,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               </div>
             </DialogHeader>
 
-            <div className="mb-6 space-y-4 text-sm text-muted-foreground">
+            <div className="mb-6 space-y-4 text-base text-muted-foreground">
               {ingredientesDetalhados && (
                 <div>
-                  <h4 className="mb-1 font-semibold text-foreground">Ingredientes</h4>
+                  <h4 className="mb-1 text-lg font-semibold text-primary-dark">Ingredientes</h4>
                   <p className="leading-relaxed">{ingredientesDetalhados}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
+              <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2 rounded-2xl bg-muted/50 p-4">
                 <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-foreground">
+                  <h4 className="text-lg font-semibold tracking-normal text-primary-dark">
                     Valor Nutricional
                   </h4>
                   <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
@@ -546,15 +546,15 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-foreground">
+                  <h4 className="text-lg font-semibold tracking-normal text-primary-dark">
                     Restrições
                   </h4>
                   <div className="mt-1 flex flex-col gap-1 text-base text-muted-foreground">
-                    <span className="flex items-center gap-2">
+                    <span className="flex flex-wrap items-center gap-2">
                       <strong className="text-foreground">Glúten:</strong> {glutenStatus}
                       {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
                     </span>
-                    <span className="flex items-center gap-2">
+                    <span className="flex flex-wrap items-center gap-2">
                       <strong className="text-foreground">Lactose:</strong> {lactoseStatus}
                       {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
                     </span>
@@ -564,7 +564,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
               {weights.length > 1 && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-foreground">Escolha o tamanho:</h4>
+                  <h4 className="mb-2 text-lg font-semibold text-primary-dark">Escolha o tamanho:</h4>
                   <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
                     {weights.map((w: string) => {
                       const nutrition = nutritionalForWeight(w);
@@ -588,17 +588,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                               : "border-border bg-background text-muted-foreground hover:border-primary/30",
                           )}
                         >
-                          <span className="block text-sm font-semibold">{weightLabel(w)}</span>
+                          <span className="block text-base font-semibold">{weightLabel(w)}</span>
                           {isComboPronto && (
-                            <span className="block text-sm font-normal text-muted-foreground">
+                            <span className="block text-base font-normal text-muted-foreground">
                               {w}
                             </span>
                           )}
-                          <span className={cn("mt-1 block text-sm font-semibold", selected ? "text-[#086e45]" : "text-foreground")}>
+                          <span className={cn("mt-1 block text-base font-semibold", selected ? "text-[#086e45]" : "text-foreground")}>
                             {formatBRL(price)}
                           </span>
                           {nutrition?.kcal != null && (
-                            <span className="mt-1 flex justify-center gap-1 whitespace-nowrap text-xs font-normal leading-tight text-muted-foreground">
+                            <span className="mt-1 flex flex-wrap justify-center gap-1 text-sm font-normal leading-tight text-muted-foreground">
                               <span>{nutrition.kcal} KCAL</span>
                               {nutrition?.prot != null && <><span aria-hidden="true">•</span><span>{nutrition.prot}g PROT</span></>}
                               {nutrition?.carb != null && <><span aria-hidden="true">•</span><span>{nutrition.carb}g CARB</span></>}
@@ -609,7 +609,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                     })}
                   </div>
                   {nextWeight && (
-                    <div className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-sm text-[#315440]">
+                    <div className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-base text-[#315440]">
                       <strong>Quer subir para {nextWeight}?</strong>{" "}
                       {upgradePriceDifference > 0
                         ? `Por +${formatBRL(upgradePriceDifference)}`
@@ -625,13 +625,13 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               {ehMarmita && (
                 <div className="space-y-3">
                   <div>
-                    <h4 className="mb-2 font-semibold text-foreground">Como você quer receber?</h4>
+                    <h4 className="mb-2 text-lg font-semibold text-primary-dark">Como você quer receber?</h4>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setConsumo("congelada")}
                         className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-all",
+                          "flex-1 rounded-xl border-2 py-3 text-base font-semibold transition-all",
                           consumo === "congelada"
                             ? "border-primary bg-primary/5 text-primary shadow-sm"
                             : "border-border bg-background text-muted-foreground hover:border-primary/30",
@@ -643,14 +643,14 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                         type="button"
                         onClick={() => setConsumo("pronta")}
                         className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-sm font-semibold transition-all",
+                          "flex-1 rounded-xl border-2 py-3 text-base font-semibold transition-all",
                           consumo === "pronta"
                             ? "border-primary bg-primary/5 text-primary shadow-sm"
                             : "border-border bg-background text-muted-foreground hover:border-primary/30",
                         )}
                       >
                         Pronta para consumo
-                        <span className="block text-sm font-medium text-muted-foreground mt-0.5">
+                        <span className="block text-base font-medium text-muted-foreground mt-0.5">
                           +R$ 1,00
                         </span>
                       </button>
@@ -665,9 +665,9 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                         onChange={(e) => setGarfoEFaca(e.target.checked)}
                         className="size-4 accent-primary"
                       />
-                      <span className="text-sm font-medium text-foreground">
+                      <span className="text-base font-medium text-foreground">
                         Quero garfo e faca
-                        <span className="text-sm font-medium text-muted-foreground ml-1">
+                        <span className="text-base font-medium text-muted-foreground ml-1">
                           +R$ 1,00
                         </span>
                       </span>
@@ -680,8 +680,8 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             {relatedProducts.length > 0 && (
               <section className="mt-2 border-t border-border pt-5">
                 <div className="mb-3">
-                  <p className="text-sm font-semibold text-foreground">Você também pode gostar</p>
-                  <p className="text-sm text-muted-foreground">Outras opções da mesma categoria.</p>
+                  <p className="text-base font-semibold text-foreground">Você também pode gostar</p>
+                  <p className="text-base text-muted-foreground">Outras opções da mesma categoria.</p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {relatedProducts.map((candidate: any) => {
@@ -705,13 +705,13 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           loading="lazy"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-sm font-semibold leading-snug">{candidate.nome}</p>
-                          <p className="mt-1 text-sm font-semibold text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
+                          <p className="line-clamp-2 text-base font-semibold leading-snug">{candidate.nome}</p>
+                          <p className="mt-1 text-base font-semibold text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
                         </div>
                         <button
                           type="button"
                           onClick={() => addRelatedProduct(candidate)}
-                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-base font-semibold text-primary-foreground"
                         >
                           Adicionar
                         </button>
@@ -833,7 +833,7 @@ function TabelaNutricionalExpansivel({
 
       {aberta && (
         <div className="border-t border-border px-4 pb-4 pt-3">
-          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-sm sm:text-sm">
+          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-base sm:text-base">
             <div className="border-b border-foreground/20 py-2 text-center font-semibold">
               Informação nutricional
             </div>
@@ -887,7 +887,7 @@ function TabelaNutricionalExpansivel({
               </>
             )}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             * Percentual de valores diários fornecidos pela porção.
           </p>
         </div>

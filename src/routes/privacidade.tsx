@@ -23,7 +23,7 @@ function PrivacidadePage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
       <h1 className="text-3xl font-bold text-[#086e45] mb-2">Política de Privacidade</h1>
-      <p className="text-sm text-gray-400 mb-10">Última atualização: {dataAtualizacao}</p>
+      <p className="text-base text-gray-600 mb-10">Última atualização: {dataAtualizacao}</p>
 
       <div className="prose prose-sm max-w-none text-gray-700 space-y-8">
         <section>
@@ -207,7 +207,7 @@ function PrivacidadePage() {
               clearGoogleAnalyticsConsent();
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="mt-3 rounded-lg border border-[#086e45]/30 px-3 py-2 text-sm font-semibold text-[#086e45] hover:bg-[#086e45]/5"
+            className="mt-3 rounded-lg border border-[#086e45]/30 px-3 py-2 text-base font-semibold text-[#086e45] hover:bg-[#086e45]/5"
           >
             Revisar preferências de cookies
           </button>

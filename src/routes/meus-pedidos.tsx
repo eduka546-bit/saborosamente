@@ -191,12 +191,12 @@ function MeusPedidosPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Meus Pedidos</h1>
-      <p className="text-gray-500 mt-1 text-sm">
+      <p className="text-gray-500 mt-1 text-base">
         Seu histórico fica disponível somente dentro da sua conta.
       </p>
 
       {loading && (
-        <div className="mt-10 flex items-center justify-center gap-2 text-sm text-gray-500">
+        <div className="mt-10 flex items-center justify-center gap-2 text-base text-gray-500">
           <Loader2 size={18} className="animate-spin" />
           Carregando seus pedidos...
         </div>
@@ -206,13 +206,13 @@ function MeusPedidosPage() {
         <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
           <Lock size={32} className="mx-auto text-[#086e45] mb-3" />
           <p className="font-bold text-gray-900">Entre para ver seus pedidos</p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-base text-gray-500">
             Por segurança, o histórico não pode ser consultado apenas pelo telefone.
           </p>
           <Link
             to="/auth"
-            search={{ redirect: "/meus-pedidos" }}
-            className="mt-5 inline-flex rounded-full bg-[#086e45] px-6 py-3 text-sm font-bold text-white"
+            search={{ redirect: "/meus-pedidos", confirmed: false }}
+            className="mt-5 inline-flex rounded-full bg-[#086e45] px-6 py-3 text-base font-bold text-white"
           >
             Entrar na minha conta
           </Link>
@@ -222,7 +222,7 @@ function MeusPedidosPage() {
       {!loading && session && pedidos !== null && (
         <div className="mt-8 space-y-4">
           {pedidos.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 border border-dashed rounded-2xl">
+            <div className="text-center py-16 text-gray-600 border border-dashed rounded-2xl">
               <Package size={40} className="mx-auto mb-3 opacity-30" />
               Você ainda não tem pedidos nesta conta.
             </div>
@@ -242,11 +242,11 @@ function MeusPedidosPage() {
                         <span className="font-bold text-gray-900">
                           #{String(p.id).slice(0, 8).toUpperCase()}
                         </span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
+                        <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${st.cls}`}>
                           {st.txt}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-sm text-gray-600 mt-0.5">
                         {data.toLocaleDateString("pt-BR")} às{" "}
                         {data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         {p.metodo_entrega ? ` • ${p.metodo_entrega}` : ""}
@@ -263,13 +263,13 @@ function MeusPedidosPage() {
                     {(p.itens ?? []).map((i: any) => {
                       const peso = extrairPeso(i.observacao);
                       return (
-                        <li key={i.id} className="flex items-center justify-between gap-3 rounded-xl py-1.5 text-sm text-gray-600">
+                        <li key={i.id} className="flex items-center justify-between gap-3 rounded-xl py-1.5 text-base text-gray-600">
                           <span className="min-w-0">
                             {i.quantidade}x {i.nomeExibicao}
-                            {peso ? <span className="text-gray-400"> ({peso})</span> : ""}
+                            {peso ? <span className="text-gray-600"> ({peso})</span> : ""}
                           </span>
                           <div className="flex shrink-0 items-center gap-2">
-                            <span className="text-gray-400 whitespace-nowrap">
+                            <span className="text-gray-600 whitespace-nowrap">
                               R$ {Number(i.preco_unitario ?? 0).toFixed(2).replace(".", ",")}
                             </span>
                             {i.produto_id && (
@@ -293,7 +293,7 @@ function MeusPedidosPage() {
                     <button
                       onClick={() => pedirDeNovo(p)}
                       disabled={repetindo === p.id}
-                      className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#086e45]/10 text-[#086e45] font-bold text-sm hover:bg-[#086e45]/20 transition disabled:opacity-60"
+                      className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#086e45]/10 text-[#086e45] font-bold text-base hover:bg-[#086e45]/20 transition disabled:opacity-60"
                     >
                       {repetindo === p.id ? (
                         <Loader2 size={16} className="animate-spin" />
@@ -313,7 +313,7 @@ function MeusPedidosPage() {
       <div className="mt-10 text-center">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-[#086e45]"
+          className="inline-flex items-center gap-1 text-base font-semibold text-gray-500 hover:text-[#086e45]"
         >
           Ver cardápio <ChevronRight size={15} />
         </Link>
