@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Clock, Leaf, ShieldCheck } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
 import { imgUrl } from "@/lib/image-proxy";
 import {
@@ -11,11 +10,9 @@ import {
   enabledOrDefault,
 } from "@/lib/payment-options";
 
-// URL pública do CDN da Lovable para a logo
 const LOGO_URL =
   "https://assets.lovable.dev/a/v1/2243a82c-49d6-4af9-887d-485d4661259d/fd470ffb-641c-4979-acb2-e05ec52a30be/saborosamente-logo.png";
 
-// Link real do Google Maps
 const MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=Rua+Augusto+Wunderwald,+7,+Progresso,+São+Bento+do+Sul,+SC";
 
@@ -46,21 +43,17 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
-function LogoCard({ logo, name }: { logo?: string; name: string }) {
+function PaymentLogo({ logo, name }: { logo?: string; name: string }) {
   return (
-    <div title={name} className="group flex flex-col items-center gap-1.5">
-      <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
-        {logo ? (
-          <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
-        ) : (
-          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
-            {name}
-          </span>
-        )}
-      </div>
-      <span className="text-xs font-semibold tracking-normal opacity-90 text-center leading-tight max-w-[4.5rem]">
-        {name}
-      </span>
+    <div
+      title={name}
+      className="flex h-9 w-[3.8rem] items-center justify-center rounded-lg bg-white px-2 py-1.5 shadow-sm ring-1 ring-black/5"
+    >
+      {logo ? (
+        <img src={imgUrl(logo)} alt={name} loading="lazy" className="h-full w-full object-contain" />
+      ) : (
+        <span className="text-[10px] font-bold leading-tight text-neutral-600">{name}</span>
+      )}
     </div>
   );
 }
@@ -68,9 +61,7 @@ function LogoCard({ logo, name }: { logo?: string; name: string }) {
 export function SiteFooter() {
   const { data: settings } = useQuery({
     queryKey: ["site-settings"],
-    queryFn: async () => {
-      return getPublicSiteSettings();
-    },
+    queryFn: getPublicSiteSettings,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -86,219 +77,187 @@ export function SiteFooter() {
   const mapsUrl = (settings as any)?.footer_maps_url || MAPS_URL;
   const description =
     (settings as any)?.footer_description ||
-    "Comida de verdade, congelada no ponto certo e entregue na sua porta.";
+    "Comida de verdade, prática e saborosa para facilitar sua rotina.";
   const credit = (settings as any)?.footer_credit || "@emf.digital";
 
   const methods = enabledOrDefault((settings as any)?.payment_methods, defaultPaymentMethods);
   const cardFlags = enabledOrDefault((settings as any)?.card_flags, defaultCardFlags);
   const mealFlags = enabledOrDefault((settings as any)?.meal_flags, defaultMealFlags);
-
   const mercadoPago = methods.find((m) =>
     (m.label || (m as any).name || "").toLowerCase().includes("mercado"),
   );
 
+  const allPaymentLogos = [
+    ...cardFlags.map((flag) => ({
+      name: flag.name ?? "",
+      logo: flag.logo,
+    })),
+    ...(mercadoPago
+      ? [
+          {
+            name: "Mercado Pago",
+            logo: mercadoPago.icon || (mercadoPago as any).logo,
+          },
+        ]
+      : []),
+    ...mealFlags.map((flag) => ({
+      name: flag.name ?? "",
+      logo: flag.logo,
+    })),
+  ];
+
   return (
-    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-24 overflow-hidden">
-      {/* ── corpo principal ─────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
-          {/* coluna 1 — marca */}
-          <div className="space-y-5 lg:col-span-1">
+    <footer style={{ backgroundColor: bg, color: text }} className="relative mt-16 overflow-hidden">
+      <div className="mx-auto max-w-6xl px-5 py-8 md:px-6 md:py-10">
+        <div className="grid gap-8 md:grid-cols-[1.15fr_.8fr_1.25fr] md:gap-10">
+          <div className="text-center md:text-left">
             <Link to="/" aria-label="Início" className="inline-block">
               <img
                 src={imgUrl(logoUrl)}
                 alt="Saborosamente"
-                className="h-20 w-auto transition-transform duration-300 hover:scale-[1.03]"
-                style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}
+                className="mx-auto h-16 w-auto md:mx-0 md:h-[4.5rem]"
+                style={{ filter: "drop-shadow(0 3px 10px rgba(0,0,0,0.28))" }}
               />
             </Link>
-            <p className="text-sm leading-relaxed opacity-80 max-w-[240px]">{description}</p>
-            <div className="flex flex-col gap-2 pt-1">
-              <div className="flex items-center gap-2 text-xs opacity-90">
-                <Leaf size={13} className="shrink-0" />
-                <span>Sem conservantes industrializados</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs opacity-90">
-                <ShieldCheck size={13} className="shrink-0" />
-                <span>6 meses de validade</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs opacity-90">
-                <Clock size={13} className="shrink-0" />
-                <span>Pronto em até 7 minutos</span>
-              </div>
+            <p className="mx-auto mt-3 max-w-[290px] text-sm leading-relaxed opacity-80 md:mx-0">
+              {description}
+            </p>
+
+            <div className="mt-5 grid grid-cols-3 gap-2 md:hidden">
+              <a
+                href={`https://wa.me/${whatsapp}?text=Olá! Gostaria de fazer um pedido.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+              >
+                <WhatsAppIcon className="size-4" />
+                WhatsApp
+              </a>
+              <a
+                href={`https://instagram.com/${instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+              >
+                <InstagramIcon className="size-4" />
+                Instagram
+              </a>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-2 text-xs font-bold"
+              >
+                <MapPin size={15} />
+                Como chegar
+              </a>
             </div>
           </div>
 
-          {/* coluna 2 — navegação */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
-              Navegação
-            </h3>
-            <nav>
-              <ul className="space-y-3 text-sm">
-                {[
-                  { label: "Início", to: "/" },
-                  { label: "Catálogo", to: "/", hash: "cardapio" },
-                  { label: "Meu perfil", to: "/perfil" },
-                  { label: "Carrinho", to: "/carrinho" },
-                  { label: "Checkout", to: "/checkout" },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link
-                      to={item.to as any}
-                      hash={(item as any).hash}
-                      className="group flex items-center gap-2 opacity-90 transition-all hover:opacity-100"
-                    >
-                      <span className="h-px w-3 bg-current opacity-0 transition-all group-hover:w-5 group-hover:opacity-60" />
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+          <div className="hidden md:block">
+            <h3 className="text-xs font-bold opacity-70">Navegação</h3>
+            <nav className="mt-4">
+              <ul className="space-y-2.5 text-sm">
+                <li>
+                  <Link to="/" hash="cardapio" className="opacity-85 hover:opacity-100">
+                    Cardápio
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/perfil" className="opacity-85 hover:opacity-100">
+                    Meu perfil
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacidade" className="opacity-85 hover:opacity-100">
+                    Privacidade
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>
 
-          {/* coluna 3 — atendimento */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
-              Atendimento
-            </h3>
-            <ul className="space-y-4 text-sm">
-              <li>
+          <div className="hidden md:block">
+            <h3 className="text-xs font-bold opacity-70">Atendimento</h3>
+            <div className="mt-4 grid gap-3 text-sm">
+              <div className="flex flex-wrap gap-2">
                 <a
                   href={`https://wa.me/${whatsapp}?text=Olá! Gostaria de fazer um pedido.`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 font-semibold opacity-90 transition-all hover:opacity-100 hover:translate-x-1"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 font-semibold hover:bg-white/15"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
-                    <WhatsAppIcon className="size-4" />
-                  </span>
-                  <span>
-                    (+55){" "}
-                    {whatsapp.replace(/^55/, "").replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
-                  </span>
+                  <WhatsAppIcon className="size-4" />
+                  WhatsApp
                 </a>
-              </li>
-              <li>
                 <a
                   href={`https://instagram.com/${instagram}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 opacity-80 transition-all hover:opacity-100 hover:translate-x-1"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 hover:bg-white/15"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 transition-colors group-hover:bg-white/20">
-                    <InstagramIcon className="size-4" />
-                  </span>
-                  <span>@{instagram}</span>
+                  <InstagramIcon className="size-4" />
+                  @{instagram}
                 </a>
-              </li>
-              <li className="pt-2">
-                <div className="flex items-start gap-3 opacity-95 text-xs leading-relaxed">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
-                    <Clock size={14} />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-sm mb-0.5">Horário de atendimento</p>
-                    <p>Encomendas em tempo integral</p>
-                    <p>Entregas: consulte disponibilidade</p>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
+              </div>
 
-          {/* coluna 4 — localização */}
-          <div className="space-y-5">
-            <h3 className="text-xs font-bold tracking-normal opacity-80">
-              Localização
-            </h3>
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-start gap-3 text-xs leading-relaxed opacity-80 transition-opacity hover:opacity-100"
-            >
-              <MapPin size={15} className="shrink-0 mt-0.5" />
-              <address className="not-italic">
-                {addressLine1}
-                <br />
-                {addressLine2}
-                <br />
-                {addressCep}
-              </address>
-            </a>
-            <div className="w-full h-36 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-lg">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3587.234674720619!2d-49.389274!3d-26.221568!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94de1d1b3b3b3b3b%3A0x3b3b3b3b3b3b3b3b!2sRua%20Augusto%20Wunderwald%2C%207%20-%20Progresso%2C%20S%C3%A3o%20Bento%20do%20Sul%20-%20SC!5e0!3m2!1spt-BR!2sbr!4v1700000000000!5m2!1spt-BR!2sbr"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Localização Saborosamente"
-              />
+              <div className="flex items-start gap-2 text-xs leading-relaxed opacity-80">
+                <Clock size={14} className="mt-0.5 shrink-0" />
+                <span>Encomendas em tempo integral · Entregas conforme disponibilidade</span>
+              </div>
+
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2 text-xs leading-relaxed opacity-80 hover:opacity-100"
+              >
+                <MapPin size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  {addressLine1} · {addressLine2} · {addressCep}
+                </span>
+              </a>
             </div>
           </div>
         </div>
 
-        {/* ── formas de pagamento ─────────────────────────────────────────── */}
-        <div className="mt-16 pt-12 space-y-10">
-          {/* dois módulos lado a lado em desktop */}
-          <div className="grid gap-10 md:grid-cols-2">
-            {/* cartão de crédito/débito + mercado pago */}
+        <details className="group mt-6 border-t border-white/10 pt-4 md:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold">
+            <span>Formas de pagamento aceitas</span>
+            <span className="text-lg leading-none transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {allPaymentLogos.map((item, index) => (
+              <PaymentLogo key={`${item.name}-${index}`} logo={item.logo} name={item.name} />
+            ))}
+          </div>
+        </details>
+
+        <div className="mt-7 hidden border-t border-white/10 pt-5 md:block">
+          <div className="grid gap-5 lg:grid-cols-2">
             {(cardFlags.length > 0 || mercadoPago) && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
-                    Cartão de Crédito / Débito
-                  </p>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
+              <div>
+                <p className="mb-3 text-[11px] font-bold opacity-70">Crédito / Débito</p>
+                <div className="flex flex-wrap gap-2">
                   {cardFlags.map((flag) => (
-                    <LogoCard key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
+                    <PaymentLogo key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
                   ))}
                   {mercadoPago && (
-                    <div title="Mercado Pago" className="group flex flex-col items-center gap-1.5">
-                      <div className="flex h-11 w-[4.5rem] items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-black/5 transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
-                        {mercadoPago.icon || (mercadoPago as any).logo ? (
-                          <img
-                            src={mercadoPago.icon || (mercadoPago as any).logo}
-                            alt="Mercado Pago"
-                            loading="lazy"
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <span className="text-xs font-bold tracking-normal text-neutral-600 text-center leading-tight">
-                            MP
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs font-semibold tracking-normal opacity-50 text-center leading-tight max-w-[4.5rem]">
-                        Mercado Pago
-                      </span>
-                    </div>
+                    <PaymentLogo
+                      name="Mercado Pago"
+                      logo={mercadoPago.icon || (mercadoPago as any).logo}
+                    />
                   )}
                 </div>
               </div>
             )}
 
-            {/* alimentação / refeição */}
             {mealFlags.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <p className="text-xs font-bold tracking-normal opacity-90 whitespace-nowrap">
-                    Alimentação / Refeição
-                  </p>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
-                <div className="flex flex-wrap justify-center gap-3">
+              <div>
+                <p className="mb-3 text-[11px] font-bold opacity-70">Alimentação / Refeição</p>
+                <div className="flex flex-wrap gap-2">
                   {mealFlags.map((flag) => (
-                    <LogoCard key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
+                    <PaymentLogo key={flag.name} logo={flag.logo} name={flag.name ?? ""} />
                   ))}
                 </div>
               </div>
@@ -307,26 +266,22 @@ export function SiteFooter() {
         </div>
       </div>
 
-      {/* ── barra inferior ──────────────────────────────────────────────────── */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
-          <p className="text-xs font-semibold tracking-normal opacity-90">
-            © {new Date().getFullYear()} Saborosamente — Todos os direitos reservados
-          </p>
-          <a
-            href="/privacidade"
-            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
-          >
-            Política de Privacidade
-          </a>
-          <a
-            href={`https://instagram.com/${credit.replace("@", "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-semibold tracking-normal opacity-90 transition-opacity hover:opacity-100"
-          >
-            Desenvolvido por {credit}
-          </a>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-4 text-center text-[11px] font-semibold opacity-80 sm:flex-row sm:text-left">
+          <p>© {new Date().getFullYear()} SaborosaMente</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:justify-end">
+            <Link to="/privacidade" className="hover:opacity-100">
+              Privacidade
+            </Link>
+            <a
+              href={`https://instagram.com/${credit.replace("@", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-100"
+            >
+              Desenvolvido por {credit}
+            </a>
+          </div>
         </div>
       </div>
     </footer>
