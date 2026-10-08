@@ -1142,7 +1142,7 @@ function Index() {
                   "Tamanhos e valores por tamanho",
                   "Mínimo 3 unidades",
                 ]}
-                image={personalizadaImage}
+                image="/personalizada-transparent.webp"
                 tone="personalizada"
                 onClick={() => setMarmitaModalOpen(true)}
               />
@@ -1712,15 +1712,15 @@ function OrderChoiceBanner({
       orb: "bg-[#91b93a]/16",
     },
     personalizada: {
-      card: "border-[#06472f] bg-[linear-gradient(145deg,#075b3b_0%,#06462f_100%)]",
-      title: "text-white",
-      text: "text-white/84",
-      icon: "border-white/15 bg-white/10 text-[#f6d83d]",
-      badge: "border-white/20 bg-white/8 text-white/84",
-      chip: "border-white/18 bg-black/10 text-white",
+      card: "border-[#e4dcc6] bg-[#f5f1e5]",
+      title: "text-[#073e2b]",
+      text: "text-[#345849]",
+      icon: "border-[#dfd5bb] bg-white/80 text-[#075636]",
+      badge: "border-[#dfd5bb] bg-white/65 text-[#365b46]",
+      chip: "border-[#dfd5bb] bg-white/74 text-[#365846]",
       arrow: "bg-white text-[#075636]",
-      deco: "text-[#8bc23f]",
-      orb: "bg-white/5",
+      deco: "text-[#78a938]",
+      orb: "bg-[#d6c99a]/18",
     },
   }[tone];
 
@@ -1793,25 +1793,18 @@ function OrderChoiceBanner({
         <div
           className={`pointer-events-none absolute z-10 ${
             isCustom
-              ? "inset-y-0 right-0 w-[58%]"
+              ? "bottom-[-6%] right-[-5%] h-[72%] w-[50%] rotate-[12deg]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
                 : "bottom-[-2%] right-[-3%] h-[43%] w-[98%]"
           }`}
-          style={{
-            WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
-              ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
-              : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
-            maskImage: tone !== "personalizada" ? "none" : isCustom
-              ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
-              : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
-          }}
+
         >
           <img
             src={image}
             alt=""
-            className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] ${tone !== "personalizada" ? "object-contain" : "object-cover"} ${
-              isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-right-bottom"
+            className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] object-contain ${
+              isCustom ? "object-right-bottom" : tone === "ready" ? "object-[50%_100%]" : "object-right-bottom"
             }`}
           />
         </div>
