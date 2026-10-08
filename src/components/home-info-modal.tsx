@@ -201,213 +201,150 @@ function BrazilDeliveryMap({
 }) {
   const selected = deliveryCities.find((city) => city.name === selectedCity);
   const selectedPoint = selected ? projectCity(selected.lon, selected.lat) : null;
+  const mapPoint = selectedPoint
+    ? { x: 105 + selectedPoint.x * 1.04, y: 20 + selectedPoint.y * 1.04 }
+    : null;
+  const scale = 2.3;
 
-  const zoomWidth = 150;
-  const zoomHeight = 104;
-  const zoomX = selectedPoint
-    ? Math.max(20, Math.min(MAP_BOUNDS.width - zoomWidth - 20, selectedPoint.x - zoomWidth / 2))
-    : 0;
-  const zoomY = selectedPoint
-    ? Math.max(20, Math.min(MAP_BOUNDS.height - zoomHeight - 20, selectedPoint.y - zoomHeight / 2))
-    : 0;
+  // A posição do pino sempre vem da latitude/longitude. Estas coordenadas
+  // controlam somente os rótulos, para que eles não fiquem amontoados.
+  const labels: Record<string, { x: number; y: number; w: number; side: "left" | "right" }> = {
+    "Mafra": { x: 14, y: 161, w: 124, side: "left" },
+    "Rio Negro": { x: 14, y: 210, w: 124, side: "left" },
+    "Piên": { x: 535, y: 96, w: 108, side: "right" },
+    "Rio Negrinho": { x: 535, y: 142, w: 151, side: "right" },
+    "São Bento do Sul": { x: 535, y: 188, w: 183, side: "right" },
+    "Campo Alegre": { x: 535, y: 234, w: 151, side: "right" },
+    "Corupá": { x: 535, y: 280, w: 112, side: "right" },
+  };
 
   return (
-    <div className="overflow-hidden rounded-[1.65rem] border border-[#dfe7d6] bg-[#f4f7ed] p-3 sm:p-4">
-      <div className="grid items-center gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-        <div className="relative hidden min-h-[310px] lg:block">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-[2rem] bg-[#eaf2e2]" />
+    <div className="overflow-hidden rounded-[1.65rem] border border-[#d9e5d2] bg-[#f3f8ee] p-3 sm:p-4">
+      <div className="grid gap-4 lg:grid-cols-[0.34fr_0.66fr]">
+        <div className="hidden rounded-[1.5rem] border border-[#dce9d3] bg-white p-4 lg:flex lg:flex-col">
+          <div>
+            <p className="text-sm font-extrabold text-[#075636]">Onde entregamos no Brasil</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#698071]">
+              Cidades selecionadas de Santa Catarina e Paraná.
+            </p>
+          </div>
+          <div className="flex min-h-[210px] flex-1 items-center justify-center py-3">
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Brazilian_States.PNG"
-              alt="Mapa do Brasil por estados"
-              className="relative z-10 w-[245px] opacity-75 mix-blend-multiply"
-              style={{
-                filter:
-                  "sepia(1) saturate(1.9) hue-rotate(72deg) brightness(.72) contrast(.9)",
-              }}
+              alt="Mapa do Brasil dividido em estados"
+              className="max-h-[225px] w-full object-contain"
+              loading="lazy"
             />
-            <div className="absolute bottom-[52px] right-[35px] size-10 rounded-full bg-[#075636]/15 ring-2 ring-[#075636]/30" />
-            <div className="absolute bottom-[61px] right-[44px] size-5 rounded-full bg-[#075636] shadow-md ring-4 ring-white/90" />
           </div>
-
-          <div className="absolute bottom-4 left-3 space-y-2 text-[11px] font-semibold text-[#496557]">
-            <div className="flex items-center gap-2">
-              <span className="size-3 rounded-full bg-[#cbdcc2]" />
-              Demais estados
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="size-3 rounded-full bg-[#075636]" />
-              Paraná + Santa Catarina
-            </div>
+          <div className="border-t border-[#e8eee4] pt-3 text-[11px] font-semibold text-[#496557]">
+            <span className="inline-block size-3 rounded-full bg-[#075636] align-middle" /> PR + SC — região atendida
           </div>
         </div>
 
-        <div className="relative mx-auto aspect-[1.15/1] w-full max-w-[620px] overflow-hidden rounded-[2rem] border border-[#cbdcc2] bg-gradient-to-br from-[#eaf2e2] to-[#dbe9d1] lg:rounded-full">
+        <div className="relative overflow-hidden rounded-[1.5rem] border border-[#cfe0c7] bg-[radial-gradient(ellipse_at_center,#e4efda_0%,#eff6e9_72%,#f7faf3_100%)]">
           <svg
-            viewBox="0 0 560 380"
-            className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${zoomed ? "opacity-20" : "opacity-100"}`}
+            viewBox="0 0 760 440"
+            className="h-auto min-h-[240px] w-full"
             role="img"
-            aria-label="Mapa de Paraná e Santa Catarina com as cidades atendidas"
+            aria-label="Mapa de Paraná e Santa Catarina com marcadores dos municípios atendidos"
           >
-            <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="2.2" />
-            <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="2.2" />
+            <ellipse cx="385" cy="218" rx="350" ry="205" fill="#dcebd1" opacity=".42" />
+            <ellipse cx="385" cy="218" rx="350" ry="205" fill="none" stroke="#cce0c4" strokeWidth="1.2" />
 
-            <text x="130" y="116" fill="rgba(255,255,255,.38)" fontSize="36" fontWeight="800">
-              PR
-            </text>
-            <text x="214" y="307" fill="rgba(255,255,255,.36)" fontSize="36" fontWeight="800">
-              SC
-            </text>
-
-            {deliveryCities.map((city) => {
-              const p = projectCity(city.lon, city.lat);
-              const active = city.name === selectedCity;
-              const labelCenterX = city.labelX + city.labelW / 2;
-              const labelCenterY = city.labelY + 12;
-
-              return (
-                <g
-                  key={city.name}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Selecionar ${city.name}`}
-                  onClick={() => onSelect(city.name)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onSelect(city.name);
-                    }
-                  }}
-                  className="cursor-pointer outline-none"
-                >
-                  <line
-                    x1={p.x}
-                    y1={p.y}
-                    x2={labelCenterX}
-                    y2={labelCenterY}
-                    stroke={active ? "#f6d83d" : "rgba(255,255,255,.62)"}
-                    strokeWidth={active ? 2 : 1.25}
-                    strokeDasharray={active ? "0" : "3 3"}
-                  />
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={active ? 9 : 6.5}
-                    fill="#f6d83d"
-                    stroke="#ffffff"
-                    strokeWidth={active ? 3 : 2}
-                  />
-                  <circle cx={p.x} cy={p.y} r={2.2} fill="#075636" />
-                  <rect
-                    x={city.labelX}
-                    y={city.labelY}
-                    width={city.labelW}
-                    height="24"
-                    rx="12"
-                    fill={active ? "#f6d83d" : "#fffef9"}
-                    stroke={active ? "#dcbf1f" : "rgba(7,86,54,.12)"}
-                    strokeWidth={active ? 1.5 : 1}
-                  />
-                  <text
-                    x={city.labelX + city.labelW / 2}
-                    y={city.labelY + 15.5}
-                    textAnchor="middle"
-                    fill="#173a2d"
-                    fontSize={city.name === "São Bento do Sul" ? "8.8" : "9.2"}
-                    fontWeight="800"
-                  >
-                    {city.name}
-                  </text>
-                </g>
-              );
-            })}
-
-            {(() => {
-              const sbs = deliveryCities[0];
-              const p = projectCity(sbs.lon, sbs.lat);
-              return (
-                <g transform={`translate(${p.x - 15} ${p.y + 17})`}>
-                  <circle cx="0" cy="0" r="10" fill="#fffef9" stroke="#075636" strokeWidth="1.5" />
-                  <path
-                    d="M-5 0 L0 -4.5 L5 0 V5 H1.5 V1.5 H-1.5 V5 H-5 Z"
-                    fill="none"
-                    stroke="#075636"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              );
-            })()}
-          </svg>
-
-          {zoomed && selected && selectedPoint && (
-            <div
-              key={selected.name}
-              className="absolute inset-3 z-20 animate-in overflow-hidden rounded-[1.7rem] border border-white/70 bg-[#e5efdc] shadow-lg fade-in zoom-in-95 duration-500 lg:rounded-full"
+            <g
+              style={{
+                transform: zoomed && mapPoint
+                  ? "translate(" + (380 - mapPoint.x * scale) + "px, " + (220 - mapPoint.y * scale) + "px) scale(" + scale + ")"
+                  : "translate(0px, 0px) scale(1)",
+                transformOrigin: "0 0",
+                transition: "transform 650ms cubic-bezier(.2,.65,.15,1)",
+              }}
             >
-              <svg
-                viewBox={`${zoomX} ${zoomY} ${zoomWidth} ${zoomHeight}`}
-                className="h-full w-full"
-                role="img"
-                aria-label={`Visão aproximada de ${selected.name}`}
-              >
-                <path d={PR_PATH} fill="#0b6447" stroke="#f6f8f2" strokeWidth="0.9" />
-                <path d={SC_PATH} fill="#075636" stroke="#f6f8f2" strokeWidth="0.9" />
-
+              <g transform="translate(105 20) scale(1.04)">
+                <path d={PR_PATH} fill="#0b6847" stroke="#fffdf6" strokeWidth="2.4" strokeLinejoin="round" />
+                <path d={SC_PATH} fill="#075636" stroke="#fffdf6" strokeWidth="2.4" strokeLinejoin="round" />
+                <text x="160" y="119" textAnchor="middle" fill="rgba(255,255,255,.48)" fontSize="37" fontWeight="800">PR</text>
+                <text x="208" y="298" textAnchor="middle" fill="rgba(255,255,255,.48)" fontSize="37" fontWeight="800">SC</text>
                 {deliveryCities.map((city) => {
                   const p = projectCity(city.lon, city.lat);
-                  const active = city.name === selected.name;
+                  const active = city.name === selectedCity;
                   return (
-                    <g key={`zoom-${city.name}`}>
-                      {active && (
-                        <circle cx={p.x} cy={p.y} r="9" fill="#f6d83d" opacity="0.2">
-                          <animate attributeName="r" values="6;13;9" dur="0.65s" repeatCount="1" />
-                        </circle>
-                      )}
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r={active ? 3.6 : 1.7}
-                        fill="#f6d83d"
-                        stroke="#fffef9"
-                        strokeWidth={active ? 1.6 : 0.7}
-                        opacity={active ? 1 : 0.75}
-                      />
+                    <g key={"pin-" + city.name}>
+                      {active && <circle cx={p.x} cy={p.y} r="14" fill="#f6d83d" opacity=".44" />}
+                      <circle cx={p.x} cy={p.y} r={active ? 8 : 6} fill="#f6d83d" stroke="#fffef8" strokeWidth="2.5" />
+                      <circle cx={p.x} cy={p.y} r="2" fill="#075636" />
                     </g>
                   );
                 })}
-              </svg>
+              </g>
+            </g>
 
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-4 whitespace-nowrap rounded-full bg-[#f6d83d] px-3 py-1.5 text-[11px] font-extrabold text-[#174229] shadow-md ring-2 ring-white">
-                <MapPin className="mr-1 inline-block" size={13} strokeWidth={2.4} />
+            <g
+              className={zoomed ? "pointer-events-none opacity-0" : "opacity-100"}
+              style={{ transition: "opacity 200ms ease" }}
+            >
+              {deliveryCities.map((city) => {
+                const label = labels[city.name];
+                const p = projectCity(city.lon, city.lat);
+                const px = 105 + p.x * 1.04;
+                const py = 20 + p.y * 1.04;
+                const active = city.name === selectedCity;
+                const destX = label.side === "left" ? label.x + label.w : label.x;
+                const destY = label.y + 17;
+                return (
+                  <g
+                    key={"label-" + city.name}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onSelect(city.name)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(city.name);
+                      }
+                    }}
+                    aria-label={"Selecionar " + city.name + " no mapa"}
+                    className="cursor-pointer outline-none"
+                  >
+                    <path
+                      d={"M " + px + " " + py + " Q " + ((px + destX) / 2) + " " + ((py + destY) / 2) + " " + destX + " " + destY}
+                      fill="none"
+                      stroke={active ? "#ddb91a" : "#a2bba6"}
+                      strokeWidth={active ? 2.5 : 1.6}
+                      strokeDasharray={active ? "0" : "4 4"}
+                    />
+                    <rect x={label.x} y={label.y} width={label.w} height="34" rx="17"
+                      fill={active ? "#f6d83d" : "#fffef9"}
+                      stroke={active ? "#e3c222" : "#d5e4cc"}
+                      strokeWidth="1.2"
+                    />
+                    <text x={label.x + label.w / 2} y={label.y + 21}
+                      textAnchor="middle" fill="#173a2d" fontSize="12" fontWeight="800">
+                      {city.name}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+          <span className="absolute right-3 top-3 rounded-full border border-[#d9e7d2] bg-white/95 px-3 py-1.5 text-[11px] font-extrabold text-[#456955] shadow-sm">
+            SC + PR
+          </span>
+          {zoomed && selected && (
+            <>
+              <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f6d83d] px-4 py-2 text-xs font-extrabold text-[#174229] shadow-md ring-2 ring-white/80">
+                <MapPin size={14} className="mr-1 inline-block" />
                 {selected.name}
-              </div>
-
-              <div className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
-                VISÃO APROXIMADA
-              </div>
-
-              <button
-                type="button"
-                onClick={onShowRegion}
-                className="absolute bottom-3 right-3 rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[10px] font-extrabold text-[#075636] shadow-sm transition hover:bg-white"
-              >
-                Ver região inteira
+              </span>
+              <button type="button" onClick={onShowRegion}
+                className="absolute left-3 top-3 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-[11px] font-extrabold text-[#075636] shadow-sm">
+                ← Ver região inteira
               </button>
-            </div>
+            </>
           )}
-
-          {!zoomed && (
-            <div className="absolute right-3 top-3 z-30 rounded-full border border-white/70 bg-white/90 px-3 py-1.5 text-[10px] font-extrabold text-[#365c49] shadow-sm">
-              SC + PR
-            </div>
-          )}
+          {!zoomed && <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] font-medium text-[#658070]">Clique em um município para aproximar.</p>}
         </div>
       </div>
-
-      <p className="mt-3 text-center text-[10px] font-semibold leading-relaxed text-[#648072]">
-        Clique em uma cidade para aproximar a região e conferir a localização.
-      </p>
     </div>
   );
 }
