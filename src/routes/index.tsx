@@ -1796,7 +1796,7 @@ function OrderChoiceBanner({
               ? "inset-y-0 right-0 w-[58%]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
-                : "bottom-2 right-0 h-[62%] w-[79%]"
+                : "bottom-[-2%] right-[-3%] h-[65%] w-[79%]"
           }`}
           style={{
             WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
@@ -1811,7 +1811,7 @@ function OrderChoiceBanner({
             src={image}
             alt=""
             className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] ${tone !== "personalizada" ? "object-contain" : "object-cover"} ${
-              isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-[55%_52%]"
+              isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-right-bottom"
             }`}
           />
         </div>
