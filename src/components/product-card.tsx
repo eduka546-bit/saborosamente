@@ -162,6 +162,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const combo = isComboProduct(product);
   const complemento = product.tipo_produto === "complemento" || /complemento/i.test(product.categorias?.nome || product.categoria || "");
   const displayName = complemento ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome;
+  const productCode = displayName.match(/^((?:TD|SO|CO)\d+)\s*[-–—:.]?\s*/i);
+  const cardTitle = productCode ? displayName.slice(productCode[0].length) : displayName;
 
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
@@ -492,7 +494,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           {/* Conteúdo */}
           <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
             <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
-              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{displayName}</button>
+              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">
+                {productCode && <><span className="mr-1.5 inline-block rounded-md bg-[#e4ede1] px-1.5 py-0.5 align-middle text-[13px] font-semibold leading-4 text-[#075636]">{productCode[1].toUpperCase()}</span>{" "}</>}
+                {cardTitle}
+              </button>
             </h3>
 
             {/* Seletor de peso */}
@@ -529,7 +534,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
 
             {simplificarIngredientesCard(product.ingredientes) && (
-              <button type="button" onClick={openInformation} className="w-full min-w-0 cursor-pointer text-justify text-sm leading-relaxed text-muted-foreground hover:text-primary">
+              <button type="button" onClick={openInformation} className="w-full min-w-0 cursor-pointer border-t border-[#075636]/15 pt-2 text-center text-sm leading-relaxed text-muted-foreground hover:text-primary">
                 {simplificarIngredientesCard(product.ingredientes)}
               </button>
             )}
