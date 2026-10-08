@@ -1793,7 +1793,7 @@ function OrderChoiceBanner({
         <div
           className={`pointer-events-none absolute z-10 ${
             isCustom
-              ? "bottom-[-6%] right-[-5%] h-[72%] w-[50%] rotate-[12deg]"
+              ? "bottom-[-8%] right-[-7%] h-[79%] w-[55%] rotate-[12deg]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
                 : "bottom-[-2%] right-[-3%] h-[43%] w-[98%]"
