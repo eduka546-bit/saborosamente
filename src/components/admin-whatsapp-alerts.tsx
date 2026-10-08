@@ -11,15 +11,18 @@ type Conversa = {
   nome?: string | null;
   telefone?: string | null;
   ultima_msg?: string | null;
-  mensagens?: Array<{ role?: string; content?: string; timestamp?: string }> | null;
+  mensagens?: Array<{ role?: string; direction?: string; campaign_id?: string; content?: string; timestamp?: string }> | null;
 };
 
 function mensagemAtual(conversa: Conversa) {
   const ultima = conversa.mensagens?.at(-1);
-  if (!ultima) return null;
+  // Apenas mensagens recebidas do cliente geram alertas. Campanhas, mensagens
+  // enviadas pela empresa e alterações de status não são pedidos de atendimento.
+  if (!ultima || ultima.role !== "user" || ultima.campaign_id || ultima.direction === "out") return null;
   return {
     role: ultima.role,
     content: ultima.content || "Nova mensagem",
+    timestamp: ultima.timestamp || conversa.ultima_msg || "",
     key: `${ultima.timestamp || conversa.ultima_msg || ""}:${ultima.role || ""}:${ultima.content || ""}`,
   };
 }
@@ -125,7 +128,11 @@ export function AdminWhatsappAlerts() {
           if (!mensagem) return;
           const anterior = mensagensVistas.current.get(conversa.id);
           mensagensVistas.current.set(conversa.id, mensagem.key);
-          if (anterior === mensagem.key || mensagem.role === "assistant") return;
+          if (anterior === mensagem.key) return;
+          // Evita alertas atrasados em atualizações não relacionadas (inclusive
+          // depois de recarregar o painel durante uma campanha em andamento).
+          const instante = Date.parse(mensagem.timestamp);
+          if (!Number.isFinite(instante) || Math.abs(Date.now() - instante) > 5 * 60_000) return;
 
           const remetente = conversa.nome || conversa.telefone || "Cliente";
           tocarAlerta(audioContextRef.current);
