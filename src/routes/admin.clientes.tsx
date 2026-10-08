@@ -356,6 +356,15 @@ function AdminClientesPage() {
                   <MessageCircle size={15} /> WhatsApp
                 </a>
               )}
+              {selectedClient.id && (
+                <Link
+                  to="/admin/pedidos/whatsapp"
+                  search={{ cliente: selectedClient.id }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#08784b] text-white rounded-xl text-sm font-bold hover:bg-[#07613d] transition-all"
+                >
+                  <ShoppingBag size={15} /> Lançar pedido na conta
+                </Link>
+              )}
               {selectedClient.id && <CashbackCliente userId={selectedClient.id} />}
             </div>
 
