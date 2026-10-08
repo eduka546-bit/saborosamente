@@ -128,6 +128,9 @@ function WhatsappAdminOrderPage() {
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
   const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
   const [totalAcumulado, setTotalAcumulado] = useState<number | null>(null);
+  const [descontoAplicado, setDescontoAplicado] = useState(0);
+  const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
+  const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
 
   // A lista de clientes é protegida pelas políticas RLS de administradores.
@@ -216,7 +219,7 @@ function WhatsappAdminOrderPage() {
     () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [items],
   );
-  const total = metodoEntrega === "entrega" ? subtotal + taxaEntrega : subtotal;
+  const total = Math.round((subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) - descontoAplicado) * 100) / 100;
   const totalMismatch =
     declaredTotal !== null && Math.abs(Math.round((declaredTotal - total) * 100) / 100) > 0.009;
 
@@ -277,14 +280,14 @@ function WhatsappAdminOrderPage() {
       return;
     }
 
-    const novosItens: DraftItem[] = interpretado.itens.map((item) => {
+    const novosItens: DraftItem[] = interpretado.itensDetalhados.map((item) => {
       const product = productsByCode.get(item.codigo)!;
       return {
         key: newKey(),
         productId: product.id,
         quantity: item.quantidade,
-        weight: interpretado.peso,
-        unitPrice: interpretado.precoUnitario ?? priceFor(product, interpretado.peso),
+        weight: item.peso,
+        unitPrice: item.precoUnitario ?? priceFor(product, item.peso),
         observacao: "",
       };
     });
@@ -299,7 +302,19 @@ function WhatsappAdminOrderPage() {
       setCidade(interpretado.endereco.cidade);
     }
     if (interpretado.horario) setHorario(interpretado.horario);
-    if (interpretado.pagamento) setPagamento(interpretado.pagamento);
+    setPagamento(interpretado.pagamento ?? "nao_informado");
+    if (interpretado.referencia) {
+      setObservacao((previous) => {
+        const atual = previous.replace(/(?:^|\n)Referência de entrega:[^\n]*/g, "").trim();
+        return [atual, "Referência de entrega: " + interpretado.referencia].filter(Boolean).join("\n");
+      });
+    }
+    setDescontoAplicado(interpretado.descontoValor);
+    setPercentualDesconto(interpretado.descontoPercentual);
+    setAvisosInterpretacao(interpretado.avisos);
+    if (interpretado.avisos.length) {
+      toast.warning("O resumo possui diferenças. Confira os valores antes de salvar.");
+    }
     setDeclaredTotal(interpretado.totalPedido);
     setSaldoAnterior(interpretado.saldoAnterior);
     setTotalAcumulado(interpretado.totalAcumulado);
@@ -332,6 +347,7 @@ function WhatsappAdminOrderPage() {
           pagamento,
           tipoCartao,
           taxaEntrega: metodoEntrega === "entrega" ? taxaEntrega : 0,
+          descontoAplicado,
           cidade,
           bairro,
           rua,
@@ -366,6 +382,7 @@ function WhatsappAdminOrderPage() {
     items.length > 0 &&
     items.every((item) => item.productId && item.quantity > 0 && item.unitPrice >= 0) &&
     !totalMismatch &&
+    descontoAplicado >= 0 && descontoAplicado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
@@ -520,6 +537,7 @@ function WhatsappAdminOrderPage() {
                 value={pagamento}
                 onChange={(e) => setPagamento(e.target.value)}
               >
+                <option value="nao_informado">Não informado / A combinar</option>
                 <option value="cartao">Cartão</option>
                 <option value="pix">PIX</option>
                 <option value="alimentacao">Alimentação/Refeição</option>
@@ -665,9 +683,15 @@ function WhatsappAdminOrderPage() {
                           );
                         }}
                       >
-                        <option value="200g">200g</option>
-                        <option value="300g">300g</option>
-                        <option value="400g">400g</option>
+                        {String(product?.tipo_produto ?? "").toLowerCase() === "complemento" ? (
+                          <option value="200g">150g (complemento)</option>
+                        ) : (
+                          <>
+                            <option value="200g">200g</option>
+                            <option value="300g">300g</option>
+                            <option value="400g">400g</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>
@@ -755,12 +779,27 @@ function WhatsappAdminOrderPage() {
                 <span className="font-bold">Total</span>
                 <span className="font-black text-green-700">{money(total)}</span>
               </div>
-              {declaredTotal !== null && (
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="desconto-pedido-manual" className="text-sm text-gray-500">
+                  Desconto {percentualDesconto !== null ? "(" + percentualDesconto + "%)" : ""} (R$)
+                </label>
+                <Input id="desconto-pedido-manual" type="number" min={0} max={subtotal + taxaEntrega}
+                  step="0.01" className="w-32 text-right" value={descontoAplicado}
+                  onChange={(e) => { setDescontoAplicado(Number(e.target.value)); setPercentualDesconto(null); }} />
+              </div>
+                            {declaredTotal !== null && (
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Total informado no WhatsApp</span>
                   <span>{money(declaredTotal)}</span>
                 </div>
               )}
+              {avisosInterpretacao.length > 0 && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                  <p className="font-bold mb-1">Conferir o resumo original</p>
+                  {avisosInterpretacao.map((aviso, i) => <p key={i}>{aviso}</p>)}
+                  <p className="mt-1">Edite os preços/quantidades para corrigir diferenças antes de salvar.</p>
+                </div>
+              )
               {saldoAnterior !== null && (
                 <div className="flex justify-between text-xs text-amber-700">
                   <span>Saldo anterior (não somado a este pedido)</span>
