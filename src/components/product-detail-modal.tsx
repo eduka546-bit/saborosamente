@@ -454,13 +454,6 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-sm text-muted-foreground">
-              {product.descricao && (
-                <div>
-                  <h4 className="mb-1 font-bold text-foreground">Descrição</h4>
-                  <p className="leading-relaxed">{product.descricao}</p>
-                </div>
-              )}
-
               {ingredientesDetalhados && (
                 <div>
                   <h4 className="mb-1 font-bold text-foreground">Ingredientes</h4>
