@@ -1125,8 +1125,7 @@ function Index() {
               text="Monte seu combo como quiser, quanto mais comprar, mais desconto tem!"
               action="Montar Combo"
               chips={["Desconto automático"]}
-              image={comboBuildImage}
-              secondaryImage={comboSoupImage}
+              image="/monte-combo-transparent.webp"
               tone="combo"
               onClick={() => setComboModalOpen(true)}
             />
@@ -1797,10 +1796,10 @@ function OrderChoiceBanner({
               ? "inset-y-0 right-0 w-[58%]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
-                : "bottom-0 right-[-4%] h-[62%] w-[79%]"
+                : "bottom-2 right-0 h-[62%] w-[79%]"
           }`}
           style={{
-            WebkitMaskImage: tone === "ready" ? "none" : isCustom
+            WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
               ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
               : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
             maskImage: tone === "ready" ? "none" : isCustom
@@ -1811,7 +1810,7 @@ function OrderChoiceBanner({
           <img
             src={image}
             alt=""
-            className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] ${tone === "ready" ? "object-contain" : "object-cover"} ${
+            className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] ${tone !== "personalizada" ? "object-contain" : "object-cover"} ${
               isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-[55%_52%]"
             }`}
           />
