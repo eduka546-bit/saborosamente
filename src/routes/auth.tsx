@@ -56,11 +56,7 @@ function AuthPage() {
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const senhaForte = (value: string) =>
-    value.length >= 10 &&
-    /[a-z]/.test(value) &&
-    /[A-Z]/.test(value) &&
-    /\d/.test(value);
+  const senhaValida = (value: string) => value.length > 0;
 
   const irAposLogin = () => {
     if (typeof window === "undefined") return;
@@ -115,8 +111,8 @@ function AuthPage() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!senhaForte(newPassword)) {
-      toast.error("Use pelo menos 10 caracteres, com maiúscula, minúscula e número.");
+    if (!senhaValida(newPassword)) {
+      toast.error("Informe a nova senha.");
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -171,8 +167,8 @@ function AuthPage() {
           toast.error("Informe um CPF válido com 11 dígitos.");
           return;
         }
-        if (!senhaForte(password)) {
-          toast.error("Use pelo menos 10 caracteres, com maiúscula, minúscula e número.");
+        if (!senhaValida(password)) {
+          toast.error("Informe uma senha.");
           return;
         }
         if (password !== confirmPassword) {
@@ -297,7 +293,7 @@ function AuthPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="Mínimo 10 caracteres"
+                placeholder="Digite sua nova senha"
                 required
               />
             </div>
@@ -395,7 +391,7 @@ function AuthPage() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder={isLogin ? "Sua senha" : "Mínimo 10 caracteres"}
+                placeholder={isLogin ? "Sua senha" : "Crie sua senha"}
                 className="pl-10 pr-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -411,11 +407,6 @@ function AuthPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {!isLogin && (
-              <p className="text-xs text-muted-foreground">
-                Use 10 ou mais caracteres, incluindo letra maiúscula, minúscula e número.
-              </p>
-            )}
             {isLogin && (
               <button
                 type="button"
