@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getPublicSiteSettings } from "@/lib/site-settings";
+import { configEntregaParaCidade, DIAS_SEMANA } from "@/lib/entrega-config";
 import {
   BadgeDollarSign,
   Clock3,
@@ -8,6 +11,7 @@ import {
   ShoppingBag,
   Store,
   Truck,
+  Search,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import {
@@ -424,6 +428,61 @@ function DeliveryContent() {
     taxas,
   } = useCart();
   const [mapZoomed, setMapZoomed] = useState(false);
+  const [cep, setCep] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepResult, setCepResult] = useState<{ status: "success" | "warning" | "error"; message: string } | null>(null);
+  const { data: deliverySettings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: getPublicSiteSettings,
+    staleTime: 1000 * 60 * 5,
+  });
+  const citySchedule = selectedCity
+    ? configEntregaParaCidade(deliverySettings?.parametros_loja?.entrega, selectedCity)
+    : null;
+  const daysDescription = citySchedule
+    ? citySchedule.diasPermitidos.length === 6 && citySchedule.diasPermitidos.every((d) => d >= 1 && d <= 6)
+      ? "Segunda a sábado"
+      : citySchedule.diasPermitidos.map((d) => DIAS_SEMANA[d]).join(", ")
+    : "";
+  const timeStart = citySchedule?.horarios[0]?.split("~")[0]?.trim() || "";
+  const timeEnd = citySchedule?.horarios[citySchedule.horarios.length - 1]?.split("~")[1]?.trim() || "";
+
+  const checkCep = async () => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepResult({ status: "error", message: "Digite um CEP válido com 8 números." });
+      return;
+    }
+    setCepLoading(true);
+    setCepResult(null);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      if (!response.ok) throw new Error("Falha na consulta");
+      const data = await response.json();
+      if (data.erro) {
+        setCepResult({ status: "error", message: "CEP não encontrado. Confira os números informados." });
+        return;
+      }
+      const normalize = (v: unknown) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      const municipality = cities.find((city) => normalize(city) === normalize(data.localidade));
+      if (!municipality) {
+        setCepResult({ status: "warning", message: `CEP localizado em ${data.localidade}/${data.uf}. Ainda não temos entregas cadastradas nessa cidade.` });
+        return;
+      }
+      selectCity(municipality);
+      const district = taxas.find((item: any) => item.ativo !== false && item.cidade === municipality && normalize(item.bairro) === normalize(data.bairro));
+      if (district) {
+        setSelectedBairro(district.bairro);
+        setCepResult({ status: "success", message: `Entregamos em ${district.bairro}, ${municipality}. Taxa cadastrada: ${formatDeliveryRate(Number(district.taxa || 0))}. O valor final depende das promoções do pedido.` });
+      } else {
+        setCepResult({ status: "warning", message: `CEP de ${municipality}${data.bairro ? ` — ${data.bairro}` : ""}. Confira abaixo se seu bairro está na lista de entregas antes de concluir o pedido.` });
+      }
+    } catch {
+      setCepResult({ status: "error", message: "Não foi possível consultar o CEP agora. Selecione a cidade e o bairro manualmente." });
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const cityRates = taxas
     .filter((item: any) => item.ativo !== false && item.cidade === selectedCity)
@@ -432,6 +491,7 @@ function DeliveryContent() {
     );
 
   const selectCity = (city: string) => {
+    setCepResult(null);
     if (city !== selectedCity) {
       setSelectedBairro("");
     }
@@ -479,6 +539,73 @@ function DeliveryContent() {
             </button>
           );
         })}
+      </div>
+
+      {selectedCity && citySchedule && (
+        <div className="rounded-[1.35rem] border border-[#d4e5cc] bg-[#f7faf3] px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Clock3 size={19} className="mt-0.5 shrink-0 text-[#075636]" />
+            <div>
+              <p className="text-[13px] font-extrabold text-[#173a2d]">Dias e horários de entrega em {selectedCity}</p>
+              <p className="mt-1 text-xs font-semibold text-[#416150]">{daysDescription}</p>
+              <p className="mt-1 text-xs text-[#607168]">
+                {selectedCity === "São Bento do Sul" ? "Entregas durante o dia" : "Faixas de entrega cadastradas"}
+                {timeStart && timeEnd ? ` · ${timeStart} às ${timeEnd}` : ""}
+              </p>
+              {citySchedule.cutoffMesmoDia && (
+                <p className="mt-1 text-[11px] text-[#607168]">
+                  Pedidos para o mesmo dia até {String(citySchedule.cutoffMesmoDia.hora).padStart(2, "0")}:{String(citySchedule.cutoffMesmoDia.minuto).padStart(2, "0")}.
+                </p>
+              )}
+              {citySchedule.minUnidades && (
+                <p className="mt-1 text-[11px] text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
+              )}
+              <p className="mt-1 text-[10px] text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
+            </div>
+          </div>
+          {selectedCity === "São Bento do Sul" && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#78922f] px-3 py-3 text-white">
+              <House size={18} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-extrabold">Frete promocional em São Bento do Sul</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="rounded-[1.35rem] border border-[#dfe8d7] bg-white p-4">
+        <p className="text-[13px] font-extrabold text-[#173a2d]">Descubra se entregamos no seu CEP</p>
+        <p className="mt-1 text-xs text-[#607168]">Consulte o endereço e confira se o bairro está na nossa área de atendimento.</p>
+        <form onSubmit={(event) => { event.preventDefault(); void checkCep(); }} className="mt-3 flex gap-2">
+          <input
+            inputMode="numeric"
+            autoComplete="postal-code"
+            value={cep}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+              setCep(digits.length > 5 ? digits.slice(0, 5) + "-" + digits.slice(5) : digits);
+              setCepResult(null);
+            }}
+            placeholder="00000-000"
+            aria-label="Digite seu CEP"
+            maxLength={9}
+            className="min-w-0 flex-1 rounded-xl border border-[#d5e2cd] bg-[#f7faf4] px-3 py-2.5 text-sm outline-none focus:border-[#78922f]"
+          />
+          <button type="submit" disabled={cepLoading} className="inline-flex items-center gap-2 rounded-xl bg-[#075636] px-4 py-2 text-xs font-extrabold text-white disabled:opacity-60">
+            <Search size={16} /> {cepLoading ? "Consultando..." : "Consultar"}
+          </button>
+        </form>
+        {cepResult && (
+          <p role="status" className={`mt-3 rounded-xl px-3 py-2.5 text-xs leading-relaxed ${
+            cepResult.status === "success" ? "bg-[#e4f3dc] text-[#195c38]" :
+            cepResult.status === "warning" ? "bg-[#fff7d6] text-[#69571c]" :
+            "bg-[#fff0ec] text-[#8b3f31]"
+          }`}>
+            {cepResult.message}
+          </p>
+        )}
       </div>
 
       <div className="rounded-[1.45rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
@@ -569,6 +696,10 @@ function StoreContent() {
 
       <div className="grid overflow-hidden rounded-[1.65rem] border border-[#dde6d7] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
+          <div className="rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
+            <p className="text-sm font-extrabold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
+          </div>
           <a
             href={MAPS_URL}
             target="_blank"
@@ -584,6 +715,9 @@ function StoreContent() {
                 Progresso — São Bento do Sul/SC · CEP 89281-060
               </span>
             </span>
+          </a>
+          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-2 text-xs font-extrabold text-[#075636] underline decoration-[#91b93a] underline-offset-4">
+            <MapPin size={15} /> Abrir endereço no Google Maps
           </a>
 
           <div className="flex items-start gap-3 rounded-2xl border border-[#dde6d7] bg-[#fbfcf9] px-4 py-3">
