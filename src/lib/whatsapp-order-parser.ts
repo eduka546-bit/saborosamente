@@ -55,7 +55,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const subtotalDeclarado = valor(refeicoes.match(/\s[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i)?.[1]);
 
   // Aceita: "Combo 5un - 5 x 23,50un" e "5 x R$ 23,50 /un".
-  const precoUnitario = valor(texto.match(/\b\d+\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i)?.[1]);
+  const precoUnitario = valor(texto.replace(/[_*]/g, "").match(/\b\d+\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i)?.[1]);
 
   const itens: ItemInterpretado[] = [];
   let resto = texto;
