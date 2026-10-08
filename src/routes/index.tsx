@@ -1796,7 +1796,7 @@ function OrderChoiceBanner({
               ? "inset-y-0 right-0 w-[58%]"
               : tone === "ready"
                 ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
-                : "bottom-[-2%] right-[-3%] h-[65%] w-[79%]"
+                : "bottom-[-12%] right-[-8%] h-[85%] w-[85%]"
           }`}
           style={{
             WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
