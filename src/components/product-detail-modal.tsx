@@ -531,20 +531,18 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-4 rounded-2xl bg-muted/50 p-4">
+              <div className="grid grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
                 <div>
                   <h4 className="text-lg font-semibold tracking-normal text-foreground">
                     Valor Nutricional
                   </h4>
-                  <div className="text-sm mt-1 flex items-center justify-center whitespace-nowrap gap-x-2 text-muted-foreground">
+                  <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
                     {currentNutritional?.kcal ? (
                       <>
                         <span className="font-semibold text-primary">
                           {currentNutritional.kcal} KCAL
                         </span>
-                        <span aria-hidden="true">•</span>
                         <span>{currentNutritional.prot}g PROT</span>
-                        <span aria-hidden="true">•</span>
                         <span>{currentNutritional.carb}g CARB</span>
                       </>
                     ) : (

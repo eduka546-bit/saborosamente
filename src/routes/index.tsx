@@ -688,22 +688,22 @@ function Index() {
   );
 
   const objetivos = [
-    { filtro: "Todas", titulo: "Cardápio Completo", texto: "Todos os nossos sabores.", icon: Utensils, tone: "green", image: quickCardImage((p) => p.tipo_produto === "marmita"), rank: false },
+    { filtro: "Todas", titulo: "Cardápio Completo", texto: "Todos os nossos sabores.", icon: Utensils, tone: "orange", image: quickCardImage((p) => p.tipo_produto === "marmita"), rank: false },
     {
       filtro: "Mais escolhidas",
       titulo: "Mais escolhidas",
       texto: "Nossos pratos mais amados.",
       icon: Trophy,
-      tone: "rose",
+      tone: "yellow",
       image: imgUrl(bestSellerProducts[0]?.imagem_url) || quickCardImage((p) => p.tipo_produto === "marmita"),
-      rank: true,
+      rank: false,
     },
     {
       filtro: "Mais proteicas",
       titulo: "Mais proteína",
       texto: "Para quem busca mais proteína.",
       icon: Dumbbell,
-      tone: "orange",
+      tone: "rose",
       image:
         quickCardImage((p) => p.tipo_produto === "marmita" && isHighProteinFlavor(p)) ||
         quickCardImage((p) => p.tipo_produto === "marmita"),
@@ -721,7 +721,7 @@ function Index() {
       titulo: "Sem Glúten",
       texto: "Sabor e segurança para o seu dia.",
       icon: WheatOff,
-      tone: "yellow",
+      tone: "brown",
       image:
         quickCardImage((p) => Boolean(p.sem_gluten) && p.tipo_produto === "marmita") ||
         quickCardImage((p) => Boolean(p.sem_gluten)),
@@ -1208,13 +1208,6 @@ function Index() {
                 Encontre mais rápido o que combina com você
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => abrirCardapio()}
-              className="hidden text-sm font-semibold text-[#075636] underline decoration-[#91b93a] decoration-2 underline-offset-4 sm:block"
-            >
-              Ver cardápio completo
-            </button>
           </div>
 
           <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-7">
@@ -1245,6 +1238,12 @@ function Index() {
                   title: "text-[#b87800]",
                   badge: "bg-white/82 text-[#b87800]",
                 },
+                brown: {
+                  card: "border-[#dbc5ae] bg-[#efe2d2]",
+                  icon: "bg-white/72 text-[#a17b53]",
+                  title: "text-[#805e3e]",
+                  badge: "bg-white/82 text-[#805e3e]",
+                },
                 blue: {
                   card: "border-[#c3ddef] bg-[#deeffb]",
                   icon: "bg-white/72 text-[#3d82c7]",
@@ -1271,11 +1270,6 @@ function Index() {
                     <span className={`grid size-9 place-items-center rounded-xl shadow-sm ${style.icon}`}>
                       <Icon size={18} strokeWidth={2} />
                     </span>
-                    {objetivo.rank && (
-                      <span className={`grid size-7 place-items-center rounded-full text-sm font-semibold shadow-sm ${style.badge}`}>
-                        1
-                      </span>
-                    )}
                   </div>
 
                   <div className="relative z-20 mt-3 max-w-[90%]">
@@ -1386,7 +1380,7 @@ function Index() {
               <div className="flex flex-wrap gap-2">
                 {objetivos.map(({ filtro, titulo, icon: Icon, tone }) => {
                   const selected = filtro === "Todas" ? selectedFilters.length === 0 : selectedFilters.includes(filtro);
-                  const colors: Record<string, string> = { rose: "bg-[#fde8e7] text-[#b52f36] border-[#f2caca]", orange: "bg-[#fae2cf] text-[#bf5d1e] border-[#efc6a8]", green: "bg-[#e5f2d5] text-[#358332] border-[#cde1b9]", yellow: "bg-[#fff3c9] text-[#b87800] border-[#ebdda1]", blue: "bg-[#deeffb] text-[#276cab] border-[#c3ddef]", purple: "bg-[#eee5fb] text-[#6e42b5] border-[#d8c9ee]" };
+                  const colors: Record<string, string> = { brown: "bg-[#efe2d2] text-[#805e3e] border-[#dbc5ae]", rose: "bg-[#fde8e7] text-[#b52f36] border-[#f2caca]", orange: "bg-[#fae2cf] text-[#bf5d1e] border-[#efc6a8]", green: "bg-[#e5f2d5] text-[#358332] border-[#cde1b9]", yellow: "bg-[#fff3c9] text-[#b87800] border-[#ebdda1]", blue: "bg-[#deeffb] text-[#276cab] border-[#c3ddef]", purple: "bg-[#eee5fb] text-[#6e42b5] border-[#d8c9ee]" };
                   return <button key={filtro} type="button" onClick={() => toggleFilter(filtro)} aria-pressed={selected} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-semibold uppercase transition", colors[tone], selected && "ring-2 ring-[#075636] ring-offset-1")}><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/75"><Icon size={18} /></span>{titulo}</button>;
                 })}
               </div>

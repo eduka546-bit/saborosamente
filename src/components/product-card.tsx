@@ -56,6 +56,7 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
   const ignorar = new Set([
     "agua",
     "sal",
+    "demi glace",
     "salsinha",
     "oleo de soja",
   ]);
@@ -303,13 +304,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       setComboSaboresOpen(true);
       return;
     }
-    // Marmitas precisam da escolha "pronta/congelada" (e garfo e faca).
-    // Abre o modal de detalhes para o cliente definir antes de adicionar.
-    if (isMarmita(product.nome, product.categorias?.nome || product.categoria)) {
-      setDetailOpen(true);
-      return;
-    }
-    add(product.id, 1, selectedWeight);
+    add(product.id, 1, selectedWeight,
+      isMarmita(product.nome, product.categorias?.nome || product.categoria)
+        ? { consumo: "congelada", garfoEFaca: false } : undefined,
+    );
     toast.success("Adicionado", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
       className: "max-w-[280px] text-sm font-medium",
@@ -437,10 +435,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <button type="button" aria-label="Próxima foto" onClick={() => setImageIndex((i) => (i + 1) % gallery.length)} className="pointer-events-auto grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronRight size={20} /></button>
               </div>
             )}
-            <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10" />
+            <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10 cursor-pointer" />
             {isHighProteinFlavor(product) && (
-              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow">
-                <Dumbbell size={20} />
+              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-[22px] cursor-default place-items-center rounded-full bg-white/95 text-primary shadow">
+                <Dumbbell size={14} />
                 <span className="pointer-events-none absolute left-0 top-full mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/protein:block group-focus-visible/protein:block">Alta proteína</span>
               </button>
             )}
@@ -454,13 +452,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Glúten"
                     title="Sem Glúten"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-6 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-gluten.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-6 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Glúten</span>
                   </button>
@@ -471,13 +469,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Lactose"
                     title="Sem Lactose"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-6 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-lactose.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-6 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Lactose</span>
                   </button>
@@ -489,7 +487,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
             <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
-              <button type="button" onClick={openInformation} className="text-left">{product.nome}</button>
+              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{product.nome}</button>
             </h3>
 
             {/* Seletor de peso */}
@@ -522,11 +520,17 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex items-center justify-center gap-2 whitespace-nowrap text-xs font-normal text-[#315440]">
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap text-xs font-normal text-[#315440] hover:text-primary">
                 <span>{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                 {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
-              </div>
+              </button>
+            )}
+
+            {simplificarIngredientesCard(product.ingredientes) && (
+              <button type="button" onClick={openInformation} className="cursor-pointer text-left text-sm leading-relaxed text-muted-foreground hover:text-primary">
+                {simplificarIngredientesCard(product.ingredientes)}
+              </button>
             )}
 
             {/* Preço + botão adicionar */}
