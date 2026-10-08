@@ -1192,7 +1192,7 @@ const EMOJIS_RAPIDOS = [
 ];
 
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
-function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
+function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
@@ -1318,7 +1318,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
   });
 
   const campanhasPorId = new Map((campanhas as any[]).map((campanha) => [campanha.id, campanha]));
-  const mensagensDeCampanha = (enviosDeCampanha as any[])
+  // A campanha pode estar gravada no historico; mostra uma so vez.
+  const enviosValidos = (enviosDeCampanha as any[]).filter((envio) =>
+    ["enviado", "entregue", "lido"].includes(envio.status),
+  );
+  const statusPorCampanha = new Map(enviosValidos.map((envio) => [envio.campanha_id, envio.status]));
+  const campanhasJaGravadas = new Set(
+    mensagensDaConversa.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
+  );
+  const historicoNormalizado = mensagensDaConversa.map((msg: any) => {
+    if (!msg?.campaign_id) return msg;
+    const campanha = campanhasPorId.get(msg.campaign_id);
+    return {
+      ...msg,
+      campaignName: campanha?.nome ?? msg.campaign_name ?? "Campanha",
+      deliveryStatus: statusPorCampanha.get(msg.campaign_id) ?? msg.deliveryStatus ?? "enviado",
+    };
+  });
+  const mensagensDeCampanha = enviosValidos
+    .filter((envio) => !campanhasJaGravadas.has(String(envio.campanha_id)))
     .map((envio) => {
       const campanha = campanhasPorId.get(envio.campanha_id);
       if (!campanha) return null;
@@ -1345,10 +1363,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
       new Date(a?.timestamp ?? 0).getTime() - new Date(b?.timestamp ?? 0).getTime(),
   );
   const mensagens: any[] = historicoTemTimestamps
-    ? [...mensagensDaConversa, ...campanhasOrdenadas].sort(
+    ? [...historicoNormalizado, ...campanhasOrdenadas].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       )
-    : [...campanhasOrdenadas, ...mensagensDaConversa];
+    : [...campanhasOrdenadas, ...historicoNormalizado];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1568,7 +1586,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
         {!somenteCampanha && (
           <button
             onClick={() => onToggleModo(conversa.id, conversa.modo)}
-            className={`flex items-center gap-1.5 h-9 px-3 rounded-lg text-[12px] font-semibold transition-all ${
+            disabled={!iaAtiva}
+            title={!iaAtiva ? "IA pausada: atendimento exclusivamente manual." : undefined}
+            className={`flex items-center gap-1.5 h-9 px-3 rounded-lg text-[12px] font-semibold transition-all disabled:cursor-default disabled:opacity-70 ${
               isHumano
                 ? dark ? "text-[#00a884] hover:bg-white/5" : "text-[#008069] hover:bg-black/5"
                 : dark ? "text-[#e9edef] hover:bg-white/5" : "text-[#3b4a54] hover:bg-black/5"
@@ -1576,7 +1596,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo }: any) {
           >
             {isHumano ? (
               <>
-                <Zap size={11} /> IA responder
+                <Zap size={11} /> {iaAtiva ? "IA responder" : "IA pausada · Manual"}
               </>
             ) : (
               <>
@@ -1757,6 +1777,7 @@ function AdminAgentePage() {
       if (data) setConfig(data);
       return data;
     },
+    refetchInterval: 60_000,
   });
 
   const { data: conversas = [], isLoading } = useQuery({
@@ -1772,6 +1793,30 @@ function AdminAgentePage() {
     },
     refetchInterval: 8000,
   });
+
+  // Atualizacao imediata de mensagens e status, com polling como fallback.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let conversaMudou = false;
+    let campanhaMudou = false;
+    const agendar = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (conversaMudou) void queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
+        if (campanhaMudou) {
+          void queryClient.invalidateQueries({ queryKey: ["whatsapp-envios-campanhas-painel"] });
+          void queryClient.invalidateQueries({ queryKey: ["whatsapp-campanhas-do-contato"] });
+        }
+        conversaMudou = false;
+        campanhaMudou = false;
+      }, 350);
+    };
+    const channel = supabase.channel("admin-whatsapp-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "whatsapp_conversas" }, () => { conversaMudou = true; agendar(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "campanhas_whatsapp_envios" }, () => { campanhaMudou = true; agendar(); })
+      .subscribe();
+    return () => { if (timer) clearTimeout(timer); void supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   // A maioria dos destinatários de campanha ainda não tem uma conversa criada,
   // pois não respondeu. Esta consulta os apresenta no painel sem criar dados
@@ -2215,6 +2260,7 @@ function AdminAgentePage() {
         ) : activeConversa ? (
           <ChatView
             conversa={activeConversa}
+             iaAtiva={config?.ativo === true}
             dark={dark}
             onBack={() => setActiveId(null)}
             onToggleModo={(id: string, modo: string) =>
@@ -2261,6 +2307,7 @@ function AdminAgentePage() {
           {activeConversa && (
             <ChatView
               conversa={activeConversa}
+             iaAtiva={config?.ativo === true}
               dark={dark}
               onBack={() => setActiveId(null)}
               onToggleModo={(id: string, modo: string) =>
