@@ -951,7 +951,7 @@ function Index() {
             </div>
           </div>
 
-          <div className="grid items-start gap-4 lg:grid-cols-3">
+          <div className="grid items-stretch gap-4 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setDeliveryModalOpen(true)}
@@ -1069,65 +1069,20 @@ function Index() {
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
               </div>
 
-              <div className="p-4">
-                <div className="rounded-2xl border border-[#f0df9e] bg-[linear-gradient(135deg,#fff8d7_0%,#fffdf4_100%)] px-4 py-3">
-                  <div className="flex items-start gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f6d83d] text-[#174229] shadow-sm">
-                      <BadgeDollarSign size={17} />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
-                      <p className="mt-0.5 text-sm leading-relaxed text-[#6a715d]">
-                        O desconto entra automaticamente conforme a quantidade.
-                      </p>
-                    </div>
+              <div className="flex flex-1 flex-col gap-3 p-4">
+                <div className="rounded-2xl border border-[#f0df9e] bg-[#fff9df] p-3">
+                  <p className="text-sm font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    {COMBO_RULES.map((rule) => <div key={rule.min} className="rounded-xl bg-white/80 px-1 py-2"><p className="text-sm text-[#607168]">{rule.min} marmitas</p><p className="mt-1 font-semibold text-[#075636]">{rule.badge}</p></div>)}
                   </div>
                 </div>
-
-                <div className="relative mt-4 space-y-2.5">
-                  <div className="absolute bottom-4 left-[17px] top-4 w-px bg-[#dce7d3]" />
-                  {COMBO_RULES.map((rule, index) => (
-                    <div
-                      key={rule.min}
-                      className="relative z-10 flex items-center gap-3 rounded-xl border border-[#e2e9dd] bg-[#fbfcf9] px-3 py-2.5"
-                    >
-                      <span
-                        className={`grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold shadow-sm ${
-                          index === 0
-                            ? "bg-[#f6d83d] text-[#174229]"
-                            : index === 1
-                              ? "bg-[#a8bf52] text-white"
-                              : "bg-[#78922f] text-white"
-                        }`}
-                      >
-                        {rule.min}
-                      </span>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#315c46]">
-                          {rule.min} marmitas
-                        </p>
-                        <p className="text-sm text-[#7a897f]">
-                          {index === 0
-                            ? "Primeira faixa de economia"
-                            : index === 1
-                              ? "Economize ainda mais"
-                              : "Melhor faixa disponível"}
-                        </p>
-                      </div>
-
-                      <span className="rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-[#075636] shadow-sm ring-1 ring-[#dce5d5]">
-                        {rule.badge}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#dce5d5] bg-[#f5f8f1] p-3">
+                  <BadgeDollarSign size={22} className="shrink-0 text-[#075636]" />
+                  <div><p className="font-semibold text-[#173a2d]">Cashback</p><p className="text-sm text-[#607168]">Ganhe cashback para a próxima compra.</p></div>
                 </div>
-
-                <div className="mt-4 rounded-xl bg-[#78922f] px-3 py-3 text-white">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-white/75">São Bento do Sul</p>
-                  <p className="mt-1 text-sm font-semibold leading-relaxed">
-                    Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
-                  </p>
+                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#dce5d5] bg-[#f5f8f1] p-3">
+                  <Gift size={22} className="shrink-0 text-[#075636]" />
+                  <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
               </div>
             </button>
@@ -1517,6 +1472,7 @@ function Index() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#dce7d5] bg-white/70 px-3 py-2 text-sm text-[#315440]">
                   <span className="font-semibold">Legenda</span>
+                  <span className="inline-flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-white text-primary shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
                   <span className="inline-flex items-center gap-2"><img src="/selo-sem-gluten.png" alt="" className="size-6" />Sem glúten</span>
                   <span className="inline-flex items-center gap-2"><img src="/selo-sem-lactose.png" alt="" className="size-6" />Sem lactose</span>
                 </div>

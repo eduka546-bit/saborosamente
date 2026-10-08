@@ -57,13 +57,16 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
     "agua",
     "sal",
     "demi glace",
+    "pimenta",
+    "molho de tomate",
+    "extrato de tomate",
     "salsinha",
     "oleo de soja",
   ]);
 
   const mapa: Record<string, string> = {
     "arroz branco parboilizado": "Arroz branco",
-    "extrato de tomate": "Molho de tomate",
+
     "sassami": "Frango",
     "sassami em tiras": "Frango",
     "file de sassami": "Frango",
@@ -96,7 +99,7 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
       .trim();
 
     let chave = normalizarIngredienteCard(texto);
-    if (!chave || ignorar.has(chave)) continue;
+    if (!chave || ignorar.has(chave) || /^pimenta(?:\s|$)/.test(chave) || /^demi\s*glace/.test(chave)) continue;
 
     const simplificado = mapa[chave] || texto;
     chave = normalizarIngredienteCard(simplificado);
@@ -157,6 +160,8 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [comboSaboresOpen, setComboSaboresOpen] = useState(false);
   const combo = isComboProduct(product);
+  const complemento = product.tipo_produto === "complemento" || /complemento/i.test(product.categorias?.nome || product.categoria || "");
+  const displayName = complemento ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome;
 
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
@@ -170,7 +175,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     // Fallback: lê do campo peso
     if (product.peso?.includes("-")) return product.peso.split("-").map((w: string) => w.trim());
     if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
-    return product.peso ? [product.peso] : [];
+    return product.peso ? [product.peso] : complemento ? ["150g"] : [];
   })();
   const [selectedWeight, setSelectedWeight] = useState(() =>
     initialAvailableWeight(product, weights),
@@ -487,7 +492,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           {/* Conteúdo */}
           <div className="flex flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
             <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
-              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{product.nome}</button>
+              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{displayName}</button>
             </h3>
 
             {/* Seletor de peso */}
@@ -513,14 +518,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm tracking-normal text-muted-foreground font-semibold">
-                {product.peso}
-              </p>
-            )}
+            ) : null}
 
             {currentNutritional?.kcal != null && (
-              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap text-xs font-normal text-[#315440] hover:text-primary">
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex cursor-pointer items-center justify-start gap-2 whitespace-nowrap text-xs font-normal text-[#315440] hover:text-primary">
                 <span>{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                 {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}

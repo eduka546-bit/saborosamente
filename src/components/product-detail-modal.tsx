@@ -117,12 +117,11 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const categoriaNome = product.categorias?.nome || product.categoria || "Marmita";
   const ehMarmita = isMarmita(product.nome, categoriaNome);
 
-  const ingredientesDetalhados = Array.isArray(product.ingredientes)
-    ? product.ingredientes.filter(Boolean).join(", ")
-    : String(product.ingredientes || "")
-        .replace(/^\{\}|^\[\]$/, "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+  const ingredientesDetalhados = (Array.isArray(product.ingredientes)
+    ? product.ingredientes : String(product.ingredientes || "").split(/[,;]+/))
+    .filter((item: string) => !/^(?:pimenta(?:\s|$)|demi[ -]*glace|molho de tomate|extrato de tomate)/i.test(item.trim()))
+    .map((item: string) => item.replace(/\([^)]*(?:industr|marca)[^)]*\)/gi, "").replace(/\bindustrial\w*/gi, "").trim())
+    .filter(Boolean).join(", ");
 
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
   const principal = imgUrl(product.imagem_url || product.imagem);
@@ -509,7 +508,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             <DialogHeader className="mb-4">
               <div className="flex items-start justify-between gap-3 pr-8">
                 <DialogTitle className="text-2xl font-semibold text-primary-dark">
-                  {product.nome}
+                  {product.tipo_produto === "complemento" ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome}
                 </DialogTitle>
                 <button
                   type="button"

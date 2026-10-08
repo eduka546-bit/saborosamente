@@ -178,8 +178,9 @@ export function DeliveryRegionMiniMap({ className = "" }: { className?: string }
         </g>
       </svg>
 
-      <div className="absolute bottom-2 left-2 rounded-full bg-[#f6d83d] px-2.5 py-1 text-sm font-semibold text-[#174229] shadow-sm">
-        São Bento do Sul
+      <div className="absolute bottom-2 left-2 right-2 max-w-fit rounded-xl bg-[#f6d83d] px-2.5 py-1 text-xs font-semibold leading-snug text-[#174229] shadow-sm">
+        <span className="block">São Bento do Sul · Frete R$ 5,00</span>
+        <span className="block font-normal">Acima de 5 marmitas ou R$ 100,00</span>
       </div>
       <div className="absolute right-2 top-2 rounded-full border border-white/80 bg-white/90 px-2 py-1 text-sm font-semibold text-[#4a6758] shadow-sm">
         SC + PR
@@ -691,9 +692,9 @@ function StoreContent() {
 
 function DiscountContent() {
   const tiers = [
-    { qty: "5+", title: "Primeira faixa", text: "Já começa a economizar" },
-    { qty: "10+", title: "Mais economia", text: "Melhor valor por unidade" },
-    { qty: "20+", title: "Melhor faixa", text: "Maior benefício do combo" },
+    { qty: "5+", title: "3% OFF", text: "A partir de 5 marmitas" },
+    { qty: "10+", title: "7% OFF", text: "A partir de 10 marmitas" },
+    { qty: "20+", title: "12% OFF", text: "A partir de 20 marmitas" },
   ];
 
   return (
@@ -745,18 +746,13 @@ function DiscountContent() {
         </div>
       </div>
 
-      <div className="rounded-[1.4rem] bg-[#075636] p-4 text-white">
-        <div className="flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10">
-            <House size={18} />
-          </span>
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-white/70">São Bento do Sul</p>
-            <p className="mt-1 text-sm font-semibold leading-relaxed">
-              Frete R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.
-            </p>
-          </div>
-        </div>
+      <div className="rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
+        <h3 className="text-lg font-semibold text-[#075636]">Cashback</h3>
+        <p className="mt-1 text-base leading-relaxed text-[#607168]">Após a entrega do pedido, o cashback é creditado na sua conta para usar como desconto em uma próxima compra. Entre na sua conta para consultar o saldo, a validade e as condições de uso; no fechamento do pedido você pode aplicar o saldo disponível.</p>
+      </div>
+      <div className="rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4">
+        <h3 className="text-lg font-semibold text-[#075636]">Indique e Ganhe</h3>
+        <p className="mt-1 text-base leading-relaxed text-[#607168]">Entre na sua conta e abra Indique e Ganhe para compartilhar seu link. Seu amigo ganha 5% na primeira compra e, quando esse pedido for entregue, você recebe R$ 5,00 de cashback.</p>
       </div>
     </>
   );
