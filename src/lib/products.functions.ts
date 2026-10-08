@@ -1,3 +1,4 @@
+import { withDisplayIngredients } from "@/lib/product-display-ingredients";
 import { supabase } from "@/integrations/supabase/client";
 
 export async function getAdminProducts() {
@@ -25,7 +26,7 @@ export async function getPublicProducts() {
       return [];
     }
 
-    return (data as any[]) || [];
+    return ((data as any[]) || []).map(withDisplayIngredients);
   } catch (err) {
     console.error("Unexpected error in getPublicProducts:", err);
     return [];
@@ -40,7 +41,7 @@ export async function getProductSummaries(ids: string[]) {
     p_ids: uniqueIds,
   });
   if (error) throw error;
-  return (data as any[]) || [];
+  return ((data as any[]) || []).map(withDisplayIngredients);
 }
 
 export async function getCategories() {
