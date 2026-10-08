@@ -930,7 +930,7 @@ function Checkout() {
 
   // ── formulário principal ─────────────────────────────────────────────────────
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
+    <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
       <Link
         to="/"
         hash="cardapio"

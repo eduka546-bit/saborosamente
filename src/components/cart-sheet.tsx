@@ -52,7 +52,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
           {lines.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
               <div className="size-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-300">
@@ -82,7 +82,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       className="size-16 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-primary-dark truncate">
+                      <h4 className="text-base font-semibold leading-snug text-primary-dark">
                         {product.nome}
                       </h4>
                       <p className="text-sm text-gray-400 font-semibold mt-0.5">
