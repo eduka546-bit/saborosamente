@@ -73,6 +73,36 @@ function MeusPedidosPage() {
     };
   }, []);
 
+  // Um pedido lançado pelo admin/WhatsApp deve aparecer sem o cliente
+  // precisar sair e entrar novamente na conta. A RLS restringe os eventos
+  // e os dados ao usuário autenticado.
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || typeof window === "undefined") return;
+
+    const atualizarSeVisivel = () => {
+      if (document.visibilityState === "visible") void buscar(userId);
+    };
+
+    window.addEventListener("focus", atualizarSeVisivel);
+    document.addEventListener("visibilitychange", atualizarSeVisivel);
+
+    const channel = supabase
+      .channel(`meus-pedidos-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pedidos", filter: `user_id=eq.${userId}` },
+        () => void buscar(userId),
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("focus", atualizarSeVisivel);
+      document.removeEventListener("visibilitychange", atualizarSeVisivel);
+      void supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
   async function buscar(userId: string) {
     setLoading(true);
     try {
