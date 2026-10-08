@@ -1355,79 +1355,6 @@ function Index() {
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
-            <div className="space-y-3">
-              <div>
-              {/* Busca no cardápio — junto dos filtros */}
-                <div className="relative hidden w-full items-center gap-2 lg:flex">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const q = formData.get("q") as string;
-                      setSearchTerm(q || "");
-                    }}
-                    className="relative flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
-                  >
-                    <input
-                      name="q"
-                      type="text"
-                      placeholder="Buscar no cardápio..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onFocus={() => setSearchFocused(true)}
-                      onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
-                      className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
-                    />
-                    <button
-                      type="submit"
-                      className="text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <Tag size={18} />
-                    </button>
-                    {searchFocused && searchTerm.trim().length >= 2 && (
-                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
-                        {products
-                          .filter((product: any) => productText(product).includes(normalizeText(searchTerm)))
-                          .slice(0, 5)
-                          .map((product: any) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSearchFocused(false);
-                                navigate({ to: "/produto/$id", params: { id: product.id } });
-                              }}
-                              className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
-                            >
-                              <img
-                                src={imgUrl(product.imagem_url)}
-                                alt=""
-                                className="size-9 shrink-0 rounded-lg object-cover"
-                                loading="lazy"
-                              />
-                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
-                                {product.nome}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </form>
-
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-                      title="Limpar busca"
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
             <div className={cn(
               "rounded-2xl border border-[#d5e5ca] bg-[#edf5e6] p-4 shadow-sm",
               !mobileFiltersOpen && "hidden lg:block",
@@ -1565,11 +1492,79 @@ function Index() {
 
           {/* Products Grid */}
           <div className="flex-1 w-full" id="produtos-grid">
-            {/* Header com título e busca */}
-            <div className="mb-5">
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-2">
-                <div className="flex-1">
-                  <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            {/* Busca e resultados alinhados ao topo dos filtros e do desconto */}
+            <div className="mb-6 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+              <div className="min-w-0">
+                {/* Busca no topo do Cardápio Completo (desktop); no mobile, usa a busca fixa acima */}
+                <div className="relative hidden w-full max-w-[560px] items-center gap-2 lg:flex">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const q = formData.get("q") as string;
+                      setSearchTerm(q || "");
+                    }}
+                    className="relative flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
+                  >
+                    <input
+                      name="q"
+                      type="text"
+                      placeholder="Buscar no cardápio..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+                    />
+                    <button
+                      type="submit"
+                      className="text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <Search size={18} />
+                    </button>
+                    {searchFocused && searchTerm.trim().length >= 2 && (
+                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+                        {products
+                          .filter((product: any) => productText(product).includes(normalizeText(searchTerm)))
+                          .slice(0, 5)
+                          .map((product: any) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSearchFocused(false);
+                                navigate({ to: "/produto/$id", params: { id: product.id } });
+                              }}
+                              className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
+                            >
+                              <img
+                                src={imgUrl(product.imagem_url)}
+                                alt=""
+                                className="size-9 shrink-0 rounded-lg object-cover"
+                                loading="lazy"
+                              />
+                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
+                                {product.nome}
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </form>
+
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+                      title="Limpar busca"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 lg:mt-6">
+                  <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl">
                     {searchTerm
                       ? `Buscando "${searchTerm}"`
                       : activeFiltersLabel}
@@ -1582,11 +1577,11 @@ function Index() {
                         : `${filteredProducts.length} opção${filteredProducts.length !== 1 ? "s" : ""}`}
                   </p>
                 </div>
+              </div>
 
-                {/* Desconto progressivo em destaque na área de produtos */}
-                <div id="descontos" className="w-full scroll-mt-32 lg:w-[320px] lg:shrink-0">
-                  <DiscountProgressWidget />
-                </div>
+              {/* Desconto progressivo no topo, alinhado à busca e aos filtros */}
+              <div id="descontos" className="w-full scroll-mt-32">
+                <DiscountProgressWidget />
               </div>
             </div>
 
