@@ -80,10 +80,23 @@ const STEPS = [
 
 function RastrearPedidoPage() {
   const search = Route.useSearch();
-  const [protocolo, setProtocolo] = useState(search.p ?? "");
-  const [busca, setBusca] = useState(search.p ?? "");
+  const protocoloInicial = String(search.p ?? "")
+    .replace(/[^0-9a-f]/gi, "")
+    .slice(0, 8)
+    .toUpperCase();
+  const veioComProtocolo = protocoloInicial.length === 8;
 
-  // Se veio com ?p=PROTOCOLO, busca automaticamente
+  const [protocolo, setProtocolo] = useState(protocoloInicial);
+  const [busca, setBusca] = useState(protocoloInicial);
+
+  const normalizarProtocolo = (value: string) =>
+    value.replace(/[^0-9a-f]/gi, "").slice(0, 8).toUpperCase();
+
+  const buscarProtocolo = () => {
+    const normalizado = normalizarProtocolo(protocolo);
+    setProtocolo(normalizado);
+    setBusca(normalizado);
+  };
 
   const {
     data: pedido,
@@ -91,11 +104,11 @@ function RastrearPedidoPage() {
     error,
   } = useQuery({
     queryKey: ["rastrear", busca],
-    enabled: busca.length >= 6,
+    enabled: busca.length === 8,
     queryFn: async () => {
       // Rastreamento público via RPC segura (não expõe a tabela pedidos inteira).
       // Busca pelo protocolo (início do ID do pedido).
-      const termo = busca.trim().replace("#", "");
+      const termo = normalizarProtocolo(busca);
       const { data, error } = await supabase.rpc("rastrear_pedido", {
         p_protocolo: termo,
       });
@@ -115,39 +128,47 @@ function RastrearPedidoPage() {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
             <Package size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Rastrear Pedido</h1>
-          <p className="text-gray-500 text-sm mt-1">Digite o protocolo do seu pedido</p>
-        </div>
-
-        {/* Input de busca */}
-        <div className="bg-white rounded-2xl border shadow-sm p-4 mb-6">
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                value={protocolo}
-                onChange={(e) => setProtocolo(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === "Enter" && setBusca(protocolo)}
-                placeholder="Ex: B42018AD"
-                className="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-primary/30 font-mono tracking-normal"
-                maxLength={8}
-              />
-            </div>
-            <button
-              onClick={() => setBusca(protocolo)}
-              disabled={protocolo.length < 6}
-              className="px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-all"
-            >
-              Buscar
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mt-2 ml-1">
-            O protocolo está no e-mail de confirmação ou na mensagem do WhatsApp
+          <h1 className="text-2xl font-bold text-gray-900">
+            {veioComProtocolo ? "Acompanhar Pedido" : "Rastrear Pedido"}
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {veioComProtocolo
+              ? `Pedido #${protocoloInicial}`
+              : "Digite o protocolo do seu pedido"}
           </p>
         </div>
+
+        {/* Busca manual só aparece quando a página é aberta sem protocolo */}
+        {!veioComProtocolo && (
+          <div className="bg-white rounded-2xl border shadow-sm p-4 mb-6">
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={protocolo}
+                  onChange={(e) => setProtocolo(normalizarProtocolo(e.target.value))}
+                  onKeyDown={(e) => e.key === "Enter" && protocolo.length === 8 && buscarProtocolo()}
+                  placeholder="Ex: B42018AD"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-primary/30 font-mono tracking-normal"
+                  maxLength={8}
+                />
+              </div>
+              <button
+                onClick={buscarProtocolo}
+                disabled={protocolo.length !== 8}
+                className="px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-all"
+              >
+                Buscar
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2 ml-1">
+              O protocolo está no e-mail de confirmação ou na mensagem do WhatsApp
+            </p>
+          </div>
+        )}
 
         {/* Resultado */}
         {isLoading && (
@@ -176,7 +197,7 @@ function RastrearPedidoPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-500 tracking-normal">
-                    Pedido #{pedido.id.slice(-8).toUpperCase()}
+                    Pedido #{pedido.id.slice(0, 8).toUpperCase()}
                   </p>
                   <p className={`text-lg font-bold ${config.color}`}>{config.label}</p>
                 </div>
@@ -238,8 +259,10 @@ function RastrearPedidoPage() {
               <h3 className="font-bold text-gray-800">Detalhes do Pedido</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-xs font-semibold text-gray-400">Cliente</p>
-                  <p className="font-medium text-gray-900">{pedido.nome_cliente}</p>
+                  <p className="text-xs font-semibold text-gray-400">Pedido</p>
+                  <p className="font-medium text-gray-900">
+                    #{pedido.id.slice(0, 8).toUpperCase()}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-gray-400">Data</p>
