@@ -507,22 +507,13 @@ function ProdutoPage() {
             <h3 className="text-sm font-semibold text-foreground tracking-normal">
               Valor Nutricional
             </h3>
-            <div className="grid grid-cols-2 gap-4 rounded-xl bg-muted/50 p-4">
+            <div className="grid grid-cols-1 gap-4 rounded-xl bg-muted/50 p-4">
               <div>
                 {currentNutritional?.kcal ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Calorias:</span>
-                      <span className="font-semibold text-primary">{currentNutritional.kcal} kcal</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Carboidratos:</span>
-                      <span className="font-semibold">{currentNutritional.carb}g</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Proteína:</span>
-                      <span className="font-semibold">{currentNutritional.prot}g</span>
-                    </div>
+                  <div className="flex items-center gap-2 whitespace-nowrap text-sm">
+                    <span className="font-semibold text-primary">{currentNutritional.kcal} Kcal</span>
+                    {currentNutritional.prot != null && <span>{currentNutritional.prot}g Prot</span>}
+                    {currentNutritional.carb != null && <span>{currentNutritional.carb}g Carb</span>}
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground italic">

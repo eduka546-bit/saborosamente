@@ -28,6 +28,7 @@ import {
   Soup,
   CreditCard,
   Clock,
+  Utensils,
 } from "lucide-react";
 import bannerCarouselAsset from "@/assets/banner-carousel.png.asset.json";
 import { ProductCard } from "@/components/product-card";
@@ -674,7 +675,7 @@ function Index() {
   };
 
   const abrirObjetivo = (filter: string) => {
-    setSelectedFilters([filter]);
+    setSelectedFilters(filter === "Todas" ? [] : [filter]);
     setSearchTerm("");
     window.setTimeout(() => scrollToSection("cardapio"), 0);
   };
@@ -690,6 +691,7 @@ function Index() {
   );
 
   const objetivos = [
+    { filtro: "Todas", titulo: "Cardápio Completo", texto: "Todos os nossos sabores.", icon: Utensils, tone: "green", image: quickCardImage((p) => p.tipo_produto === "marmita"), rank: false },
     {
       filtro: "Mais escolhidas",
       titulo: "Mais escolhidas",
@@ -1218,7 +1220,7 @@ function Index() {
             </button>
           </div>
 
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-6">
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-7">
             {objetivos.map((objetivo) => {
               const Icon = objetivo.icon;
               const tones: Record<string, { card: string; icon: string; title: string; badge: string }> = {
@@ -1305,10 +1307,6 @@ function Index() {
                       />
                     </div>
                   )}
-
-                  <span className="relative z-20 mt-auto pt-10 text-sm font-semibold text-[#365c49] opacity-0 transition group-hover:opacity-100">
-                    Ver opções →
-                  </span>
                 </button>
               );
             })}
@@ -1389,24 +1387,10 @@ function Index() {
 
               <p className="mb-2 text-base font-semibold tracking-normal text-[#567044]">Preferências</p>
               <div className="flex flex-wrap gap-2">
-                {[...quickFilters, ...availableRestrictionFilters].map((filter) => {
-                  const selected = selectedFilters.includes(filter);
-                  return (
-                    <button
-                      key={filter}
-                      onClick={() => toggleFilter(filter)}
-                      aria-pressed={selected}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 font-mazzard text-sm font-semibold uppercase tracking-[0.03em] transition-all",
-                        selected
-                          ? "border-[#075636] bg-[#075636] text-white shadow-sm"
-                          : "border-[#c6d9b9] bg-white text-[#28513a] hover:-translate-y-px hover:border-[#075636]",
-                      )}
-                    >
-                      <FoodTypeIcon label={filter} size={14} className="shrink-0" />
-                      <span>{filter}</span>
-                    </button>
-                  );
+                {objetivos.map(({ filtro, titulo, icon: Icon, tone }) => {
+                  const selected = filtro === "Todas" ? selectedFilters.length === 0 : selectedFilters.includes(filtro);
+                  const colors: Record<string, string> = { rose: "bg-[#fde8e7] text-[#b52f36] border-[#f2caca]", orange: "bg-[#fae2cf] text-[#bf5d1e] border-[#efc6a8]", green: "bg-[#e5f2d5] text-[#358332] border-[#cde1b9]", yellow: "bg-[#fff3c9] text-[#b87800] border-[#ebdda1]", blue: "bg-[#deeffb] text-[#276cab] border-[#c3ddef]", purple: "bg-[#eee5fb] text-[#6e42b5] border-[#d8c9ee]" };
+                  return <button key={filtro} type="button" onClick={() => toggleFilter(filtro)} aria-pressed={selected} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-semibold uppercase transition", colors[tone], selected && "ring-2 ring-[#075636] ring-offset-1")}><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/75"><Icon size={18} /></span>{titulo}</button>;
                 })}
               </div>
 
@@ -1577,6 +1561,11 @@ function Index() {
                       <X size={20} />
                     </button>
                   )}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#dce7d5] bg-white/70 px-3 py-2 text-sm text-[#315440]">
+                  <span className="font-semibold">Legenda</span>
+                  <span className="inline-flex items-center gap-2"><img src="/selo-sem-gluten.png" alt="" className="size-6" />Sem glúten</span>
+                  <span className="inline-flex items-center gap-2"><img src="/selo-sem-lactose.png" alt="" className="size-6" />Sem lactose</span>
                 </div>
                 <div className="mt-3">
                   <h1 className="font-sans text-2xl font-semibold leading-tight text-foreground md:text-3xl">
