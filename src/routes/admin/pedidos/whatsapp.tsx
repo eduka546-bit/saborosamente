@@ -273,7 +273,8 @@ function WhatsappAdminOrderPage() {
       toast.error("Não encontrei os sabores. Use 1xTD01 ou 1xTD(1-9-11-16-28).");
       return;
     }
-    if (interpretado.quantidadeDeclarada !== null &&
+    if (interpretado.blocos.length <= 1 &&
+        interpretado.quantidadeDeclarada !== null &&
         quantidadeInterpretada !== interpretado.quantidadeDeclarada) {
       setItems([]);
       toast.error(`Foram declaradas ${interpretado.quantidadeDeclarada} refeições, mas os códigos representam ${quantidadeInterpretada}. Confira o resumo.`);
