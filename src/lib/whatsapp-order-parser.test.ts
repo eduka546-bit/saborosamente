@@ -69,7 +69,7 @@ Total: R$ 250,00`);
     expect(pedido.totalAcumulado).not.toBe(pedido.totalPedido);
   });
   it("Maria Eduarda: dois combos de 5, 300g e 400g, retirada e 7% de desconto", () => {
-    const pedido = interpretarResumoWhatsapp(\`Pedido Maria Eduarda - SBS:
+    const pedido = interpretarResumoWhatsapp(`Pedido Maria Eduarda - SBS:
 
 1 - Combo Mais Pedidas 300g (M) - 100,00
 __Combo 5un_
@@ -83,7 +83,7 @@ Entrega: Retirada
 
 Forma de Pagamento: ?
 
-Total: 100,00 + 115,00 = 215,00 - 7% = R$ 199,95\`);
+Total: 100,00 + 115,00 = 215,00 - 7% = R$ 199,95`);
     expect(pedido.nome).toBe("Maria Eduarda");
     expect(pedido.blocos).toHaveLength(2);
     expect(pedido.itensDetalhados).toHaveLength(10);
@@ -100,7 +100,7 @@ Total: 100,00 + 115,00 = 215,00 - 7% = R$ 199,95\`);
   });
 
   it("Daniela Pfeiffer: interpreta 200g/300g, complementos e aponta diferença de dez centavos", () => {
-    const pedido = interpretarResumoWhatsapp(\`Pedido Daniela Pfeiffer - SBS:
+    const pedido = interpretarResumoWhatsapp(`Pedido Daniela Pfeiffer - SBS:
 
 13 - Refeições 200g (P) - 206,70
 _Combo 10un - 13 x 15,90un_
@@ -125,7 +125,7 @@ Horário de Entrega:?
 
 Forma de Pagamento: Transferência Pix
 
-Total: 280,20 + 5 = R$ 285,20\`);
+Total: 280,20 + 5 = R$ 285,20`);
     expect(pedido.nome).toBe("Daniela Pfeiffer");
     expect(pedido.blocos.map((b) => b.itens.reduce((s, i) => s + i.quantidade, 0))).toEqual([13, 2, 4]);
     expect(pedido.blocos.map((b) => b.peso)).toEqual(["200g", "300g", "200g"]);
