@@ -32,21 +32,24 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     return match ? parseInt(match[1]) : 5;
   }, [combo]);
 
-  // Busca sabores disponíveis pra esse combo
-  const { data: saboresDisponiveis = [] } = useQuery({
+  // Busca sabores disponíveis por RPC pública segura.
+  // Não faz join direto em produtos porque a tabela não é exposta ao usuário anônimo.
+  const {
+    data: saboresDisponiveis = [],
+    isLoading: saboresLoading,
+    isError: saboresError,
+  } = useQuery({
     queryKey: ["combo-sabores-public", combo?.id],
     enabled: !!combo?.id && isOpen,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("combo_sabores")
-        .select("produto_id, produtos:produto_id(id, nome, imagem_url, estoque_200g, estoque_300g, estoque_400g, controle_estoque, ativo, visivel_online)")
-        .eq("combo_id", combo.id)
-        .eq("ativo", true)
-        .order("ordem");
-      return (data ?? [])
-        .map((s: any) => s.produtos)
-        .filter((p: any) => p && p.ativo !== false && p.visivel_online !== false);
+      const { data, error } = await supabase.rpc("combo_sabores_publicos", {
+        p_combo_id: combo.id,
+      });
+
+      if (error) throw error;
+      return (data ?? []) as any[];
     },
+    staleTime: 30_000,
   });
 
   const totalSelecionado = useMemo(
@@ -210,9 +213,17 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
 
         {/* Lista de sabores */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-          {saboresDisponiveis.length === 0 ? (
+          {saboresLoading ? (
             <div className="py-12 text-center text-gray-400 text-sm">
-              Nenhum sabor configurado pra este combo. Contate o administrador.
+              Carregando sabores...
+            </div>
+          ) : saboresError ? (
+            <div className="py-12 text-center text-red-500 text-sm">
+              Não foi possível carregar os sabores agora. Tente novamente.
+            </div>
+          ) : saboresDisponiveis.length === 0 ? (
+            <div className="py-12 text-center text-gray-400 text-sm">
+              Nenhum sabor disponível para este combo no momento.
             </div>
           ) : (
             saboresDisponiveis.map((prod: any) => {
