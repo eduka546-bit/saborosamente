@@ -16,6 +16,7 @@ const schema = z.object({
   nome: z.string().trim().min(2).max(120),
   telefone: z.string().trim().max(30).optional().default(""),
   email: z.string().trim().max(160).optional().default(""),
+  linkedUserId: z.string().uuid().nullable().optional(),
   metodoEntrega: z.enum(["entrega", "retirada"]),
   horarioEntrega: z.string().trim().max(120).optional().default(""),
   pagamento: z.string().trim().min(2).max(80),
@@ -89,16 +90,56 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       throw new Error("Há produto inativo no pedido.");
     }
 
+    // Uma conta escolhida explicitamente no admin prevalece. Nunca associa
+    // um pedido a um usuário apenas por nome (nomes podem se repetir).
     let linkedUserId: string | null = null;
-    const candidates = phoneCandidates(data.telefone);
-    if (candidates.length > 0) {
-      const { data: profile } = await supabase
+    if (data.linkedUserId) {
+      const { data: selectedProfile, error: profileError } = await supabase
         .from("profiles")
-        .select("id,telefone")
-        .in("telefone", candidates)
-        .limit(1)
+        .select("id")
+        .eq("id", data.linkedUserId)
         .maybeSingle();
-      linkedUserId = profile?.id ?? null;
+      if (profileError || !selectedProfile) {
+        throw new Error("A conta selecionada não existe mais. Selecione novamente o cliente.");
+      }
+      linkedUserId = selectedProfile.id;
+    } else {
+      // Compatibilidade com lançamentos anteriores: vinculação automática SOMENTE
+      // quando o telefone, após normalizar DDI/pontuação, identifica 1 conta.
+      // Telefone ambíguo continua como pedido de convidado para evitar vazamentos.
+      const digits = data.telefone.replace(/\D/g, "");
+      const phoneKey = (value: string) => {
+        const normalized = value.replace(/\D/g, "");
+        return normalized.startsWith("55") && normalized.length >= 12
+          ? normalized.slice(2)
+          : normalized;
+      };
+      if (digits.length >= 10) {
+        const candidates = phoneCandidates(data.telefone);
+        const { data: direct, error: directError } = await supabase
+          .from("profiles")
+          .select("id,telefone")
+          .in("telefone", candidates)
+          .limit(50);
+        if (directError) throw new Error("Não foi possível conferir a conta do cliente.");
+
+        const found = new Map<string, { id: string; telefone: string | null }>();
+        for (const profile of direct ?? []) found.set(profile.id, profile);
+
+        // Inclui telefones com espaços, parênteses e hífens no cadastro.
+        const { data: formatted, error: formattedError } = await supabase
+          .from("profiles")
+          .select("id,telefone")
+          .ilike("telefone", `%${digits.slice(-4)}%`)
+          .limit(100);
+        if (formattedError) throw new Error("Não foi possível conferir o telefone do cliente.");
+        for (const profile of formatted ?? []) found.set(profile.id, profile);
+
+        const matched = [...found.values()].filter((profile) =>
+          phoneKey(String(profile.telefone ?? "")) === phoneKey(digits),
+        );
+        if (matched.length === 1) linkedUserId = matched[0].id;
+      }
     }
 
     const pItems = data.items.map((item) => ({
