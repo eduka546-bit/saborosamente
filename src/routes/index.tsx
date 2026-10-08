@@ -1802,7 +1802,7 @@ function OrderChoiceBanner({
             WebkitMaskImage: tone !== "personalizada" ? "none" : isCustom
               ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
               : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
-            maskImage: tone === "ready" ? "none" : isCustom
+            maskImage: tone !== "personalizada" ? "none" : isCustom
               ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
               : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
           }}
