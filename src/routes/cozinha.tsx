@@ -2651,7 +2651,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const margemCusto=(t:Tamanho)=>custoComMargemReceita(custoBase(t), n(margemPercentual)).margem;
   const custo=(t:Tamanho)=>custoComMargemReceita(custoBase(t), n(margemPercentual)).total;
   const pendenciasCusto = [...new Set(linhasCustoMontagem.flatMap((linha) => {
-    if (!tamanhosFicha.some((t)=>n(linha[campoGramasReceita(t) as keyof ReceitaLinha])>0)) return [];
+    if (!tamanhosFicha.some((t)=>n(linha[campoGramasReceita(t.id) as keyof ReceitaLinha])>0)) return [];
     if (linha.preparacao_id) return calcularCustoPreparacao(linha.preparacao_id,
       preparacoesCustoPorId, itensPreparacao, ingredientesCustoPorId).pendencias;
     const ingrediente = ingredientes.find((i:any)=>i.id===linha.ingrediente_id);
