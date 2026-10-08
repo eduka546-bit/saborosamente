@@ -1009,16 +1009,30 @@ function Index() {
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
               </div>
 
-              <div className="grid min-h-[275px] sm:grid-cols-[0.9fr_1.1fr]">
-                <div className="flex flex-col justify-center p-4">
-                  <div className="space-y-3 text-[12px] leading-relaxed text-[#607168]">
+              <div className="grid min-h-[305px] grid-cols-[0.95fr_1.05fr] overflow-hidden">
+                <div className="flex min-w-0 flex-col justify-center gap-3 p-3 sm:p-4">
+                  <div className="flex items-start gap-2 rounded-xl border border-[#d4e6c8] bg-[#eef6e7] p-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#dceccf] text-[#075636]">
+                      <ChefHat size={20} strokeWidth={1.8} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-extrabold leading-snug text-[#075636]">
+                        Todos os sabores à pronta entrega!
+                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[#426752]">
+                        Venha conhecer e escolher pessoalmente suas marmitas favoritas.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 text-[11px] leading-relaxed text-[#607168]">
                     <p className="flex items-start gap-2">
                       <MapPin size={15} className="mt-0.5 shrink-0 text-[#075636]" />
                       <span>Rua Augusto Wunderwald, 7 — Progresso</span>
                     </p>
                     <p className="flex items-start gap-2">
                       <Clock size={15} className="mt-0.5 shrink-0 text-[#075636]" />
-                      <span>Seg–Sex 9h30–19h<br />Sáb 9h30–13h</span>
+                      <span>Seg–Sex 9h30–19h · Sáb 9h30–13h</span>
                     </p>
                     <p className="flex items-start gap-2 font-bold text-[#315c46]">
                       <Calendar size={15} className="mt-0.5 shrink-0" />
@@ -1027,11 +1041,12 @@ function Index() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center bg-[#f7f5ed] p-3">
+                <div className="flex items-center justify-center bg-[#f7f5ed] p-2 sm:p-3">
                   <img
                     src="/loja-saborosamente.jpg"
-                    alt="Loja física SaborosaMente"
-                    className="max-h-[250px] w-full rounded-2xl object-contain shadow-sm"
+                    alt="Foto real da loja SaborosaMente"
+                    className="max-h-[290px] h-full w-full rounded-2xl object-contain"
+                    loading="lazy"
                   />
                 </div>
               </div>
