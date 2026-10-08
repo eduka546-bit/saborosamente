@@ -473,7 +473,7 @@ function Index() {
   const activeFiltersLabel =
     selectedFilters.length > 0
       ? selectedFilters.map((f) => f.startsWith("Subgrupo:") ? f.replace("Subgrupo:", "") : f).join(" + ")
-      : "Todos os Produtos";
+      : "Cardápio Completo";
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -1359,13 +1359,76 @@ function Index() {
               <h2 className="text-2xl font-display font-bold text-foreground leading-tight">
                 Nosso Cardápio
               </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Escolha suas marmitas favoritas e monte seu combo com desconto progressivo.
-              </p>
-            </div>
+              <div className="pt-1">
+              {/* Busca no cardápio — junto dos filtros */}
+                <div className="relative hidden w-full items-center gap-2 lg:flex">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const q = formData.get("q") as string;
+                      setSearchTerm(q || "");
+                    }}
+                    className="relative flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
+                  >
+                    <input
+                      name="q"
+                      type="text"
+                      placeholder="Buscar no cardápio..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+                    />
+                    <button
+                      type="submit"
+                      className="text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <Tag size={18} />
+                    </button>
+                    {searchFocused && searchTerm.trim().length >= 2 && (
+                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+                        {products
+                          .filter((product: any) => productText(product).includes(normalizeText(searchTerm)))
+                          .slice(0, 5)
+                          .map((product: any) => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSearchFocused(false);
+                                navigate({ to: "/produto/$id", params: { id: product.id } });
+                              }}
+                              className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
+                            >
+                              <img
+                                src={imgUrl(product.imagem_url)}
+                                alt=""
+                                className="size-9 shrink-0 rounded-lg object-cover"
+                                loading="lazy"
+                              />
+                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
+                                {product.nome}
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </form>
 
-            <div id="descontos" className="scroll-mt-32">
-              <DiscountProgressWidget className="mb-6" />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+                      title="Limpar busca"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className={cn(
@@ -1523,73 +1586,9 @@ function Index() {
                   </p>
                 </div>
 
-                {/* Busca */}
-                <div className="flex items-center gap-2 min-w-0 lg:min-w-80">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      const q = formData.get("q") as string;
-                      setSearchTerm(q || "");
-                    }}
-                    className="relative flex items-center gap-2 bg-white rounded-full px-4 py-2.5 border border-border/30 shadow-sm flex-1 focus-within:ring-2 focus-within:ring-primary/20"
-                  >
-                    <input
-                      name="q"
-                      type="text"
-                      placeholder="Buscar..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onFocus={() => setSearchFocused(true)}
-                      onBlur={() => window.setTimeout(() => setSearchFocused(false), 120)}
-                      className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
-                    />
-                    <button
-                      type="submit"
-                      className="text-primary hover:text-primary/80 transition-colors"
-                    >
-                      <Tag size={18} />
-                    </button>
-                    {searchFocused && searchTerm.trim().length >= 2 && (
-                      <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
-                        {products
-                          .filter((product: any) => productText(product).includes(normalizeText(searchTerm)))
-                          .slice(0, 5)
-                          .map((product: any) => (
-                            <button
-                              key={product.id}
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSearchFocused(false);
-                                navigate({ to: "/produto/$id", params: { id: product.id } });
-                              }}
-                              className="flex w-full items-center gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-[#f7f9f4]"
-                            >
-                              <img
-                                src={imgUrl(product.imagem_url)}
-                                alt=""
-                                className="size-9 shrink-0 rounded-lg object-cover"
-                                loading="lazy"
-                              />
-                              <span className="line-clamp-1 text-xs font-bold text-[#315440]">
-                                {product.nome}
-                              </span>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </form>
-
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-                      title="Limpar busca"
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
+                {/* Desconto progressivo em destaque na área de produtos */}
+                <div id="descontos" className="w-full scroll-mt-32 lg:w-[320px] lg:shrink-0">
+                  <DiscountProgressWidget />
                 </div>
               </div>
             </div>
