@@ -809,20 +809,24 @@ function Index() {
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
 
-                <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   {heroFeatures.slice(1).map((feature: any, index: number) => {
                     const Icon = [Calendar, Leaf, ShieldCheck][index] ?? Sparkles;
                     return (
                       <div
                         key={`hero-legend-${feature.label}`}
-                        className="inline-flex items-center gap-2 text-[#426252]"
+                        className="flex items-center gap-2.5 text-[#426252]"
                       >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#edf5e6] text-[#075636]">
-                          <Icon size={16} strokeWidth={1.9} />
+                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#edf5e6] text-[#075636]">
+                          <Icon size={18} strokeWidth={1.9} />
                         </span>
-                        <span className="text-[11px] font-bold leading-tight md:text-[11.5px]">
-                          {feature.label}{" "}
-                          <span className="font-semibold text-[#607168]">{feature.value}</span>
+                        <span className="min-w-0 leading-[1.15]">
+                          <span className="block text-[12.5px] font-extrabold text-[#315c46] md:text-[13.5px]">
+                            {feature.label}
+                          </span>
+                          <span className="mt-1 block text-[12px] font-semibold text-[#607168] md:text-[13px]">
+                            {feature.value}
+                          </span>
                         </span>
                       </div>
                     );
