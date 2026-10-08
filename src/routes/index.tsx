@@ -1113,7 +1113,7 @@ function Index() {
               text="Combos Prontos para facilitar na correria, separados especialmente pra você"
               action="Ver Combos"
               chips={["5, 10 ou 20 marmitas"]}
-              image="/combos-trio.webp"
+              image="/combos-trio-transparent.webp"
               tone="ready"
               onClick={abrirCombosProntos}
             />
@@ -1800,10 +1800,10 @@ function OrderChoiceBanner({
                 : "bottom-0 right-[-4%] h-[62%] w-[79%]"
           }`}
           style={{
-            WebkitMaskImage: isCustom
+            WebkitMaskImage: tone === "ready" ? "none" : isCustom
               ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
               : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
-            maskImage: isCustom
+            maskImage: tone === "ready" ? "none" : isCustom
               ? "linear-gradient(to right, transparent 0%, rgba(0,0,0,.24) 10%, #000 31%)"
               : "radial-gradient(ellipse 78% 86% at 70% 78%, #000 56%, rgba(0,0,0,.92) 70%, transparent 100%)",
           }}
@@ -1811,7 +1811,7 @@ function OrderChoiceBanner({
           <img
             src={image}
             alt=""
-            className={`h-full w-full max-w-none object-cover transition duration-500 group-hover:scale-[1.035] ${
+            className={`h-full w-full max-w-none transition duration-500 group-hover:scale-[1.035] ${tone === "ready" ? "object-contain" : "object-cover"} ${
               isCustom ? "object-center" : tone === "ready" ? "object-[50%_100%]" : "object-[55%_52%]"
             }`}
           />
