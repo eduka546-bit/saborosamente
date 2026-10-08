@@ -370,6 +370,13 @@ function WhatsappAdminOrderPage() {
       toast.success(
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
+      if (data?.emailStatus === "enviado") {
+        toast.success("E-mail de confirmação enviado para processamento.");
+      } else if (data?.emailStatus === "falhou") {
+        toast.error("Pedido salvo, mas o e-mail não foi enviado. Confira o serviço de e-mail.", { duration: 10000 });
+      } else {
+        toast.info("Pedido salvo sem e-mail: a conta selecionada não possui endereço cadastrado.");
+      }
       navigate({ to: "/admin/pedidos" as any });
     },
     onError: (error: any) => {
@@ -507,7 +514,17 @@ function WhatsappAdminOrderPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500">E-mail</label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={selectedCustomer ? "Será usado o e-mail da conta do site" : "E-mail para receber a confirmação"}
+                />
+                {selectedCustomer && (
+                  <p className="text-xs text-green-700 mt-1">
+                    Para pedidos vinculados, a confirmação é enviada automaticamente ao e-mail de login do cliente.
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
