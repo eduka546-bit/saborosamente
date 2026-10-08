@@ -1356,10 +1356,7 @@ function Index() {
           {/* Menu de Categorias - Sticky */}
           <div className="w-full lg:w-80 lg:self-start space-y-4 shrink-0">
             <div className="space-y-3">
-              <h2 className="text-2xl font-display font-bold text-foreground leading-tight">
-                Nosso Cardápio
-              </h2>
-              <div className="pt-1">
+              <div>
               {/* Busca no cardápio — junto dos filtros */}
                 <div className="relative hidden w-full items-center gap-2 lg:flex">
                   <form
