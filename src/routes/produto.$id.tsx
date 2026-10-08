@@ -1,17 +1,18 @@
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ChevronLeft, ChevronRight, Star, ShoppingCart, ArrowLeft, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
-import { useCart } from "@/lib/cart";
+import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { OptimizedImage } from "@/components/optimized-image";
-import { isMarmita } from "@/lib/combo-rules";
+import { isMarmita, isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { ProductSeals } from "@/components/product-seals";
 import { imgUrl } from "@/lib/image-proxy";
 import { getPublicProducts } from "@/lib/products.functions";
@@ -61,9 +62,11 @@ export const Route = createFileRoute("/produto/$id")({
 function ProdutoPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
-  const { add, lines } = useCart();
+  const { add, count, lines } = useCart();
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [requestedQuantity, setRequestedQuantity] = useState(1);
+  const tabelaPrecos = usePrecosMarmita();
   const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
   const [garfoEFaca, setGarfoEFaca] = useState(false);
 
@@ -102,7 +105,7 @@ function ProdutoPage() {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col items-center justify-center gap-4 py-24">
           <div className="text-5xl">🔍</div>
-          <h1 className="text-2xl font-bold text-foreground">Produto não encontrado</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Produto não encontrado</h1>
           <p className="text-muted-foreground">O produto que você procura não existe.</p>
           <Link to="/" className="mt-4">
             <Button variant="default" className="gap-2">
@@ -199,6 +202,7 @@ function ProdutoPage() {
   const remainingStock =
     stockNumber === null || !Number.isFinite(stockNumber) ? null : Math.max(0, stockNumber - alreadyInCart);
   const soldOut = remainingStock !== null && remainingStock <= 0;
+  const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
 
   const currentPrice = isSopa
     ? 18.0
@@ -207,6 +211,12 @@ function ProdutoPage() {
       : selectedWeight === "400g" && product.preco_400g
         ? product.preco_400g
         : product.preco;
+
+  const basePrice = ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+    ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice : currentPrice;
+  const effectivePrice = ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+    ? precoMarmitaPorFaixa(selectedWeight, count + quantity, basePrice, tabelaPrecos) : currentPrice;
+  const purchaseTotal = (effectivePrice + (consumo === "pronta" ? ADICIONAL_PRONTA : 0) + (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0)) * quantity;
 
   // Nutricional
   const currentNutritional =
@@ -238,7 +248,7 @@ function ProdutoPage() {
     const opcoes = ehMarmita
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
       : undefined;
-    add(product.id, 1, selectedWeight, opcoes);
+    add(product.id, quantity, selectedWeight, opcoes);
     trackEvent("add_to_cart", {
       produtoId: product.id,
       valor: Number(currentPrice || 0),
@@ -376,7 +386,7 @@ function ProdutoPage() {
           {/* Cabeçalho */}
           <div>
             <div className="mb-2 flex items-start justify-between gap-3">
-              <h1 className="text-4xl font-bold text-foreground">{product.nome}</h1>
+              <h1 className="text-4xl font-semibold text-foreground">{product.nome}</h1>
               <button
                 type="button"
                 onClick={handleShare}
@@ -432,7 +442,7 @@ function ProdutoPage() {
                       trackEvent("size_select", { produtoId: product.id, metadata: { gramatura: w, origem: "product_page" } });
                     }}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-bold transition-all",
+                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
                       selectedWeight === w
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
@@ -457,7 +467,7 @@ function ProdutoPage() {
                     type="button"
                     onClick={() => setConsumo("congelada")}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-bold transition-all",
+                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
                       consumo === "congelada"
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
@@ -469,14 +479,14 @@ function ProdutoPage() {
                     type="button"
                     onClick={() => setConsumo("pronta")}
                     className={cn(
-                      "rounded-xl border-2 py-4 text-sm font-bold transition-all",
+                      "rounded-xl border-2 py-4 text-sm font-semibold transition-all",
                       consumo === "pronta"
                         ? "border-primary bg-primary/5 text-primary shadow-md"
                         : "border-border bg-background text-muted-foreground hover:border-primary/30",
                     )}
                   >
                     Pronta para consumo
-                    <span className="block text-xs font-medium text-muted-foreground mt-0.5">
+                    <span className="block text-sm font-medium text-muted-foreground mt-0.5">
                       +R$ 1,00
                     </span>
                   </button>
@@ -493,7 +503,7 @@ function ProdutoPage() {
                   />
                   <span className="text-sm font-medium text-foreground">
                     Quero garfo e faca
-                    <span className="text-xs font-medium text-muted-foreground ml-1">
+                    <span className="text-sm font-medium text-muted-foreground ml-1">
                       +R$ 1,00
                     </span>
                   </span>
@@ -507,32 +517,23 @@ function ProdutoPage() {
             <h3 className="text-sm font-semibold text-foreground tracking-normal">
               Valor Nutricional
             </h3>
-            <div className="grid grid-cols-2 gap-4 rounded-xl bg-muted/50 p-4">
+            <div className="grid grid-cols-1 gap-4 rounded-xl bg-muted/50 p-4">
               <div>
                 {currentNutritional?.kcal ? (
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Calorias:</span>
-                      <span className="font-bold text-primary">{currentNutritional.kcal} kcal</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Carboidratos:</span>
-                      <span className="font-bold">{currentNutritional.carb}g</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Proteína:</span>
-                      <span className="font-bold">{currentNutritional.prot}g</span>
-                    </div>
+                  <div className="flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                    <span className="font-semibold text-primary">{currentNutritional.kcal} KCAL</span>
+                    {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
+                    {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground italic">
+                  <span className="text-sm text-muted-foreground italic">
                     Consulte a embalagem para detalhes
                   </span>
                 )}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-foreground mb-2">Informações</h4>
-                <p className="text-xs text-muted-foreground">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Informações</h4>
+                <p className="text-sm text-muted-foreground">
                   {product.informacao_nutricional || "Sem Glúten | Sem Lactose"}
                 </p>
               </div>
@@ -542,25 +543,26 @@ function ProdutoPage() {
           {/* Preço e CTA */}
           <div className="space-y-4 border-t border-border/30 pt-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-xs font-bold text-muted-foreground">
-                Valor por {selectedWeight || "porção"}
+              <span className="text-sm font-semibold text-muted-foreground">
+                Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-4xl font-bold text-primary bg-gradient-brand bg-clip-text text-transparent">
-                {formatBRL(currentPrice)}
+              <span className="text-4xl font-semibold text-primary bg-gradient-brand bg-clip-text text-transparent">
+                {formatBRL(purchaseTotal)}
               </span>
             </div>
 
             {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-              <p className="text-xs font-bold text-[#9a5b00]">
+              <p className="text-sm font-semibold text-[#9a5b00]">
                 {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
               </p>
             )}
+            {!soldOut && <div className="flex items-center justify-between"><span>Quantidade</span><div className="flex items-center gap-3"><button type="button" aria-label="Diminuir quantidade do produto" disabled={quantity <= 1} onClick={() => setRequestedQuantity(quantity - 1)} className="size-9 rounded-full border disabled:opacity-40">−</button><span>{quantity}</span><button type="button" aria-label="Aumentar quantidade do produto" disabled={remainingStock !== null && quantity >= remainingStock} onClick={() => setRequestedQuantity(quantity + 1)} className="size-9 rounded-full bg-primary text-white disabled:opacity-40">+</button></div></div>}
             <Button
               onClick={handleAddToCart}
               disabled={soldOut}
-              className="w-full h-14 rounded-xl text-lg font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full h-14 rounded-xl text-lg font-semibold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShoppingCart className="size-5" />
               {soldOut ? "Esgotado nesta gramatura" : "Adicionar ao Carrinho"}

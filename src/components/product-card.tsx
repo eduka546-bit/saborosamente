@@ -1,13 +1,12 @@
 import {
   Minus,
   Plus,
-  Info,
   X,
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
   Gift,
-  Heart,
+  Dumbbell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
@@ -57,13 +56,17 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
   const ignorar = new Set([
     "agua",
     "sal",
+    "demi glace",
+    "pimenta",
+    "molho de tomate",
+    "extrato de tomate",
     "salsinha",
     "oleo de soja",
   ]);
 
   const mapa: Record<string, string> = {
     "arroz branco parboilizado": "Arroz branco",
-    "extrato de tomate": "Molho de tomate",
+
     "sassami": "Frango",
     "sassami em tiras": "Frango",
     "file de sassami": "Frango",
@@ -96,7 +99,7 @@ const simplificarIngredientesCard = (ingredientes: unknown): string => {
       .trim();
 
     let chave = normalizarIngredienteCard(texto);
-    if (!chave || ignorar.has(chave)) continue;
+    if (!chave || ignorar.has(chave) || /^pimenta(?:\s|$)/.test(chave) || /^demi\s*glace/.test(chave)) continue;
 
     const simplificado = mapa[chave] || texto;
     chave = normalizarIngredienteCard(simplificado);
@@ -141,7 +144,8 @@ import { cn } from "@/lib/utils";
 import { isHighProteinFlavor } from "@/lib/nutrition-rules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFavorites } from "@/lib/use-favorites";
+import { imgUrl } from "@/lib/image-proxy";
+
 
 export interface ProductCardProps {
   product: Product;
@@ -150,12 +154,14 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const { add, count, lines, setQuantity } = useCart();
-  const { userId, favoriteIds, toggleFavorite } = useFavorites();
+  const [imageIndex, setImageIndex] = useState(0);
   const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [comboSaboresOpen, setComboSaboresOpen] = useState(false);
   const combo = isComboProduct(product);
+  const complemento = product.tipo_produto === "complemento" || /complemento/i.test(product.categorias?.nome || product.categoria || "");
+  const displayName = complemento ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome;
 
   const weights = (() => {
     // Se tem preços por tamanho no banco, monta os tamanhos disponíveis automaticamente
@@ -169,7 +175,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     // Fallback: lê do campo peso
     if (product.peso?.includes("-")) return product.peso.split("-").map((w: string) => w.trim());
     if (product.peso?.includes(",")) return product.peso.split(",").map((w: string) => w.trim());
-    return product.peso ? [product.peso] : [];
+    return product.peso ? [product.peso] : complemento ? ["150g"] : [];
   })();
   const [selectedWeight, setSelectedWeight] = useState(() =>
     initialAvailableWeight(product, weights),
@@ -206,6 +212,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       return (product as any).imagem_400g;
     return product.imagem;
   })();
+
+  const gallery = [...new Set([currentImage, ...(product.imagens || []), (product as any).imagem_200g, (product as any).imagem_300g, (product as any).imagem_400g].filter(Boolean).map(imgUrl))];
+  const openInformation = () => isComboPronto ? setComboSaboresOpen(true) : setDetailOpen(true);
 
   const currentNutritional =
     selectedWeight === "200g" && (product as any).tabela_nutricional_200g
@@ -285,14 +294,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard, tabelaPrecos)
     : currentPrice;
   const temDescontoAtivo = podeTerDesconto && precoFaixaCard < precoCheioCard;
-  // Próxima faixa: quantas unidades faltam para o primeiro/próximo nível de desconto.
-  const PROXIMAS_FAIXAS = [5, 10, 20];
-  const proximaFaixa = PROXIMAS_FAIXAS.find((m) => count < m);
-  const faltamParaDesconto = proximaFaixa ? proximaFaixa - count : 0;
-  const precoProximaFaixa =
-    podeTerDesconto && proximaFaixa
-      ? precoMarmitaPorFaixa(selectedWeight, proximaFaixa, precoCheioCard, tabelaPrecos)
-      : null;
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -308,16 +309,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       setComboSaboresOpen(true);
       return;
     }
-    // Marmitas precisam da escolha "pronta/congelada" (e garfo e faca).
-    // Abre o modal de detalhes para o cliente definir antes de adicionar.
-    if (isMarmita(product.nome, product.categorias?.nome || product.categoria)) {
-      setDetailOpen(true);
-      return;
-    }
-    add(product.id, 1, selectedWeight);
+    add(product.id, 1, selectedWeight,
+      isMarmita(product.nome, product.categorias?.nome || product.categoria)
+        ? { consumo: "congelada", garfoEFaca: false } : undefined,
+    );
     toast.success("Adicionado", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
-      className: "max-w-[280px] text-xs font-medium",
+      className: "max-w-[280px] text-sm font-medium",
     });
   };
 
@@ -331,40 +329,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         >
           {/* Badges container */}
           <div className="absolute top-3 left-3 z-10 flex gap-2">
-            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-lg border border-white/40 tracking-normal">
+            <div className="bg-gradient-sun/95 backdrop-blur-md text-white rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1.5 shadow-lg border border-white/40 tracking-normal">
               <Gift className="size-3.5" />
               Combo
             </div>
           </div>
 
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
-            <button
-              type="button"
-              aria-label={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              title={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (!userId) {
-                  toast.info("Entre na sua conta para salvar favoritos.");
-                  return;
-                }
-                try {
-                  const favorite = await toggleFavorite(product.id);
-                  toast.success(favorite ? "Adicionado aos favoritos" : "Removido dos favoritos");
-                } catch {
-                  toast.error("Não foi possível atualizar seus favoritos.");
-                }
-              }}
-              className="absolute right-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
-            >
-              <Heart
-                className={cn(
-                  "size-5 transition-transform duration-200",
-                  favoriteIds.has(product.id) && "scale-110 fill-[#086e45]",
-                )}
-                aria-hidden="true"
-              />
-            </button>
+
             <img
               src={product.imagem}
               alt={`Combo ${product.nome}`}
@@ -384,27 +356,27 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           <div className="flex flex-1 flex-col gap-3 p-4">
             {/* Category */}
             <div className="flex items-center justify-end">
-              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/40 tracking-normal">
+              <span className="rounded-full bg-gradient-brand/90 backdrop-blur-md px-2.5 py-1 text-sm font-semibold text-white border border-white/40 tracking-normal">
                 {product.categoria}
               </span>
             </div>
 
             <div>
-              <h3 className="text-base font-bold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
+              <h3 className="text-base font-semibold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
                 {product.nome}
               </h3>
               {product.descricao && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
                   {product.descricao}
                 </p>
               )}
             </div>
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
-                <span className="text-xs font-medium text-muted-foreground">
+                <span className="text-sm font-medium text-muted-foreground">
                   A partir de
                 </span>
-                <span className="text-xl font-bold text-primary bg-gradient-brand bg-clip-text text-transparent">
+                <span className="text-xl font-semibold text-primary bg-gradient-brand bg-clip-text text-transparent">
                   {formatBRL(product.preco)}
                 </span>
               </div>
@@ -414,7 +386,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   e.stopPropagation();
                   setComboOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-all hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <ShoppingCart className="size-4" /> Montar
               </button>
@@ -434,41 +406,15 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   // ── Card normal ──────────────────────────────────────────────────────────
   return (
     <>
-      <div onClick={() => isComboPronto ? setComboSaboresOpen(true) : setDetailOpen(true)} className="h-full">
-        <article className="group flex cursor-pointer flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-md hover:-translate-y-0.5 rounded-b-2xl border border-border/50 h-full">
+      <div className="h-full">
+        <article className="group flex flex-col overflow-hidden bg-card shadow-soft transition-all hover:shadow-md hover:-translate-y-0.5 rounded-b-2xl border border-border/50 h-full">
           {/* Imagem — sem arredondamento no topo */}
           <div className="relative aspect-4/3 overflow-hidden bg-muted">
-            <button
-              type="button"
-              aria-label={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              title={favoriteIds.has(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (!userId) {
-                  toast.info("Entre na sua conta para salvar favoritos.");
-                  return;
-                }
-                try {
-                  const favorite = await toggleFavorite(product.id);
-                  toast.success(favorite ? "Adicionado aos favoritos" : "Removido dos favoritos");
-                } catch {
-                  toast.error("Não foi possível atualizar seus favoritos.");
-                }
-              }}
-              className="absolute left-2 top-2 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/70 bg-white/90 text-[#086e45] shadow-md backdrop-blur transition hover:scale-105"
-            >
-              <Heart
-                className={cn(
-                  "size-5 transition-transform duration-200",
-                  favoriteIds.has(product.id) && "scale-110 fill-[#086e45]",
-                )}
-                aria-hidden="true"
-              />
-            </button>
+
             {commercialBadge && (
               <span
                 className={cn(
-                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-xs font-bold tracking-normal shadow-md",
+                  "absolute right-2 top-2 z-20 rounded-full px-2.5 py-1 text-sm font-semibold tracking-normal shadow-md",
                   commercialBadge.className,
                 )}
               >
@@ -476,7 +422,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               </span>
             )}
             <img
-              src={currentImage}
+              src={gallery[imageIndex % gallery.length]}
               alt={`Marmita de ${product.nome}`}
               loading="lazy"
               decoding="async"
@@ -488,22 +434,19 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 soldOut && "grayscale-[35%] opacity-55",
               )}
             />
-            {product.imagens && product.imagens.length > 0 && (
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-2">
-                <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
-                  <ChevronLeft size={16} />
-                </div>
-                <div className="bg-white/90 p-1 rounded-full text-primary shadow-sm pointer-events-none">
-                  <ChevronRight size={16} />
-                </div>
+            {gallery.length > 1 && (
+              <div className="pointer-events-none absolute inset-x-2 top-1/2 z-20 flex -translate-y-1/2 justify-between">
+                <button type="button" aria-label="Foto anterior" onClick={() => setImageIndex((i) => (i - 1 + gallery.length) % gallery.length)} className="pointer-events-auto grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronLeft size={20} /></button>
+                <button type="button" aria-label="Próxima foto" onClick={() => setImageIndex((i) => (i + 1) % gallery.length)} className="pointer-events-auto grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronRight size={20} /></button>
               </div>
             )}
-
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="rounded-full bg-white/95 p-3 text-primary shadow-lg backdrop-blur-sm">
-                <Info className="size-6" />
-              </div>
-            </div>
+            <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10 cursor-pointer" />
+            {isHighProteinFlavor(product) && (
+              <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-[22px] cursor-default place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow">
+                <Dumbbell size={14} />
+                <span className="pointer-events-none absolute left-0 top-full mt-1 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm text-foreground shadow group-hover/protein:block group-focus-visible/protein:block">Alta proteína</span>
+              </button>
+            )}
 
             {/* Selos sem glúten / sem lactose — canto inferior direito da imagem, empilhados vertical */}
             {(product.sem_gluten || product.sem_lactose) && (
@@ -514,14 +457,15 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Glúten"
                     title="Sem Glúten"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-gluten.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
+                    <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Glúten</span>
                   </button>
                 )}
                 {product.sem_lactose && (
@@ -530,14 +474,15 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Lactose"
                     title="Sem Lactose"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-[22px] cursor-default items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-lactose.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-[22px] object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
+                    <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Lactose</span>
                   </button>
                 )}
               </div>
@@ -545,9 +490,9 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex flex-1 flex-col gap-2.5 p-4 pt-3">
-            <h3 className="min-h-[3.15rem] text-[14px] md:text-[15px] font-bold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
-              {product.nome}
+          <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 pt-3 sm:p-4">
+            <h3 className="min-h-[3rem] text-base font-semibold leading-[1.32] text-foreground transition-colors group-hover:text-primary">
+              <button type="button" onClick={openInformation} className="cursor-pointer text-left hover:text-primary">{displayName}</button>
             </h3>
 
             {/* Seletor de peso */}
@@ -560,9 +505,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedWeight(w);
+                      setImageIndex(0);
                     }}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs font-bold tracking-normal transition-all",
+                      "rounded-full border px-3 py-1 text-sm font-medium tracking-normal transition-all",
                       selectedWeight === w
                         ? "border-[#086e45] bg-[#086e45] text-white shadow-sm ring-2 ring-[#086e45]/20 ring-offset-1"
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
@@ -572,49 +518,41 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-xs tracking-normal text-muted-foreground font-bold">
-                {product.peso}
-              </p>
-            )}
+            ) : null}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-xs font-bold">
-                <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
-                  {currentNutritional.kcal} kcal
-                </span>
-                {currentNutritional?.prot != null && (
-                  <span className="rounded-full bg-[#eef5e8] px-2 py-1 text-[#315440]">
-                    {currentNutritional.prot}g proteína
-                  </span>
-                )}
-                {isHighProteinFlavor(product) && (
-                  <span className="rounded-full bg-[#086e45] px-2 py-1 text-white">
-                    alta proteína
-                  </span>
-                )}
-              </div>
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 whitespace-nowrap text-sm font-medium text-[#315440] hover:text-primary">
+                <span className="shrink-0">{currentNutritional.kcal} KCAL</span>
+                {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
+                {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
+              </button>
+            )}
+
+            {simplificarIngredientesCard(product.ingredientes) && (
+              <button type="button" onClick={openInformation} className="w-full min-w-0 cursor-pointer text-justify text-sm leading-relaxed text-muted-foreground hover:text-primary">
+                {simplificarIngredientesCard(product.ingredientes)}
+              </button>
             )}
 
             {/* Preço + botão adicionar */}
             <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
                 {selectedWeight && (
-                  <span className="text-xs font-medium text-gray-500">
+                  <span className="text-sm font-medium text-gray-500">
                     {selectedWeight}
                   </span>
                 )}
                 {temDescontoAtivo ? (
                   <>
-                    <span className="text-xs font-bold text-gray-400 line-through leading-none">
+                    <span className="text-sm font-semibold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
                     </span>
-                    <span className="text-2xl font-bold text-[#086e45] leading-tight">
+                    <span className="text-2xl font-semibold text-[#086e45] leading-tight">
                       {formatBRL(precoFaixaCard)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-2xl font-bold text-[#086e45]">
+                  <span className="text-2xl font-semibold text-[#086e45]">
                     {formatBRL(currentPrice)}
                   </span>
                 )}
@@ -632,7 +570,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   >
                     <Minus className="size-3.5" />
                   </button>
-                  <span className="min-w-5 text-center text-xs font-bold text-[#173a2d]">
+                  <span className="min-w-5 text-center text-sm font-semibold text-[#173a2d]">
                     {quantidadeSelecionadaNoCarrinho}
                   </span>
                   <button
@@ -665,23 +603,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               )}
             </div>
 
-            {podeTerDesconto &&
-              (proximaFaixa ? (
-                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-xs font-bold text-[#527164]">
-                  <span>
-                    Faltam <strong className="text-[#087443]">{faltamParaDesconto}</strong> para {proximaFaixa}+
-                  </span>
-                  {precoProximaFaixa != null && (
-                    <span className="shrink-0 font-bold text-[#087443]">
-                      {formatBRL(precoProximaFaixa)}/un
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-xs font-bold text-[#087443]">
-                  ✓ Melhor faixa de preço aplicada
-                </div>
-              ))}
+
           </div>
         </article>
       </div>

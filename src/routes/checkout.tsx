@@ -829,7 +829,7 @@ function Checkout() {
     return (
       <section className="mx-auto max-w-xl px-4 py-24 text-center">
         <CheckCircle2 className="mx-auto size-14 text-primary" aria-hidden="true" />
-        <h1 className="mt-6 text-3xl font-bold">Pedido recebido!</h1>
+        <h1 className="mt-6 text-3xl font-semibold">Pedido recebido!</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Protocolo{" "}
           <strong className="text-foreground">#{orderId.slice(0, 8).toUpperCase()}</strong>. Em
@@ -850,7 +850,7 @@ function Checkout() {
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-[#1ebe5b]"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-[#1ebe5b]"
             >
               <MessageCircle className="size-5" aria-hidden="true" />
               Acompanhar pedido no WhatsApp
@@ -860,11 +860,36 @@ function Checkout() {
 
         <div className="mt-6 rounded-2xl border border-[#d9e6d2] bg-[#f4f8f1] p-4 text-left text-sm text-[#315440]">
           <strong>Agora é com a gente.</strong>
-          <p className="mt-1 text-xs leading-relaxed text-[#5b7064]">
+          <p className="mt-1 text-sm leading-relaxed text-[#5b7064]">
             Para acompanhar seu pedido, clique no botão “Acompanhar pedido no WhatsApp” acima. Por lá você poderá consultar as próximas atualizações. A avaliação será solicitada somente depois da entrega.
           </p>
         </div>
 
+        <div className="mt-5">
+              <div className="w-full rounded-[1.5rem] border border-[#dce7d5] bg-white p-5 shadow-sm">
+                <img
+                  src="/logo-saborosamente.png"
+                  alt="SaborosaMente"
+                  className="h-7 w-auto max-w-[180px] object-contain object-left"
+                />
+                <p className="mt-3 text-sm font-semibold text-[#087443]">@saborosamente.sbs</p>
+                <h4 className="mt-2 text-base font-semibold leading-tight text-[#173a2d]">
+                  Mostre sua SaborosaMente
+                </h4>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
+                  Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
+                  <strong className="text-[#315440]"> concorra a um mimo</strong>.
+                </p>
+                <a
+                  href="https://www.instagram.com/saborosamente.sbs/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
+                >
+                  Quero participar
+                </a>
+              </div>
+            </div>
         {referralProfile?.codigo_indicacao && (
           <div className="mt-4 rounded-2xl border border-[#e3dfaf] bg-[#fffbea] p-5 text-left">
             <div className="flex items-start gap-3">
@@ -872,14 +897,14 @@ function Checkout() {
                 <Gift className="size-5 text-[#315440]" />
               </div>
               <div>
-                <p className="font-bold text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
-                <p className="mt-1 text-xs leading-relaxed text-[#66715f]">
+                <p className="font-semibold text-[#315440]">Gostou da praticidade? Indique um amigo.</p>
+                <p className="mt-1 text-sm leading-relaxed text-[#66715f]">
                   Seu amigo ganha 5% na primeira compra e você recebe R$ 5 de cashback depois que o pedido dele for entregue.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     to="/indicar"
-                    className="rounded-full bg-[#086e45] px-4 py-2 text-xs font-bold text-white"
+                    className="rounded-full bg-[#086e45] px-4 py-2 text-sm font-semibold text-white"
                   >
                     Ver meu link
                   </Link>
@@ -889,7 +914,7 @@ function Checkout() {
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full border border-[#086e45] px-4 py-2 text-xs font-bold text-[#086e45]"
+                    className="rounded-full border border-[#086e45] px-4 py-2 text-sm font-semibold text-[#086e45]"
                   >
                     Compartilhar no WhatsApp
                   </a>
@@ -930,15 +955,15 @@ function Checkout() {
 
   // ── formulário principal ─────────────────────────────────────────────────────
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 md:py-14">
+    <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
       <Link
         to="/"
         hash="cardapio"
-        className="mb-4 inline-flex text-sm font-bold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
+        className="mb-4 inline-flex text-sm font-semibold text-[#087443] underline decoration-[#91b93a] decoration-2 underline-offset-4"
       >
         ← Voltar ao cardápio
       </Link>
-      <h1 className="text-4xl font-bold">Checkout</h1>
+      <h1 className="text-4xl font-semibold">Checkout</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         Finalize seu pedido em três etapas simples.
       </p>
@@ -950,10 +975,10 @@ function Checkout() {
           ["3", "Confirmar"],
         ].map(([numero, label]) => (
           <div key={numero} className="rounded-2xl border border-[#dce7d5] bg-[#f7faf4] px-3 py-3 text-center">
-            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-xs font-bold text-white">
+            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-sm font-semibold text-white">
               {numero}
             </span>
-            <span className="mt-1 block text-xs font-semibold text-[#315440]">{label}</span>
+            <span className="mt-1 block text-sm font-semibold text-[#315440]">{label}</span>
           </div>
         ))}
       </div>
@@ -962,7 +987,7 @@ function Checkout() {
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
             <p className="text-sm font-semibold text-[#315440]">Resumo do pedido</p>
-            <p className="text-xs text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
+            <p className="text-sm text-muted-foreground">{count} {count === 1 ? "item" : "itens"} no pedido</p>
           </div>
           <div className="flex items-center gap-2">
             <strong className="text-base text-primary">{formatBRL(finalTotal)}</strong>
@@ -970,7 +995,7 @@ function Checkout() {
           </div>
         </summary>
         <div className="border-t border-border px-4 py-3">
-          <ul className="space-y-2 text-xs">
+          <ul className="space-y-2 text-sm">
             {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
                 key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
@@ -979,7 +1004,7 @@ function Checkout() {
                 <span className="min-w-0 text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-xs font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-sm font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -988,7 +1013,7 @@ function Checkout() {
               </li>
             ))}
           </ul>
-          <dl className="mt-3 space-y-2 border-t border-border pt-3 text-xs">
+          <dl className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
               <dd>{formatBRL(subtotal)}</dd>
@@ -1012,8 +1037,8 @@ function Checkout() {
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-2 text-sm">
-              <dt className="font-bold">{totalResumoLabel}</dt>
-              <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
+              <dt className="font-semibold">{totalResumoLabel}</dt>
+              <dd className="font-semibold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
           </dl>
         </div>
@@ -1036,7 +1061,7 @@ function Checkout() {
               </label>
               <input id="nome" className={fieldClass} {...register("nome")} />
               {errors.nome && (
-                <p className="mt-1 text-xs text-destructive">{errors.nome.message}</p>
+                <p className="mt-1 text-sm text-destructive">{errors.nome.message}</p>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1046,7 +1071,7 @@ function Checkout() {
                 </label>
                 <input id="email" type="email" className={fieldClass} {...register("email")} />
                 {errors.email && (
-                  <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>
                 )}
               </div>
               <div>
@@ -1055,7 +1080,7 @@ function Checkout() {
                 </label>
                 <input id="telefone" className={fieldClass} {...register("telefone")} />
                 {errors.telefone && (
-                  <p className="mt-1 text-xs text-destructive">{errors.telefone.message}</p>
+                  <p className="mt-1 text-sm text-destructive">{errors.telefone.message}</p>
                 )}
               </div>
             </div>
@@ -1067,7 +1092,7 @@ function Checkout() {
                 onChange={(event) => setRecoveryConsent(event.target.checked)}
                 className="mt-0.5 size-4 accent-[#086e45]"
               />
-              <span className="text-xs leading-5 text-muted-foreground">
+              <span className="text-sm leading-5 text-muted-foreground">
                 Aceito receber uma mensagem no WhatsApp caso eu não conclua este pedido,
                 para receber ajuda na recuperação do carrinho. Posso desmarcar esta opção
                 a qualquer momento.
@@ -1172,7 +1197,7 @@ function Checkout() {
                 ))}
               </select>
               {errors.cidade && (
-                <p className="mt-1 text-xs text-destructive">{errors.cidade.message}</p>
+                <p className="mt-1 text-sm text-destructive">{errors.cidade.message}</p>
               )}
             </div>
 
@@ -1216,7 +1241,7 @@ function Checkout() {
             </div>
 
             {entregaPendenteCalculo && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                 Selecione a cidade e o bairro para calcular a taxa de entrega antes de confirmar.
               </div>
             )}
@@ -1227,7 +1252,7 @@ function Checkout() {
               </label>
               <input id="endereco" className={fieldClass} {...register("endereco")} />
               {errors.endereco && (
-                <p className="mt-1 text-xs text-destructive">{errors.endereco.message}</p>
+                <p className="mt-1 text-sm text-destructive">{errors.endereco.message}</p>
               )}
             </div>
             <div>
@@ -1243,7 +1268,7 @@ function Checkout() {
 
             {/* Aviso de prazo — marmitas personalizadas */}
             {temMarmitaPersonalizada && (
-              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                 <span className="text-base leading-none">⏳</span>
                 <span>
                   Seu pedido tem <strong>marmita(s) personalizada(s)</strong>. Você escolhe a data
@@ -1263,13 +1288,13 @@ function Checkout() {
             {pedidoAbaixoMinimoEntrega && (
               <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
                 <strong>Pedido mínimo para {selectedCity}: {minimoEntrega} unidades.</strong>
-                <p className="mt-1 text-xs leading-relaxed">
+                <p className="mt-1 text-sm leading-relaxed">
                   Faltam {faltamParaMinimoEntrega} {faltamParaMinimoEntrega === 1 ? "unidade" : "unidades"} para liberar a entrega nessa cidade.
                 </p>
                 <Link
                   to="/"
                   hash="cardapio"
-                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-xs font-bold text-white"
+                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-sm font-semibold text-white"
                 >
                   Adicionar mais itens
                 </Link>
@@ -1322,7 +1347,7 @@ function Checkout() {
                   ))}
                 </select>
                 {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
-                  <p className="mt-1.5 text-xs font-medium text-amber-700">
+                  <p className="mt-1.5 text-sm font-medium text-amber-700">
                     Os horários de hoje já encerraram. Escolha outra data.
                   </p>
                 )}
@@ -1368,7 +1393,7 @@ function Checkout() {
                       </span>
                     )}
                     <span className="text-sm font-semibold leading-tight">{opt.label}</span>
-                    <span className="text-xs text-muted-foreground">{opt.sublabel}</span>
+                    <span className="text-sm text-muted-foreground">{opt.sublabel}</span>
                   </button>
                 );
               })}
@@ -1411,13 +1436,13 @@ function Checkout() {
                         {flag.logo ? (
                           <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
                         ) : null}
-                        <span className="text-xs">{flag.name}</span>
+                        <span className="text-sm">{flag.name}</span>
                       </button>
                     );
                   })}
                 </div>
                 {!selectedFlag && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Selecione a bandeira para continuar
                   </p>
                 )}
@@ -1445,13 +1470,13 @@ function Checkout() {
                         {flag.logo ? (
                           <img src={flag.logo} alt={flag.name} className="h-5 w-8 object-contain" />
                         ) : null}
-                        <span className="text-xs">{flag.name}</span>
+                        <span className="text-sm">{flag.name}</span>
                       </button>
                     );
                   })}
                 </div>
                 {!selectedFlag && (
-                  <p className="text-xs text-muted-foreground">Selecione o cartão para continuar</p>
+                  <p className="text-sm text-muted-foreground">Selecione o cartão para continuar</p>
                 )}
               </div>
             )}
@@ -1471,7 +1496,7 @@ function Checkout() {
                   {...register("troco")}
                 />
                 {errors.troco && (
-                  <p className="mt-1 text-xs text-destructive">{errors.troco.message}</p>
+                  <p className="mt-1 text-sm text-destructive">{errors.troco.message}</p>
                 )}
               </div>
             )}
@@ -1512,7 +1537,7 @@ function Checkout() {
                     setAppliedCoupon(null);
                     setCouponInput("");
                   }}
-                  className="rounded-2xl border border-red-200 bg-red-50 px-4 text-xs font-bold text-red-500 hover:bg-red-100 transition-colors"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-500 hover:bg-red-100 transition-colors"
                 >
                   Remover
                 </button>
@@ -1521,13 +1546,13 @@ function Checkout() {
                   type="button"
                   onClick={() => applyCoupon(couponInput)}
                   disabled={couponLoading || !couponInput.trim()}
-                  className="rounded-2xl bg-primary px-4 text-xs font-bold text-primary-foreground hover:bg-brand-dark transition-colors disabled:opacity-50"
+                  className="rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-brand-dark transition-colors disabled:opacity-50"
                 >
                   {couponLoading ? "..." : "Aplicar"}
                 </button>
               )}
             </div>
-            {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
+            {couponError && <p className="mt-1 text-sm text-destructive">{couponError}</p>}
 
             {availableCoupons.length > 0 && (
               <div className="mt-3 rounded-2xl border border-green-100 bg-green-50/40 p-3">
@@ -1558,27 +1583,27 @@ function Checkout() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <strong className="text-sm text-foreground">{coupon.codigo}</strong>
-                            <span className="rounded-full bg-[#edf5e6] px-2 py-0.5 text-[10px] font-bold text-[#315440]">
+                            <span className="rounded-full bg-[#edf5e6] px-2 py-0.5 text-sm font-semibold text-[#315440]">
                               {benefit}
                             </span>
                             {coupon.personalizado && (
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-sm font-semibold text-green-700">
                                 Exclusivo para você
                               </span>
                             )}
                             {coupon.apenas_primeira_compra && (
-                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-sm font-semibold text-blue-700">
                                 1ª compra
                               </span>
                             )}
                           </div>
                           {coupon.regra && (
-                            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                               {coupon.regra}
                             </p>
                           )}
                           {coupon.validade && (
-                            <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+                            <p className="mt-1 text-sm font-medium text-muted-foreground">
                               Válido até{" "}
                               {new Date(`${coupon.validade}T12:00:00`).toLocaleDateString("pt-BR")}
                             </p>
@@ -1589,7 +1614,7 @@ function Checkout() {
                           onClick={() => applyCoupon(coupon.codigo)}
                           disabled={couponLoading || isApplied}
                           className={cn(
-                            "shrink-0 rounded-xl px-3 py-2 text-xs font-bold transition-colors",
+                            "shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition-colors",
                             isApplied
                               ? "bg-green-100 text-green-700"
                               : "bg-primary text-primary-foreground hover:bg-brand-dark",
@@ -1606,7 +1631,7 @@ function Checkout() {
 
             {appliedCoupon && (
               <div className="mt-2 space-y-2">
-                <p className="text-xs font-semibold text-green-600">
+                <p className="text-sm font-semibold text-green-600">
                   ✓ Cupom <strong>{appliedCoupon.codigo}</strong> aplicado —{" "}
                   {appliedCoupon.tipo === "Percentual"
                     ? `${appliedCoupon.valor}% de desconto nos itens elegíveis`
@@ -1615,17 +1640,17 @@ function Checkout() {
                       : `R$ ${appliedCoupon.valor.toFixed(2)} de desconto`}
                 </p>
                 {appliedCoupon.substitui_desconto_progressivo && (
-                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-xs font-semibold leading-relaxed text-[#315440]">
+                  <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-sm font-semibold leading-relaxed text-[#315440]">
                     Este cupom substitui o desconto progressivo do pedido. Os descontos não são somados.
                   </p>
                 )}
                 {appliedCoupon.excluir_combo_pronto && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-800">
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-relaxed text-amber-800">
                     Combos Prontos não participam desta promoção, pois já possuem preço promocional.
                   </p>
                 )}
                 {appliedCoupon.apenas_primeira_compra && (
-                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold leading-relaxed text-blue-800">
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold leading-relaxed text-blue-800">
                     Exclusivo para primeira compra — 1 uso por cliente.
                   </p>
                 )}
@@ -1653,7 +1678,7 @@ function Checkout() {
                   type="button"
                   onClick={() => setCashbackAtivado(!cashbackAtivado)}
                   className={cn(
-                    "text-xs font-bold px-3 py-1.5 rounded-full transition-all",
+                    "text-sm font-semibold px-3 py-1.5 rounded-full transition-all",
                     cashbackAtivado
                       ? "bg-yellow-500 text-white"
                       : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
@@ -1663,12 +1688,12 @@ function Checkout() {
                 </button>
               </div>
               {cashbackAtivado && cashbackDesconto > 0 && (
-                <p className="text-xs text-yellow-700">
+                <p className="text-sm text-yellow-700">
                   Desconto de <strong>{formatBRL(cashbackDesconto)}</strong> aplicado.
                 </p>
               )}
               {cashbackSaldo < (cashbackConfig?.minimo_uso ?? 5) && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Saldo mínimo para usar: {formatBRL(cashbackConfig?.minimo_uso ?? 5)}
                 </p>
               )}
@@ -1679,7 +1704,7 @@ function Checkout() {
             <p className="text-base font-semibold text-foreground">
               3. Revise e confirme
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Confira o resumo ao lado, deixe alguma observação se precisar e confirme o pedido.
             </p>
           </div>
@@ -1716,24 +1741,24 @@ function Checkout() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <ShieldCheck className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-xs font-bold text-[#315440]">Pedido protegido</span>
+              <span className="mt-1 block text-sm font-semibold text-[#315440]">Pedido protegido</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <CreditCard className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-xs font-bold text-[#315440]">Sem taxa no cartão</span>
+              <span className="mt-1 block text-sm font-semibold text-[#315440]">Sem taxa no cartão</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <Store className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-xs font-bold text-[#315440]">Loja física em SBS</span>
+              <span className="mt-1 block text-sm font-semibold text-[#315440]">Loja física em SBS</span>
             </div>
             <div className="rounded-xl bg-[#f5f8f2] p-3 text-center">
               <MessageCircle className="mx-auto size-5 text-[#086e45]" />
-              <span className="mt-1 block text-xs font-bold text-[#315440]">Suporte no WhatsApp</span>
+              <span className="mt-1 block text-sm font-semibold text-[#315440]">Suporte no WhatsApp</span>
             </div>
           </div>
 
           {!session && (
-            <p className="text-center text-xs text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground">
               <button
                 type="button"
                 onClick={() => navigate({ to: "/auth", search: { redirect: "/checkout" } as any })}
@@ -1758,7 +1783,7 @@ function Checkout() {
                 <span className="text-muted-foreground">
                   {quantity}× {product.nome}
                   {(weight || opcoes) && (
-                    <span className="mt-0.5 block text-xs font-medium text-[#315440]">
+                    <span className="mt-0.5 block text-sm font-medium text-[#315440]">
                       {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
                     </span>
                   )}
@@ -1810,10 +1835,10 @@ function Checkout() {
             )}
             <div className="flex justify-between border-t border-border pt-2 text-base">
               <dt className="font-semibold">{totalResumoLabel}</dt>
-              <dd className="font-bold text-primary">{formatBRL(finalTotal)}</dd>
+              <dd className="font-semibold text-primary">{formatBRL(finalTotal)}</dd>
             </div>
             {entregaPendenteCalculo && (
-              <p className="text-xs leading-relaxed text-amber-700">
+              <p className="text-sm leading-relaxed text-amber-700">
                 O total final será atualizado assim que você selecionar o bairro de entrega.
               </p>
             )}

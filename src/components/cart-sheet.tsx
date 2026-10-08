@@ -40,11 +40,11 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 rounded-l-[2rem] border-l-0 shadow-2xl">
         <SheetHeader className="p-6 border-b bg-white rounded-tl-[2rem]">
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2 text-xl font-bold text-primary">
+            <SheetTitle className="flex items-center gap-2 text-xl font-semibold text-primary">
               <ShoppingCart size={20} />
               Seu Carrinho
               {count > 0 && (
-                <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-xs font-bold text-[#087443]">
+                <span className="rounded-full bg-[#edf5e6] px-2 py-1 text-sm font-semibold text-[#087443]">
                   {count} {count === 1 ? "item" : "itens"}
                 </span>
               )}
@@ -52,7 +52,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
           {lines.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
               <div className="size-20 rounded-full bg-gray-100 flex items-center justify-center text-gray-300">
@@ -82,10 +82,10 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                       className="size-16 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-primary-dark truncate">
+                      <h4 className="text-base font-semibold leading-snug text-primary-dark">
                         {product.nome}
                       </h4>
-                      <p className="text-xs text-gray-400 font-bold mt-0.5">
+                      <p className="text-sm text-gray-400 font-semibold mt-0.5">
                         {weight || product.peso}
                       </p>
                       <div className="mt-2 flex items-center justify-between">
@@ -96,7 +96,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="text-xs font-bold min-w-[12px] text-center">
+                          <span className="text-sm font-semibold min-w-[12px] text-center">
                             {quantity}
                           </span>
                           <button
@@ -111,7 +111,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                             <Plus className="size-3" />
                           </button>
                         </div>
-                        <span className="text-xs font-bold text-primary">
+                        <span className="text-sm font-semibold text-primary">
                           {formatBRL(lineTotal)}
                         </span>
                       </div>
@@ -131,7 +131,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
 
               <button
                 onClick={clear}
-                className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors text-center w-full"
+                className="text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors text-center w-full"
               >
                 Limpar carrinho
               </button>
@@ -142,26 +142,26 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
         {lines.length > 0 && (
           <SheetFooter className="p-6 bg-white border-t border-gray-100 flex-col sm:flex-col gap-4">
             <div className="space-y-2 w-full">
-              <div className="flex justify-between text-xs font-bold text-gray-400">
+              <div className="flex justify-between text-sm font-semibold text-gray-400">
                 <span>Subtotal</span>
                 <span>{formatBRL(subtotal)}</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-xs font-bold text-primary">
+                <div className="flex justify-between text-sm font-semibold text-primary">
                   <span>Desconto Progressivo</span>
                   <span>-{formatBRL(discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-bold text-primary-dark">
+              <div className="flex justify-between border-t border-gray-100 pt-2 text-lg font-semibold text-primary-dark">
                 <span>Total</span>
                 <span>{formatBRL(subtotal - discount)}</span>
               </div>
               {discount > 0 && (
-                <div className="rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-xs font-bold text-[#087443]">
+                <div className="rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-sm font-semibold text-[#087443]">
                   Você está economizando {formatBRL(discount)} neste pedido
                 </div>
               )}
-              <p className="text-xs text-gray-400 font-medium italic text-center">
+              <p className="text-sm text-gray-400 font-medium italic text-center">
                 * Entrega calculada no checkout
               </p>
             </div>
