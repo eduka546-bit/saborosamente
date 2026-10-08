@@ -1903,12 +1903,21 @@ function AdminAgentePage() {
     // Mensagem/campanha enviada por nos sem resposta do cliente nao conta.
     return ultima?.role === "assistant" && ultimoCliente < uteis.length - 1;
   };
-  const humanasCount = (conversas as any[]).filter((c) => c.modo === "humano").length;
+  // Conversas criadas somente por disparo de marketing não representam
+  // solicitações de atendimento. Elas ficam na aba Campanhas até o cliente responder.
+  const temMensagemDoCliente = (conversa: any) =>
+    Array.isArray(conversa?.mensagens) && conversa.mensagens.some((m: any) => m?.role === "user");
+  const conversaSomenteMarketing = (conversa: any) => {
+    const msgs = Array.isArray(conversa?.mensagens) ? conversa.mensagens : [];
+    return msgs.length > 0 && msgs.every((m: any) => Boolean(m?.campaign_id) || m?.role === "system");
+  };
+  const conversasAtendimento = (conversas as any[]).filter((c) => !conversaSomenteMarketing(c));
+  const humanasCount = conversasAtendimento.filter((c) => c.modo === "humano" && temMensagemDoCliente(c)).length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
   const respondidasCount = (conversas as any[]).filter(foiRespondida).length;
 
   const telefonesComConversa = new Set(
-    (conversas as any[]).map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
+    conversasAtendimento.map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
   );
   const campanhasPorIdPainel = new Map(
     (campanhasDoPainel as any[]).map((campanha) => [campanha.id, campanha]),
@@ -1943,9 +1952,14 @@ function AdminAgentePage() {
       cidade: cidadesPorTelefone.get(String(envio.telefone ?? "").replace(/\D/g, "")) || "Sem cidade",
     }));
 
-  const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : (conversas as any[]);
+  const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : conversasAtendimento;
   const filtered = itensDaLista.filter((c: any) => {
-    const matchModo = filterModo === "todos" || filterModo === "campanhas" || (filterModo === "pendentes" ? precisaResponder(c) : filterModo === "respondidas" ? foiRespondida(c) : c.modo === filterModo);
+    const matchModo =
+      filterModo === "todos" || filterModo === "campanhas" ||
+      (filterModo === "pendentes" ? precisaResponder(c) :
+       filterModo === "respondidas" ? foiRespondida(c) :
+       filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
+       c.modo === filterModo);
     const matchSearch =
       !search ||
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
