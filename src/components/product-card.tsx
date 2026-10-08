@@ -521,7 +521,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             ) : null}
 
             {currentNutritional?.kcal != null && (
-              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap text-[13px] font-medium text-[#315440] hover:text-primary">
+              <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap text-[12.5px] font-medium text-[#315440] hover:text-primary">
                 <span className="shrink-0">{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
                 {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
