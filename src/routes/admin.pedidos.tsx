@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -48,9 +48,18 @@ import { updateAdminOrderStatus } from "@/lib/orders.functions";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 
 export const Route = createFileRoute("/admin/pedidos")({
-  component: AdminOrdersPage,
+  component: AdminPedidosRouter,
   ssr: false,
 });
+
+// Esta rota tambem e o layout pai de /admin/pedidos/whatsapp,
+// /admin/pedidos/itens e outras subpaginas. Sem Outlet, o roteador
+// reconhece o clique, mas continua exibindo somente a lista de pedidos.
+function AdminPedidosRouter() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const isOverview = pathname.replace(/\/+$/, "") === "/admin/pedidos";
+  return isOverview ? <AdminOrdersPage /> : <Outlet />;
+}
 
 
 const formatOrderMoney = (value: unknown) =>
