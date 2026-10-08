@@ -799,7 +799,7 @@ function WhatsappAdminOrderPage() {
                   {avisosInterpretacao.map((aviso, i) => <p key={i}>{aviso}</p>)}
                   <p className="mt-1">Edite os preços/quantidades para corrigir diferenças antes de salvar.</p>
                 </div>
-              )
+              )}
               {saldoAnterior !== null && (
                 <div className="flex justify-between text-xs text-amber-700">
                   <span>Saldo anterior (não somado a este pedido)</span>
