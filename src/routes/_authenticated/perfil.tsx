@@ -921,52 +921,6 @@ function PerfilPage() {
                     </Card>
                   );
                 })}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-semibold text-muted-foreground tracking-normal">
-                            Total
-                          </p>
-                          <p className="text-lg font-bold">
-                            R$ {order.valor_total.toFixed(2).replace(".", ",")}
-                          </p>
-                        </div>
-                      </div>
-
-                      {order.status && (
-                        <div className="mt-4 pt-4 border-t space-y-3">
-                          <div>
-                            <p className="text-xs font-semibold text-muted-foreground tracking-normal mb-2">
-                              Status
-                            </p>
-                            <span
-                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${
-                                order.status === "entregue"
-                                  ? "bg-green-50 text-green-600 border-green-200"
-                                  : order.status === "cancelado"
-                                    ? "bg-red-50 text-red-600 border-red-200"
-                                    : order.status === "preparando"
-                                      ? "bg-blue-50 text-blue-600 border-blue-200"
-                                      : "bg-yellow-50 text-yellow-600 border-yellow-200"
-                              }`}
-                            >
-                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                            </span>
-                          </div>
-                          <Button
-                            onClick={() => handleRepeatOrder(order)}
-                            variant="outline"
-                            size="sm"
-                            className="w-full gap-2 border-primary text-primary hover:bg-primary/5"
-                          >
-                            <RotateCcw size={16} />
-                            Repetir Pedido
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
               </div>
             )}
           </section>
