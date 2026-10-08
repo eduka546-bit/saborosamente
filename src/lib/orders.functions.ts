@@ -685,7 +685,7 @@ export const createOrder = createServerFn({ method: "POST" })
       cupom_codigo: cupomAplicado,
       troco: data.troco || null,
       tipo_cartao: data.tipoCartao || null,
-      status: "pendente",
+      status: "preparando",
     };
 
     if (data.metodoEntrega === "entrega") {
