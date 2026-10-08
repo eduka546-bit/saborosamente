@@ -204,7 +204,7 @@ function BrazilDeliveryMap({
   const mapPoint = selectedPoint
     ? { x: 105 + selectedPoint.x * 1.04, y: 20 + selectedPoint.y * 1.04 }
     : null;
-  const scale = 2.3;
+  const scale = 3.55;
 
   // A posição do pino sempre vem da latitude/longitude. Estas coordenadas
   // controlam somente os rótulos, para que eles não fiquem amontoados.
@@ -230,9 +230,9 @@ function BrazilDeliveryMap({
           </div>
           <div className="flex min-h-[210px] flex-1 items-center justify-center py-3">
             <img
-              src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Brazilian_States.PNG"
-              alt="Mapa do Brasil dividido em estados"
-              className="max-h-[225px] w-full object-contain"
+              src="/mapa-brasil-entregas.svg"
+              alt="Mapa do Brasil com Paraná e Santa Catarina destacados em verde escuro"
+              className="max-h-[235px] w-full object-contain"
               loading="lazy"
             />
           </div>
