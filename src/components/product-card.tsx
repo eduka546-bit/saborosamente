@@ -1,7 +1,6 @@
 import {
   Minus,
   Plus,
-  Info,
   X,
   ShoppingCart,
   ChevronLeft,
@@ -289,14 +288,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard, tabelaPrecos)
     : currentPrice;
   const temDescontoAtivo = podeTerDesconto && precoFaixaCard < precoCheioCard;
-  // Próxima faixa: quantas unidades faltam para o primeiro/próximo nível de desconto.
-  const PROXIMAS_FAIXAS = [5, 10, 20];
-  const proximaFaixa = PROXIMAS_FAIXAS.find((m) => count < m);
-  const faltamParaDesconto = proximaFaixa ? proximaFaixa - count : 0;
-  const precoProximaFaixa =
-    podeTerDesconto && proximaFaixa
-      ? precoMarmitaPorFaixa(selectedWeight, proximaFaixa, precoCheioCard, tabelaPrecos)
-      : null;
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -446,7 +437,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                 <button type="button" aria-label="Próxima foto" onClick={() => setImageIndex((i) => (i + 1) % gallery.length)} className="grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow"><ChevronRight size={20} /></button>
               </div>
             )}
-            <button type="button" onClick={openInformation} className="absolute bottom-2 left-2 z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-2 text-sm font-medium text-primary shadow"><Info size={16} /> Informações</button>
+            <button type="button" aria-label={`Abrir detalhes de ${product.nome}`} onClick={openInformation} className="absolute inset-0 z-10" />
             {isHighProteinFlavor(product) && (
               <button type="button" aria-label="Alta proteína" title="Alta proteína" className="group/protein absolute left-2 top-2 z-20 grid size-9 place-items-center rounded-full bg-white/95 text-primary shadow">
                 <Dumbbell size={20} />
@@ -463,13 +454,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Glúten"
                     title="Sem Glúten"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-6 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-gluten.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-6 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Glúten</span>
                   </button>
@@ -480,13 +471,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     aria-label="Sem Lactose"
                     title="Sem Lactose"
                     onClick={(event) => event.stopPropagation()}
-                    className="group/restricao inline-flex size-9 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
+                    className="group/restricao inline-flex size-6 items-center justify-center rounded-full transition-transform duration-200 ease-out hover:scale-110 active:scale-90"
                   >
                     <img
                       src="/selo-sem-lactose.png"
                       alt=""
                       aria-hidden="true"
-                      className="size-9 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
+                      className="size-6 object-contain drop-shadow-md transition-all duration-200 group-hover/restricao:drop-shadow-lg group-active/restricao:scale-110"
                     />
                     <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-sm shadow group-hover/restricao:block group-focus-visible/restricao:block">Sem Lactose</span>
                   </button>
@@ -531,10 +522,10 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             )}
 
             {currentNutritional?.kcal != null && (
-              <div className="flex items-center gap-2 whitespace-nowrap text-xs font-normal text-[#315440]">
-                <span>{currentNutritional.kcal} Kcal</span>
-                {currentNutritional.prot != null && <span>{currentNutritional.prot}g Prot</span>}
-                {currentNutritional.carb != null && <span>{currentNutritional.carb}g Carb</span>}
+              <div className="flex items-center justify-center gap-2 whitespace-nowrap text-xs font-normal text-[#315440]">
+                <span>{currentNutritional.kcal} KCAL</span>
+                {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
+                {currentNutritional.carb != null && <><span aria-hidden="true">•</span><span>{currentNutritional.carb}g CARB</span></>}
               </div>
             )}
 
@@ -607,23 +598,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               )}
             </div>
 
-            {podeTerDesconto &&
-              (proximaFaixa ? (
-                <div className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-[#f3f7ee] px-3 py-2 text-sm font-semibold text-[#527164]">
-                  <span>
-                    Faltam <strong className="text-[#087443]">{faltamParaDesconto}</strong> para {proximaFaixa}+
-                  </span>
-                  {precoProximaFaixa != null && (
-                    <span className="shrink-0 font-semibold text-[#087443]">
-                      {formatBRL(precoProximaFaixa)}/un
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-1 rounded-xl bg-[#edf5e6] px-3 py-2 text-center text-sm font-semibold text-[#087443]">
-                  ✓ Melhor faixa de preço aplicada
-                </div>
-              ))}
+
           </div>
         </article>
       </div>

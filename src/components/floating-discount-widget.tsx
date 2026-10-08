@@ -1,73 +1,21 @@
-import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
-import { PROGRESSIVE_LABELS } from "@/lib/combo-rules";
-import { ChevronRight, ShoppingBag, TrendingUp } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
+import { formatBRL } from "@/lib/products";
 
 export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
-  const { count } = useCart();
-
-  if (count === 0) {
-    return (
-      <div
-        onClick={onClick}
-        className="fixed right-4 bottom-24 z-50 flex items-center justify-center bg-primary text-white size-14 rounded-full shadow-2xl border-4 border-white cursor-pointer hover:scale-110 transition-transform animate-in fade-in slide-in-from-bottom-4 duration-500 group"
-      >
-        <ShoppingBag size={24} className="group-hover:animate-bounce" />
-      </div>
-    );
-  }
-
-  const currentLevel = [...PROGRESSIVE_LABELS]
-    .sort((a, b) => b.min - a.min)
-    .find((r) => count >= r.min);
-
-  const nextLevel = [...PROGRESSIVE_LABELS]
-    .sort((a, b) => a.min - b.min)
-    .find((r) => count < r.min);
-
+  const { count, discount } = useCart();
+  const next = [5, 10, 20].find((minimum) => count < minimum);
+  const message = count === 0 ? "Desconto em 5+" : next ? `Faltam ${next - count} para ${next}+` : "Melhor faixa ativa";
   return (
-    <div
-      onClick={onClick}
-      className="fixed right-4 bottom-24 z-50 flex flex-col items-end gap-2 group animate-in fade-in slide-in-from-right-4 duration-500 cursor-pointer"
-    >
-      <div className="flex items-center gap-3 bg-white rounded-2xl shadow-2xl border border-primary/20 p-3 pr-4 transition-transform group-hover:-translate-x-2">
-        <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shrink-0 relative overflow-hidden">
-          <ShoppingBag size={20} strokeWidth={3} />
-          {currentLevel && (
-            <div className="absolute inset-0 bg-accent/20 flex items-center justify-center animate-pulse">
-              <TrendingUp size={12} className="text-white" />
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col min-w-[120px]">
-          <span className="text-sm font-semibold text-primary leading-none mb-1 flex items-center gap-1">
-            {currentLevel ? `${(currentLevel.discount * 100).toFixed(0)}% OFF ATIVO` : "Seu Pedido"}
-          </span>
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-sm font-semibold text-primary-dark">
-              {count} {count === 1 ? "item" : "itens"}
-            </span>
-            <ChevronRight
-              size={14}
-              className="text-primary group-hover:translate-x-1 transition-transform"
-            />
-          </div>
-          {nextLevel && (
-            <span className="text-sm font-semibold text-accent mt-1">
-              +{nextLevel.min - count} para {(nextLevel.discount * 100).toFixed(0)}% OFF
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Floating indicator for mobile or simple view */}
-      <div className="md:hidden bg-primary text-white size-14 rounded-full flex items-center justify-center shadow-xl border-4 border-white relative">
-        <ShoppingBag size={20} />
-        <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-sm font-semibold size-5 rounded-full flex items-center justify-center border-2 border-white">
-          {count}
+      <button type="button" onClick={onClick} aria-label={`Abrir carrinho. ${message}`} className="fixed bottom-24 right-4 z-50 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/95 py-2 pl-3 pr-2 text-primary shadow-md backdrop-blur">
+        <span className="flex flex-col text-left text-xs font-medium leading-snug">
+          <span>{message}</span>
+          {discount > 0 && <span className="text-[12px]">Economia {formatBRL(discount)}</span>}
         </span>
-      </div>
-    </div>
+        <span className="relative grid size-9 place-items-center rounded-full bg-primary text-white">
+          <ShoppingBag size={18} />
+          {count > 0 && <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-[#78922f] px-1 text-xs text-white">{count}</span>}
+        </span>
+      </button>
   );
 }

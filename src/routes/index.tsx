@@ -311,7 +311,6 @@ function Index() {
   const [combosProntosModalOpen, setCombosProntosModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [storeModalOpen, setStoreModalOpen] = useState(false);
@@ -461,7 +460,6 @@ function Index() {
     "Sopas",
   ];
   const restrictionFilters = ["Sem Glúten", "Sem Lactose"];
-  const advancedFilters = ["Até 500mg sódio", "Até 30g carboidratos"];
   const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
   const proteinFilters = ["Frango", "Carne bovina", "Peixes", "Suína", "Misto"];
   const subgruposDisponiveis = useMemo(
@@ -485,8 +483,7 @@ function Index() {
       (filter) =>
         !filter.startsWith("Subgrupo:") &&
         !quickFilters.includes(filter) &&
-        !restrictionFilters.includes(filter) &&
-        !advancedFilters.includes(filter),
+        !restrictionFilters.includes(filter),
     );
     const selectedProteins = selectedFilters.filter((filter) => proteinFilters.includes(filter));
     if (selectedCategories.length > 0) result = result.filter((p: any) => selectedCategories.includes(p.categorias?.nome));
@@ -1393,44 +1390,6 @@ function Index() {
                   return <button key={filtro} type="button" onClick={() => toggleFilter(filtro)} aria-pressed={selected} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-semibold uppercase transition", colors[tone], selected && "ring-2 ring-[#075636] ring-offset-1")}><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/75"><Icon size={18} /></span>{titulo}</button>;
                 })}
               </div>
-
-              <button
-                type="button"
-                onClick={() => setAdvancedFiltersOpen((open) => !open)}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#075636]"
-                aria-expanded={advancedFiltersOpen}
-              >
-                Mais filtros nutricionais
-                <ChevronDown
-                  size={14}
-                  className={cn("transition-transform", advancedFiltersOpen && "rotate-180")}
-                />
-              </button>
-
-              {advancedFiltersOpen && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {advancedFilters.map((filter) => {
-                    const selected = selectedFilters.includes(filter);
-                    return (
-                      <button
-                        key={filter}
-                        type="button"
-                        onClick={() => toggleFilter(filter)}
-                        aria-pressed={selected}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-semibold uppercase tracking-[0.03em] transition-all",
-                          selected
-                            ? "border-[#075636] bg-[#075636] text-white shadow-sm"
-                            : "border-[#c6d9b9] bg-white text-[#28513a] hover:border-[#075636]",
-                        )}
-                      >
-                        <FoodTypeIcon label={filter} size={14} className="shrink-0" />
-                        <span>{filter}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
 
               <div className="my-4 border-t border-[#cfe0c4]" />
               <p className="mb-2 text-base font-semibold tracking-normal text-[#567044]">Categorias</p>

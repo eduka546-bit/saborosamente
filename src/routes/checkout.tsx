@@ -865,6 +865,31 @@ function Checkout() {
           </p>
         </div>
 
+        <div className="mt-5">
+              <div className="w-full rounded-[1.5rem] border border-[#dce7d5] bg-white p-5 shadow-sm">
+                <img
+                  src="/logo-saborosamente.png"
+                  alt="SaborosaMente"
+                  className="h-7 w-auto max-w-[180px] object-contain object-left"
+                />
+                <p className="mt-3 text-sm font-semibold text-[#087443]">@saborosamente.sbs</p>
+                <h4 className="mt-2 text-base font-semibold leading-tight text-[#173a2d]">
+                  Mostre sua SaborosaMente
+                </h4>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
+                  Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
+                  <strong className="text-[#315440]"> concorra a um mimo</strong>.
+                </p>
+                <a
+                  href="https://www.instagram.com/saborosamente.sbs/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
+                >
+                  Quero participar
+                </a>
+              </div>
+            </div>
         {referralProfile?.codigo_indicacao && (
           <div className="mt-4 rounded-2xl border border-[#e3dfaf] bg-[#fffbea] p-5 text-left">
             <div className="flex items-start gap-3">

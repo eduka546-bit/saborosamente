@@ -4,7 +4,7 @@ import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/com
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
 import { FoodTypeIcon } from "@/components/food-type-icon";
-import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Minus, Plus } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
@@ -57,6 +57,8 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const { add, count, lines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [requestedQuantity, setRequestedQuantity] = useState(1);
+  useEffect(() => { if (isOpen) setRequestedQuantity(1); }, [isOpen, product?.id]);
 
   // Tamanhos disponíveis
   const weights = (() => {
@@ -168,6 +170,8 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
       ? null
       : Math.max(0, stockNumber - quantityAlreadyInCart);
   const soldOut = remainingStock !== null && remainingStock <= 0;
+  const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
+  const projectedCount = count + quantity;
 
   const currentRestrictions =
     selectedWeight === "200g" && product.restricoes_200g
@@ -235,7 +239,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   const priceForWeight = (w: string) => {
     const full = fullPriceForWeight(w);
     return ehMarmita && !isNoDiscount(categoriaNome)
-      ? precoMarmitaPorFaixa(w, count, full, tabelaPrecos)
+      ? precoMarmitaPorFaixa(w, projectedCount, full, tabelaPrecos)
       : full;
   };
 
@@ -336,17 +340,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     const opcoes = ehMarmita
       ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
       : undefined;
-    add(product.id, 1, selectedWeight, opcoes);
+    add(product.id, quantity, selectedWeight, opcoes);
     trackEvent("add_to_cart", {
       produtoId: product.id,
       valor: Number(priceForWeight(selectedWeight) || 0),
-      metadata: { gramatura: selectedWeight, consumo },
+      metadata: { gramatura: selectedWeight, consumo, quantidade: quantity },
     });
     const detalheOpcao = ehMarmita
       ? ` — ${consumo === "pronta" ? "pronta para consumo" : "congelada"}`
       : "";
     toast.success("Adicionado ao carrinho!", {
-      description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}${detalheOpcao}`,
+      description: `${quantity} × ${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}${detalheOpcao}`,
     });
     onClose();
   };
@@ -413,7 +417,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
                   : currentPrice;
                 const precoComFaixa = podeTerDesconto
-                  ? precoMarmitaPorFaixa(selectedWeight, count, precoCheio, tabelaPrecos)
+                  ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
                   : currentPrice;
                 const adicional =
                   (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
@@ -425,19 +429,19 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 return (
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-muted-foreground">Valor</span>
+                      <span className="text-sm font-semibold text-muted-foreground">Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}</span>
                       {precoComFaixa < precoCheio ? (
                         <>
                           <span className="text-sm font-semibold text-muted-foreground line-through">
-                            {formatBRL(precoCheioTotal)}
+                            {formatBRL(precoCheioTotal * quantity)}
                           </span>
                           <span className="text-3xl font-semibold text-[#086e45]">
-                            {formatBRL(precoFinal)}
+                            {formatBRL(precoFinal * quantity)}
                           </span>
                         </>
                       ) : (
                         <span className="text-3xl font-semibold text-primary">
-                          {formatBRL(precoFinal)}
+                          {formatBRL(precoFinal * quantity)}
                         </span>
                       )}
                     </div>
@@ -450,6 +454,16 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 );
               })()}
 
+              {!soldOut && (
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">Quantidade</span>
+                  <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
+                    <button type="button" aria-label="Diminuir quantidade do produto" disabled={quantity <= 1} onClick={() => setRequestedQuantity(quantity - 1)} className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"><Minus size={18} /></button>
+                    <span aria-live="polite" className="min-w-6 text-center text-base font-semibold">{quantity}</span>
+                    <button type="button" aria-label="Aumentar quantidade do produto" disabled={remainingStock !== null && quantity >= remainingStock} onClick={() => setRequestedQuantity(quantity + 1)} className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"><Plus size={18} /></button>
+                  </div>
+                </div>
+              )}
               {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
                 <p className="mb-2 text-center text-sm font-semibold text-[#9a5b00]">
                   {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
@@ -519,19 +533,19 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
               <div className="grid grid-cols-1 gap-4 rounded-2xl bg-muted/50 p-4">
                 <div>
-                  <h4 className="text-sm font-semibold tracking-normal text-foreground">
+                  <h4 className="text-lg font-semibold tracking-normal text-foreground">
                     Valor Nutricional
                   </h4>
-                  <div className="text-sm mt-1 flex items-center whitespace-nowrap gap-x-2 text-muted-foreground">
+                  <div className="text-sm mt-1 flex items-center justify-center whitespace-nowrap gap-x-2 text-muted-foreground">
                     {currentNutritional?.kcal ? (
                       <>
                         <span className="font-semibold text-primary">
-                          {currentNutritional.kcal} Kcal
+                          {currentNutritional.kcal} KCAL
                         </span>
-                        <span>|</span>
-                        <span>{currentNutritional.prot}g Prot</span>
-                        <span>|</span>
-                        <span>{currentNutritional.carb}g Carb</span>
+                        <span aria-hidden="true">•</span>
+                        <span>{currentNutritional.prot}g PROT</span>
+                        <span aria-hidden="true">•</span>
+                        <span>{currentNutritional.carb}g CARB</span>
                       </>
                     ) : (
                       <span className="italic">Consulte a embalagem para detalhes</span>
@@ -539,17 +553,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold tracking-normal text-foreground">
+                  <h4 className="text-lg font-semibold tracking-normal text-foreground">
                     Restrições
                   </h4>
                   <div className="mt-1 flex flex-col gap-1 text-base text-muted-foreground">
                     <span className="flex items-center gap-2">
-                      {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
                       <strong className="text-foreground">Glúten:</strong> {glutenStatus}
+                      {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
                     </span>
                     <span className="flex items-center gap-2">
-                      {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
                       <strong className="text-foreground">Lactose:</strong> {lactoseStatus}
+                      {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
                     </span>
                   </div>
                 </div>
@@ -558,7 +572,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               {weights.length > 1 && (
                 <div>
                   <h4 className="mb-2 font-semibold text-foreground">Escolha o tamanho:</h4>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
                     {weights.map((w: string) => {
                       const nutrition = nutritionalForWeight(w);
                       const price = priceForWeight(w);
@@ -592,9 +606,9 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           </span>
                           {nutrition?.kcal != null && (
                             <span className="mt-1 flex justify-center gap-1 whitespace-nowrap text-xs font-normal leading-tight text-muted-foreground">
-                              <span>{nutrition.kcal} Kcal</span>
-                              {nutrition?.prot != null && <span>{nutrition.prot}g Prot</span>}
-                              {nutrition?.carb != null && <span>{nutrition.carb}g Carb</span>}
+                              <span>{nutrition.kcal} KCAL</span>
+                              {nutrition?.prot != null && <><span aria-hidden="true">•</span><span>{nutrition.prot}g PROT</span></>}
+                              {nutrition?.carb != null && <><span aria-hidden="true">•</span><span>{nutrition.carb}g CARB</span></>}
                             </span>
                           )}
                         </button>
@@ -715,31 +729,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               </section>
             )}
 
-            <div className="mt-5">
-              <div className="w-full rounded-[1.5rem] border border-[#dce7d5] bg-white p-5 shadow-sm">
-                <img
-                  src="/logo-saborosamente.png"
-                  alt="SaborosaMente"
-                  className="h-7 w-auto max-w-[180px] object-contain object-left"
-                />
-                <p className="mt-3 text-sm font-semibold text-[#087443]">@saborosamente.sbs</p>
-                <h4 className="mt-2 text-base font-semibold leading-tight text-[#173a2d]">
-                  Mostre sua SaborosaMente
-                </h4>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#587064]">
-                  Quando receber seu pedido, tire uma foto, marque a gente no Instagram e
-                  <strong className="text-[#315440]"> concorra a um mimo</strong>.
-                </p>
-                <a
-                  href="https://www.instagram.com/saborosamente.sbs/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex items-center rounded-full bg-[#087443] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#075f3e]"
-                >
-                  Quero participar
-                </a>
-              </div>
-            </div>
+
           </div>
         </div>
       </DialogContent>
