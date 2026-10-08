@@ -791,7 +791,7 @@ function Index() {
         }))}
       />
 
-      <section className="bg-[#fbfaf5] pb-4 pt-4 md:pb-5 md:pt-6">
+      <section className="bg-[#fbfaf5] pb-0 pt-4 md:pt-6">
         <div className="mx-auto max-w-7xl px-3 md:px-4">
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
             <div className="grid lg:min-h-[390px] lg:grid-cols-[1.12fr_.88fr]">
@@ -946,13 +946,13 @@ function Index() {
               <h2 className="font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
                 Entrega, retirada e descontos
               </h2>
-              <p className="text-base leading-relaxed text-[#6a7a71] md:text-base">
+              <p className="text-sm leading-relaxed text-[#6a7a71] md:text-sm">
                 Clique nos cards para ver todos os detalhes.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid items-start gap-4 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setDeliveryModalOpen(true)}
@@ -965,7 +965,7 @@ function Index() {
                   </span>
                   <div>
                     <p className="text-[16px] font-semibold text-[#173a2d]">Áreas de Entrega</p>
-                    <p className="text-base leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
+                    <p className="text-sm leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
@@ -985,7 +985,7 @@ function Index() {
                   ))}
                 </div>
 
-                <p className="mt-3 text-base leading-relaxed text-[#6a7a71]">
+                <p className="mt-3 text-sm leading-relaxed text-[#6a7a71]">
                   Veja bairros atendidos, taxas e a localização correta de cada cidade.
                 </p>
               </div>
@@ -1003,7 +1003,7 @@ function Index() {
                   </span>
                   <div>
                     <p className="text-[16px] font-semibold text-[#173a2d]">Retire em nossa loja</p>
-                    <p className="text-base leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
+                    <p className="text-sm leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
@@ -1016,10 +1016,10 @@ function Index() {
                       <ChefHat size={20} strokeWidth={1.8} />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-base font-semibold leading-snug text-[#075636]">
+                      <p className="text-sm font-semibold leading-snug text-[#075636]">
                         Todos os sabores à pronta entrega!
                       </p>
-                      <p className="mt-1 text-base leading-relaxed text-[#426752]">
+                      <p className="mt-1 text-sm leading-relaxed text-[#426752]">
                         Venha conhecer e escolher pessoalmente suas marmitas favoritas.
                       </p>
                     </div>
@@ -1064,7 +1064,7 @@ function Index() {
                   </span>
                   <div>
                     <p className="text-[16px] font-semibold text-[#173a2d]">Como ganhar desconto</p>
-                    <p className="text-base leading-relaxed text-[#708078]">Desconto progressivo automático</p>
+                    <p className="text-sm leading-relaxed text-[#708078]">Desconto progressivo automático</p>
                   </div>
                 </div>
                 <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
@@ -1077,8 +1077,8 @@ function Index() {
                       <BadgeDollarSign size={17} />
                     </span>
                     <div>
-                      <p className="text-base font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
-                      <p className="mt-0.5 text-base leading-relaxed text-[#6a715d]">
+                      <p className="text-sm font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
+                      <p className="mt-0.5 text-sm leading-relaxed text-[#6a715d]">
                         O desconto entra automaticamente conforme a quantidade.
                       </p>
                     </div>
@@ -1105,10 +1105,10 @@ function Index() {
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-base font-semibold text-[#315c46]">
+                        <p className="text-sm font-semibold text-[#315c46]">
                           {rule.min} marmitas
                         </p>
-                        <p className="text-base text-[#7a897f]">
+                        <p className="text-sm text-[#7a897f]">
                           {index === 0
                             ? "Primeira faixa de economia"
                             : index === 1
@@ -1125,8 +1125,8 @@ function Index() {
                 </div>
 
                 <div className="mt-4 rounded-xl bg-[#78922f] px-3 py-3 text-white">
-                  <p className="text-base font-semibold uppercase tracking-wide text-white/75">São Bento do Sul</p>
-                  <p className="mt-1 text-base font-semibold leading-relaxed">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-white/75">São Bento do Sul</p>
+                  <p className="mt-1 text-sm font-semibold leading-relaxed">
                     Frete R$ 5,00 acima de 5 marmitas ou R$ 100,00.
                   </p>
                 </div>
@@ -1151,7 +1151,7 @@ function Index() {
             </h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
               badge="Combinações prontas"
@@ -1844,12 +1844,12 @@ function OrderChoiceBanner({
       />
 
       <div className={`relative z-20 p-5 ${isCustom ? "max-w-[68%]" : "max-w-[78%]"}`}>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className={`grid size-10 shrink-0 place-items-center rounded-full border ${styles.icon}`}>
             <Icon size={18} strokeWidth={1.9} />
           </div>
           <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold uppercase tracking-[0.04em] ${styles.badge}`}
+            className={`inline-flex items-center rounded-full border px-2 py-1 text-sm font-medium leading-snug uppercase tracking-normal ${styles.badge}`}
           >
             {badge}
           </span>

@@ -361,7 +361,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
         <div className="flex flex-col md:flex-row min-h-full">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-1/2">
-            <div className="relative aspect-square w-full overflow-hidden bg-muted md:aspect-auto md:min-h-[500px]">
+            <div className="relative aspect-square w-full overflow-hidden bg-muted md:aspect-auto md:min-h-[400px]">
               <img src={currentImage} alt={product.nome} className="size-full object-cover" />
               <ProductSeals product={product} size={52} />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">

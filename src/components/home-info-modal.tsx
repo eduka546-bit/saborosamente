@@ -224,7 +224,7 @@ function BrazilDeliveryMap({
         <div className="hidden rounded-[1.5rem] border border-[#dce9d3] bg-white p-4 lg:flex lg:flex-col">
           <div>
             <p className="text-sm font-semibold text-[#075636]">Onde entregamos no Brasil</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#698071]">
+            <p className="mt-1 text-base leading-relaxed text-[#698071]">
               Cidades selecionadas de Santa Catarina e Paraná.
             </p>
           </div>
@@ -445,7 +445,7 @@ function DeliveryContent() {
         <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Áreas de Entrega
         </DialogTitle>
-        <DialogDescription className="text-sm leading-relaxed text-[#587064]">
+        <DialogDescription className="text-base leading-relaxed text-[#587064]">
           Atendemos cidades selecionadas de Santa Catarina e Paraná.
         </DialogDescription>
       </DialogHeader>
@@ -505,7 +505,7 @@ function DeliveryContent() {
               <House size={18} className="mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold">Frete promocional em São Bento do Sul</p>
-                <p className="mt-0.5 text-sm leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
+                <p className="mt-0.5 text-base leading-relaxed">R$ 5,00 para pedidos acima de 5 marmitas ou R$ 100,00.</p>
               </div>
             </div>
           )}
@@ -535,7 +535,7 @@ function DeliveryContent() {
           </button>
         </form>
         {cepResult && (
-          <p role="status" className={`mt-3 rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
+          <p role="status" className={`mt-3 rounded-xl px-3 py-2.5 text-base leading-relaxed ${
             cepResult.status === "success" ? "bg-[#e4f3dc] text-[#195c38]" :
             cepResult.status === "warning" ? "bg-[#fff7d6] text-[#69571c]" :
             "bg-[#fff0ec] text-[#8b3f31]"
@@ -601,12 +601,12 @@ function DeliveryContent() {
             </div>
 
             {cityRates.length === 0 && (
-              <p className="text-sm leading-relaxed text-[#607168]">
+              <p className="text-base leading-relaxed text-[#607168]">
                 Nenhum bairro ativo foi encontrado para esta cidade.
               </p>
             )}
 
-            <p className="mt-3 text-sm leading-relaxed text-[#708077]">
+            <p className="mt-3 text-base leading-relaxed text-[#708077]">
               Toque no bairro para deixá-lo selecionado. O valor final do frete considera as regras e promoções aplicáveis ao pedido.
             </p>
           </>
@@ -626,7 +626,7 @@ function StoreContent() {
         <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Retire em nossa loja
         </DialogTitle>
-        <DialogDescription className="text-sm leading-relaxed text-[#587064]">
+        <DialogDescription className="text-base leading-relaxed text-[#587064]">
           Faça seu pedido e retire diretamente na SaborosaMente em São Bento do Sul.
         </DialogDescription>
       </DialogHeader>
@@ -635,7 +635,7 @@ function StoreContent() {
         <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
           <div className="rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
             <p className="text-sm font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
+            <p className="mt-1 text-base leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
           </div>
           <a
             href={MAPS_URL}
@@ -648,7 +648,7 @@ function StoreContent() {
             </span>
             <span>
               <strong className="block text-sm text-[#173a2d]">Rua Augusto Wunderwald, 7</strong>
-              <span className="mt-0.5 block text-sm leading-relaxed text-[#607168]">
+              <span className="mt-0.5 block text-base leading-relaxed text-[#607168]">
                 Progresso — São Bento do Sul/SC · CEP 89281-060
               </span>
             </span>
@@ -663,7 +663,7 @@ function StoreContent() {
             </span>
             <span>
               <strong className="block text-sm text-[#173a2d]">Horário da loja</strong>
-              <span className="mt-0.5 block text-sm leading-relaxed text-[#607168]">
+              <span className="mt-0.5 block text-base leading-relaxed text-[#607168]">
                 Seg–Sex 9h30–19h · Sáb 9h30–13h
               </span>
             </span>
@@ -705,7 +705,7 @@ function DiscountContent() {
         <DialogTitle className="font-sans text-2xl font-semibold text-[#075636]">
           Como ganhar desconto
         </DialogTitle>
-        <DialogDescription className="text-sm leading-relaxed text-[#587064]">
+        <DialogDescription className="text-base leading-relaxed text-[#587064]">
           Quanto mais marmitas você colocar no pedido, melhor fica a faixa de preço.
         </DialogDescription>
       </DialogHeader>
@@ -738,7 +738,7 @@ function DiscountContent() {
           </span>
           <div>
             <p className="text-sm font-semibold text-[#173a2d]">Desconto progressivo automático</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#607168]">
+            <p className="mt-1 text-base leading-relaxed text-[#607168]">
               Não precisa de código: ao aumentar a quantidade do pedido, o site aplica a faixa correspondente automaticamente.
             </p>
           </div>

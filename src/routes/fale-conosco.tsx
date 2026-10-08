@@ -58,7 +58,7 @@ function FaleConoscoPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 space-y-12">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-8 space-y-6">
       {/* Header */}
       <div className="text-center space-y-3">
         <h1 className="text-4xl font-semibold text-[#086e45]">Fale Conosco</h1>

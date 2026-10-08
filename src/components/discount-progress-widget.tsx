@@ -17,8 +17,8 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
   const progress = nextLevel ? (count / nextLevel.min) * 100 : 100;
 
   return (
-    <div className={cn("rounded-2xl border border-primary/10 bg-primary/5 p-4", className)}>
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <div className={cn("rounded-2xl border border-primary/10 bg-primary/5 p-3", className)}>
+      <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-1.5 text-sm font-semibold tracking-normal text-primary">
             <ShoppingBag size={15} />
