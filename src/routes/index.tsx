@@ -837,6 +837,9 @@ function Index() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
       <section className="bg-[#fbfaf5] py-9 md:py-11">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-6 text-center">
