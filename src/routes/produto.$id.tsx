@@ -1,8 +1,18 @@
+import { TabelaNutricionalExpansivel } from "@/components/product-detail-modal";
+import { ProductFacts } from "@/components/product-facts";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, ChevronRight, Star, ShoppingCart, ArrowLeft, Share2 } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  ShoppingCart,
+  ArrowLeft,
+  Share2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
@@ -12,7 +22,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { OptimizedImage } from "@/components/optimized-image";
-import { isMarmita, isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
+import {
+  isMarmita,
+  isNoDiscount,
+  precoMarmitaPorFaixa,
+  precoCheioMarmita,
+} from "@/lib/combo-rules";
 import { ProductSeals } from "@/components/product-seals";
 import { imgUrl } from "@/lib/image-proxy";
 import { getPublicProducts } from "@/lib/products.functions";
@@ -63,6 +78,7 @@ function ProdutoPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
   const { add, count, lines } = useCart();
+  const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
@@ -115,7 +131,7 @@ function ProdutoPage() {
             ? product.estoque_300g
             : weight === "400g"
               ? product.estoque_400g
-              : product.estoque ?? product.estoque_200g;
+              : (product.estoque ?? product.estoque_200g);
       if (raw === null || raw === undefined || raw === "") return null;
       const value = Number(raw);
       return Number.isFinite(value) ? value : null;
@@ -201,7 +217,9 @@ function ProdutoPage() {
       : sum;
   }, 0);
   const remainingStock =
-    stockNumber === null || !Number.isFinite(stockNumber) ? null : Math.max(0, stockNumber - alreadyInCart);
+    stockNumber === null || !Number.isFinite(stockNumber)
+      ? null
+      : Math.max(0, stockNumber - alreadyInCart);
   const soldOut = remainingStock !== null && remainingStock <= 0;
   const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
 
@@ -213,22 +231,35 @@ function ProdutoPage() {
         ? product.preco_400g
         : product.preco;
 
-  const basePrice = ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
-    ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice : currentPrice;
-  const effectivePrice = ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
-    ? precoMarmitaPorFaixa(selectedWeight, count + quantity, basePrice, tabelaPrecos) : currentPrice;
-  const purchaseTotal = (effectivePrice + (consumo === "pronta" ? ADICIONAL_PRONTA : 0) + (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0)) * quantity;
+  const basePrice =
+    ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+      ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
+      : currentPrice;
+  const effectivePrice =
+    ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+      ? precoMarmitaPorFaixa(selectedWeight, count + quantity, basePrice, tabelaPrecos)
+      : currentPrice;
+  const purchaseTotal =
+    (effectivePrice +
+      (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
+      (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0)) *
+    quantity;
 
   // Nutricional
   const currentNutritional =
-    selectedWeight === "300g" && product.tabela_nutricional_300g
-      ? product.tabela_nutricional_300g
-      : selectedWeight === "400g" && product.tabela_nutricional_400g
-        ? product.tabela_nutricional_400g
-        : product.tabela_nutricional;
+    selectedWeight === "200g" && product.tabela_nutricional_200g
+      ? product.tabela_nutricional_200g
+      : selectedWeight === "300g" && product.tabela_nutricional_300g
+        ? product.tabela_nutricional_300g
+        : selectedWeight === "400g" && product.tabela_nutricional_400g
+          ? product.tabela_nutricional_400g
+          : product.tabela_nutricional;
 
   const handleShare = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : `https://saborosamente.com/produto/${product.id}`;
+    const url =
+      typeof window !== "undefined"
+        ? window.location.href
+        : `https://saborosamente.com/produto/${product.id}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: product.nome, text: product.nome, url });
@@ -400,28 +431,31 @@ function ProdutoPage() {
 
             {/* Rating + Categoria */}
             <div className="flex items-center gap-4 mb-4">
-              {Number.isFinite(rating) && rating > 0 && <div className="flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-4 transition-colors ${
-                        i < Math.floor(rating)
-                          ? "fill-sun text-sun"
-                          : i < Math.ceil(rating) && rating % 1 !== 0
-                            ? "fill-sun/50 text-sun"
-                            : "text-border"
-                      }`}
-                    />
-                  ))}
+              {Number.isFinite(rating) && rating > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`size-4 transition-colors ${
+                          i < Math.floor(rating)
+                            ? "fill-sun text-sun"
+                            : i < Math.ceil(rating) && rating % 1 !== 0
+                              ? "fill-sun/50 text-sun"
+                              : "text-border"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-base font-semibold text-foreground">
+                    {rating.toFixed(1)}
+                  </span>
                 </div>
-                <span className="text-base font-semibold text-foreground">{rating.toFixed(1)}</span>
-              </div>}
+              )}
               <span className="text-base font-medium text-muted-foreground tracking-normal">
                 {product.categorias?.nome || "Marmita"}
               </span>
             </div>
-
           </div>
 
           {/* Tamanhos */}
@@ -436,7 +470,10 @@ function ProdutoPage() {
                     key={w}
                     onClick={() => {
                       setSelectedWeight(w);
-                      trackEvent("size_select", { produtoId: product.id, metadata: { gramatura: w, origem: "product_page" } });
+                      trackEvent("size_select", {
+                        produtoId: product.id,
+                        metadata: { gramatura: w, origem: "product_page" },
+                      });
                     }}
                     className={cn(
                       "rounded-xl border-2 py-4 text-base font-semibold transition-all",
@@ -512,32 +549,35 @@ function ProdutoPage() {
           {Array.isArray(product.ingredientes) && product.ingredientes.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-lg font-semibold text-[#075636]">Ingredientes</h3>
-              <p className="text-base leading-relaxed text-muted-foreground">{product.ingredientes.join(", ")}</p>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                {product.ingredientes.join(", ")}
+              </p>
             </section>
           )}
-          <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-4 rounded-2xl bg-muted/50 p-4">
-            <section>
-              <h3 className="text-lg font-semibold text-[#075636]">Valor Nutricional</h3>
-              <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
-                {currentNutritional?.kcal ? <>
-                  <span className="font-semibold text-primary">{currentNutritional.kcal} KCAL</span>
-                  <span>{currentNutritional.prot}g PROT</span>
-                  <span>{currentNutritional.carb}g CARB</span>
-                </> : <span>Consulte a embalagem para detalhes</span>}
-              </div>
-            </section>
-            <section>
-              <h3 className="text-lg font-semibold text-[#075636]">Restrições</h3>
-              <div className="mt-1 space-y-1 text-base text-muted-foreground">
-                <p className="flex flex-wrap items-center gap-2"><strong>Glúten:</strong> {product.sem_gluten ? "não contém" : "contém"}
-                  {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
-                </p>
-                <p className="flex flex-wrap items-center gap-2"><strong>Lactose:</strong> {product.sem_lactose ? "não contém" : "contém"}
-                  {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
-                </p>
-              </div>
-            </section>
-          </div>
+          <ProductFacts
+            product={product}
+            weight={selectedWeight}
+            nutrition={currentNutritional}
+            glutenStatus={
+              product.sem_gluten === true
+                ? "não contém"
+                : product.sem_gluten === false
+                  ? "contém"
+                  : "consultar embalagem"
+            }
+            lactoseStatus={
+              product.sem_lactose === true
+                ? "não contém"
+                : product.sem_lactose === false
+                  ? "contém"
+                  : "consultar embalagem"
+            }
+          />
+          <TabelaNutricionalExpansivel
+            valores={currentNutritional}
+            aberta={tabelaNutricionalAberta}
+            aoAlternar={() => setTabelaNutricionalAberta((value) => !value)}
+          />
 
           {/* Preço e CTA */}
           <div className="space-y-4 border-t border-border/30 pt-6">
@@ -554,10 +594,37 @@ function ProdutoPage() {
 
             {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
               <p className="text-base font-semibold text-[#9a5b00]">
-                {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
+                {remainingStock === 1
+                  ? "Última unidade disponível"
+                  : `Últimas ${remainingStock} unidades disponíveis`}
               </p>
             )}
-            {!soldOut && <div className="flex items-center justify-between"><span>Quantidade</span><div className="flex items-center gap-3"><button type="button" aria-label="Diminuir quantidade do produto" disabled={quantity <= 1} onClick={() => setRequestedQuantity(quantity - 1)} className="size-9 rounded-full border disabled:opacity-40">−</button><span>{quantity}</span><button type="button" aria-label="Aumentar quantidade do produto" disabled={remainingStock !== null && quantity >= remainingStock} onClick={() => setRequestedQuantity(quantity + 1)} className="size-9 rounded-full bg-primary text-white disabled:opacity-40">+</button></div></div>}
+            {!soldOut && (
+              <div className="flex items-center justify-between">
+                <span>Quantidade</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Diminuir quantidade do produto"
+                    disabled={quantity <= 1}
+                    onClick={() => setRequestedQuantity(quantity - 1)}
+                    className="size-9 rounded-full border disabled:opacity-40"
+                  >
+                    −
+                  </button>
+                  <span>{quantity}</span>
+                  <button
+                    type="button"
+                    aria-label="Aumentar quantidade do produto"
+                    disabled={remainingStock !== null && quantity >= remainingStock}
+                    onClick={() => setRequestedQuantity(quantity + 1)}
+                    className="size-9 rounded-full bg-primary text-white disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
             <Button
               onClick={handleAddToCart}
               disabled={soldOut}

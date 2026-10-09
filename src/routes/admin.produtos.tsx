@@ -1,3 +1,5 @@
+import { ProductCompositionEditor } from "@/components/product-composition-editor";
+import { compositionValidation } from "@/lib/product-composition";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
 import { imgUrl } from "@/lib/image-proxy";
@@ -108,20 +110,31 @@ function SaboresComboEditor({ comboId }: { comboId?: string }) {
     if (ativo) {
       await supabase
         .from("combo_sabores")
-        .upsert({ combo_id: comboId, produto_id: produtoId, ativo: true }, { onConflict: "combo_id,produto_id" });
+        .upsert(
+          { combo_id: comboId, produto_id: produtoId, ativo: true },
+          { onConflict: "combo_id,produto_id" },
+        );
     } else {
-      await supabase.from("combo_sabores").delete().eq("combo_id", comboId).eq("produto_id", produtoId);
+      await supabase
+        .from("combo_sabores")
+        .delete()
+        .eq("combo_id", comboId)
+        .eq("produto_id", produtoId);
     }
     queryClient.invalidateQueries({ queryKey: ["combo-sabores-admin", comboId] });
   };
 
   if (!comboId) {
-    return <p className="text-sm text-gray-400">Salve o produto primeiro para configurar os sabores.</p>;
+    return (
+      <p className="text-sm text-gray-400">Salve o produto primeiro para configurar os sabores.</p>
+    );
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500">Selecione quais produtos ficam disponíveis como opção de sabor neste combo.</p>
+      <p className="text-xs text-gray-500">
+        Selecione quais produtos ficam disponíveis como opção de sabor neste combo.
+      </p>
       <div className="space-y-1 max-h-[40vh] overflow-y-auto">
         {produtos.map((p: any) => {
           const ativo = saboresAtivos.includes(p.id);
@@ -134,9 +147,11 @@ function SaboresComboEditor({ comboId }: { comboId?: string }) {
                 ativo ? "border-green-200 bg-green-50" : "border-gray-100 hover:border-gray-200"
               }`}
             >
-              <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                ativo ? "border-green-500 bg-green-500 text-white" : "border-gray-300"
-              }`}>
+              <div
+                className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                  ativo ? "border-green-500 bg-green-500 text-white" : "border-gray-300"
+                }`}
+              >
                 {ativo && <span className="text-[10px]">✓</span>}
               </div>
               <span className="text-sm font-medium text-gray-900 truncate">{p.nome}</span>
@@ -348,6 +363,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
   };
 
   const handleSave = () => {
+    const compositionError = compositionValidation(formData.composicao_site || []);
+    if (compositionError) {
+      toast.error(compositionError);
+      return;
+    }
     const {
       preco_formatado,
       preco_promocional_formatado,
@@ -416,7 +436,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
             >
               Complementos
             </TabsTrigger>
-            {(formData.tipo_produto === "combo") && (
+            {formData.tipo_produto === "combo" && (
               <TabsTrigger
                 value="sabores"
                 className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 h-full text-xs font-semibold uppercase tracking-wider transition-none"
@@ -735,7 +755,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         placeholder="Observação interna opcional"
                         className="h-10 border-gray-200"
                         value={formData.observacao_cardapio || ""}
-                        onChange={(e) => setFormData({ ...formData, observacao_cardapio: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, observacao_cardapio: e.target.value })
+                        }
                       />
                     </div>
 
@@ -758,12 +780,15 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                   </div>
 
                   <Tabs defaultValue="descricao" className="w-full">
-                    <TabsList className="bg-transparent h-auto p-0 gap-4 border-b rounded-none mb-4">
+                    <TabsList className="bg-transparent h-auto p-0 gap-4 border-b rounded-none mb-4 flex-wrap">
                       <TabsTrigger
                         value="descricao"
                         className="data-[state=active]:border-b-2 data-[state=active]:border-[#5850ec] data-[state=active]:text-[#5850ec] rounded-none bg-transparent px-0 pb-2 text-xs font-semibold uppercase tracking-wider transition-none"
                       >
                         Descrição / Ingredientes
+                      </TabsTrigger>
+                      <TabsTrigger value="composicao" className="text-sm">
+                        Composição
                       </TabsTrigger>
                       <TabsTrigger
                         value="nutricional"
@@ -778,6 +803,13 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                         Restrições
                       </TabsTrigger>
                     </TabsList>
+                    <TabsContent value="composicao">
+                      <ProductCompositionEditor
+                        value={formData.composicao_site || []}
+                        type={formData.tipo_produto || "marmita"}
+                        onChange={(rows) => setFormData({ ...formData, composicao_site: rows })}
+                      />
+                    </TabsContent>
                     <TabsContent value="descricao">
                       <textarea
                         className="w-full min-h-[150px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/20 resize-none"
@@ -1012,9 +1044,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                             </div>
                             <Switch
                               checked={!!formData.sem_gluten}
-                              onCheckedChange={(v) =>
-                                setFormData({ ...formData, sem_gluten: v })
-                              }
+                              onCheckedChange={(v) => setFormData({ ...formData, sem_gluten: v })}
                             />
                           </div>
                           <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
@@ -1028,9 +1058,7 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                             </div>
                             <Switch
                               checked={!!formData.sem_lactose}
-                              onCheckedChange={(v) =>
-                                setFormData({ ...formData, sem_lactose: v })
-                              }
+                              onCheckedChange={(v) => setFormData({ ...formData, sem_lactose: v })}
                             />
                           </div>
                         </div>
@@ -1327,7 +1355,9 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                     <label className="text-sm font-semibold text-gray-700">
                       Visível no site (loja online)
                     </label>
-                    <p className="text-xs text-gray-500">Desmarque para produtos somente PDV (ex: bebidas)</p>
+                    <p className="text-xs text-gray-500">
+                      Desmarque para produtos somente PDV (ex: bebidas)
+                    </p>
                   </div>
                   <Switch
                     checked={formData.visivel_online !== false}
@@ -1362,34 +1392,49 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       {(formData.tipo_produto || "marmita") === "marmita" ? (
                         <div className="grid grid-cols-3 gap-3">
                           <div>
-                            <label className="text-[10px] font-bold text-gray-500 block mb-1">200g</label>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">
+                              200g
+                            </label>
                             <Input
                               type="number"
                               value={formData.estoque_200g ?? 0}
                               onChange={(e) =>
-                                setFormData({ ...formData, estoque_200g: parseInt(e.target.value) || 0 })
+                                setFormData({
+                                  ...formData,
+                                  estoque_200g: parseInt(e.target.value) || 0,
+                                })
                               }
                               className="h-10 border-gray-200"
                             />
                           </div>
                           <div>
-                            <label className="text-[10px] font-bold text-gray-500 block mb-1">300g</label>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">
+                              300g
+                            </label>
                             <Input
                               type="number"
                               value={formData.estoque_300g ?? 0}
                               onChange={(e) =>
-                                setFormData({ ...formData, estoque_300g: parseInt(e.target.value) || 0 })
+                                setFormData({
+                                  ...formData,
+                                  estoque_300g: parseInt(e.target.value) || 0,
+                                })
                               }
                               className="h-10 border-gray-200"
                             />
                           </div>
                           <div>
-                            <label className="text-[10px] font-bold text-gray-500 block mb-1">400g</label>
+                            <label className="text-[10px] font-bold text-gray-500 block mb-1">
+                              400g
+                            </label>
                             <Input
                               type="number"
                               value={formData.estoque_400g ?? 0}
                               onChange={(e) =>
-                                setFormData({ ...formData, estoque_400g: parseInt(e.target.value) || 0 })
+                                setFormData({
+                                  ...formData,
+                                  estoque_400g: parseInt(e.target.value) || 0,
+                                })
                               }
                               className="h-10 border-gray-200"
                             />
@@ -1402,9 +1447,11 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                       ) : (
                         <div>
                           <label className="text-[10px] font-bold text-gray-500 block mb-1">
-                            {formData.tipo_produto === "sopa" ? "Unidades (400g)" :
-                             formData.tipo_produto === "complemento" ? "Unidades (150g)" :
-                             "Unidades"}
+                            {formData.tipo_produto === "sopa"
+                              ? "Unidades (400g)"
+                              : formData.tipo_produto === "complemento"
+                                ? "Unidades (150g)"
+                                : "Unidades"}
                           </label>
                           <Input
                             type="number"
@@ -1416,9 +1463,19 @@ function ProductEditModal({ isOpen, onClose, product, categories, onSave, onDele
                             onChange={(e) => {
                               const val = parseInt(e.target.value) || 0;
                               if (formData.tipo_produto === "sopa") {
-                                setFormData({ ...formData, estoque_400g: val, estoque_200g: 0, estoque_300g: 0 });
+                                setFormData({
+                                  ...formData,
+                                  estoque_400g: val,
+                                  estoque_200g: 0,
+                                  estoque_300g: 0,
+                                });
                               } else {
-                                setFormData({ ...formData, estoque_200g: val, estoque_300g: 0, estoque_400g: 0 });
+                                setFormData({
+                                  ...formData,
+                                  estoque_200g: val,
+                                  estoque_300g: 0,
+                                  estoque_400g: 0,
+                                });
                               }
                             }}
                             className="h-10 border-gray-200 max-w-[120px]"
@@ -1640,7 +1697,11 @@ function OrdemRow({ produto, idx }: { produto: any; idx: number }) {
       <span className="text-xs font-bold text-gray-300 w-6 text-right shrink-0">{idx + 1}</span>
       <div className="h-10 w-10 rounded-xl overflow-hidden bg-gray-100 shrink-0">
         {produto.imagem_url ? (
-          <img src={imgUrl(produto.imagem_url)} alt={produto.nome} className="h-full w-full object-cover" />
+          <img
+            src={imgUrl(produto.imagem_url)}
+            alt={produto.nome}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-gray-300 text-xs">
             📦
@@ -1962,7 +2023,9 @@ function AdminProductsPage() {
   const saveProduct = useMutation({
     mutationFn: async (updatedData: any) => {
       const { id, ...data } = updatedData;
-      const codigo = String(data.codigo_integracao ?? "").replace(/\s+/g, "").trim();
+      const codigo = String(data.codigo_integracao ?? "")
+        .replace(/\s+/g, "")
+        .trim();
 
       if (codigo) {
         let duplicateQuery = supabase

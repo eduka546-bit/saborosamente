@@ -1,10 +1,19 @@
+import { ProductFacts } from "@/components/product-facts";
 import { useEffect, useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
 import { ProductSeals } from "@/components/product-seals";
 import { FoodTypeIcon } from "@/components/food-type-icon";
-import { ChevronDown, ChevronLeft, ChevronRight, Share2, ShoppingCart, Minus, Plus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  ShoppingCart,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
@@ -31,7 +40,7 @@ const stockForWeight = (product: any, weight: string): number | null => {
         ? product?.estoque_300g
         : weight === "400g"
           ? product?.estoque_400g
-          : product?.estoque ?? product?.estoque_200g;
+          : (product?.estoque ?? product?.estoque_200g);
 
   if (raw === null || raw === undefined || raw === "") return null;
   const value = Number(raw);
@@ -53,12 +62,19 @@ const initialAvailableWeight = (product: any, weights: string[]): string => {
 
 // Modal de detalhes do produto — layout robusto (imagem grande + ficha completa),
 // abre por cima do catálogo sem trocar de página.
-export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] }: ProductDetailModalProps) {
+export function ProductDetailModal({
+  isOpen,
+  onClose,
+  product,
+  allProducts = [],
+}: ProductDetailModalProps) {
   const { add, count, lines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
-  useEffect(() => { if (isOpen) setRequestedQuantity(1); }, [isOpen, product?.id]);
+  useEffect(() => {
+    if (isOpen) setRequestedQuantity(1);
+  }, [isOpen, product?.id]);
 
   // Tamanhos disponíveis
   const weights = (() => {
@@ -104,7 +120,9 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     if (!isOpen || !product?.id) return;
     trackEvent("product_view", {
       produtoId: product.id,
-      metadata: { origem: window.location.pathname.startsWith("/produto/") ? "product_page" : "modal" },
+      metadata: {
+        origem: window.location.pathname.startsWith("/produto/") ? "product_page" : "modal",
+      },
     });
     trackEvent("experiment_exposure", {
       produtoId: product.id,
@@ -114,10 +132,17 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
 
   if (!product) return null;
 
+  const title =
+    product.tipo_produto === "complemento"
+      ? product.nome.replace(/\s*150\s*g\s*$/i, "")
+      : product.nome;
+  const codeMatch = title.match(/^((?:TD|SO|CO)\d+)\s*[-–—:.]?\s*/i);
   const categoriaNome = product.categorias?.nome || product.categoria || "Marmita";
   const ehMarmita = isMarmita(product.nome, categoriaNome);
 
-  const ingredientesDetalhados = Array.isArray(product.ingredientes) ? product.ingredientes.join(", ") : String(product.ingredientes || "");
+  const ingredientesDetalhados = Array.isArray(product.ingredientes)
+    ? product.ingredientes.join(", ")
+    : String(product.ingredientes || "");
 
   // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
   const principal = imgUrl(product.imagem_url || product.imagem);
@@ -212,15 +237,6 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     return w;
   };
 
-  const nutritionalForWeight = (w: string) =>
-    w === "200g"
-      ? product.tabela_nutricional_200g || product.tabela_nutricional
-      : w === "300g"
-        ? product.tabela_nutricional_300g || product.tabela_nutricional
-        : w === "400g"
-          ? product.tabela_nutricional_400g || product.tabela_nutricional
-          : product.tabela_nutricional;
-
   const fullPriceForWeight = (w: string) => {
     if (isSopa) return 18;
     if (ehMarmita && !isNoDiscount(categoriaNome)) {
@@ -247,14 +263,22 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
     ? Math.max(0, priceForWeight(nextWeight) - priceForWeight(selectedWeight))
     : 0;
 
-
   const relatedProducts = allProducts
     .filter((candidate: any) => {
-      if (!candidate || candidate.id === product.id || candidate.ativo === false || candidate.visivel_online === false) {
+      if (
+        !candidate ||
+        candidate.id === product.id ||
+        candidate.ativo === false ||
+        candidate.visivel_online === false
+      ) {
         return false;
       }
       const candidateCategory = candidate.categorias?.nome || candidate.categoria || "";
-      if (/escolha você mesmo|escolha voce mesmo|monte você mesmo|monte voce mesmo/i.test(candidateCategory + " " + (candidate.nome || ""))) {
+      if (
+        /escolha você mesmo|escolha voce mesmo|monte você mesmo|monte voce mesmo/i.test(
+          candidateCategory + " " + (candidate.nome || ""),
+        )
+      ) {
         return false;
       }
       return candidateCategory === categoriaNome;
@@ -316,7 +340,10 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
       if (error) throw error;
       trackEvent("restock_request", {
         produtoId: product.id,
-        metadata: { gramatura: selectedWeight, canal: email ? "email" : telefone ? "telefone" : "conta" },
+        metadata: {
+          gramatura: selectedWeight,
+          canal: email ? "email" : telefone ? "telefone" : "conta",
+        },
       });
       toast.success("Pronto! Vamos registrar seu interesse.");
       setRestockContact("");
@@ -360,9 +387,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               <img src={currentImage} alt={product.nome} className="size-full object-cover" />
               <ProductSeals product={product} size={52} />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
-                <Badge className="bg-sun text-sun-foreground hover:bg-sun">
-                  {categoriaNome}
-                </Badge>
+                <Badge className="bg-sun text-sun-foreground hover:bg-sun">{categoriaNome}</Badge>
                 {product.proteina && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-base font-semibold uppercase tracking-[0.04em] text-[#28513a] shadow-sm backdrop-blur">
                     <FoodTypeIcon label={String(product.proteina)} size={13} />
@@ -402,7 +427,6 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               )}
             </div>
 
-
             <div className="shrink-0 border-t bg-card px-5 py-4">
               {(() => {
                 // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
@@ -418,13 +442,18 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                   (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
                   (garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
                 const precoFinal = precoComFaixa + adicional;
-                const temDesconto = precoFinal < precoCheio + adicional || adicional > 0 || precoComFaixa < precoCheio;
+                const temDesconto =
+                  precoFinal < precoCheio + adicional ||
+                  adicional > 0 ||
+                  precoComFaixa < precoCheio;
                 const precoCheioTotal = precoCheio + adicional;
 
                 return (
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex flex-col">
-                      <span className="text-base font-semibold text-muted-foreground">Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}</span>
+                      <span className="text-base font-semibold text-muted-foreground">
+                        Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
+                      </span>
                       {precoComFaixa < precoCheio ? (
                         <>
                           <span className="text-base font-semibold text-muted-foreground line-through">
@@ -453,15 +482,38 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <span className="text-base font-medium">Quantidade</span>
                   <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
-                    <button type="button" aria-label="Diminuir quantidade do produto" disabled={quantity <= 1} onClick={() => setRequestedQuantity(quantity - 1)} className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"><Minus size={18} /></button>
-                    <span aria-live="polite" className="min-w-6 text-center text-base font-semibold">{quantity}</span>
-                    <button type="button" aria-label="Aumentar quantidade do produto" disabled={remainingStock !== null && quantity >= remainingStock} onClick={() => setRequestedQuantity(quantity + 1)} className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"><Plus size={18} /></button>
+                    <button
+                      type="button"
+                      aria-label="Diminuir quantidade do produto"
+                      disabled={quantity <= 1}
+                      onClick={() => setRequestedQuantity(quantity - 1)}
+                      className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <span
+                      aria-live="polite"
+                      className="min-w-6 text-center text-base font-semibold"
+                    >
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Aumentar quantidade do produto"
+                      disabled={remainingStock !== null && quantity >= remainingStock}
+                      onClick={() => setRequestedQuantity(quantity + 1)}
+                      className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
+                    >
+                      <Plus size={18} />
+                    </button>
                   </div>
                 </div>
               )}
               {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
                 <p className="mb-2 text-center text-base font-semibold text-[#9a5b00]">
-                  {remainingStock === 1 ? "Última unidade disponível" : `Últimas ${remainingStock} unidades disponíveis`}
+                  {remainingStock === 1
+                    ? "Última unidade disponível"
+                    : `Últimas ${remainingStock} unidades disponíveis`}
                 </p>
               )}
               {soldOut ? (
@@ -504,7 +556,14 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
             <DialogHeader className="mb-4">
               <div className="flex items-start justify-between gap-3 pr-8">
                 <DialogTitle className="text-2xl font-semibold text-[#075636]">
-                  {product.tipo_produto === "complemento" ? product.nome.replace(/\s*150\s*g\s*$/i, "") : product.nome}
+                  {codeMatch && (
+                    <>
+                      <span className="mr-2 inline-block rounded-lg bg-[#e4ede1] px-2 py-1 align-middle text-base font-semibold">
+                        {codeMatch[1]}
+                      </span>{" "}
+                    </>
+                  )}
+                  {codeMatch ? title.slice(codeMatch[0].length) : title}
                 </DialogTitle>
                 <button
                   type="button"
@@ -526,48 +585,11 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2 rounded-2xl bg-muted/50 p-4">
-                <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-[#075636]">
-                    Valor Nutricional
-                  </h4>
-                  <div className="mt-1 flex flex-col items-start gap-1 text-base text-muted-foreground">
-                    {currentNutritional?.kcal ? (
-                      <>
-                        <span className="font-semibold text-primary">
-                          {currentNutritional.kcal} KCAL
-                        </span>
-                        <span>{currentNutritional.prot}g PROT</span>
-                        <span>{currentNutritional.carb}g CARB</span>
-                      </>
-                    ) : (
-                      <span className="italic">Consulte a embalagem para detalhes</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold tracking-normal text-[#075636]">
-                    Restrições
-                  </h4>
-                  <div className="mt-1 flex flex-col gap-1 text-base text-muted-foreground">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <strong className="text-foreground">Glúten:</strong> {glutenStatus}
-                      {product.sem_gluten && <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />}
-                    </span>
-                    <span className="flex flex-wrap items-center gap-2">
-                      <strong className="text-foreground">Lactose:</strong> {lactoseStatus}
-                      {product.sem_lactose && <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
               {weights.length > 1 && (
                 <div>
                   <h4 className="mb-2 text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
-                  <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-3 gap-2">
                     {weights.map((w: string) => {
-                      const nutrition = nutritionalForWeight(w);
                       const price = priceForWeight(w);
                       const selected = selectedWeight === w;
                       return (
@@ -582,50 +604,70 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                             });
                           }}
                           className={cn(
-                            "min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
+                            "relative min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
                             selected
                               ? "border-primary bg-primary/5 text-primary shadow-sm"
                               : "border-border bg-background text-muted-foreground hover:border-primary/30",
                           )}
                         >
+                          {selected && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute right-1 top-1 text-xs text-primary"
+                            >
+                              ✓
+                            </span>
+                          )}
                           <span className="block text-base font-semibold">{weightLabel(w)}</span>
                           {isComboPronto && (
                             <span className="block text-base font-normal text-muted-foreground">
                               {w}
                             </span>
                           )}
-                          <span className={cn("mt-1 block text-base font-semibold", selected ? "text-[#086e45]" : "text-foreground")}>
+                          <span
+                            className={cn(
+                              "mt-1 block text-base font-semibold",
+                              selected ? "text-[#086e45]" : "text-foreground",
+                            )}
+                          >
                             {formatBRL(price)}
                           </span>
-                          {nutrition?.kcal != null && (
-                            <span className="mt-1 flex justify-center gap-1 whitespace-nowrap text-[12px] font-medium leading-tight text-[#075636]">
-                              <span>{nutrition.kcal} KCAL</span>
-                              {nutrition?.prot != null && <><span aria-hidden="true">•</span><span>{nutrition.prot}g PROT</span></>}
-                              {nutrition?.carb != null && <><span aria-hidden="true">•</span><span>{nutrition.carb}g CARB</span></>}
-                            </span>
-                          )}
                         </button>
                       );
                     })}
                   </div>
-                  {nextWeight && (
-                    <div className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-base text-[#315440]">
-                      <strong>Quer subir para {nextWeight}?</strong>{" "}
-                      {upgradePriceDifference > 0
-                        ? `Por +${formatBRL(upgradePriceDifference)}`
-                        : "Sem aumento de preço"}
-                      {` você leva +${parseInt(nextWeight) - parseInt(selectedWeight)}g de comida.`}
-                    </div>
-                  )}
                 </div>
               )}
 
-              <TabelaNutricionalExpansivel valores={currentNutritional} aberta={tabelaNutricionalAberta} aoAlternar={() => setTabelaNutricionalAberta((aberta) => !aberta)} />
+              <ProductFacts
+                product={product}
+                weight={selectedWeight}
+                nutrition={currentNutritional}
+                glutenStatus={glutenStatus}
+                lactoseStatus={lactoseStatus}
+              />
+              {nextWeight && (
+                <div className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-base text-[#315440]">
+                  <strong>Quer subir para {nextWeight}?</strong>{" "}
+                  {upgradePriceDifference > 0
+                    ? `Por +${formatBRL(upgradePriceDifference)}`
+                    : "Sem aumento de preço"}
+                  {` você leva +${parseInt(nextWeight) - parseInt(selectedWeight)}g de comida.`}
+                </div>
+              )}
+
+              <TabelaNutricionalExpansivel
+                valores={currentNutritional}
+                aberta={tabelaNutricionalAberta}
+                aoAlternar={() => setTabelaNutricionalAberta((aberta) => !aberta)}
+              />
 
               {ehMarmita && (
                 <div className="space-y-3">
                   <div>
-                    <h4 className="mb-2 text-lg font-semibold text-[#075636]">Como você quer receber?</h4>
+                    <h4 className="mb-2 text-lg font-semibold text-[#075636]">
+                      Como você quer receber?
+                    </h4>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -681,7 +723,9 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
               <section className="mt-2 border-t border-border pt-5">
                 <div className="mb-3">
                   <p className="text-base font-semibold text-foreground">Você também pode gostar</p>
-                  <p className="text-base text-muted-foreground">Outras opções da mesma categoria.</p>
+                  <p className="text-base text-muted-foreground">
+                    Outras opções da mesma categoria.
+                  </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {relatedProducts.map((candidate: any) => {
@@ -697,7 +741,10 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           ? candidate.preco_400g
                           : candidate.preco;
                     return (
-                      <div key={candidate.id} className="flex items-center gap-2 rounded-xl border bg-background p-2 sm:flex-col sm:items-stretch">
+                      <div
+                        key={candidate.id}
+                        className="flex items-center gap-2 rounded-xl border bg-background p-2 sm:flex-col sm:items-stretch"
+                      >
                         <img
                           src={imgUrl(candidate.imagem_url || candidate.imagem)}
                           alt={candidate.nome}
@@ -705,8 +752,12 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                           loading="lazy"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 text-base font-semibold leading-snug">{candidate.nome}</p>
-                          <p className="mt-1 text-base font-semibold text-primary">{formatBRL(Number(relatedPrice || 0))}</p>
+                          <p className="line-clamp-2 text-base font-semibold leading-snug">
+                            {candidate.nome}
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-primary">
+                            {formatBRL(Number(relatedPrice || 0))}
+                          </p>
                         </div>
                         <button
                           type="button"
@@ -721,8 +772,6 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
                 </div>
               </section>
             )}
-
-
           </div>
         </div>
       </DialogContent>
@@ -730,7 +779,7 @@ export function ProductDetailModal({ isOpen, onClose, product, allProducts = [] 
   );
 }
 
-function TabelaNutricionalExpansivel({
+export function TabelaNutricionalExpansivel({
   valores,
   aberta,
   aoAlternar,
@@ -742,9 +791,7 @@ function TabelaNutricionalExpansivel({
   if (!valores?.kcal) return null;
 
   const temColuna100g =
-    valores.kcal_100g != null ||
-    valores.carb_100g != null ||
-    valores.prot_100g != null;
+    valores.kcal_100g != null || valores.carb_100g != null || valores.prot_100g != null;
 
   const linhas = [
     {
@@ -761,19 +808,15 @@ function TabelaNutricionalExpansivel({
     },
     {
       rotulo: "Açúcares totais",
-      valor100g:
-        valores.acucares_totais_100g != null ? `${valores.acucares_totais_100g} g` : "—",
+      valor100g: valores.acucares_totais_100g != null ? `${valores.acucares_totais_100g} g` : "—",
       valor: valores.acucares_totais != null ? `${valores.acucares_totais} g` : "—",
       vd: null,
     },
     {
       rotulo: "Açúcares adicionados",
       valor100g:
-        valores.acucares_adicionados_100g != null
-          ? `${valores.acucares_adicionados_100g} g`
-          : "—",
-      valor:
-        valores.acucares_adicionados != null ? `${valores.acucares_adicionados} g` : "—",
+        valores.acucares_adicionados_100g != null ? `${valores.acucares_adicionados_100g} g` : "—",
+      valor: valores.acucares_adicionados != null ? `${valores.acucares_adicionados} g` : "—",
       vd: valores.vd_acucares_adicionados,
     },
     {
@@ -784,25 +827,20 @@ function TabelaNutricionalExpansivel({
     },
     {
       rotulo: "Gorduras totais",
-      valor100g:
-        valores.gorduras_totais_100g != null ? `${valores.gorduras_totais_100g} g` : "—",
+      valor100g: valores.gorduras_totais_100g != null ? `${valores.gorduras_totais_100g} g` : "—",
       valor: valores.gorduras_totais != null ? `${valores.gorduras_totais} g` : "—",
       vd: valores.vd_gorduras_totais,
     },
     {
       rotulo: "Gorduras saturadas",
       valor100g:
-        valores.gorduras_saturadas_100g != null
-          ? `${valores.gorduras_saturadas_100g} g`
-          : "—",
-      valor:
-        valores.gorduras_saturadas != null ? `${valores.gorduras_saturadas} g` : "—",
+        valores.gorduras_saturadas_100g != null ? `${valores.gorduras_saturadas_100g} g` : "—",
+      valor: valores.gorduras_saturadas != null ? `${valores.gorduras_saturadas} g` : "—",
       vd: valores.vd_gorduras_saturadas,
     },
     {
       rotulo: "Gorduras trans",
-      valor100g:
-        valores.gorduras_trans_100g != null ? `${valores.gorduras_trans_100g} g` : "—",
+      valor100g: valores.gorduras_trans_100g != null ? `${valores.gorduras_trans_100g} g` : "—",
       valor: valores.gorduras_trans != null ? `${valores.gorduras_trans} g` : "—",
       vd: valores.vd_gorduras_trans,
     },

@@ -32,6 +32,7 @@ export interface Product {
   subgrupo?: string | null;
   proteina?: string | null;
   observacao_cardapio?: string | null;
+  composicao_site?: import("@/lib/product-composition").CompositionRow[];
   /** Categoria vinda do join do Supabase (tabela `categorias`). Opcional. */
   categorias?: { nome: string } | null;
   imagem: string;
