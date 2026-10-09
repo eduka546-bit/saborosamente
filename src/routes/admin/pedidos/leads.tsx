@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart, Save, AlertTriangle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,6 @@ type Config = { ativo: boolean; regulamento_url: string | null; certificado: str
 function LeadsSorteioAdmin() {
   const qc = useQueryClient();
   const [termo, setTermo] = useState("");
-  const [regulamento, setRegulamento] = useState("");
-  const [certificado, setCertificado] = useState("");
-  const [ativo, setAtivo] = useState(false);
-  const [confirmouAprovacao, setConfirmouAprovacao] = useState(false);
-
   const { data: config, isLoading: carregandoConfig } = useQuery({
     queryKey: ["sorteio-admin-config"],
     queryFn: async () => {
@@ -41,12 +36,6 @@ function LeadsSorteioAdmin() {
       return data as Config;
     },
   });
-  useEffect(() => {
-    if (!config) return;
-    setAtivo(config.ativo);
-    setRegulamento(config.regulamento_url ?? "");
-    setCertificado(config.certificado ?? "");
-  }, [config]);
 
   const { data: leads = [], isLoading: carregandoLeads, error } = useQuery({
     queryKey: ["sorteio-admin-leads"],
@@ -80,25 +69,26 @@ function LeadsSorteioAdmin() {
     return map;
   }, [carts]);
 
-  const salvarConfig = useMutation({
-    mutationFn: async () => {
-      if (ativo && !config?.ativo && !confirmouAprovacao) throw new Error("Confirme que a promoção já foi autorizada pela SPA/MF.");
-      const { data, error } = await supabase.rpc("atualizar_sorteio_config_admin", {
-        p_ativo: ativo,
-        p_regulamento_url: regulamento.trim(),
-        p_certificado: certificado.trim(),
+  const ativarDesativar = useMutation({
+    mutationFn: async (novoAtivo: boolean) => {
+      // O banco mantém o bloqueio de publicação sem autorização e regulamento.
+      const { error } = await supabase.rpc("atualizar_sorteio_config_admin", {
+        p_ativo: novoAtivo,
+        p_regulamento_url: config?.regulamento_url ?? "",
+        p_certificado: config?.certificado ?? "",
       });
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sorteio-admin-config"] });
-      qc.invalidateQueries({ queryKey: ["site-settings"] });
-      setConfirmouAprovacao(false);
-      toast.success("Configuração salva.");
+    onSuccess: (_result, novoAtivo) => {
+      void qc.invalidateQueries({ queryKey: ["sorteio-admin-config"] });
+      void qc.invalidateQueries({ queryKey: ["site-settings"] });
+      toast.success(novoAtivo ? "Pop-up do sorteio ativado." : "Pop-up do sorteio desativado.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const requisitosProntos = Boolean(
+    config?.regulamento_url?.startsWith("https://") && config?.certificado?.trim(),
+  );
 
   const marcarContemplado = useMutation({
     mutationFn: async (lead: Lead) => {
@@ -143,47 +133,27 @@ function LeadsSorteioAdmin() {
         ))}
       </section>
 
-      <section className="bg-white border rounded-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="font-bold text-gray-900 flex gap-2 items-center"><ShieldCheck size={18}/> Configuração da promoção</h2>
-          <span className={"text-xs font-bold px-3 py-1 rounded-full " +
-            (config?.ativo ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600")}>
-            {config?.ativo ? "Inscrições habilitadas" : "Inscrições desativadas"}
-          </span>
-        </div>
-        <div className="rounded-xl bg-amber-50 text-amber-900 p-3 flex gap-2 text-sm">
-          <AlertTriangle size={19} className="shrink-0"/>
-          <span>Não publique a campanha antes da autorização da Secretaria de Prêmios e Apostas do Ministério da Fazenda e da aprovação do regulamento. Os campos abaixo ficam privados no admin.</span>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
+      <section className="bg-white border rounded-2xl p-5 space-y-3">
+        <div className="flex justify-between items-center flex-wrap gap-3">
           <div>
-            <label htmlFor="url-regra-sorteio" className="block text-xs font-semibold text-gray-600 mb-1">URL HTTPS do regulamento aprovado</label>
-            <Input id="url-regra-sorteio" value={regulamento} onChange={e => setRegulamento(e.target.value)}
-              placeholder="https://www.saborosamente.com/..." />
+            <h2 className="font-bold text-gray-900 flex gap-2 items-center"><ShieldCheck size={18}/> Pop-up de captação e sorteio</h2>
+            <p className="text-xs text-gray-500 mt-1">Aparece apenas aos novos visitantes. Seu cadastro, carrinho e pré-cadastro já estão integrados.</p>
           </div>
-          <div>
-            <label htmlFor="certificado-sorteio" className="block text-xs font-semibold text-gray-600 mb-1">Certificado de autorização SPA/MF</label>
-            <Input id="certificado-sorteio" value={certificado} onChange={e => setCertificado(e.target.value)}
-              placeholder="Número do certificado" />
-          </div>
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={ativo} onChange={e => setAtivo(e.target.checked)}
-            className="accent-green-800" disabled={carregandoConfig}/>
-          Ativar captação com pop-up na página principal
-        </label>
-        {ativo && !config?.ativo && (
-          <label className="flex items-start gap-2 text-xs text-amber-800">
-            <input type="checkbox" checked={confirmouAprovacao} onChange={e => setConfirmouAprovacao(e.target.checked)}
-              className="mt-0.5 accent-green-800"/>
-            Confirmo que a promoção foi formalmente autorizada e que o regulamento publicado corresponde ao certificado apresentado.
+          <label className="flex items-center gap-3 text-sm font-semibold text-gray-800 cursor-pointer">
+            <span>{config?.ativo ? "Ativado" : "Desativado"}</span>
+            <input type="checkbox" role="switch" aria-label="Ativar ou desativar pop-up do sorteio"
+              checked={Boolean(config?.ativo)}
+              disabled={carregandoConfig || ativarDesativar.isPending || (!config?.ativo && !requisitosProntos)}
+              onChange={(e) => ativarDesativar.mutate(e.target.checked)}
+              className="h-5 w-5 accent-green-700" />
           </label>
+        </div>
+        {!carregandoConfig && !requisitosProntos && (
+          <p className="flex gap-2 items-start text-xs text-amber-800">
+            <AlertTriangle size={16} className="shrink-0"/>
+            Aguardando certificado de autorização e regulamento publicado. Assim que esses dados forem cadastrados, o controle de ativação ficará disponível aqui. Até lá, a campanha continua desligada.
+          </p>
         )}
-        <Button disabled={salvarConfig.isPending || carregandoConfig ||
-          (ativo && !config?.ativo && !confirmouAprovacao)}
-          onClick={() => salvarConfig.mutate()} className="bg-[#08764a] hover:bg-[#075e3c]">
-          <Save size={16} className="mr-2"/> Salvar configuração
-        </Button>
       </section>
 
       <section className="bg-white border rounded-2xl p-5 space-y-4">
