@@ -195,7 +195,6 @@ function AdminCampaignPage() {
   const carregarClientesCidade = (cidade: string) => {
     const grupo = clientesDinamicos.filter(c => cidade === "__TODAS__" || c.cidade === cidade);
     const autorizados = grupo.filter(c => c.marketing_autorizado);
-    setListaCarregada(null);
     setContatosEditaveis(Array.from(new Set(autorizados.map(c => c.telefone))));
     setMostrarListaCompleta(true);
     toast.info(`${autorizados.length} de ${grupo.length} cadastros possuem autorizacao para campanhas.`);
@@ -1176,10 +1175,10 @@ function AdminCampaignPage() {
             <div className="bg-white rounded-xl border p-6">
               <div className="flex justify-between items-center mb-4">
                 <label className="block text-sm font-bold text-gray-700">
-                  Ou carregar uma Lista Salva
+                  Carregar lista de contatos (salvas e automáticas)
                 </label>
                 <button
-                  onClick={() => refetchListas()}
+                  onClick={() => { void refetchListas(); void atualizarClientesDinamicos(); }}
                   className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
                   title="Atualizar listas"
                 >
@@ -1189,7 +1188,7 @@ function AdminCampaignPage() {
 
               {carregandoListas ? (
                 <div className="text-center text-gray-500 text-sm py-3">Carregando listas...</div>
-              ) : listas.length === 0 ? (
+              ) : listas.length === 0 && cidadesDinamicas.length === 0 ? (
                 <div className="text-center text-gray-400 text-sm py-3">Nenhuma lista criada</div>
               ) : (
                 <>
@@ -1202,6 +1201,11 @@ function AdminCampaignPage() {
                         return;
                       }
 
+                      if (e.target.value.startsWith("cidade:")) {
+                        setListaCarregada(e.target.value);
+                        carregarClientesCidade(e.target.value.slice(7));
+                        return;
+                      }
                       setListaCarregada(e.target.value);
                       const { data } = await supabase
                         .from("contatos_lista")
@@ -1220,11 +1224,20 @@ function AdminCampaignPage() {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
                   >
                     <option value="">Selecione uma lista...</option>
+                    <optgroup label="Automáticas — clientes cadastrados">
+                      {cidadesDinamicas.map(cidade => (
+                        <option key={`cidade:${cidade}`} value={`cidade:${cidade}`}>
+                          {cidade} ({clientesDinamicos.filter(c => c.cidade === cidade).length} cadastros)
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Listas salvas">
                     {listas.map((lista: any) => (
                       <option key={lista.id} value={lista.id}>
                         {lista.nome} ({lista.quantidade_contatos} contatos)
                       </option>
                     ))}
+                    </optgroup>
                   </select>
                   {listaCarregada && (
                     <button
@@ -1268,11 +1281,10 @@ function AdminCampaignPage() {
                   <div>
                     <p className="text-xs font-bold text-blue-700 mb-1">✓ LISTA CARREGADA</p>
                     <p className="text-lg font-bold text-blue-900">
-                      {listas.find((l: any) => l.id === listaCarregada)?.nome}
+                      {listaCarregada.startsWith("cidade:") ? listaCarregada.slice(7) : listas.find((l: any) => l.id === listaCarregada)?.nome}
                     </p>
                     <p className="text-sm text-blue-700 mt-2">
-                      {listas.find((l: any) => l.id === listaCarregada)?.quantidade_contatos ||
-                        contatosEditaveis.length}{" "}
+                      {contatosEditaveis.length}{" "}
                       contatos prontos para enviar
                     </p>
                   </div>
