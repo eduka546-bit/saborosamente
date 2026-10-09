@@ -6,6 +6,7 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
   const ingredients = Array.isArray(product.ingredientes)
     ? product.ingredientes.map(String)
     : String(product.ingredientes || "").split(/[,;]+/);
+  const usesAlcatra = /\balcatra\b/i.test(product.nome || "");
   const result: string[] = [];
   const seen = new Set<string>();
   const add = (text: string) => {
@@ -43,6 +44,7 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
     if (/^carne bovina|^carne de boi|^carne de patinho|^carne bovina em cubos pequenos/.test(normalize(text))) text = "Carne de patinho";
     else if (/^carne moida(?: de patinho)?$/.test(normalize(text))) text = "Carne moída de patinho";
     else if (/^carne desfiada(?: de patinho)?$/.test(normalize(text))) text = "Carne de patinho desfiada";
+    if (usesAlcatra && /^(?:patinho em tiras|tiras de patinho|carne bovina(?: de alcatra)?|tiras de alcatra)$/.test(normalize(text))) text = "Tiras de Alcatra";
     add(text);
   }
   if (["TD01", "TD28", "CO06"].includes(code || "")) add("Molho madeira");
@@ -54,5 +56,5 @@ export function displayIngredients(product: { nome?: string; ingredientes?: unkn
 }
 
 export function withDisplayIngredients<T extends { nome?: string; ingredientes?: unknown }>(product: T) {
-  return { ...product, nome: product.nome?.replace(/alcatra/gi, "Patinho").replace(/carne bovina/gi, "Carne de patinho").replace(/carne moída(?! de patinho)/gi, "Carne moída de patinho"), ingredientes: displayIngredients(product) };
+  return { ...product, nome: product.nome?.replace(/carne bovina/gi, "Carne de patinho").replace(/carne moída(?! de patinho)/gi, "Carne moída de patinho"), ingredientes: displayIngredients(product) };
 }

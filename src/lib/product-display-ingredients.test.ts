@@ -20,3 +20,17 @@ describe("confirmed public ingredient display", () => {
     expect(original.nome).toBe("TD01 - Alcatra");
   });
 });
+
+describe("registered beef cuts", () => {
+  it.each(["TD01 - Tiras de Alcatra ao Molho Madeira", "TD28 - Penne com Tiras de Alcatra"])("preserves Alcatra in %s and matches its displayed ingredients", (nome) => {
+    const result = withDisplayIngredients({ nome, ingredientes: ["Patinho em tiras", "Tiras de Alcatra"] });
+    expect(result.nome).toBe(nome);
+    expect(result.ingredientes.filter((item) => item === "Tiras de Alcatra")).toHaveLength(1);
+    expect(result.ingredientes).not.toContain("Patinho em tiras");
+  });
+  it("keeps Patinho for products registered with that cut", () => {
+    const result = withDisplayIngredients({ nome: "CO04 - Tiras de Carne de Patinho", ingredientes: ["Tiras de patinho"] });
+    expect(result.nome).toContain("Patinho");
+    expect(result.ingredientes).toContain("Tiras de patinho");
+  });
+});
