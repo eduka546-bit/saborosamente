@@ -179,6 +179,28 @@ function AdminCampaignPage() {
     refetchOnMount: true, // Refetch ao montar
   });
 
+  type ClienteDinamico = { nome: string; telefone: string; cidade: string | null; email: string | null; marketing_autorizado: boolean };
+  const { data: clientesDinamicos = [], refetch: atualizarClientesDinamicos } = useQuery({
+    queryKey: ["campanhas-clientes-por-cidade"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("clientes_campanhas_por_cidade");
+      if (error) throw error;
+      return (data ?? []) as ClienteDinamico[];
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const cidadesDinamicas = Array.from(new Set(clientesDinamicos.map(c => c.cidade?.trim()).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, "pt-BR"));
+  const carregarClientesCidade = (cidade: string) => {
+    const grupo = clientesDinamicos.filter(c => cidade === "__TODAS__" || c.cidade === cidade);
+    const autorizados = grupo.filter(c => c.marketing_autorizado);
+    setListaCarregada(null);
+    setContatosEditaveis(Array.from(new Set(autorizados.map(c => c.telefone))));
+    setMostrarListaCompleta(true);
+    toast.info(`${autorizados.length} de ${grupo.length} cadastros possuem autorizacao para campanhas.`);
+  };
+
   // Estado para gerenciar listas
   const [novaListaNome, setNovaListaNome] = useState("");
   const [novaListaDescricao, setNovaListaDescricao] = useState("");
@@ -1219,6 +1241,26 @@ function AdminCampaignPage() {
               )}
             </div>
 
+            <div className="mt-4 rounded-xl border border-green-200 bg-green-50/30 p-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm text-green-900">Clientes cadastrados — listas automáticas por cidade</p>
+                  <p className="text-xs text-gray-600">Atualização a cada minuto. Apenas contatos com autorização entram na campanha.</p>
+                </div>
+                <button type="button" onClick={() => void atualizarClientesDinamicos()}
+                  className="shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold text-green-800">Atualizar</button>
+              </div>
+              <select defaultValue="" onChange={e => { if(e.target.value) carregarClientesCidade(e.target.value); }}
+                className="w-full rounded-lg border bg-white px-3 py-2 text-sm">
+                <option value="" disabled>Escolha a cidade dos clientes cadastrados...</option>
+                <option value="__TODAS__">Todas as cidades ({clientesDinamicos.length} cadastros)</option>
+                {cidadesDinamicas.map(cidade => (
+                  <option key={cidade} value={cidade}>
+                    {cidade} ({clientesDinamicos.filter(c => c.cidade === cidade).length} cadastros)
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* Info Box - Lista Carregada */}
             {listaCarregada && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
