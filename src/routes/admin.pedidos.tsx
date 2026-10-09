@@ -16,6 +16,7 @@ import {
   Eye,
   Printer,
   Smartphone,
+  Truck,
   MapPin,
   User,
   Receipt,
@@ -989,6 +990,16 @@ function AdminOrdersPage() {
           >
             <Smartphone size={15} />
             WhatsApp
+          </a>
+
+          {/* Resumo manual para os entregadores de Corupá/regionais */}
+          <a
+            href="/admin/pedidos/entregadores"
+            className="bg-green-50 px-4 py-3 rounded-xl border border-green-200 flex items-center gap-2 text-xs font-bold text-green-800 hover:bg-green-100 transition-all"
+            title="Montar resumo das entregas para enviar aos motoristas"
+          >
+            <Truck size={15} />
+            Resumo entregadores
           </a>
 
           {/* Atalho rápido para registrar pedido P10 */}
