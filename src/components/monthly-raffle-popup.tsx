@@ -8,8 +8,6 @@ import { toast } from "sonner";
 
 const PARTICIPOU_KEY = "saborosamente.sorteio.participou.v1";
 const EXIBIDO_KEY = "saborosamente.sorteio.exibido_sessao.v1";
-const DISPENSADO_KEY = "saborosamente.sorteio.dispensado_em.v1";
-const DISPENSA_COOLDOWN = 30 * 24 * 60 * 60 * 1000;
 
 interface MonthlyRafflePopupProps {
   regulamentoUrl?: string;
@@ -27,38 +25,30 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
     if (typeof window === "undefined") return;
     const visto = window.sessionStorage.getItem(EXIBIDO_KEY) === "1";
     const participou = window.localStorage.getItem(PARTICIPOU_KEY) === "1";
-    const dispensado = Number(window.localStorage.getItem(DISPENSADO_KEY) ?? 0);
-    if (visto || participou || (dispensado > 0 && Date.now() - dispensado < DISPENSA_COOLDOWN)) return;
+    if (visto || participou) return;
 
     let cancelled = false;
     let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    void supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (cancelled || session?.user || error) return;
-      timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
         if (cancelled) return;
         // Uma única exibição na sessão; recusa recebe intervalo de 30 dias.
         window.sessionStorage.setItem(EXIBIDO_KEY, "1");
         setOpen(true);
       }, 7500);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        if (timeout) clearTimeout(timeout);
-        setOpen(false);
-      }
-    });
 
+    const openManually = () => { setErro(""); setOpen(true); };
+    window.addEventListener("saborosamente:abrir-sorteio", openManually);
     return () => {
       cancelled = true;
       if (timeout) clearTimeout(timeout);
-      subscription.unsubscribe();
+      window.removeEventListener("saborosamente:abrir-sorteio", openManually);
     };
   }, [regulamentoUrl]);
 
   const fechar = () => {
     if (sending) return;
-    window.localStorage.setItem(DISPENSADO_KEY, String(Date.now()));
+
     setOpen(false);
   };
 
@@ -78,7 +68,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
     setSending(true);
     try {
       const sessionId = getAbandonedCartSessionId();
-      const { error } = await supabase.rpc("registrar_lead_sorteio", {
+      const { data, error } = await supabase.rpc("registrar_lead_sorteio", {
         p_nome: nome.trim(),
         p_telefone: digits,
         p_session_id: sessionId,
@@ -87,6 +77,10 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_optin_carrinho: false,
       });
       if (error) throw error;
+      if (data === "ja_participando") {
+        setErro("Este telefone já está participando do sorteio! Não é necessário se cadastrar novamente.");
+        return;
+      }
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
       // Aceitar o regulamento da campanha não equivale a optar por WhatsApp promocional.
@@ -139,7 +133,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
             Uma semana de marmitas pode ser sua!
           </h2>
           <p className="text-sm text-[#ecf4e8] mt-2 leading-relaxed">
-            Novos visitantes podem se cadastrar para participar do sorteio mensal.
+            Cadastre-se para participar do sorteio mensal da SaborosaMente.
           </p>
         </div>
         <form onSubmit={enviar} className="p-5 sm:p-6 space-y-4">
@@ -180,7 +174,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
             {sending ? "Registrando..." : "Quero participar"}
           </button>
           <p className="text-center text-xs text-[#657368] flex justify-center gap-1 items-center">
-            <ShieldCheck size={13}/> Participação gratuita. Você pode retirar sua autorização de contato quando quiser.
+            <ShieldCheck size={13}/> Participação gratuita. Uma inscrição por telefone.
           </p>
           <button type="button" onClick={fechar}
             className="w-full text-center text-xs font-medium py-1 text-[#63766a] hover:text-[#075e3c]">
