@@ -25,6 +25,10 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
     if (typeof window === "undefined") return;
     const openManually = () => { setErro(""); setOpen(true); };
     window.addEventListener("saborosamente:abrir-sorteio", openManually);
+    if (window.location.hash === "#participar-sorteio") {
+      openManually();
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const visto = window.sessionStorage.getItem(EXIBIDO_KEY) === "1";
     const participou = window.localStorage.getItem(PARTICIPOU_KEY) === "1";
