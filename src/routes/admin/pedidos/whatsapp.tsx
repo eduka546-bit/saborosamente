@@ -828,8 +828,8 @@ function WhatsappAdminOrderPage() {
                 <p className="text-xs text-amber-700">
                   Valor já pago no comprovante: será registrado no pedido, sem retirar novamente do saldo de cashback do cliente.
                 </p>
-              )
-                            {declaredTotal !== null && (
+              )}
+              {declaredTotal !== null && (
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Total informado no WhatsApp</span>
                   <span>{money(declaredTotal)}</span>
