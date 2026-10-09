@@ -100,6 +100,7 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   const logoSrc = "/logo-saborosamente-oficial.png";
+  const abrirSorteio = () => window.dispatchEvent(new Event("saborosamente:abrir-sorteio"));
 
   const visibleLinks = links.filter((link) => {
     if (link.label === "Cashback" || link.label === "Indique e Ganhe") {
@@ -174,6 +175,12 @@ export function SiteHeader() {
                   </Link>
                 ),
               )}
+              {settings?.sorteio_ativo && (
+                <button type="button" onClick={abrirSorteio}
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-base font-semibold text-foreground hover:bg-secondary text-left">
+                  <Gift size={18} className="text-primary"/> Participar do sorteio
+                </button>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -220,6 +227,12 @@ export function SiteHeader() {
               </Link>
             ),
           )}
+          {settings?.sorteio_ativo && (
+            <button type="button" onClick={abrirSorteio} style={{ color: navText }}
+              className="flex items-center gap-2 text-sm font-semibold whitespace-nowrap transition-opacity hover:opacity-70">
+              <Gift size={16} className="opacity-80 hidden sm:block"/> Participar do sorteio
+            </button>
+          )}
         </nav>
 
         {/* Right side - User and Cart */}
@@ -258,6 +271,12 @@ export function SiteHeader() {
                       <Lock className="h-4 w-4" />
                       <span className="font-semibold text-sm">Painel Admin</span>
                     </Link>
+                  </DropdownMenuItem>
+                )}
+                {settings?.sorteio_ativo && (
+                  <DropdownMenuItem onClick={abrirSorteio} className="rounded-xl cursor-pointer">
+                    <Gift className="h-4 w-4 mr-2" />
+                    <span className="font-semibold text-sm">Participar do sorteio</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
