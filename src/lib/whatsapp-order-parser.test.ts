@@ -189,7 +189,7 @@ Total: 280,20 + 5 = R$ 285,20`);
   });
 
   it("sem cashback, recibo usa o total bruto informado sem inventar desconto", () => {
-    const p = interpretarResumoWhatsapp("1X SO11 - CALDO VERDE\\nSUBTOTAL: R$ 18,00\\nTAXA DE ENTREGA: R$ 5,00\\nTOTAL: R$ 23,00");
+    const p = interpretarResumoWhatsapp("1X SO11 - CALDO VERDE\nSUBTOTAL: R$ 18,00\nTAXA DE ENTREGA: R$ 5,00\nTOTAL: R$ 23,00");
     expect(p.itens).toEqual([{ codigo: "SO11", quantidade: 1 }]);
     expect(p.cashbackUsado).toBe(0);
     expect(p.totalPedido).toBe(23);
