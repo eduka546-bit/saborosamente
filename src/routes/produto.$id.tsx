@@ -107,6 +107,8 @@ function ProdutoPage() {
 
   // Determinar tamanhos disponíveis
   const weights = (() => {
+    if (product?.tipo_produto === "complemento") return ["150g"];
+    if (product?.tipo_produto === "sopa") return ["400g"];
     if (!product) return [];
     const hasSizes = product.preco_300g || product.preco_400g;
     if (hasSizes) {

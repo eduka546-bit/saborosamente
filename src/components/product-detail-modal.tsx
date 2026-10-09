@@ -78,6 +78,8 @@ export function ProductDetailModal({
 
   // Tamanhos disponíveis
   const weights = (() => {
+    if (product?.tipo_produto === "complemento") return ["150g"];
+    if (product?.tipo_produto === "sopa") return ["400g"];
     const hasSizes = product?.preco_300g || product?.preco_400g;
     if (hasSizes) {
       const sizes: string[] = ["200g"];
