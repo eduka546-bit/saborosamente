@@ -131,8 +131,12 @@ function AdminCarrinhosAbandonadosPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Carrinhos Abandonados</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Recupere vendas perdidas entrando em contato com clientes via WhatsApp.
+          Recupere vendas perdidas entrando em contato com clientes via WhatsApp, respeitando as autorizações de contato.
         </p>
+        <a href="/admin/pedidos/leads"
+          className="inline-flex mt-3 items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-800 hover:bg-green-100">
+          Ver leads do sorteio e vínculos com carrinhos
+        </a>
       </div>
 
       {/* Stats */}
