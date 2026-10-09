@@ -100,7 +100,13 @@ export function SiteHeader() {
   const announceText = settings?.announcement_text_color || "#ffffff";
 
   const logoSrc = "/logo-saborosamente-oficial.png";
-  const abrirSorteio = () => window.dispatchEvent(new Event("saborosamente:abrir-sorteio"));
+  const abrirSorteio = () => {
+    if (window.location.pathname !== "/") {
+      window.location.assign("/#participar-sorteio");
+      return;
+    }
+    window.dispatchEvent(new Event("saborosamente:abrir-sorteio"));
+  };
 
   const visibleLinks = links.filter((link) => {
     if (link.label === "Cashback" || link.label === "Indique e Ganhe") {
