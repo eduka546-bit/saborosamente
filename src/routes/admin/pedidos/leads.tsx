@@ -82,7 +82,7 @@ function LeadsSorteioAdmin() {
 
   const salvarConfig = useMutation({
     mutationFn: async () => {
-      if (ativo && !confirmouAprovacao) throw new Error("Confirme que a promoção já foi autorizada pela SPA/MF.");
+      if (ativo && !config?.ativo && !confirmouAprovacao) throw new Error("Confirme que a promoção já foi autorizada pela SPA/MF.");
       const { data, error } = await supabase.rpc("atualizar_sorteio_config_admin", {
         p_ativo: ativo,
         p_regulamento_url: regulamento.trim(),
