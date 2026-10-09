@@ -309,11 +309,15 @@ function AdminClientesPage() {
       {selectedClient && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50">
           <div className="bg-white h-full w-full max-w-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
+              <button type="button" aria-label="Fechar painel" onClick={() => setSelectedClient(null)}
+                className="pointer-events-auto rounded-full bg-white border shadow-md p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700">
+                <X size={22} />
+              </button>
+            </div>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-[#5850ec]">Detalhes do Cliente</h2>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedClient(null)}>
-                <X size={24} />
-              </Button>
+
             </div>
 
             <div className="bg-[#5850ec]/5 rounded-2xl p-6 mb-8 flex flex-col md:flex-row gap-6">
