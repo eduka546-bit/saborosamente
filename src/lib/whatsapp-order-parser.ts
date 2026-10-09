@@ -38,6 +38,7 @@ export type PedidoInterpretado = {
   pagamento: "pix" | "alimentacao" | "mercadopago" | "dinheiro" | "cartao" | null;
   descontoPercentual: number | null;
   descontoValor: number;
+  cashbackUsado: number;
   totalPedido: number | null;
   saldoAnterior: number | null;
   totalAcumulado: number | null;
@@ -88,6 +89,15 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     : null;
   const cidadeSigla = cabecalho.match(/\s+-\s+([A-Z]{2,5})\s*:?\s*$/i)?.[1]?.toUpperCase() ?? null;
 
+  // Comprovante/recibo de pedidos: lista livre com código, produto em
+  // múltiplas linhas e valores no rodapé (sem blocos com tamanhos).
+  const subtotalRecibo = valor(linha(/^SUBTOTAL\s*:/i).match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
+  const taxaRecibo = valor(linha(/^TAXA\s+DE\s+ENTREGA\s*:/i).match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
+  const totalRecibo = valor(linha(/^TOTAL\s*:/i).match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
+  const totalAPagar = valor(linha(/^TOTAL\s+A\s+SER\s+PAGO\s*:/i).match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
+  const cashbackRecibo = valor(linha(/^PAGO\s+COM\s+CASHBACK\s*:/i).match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]) ?? 0;
+  const temRecibo = subtotalRecibo !== null && totalRecibo !== null;
+
   const blocos: BlocoPedido[] = [];
   let blocoAtual: { titulo: string; quantidade: number; subtotal: number | null; linhas: string[] } | null = null;
   for (const l of linhas) {
@@ -110,24 +120,28 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const peso = blocoPrincipal?.peso ?? "300g";
   const precoUnitario = blocoPrincipal?.itens[0]?.precoUnitario ??
     valor(texto.replace(/[_*]/g, "").match(/\b\d+\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i)?.[1]);
-  const itensDetalhados = blocos.length
+  const itensDetalhados: ItemDetalhado[] = blocos.length
     ? blocos.flatMap((b) => b.itens)
-    : lerCodigos(texto).map((item) => ({
-        ...item, peso, pesoExibicao: peso, precoUnitario,
-      }));
+    : temRecibo
+      ? ratearItensRecibo(lerCodigos(texto), subtotalRecibo)
+      : lerCodigos(texto).map((item) => ({
+          ...item, peso, pesoExibicao: peso, precoUnitario,
+        }));
+
   const itens = itensDetalhados.map(({ codigo, quantidade }) => ({ codigo, quantidade }));
   const refeicoes = blocos.find((b) => b.tipo === "refeicoes");
   const quantidadeDeclarada = refeicoes?.quantidadeDeclarada ?? null;
   const subtotalDeclarado = refeicoes?.subtotalDeclarado ?? null;
 
   const entrega = linha(/^Entrega(?:\s*\/\s*Retirada)?\s*:/i);
-  const taxaEntrega = /^Entrega(?:\s*\/\s*Retirada)?\s*:\s*Retirada\b/i.test(entrega)
-    ? 0 : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
+  const taxaEntrega = temRecibo ? taxaRecibo :
+    /^Entrega(?:\s*\/\s*Retirada)?\s*:\s*Retirada\b/i.test(entrega)
+      ? 0 : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
   const local = linha(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:/i);
   const localTexto = local.replace(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:\s*/i, "").trim();
   const metodoEntrega = /:\s*retirada\b/i.test(entrega) || /^retirada\b/i.test(localTexto)
     ? "retirada"
-    : localTexto || /:\s*(?:R\$\s*)?[\d.,]+/i.test(entrega) ? "entrega" : null;
+    : localTexto || /:\s*(?:R\$\s*)?[\d.,]+/i.test(entrega) || (temRecibo && taxaRecibo !== null) ? "entrega" : null;
   let endereco: PedidoInterpretado["endereco"] = null;
   let referencia: string | null = null;
   if (metodoEntrega === "entrega" && localTexto) {
@@ -159,15 +173,26 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const totalAcumulado = saldoAnterior !== null && igualdades.length > 1
     ? igualdades[igualdades.length - 1] : null;
   const descontoPercentual = valor(totalLinha.match(/-\s*([\d.,]+)\s*%/i)?.[1]);
-  const totalPedido = saldoAnterior !== null
-    ? (igualdades[0] ?? null)
-    : (igualdades.at(-1) ?? valor(totalLinha.match(/^Total\s*:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]));
+  const totalPedido = temRecibo
+    ? (totalAPagar ?? centavos(totalRecibo! - cashbackRecibo))
+    : saldoAnterior !== null
+      ? (igualdades[0] ?? null)
+      : (igualdades.at(-1) ?? valor(totalLinha.match(/^Total\s*:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]));
   const bruto = centavos(itensDetalhados.reduce(
     (s, item) => s + item.quantidade * (item.precoUnitario ?? 0), 0,
   ) + (metodoEntrega === "retirada" ? 0 : taxaEntrega ?? 0));
   const descontoValor = descontoPercentual !== null
     ? centavos(bruto * descontoPercentual / 100) : 0;
   const avisos = blocos.flatMap((b) => b.avisos);
+  if (temRecibo && itens.length) {
+    avisos.push("Comprovante sem preços individuais: o subtotal foi dividido entre as unidades. Confira os valores antes de salvar.");
+    const subtotalCalculado = centavos(itensDetalhados.reduce((sum, item) => sum + item.quantidade * (item.precoUnitario ?? 0), 0));
+    if (Math.abs(subtotalCalculado - subtotalRecibo!) > 0.009) avisos.push("Subtotal calculado não corresponde ao comprovante.");
+    if (taxaRecibo !== null && Math.abs((subtotalRecibo! + taxaRecibo) - totalRecibo!) > 0.009)
+      avisos.push("Subtotal e taxa não correspondem ao total do comprovante.");
+    if (totalAPagar !== null && Math.abs(centavos(totalRecibo! - cashbackRecibo) - totalAPagar) > 0.009)
+      avisos.push("Total a pagar não corresponde ao desconto do cashback informado.");
+  }
   if (descontoPercentual !== null && (descontoPercentual < 0 || descontoPercentual > 100)) {
     avisos.push("Desconto percentual inválido.");
   }
@@ -175,7 +200,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     nome, cidadeSigla, peso, precoUnitario, itens, itensDetalhados, blocos, avisos,
     quantidadeDeclarada, subtotalDeclarado, taxaEntrega, metodoEntrega,
     endereco, referencia, horario, pagamento, descontoPercentual, descontoValor,
-    totalPedido, saldoAnterior, totalAcumulado,
+    cashbackUsado: cashbackRecibo, totalPedido, saldoAnterior, totalAcumulado,
   };
 }
 
@@ -252,4 +277,31 @@ function interpretarBloco(raw: {
     descricao: raw.titulo, tipo, quantidadeDeclarada: raw.quantidade, unidadesEsperadas: esperado,
     peso, subtotalDeclarado: raw.subtotal, itens, avisos,
   };
+}
+
+/** Quando o comprovante não traz preços por sopa, preserva cada centavo do
+ * subtotal ao distribuir unidades: nenhuma diferença artificial de arredondamento.
+ * O valor será editável e explicitamente marcado como estimativa no admin. */
+function ratearItensRecibo(itens: ItemInterpretado[], subtotal: number): ItemDetalhado[] {
+  const quantidade = itens.reduce((sum, item) => sum + item.quantidade, 0);
+  if (quantidade <= 0 || subtotal < 0) return [];
+  const centavosSubtotal = Math.round(subtotal * 100);
+  const base = Math.floor(centavosSubtotal / quantidade);
+  let extra = centavosSubtotal - base * quantidade;
+  const detalhados: ItemDetalhado[] = [];
+  for (const item of itens) {
+    for (let i = 0; i < item.quantidade; i++) {
+      const precoCentavos = base + (extra > 0 ? 1 : 0);
+      if (extra > 0) extra--;
+      const unitPrice = precoCentavos / 100;
+      const peso: PesoPedido = item.codigo.startsWith("SO") ? "400g" : "300g";
+      const ultimo = detalhados[detalhados.length - 1];
+      if (ultimo && ultimo.codigo === item.codigo && ultimo.peso === peso && ultimo.precoUnitario === unitPrice) {
+        ultimo.quantidade += 1;
+      } else {
+        detalhados.push({ codigo: item.codigo, quantidade: 1, peso, pesoExibicao: peso, precoUnitario: unitPrice });
+      }
+    }
+  }
+  return detalhados;
 }
