@@ -16,6 +16,7 @@ import {
   Eye,
   Printer,
   Smartphone,
+  Gift,
   Truck,
   MapPin,
   User,
@@ -1002,6 +1003,15 @@ function AdminOrdersPage() {
             Resumo entregadores
           </a>
 
+          {/* Captação de novos visitantes e participação no sorteio */}
+          <a
+            href="/admin/pedidos/leads"
+            className="bg-white px-4 py-3 rounded-xl border border-gray-200 flex items-center gap-2 text-xs font-bold text-green-800 hover:border-green-500 transition-all"
+            title="Leads do sorteio e carrinhos abandonados"
+          >
+            <Gift size={15} />
+            Leads e sorteio
+          </a>
           {/* Atalho rápido para registrar pedido P10 */}
           <a
             href="/admin/registrar-p10"
