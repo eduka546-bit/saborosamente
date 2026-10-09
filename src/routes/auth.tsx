@@ -11,6 +11,7 @@ import { Link } from "@tanstack/react-router";
 import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -172,6 +173,9 @@ function AuthPage() {
           return;
         }
 
+        // Se for a mesma pessoa que se inscreveu no pop-up, o backend
+        // confirma telefone + sessão antes de associar o lead.
+        await vincularLeadPreCadastroAutenticado();
         toast.success("Bem-vindo de volta!");
       } else {
         const cpfNormalizado = cpf.replace(/\D/g, "");
@@ -250,6 +254,7 @@ function AuthPage() {
           return;
         }
 
+        await vincularLeadPreCadastroAutenticado();
         toast.success("Cadastro realizado com sucesso!");
       }
       irAposLogin();
