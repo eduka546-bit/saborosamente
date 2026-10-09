@@ -148,4 +148,51 @@ Total: 280,20 + 5 = R$ 285,20`);
     expect(Math.round(valorCalculado * 100) / 100).toBe(285.1);
   });
 
+  it("interpreta comprovante de 7 sopas, com nomes quebrados, frete e cashback pago", () => {
+    const receipt = `1X SO04 - SOPA DE FEIJAO COM
+   MACARRAO (MINESTRA)
+    1X SO07 - CREME DE ABOBORA
+   CABOTIA COM CARNE DESFIADA
+    1X SO08 - CREME DE MANDIOQUINHA
+   COM FRANGO E BACON
+    1X SO09 - CREME DE BATATA
+   INGLESA COM CARNE DESFIADA
+    1X SO10 - CALDO DE AIPIM COM
+   CARNE MOIDA
+    2X SO11 - CALDO VERDE PORTUGUES
+   DE BATATA COM CALABRESA E COUVE
+   MANTEIGA
+
+   ================================
+
+   SUBTOTAL:              R$ 115,00
+   TAXA DE ENTREGA:        R$ 10,00
+   TOTAL:                 R$ 125,00
+
+   PAGO COM CASHBACK:       R$ 1,71
+   TOTAL A SER PAGO:      R$ 123,29`;
+    const p = interpretarResumoWhatsapp(receipt);
+    expect(p.itens.map(i => [i.codigo, i.quantidade])).toEqual([
+      ["SO04", 1], ["SO07", 1], ["SO08", 1],
+      ["SO09", 1], ["SO10", 1], ["SO11", 1], ["SO11", 1],
+    ]);
+    expect(p.itens.reduce((s, i) => s + i.quantidade, 0)).toBe(7);
+    expect(p.itensDetalhados.every(i => i.peso === "400g")).toBe(true);
+    expect(p.itensDetalhados.reduce((s, i) => s + Math.round(i.quantidade * (i.precoUnitario ?? 0) * 100), 0)).toBe(11500);
+    expect(p.taxaEntrega).toBe(10);
+    expect(p.metodoEntrega).toBe("entrega");
+    expect(p.totalPedido).toBe(123.29);
+    expect(p.cashbackUsado).toBe(1.71);
+    expect(p.descontoValor).toBe(0);
+    expect(p.avisos).toContain("Comprovante sem preços individuais: o subtotal foi dividido entre as unidades. Confira os valores antes de salvar.");
+    expect(p.avisos.some(a => a.includes("não corresponde"))).toBe(false);
+  });
+
+  it("sem cashback, recibo usa o total bruto informado sem inventar desconto", () => {
+    const p = interpretarResumoWhatsapp("1X SO11 - CALDO VERDE\\nSUBTOTAL: R$ 18,00\\nTAXA DE ENTREGA: R$ 5,00\\nTOTAL: R$ 23,00");
+    expect(p.itens).toEqual([{ codigo: "SO11", quantidade: 1 }]);
+    expect(p.cashbackUsado).toBe(0);
+    expect(p.totalPedido).toBe(23);
+  });
+
 });
