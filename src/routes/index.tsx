@@ -53,6 +53,7 @@ import {
   type MarmitaGrupo,
 } from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
+import { MonthlyRafflePopup } from "@/components/monthly-raffle-popup";
 import { DeliveryRegionMiniMap, HomeInfoModal } from "@/components/home-info-modal";
 import heroMarmitas from "@/assets/hero-marmitas.jpg";
 
@@ -753,10 +754,13 @@ function Index() {
 
   return (
     <>
-      {/* Popup de boas-vindas */}
-      {settings?.popup_boas_vindas?.ativo && (
+      {/* Promoção com regulamento: desligada até aprovação e ativação pelo admin.
+          Não sobrepõe o pop-up de boas-vindas: somente um pode aparecer. */}
+      {settings?.sorteio_ativo && typeof settings?.sorteio_regulamento_url === "string" ? (
+        <MonthlyRafflePopup regulamentoUrl={settings.sorteio_regulamento_url} />
+      ) : settings?.popup_boas_vindas?.ativo ? (
         <WelcomePopup config={settings.popup_boas_vindas as any} />
-      )}
+      ) : null}
 
       <HomeInfoModal kind="delivery" open={deliveryModalOpen} onOpenChange={setDeliveryModalOpen} />
       <HomeInfoModal kind="store" open={storeModalOpen} onOpenChange={setStoreModalOpen} />
