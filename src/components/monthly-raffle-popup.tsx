@@ -11,7 +11,7 @@ const DISPENSADO_KEY = "saborosamente.sorteio.dispensado_em.v1";
 const DISPENSA_COOLDOWN = 30 * 24 * 60 * 60 * 1000;
 
 interface MonthlyRafflePopupProps {
-  regulamentoUrl: string;
+  regulamentoUrl?: string;
 }
 
 export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) {
@@ -25,7 +25,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    if (typeof window === "undefined" || !regulamentoUrl.startsWith("https://")) return;
+    if (typeof window === "undefined") return;
     const visto = window.sessionStorage.getItem(EXIBIDO_KEY) === "1";
     const participou = window.localStorage.getItem(PARTICIPOU_KEY) === "1";
     const dispensado = Number(window.localStorage.getItem(DISPENSADO_KEY) ?? 0);
@@ -169,7 +169,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           <div className="space-y-3 rounded-xl bg-[#f3f7ee] p-3.5">
             <label className="flex gap-2.5 items-start text-xs leading-relaxed text-[#354b3d] cursor-pointer">
               <input type="checkbox" checked={aceite} onChange={e => setAceite(e.target.checked)} required className="mt-0.5 accent-[#08764a]"/>
-              <span>Li e aceito o <a href={regulamentoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">regulamento da promoção</a> e confirmo atender aos requisitos de participação.</span>
+              <span>Estou ciente de que a participação é gratuita, destinada a novos visitantes e que, se contemplado, deixarei de participar das próximas edições. {regulamentoUrl?.startsWith("https://") && <a href={regulamentoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">Ver condições completas</a>}</span>
             </label>
             <label className="flex gap-2.5 items-start text-xs leading-relaxed text-[#354b3d] cursor-pointer">
               <input type="checkbox" checked={marketing} onChange={e => setMarketing(e.target.checked)} className="mt-0.5 accent-[#08764a]"/>
