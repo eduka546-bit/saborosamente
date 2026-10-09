@@ -13,7 +13,7 @@ import {
   Eye,
   X,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,14 @@ function AdminCarrinhosAbandonadosPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [selectedCarrinho, setSelectedCarrinho] = useState<any>(null);
+  useEffect(() => {
+    if (!selectedCarrinho) return;
+    const fecharEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedCarrinho(null);
+    };
+    document.addEventListener("keydown", fecharEsc);
+    return () => document.removeEventListener("keydown", fecharEsc);
+  }, [selectedCarrinho]);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["carrinhos-abandonados-admin"],
@@ -330,7 +338,7 @@ function AdminCarrinhosAbandonadosPage() {
 
       {/* Modal de detalhes */}
       {selectedCarrinho && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedCarrinho(null); }}>
           <div className="bg-white h-full w-full max-w-md p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
             <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
               <button type="button" aria-label="Fechar painel" onClick={() => setSelectedCarrinho(null)}
