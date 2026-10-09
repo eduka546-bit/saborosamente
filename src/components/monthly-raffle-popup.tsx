@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
+import { toast } from "sonner";
 
 const PARTICIPOU_KEY = "saborosamente.sorteio.participou.v1";
 const EXIBIDO_KEY = "saborosamente.sorteio.exibido_sessao.v1";
@@ -86,6 +87,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       });
       if (error) throw error;
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
+      toast.success("Cadastro recebido! Se você atender aos requisitos do regulamento, estará incluído nos sorteios previstos.");
       window.sessionStorage.setItem(EXIBIDO_KEY, "1");
       setOpen(false);
       // Se já houver produtos no carrinho, salva um snapshot sem esperar 3min.
