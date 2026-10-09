@@ -23,10 +23,14 @@ type Lead = {
   created_at: string;
   contemplado_em: string | null;
 };
+type Vencedor = { lead_id: string; ano: number; mes: number; registrado_em: string };
 type Config = { ativo: boolean; regulamento_url: string | null; certificado: string | null };
 
 function LeadsSorteioAdmin() {
   const qc = useQueryClient();
+  const anoAtual = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric" }).format(new Date()));
+  const mesAtual = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", month: "numeric" }).format(new Date()));
+  const [mesSorteio, setMesSorteio] = useState(mesAtual);
   const [termo, setTermo] = useState("");
   const { data: config, isLoading: carregandoConfig } = useQuery({
     queryKey: ["sorteio-admin-config"],
@@ -50,6 +54,18 @@ function LeadsSorteioAdmin() {
     },
     staleTime: 20_000,
   });
+
+  const { data: vencedores = [] } = useQuery({
+    queryKey: ["sorteio-vencedores", anoAtual],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sorteio_contemplados")
+        .select("lead_id,ano,mes,registrado_em").eq("ano", anoAtual);
+      if (error) throw error;
+      return (data ?? []) as Vencedor[];
+    },
+  });
+  const idsContemplados = useMemo(() => new Set(vencedores.map(v => v.lead_id)), [vencedores]);
+  const mesesOcupados = useMemo(() => new Set(vencedores.map(v => v.mes)), [vencedores]);
 
   const { data: carts = [] } = useQuery({
     queryKey: ["sorteio-admin-carrinhos"],
@@ -89,22 +105,22 @@ function LeadsSorteioAdmin() {
 
   const marcarContemplado = useMutation({
     mutationFn: async (lead: Lead) => {
-      const { error } = await supabase.from("sorteio_leads")
-        .update({ status: "contemplado", contemplado_em: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq("id", lead.id).eq("status", "participando");
+      const { error } = await supabase.rpc("registrar_contemplado_sorteio", {
+        p_lead_id: lead.id, p_ano: anoAtual, p_mes: mesSorteio,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sorteio-admin-leads"] });
-      toast.success("Contemplado registrado. Este telefone não participa dos próximos meses.");
+      void qc.invalidateQueries({ queryKey: ["sorteio-vencedores", anoAtual] });
+      toast.success("Contemplado registrado! Participará novamente em janeiro do próximo ano.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const filtrados = leads.filter((l) =>
     (l.nome + " " + l.telefone).toLocaleLowerCase("pt-BR").includes(termo.toLocaleLowerCase("pt-BR")));
-  const participantes = leads.filter(l => l.status === "participando").length;
-  const contemplados = leads.filter(l => l.status === "contemplado").length;
+  const participantes = leads.filter(l => l.status === "participando" && !idsContemplados.has(l.id)).length;
+  const contemplados = vencedores.length;
   const consentidosRecuperacao = leads.filter(l => l.optin_carrinho).length;
   const comCarrinhos = leads.filter(l => carrinhosPorSessao.has(l.session_id)).length;
 
@@ -115,13 +131,13 @@ function LeadsSorteioAdmin() {
           <ArrowLeft size={16}/> Voltar aos pedidos
         </a>
         <h1 className="flex gap-2 items-center text-2xl font-bold text-[#075d3a]"><Gift size={26}/> Leads e sorteio mensal</h1>
-        <p className="text-sm text-gray-500 mt-1">Cadastro único de novos visitantes, vínculo com carrinho abandonado e participação até contemplação.</p>
+        <p className="text-sm text-gray-500 mt-1">Cadastro único de todos os clientes. Doze sorteios anuais: vencedores retornam à lista em janeiro do ano seguinte.</p>
       </div>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          ["Inscrições", leads.length], ["Participando", participantes],
-          ["Contemplados", contemplados], ["Vinculados a carrinho", comCarrinhos],
+          ["Inscrições", leads.length], ["Elegíveis no ano", participantes],
+          ["Contemplados no ano", contemplados], ["Vinculados a carrinho", comCarrinhos],
         ].map(([label, valor]) => (
           <div key={label} className="bg-white border rounded-xl p-4">
             <p className="text-xs text-gray-500">{label}</p>
@@ -134,7 +150,7 @@ function LeadsSorteioAdmin() {
         <div className="flex justify-between items-center flex-wrap gap-3">
           <div>
             <h2 className="font-bold text-gray-900 flex gap-2 items-center"><ShieldCheck size={18}/> Pop-up de captação e sorteio</h2>
-            <p className="text-xs text-gray-500 mt-1">Aparece apenas aos novos visitantes. Seu cadastro, carrinho e pré-cadastro já estão integrados.</p>
+            <p className="text-xs text-gray-500 mt-1">Disponível para todos os visitantes, inclusive clientes antigos. Cadastro e carrinho integrados.</p>
           </div>
           <label className="flex items-center gap-3 text-sm font-semibold text-gray-800 cursor-pointer">
             <span>{config?.ativo ? "Ativado" : "Desativado"}</span>
@@ -159,6 +175,15 @@ function LeadsSorteioAdmin() {
             <ShoppingCart size={16}/> Ver carrinhos abandonados
           </a>
         </div>
+        <div className="flex items-center gap-3 flex-wrap text-sm">
+          <label htmlFor="mes-sorteio" className="font-semibold text-gray-700">Mês da premiação ({anoAtual})</label>
+          <select id="mes-sorteio" value={mesSorteio} onChange={e => setMesSorteio(Number(e.target.value))}
+            className="rounded-lg border border-gray-300 px-3 py-2 bg-white">
+            {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+              .map((mes,i) => <option key={mes} value={i+1}>{mes}{mesesOcupados.has(i+1) ? " — vencedor registrado" : ""}</option>)}
+          </select>
+          <span className="text-xs text-gray-500">{contemplados} de 12 contemplados neste ano</span>
+        </div>
         <Input value={termo} onChange={e => setTermo(e.target.value)} placeholder="Pesquisar nome ou telefone" />
         {carregandoLeads && <p className="text-sm text-gray-500">Carregando cadastros...</p>}
         {error && <p className="text-red-600 text-sm">Não foi possível acessar a lista de leads.</p>}
@@ -174,16 +199,16 @@ function LeadsSorteioAdmin() {
                 </p>
                 <p className="text-xs text-gray-500 mt-1">{lead.telefone} · {new Date(lead.created_at).toLocaleDateString("pt-BR")}</p>
                 <p className="text-xs text-gray-600 mt-1">
-                  {lead.status === "contemplado" ? "🏆 Contemplado" : lead.status === "participando" ? "Participa nos próximos meses" : "Inativo"}
+                  {idsContemplados.has(lead.id) ? `🏆 Contemplado em ${anoAtual} — volta no próximo ano` : lead.status === "participando" ? "Elegível aos próximos sorteios do ano" : "Inativo"}
                   {" · "}Marketing: {lead.optin_marketing ? "autorizado" : "não autorizado"}
                   {" · "}Recuperação: {lead.optin_carrinho ? "autorizada" : "não autorizada"}
                   {" · "}Carrinho: {carrinhosPorSessao.get(lead.session_id) ?? "não identificado"}
                 </p>
               </div>
-              {lead.status === "participando" && (
-                <Button variant="outline" size="sm" disabled={marcarContemplado.isPending}
+              {lead.status === "participando" && !idsContemplados.has(lead.id) && (
+                <Button variant="outline" size="sm" disabled={marcarContemplado.isPending || mesesOcupados.has(mesSorteio)}
                   onClick={() => {
-                    if (window.confirm("Registrar " + lead.nome + " como contemplado? Esta pessoa deixará de participar dos próximos sorteios.")) {
+                    if (window.confirm("Registrar " + lead.nome + " como contemplado? Esta pessoa deixará de participar dos outros sorteios deste ano e voltará no próximo ano.")) {
                       marcarContemplado.mutate(lead);
                     }
                   }}>
