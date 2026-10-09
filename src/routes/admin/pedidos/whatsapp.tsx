@@ -129,6 +129,7 @@ function WhatsappAdminOrderPage() {
   const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
   const [totalAcumulado, setTotalAcumulado] = useState<number | null>(null);
   const [descontoAplicado, setDescontoAplicado] = useState(0);
+  const [cashbackUsado, setCashbackUsado] = useState(0);
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
@@ -197,7 +198,12 @@ function WhatsappAdminOrderPage() {
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["whatsapp-admin-products"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("produtos_publicos");
+      // Admin pode registrar produtos sem saldo ou ocultos no e-commerce.
+      // A consulta pública não inclui todos esses itens.
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("id,nome,tipo_produto,preco,preco_300g,preco_400g,estoque_200g,estoque_300g,estoque_400g")
+        .eq("ativo", true);
       if (error) throw error;
       return ((data ?? []) as Product[])
         .filter((p) => String(p.tipo_produto ?? "").toLowerCase() !== "combo")
@@ -219,7 +225,7 @@ function WhatsappAdminOrderPage() {
     () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
     [items],
   );
-  const total = Math.round((subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) - descontoAplicado) * 100) / 100;
+  const total = Math.round((subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) - descontoAplicado - cashbackUsado) * 100) / 100;
   const totalMismatch =
     declaredTotal !== null && Math.abs(Math.round((declaredTotal - total) * 100) / 100) > 0.009;
 
@@ -270,7 +276,7 @@ function WhatsappAdminOrderPage() {
     const quantidadeInterpretada = interpretado.itens.reduce((total, item) => total + item.quantidade, 0);
     if (quantidadeInterpretada === 0) {
       setItems([]);
-      toast.error("Não encontrei os sabores. Use 1xTD01 ou 1xTD(1-9-11-16-28).");
+      toast.error("Não encontrei os sabores. Use 1xTD01, 1xTD(1-9-11) ou 1xSO04.");
       return;
     }
     if (interpretado.blocos.length <= 1 &&
@@ -311,6 +317,7 @@ function WhatsappAdminOrderPage() {
       });
     }
     setDescontoAplicado(interpretado.descontoValor);
+    setCashbackUsado(interpretado.cashbackUsado);
     setPercentualDesconto(interpretado.descontoPercentual);
     setAvisosInterpretacao(interpretado.avisos);
     if (interpretado.avisos.length) {
@@ -349,6 +356,7 @@ function WhatsappAdminOrderPage() {
           tipoCartao,
           taxaEntrega: metodoEntrega === "entrega" ? taxaEntrega : 0,
           descontoAplicado,
+          cashbackUsado,
           cidade,
           bairro,
           rua,
@@ -390,7 +398,8 @@ function WhatsappAdminOrderPage() {
     items.length > 0 &&
     items.every((item) => item.productId && item.quantity > 0 && item.unitPrice >= 0) &&
     !totalMismatch &&
-    descontoAplicado >= 0 && descontoAplicado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
+    descontoAplicado >= 0 && cashbackUsado >= 0 &&
+    descontoAplicado + cashbackUsado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
@@ -628,7 +637,7 @@ function WhatsappAdminOrderPage() {
               <div>
                 <h2 className="font-bold text-gray-800">Itens do pedido</h2>
                 <p className="text-xs text-gray-500">
-                  O estoque é baixado automaticamente ao salvar.
+                  O estoque é baixado ao salvar. Lançamentos do admin podem gerar saldo negativo, para ajuste posterior.
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={addBlankItem} disabled={!products.length}>
@@ -703,6 +712,8 @@ function WhatsappAdminOrderPage() {
                       >
                         {String(product?.tipo_produto ?? "").toLowerCase() === "complemento" ? (
                           <option value="200g">150g (complemento)</option>
+                        ) : String(product?.tipo_produto ?? "").toLowerCase() === "sopa" ? (
+                          <option value="400g">400g (sopa)</option>
                         ) : (
                           <>
                             <option value="200g">200g</option>
@@ -759,7 +770,7 @@ function WhatsappAdminOrderPage() {
                     <div className="md:col-span-5 flex justify-between gap-3 text-xs">
                       <span className={insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
                         Estoque: {stock}
-                        {insufficient ? " — insuficiente" : ""}
+                        {insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}
                       </span>
                       <span className="font-bold text-gray-700">
                         {money(item.quantity * item.unitPrice)}
@@ -805,6 +816,19 @@ function WhatsappAdminOrderPage() {
                   step="0.01" className="w-32 text-right" value={descontoAplicado}
                   onChange={(e) => { setDescontoAplicado(Number(e.target.value)); setPercentualDesconto(null); }} />
               </div>
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="cashback-pedido-manual" className="text-sm text-gray-500">
+                  Já pago com cashback (R$)
+                </label>
+                <Input id="cashback-pedido-manual" type="number" min={0} max={subtotal + taxaEntrega}
+                  step="0.01" className="w-32 text-right" value={cashbackUsado}
+                  onChange={(e) => setCashbackUsado(Number(e.target.value))} />
+              </div>
+              {cashbackUsado > 0 && (
+                <p className="text-xs text-amber-700">
+                  Valor já pago no comprovante: será registrado no pedido, sem retirar novamente do saldo de cashback do cliente.
+                </p>
+              )
                             {declaredTotal !== null && (
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Total informado no WhatsApp</span>
