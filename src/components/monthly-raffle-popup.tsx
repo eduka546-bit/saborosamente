@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
@@ -18,6 +19,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [aceitePoliticas, setAceitePoliticas] = useState(false);
+  const [autorizaContato, setAutorizaContato] = useState(false);
   const [sending, setSending] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -69,6 +72,10 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       setErro("Informe seu nome e um telefone válido com DDD.");
       return;
     }
+    if (!aceitePoliticas) {
+      setErro("Aceite os regulamentos e a Política de Privacidade para participar.");
+      return;
+    }
     setSending(true);
     try {
       const sessionId = getAbandonedCartSessionId();
@@ -76,9 +83,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_nome: nome.trim(),
         p_telefone: digits,
         p_session_id: sessionId,
-        p_aceite_regulamento: false,
-        p_optin_marketing: false,
-        p_optin_carrinho: false,
+        p_aceite_regulamento: aceitePoliticas,
+        p_optin_marketing: autorizaContato,
+        p_optin_carrinho: autorizaContato,
       });
       if (error) throw error;
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
@@ -86,7 +93,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       // Respeitar no checkout o consentimento que o visitante acabou de
       // escolher, sem pressupor que inscrever-se no sorteio autoriza contato.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", "0",
+        "saborosamente.recovery_whatsapp_consent", autorizaContato ? "1" : "0",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -158,13 +165,27 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
                 className="w-full rounded-xl border border-[#cbdacc] bg-white pl-10 pr-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
             </div>
           </div>
+          <div className="space-y-2.5">
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-[#375244]">
+              <input type="checkbox" required checked={aceitePoliticas}
+                onChange={e => setAceitePoliticas(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
+              <span>Li e aceito os regulamentos e a <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>.</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-[#375244]">
+              <input type="checkbox" checked={autorizaContato}
+                onChange={e => setAutorizaContato(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
+              <span>Autorizo receber ofertas e ajuda com carrinhos abandonados pelo WhatsApp (opcional).</span>
+            </label>
+          </div>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
             className="w-full rounded-xl bg-[#08764a] hover:bg-[#075e3c] px-5 py-3.5 font-semibold text-white disabled:opacity-60">
             {sending ? "Registrando..." : "Quero participar"}
           </button>
           <p className="text-center text-xs text-[#657368] flex justify-center gap-1 items-center">
-            <ShieldCheck size={13}/> Participação gratuita. Seus dados serão usados para a inscrição, sem autorizar mensagens promocionais.
+            <ShieldCheck size={13}/> Participação gratuita. Você pode retirar sua autorização de contato quando quiser.
           </p>
           <button type="button" onClick={fechar}
             className="w-full text-center text-xs font-medium py-1 text-[#63766a] hover:text-[#075e3c]">
