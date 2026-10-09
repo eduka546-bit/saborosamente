@@ -756,7 +756,7 @@ function Index() {
     <>
       {/* Promoção com regulamento: desligada até aprovação e ativação pelo admin.
           Não sobrepõe o pop-up de boas-vindas: somente um pode aparecer. */}
-      {settings?.sorteio_ativo && typeof settings?.sorteio_regulamento_url === "string" ? (
+      {settings?.sorteio_ativo ? (
         <MonthlyRafflePopup regulamentoUrl={settings.sorteio_regulamento_url} />
       ) : settings?.popup_boas_vindas?.ativo ? (
         <WelcomePopup config={settings.popup_boas_vindas as any} />
