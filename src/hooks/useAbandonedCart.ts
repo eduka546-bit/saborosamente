@@ -66,6 +66,15 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     [lines, total, hasCart],
   );
 
+  // Cadastro no sorteio: se o visitante já montou o carrinho, cria/atualiza
+  // o snapshot agora. O banco associa o lead pelo ID de sessão, sem login.
+  useEffect(() => {
+    if (typeof window === "undefined" || !hasCart) return;
+    const onLeadCapturado = () => { void saveToDb("manual"); };
+    window.addEventListener("saborosamente:lead-capturado", onLeadCapturado);
+    return () => window.removeEventListener("saborosamente:lead-capturado", onLeadCapturado);
+  }, [hasCart, saveToDb]);
+
   // ── Marca como convertido quando pedido é finalizado ─────────────────────
   const markConverted = useCallback(async () => {
     try {
