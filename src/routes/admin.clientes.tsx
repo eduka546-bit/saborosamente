@@ -53,6 +53,10 @@ function CashbackCliente({ userId }: { userId: string }) {
 
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtroCidade, setFiltroCidade] = useState("TODAS");
+  const [cidadeEditada, setCidadeEditada] = useState("");
+  const [salvandoCidade, setSalvandoCidade] = useState(false);
+  const queryClient = useQueryClient();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -90,6 +94,8 @@ function AdminClientesPage() {
       profiles?.forEach((profile) => {
         clientMap.set(profile.id, {
           id: profile.id,
+          profileId: profile.id,
+          cidade: profile.cidade || null,
           nome: profile.nome,
           telefone: profile.telefone,
           email: profile.email || "Não informado",
@@ -110,6 +116,7 @@ function AdminClientesPage() {
         if (!clientMap.has(key)) {
           clientMap.set(key, {
             nome: order.nome_cliente,
+            cidade: order.cidade || null,
             telefone: order.telefone_cliente,
             email: order.email_cliente || "Não informado",
             totalPedidos: 1,
@@ -135,13 +142,36 @@ function AdminClientesPage() {
     },
   });
 
+  const cidadesDisponiveis = useMemo(() => Array.from(new Set(clients.map((c: any) => String(c.cidade || "").trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b,"pt-BR")), [clients]);
+
   const filteredClients = useMemo(() => {
-    return clients.filter(
-      (c) =>
-        c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.telefone?.includes(searchTerm),
-    );
-  }, [clients, searchTerm]);
+    return clients.filter((c) => {
+      const texto = c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefone?.includes(searchTerm);
+      const cidade = String(c.cidade || "").trim();
+      return texto && (filtroCidade === "TODAS" || (filtroCidade === "SEM_CIDADE" ? !cidade : cidade === filtroCidade));
+    });
+  }, [clients, searchTerm, filtroCidade]);
+
+  const salvarCidade = async () => {
+    if (!selectedClient?.profileId) return toast.error("Este cliente ainda não possui perfil cadastrado para editar.");
+    setSalvandoCidade(true);
+    try {
+      const { data, error } = await supabase.rpc("atualizar_cidade_cliente_admin", {
+        p_cliente_id: selectedClient.profileId,
+        p_cidade: cidadeEditada.trim(),
+      });
+      if (error) throw error;
+      if (!data) throw new Error("Perfil não encontrado.");
+      setSelectedClient((anterior: any) => ({ ...anterior, cidade: cidadeEditada.trim() || null }));
+      await queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
+      await queryClient.invalidateQueries({ queryKey: ["campanhas-clientes-por-cidade"] });
+      toast.success("Cidade salva! O filtro de campanhas será atualizado.");
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar a cidade.");
+    } finally {
+      setSalvandoCidade(false);
+    }
+  };
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = useMemo(() => {
@@ -185,9 +215,16 @@ function AdminClientesPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="flex items-center gap-2 rounded-lg border-gray-200">
-            <Filter size={18} /> Filtros
-          </Button>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Filter size={18} className="text-gray-500 shrink-0"/>
+            <select aria-label="Filtrar clientes por cidade" value={filtroCidade}
+              onChange={e => { setFiltroCidade(e.target.value); setCurrentPage(1); }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm min-w-[185px] w-full">
+              <option value="TODAS">Todas as cidades</option>
+              <option value="SEM_CIDADE">Sem cidade</option>
+              {cidadesDisponiveis.map(cidade => <option key={cidade} value={cidade}>{cidade}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -228,6 +265,7 @@ function AdminClientesPage() {
                           {client.nome || "Cliente Final"}
                         </p>
                         <p className="text-[10px] text-gray-400 font-medium">{client.email}</p>
+                        <p className="text-xs text-gray-500">{client.cidade || "Cidade não informada"}</p>
                       </div>
                     </div>
                   </td>
@@ -245,7 +283,7 @@ function AdminClientesPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-full"
-                      onClick={() => setSelectedClient(client)}
+                      onClick={() => { setSelectedClient(client); setCidadeEditada(client.cidade || ""); }}
                     >
                       <Eye size={16} />
                     </Button>
@@ -366,6 +404,25 @@ function AdminClientesPage() {
                 </Link>
               )}
               {selectedClient.id && <CashbackCliente userId={selectedClient.id} />}
+            </div>
+
+            <div className="rounded-xl border p-4 mb-6 space-y-2">
+              <label htmlFor="cidade-cliente-admin" className="flex items-center gap-2 font-bold text-sm text-gray-800">
+                <MapPin size={16}/> Cidade do cliente
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <Input id="cidade-cliente-admin" value={cidadeEditada} disabled={!selectedClient.profileId}
+                  onChange={e => setCidadeEditada(e.target.value)} list="cidades-sugeridas-admin"
+                  placeholder="Informe a cidade" className="flex-1 min-w-[180px]"/>
+                <datalist id="cidades-sugeridas-admin">
+                  {Array.from(new Set([...cidadesDisponiveis, "São Bento do Sul","Rio Negrinho","Campo Alegre","Piên","Mafra","Corupá"])).map(c => <option key={c} value={c}/>)}
+                </datalist>
+                <Button onClick={salvarCidade} disabled={!selectedClient.profileId || salvandoCidade}>
+                  {salvandoCidade ? "Salvando..." : "Salvar cidade"}
+                </Button>
+              </div>
+              {!selectedClient.profileId && <p className="text-xs text-gray-500">Cadastro de convidado: a cidade poderá ser corrigida quando houver perfil vinculado.</p>}
+              <p className="text-xs text-gray-500">Altera apenas a cidade, sem modificar o endereço do cliente.</p>
             </div>
 
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
