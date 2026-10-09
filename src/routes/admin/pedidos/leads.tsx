@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,9 +86,6 @@ function LeadsSorteioAdmin() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  const requisitosProntos = Boolean(
-    config?.regulamento_url?.startsWith("https://") && config?.certificado?.trim(),
-  );
 
   const marcarContemplado = useMutation({
     mutationFn: async (lead: Lead) => {
@@ -143,17 +140,12 @@ function LeadsSorteioAdmin() {
             <span>{config?.ativo ? "Ativado" : "Desativado"}</span>
             <input type="checkbox" role="switch" aria-label="Ativar ou desativar pop-up do sorteio"
               checked={Boolean(config?.ativo)}
-              disabled={carregandoConfig || ativarDesativar.isPending || (!config?.ativo && !requisitosProntos)}
+              disabled={carregandoConfig || ativarDesativar.isPending}
               onChange={(e) => ativarDesativar.mutate(e.target.checked)}
               className="h-5 w-5 accent-green-700" />
           </label>
         </div>
-        {!carregandoConfig && !requisitosProntos && (
-          <p className="flex gap-2 items-start text-xs text-amber-800">
-            <AlertTriangle size={16} className="shrink-0"/>
-            Aguardando certificado de autorização e regulamento publicado. Assim que esses dados forem cadastrados, o controle de ativação ficará disponível aqui. Até lá, a campanha continua desligada.
-          </p>
-        )}
+
       </section>
 
       <section className="bg-white border rounded-2xl p-5 space-y-4">
