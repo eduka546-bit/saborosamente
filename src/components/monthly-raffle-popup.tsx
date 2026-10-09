@@ -18,9 +18,6 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [aceite, setAceite] = useState(false);
-  const [marketing, setMarketing] = useState(false);
-  const [recuperacao, setRecuperacao] = useState(false);
   const [sending, setSending] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -72,10 +69,6 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       setErro("Informe seu nome e um telefone válido com DDD.");
       return;
     }
-    if (!aceite) {
-      setErro("Leia e aceite o regulamento para continuar.");
-      return;
-    }
     setSending(true);
     try {
       const sessionId = getAbandonedCartSessionId();
@@ -83,9 +76,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_nome: nome.trim(),
         p_telefone: digits,
         p_session_id: sessionId,
-        p_aceite_regulamento: aceite,
-        p_optin_marketing: marketing,
-        p_optin_carrinho: recuperacao,
+        p_aceite_regulamento: false,
+        p_optin_marketing: false,
+        p_optin_carrinho: false,
       });
       if (error) throw error;
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
@@ -93,10 +86,10 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       // Respeitar no checkout o consentimento que o visitante acabou de
       // escolher, sem pressupor que inscrever-se no sorteio autoriza contato.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", recuperacao ? "1" : "0",
+        "saborosamente.recovery_whatsapp_consent", "0",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
-      toast.success("Cadastro recebido! Se você atender aos requisitos do regulamento, estará incluído nos sorteios previstos.");
+      toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
       window.sessionStorage.setItem(EXIBIDO_KEY, "1");
       setOpen(false);
       // Se já houver produtos no carrinho, salva um snapshot sem esperar 3min.
@@ -140,8 +133,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
             Uma semana de marmitas pode ser sua!
           </h2>
           <p className="text-sm text-[#ecf4e8] mt-2 leading-relaxed">
-            Novos visitantes podem se cadastrar para participar da promoção mensal,
-            conforme o regulamento.
+            Novos visitantes podem se cadastrar para participar do sorteio mensal.
           </p>
         </div>
         <form onSubmit={enviar} className="p-5 sm:p-6 space-y-4">
@@ -166,27 +158,13 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
                 className="w-full rounded-xl border border-[#cbdacc] bg-white pl-10 pr-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
             </div>
           </div>
-          <div className="space-y-3 rounded-xl bg-[#f3f7ee] p-3.5">
-            <label className="flex gap-2.5 items-start text-xs leading-relaxed text-[#354b3d] cursor-pointer">
-              <input type="checkbox" checked={aceite} onChange={e => setAceite(e.target.checked)} required className="mt-0.5 accent-[#08764a]"/>
-              <span>Estou ciente de que a participação é gratuita, destinada a novos visitantes e que, se contemplado, deixarei de participar das próximas edições. {regulamentoUrl?.startsWith("https://") && <a href={regulamentoUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">Ver condições completas</a>}</span>
-            </label>
-            <label className="flex gap-2.5 items-start text-xs leading-relaxed text-[#354b3d] cursor-pointer">
-              <input type="checkbox" checked={marketing} onChange={e => setMarketing(e.target.checked)} className="mt-0.5 accent-[#08764a]"/>
-              <span>Quero receber novidades e ofertas da SaborosaMente pelo WhatsApp (opcional).</span>
-            </label>
-            <label className="flex gap-2.5 items-start text-xs leading-relaxed text-[#354b3d] cursor-pointer">
-              <input type="checkbox" checked={recuperacao} onChange={e => setRecuperacao(e.target.checked)} className="mt-0.5 accent-[#08764a]"/>
-              <span>Autorizo mensagens de ajuda caso eu deixe produtos no carrinho (opcional).</span>
-            </label>
-          </div>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
             className="w-full rounded-xl bg-[#08764a] hover:bg-[#075e3c] px-5 py-3.5 font-semibold text-white disabled:opacity-60">
             {sending ? "Registrando..." : "Quero participar"}
           </button>
           <p className="text-center text-xs text-[#657368] flex justify-center gap-1 items-center">
-            <ShieldCheck size={13}/> Sem compra obrigatória. Sem mensagens promocionais sem sua autorização.
+            <ShieldCheck size={13}/> Participação gratuita. Seus dados serão usados para a inscrição, sem autorizar mensagens promocionais.
           </p>
           <button type="button" onClick={fechar}
             className="w-full text-center text-xs font-medium py-1 text-[#63766a] hover:text-[#075e3c]">
