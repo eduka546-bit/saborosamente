@@ -83,16 +83,16 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: aceitePoliticas,
-        p_optin_carrinho: aceitePoliticas,
+        p_optin_marketing: false,
+        p_optin_carrinho: false,
       });
       if (error) throw error;
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // O cliente aceitou explicitamente o texto sobre marketing e recuperação.
-      // Mantemos rastreabilidade do mesmo aceite no carrinho e no checkout.
+      // Aceitar o regulamento da campanha não equivale a optar por WhatsApp promocional.
+      // O checkout permite ao cliente autorizar a recuperação separadamente.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", aceitePoliticas ? "1" : "0",
+        "saborosamente.recovery_whatsapp_consent", "0",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -169,10 +169,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
               onChange={e => setAceitePoliticas(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
             <span>
-              Li e aceito as <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-              className="underline font-semibold">regras do sorteio e a Política de Privacidade</Link>,
-              e autorizo a SaborosaMente a enviar pelo WhatsApp ofertas, novidades e ajuda
-              com carrinhos abandonados. Posso cancelar os contatos quando quiser.
+              Aceito participar do sorteio e concordo com o{" "}
+              <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
+                className="underline font-semibold">regulamento do sorteio</Link>.
             </span>
           </label>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
