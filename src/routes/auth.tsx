@@ -10,6 +10,7 @@ import { User, Lock, Mail, Phone, Fingerprint, Eye, EyeOff } from "lucide-react"
 import { Link } from "@tanstack/react-router";
 import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
+import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -56,6 +57,16 @@ function AuthPage() {
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Cadastro de visitante no sorteio: apresenta a criação de conta com
+  // os campos que ele já preencheu, sem considerar o lead uma conta ativa.
+  useEffect(() => {
+    const lead = lerLeadPreCadastro();
+    if (!lead) return;
+    setNome(lead.nome);
+    setTelefone(lead.telefone);
+    if (!confirmed) setIsLogin(false);
+  }, [confirmed]);
 
   const senhaValida = (value: string) => value.length > 0;
 
@@ -279,6 +290,11 @@ function AuthPage() {
               ? "Entre com seu e-mail e sua senha"
               : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
           </p>
+          {!isLogin && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
+            <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
+              Nome e WhatsApp preenchidos a partir do seu pré-cadastro. Confira os dados e complete e-mail, CPF e senha.
+            </p>
+          )}
         </div>
 
         {passwordChangeRequired ? (
