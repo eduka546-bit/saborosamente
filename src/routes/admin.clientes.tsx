@@ -15,7 +15,7 @@ import {
   MessageCircle,
   Filter,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,15 @@ function AdminClientesPage() {
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    if (!selectedClient) return;
+    const fecharEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedClient(null);
+    };
+    document.addEventListener("keydown", fecharEsc);
+    return () => document.removeEventListener("keydown", fecharEsc);
+  }, [selectedClient]);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["admin-clients"],
@@ -307,7 +316,7 @@ function AdminClientesPage() {
       )}
 
       {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedClient(null); }}>
           <div className="bg-white h-full w-full max-w-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
             <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
               <button type="button" aria-label="Fechar painel" onClick={() => setSelectedClient(null)}
