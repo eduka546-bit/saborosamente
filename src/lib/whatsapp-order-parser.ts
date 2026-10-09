@@ -123,7 +123,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const itensDetalhados: ItemDetalhado[] = blocos.length
     ? blocos.flatMap((b) => b.itens)
     : temRecibo
-      ? ratearItensRecibo(lerCodigos(texto), subtotalRecibo)
+      ? ratearItensRecibo(lerCodigos(texto), subtotalRecibo ?? 0)
       : lerCodigos(texto).map((item) => ({
           ...item, peso, pesoExibicao: peso, precoUnitario,
         }));
