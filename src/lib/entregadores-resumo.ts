@@ -82,6 +82,8 @@ const moeda = (valor: number | string | null | undefined) =>
 export function cobrancaNoMotorista(p: PedidoRota): string | null {
   const forma = normalizar(p.metodo_pagamento);
   const tipo = normalizar(p.tipo_cartao);
+  // Cartões alimentação/refeição não são crédito/débito para cobrança no motorista.
+  if (/alimentac|refeic|vale/.test(forma)) return null;
   const ehDinheiro = /(^|\W)dinheiro(\W|$)|especie/.test(forma);
   const ehCartao = /\bcartao\b|\bcredito\b|\bdebito\b/.test(forma);
   if (!ehDinheiro && !ehCartao) return null;
