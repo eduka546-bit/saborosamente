@@ -42,6 +42,7 @@ import { trackEvent } from "@/lib/analytics";
 import { calcularRegraCupom } from "@/lib/coupon-rules";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
+import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -563,7 +564,20 @@ function Checkout() {
   // ── buscar sessão e dados do usuário ──────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (!s) return;
+      if (!s) {
+        // Pré-cadastro capturado pelo pop-up. Não cria conta e não sobrescreve
+        // dados já digitados ou restaurados no rascunho do checkout.
+        const preCadastro = lerLeadPreCadastro();
+        if (preCadastro) {
+          if (!String(getValues("nome") ?? "").trim()) {
+            setValue("nome", preCadastro.nome, { shouldValidate: false });
+          }
+          if (!String(getValues("telefone") ?? "").trim()) {
+            setValue("telefone", preCadastro.telefone, { shouldValidate: false });
+          }
+        }
+        return;
+      }
       setSession(s);
 
       // preenche email imediatamente do auth
