@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Gift, ShieldCheck, Trophy, UserRound, ShoppingCart, Mail, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ type Lead = {
   created_at: string;
   contemplado_em: string | null;
 };
-type Vencedor = { lead_id: string; ano: number; mes: number; registrado_em: string };
+type Vencedor = { lead_id: string; ano: number; mes: number; registrado_em: string; nome: string; telefone: string; email: string | null };
 type Config = { ativo: boolean; regulamento_url: string | null; certificado: string | null };
 
 function LeadsSorteioAdmin() {
@@ -31,6 +31,8 @@ function LeadsSorteioAdmin() {
   const anoAtual = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric" }).format(new Date()));
   const mesAtual = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", month: "numeric" }).format(new Date()));
   const [mesSorteio, setMesSorteio] = useState(mesAtual);
+  const [vencedorAtual, setVencedorAtual] = useState<Vencedor | null>(null);
+  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const [termo, setTermo] = useState("");
   const { data: config, isLoading: carregandoConfig } = useQuery({
     queryKey: ["sorteio-admin-config"],
@@ -58,8 +60,7 @@ function LeadsSorteioAdmin() {
   const { data: vencedores = [] } = useQuery({
     queryKey: ["sorteio-vencedores", anoAtual],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sorteio_contemplados")
-        .select("lead_id,ano,mes,registrado_em").eq("ano", anoAtual);
+      const { data, error } = await supabase.rpc("consultar_vencedores_sorteio_admin", { p_ano: anoAtual });
       if (error) throw error;
       return (data ?? []) as Vencedor[];
     },
@@ -116,6 +117,30 @@ function LeadsSorteioAdmin() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const realizarSorteio = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("realizar_sorteio_mensal", {
+        p_ano: anoAtual, p_mes: mesSorteio,
+      });
+      if (error) throw error;
+      const d = data as { lead_id: string; nome: string; telefone: string; email?: string | null };
+      return { ...d, ano: anoAtual, mes: mesSorteio, registrado_em: new Date().toISOString(), email: d.email ?? null } as Vencedor;
+    },
+    onSuccess: vencedor => {
+      setVencedorAtual(vencedor);
+      void qc.invalidateQueries({ queryKey: ["sorteio-vencedores", anoAtual] });
+      toast.success("Sorteio realizado! Vencedor registrado.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const mensagemVencedor = (v: Vencedor) =>
+    `Olá, ${v.nome}! 🎉 Você foi contemplado(a) no sorteio de ${meses[v.mes - 1]} da SaborosaMente e ganhou uma semana de marmitas! Entre em contato conosco para combinarmos a premiação. 💚`;
+  const whatsappVencedor = (v: Vencedor) =>
+    `https://wa.me/55${v.telefone.replace(/\\D/g, "")}?text=${encodeURIComponent(mensagemVencedor(v))}`;
+  const emailVencedor = (v: Vencedor) =>
+    `mailto:${v.email}?subject=${encodeURIComponent("Você ganhou o sorteio da SaborosaMente! 🎉")}&body=${encodeURIComponent(mensagemVencedor(v))}`;
 
   const filtrados = leads.filter((l) =>
     (l.nome + " " + l.telefone).toLocaleLowerCase("pt-BR").includes(termo.toLocaleLowerCase("pt-BR")));
@@ -183,6 +208,49 @@ function LeadsSorteioAdmin() {
               .map((mes,i) => <option key={mes} value={i+1}>{mes}{mesesOcupados.has(i+1) ? " — vencedor registrado" : ""}</option>)}
           </select>
           <span className="text-xs text-gray-500">{contemplados} de 12 contemplados neste ano</span>
+        </div>
+        <div className="rounded-xl border border-green-200 bg-green-50/40 p-4 space-y-3">
+          <h3 className="font-bold text-green-900 flex items-center gap-2"><Gift size={19}/> Sorteio mensal</h3>
+          <p className="text-sm text-gray-600">Um participante é escolhido aleatoriamente entre os elegíveis. O resultado é definitivo e fica registrado no histórico; não há sorteio de substituição automático.</p>
+          <Button className="bg-[#08764a] hover:bg-[#075e3c]"
+            disabled={mesesOcupados.has(mesSorteio) || participantes === 0 || realizarSorteio.isPending || carregandoLeads}
+            onClick={() => {
+              if (window.confirm(`Confirmar sorteio de ${meses[mesSorteio - 1]}/${anoAtual}? O vencedor será registrado definitivamente e ficará fora dos demais sorteios deste ano.`)) {
+                realizarSorteio.mutate();
+              }
+            }}>
+            <Gift size={17} className="mr-2"/> {realizarSorteio.isPending ? "Sorteando..." : mesesOcupados.has(mesSorteio) ? "Sorteio já realizado" : "Realizar sorteio"}
+          </Button>
+          {vencedorAtual && (
+            <div className="rounded-lg bg-white p-3 border">
+              <p className="font-semibold text-green-900">🏆 Vencedor: {vencedorAtual.nome}</p>
+              <p className="text-sm text-gray-600">{vencedorAtual.telefone}{vencedorAtual.email ? ` · ${vencedorAtual.email}` : ""}</p>
+              <div className="flex gap-2 flex-wrap mt-2">
+                <a href={whatsappVencedor(vencedorAtual)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold text-green-800">
+                  <MessageCircle size={16} className="mr-1"/> Avisar pelo WhatsApp
+                </a>
+                {vencedorAtual.email && <a href={emailVencedor(vencedorAtual)} className="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-semibold text-green-800">
+                  <Mail size={16} className="mr-1"/> Avisar por e-mail
+                </a>}
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-800">Histórico de vencedores — {anoAtual}</p>
+            {vencedores.length === 0 && <p className="text-xs text-gray-500">Nenhum sorteio realizado neste ano.</p>}
+            {vencedores.map(v => (
+              <div key={v.lead_id} className="rounded-lg bg-white border p-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-sm">{meses[v.mes - 1]} · {v.nome}</p>
+                  <p className="text-xs text-gray-500">{v.telefone}{v.email ? ` · ${v.email}` : ""} · {new Date(v.registrado_em).toLocaleDateString("pt-BR")}</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <a href={whatsappVencedor(v)} target="_blank" rel="noopener noreferrer" className="text-sm text-green-800 underline">WhatsApp</a>
+                  {v.email && <a href={emailVencedor(v)} className="text-sm text-green-800 underline">E-mail</a>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         <Input value={termo} onChange={e => setTermo(e.target.value)} placeholder="Pesquisar nome ou telefone" />
         {carregandoLeads && <p className="text-sm text-gray-500">Carregando cadastros...</p>}
