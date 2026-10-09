@@ -60,7 +60,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       return;
     }
     if (!aceitePoliticas) {
-      setErro("Aceite os regulamentos e a Política de Privacidade para participar.");
+      setErro("Aceite os termos do sorteio para continuar.");
       return;
     }
     setSending(true);
@@ -71,8 +71,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: false,
-        p_optin_carrinho: false,
+        p_optin_marketing: aceitePoliticas,
+        p_optin_carrinho: aceitePoliticas,
       });
       if (error) throw error;
       if (data === "ja_participando") {
@@ -81,10 +81,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       }
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // Aceitar o regulamento da campanha não equivale a optar por WhatsApp promocional.
-      // O checkout permite ao cliente autorizar a recuperação separadamente.
+      // Este checkbox menciona expressamente marketing e recuperação por WhatsApp.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", "0",
+        "saborosamente.recovery_whatsapp_consent", "1",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -161,9 +160,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
               onChange={e => setAceitePoliticas(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
             <span>
-              Aceito participar do sorteio e concordo com o{" "}
+              Aceito os termos do sorteio conforme{" "}
               <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-                className="underline font-semibold">regulamento do sorteio</Link>.
+                className="underline font-semibold">regulamento</Link> e autorizo marketing e recuperação.
             </span>
           </label>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
