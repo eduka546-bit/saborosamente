@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
+import { salvarLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 import { toast } from "sonner";
 
 const PARTICIPOU_KEY = "saborosamente.sorteio.participou.v1";
@@ -77,15 +78,18 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
     }
     setSending(true);
     try {
+      const sessionId = getAbandonedCartSessionId();
       const { error } = await supabase.rpc("registrar_lead_sorteio", {
         p_nome: nome.trim(),
         p_telefone: digits,
-        p_session_id: getAbandonedCartSessionId(),
+        p_session_id: sessionId,
         p_aceite_regulamento: aceite,
         p_optin_marketing: marketing,
         p_optin_carrinho: recuperacao,
       });
       if (error) throw error;
+      // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
+      salvarLeadPreCadastro(nome, digits, sessionId);
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Se você atender aos requisitos do regulamento, estará incluído nos sorteios previstos.");
       window.sessionStorage.setItem(EXIBIDO_KEY, "1");
