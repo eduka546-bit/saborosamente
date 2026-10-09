@@ -20,7 +20,6 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [aceitePoliticas, setAceitePoliticas] = useState(false);
-  const [autorizaContato, setAutorizaContato] = useState(false);
   const [sending, setSending] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -84,16 +83,16 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: autorizaContato,
-        p_optin_carrinho: autorizaContato,
+        p_optin_marketing: aceitePoliticas,
+        p_optin_carrinho: aceitePoliticas,
       });
       if (error) throw error;
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // Respeitar no checkout o consentimento que o visitante acabou de
-      // escolher, sem pressupor que inscrever-se no sorteio autoriza contato.
+      // O cliente aceitou explicitamente o texto sobre marketing e recuperação.
+      // Mantemos rastreabilidade do mesmo aceite no carrinho e no checkout.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", autorizaContato ? "1" : "0",
+        "saborosamente.recovery_whatsapp_consent", aceitePoliticas ? "1" : "0",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -165,20 +164,17 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
                 className="w-full rounded-xl border border-[#cbdacc] bg-white pl-10 pr-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
             </div>
           </div>
-          <div className="space-y-2.5">
-            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-[#375244]">
-              <input type="checkbox" required checked={aceitePoliticas}
-                onChange={e => setAceitePoliticas(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
-              <span>Li e aceito os regulamentos e a <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>.</span>
-            </label>
-            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-[#375244]">
-              <input type="checkbox" checked={autorizaContato}
-                onChange={e => setAutorizaContato(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
-              <span>Autorizo receber ofertas e ajuda com carrinhos abandonados pelo WhatsApp (opcional).</span>
-            </label>
-          </div>
+          <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-[#375244]">
+            <input type="checkbox" required checked={aceitePoliticas}
+              onChange={e => setAceitePoliticas(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
+            <span>
+              Li e aceito as <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
+              className="underline font-semibold">regras do sorteio e a Política de Privacidade</Link>,
+              e autorizo a SaborosaMente a enviar pelo WhatsApp ofertas, novidades e ajuda
+              com carrinhos abandonados. Posso cancelar os contatos quando quiser.
+            </span>
+          </label>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
             className="w-full rounded-xl bg-[#08764a] hover:bg-[#075e3c] px-5 py-3.5 font-semibold text-white disabled:opacity-60">
