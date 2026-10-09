@@ -102,9 +102,9 @@ function PrivacidadePage() {
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Para participar, informe nome completo e WhatsApp com DDD no formulário.</li>
             <li>Cada telefone pode ser inscrito uma única vez, sem participações adicionais para cadastros duplicados.</li>
-            <li>A inscrição continua válida nas próximas edições mensais previstas até o participante ser contemplado.</li>
+            <li>O cadastro é permanente: há até 12 edições anuais, uma por mês. Quem for contemplado em um ano fica inelegível nas demais edições desse mesmo ano e volta automaticamente a participar a partir de janeiro do ano seguinte.</li>
             <li>O prêmio anunciado é uma semana de marmitas da SaborosaMente. Quantidades, tamanhos, sabores, modalidades de entrega ou retirada e datas de apuração devem ser apresentados nas regras específicas de cada edição.</li>
-            <li>O participante contemplado deixa de participar das edições seguintes.</li>
+            <li>O participante contemplado não participa novamente no mesmo ano civil, mas pode voltar a ganhar em anos seguintes.</li>
             <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
           </ul>
           <p className="mt-3">
