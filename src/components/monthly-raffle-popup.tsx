@@ -137,7 +137,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         <form onSubmit={enviar} className="p-5 sm:p-6 space-y-4">
           <p className="text-sm text-[#375244] flex gap-2 items-start">
             <TicketCheck size={18} className="shrink-0 text-[#08764a] mt-0.5"/>
-            Cadastre-se uma vez e continue elegível nos próximos sorteios previstos, até ser contemplado.
+            Cadastre-se uma vez. Se ganhar, volta a participar em janeiro do ano seguinte.
           </p>
           <div>
             <label htmlFor="sorteio-nome" className="block text-sm font-semibold text-[#243e31] mb-1">Nome completo</label>
