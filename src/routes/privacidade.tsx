@@ -18,7 +18,7 @@ export const Route = createFileRoute("/privacidade")({
 });
 
 function PrivacidadePage() {
-  const dataAtualizacao = "30 de setembro de 2026";
+  const dataAtualizacao = "9 de outubro de 2026";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -85,12 +85,49 @@ function PrivacidadePage() {
             <li>Prestar atendimento ao cliente, inclusive via assistente virtual (IA).</li>
             <li>Enviar ofertas e promoções (somente com seu consentimento).</li>
             <li>
-              Recuperar carrinhos abandonados por WhatsApp somente quando você autorizar
-              expressamente esse contato no checkout.
+              Recuperar carrinhos abandonados por WhatsApp quando você autorizar
+              expressamente esse contato no checkout ou no cadastro promocional.
             </li>
             <li>Cumprir obrigações legais e fiscais.</li>
             <li>Melhorar nossos produtos, serviços e experiência de compra.</li>
           </ul>
+        </section>
+
+        <section id="regulamento-sorteio">
+          <h2 className="text-lg font-bold text-gray-800 mb-2">Condições de participação — sorteio mensal SaborosaMente</h2>
+          <p>
+            Campanha destinada a novos visitantes maiores de 18 anos, sem conta nem compras
+            anteriores associadas ao telefone informado. A inscrição é gratuita e não exige compra.
+          </p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li>Para participar, informe nome completo e WhatsApp com DDD no formulário.</li>
+            <li>Cada telefone pode ser inscrito uma única vez, sem participações adicionais para cadastros duplicados.</li>
+            <li>A inscrição continua válida nas próximas edições mensais previstas até o participante ser contemplado.</li>
+            <li>O prêmio anunciado é uma semana de marmitas da SaborosaMente. Quantidades, tamanhos, sabores, modalidades de entrega ou retirada e datas de apuração devem ser apresentados nas regras específicas de cada edição.</li>
+            <li>O participante contemplado deixa de participar das edições seguintes.</li>
+            <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
+          </ul>
+          <p className="mt-3">
+            <strong>Finalidade dos dados:</strong> nome, WhatsApp, identificador de sessão
+            e eventual atividade de carrinho são usados pela SaborosaMente para
+            registrar e administrar a participação, identificar o visitante, facilitar
+            um futuro cadastro de compras e relacionar carrinhos abandonados.
+            A empresa não vende esses dados nem os disponibiliza para campanhas
+            comerciais de terceiros.
+          </p>
+          <p className="mt-2">
+            Mediante autorização expressa no formulário, a SaborosaMente pode usar
+            nome e telefone para enviar novidades, ofertas, avisos da campanha e
+            mensagens de atendimento e recuperação de carrinhos abandonados pelo WhatsApp.
+            As comunicações são exclusivamente sobre produtos e serviços da SaborosaMente.
+            Prestadores de tecnologia, como o serviço de WhatsApp, poderão processar
+            dados para viabilizar esse atendimento, nas condições desta política.
+          </p>
+          <p className="mt-2">
+            O titular pode interromper mensagens a qualquer momento respondendo
+            <strong> PARAR</strong> ou pelos canais de contato indicados abaixo.
+            Participar não cria automaticamente uma conta nem obriga a realizar compras.
+          </p>
         </section>
 
         <section>
@@ -196,9 +233,9 @@ function PrivacidadePage() {
             utilizamos essa integração para personalização de anúncios.
           </p>
           <p className="mt-2">
-            No checkout, você também pode autorizar separadamente uma mensagem de recuperação por
-            WhatsApp caso não conclua o pedido. Esse consentimento não é necessário para comprar e
-            pode ser retirado desmarcando a opção no checkout ou respondendo <strong>PARAR</strong>
+            No cadastro promocional e no checkout, você pode autorizar mensagens de recuperação por
+            WhatsApp caso não conclua o pedido. A autorização pode ser retirada
+            desmarcando a opção no checkout ou respondendo <strong>PARAR</strong>
             ao lembrete recebido.
           </p>
           <button
