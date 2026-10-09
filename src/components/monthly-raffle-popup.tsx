@@ -90,6 +90,11 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       if (error) throw error;
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
+      // Respeitar no checkout o consentimento que o visitante acabou de
+      // escolher, sem pressupor que inscrever-se no sorteio autoriza contato.
+      window.localStorage.setItem(
+        "saborosamente.recovery_whatsapp_consent", recuperacao ? "1" : "0",
+      );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Se você atender aos requisitos do regulamento, estará incluído nos sorteios previstos.");
       window.sessionStorage.setItem(EXIBIDO_KEY, "1");
