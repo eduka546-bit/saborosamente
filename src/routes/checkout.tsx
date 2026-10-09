@@ -43,6 +43,7 @@ import { calcularRegraCupom } from "@/lib/coupon-rules";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -593,6 +594,9 @@ function Checkout() {
       if (profile) {
         if (profile.nome) setValue("nome", profile.nome, { shouldValidate: false });
         if (profile.telefone) setValue("telefone", profile.telefone, { shouldValidate: false });
+        // Complementa o vínculo do lead quando a conta exigiu confirmação de e-mail.
+        // O usuário precisa estar logado; o banco ainda confere sessão + telefone.
+        void vincularLeadPreCadastroAutenticado();
 
         if (profile.indicado_por && profile.indicado_por_em) {
           const capturadoEm = new Date(profile.indicado_por_em).getTime();
