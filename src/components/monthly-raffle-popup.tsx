@@ -23,28 +23,22 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const openManually = () => { setErro(""); setOpen(true); };
+    window.addEventListener("saborosamente:abrir-sorteio", openManually);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     const visto = window.sessionStorage.getItem(EXIBIDO_KEY) === "1";
     const participou = window.localStorage.getItem(PARTICIPOU_KEY) === "1";
-    if (visto || participou) return;
-
-    let cancelled = false;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-
-    timeout = setTimeout(() => {
-        if (cancelled) return;
-        // Uma única exibição na sessão; recusa recebe intervalo de 30 dias.
+    if (!visto && !participou) {
+      timeout = setTimeout(() => {
         window.sessionStorage.setItem(EXIBIDO_KEY, "1");
         setOpen(true);
       }, 7500);
-
-    const openManually = () => { setErro(""); setOpen(true); };
-    window.addEventListener("saborosamente:abrir-sorteio", openManually);
+    }
     return () => {
-      cancelled = true;
       if (timeout) clearTimeout(timeout);
       window.removeEventListener("saborosamente:abrir-sorteio", openManually);
     };
-  }, [regulamentoUrl]);
+  }, []);
 
   const fechar = () => {
     if (sending) return;
