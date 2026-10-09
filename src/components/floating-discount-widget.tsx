@@ -7,13 +7,13 @@ export function FloatingDiscountWidget({ onClick }: { onClick?: () => void }) {
   const current = [...RULES.PROGRESSIVE_DISCOUNT].reverse().find((tier) => count >= tier.min);
   const percentage = Math.round((next?.discount ?? current?.discount ?? 0) * 100);
   const title = `Desconto de ${percentage}%`;
-  const detail = next ? `em +${next.min - count}un` : "Faixa máxima ativa";
+  const detail = next ? `na compra de +${next.min - count}un` : "Faixa máxima ativa";
   const message = `${title} ${detail}`;
   return (
       <button type="button" onClick={onClick} aria-label={`Abrir carrinho. ${message}`} className="fixed bottom-24 right-4 z-50 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/95 py-2 pl-3 pr-2 text-primary shadow-md backdrop-blur">
-        <span className="flex flex-col text-left text-xs font-medium leading-snug">
-          <span>{title}</span>
-          <span>{detail}</span>
+        <span className="flex flex-col text-left text-sm font-semibold leading-snug">
+          <span>Desconto de <strong className="font-bold">{percentage}%</strong></span>
+          <span>{next ? <>na compra de <strong className="font-bold">+{next.min - count}un</strong></> : detail}</span>
         </span>
         <span className="relative grid size-9 place-items-center rounded-full bg-primary text-white">
           <ShoppingBag size={18} />
