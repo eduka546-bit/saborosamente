@@ -133,11 +133,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           <p className="relative mx-auto mt-5 max-w-[340px] text-[15px] leading-relaxed text-[#f0f7ee]">
             <strong className="font-semibold text-white">Não precisa comprar nada!</strong> Só de se cadastrar, você já está concorrendo a uma semana de marmitas gratuitas.
           </p>
-          <p className="relative mx-auto mt-3 max-w-[340px] text-sm leading-relaxed text-[#d6e9d7]">
-            Uma chance especial de experimentar nossos sabores. Participe gratuitamente!
-          </p>
-          <div className="relative mx-auto mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white">
-            <ShieldCheck size={16}/> Sem compra obrigatória
+          <div className="relative mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white">
+            <ShieldCheck size={16}/> Participe gratuitamente
           </div>
         </div>
 
