@@ -22,9 +22,26 @@ export function getGoogleAnalyticsConsent(): GoogleAnalyticsConsent | null {
   return value === "granted" || value === "denied" ? value : null;
 }
 
+function applyGoogleAnalyticsConsent(value: GoogleAnalyticsConsent) {
+  if (typeof window === "undefined" || !window.gtag) return;
+
+  // A troca de preferência precisa alcançar a tag que já está carregada.
+  if (window.__saborosamenteGaId) {
+    (window as Window & Record<string, unknown>)[`ga-disable-${window.__saborosamenteGaId}`] =
+      value !== "granted";
+  }
+  window.gtag("consent", "update", {
+    analytics_storage: value,
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  });
+}
+
 export function setGoogleAnalyticsConsent(value: GoogleAnalyticsConsent) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(GA_CONSENT_KEY, value);
+  applyGoogleAnalyticsConsent(value);
   window.dispatchEvent(
     new CustomEvent("saborosamente:analytics-consent", { detail: value }),
   );
@@ -33,6 +50,7 @@ export function setGoogleAnalyticsConsent(value: GoogleAnalyticsConsent) {
 export function clearGoogleAnalyticsConsent() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(GA_CONSENT_KEY);
+  applyGoogleAnalyticsConsent("denied");
   window.dispatchEvent(
     new CustomEvent("saborosamente:analytics-consent", { detail: null }),
   );
@@ -51,13 +69,20 @@ export function initGoogleAnalytics(measurementId: string) {
     };
 
   if (window.__saborosamenteGaId !== id) {
+    window.gtag("consent", "default", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+    });
+    window.__saborosamenteGaId = id;
+    applyGoogleAnalyticsConsent("granted");
     window.gtag("js", new Date());
     window.gtag("config", id, {
       send_page_view: false,
       allow_google_signals: false,
       allow_ad_personalization_signals: false,
     });
-    window.__saborosamenteGaId = id;
   }
 
   if (!document.getElementById(GA_SCRIPT_ID)) {
