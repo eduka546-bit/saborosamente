@@ -107,11 +107,12 @@ function PrivacidadePage() {
             <li>O participante contemplado não participa novamente no mesmo ano civil, mas pode voltar a ganhar em anos seguintes.</li>
             <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
             <li>
-              Ao aceitar o regulamento no formulário, o participante também autoriza as métricas
-              do Google Analytics 4 e do Microsoft Clarity, que registram acessos, cliques e
-              navegação para melhorar a experiência no site. Essa confirmação atualiza eventual
-              recusa anterior de cookies de métricas. O participante pode alterar essa escolha
-              posteriormente nesta Política de Privacidade.
+              Ao aceitar o regulamento no formulário, o participante autoriza expressamente
+              as métricas do Google Analytics 4 e Microsoft Clarity, o envio de novidades e ofertas
+              da SaborosaMente por WhatsApp e os lembretes para recuperar carrinhos não finalizados
+              por WhatsApp. A inscrição atualiza escolhas anteriores de recusa relativas a essas
+              finalidades. Todas essas autorizações são informadas antes do envio do formulário
+              e podem ser revogadas posteriormente.
             </li>
           </ul>
           <p className="mt-3">
@@ -123,9 +124,10 @@ function PrivacidadePage() {
             comerciais de terceiros.
           </p>
           <p className="mt-2">
-            Mediante autorização expressa no formulário, a SaborosaMente pode usar
+            O aceite expresso do regulamento no formulário inclui autorização para usar
             nome e telefone para enviar novidades, ofertas, avisos da campanha e
             mensagens de atendimento e recuperação de carrinhos abandonados pelo WhatsApp.
+            Não são enviadas mensagens automáticas simplesmente por se inscrever no sorteio.
             As comunicações são exclusivamente sobre produtos e serviços da SaborosaMente.
             Prestadores de tecnologia, como o serviço de WhatsApp, poderão processar
             dados para viabilizar esse atendimento, nas condições desta política.
@@ -133,6 +135,7 @@ function PrivacidadePage() {
           <p className="mt-2">
             O titular pode interromper mensagens a qualquer momento respondendo
             <strong> PARAR</strong> ou pelos canais de contato indicados abaixo.
+            A revogação posterior dessas autorizações não cancela automaticamente a inscrição no sorteio.
             Participar não cria automaticamente uma conta nem obriga a realizar compras.
           </p>
         </section>
@@ -241,8 +244,8 @@ function PrivacidadePage() {
           </p>
           <p className="mt-2">
             No formulário do sorteio, a aceitação explícita dos termos, que informam o uso
-            de Google Analytics e Clarity, atualiza a preferência de métricas para autorizada,
-            mesmo que você a tenha recusado anteriormente no aviso de cookies. Você pode
+            de Google Analytics, Clarity, ofertas por WhatsApp e recuperação de carrinho,
+            atualiza essas preferências para autorizadas, mesmo que você as tenha recusado antes. Você pode
             revisar ou revogar essa escolha aqui posteriormente.
           </p>
           <p className="mt-2">
