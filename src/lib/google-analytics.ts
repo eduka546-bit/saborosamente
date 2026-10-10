@@ -1,5 +1,8 @@
+import { createPageViewDeduper } from "@/lib/page-view-dedupe";
+
 const GA_CONSENT_KEY = "saborosamente.analytics.google_consent";
 const GA_SCRIPT_ID = "saborosamente-ga4-script";
+const shouldTrackGooglePageView = createPageViewDeduper();
 
 export type GoogleAnalyticsConsent = "granted" | "denied";
 
@@ -98,7 +101,8 @@ export function initGoogleAnalytics(measurementId: string) {
 
 export function trackGoogleAnalyticsPageView(pathname: string) {
   if (typeof window === "undefined" || getGoogleAnalyticsConsent() !== "granted") return;
-  window.gtag?.("event", "page_view", {
+  if (!window.gtag || !shouldTrackGooglePageView(pathname)) return;
+  window.gtag("event", "page_view", {
     page_path: pathname,
     page_location: window.location.href,
     page_title: document.title,
