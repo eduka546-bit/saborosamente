@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   ArrowLeft,
   Share2,
+  MessageCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
@@ -425,17 +426,12 @@ function ProdutoPage() {
         <div className="space-y-6">
           {/* Cabeçalho */}
           <div>
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <h1 className="min-w-0 break-words text-2xl font-semibold leading-snug text-foreground sm:text-3xl lg:text-4xl">{product.nome}</h1>
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Compartilhar produto"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border text-primary transition hover:bg-primary/5"
-              >
-                <Share2 className="size-4" />
-              </button>
-            </div>
+            <h1
+              title={product.nome}
+              className="mb-2 line-clamp-2 w-full min-w-0 break-words text-xl font-semibold leading-snug text-[#075636] sm:text-2xl lg:text-3xl"
+            >
+              {product.nome}
+            </h1>
 
             {/* Rating + Categoria */}
             <div className="flex items-center gap-4 mb-4">
@@ -643,6 +639,31 @@ function ProdutoPage() {
               <ShoppingCart className="size-5" />
               {soldOut ? "Esgotado nesta gramatura" : "Adicionar ao Carrinho"}
             </Button>
+          </div>
+
+          <div className="border-t border-[#075636]/10 pt-4">
+            <p className="mb-3 text-center text-sm text-muted-foreground">
+              Gostou deste prato ou ficou com alguma dúvida?
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#cedece] bg-white px-4 py-2 text-sm font-semibold text-[#075636] hover:bg-[#f0f7ee]"
+              >
+                <Share2 className="size-4" aria-hidden="true" />
+                Compartilhar
+              </button>
+              <a
+                href={`https://wa.me/5547991607757?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre ${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#086e45] bg-[#086e45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#075d3a]"
+              >
+                <MessageCircle className="size-4" aria-hidden="true" />
+                Tirar dúvidas no WhatsApp
+              </a>
+            </div>
           </div>
         </div>
       </div>
