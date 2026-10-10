@@ -1,5 +1,6 @@
 import { Minus, Plus, Trash2, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { trackEvent } from "@/lib/analytics";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -35,7 +36,10 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
   const { lines, count, subtotal, discount, shipping, total, setQuantity, remove, clear } = useCart();
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(nextOpen) => {
+      setOpen(nextOpen);
+      if (nextOpen) void trackEvent("cart_view", { metadata: { itens: count } });
+    }}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0 gap-0 rounded-l-[2rem] border-l-0 shadow-2xl">
         <SheetHeader className="p-6 border-b bg-white rounded-tl-[2rem]">
