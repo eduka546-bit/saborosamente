@@ -5,7 +5,6 @@ import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { salvarLeadPreCadastro } from "@/lib/lead-pre-cadastro";
-import { setGoogleAnalyticsConsent } from "@/lib/google-analytics";
 import { toast } from "sonner";
 
 const PARTICIPOU_KEY = "saborosamente.sorteio.participou.v1";
@@ -73,8 +72,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: aceitePoliticas,
-        p_optin_carrinho: aceitePoliticas,
+        p_optin_marketing: false,
+        p_optin_carrinho: false,
       });
       if (error) throw error;
       if (data === "ja_participando") {
@@ -83,13 +82,6 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       }
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // O formulário informa explicitamente o uso de métricas. O aceite mais recente
-      // substitui a recusa anterior de cookies, somente após a inscrição bem-sucedida.
-      setGoogleAnalyticsConsent("granted");
-      // O aceite informado no formulário inclui métricas e contato promocional/recuperação.
-      window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", "1",
-      );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
       window.sessionStorage.setItem(EXIBIDO_KEY, "1");
@@ -174,16 +166,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
             <span>Aceito os termos do sorteio conforme{" "}
               <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-                className="font-semibold underline">regulamento</Link>, incluindo métricas, mensagens promocionais e recuperação de carrinho por WhatsApp.
+                className="font-semibold underline">regulamento</Link>.
             </span>
           </label>
-          <p className="text-[11px] leading-relaxed text-[#657368]">
-            Seu aceite autoriza Google Analytics, Microsoft Clarity, mensagens promocionais e
-            lembretes de carrinho por WhatsApp, substituindo escolhas anteriores para essas
-            finalidades. Você pode revogar as autorizações posteriormente na{" "}
-            <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>
-            {" "}ou solicitar a interrupção das mensagens.
-          </p>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
             className="w-full rounded-xl bg-[#08764a] px-5 py-3.5 font-semibold text-white hover:bg-[#075e3c] disabled:opacity-60">
