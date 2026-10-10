@@ -46,51 +46,41 @@ export function ProductFacts({
           )}
         </div>
       </section>
-      <section className="min-w-0 border-t border-[#075636]/15 pt-4 xl:border-l xl:border-t-0 xl:px-4 xl:pt-0">
+      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:px-4 xl:pt-0">
         <h4 className={heading}>Valor Nutricional</h4>
         {weight && <p className="mt-1 text-sm text-muted-foreground">Porção de {weight}</p>}
-        <dl className="mt-3 text-base">
-          {nutrition?.kcal != null ? (
-            [
-              ["KCAL", nutrition.kcal],
-              ["PROT", nutrition.prot == null ? "—" : `${nutrition.prot}g`],
-              ["CARB", nutrition.carb == null ? "—" : `${nutrition.carb}g`],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="flex justify-between gap-2 border-b border-[#075636]/10 py-1.5 last:border-0"
-              >
-                <dt>{label}</dt>
-                <dd className="font-semibold text-[#075636]">{value}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground">Consulte a embalagem para detalhes.</p>
-          )}
-        </dl>
+        {nutrition?.kcal != null ? (
+          <div
+            className="mt-3 flex w-full flex-nowrap items-center justify-center gap-1 whitespace-nowrap text-[clamp(11px,2.9vw,15px)] font-semibold text-[#075636] sm:gap-2"
+            aria-label={`${nutrition.kcal} quilocalorias, ${nutrition.prot ?? "não informado"} gramas de proteína, ${nutrition.carb ?? "não informado"} gramas de carboidratos`}
+          >
+            <span>{nutrition.kcal} KCAL</span>
+            <span aria-hidden="true" className="text-[#91b28a]">|</span>
+            <span>{nutrition.prot != null ? `${nutrition.prot}g` : "—"} PROT</span>
+            <span aria-hidden="true" className="text-[#91b28a]">|</span>
+            <span>{nutrition.carb != null ? `${nutrition.carb}g` : "—"} CARB</span>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">Consulte a embalagem para detalhes.</p>
+        )}
       </section>
-      <section className="min-w-0 border-t border-[#075636]/15 pt-4 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
         <h4 className={heading}>Restrições</h4>
-        <dl className="mt-3 space-y-2 text-base">
-          <div className="flex flex-wrap justify-between gap-2">
-            <dt>Glúten</dt>
-            <dd className="flex items-center gap-1.5">
-              {glutenStatus}
-              {glutenStatus === "não contém" && (
-                <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5" />
-              )}
-            </dd>
-          </div>
-          <div className="flex flex-wrap justify-between gap-2">
-            <dt>Lactose</dt>
-            <dd className="flex items-center gap-1.5">
-              {lactoseStatus}
-              {lactoseStatus === "não contém" && (
-                <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5" />
-              )}
-            </dd>
-          </div>
-        </dl>
+        <div className="mt-3 flex w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-[clamp(10px,2.8vw,14px)] text-[#375244] sm:gap-x-2">
+          <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+            <strong className="font-semibold">Glúten:</strong> {glutenStatus}
+            {glutenStatus === "não contém" && (
+              <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-4 shrink-0" />
+            )}
+          </span>
+          <span aria-hidden="true" className="text-[#91b28a]">|</span>
+          <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+            <strong className="font-semibold">Lactose:</strong> {lactoseStatus}
+            {lactoseStatus === "não contém" && (
+              <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-4 shrink-0" />
+            )}
+          </span>
+        </div>
       </section>
     </div>
   );
