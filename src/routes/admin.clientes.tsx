@@ -189,7 +189,7 @@ function AdminClientesPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Clientes</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Gerencie sua base de clientes e histórico de compras.
+            Gerencie clientes, participantes do sorteio e histórico de compras.
           </p>
         </div>
 
@@ -380,6 +380,7 @@ function AdminClientesPage() {
                   <h2 className="text-base font-semibold text-gray-900 break-words">
                     {client.nome || "Cliente Final"}
                   </h2>
+                  {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                   <p className="text-sm text-gray-600 mt-1 break-all">{client.email}</p>
                   <p className="text-sm text-gray-600 mt-1 break-words">
                     {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
@@ -484,6 +485,7 @@ function AdminClientesPage() {
                         <p className="text-sm font-bold text-gray-900">
                           {client.nome || "Cliente Final"}
                         </p>
+                        {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                         <p className="text-sm text-gray-600">{client.email}</p>
                         <p className="text-sm text-gray-600 mt-1">
                           {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
@@ -609,6 +611,7 @@ function AdminClientesPage() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome}</h3>
+                {selectedClient.sorteioLeadId && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
                   <span className="flex items-center gap-1">
                     <Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}
