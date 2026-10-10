@@ -1,3 +1,4 @@
+import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { ProductFacts } from "@/components/product-facts";
 import { useEffect, useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
@@ -10,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
-  MessageCircle,
   ShoppingCart,
   Minus,
   Plus,
@@ -812,7 +812,7 @@ export function ProductDetailModal({
                   rel="noopener noreferrer"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#086e45] bg-[#086e45] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#075d3a]"
                 >
-                  <MessageCircle className="size-4" aria-hidden="true" />
+                  <WhatsappIcon className="size-4" />
                   Tirar dúvidas no WhatsApp
                 </a>
               </div>
