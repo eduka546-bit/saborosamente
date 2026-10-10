@@ -1,3 +1,4 @@
+import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { TabelaNutricionalExpansivel } from "@/components/product-detail-modal";
 import { ProductFacts } from "@/components/product-facts";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
@@ -12,7 +13,6 @@ import {
   ShoppingCart,
   ArrowLeft,
   Share2,
-  MessageCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
@@ -660,7 +660,7 @@ function ProdutoPage() {
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#086e45] bg-[#086e45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#075d3a]"
               >
-                <MessageCircle className="size-4" aria-hidden="true" />
+                <WhatsappIcon className="size-4" />
                 Tirar dúvidas no WhatsApp
               </a>
             </div>
