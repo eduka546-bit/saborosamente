@@ -5,6 +5,7 @@ import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { salvarLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { setGoogleAnalyticsConsent } from "@/lib/google-analytics";
 import { toast } from "sonner";
 
 const PARTICIPOU_KEY = "saborosamente.sorteio.participou.v1";
@@ -82,7 +83,10 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       }
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // Aceite do regulamento não implica autorização para contato promocional.
+      // O formulário informa explicitamente o uso de métricas. O aceite mais recente
+      // substitui a recusa anterior de cookies, somente após a inscrição bem-sucedida.
+      setGoogleAnalyticsConsent("granted");
+      // O aceite do sorteio não autoriza contato promocional nem recuperação via WhatsApp.
       window.localStorage.setItem(
         "saborosamente.recovery_whatsapp_consent", "0",
       );
@@ -170,9 +174,14 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
             <span>Aceito os termos do sorteio conforme{" "}
               <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-                className="font-semibold underline">regulamento</Link>.
+                className="font-semibold underline">regulamento</Link>, incluindo o acompanhamento da navegação pelo Google Analytics e Microsoft Clarity.
             </span>
           </label>
+          <p className="text-[11px] leading-relaxed text-[#657368]">
+            Ao se inscrever, você autoriza as métricas do site, mesmo que tenha escolhido
+            anteriormente “Somente essenciais”. É possível revisar essa preferência depois na{" "}
+            <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>.
+          </p>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
             className="w-full rounded-xl bg-[#08764a] px-5 py-3.5 font-semibold text-white hover:bg-[#075e3c] disabled:opacity-60">
