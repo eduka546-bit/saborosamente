@@ -47,7 +47,9 @@ function CashbackCliente({ userId }: { userId: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl text-sm">
       <Gift size={15} className="text-yellow-600" />
-      <span className="font-bold text-yellow-700">Cashback: {(data ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+      <span className="font-bold text-yellow-700">
+        Cashback: {(data ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      </span>
     </div>
   );
 }
@@ -535,13 +537,45 @@ function AdminClientesPage() {
 
       {/* Paginação */}
       {totalPages > 1 && (
-        <Pagination
-          currentPage={Math.min(currentPage, Math.max(1, totalPages))}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          itemsPerPage={itemsPerPage}
-          totalItems={filteredClients.length}
-        />
+        <div>
+          <div className="md:hidden mt-5 space-y-3">
+            <p className="text-sm text-gray-600 text-center">
+              Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
+              {Math.min(currentPage * itemsPerPage, filteredClients.length)} de{" "}
+              {filteredClients.length} clientes
+            </p>
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                className="min-h-11"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-gray-700">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                className="min-h-11"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <Pagination
+              currentPage={Math.min(currentPage, Math.max(1, totalPages))}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredClients.length}
+            />
+          </div>
+        </div>
       )}
 
       {selectedClient && (
