@@ -107,9 +107,9 @@ describe("integração dos inscritos no sorteio à aba Clientes", () => {
   it("mostra participante sem conta como contato e permite buscar, filtrar por data", () => {
     const base = montarClientesComerciais([], [], [lead]);
     expect(base).toHaveLength(1);
+    expect(base[0].profileId).toBeUndefined();
     expect(base[0]).toMatchObject({
       nome: "Visitante sorteio",
-      profileId: undefined,
       sorteioLeadId: "lead-1",
       totalPedidos: 0,
       cadastradoEm: lead.created_at,
