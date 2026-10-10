@@ -69,7 +69,7 @@ export function AdminSiteAnalytics() {
             <Activity size={22} /> Comportamento dos visitantes no site
           </h2>
           <p className="mt-1 text-sm text-gray-600">
-            Acessos, cliques e jornada até a compra. Dados reais registrados pela loja desde 22/09/2026.
+            Eventos registrados no Supabase desde 22/09/2026. Não são dados dos painéis Google Analytics ou Clarity; podem incluir testes e acessos automatizados.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function AdminSiteAnalytics() {
             </div>
           </div>
           <p className="text-xs leading-relaxed text-gray-500">
-            Visitas estimadas e navegadores não são contagens exatas de pessoas: trocar de aparelho, limpar dados ou compartilhar um dispositivo afeta a medição. Não coletamos IP para esse cálculo.
+            Visitas são estimativas baseadas nos eventos gravados, não pessoas únicas confirmadas. Trocar de aparelho, limpar dados ou compartilhar um dispositivo altera as contagens. Não coletamos IP para esse cálculo. Compras no funil também podem diferir do total de pedidos efetivamente gravados.
           </p>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -208,10 +208,14 @@ export function AdminSiteAnalytics() {
                   })}
                 </div>}
           </div>
-          <div className="flex flex-col gap-2 rounded-xl bg-[#f0f7ee] p-4 text-xs leading-relaxed text-[#375244] sm:flex-row sm:items-center sm:justify-between">
-            <span>O site também usa Google Analytics 4 com consentimento do visitante. Este relatório consulta eventos internos do Supabase; não mostra gravações de tela.</span>
-            <a href="https://analytics.google.com/analytics/web/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#075d3a] underline">Abrir Google Analytics <ArrowRight size={14}/></a>
+          <div className="flex flex-col gap-3 rounded-xl bg-[#f0f7ee] p-4 text-xs leading-relaxed text-[#375244] sm:flex-row sm:items-center sm:justify-between">
+            <span>Fonte: eventos internos do Supabase. As coletas opcionais de GA4 e Clarity são independentes, sujeitas ao consentimento, e precisam ser conferidas nos respectivos painéis. Este relatório não exibe sessões ou gravações do Clarity.</span>
+            <div className="flex flex-wrap gap-3">
+              <a href="https://analytics.google.com/analytics/web/" target="_blank" rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#075d3a] underline">Google Analytics <ArrowRight size={14}/></a>
+              <a href="https://clarity.microsoft.com/projects" target="_blank" rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#075d3a] underline">Microsoft Clarity <ArrowRight size={14}/></a>
+            </div>
           </div>
         </>
       )}
