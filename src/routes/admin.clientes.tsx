@@ -87,7 +87,7 @@ function AdminClientesPage() {
     ...createQueryConfig("clients"),
     queryFn: async () => {
       // Paginar também no banco: o limite de uma consulta não deve ocultar clientes.
-      async function carregarTabela(tabela: "profiles" | "pedidos") {
+      async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads") {
         const rows: any[] = [];
         for (let start = 0; ; start += 500) {
           const { data, error } = await supabase
@@ -100,11 +100,12 @@ function AdminClientesPage() {
           if (!data || data.length < 500) return rows;
         }
       }
-      const [profiles, orders] = await Promise.all([
+      const [profiles, orders, raffleLeads] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
+        carregarTabela("sorteio_leads"),
       ]);
-      return montarClientesComerciais(profiles, orders);
+      return montarClientesComerciais(profiles, orders, raffleLeads);
     },
   });
 
