@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
+  MessageCircle,
   ShoppingCart,
   Minus,
   Plus,
@@ -581,34 +582,24 @@ export function ProductDetailModal({
           {/* Ficha do produto */}
           <div className="flex min-w-0 flex-1 flex-col px-4 pb-5 pt-4 sm:px-6 sm:pt-6 md:overflow-y-auto md:p-6">
             <DialogHeader className="mb-4 text-left">
-              <div className="flex items-start justify-between gap-3 pr-8">
-                <DialogTitle className="text-xl font-semibold leading-snug text-[#075636] sm:text-2xl">
-                  {codeMatch && (
-                    <>
-                      <span className="mr-2 inline-block rounded-lg bg-[#e4ede1] px-2 py-1 align-middle text-base font-semibold">
-                        {codeMatch[1]}
-                      </span>{" "}
-                    </>
-                  )}
-                  {codeMatch ? title.slice(codeMatch[0].length) : title}
-                </DialogTitle>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  aria-label="Compartilhar produto"
-                  title="Compartilhar produto"
-                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-white text-primary transition hover:bg-primary/5"
-                >
-                  <Share2 className="size-4" />
-                </button>
-              </div>
+              <DialogTitle
+                title={title}
+                className="line-clamp-2 w-full min-w-0 break-words text-[18px] font-semibold leading-snug text-[#075636] sm:text-xl lg:text-2xl"
+              >
+                {codeMatch && (
+                  <span className="mr-2 inline-block rounded-lg bg-[#e4ede1] px-2 py-1 align-middle text-sm font-semibold sm:text-base">
+                    {codeMatch[1]}
+                  </span>
+                )}
+                {codeMatch ? title.slice(codeMatch[0].length) : title}
+              </DialogTitle>
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-base text-muted-foreground">
               {ingredientesDetalhados && (
                 <div>
                   <h4 className="mb-1 text-lg font-semibold text-[#075636]">Ingredientes</h4>
-                  <p className="leading-relaxed">{ingredientesDetalhados}</p>
+                  <p className="text-sm leading-relaxed sm:text-base">{ingredientesDetalhados}</p>
                 </div>
               )}
 
@@ -801,6 +792,31 @@ export function ProductDetailModal({
                 </div>
               </section>
             )}
+
+            <div className="mt-5 border-t border-[#075636]/10 pt-4">
+              <p className="mb-3 text-center text-sm text-muted-foreground">
+                Gostou deste prato ou ficou com alguma dúvida?
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#cedece] bg-white px-4 py-2 text-sm font-semibold text-[#075636] transition hover:bg-[#f0f7ee]"
+                >
+                  <Share2 className="size-4" aria-hidden="true" />
+                  Compartilhar
+                </button>
+                <a
+                  href={`https://wa.me/5547991607757?text=${encodeURIComponent(`Olá! Tenho uma dúvida sobre ${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#086e45] bg-[#086e45] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#075d3a]"
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" />
+                  Tirar dúvidas no WhatsApp
+                </a>
+              </div>
+            </div>
           </div>
         </div>
         <div className="z-30 shrink-0 pb-[env(safe-area-inset-bottom)] md:hidden">{purchaseControls}</div>
@@ -889,73 +905,86 @@ export function TabelaNutricionalExpansivel({
   ];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-background">
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-background">
       <button
         type="button"
         onClick={aoAlternar}
-        className="flex w-full items-center justify-between px-4 py-3 text-left font-semibold text-foreground"
+        aria-expanded={aberta}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left font-semibold text-foreground"
       >
         Tabela nutricional
-        <ChevronDown className={cn("size-5 transition-transform", aberta && "rotate-180")} />
+        <ChevronDown className={cn("size-5 shrink-0 transition-transform", aberta && "rotate-180")} />
       </button>
 
       {aberta && (
-        <div className="border-t border-border px-4 pb-4 pt-3">
-          <div className="overflow-x-auto rounded-lg border border-foreground/20 text-base sm:text-base">
-            <div className="border-b border-foreground/20 py-2 text-center font-semibold">
+        <div className="min-w-0 border-t border-border px-2 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3">
+          <div className="w-full min-w-0 overflow-hidden rounded-lg border border-foreground/20 text-[11px] leading-snug sm:text-sm">
+            <div className="border-b border-foreground/20 px-2 py-2 text-center font-semibold">
               Informação nutricional
             </div>
-
-            <div className="border-b border-foreground/20 px-3 py-2">
+            <div className="border-b border-foreground/20 px-2 py-2 text-xs sm:px-3 sm:text-sm">
               {valores.porcoes_embalagem != null && (
                 <div>Porções por embalagem: {valores.porcoes_embalagem}</div>
               )}
-              <div>Porção: {valores.porcao_g || "—"} g</div>
+              <div>Porção: {valores.porcao_g ?? "—"} g</div>
             </div>
 
-            {temColuna100g ? (
-              <>
-                <div className="grid min-w-[460px] grid-cols-[1.7fr_0.75fr_0.75fr_0.55fr] border-b border-foreground/20 bg-muted/30 font-semibold">
-                  <span className="px-3 py-2">Nutriente</span>
-                  <span className="border-l border-foreground/20 px-2 py-2 text-center">100 g</span>
-                  <span className="border-l border-foreground/20 px-2 py-2 text-center">
-                    {valores.porcao_g || "Porção"} g
-                  </span>
-                  <span className="border-l border-foreground/20 px-2 py-2 text-center">% VD*</span>
-                </div>
+            <table className="w-full table-fixed border-collapse" aria-label="Tabela nutricional do tamanho selecionado">
+              {temColuna100g ? (
+                <colgroup>
+                  <col style={{ width: "43%" }} />
+                  <col style={{ width: "19%" }} />
+                  <col style={{ width: "23%" }} />
+                  <col style={{ width: "15%" }} />
+                </colgroup>
+              ) : (
+                <colgroup>
+                  <col style={{ width: "68%" }} />
+                  <col style={{ width: "32%" }} />
+                </colgroup>
+              )}
+              <thead className="bg-muted/30">
+                {temColuna100g ? (
+                  <tr>
+                    <th scope="col" className="break-words px-1.5 py-2 text-left font-semibold sm:px-3">Nutriente</th>
+                    <th scope="col" className="border-l border-foreground/20 px-1 py-2 text-center font-semibold sm:px-2">100 g</th>
+                    <th scope="col" className="border-l border-foreground/20 px-1 py-2 text-center font-semibold sm:px-2">
+                      {valores.porcao_g != null ? `${valores.porcao_g} g` : "Porção"}
+                    </th>
+                    <th scope="col" className="border-l border-foreground/20 px-0.5 py-2 text-center font-semibold sm:px-2">% VD*</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th scope="col" className="px-2 py-2 text-left font-semibold">Nutriente</th>
+                    <th scope="col" className="border-l border-foreground/20 px-2 py-2 text-center font-semibold">Porção</th>
+                  </tr>
+                )}
+              </thead>
+              <tbody>
                 {linhas.map((linha) => (
-                  <div
-                    key={linha.rotulo}
-                    className="grid min-w-[460px] grid-cols-[1.7fr_0.75fr_0.75fr_0.55fr] border-b border-foreground/20 last:border-b-0"
-                  >
-                    <span className="px-3 py-2">{linha.rotulo}</span>
-                    <span className="border-l border-foreground/20 px-2 py-2 text-center">
-                      {linha.valor100g}
-                    </span>
-                    <b className="border-l border-foreground/20 px-2 py-2 text-center">
+                  <tr key={linha.rotulo} className="border-t border-foreground/20">
+                    <th scope="row" className="break-words px-1.5 py-2 text-left font-normal sm:px-3">
+                      {linha.rotulo}
+                    </th>
+                    {temColuna100g && (
+                      <td className="break-words border-l border-foreground/20 px-1 py-2 text-center sm:px-2">
+                        {linha.valor100g}
+                      </td>
+                    )}
+                    <td className="break-words border-l border-foreground/20 px-1 py-2 text-center font-semibold sm:px-2">
                       {linha.valor}
-                    </b>
-                    <span className="border-l border-foreground/20 px-2 py-2 text-center">
-                      {linha.vd != null ? linha.vd : "—"}
-                    </span>
-                  </div>
+                    </td>
+                    {temColuna100g && (
+                      <td className="break-words border-l border-foreground/20 px-0.5 py-2 text-center sm:px-2">
+                        {linha.vd != null ? linha.vd : "—"}
+                      </td>
+                    )}
+                  </tr>
                 ))}
-              </>
-            ) : (
-              <>
-                {linhas.map((linha) => (
-                  <div
-                    key={linha.rotulo}
-                    className="grid grid-cols-[1fr_auto] border-b border-foreground/20 last:border-b-0"
-                  >
-                    <span className="px-3 py-2">{linha.rotulo}</span>
-                    <b className="border-l border-foreground/20 px-3 py-2">{linha.valor}</b>
-                  </div>
-                ))}
-              </>
-            )}
+              </tbody>
+            </table>
           </div>
-          <p className="mt-2 text-base text-muted-foreground">
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground sm:text-xs">
             * Percentual de valores diários fornecidos pela porção.
           </p>
         </div>
