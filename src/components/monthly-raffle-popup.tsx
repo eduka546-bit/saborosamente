@@ -71,8 +71,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: aceitePoliticas,
-        p_optin_carrinho: aceitePoliticas,
+        p_optin_marketing: false,
+        p_optin_carrinho: false,
       });
       if (error) throw error;
       if (data === "ja_participando") {
@@ -81,9 +81,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       }
       // O visitante pode aproveitar os mesmos dados ao criar sua conta e concluir a compra.
       salvarLeadPreCadastro(nome, digits, sessionId);
-      // Este checkbox menciona expressamente marketing e recuperação por WhatsApp.
+      // Aceite do regulamento não implica autorização para contato promocional.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", "1",
+        "saborosamente.recovery_whatsapp_consent", "0",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -107,74 +107,80 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
-      <button
-        type="button" aria-label="Fechar convite do sorteio" onClick={fechar}
-        className="absolute inset-0 bg-black/60 backdrop-blur-[3px]"
-      />
-      <section
-        role="dialog" aria-modal="true" aria-labelledby="sorteio-titulo"
-        className="relative w-full max-w-[430px] max-h-[94vh] overflow-y-auto rounded-[24px] bg-[#fffef9] shadow-2xl"
-      >
-        <div className="bg-[#075d3a] text-white px-6 pt-7 pb-6 text-center relative">
-          <button onClick={fechar} type="button" aria-label="Fechar"
-            className="absolute right-3 top-3 rounded-full p-2 hover:bg-white/10">
-            <X size={19}/>
-          </button>
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 mb-3">
-            <Gift size={30}/>
+      <button type="button" aria-label="Fechar convite do sorteio" onClick={fechar}
+        className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" />
+      <section role="dialog" aria-modal="true" aria-labelledby="sorteio-titulo"
+        className="relative grid w-full max-w-[920px] max-h-[94dvh] overflow-y-auto rounded-[24px] bg-[#fffef9] shadow-2xl md:grid-cols-[0.95fr_1.05fr] md:overflow-hidden">
+        <button onClick={fechar} type="button" aria-label="Fechar"
+          className="absolute right-3 top-3 z-30 rounded-full p-2 bg-white/90 text-[#075d3a] shadow-sm hover:bg-white">
+          <X size={19}/>
+        </button>
+
+        <div className="relative flex flex-col justify-center overflow-hidden bg-[#075d3a] px-7 py-9 text-center text-white md:min-h-[490px] md:px-9 md:py-12">
+          <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full border border-white/15" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -right-16 h-64 w-64 rounded-full border border-white/15" />
+          <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+            <Gift size={32}/>
           </div>
-          <p className="text-xs font-semibold tracking-[0.12em] uppercase text-[#d6f0d4]">
-            Especial para quem está chegando
+          <p className="relative text-xs font-semibold uppercase tracking-[0.14em] text-[#d8eebf]">
+            Sorteio mensal SaborosaMente
           </p>
-          <h2 id="sorteio-titulo" className="text-2xl font-bold mt-2 leading-snug">
-            Uma semana de marmitas pode ser sua!
+          <h2 id="sorteio-titulo" className="relative mt-3 text-[1.8rem] font-extrabold leading-tight md:text-[2.2rem]">
+            Uma semana de marmitas congeladas gratuitas pra você!
           </h2>
-          <p className="text-sm text-[#ecf4e8] mt-2 leading-relaxed">
-            Cadastre-se para participar do sorteio mensal da SaborosaMente.
+          <p className="relative mx-auto mt-4 max-w-[310px] text-sm leading-relaxed text-[#e7f2e9]">
+            Uma chance especial de experimentar nossos sabores. Participe gratuitamente!
           </p>
+          <div className="relative mx-auto mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white">
+            <ShieldCheck size={16}/> Sem compra obrigatória
+          </div>
         </div>
-        <form onSubmit={enviar} className="p-5 sm:p-6 space-y-4">
-          <p className="text-sm text-[#375244] flex gap-2 items-start">
-            <TicketCheck size={18} className="shrink-0 text-[#08764a] mt-0.5"/>
-            Cadastre-se uma vez. Se ganhar, volta a participar em janeiro do ano seguinte.
+
+        <form onSubmit={enviar} className="flex flex-col justify-center gap-4 p-5 sm:p-8 md:overflow-y-auto md:px-9 md:py-9">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#6e8655]">Participe do sorteio</p>
+            <h3 className="mt-1 text-xl font-bold text-[#075d3a]">Faça sua inscrição</h3>
+          </div>
+          <p className="flex items-start gap-2 text-sm leading-relaxed text-[#375244]">
+            <TicketCheck size={19} className="mt-0.5 shrink-0 text-[#08764a]"/>
+            Cadastre-se uma vez e continue elegível nos próximos sorteios previstos, até ser contemplado.
           </p>
           <div>
-            <label htmlFor="sorteio-nome" className="block text-sm font-semibold text-[#243e31] mb-1">Nome completo</label>
+            <label htmlFor="sorteio-nome" className="mb-1 block text-sm font-semibold text-[#243e31]">Nome completo</label>
             <input id="sorteio-nome" autoComplete="name" required maxLength={80}
               value={nome} onChange={e => setNome(e.target.value)}
               placeholder="Seu nome"
               className="w-full rounded-xl border border-[#cbdacc] bg-white px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
           </div>
           <div>
-            <label htmlFor="sorteio-telefone" className="block text-sm font-semibold text-[#243e31] mb-1">WhatsApp com DDD</label>
+            <label htmlFor="sorteio-telefone" className="mb-1 block text-sm font-semibold text-[#243e31]">WhatsApp com DDD</label>
             <div className="relative">
               <Phone size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#547765]"/>
-              <input id="sorteio-telefone" autoComplete="tel" type="tel" required
-                value={telefone} onChange={e => setTelefone(e.target.value)} maxLength={18}
+              <input id="sorteio-telefone" autoComplete="tel" type="tel" required maxLength={18}
+                value={telefone} onChange={e => setTelefone(e.target.value)}
                 placeholder="(47) 99999-9999"
-                className="w-full rounded-xl border border-[#cbdacc] bg-white pl-10 pr-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
+                className="w-full rounded-xl border border-[#cbdacc] bg-white py-3 pl-10 pr-4 text-base outline-none focus:ring-2 focus:ring-[#08764a]"/>
             </div>
           </div>
           <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-[#375244]">
             <input type="checkbox" required checked={aceitePoliticas}
               onChange={e => setAceitePoliticas(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
-            <span>
-              Aceito os termos do sorteio conforme{" "}
+            <span>Aceito os termos do sorteio conforme{" "}
               <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-                className="underline font-semibold">regulamento</Link> e autorizo marketing e recuperação.
+                className="font-semibold underline">regulamento</Link>.
             </span>
           </label>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
-            className="w-full rounded-xl bg-[#08764a] hover:bg-[#075e3c] px-5 py-3.5 font-semibold text-white disabled:opacity-60">
+            className="w-full rounded-xl bg-[#08764a] px-5 py-3.5 font-semibold text-white hover:bg-[#075e3c] disabled:opacity-60">
             {sending ? "Registrando..." : "Quero participar"}
           </button>
-          <p className="text-center text-xs text-[#657368] flex justify-center gap-1 items-center">
+          <p className="flex items-center justify-center gap-1 text-center text-xs text-[#657368]">
             <ShieldCheck size={13}/> Participação gratuita. Uma inscrição por telefone.
           </p>
           <button type="button" onClick={fechar}
-            className="w-full text-center text-xs font-medium py-1 text-[#63766a] hover:text-[#075e3c]">
+            className="w-full py-1 text-center text-xs font-medium text-[#63766a] hover:text-[#075e3c]">
             Agora não, quero ver o cardápio
           </button>
         </form>
