@@ -178,7 +178,7 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
           <button
             type="button"
             onClick={() => setGoogleAnalyticsConsent("granted")}
-            className="min-w-16 rounded-lg border border-[#c9d9cd] bg-white px-4 py-2 text-sm font-semibold text-[#075d3a] hover:bg-[#f3f7f3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
+            className="min-w-16 rounded-lg border border-[#086e45] bg-[#086e45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#075d3a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
           >
             Sim
           </button>
