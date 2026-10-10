@@ -69,7 +69,7 @@ export function AdminSiteAnalytics() {
             <Activity size={22} /> Comportamento dos visitantes no site
           </h2>
           <p className="mt-1 text-sm text-gray-600">
-            Eventos registrados no Supabase desde 22/09/2026. Não são dados dos painéis Google Analytics ou Clarity; podem incluir testes e acessos automatizados.
+            Eventos internos do Supabase desde 22/09/2026. Visualizações repetidas na mesma página/sessão em menos de 2 segundos são filtradas no relatório. Não são os números dos painéis Google Analytics ou Clarity.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function AdminSiteAnalytics() {
             </div>
           </div>
           <p className="text-xs leading-relaxed text-gray-500">
-            Visitas são estimativas baseadas nos eventos gravados, não pessoas únicas confirmadas. Trocar de aparelho, limpar dados ou compartilhar um dispositivo altera as contagens. Não coletamos IP para esse cálculo. Compras no funil também podem diferir do total de pedidos efetivamente gravados.
+            Dados normalizados, não pessoas únicas confirmadas. O histórico bruto permanece preservado: somente o relatório filtra visualizações repetidas da mesma rota/sessão em menos de 2 segundos. Trocar de aparelho, compartilhar navegador, testes e robôs podem afetar as métricas. Cliques e compras não são descartados por essa regra; compras devem ser conferidas com os pedidos efetivamente gravados. Não coletamos IP para calcular visitantes.
           </p>
 
           <div className="grid gap-4 lg:grid-cols-2">
