@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { getPublicSiteSettings } from "@/lib/site-settings";
+import { initMicrosoftClarity, updateClarityConsent } from "@/lib/microsoft-clarity";
 import {
   getGoogleAnalyticsConsent,
   initGoogleAnalytics,
@@ -68,6 +69,14 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
     initGoogleAnalytics(measurementId);
     trackGoogleAnalyticsPageView(pathname);
   }, [pathname, isPrivateArea, enabled, measurementId, consent]);
+
+  useEffect(() => {
+    if (!isPrivateArea && consent === "granted") {
+      initMicrosoftClarity();
+    } else {
+      updateClarityConsent("denied");
+    }
+  }, [isPrivateArea, consent]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -151,8 +160,9 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
         <div className="max-w-xl">
           <p className="text-sm font-bold text-gray-900">Cookies de métricas</p>
           <p className="mt-1 text-xs leading-5 text-gray-600">
-            Usamos o Google Analytics para entender como o site é utilizado e melhorar a experiência.
-            Não enviamos nome, e-mail ou telefone ao Google. Você pode aceitar apenas se quiser.
+            Usamos Google Analytics e Microsoft Clarity para entender acessos, cliques e navegação,
+            incluindo mapas de calor e gravações com dados sensíveis mascarados. Essas ferramentas
+            só são carregadas após sua autorização. Você pode recusar ou mudar sua escolha na Política de Privacidade.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
