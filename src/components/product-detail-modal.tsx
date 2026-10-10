@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Minus,
   Plus,
+  X,
 } from "lucide-react";
 import { formatBRL } from "@/lib/products";
 import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
@@ -517,7 +518,16 @@ export function ProductDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[94dvh] max-h-[94dvh] w-[calc(100vw-12px)] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:h-[90vh] md:max-h-[900px] sm:max-w-5xl lg:max-w-7xl [&>button]:z-40 [&>button]:rounded-full [&>button]:bg-white/95 [&>button]:p-2 [&>button]:shadow-md">
+      <DialogContent hideCloseButton className="flex h-[94dvh] max-h-[94dvh] w-[calc(100vw-12px)] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:h-[90vh] md:max-h-[900px] sm:max-w-5xl lg:max-w-7xl">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar detalhes e voltar ao catálogo"
+          title="Fechar e voltar"
+          className="absolute right-3 top-3 z-50 grid h-11 w-11 place-items-center rounded-full border border-[#c9d9cd] bg-white text-[#075d3a] shadow-lg transition hover:bg-[#edf5e9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
+        >
+          <X className="size-6" aria-hidden="true" />
+        </button>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
