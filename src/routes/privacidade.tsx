@@ -18,7 +18,7 @@ export const Route = createFileRoute("/privacidade")({
 });
 
 function PrivacidadePage() {
-  const dataAtualizacao = "9 de outubro de 2026";
+  const dataAtualizacao = "10 de outubro de 2026";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -60,8 +60,8 @@ function PrivacidadePage() {
             </li>
             <li>
               <strong>Dados de navegação:</strong> páginas acessadas, eventos de navegação,
-              dispositivo e navegador. Métricas do Google Analytics só são coletadas quando você
-              aceita cookies de métricas.
+              dispositivo e navegador. O Google Analytics e o Microsoft Clarity só são carregados
+              quando você autoriza as métricas opcionais.
             </li>
             <li>
               <strong>Dados de comunicação:</strong> mensagens trocadas via WhatsApp, incluindo
@@ -164,7 +164,7 @@ function PrivacidadePage() {
             <li>
               <strong>Plataformas de tecnologia</strong> — Supabase (banco de dados), Meta/WhatsApp
               (comunicação), Vercel (hospedagem), OpenAI (IA de atendimento) e, quando houver
-              consentimento para métricas, Google Analytics. Cada fornecedor possui sua própria
+              consentimento para métricas, Google Analytics e Microsoft Clarity. Cada fornecedor possui sua própria
               política de privacidade e seus próprios termos de tratamento de dados.
             </li>
             <li>
@@ -224,13 +224,20 @@ function PrivacidadePage() {
           <h2 className="text-lg font-bold text-gray-800 mb-2">8. Cookies e métricas</h2>
           <p>
             Utilizamos armazenamento e cookies técnicos essenciais para manter o carrinho, a sessão
-            e outras funções necessárias do site. O Google Analytics 4 é opcional e só é carregado
-            depois que você aceita cookies de métricas.
+            e outras funções necessárias do site. Google Analytics 4 e Microsoft Clarity são opcionais
+            e só são carregados depois que você aceita cookies de métricas.
           </p>
           <p className="mt-2">
             O Google Analytics é utilizado para medir páginas visitadas, interações, início de
             checkout e compras. Não enviamos nome, e-mail ou telefone ao Google Analytics e não
             utilizamos essa integração para personalização de anúncios.
+          </p>
+          <p className="mt-2">
+            O Microsoft Clarity analisa cliques, rolagem, mapas de calor e reproduções de navegação
+            para identificar dificuldades de uso. Campos de formulários e informações sensíveis
+            são mascarados nas gravações. Não enviamos intencionalmente nome, telefone ou e-mail
+            como identificadores personalizados ao Clarity; o tratamento de dados da ferramenta
+            segue também a política de privacidade da Microsoft.
           </p>
           <p className="mt-2">
             No cadastro promocional e no checkout, você pode autorizar mensagens de recuperação por
