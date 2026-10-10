@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AdminSiteAnalytics } from "@/components/admin-site-analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, TrendingUp, Clock, MapPin, CreditCard } from "lucide-react";
 import { useMemo } from "react";
@@ -137,6 +138,7 @@ function AdminRelatoriosInteligenciaPage() {
           </div>
         </div>
       )}
+      <AdminSiteAnalytics />
     </div>
   );
 }
