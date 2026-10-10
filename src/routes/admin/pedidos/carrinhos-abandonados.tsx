@@ -26,10 +26,14 @@ export const Route = createFileRoute("/admin/pedidos/carrinhos-abandonados")({
 });
 
 const STATUS_COLORS: Record<string, string> = {
+  em_andamento: "bg-blue-100 text-blue-700",
+  esvaziado: "bg-gray-100 text-gray-600",
   abandonado: "bg-red-100 text-red-700",
   recuperado: "bg-yellow-100 text-yellow-700",
   convertido: "bg-green-100 text-green-700",
 };
+
+const STATUS_LABELS: Record<string,string> = { em_andamento: "Em andamento", abandonado: "Abandonado", recuperado: "Recuperado", convertido: "Convertido", esvaziado: "Esvaziado" };
 
 function ItemsPreview({ itens }: { itens: any[] }) {
   return (
@@ -110,13 +114,14 @@ function AdminCarrinhosAbandonadosPage() {
   // Estatísticas
   const stats = useMemo(() => {
     const total = data.length;
+    const emAndamento = data.filter((c: any) => c.status === "em_andamento").length;
     const abandonados = data.filter((c: any) => c.status === "abandonado").length;
     const convertidos = data.filter((c: any) => c.status === "convertido").length;
     const valorPerdido = data
       .filter((c: any) => c.status === "abandonado")
       .reduce((s: number, c: any) => s + (c.valor_total ?? 0), 0);
     const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : "0";
-    return { total, abandonados, convertidos, valorPerdido, taxaConversao };
+    return { total, emAndamento, abandonados, convertidos, valorPerdido, taxaConversao };
   }, [data]);
 
   const buildWhatsAppUrl = (carrinho: any) => {
@@ -139,7 +144,7 @@ function AdminCarrinhosAbandonadosPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Carrinhos Abandonados</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Recupere vendas perdidas entrando em contato com clientes via WhatsApp, respeitando as autorizações de contato.
+          Carrinhos salvos em segundos e classificados como abandonados após 10 minutos sem atividade. Contato via WhatsApp só com autorização.
         </p>
         <a href="/admin/pedidos/leads"
           className="inline-flex mt-3 items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-800 hover:bg-green-100">
@@ -148,13 +153,20 @@ function AdminCarrinhosAbandonadosPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4">
           <div className="flex items-center gap-2 mb-1">
             <ShoppingCart size={16} className="text-gray-400" />
             <p className="text-xs font-bold uppercase text-gray-400">Total</p>
           </div>
           <p className="text-2xl font-black text-gray-900">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-xl border p-4 border-blue-100">
+          <div className="flex items-center gap-2 mb-1">
+            <RefreshCw size={16} className="text-blue-400" />
+            <p className="text-xs font-bold uppercase text-blue-500">Em andamento</p>
+          </div>
+          <p className="text-2xl font-black text-blue-600">{stats.emAndamento}</p>
         </div>
         <div className="bg-white rounded-xl border p-4 border-red-100">
           <div className="flex items-center gap-2 mb-1">
@@ -197,7 +209,7 @@ function AdminCarrinhosAbandonadosPage() {
           />
         </div>
         <div className="flex gap-2">
-          {["todos", "abandonado", "recuperado", "convertido"].map((s) => (
+          {["todos", "em_andamento", "abandonado", "recuperado", "convertido", "esvaziado"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -207,7 +219,7 @@ function AdminCarrinhosAbandonadosPage() {
                   : "border-gray-200 text-gray-500 hover:border-[#5850ec]"
               }`}
             >
-              {s === "todos" ? "Todos" : s}
+              {s === "todos" ? "Todos" : (STATUS_LABELS[s] ?? s)}
             </button>
           ))}
         </div>
@@ -248,7 +260,7 @@ function AdminCarrinhosAbandonadosPage() {
             </thead>
             <tbody className="divide-y">
               {filtered.map((c: any) => {
-                const waUrl = c.recuperacao_whatsapp_consentimento
+                const waUrl = c.recuperacao_whatsapp_consentimento && c.status === "abandonado"
                   ? buildWhatsAppUrl(c)
                   : null;
                 return (
@@ -290,7 +302,7 @@ function AdminCarrinhosAbandonadosPage() {
                       <span
                         className={`text-[10px] font-bold px-2 py-1 rounded-full ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-500"}`}
                       >
-                        {c.status}
+                        {STATUS_LABELS[c.status] ?? c.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs">
@@ -427,7 +439,7 @@ function AdminCarrinhosAbandonadosPage() {
               )}
 
               {/* Ações */}
-              {buildWhatsAppUrl(selectedCarrinho) && (
+              {selectedCarrinho.status === "abandonado" && selectedCarrinho.recuperacao_whatsapp_consentimento && buildWhatsAppUrl(selectedCarrinho) && (
                 <a
                   href={buildWhatsAppUrl(selectedCarrinho)!}
                   target="_blank"
