@@ -8,9 +8,11 @@ interface ProductSealsProps {
   product: { sem_gluten?: boolean; sem_lactose?: boolean } | null | undefined;
   /** Tamanho do selo em px (largura/altura). Padrão 40. */
   size?: number;
+  /** Deslocamento do selo superior quando a galeria tem botão de fechar. */
+  topOffset?: number;
 }
 
-export function ProductSeals({ product, size = 40 }: ProductSealsProps) {
+export function ProductSeals({ product, size = 40, topOffset = 12 }: ProductSealsProps) {
   if (!product?.sem_gluten && !product?.sem_lactose) return null;
 
   const selo = (src: string, alt: string) => (
@@ -28,7 +30,7 @@ export function ProductSeals({ product, size = 40 }: ProductSealsProps) {
   return (
     <>
       {product.sem_gluten && (
-        <div className="pointer-events-none absolute right-3 top-3 z-10">
+        <div className="pointer-events-none absolute right-3 z-10" style={{ top: topOffset }}>
           {selo("/selo-sem-gluten.png", "Sem Glúten")}
         </div>
       )}
