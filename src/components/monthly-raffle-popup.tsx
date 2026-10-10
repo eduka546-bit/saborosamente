@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
+import { createPortal } from "react-dom";
 import { Gift, X, TicketCheck, Phone, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
@@ -103,10 +104,11 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
     }
   };
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
+  // Portal evita que o header ou algum container da página desloque/encubra o modal.
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5">
       <button type="button" aria-label="Fechar convite do sorteio" onClick={fechar}
         className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" />
       <section role="dialog" aria-modal="true" aria-labelledby="sorteio-titulo"
@@ -125,10 +127,13 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           <p className="relative text-xs font-semibold uppercase tracking-[0.14em] text-[#d8eebf]">
             Sorteio mensal SaborosaMente
           </p>
-          <h2 id="sorteio-titulo" className="relative mt-3 text-[1.8rem] font-extrabold leading-tight md:text-[2.2rem]">
+          <h2 id="sorteio-titulo" className="relative mx-auto mt-3 max-w-[370px] text-[1.75rem] font-semibold leading-[1.2] tracking-[-0.02em] md:text-[2rem]">
             Uma semana de marmitas congeladas gratuitas pra você!
           </h2>
-          <p className="relative mx-auto mt-4 max-w-[310px] text-sm leading-relaxed text-[#e7f2e9]">
+          <p className="relative mx-auto mt-5 max-w-[340px] text-[15px] leading-relaxed text-[#f0f7ee]">
+            <strong className="font-semibold text-white">Não precisa comprar nada!</strong> Só de se cadastrar, você já está concorrendo a uma semana de marmitas gratuitas.
+          </p>
+          <p className="relative mx-auto mt-3 max-w-[340px] text-sm leading-relaxed text-[#d6e9d7]">
             Uma chance especial de experimentar nossos sabores. Participe gratuitamente!
           </p>
           <div className="relative mx-auto mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white">
@@ -185,6 +190,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           </button>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
