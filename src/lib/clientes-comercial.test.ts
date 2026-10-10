@@ -94,3 +94,54 @@ describe("filtros comerciais de clientes", () => {
     ).toBe("a");
   });
 });
+
+
+describe("integração dos inscritos no sorteio à aba Clientes", () => {
+  const lead = {
+    id: "lead-1",
+    nome: "Visitante sorteio",
+    telefone: "47988887777",
+    created_at: "2026-10-10T14:21:00Z",
+    user_id: null,
+  };
+  it("mostra participante sem conta como contato e permite buscar, filtrar por data", () => {
+    const base = montarClientesComerciais([], [], [lead]);
+    expect(base).toHaveLength(1);
+    expect(base[0]).toMatchObject({
+      nome: "Visitante sorteio",
+      profileId: undefined,
+      sorteioLeadId: "lead-1",
+      totalPedidos: 0,
+      cadastradoEm: lead.created_at,
+    });
+    expect(filtrarClientesComerciais(base, { ...filters, busca: "4798888" })).toHaveLength(1);
+    expect(filtrarClientesComerciais(base, { ...filters, cadastro: "7" }, Date.parse("2026-10-10T16:00:00Z"))).toHaveLength(1);
+  });
+  it("une sorteio ao perfil existente com o mesmo telefone sem criar segundo contato", () => {
+    const base = montarClientesComerciais(
+      [{ ...profiles[0], telefone: "+55 (47) 98888-7777" }],
+      [],
+      [lead],
+    );
+    expect(base).toHaveLength(1);
+    expect(base[0].sorteioLeadId).toBe("lead-1");
+    expect(base[0].profileId).toBe("a");
+  });
+  it("une sorteio a pedidos de convidado por telefone", () => {
+    const base = montarClientesComerciais([], [
+      { ...order, user_id: null, telefone_cliente: "(47) 98888-7777", nome_cliente: "Convidado" },
+    ], [lead]);
+    expect(base).toHaveLength(1);
+    expect(base[0].totalPedidos).toBe(1);
+    expect(base[0].sorteioLeadId).toBe("lead-1");
+  });
+  it("não cola o lead em perfis com telefones ambíguos", () => {
+    const duplicados = [
+      { ...profiles[0], telefone: lead.telefone },
+      { ...profiles[0], id: "b", telefone: lead.telefone },
+    ];
+    const base = montarClientesComerciais(duplicados, [], [lead]);
+    expect(base).toHaveLength(3);
+    expect(base.find(c => c.sorteioLeadId === "lead-1")?.profileId).toBeUndefined();
+  });
+});
