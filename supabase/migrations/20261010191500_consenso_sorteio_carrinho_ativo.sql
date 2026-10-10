@@ -73,8 +73,7 @@ begin
 
   return 'recebido';
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.enriquecer_carrinho_com_lead_sorteio()
  RETURNS trigger
@@ -100,8 +99,7 @@ begin
  end if;
  return new;
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.capture_checkout_recovery_lead(p_session_id text, p_nome text, p_telefone text, p_email text, p_itens jsonb, p_valor_total numeric, p_consent boolean)
  RETURNS uuid
@@ -212,5 +210,4 @@ begin
 
   return v_id;
 end;
-$function$
-
+$function$;
