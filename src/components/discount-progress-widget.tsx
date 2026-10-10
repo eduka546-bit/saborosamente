@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart";
 import { ShoppingBag } from "lucide-react";
 import { formatBRL } from "@/lib/products";
+import { COMBO_RULES } from "@/lib/combo-rules";
 
-const PRICE_BANDS = [{ min: 5 }, { min: 10 }, { min: 20 }];
+const PRICE_BANDS = COMBO_RULES;
 
 export function DiscountProgressWidget({ className }: { className?: string }) {
   const { count, discount } = useCart();
@@ -57,7 +58,10 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
                   {band.min}
                 </div>
                 <span className={cn("mt-1 text-sm font-semibold", active ? "text-primary" : "text-[#6a7c70]")}>
-                  {band.min}+
+                  {band.min}+ un
+                </span>
+                <span className={cn("text-xs font-bold", active ? "text-primary" : "text-[#78922f]")}>
+                  {band.badge}
                 </span>
               </div>
             );
