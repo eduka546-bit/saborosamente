@@ -73,7 +73,12 @@ export function ProductDetailModal({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
   useEffect(() => {
-    if (isOpen) setRequestedQuantity(1);
+    if (!isOpen) return;
+    setRequestedQuantity(1);
+    setCurrentImageIndex(0);
+    setConsumo("congelada");
+    setGarfoEFaca(false);
+    setTabelaNutricionalAberta(false);
   }, [isOpen, product?.id]);
 
   // Tamanhos disponíveis
@@ -146,11 +151,17 @@ export function ProductDetailModal({
     ? product.ingredientes.join(", ")
     : String(product.ingredientes || "");
 
-  // Imagens (aceita imagem_url ou imagem, mais galeria opcional)
-  const principal = imgUrl(product.imagem_url || product.imagem);
-  const allImages = [principal, ...(Array.isArray(product.imagens) ? product.imagens : [])].filter(
-    Boolean,
-  );
+  // A foto principal acompanha a gramatura selecionada, sem alterar o produto.
+  const imagemDoTamanho =
+    selectedWeight === "200g" ? product.imagem_200g :
+    selectedWeight === "300g" ? product.imagem_300g :
+    selectedWeight === "400g" ? product.imagem_400g : null;
+  const principal = imgUrl(imagemDoTamanho || product.imagem_url || product.imagem);
+  const allImages = [...new Set(
+    [principal, ...(Array.isArray(product.imagens) ? product.imagens : [])]
+      .filter(Boolean)
+      .map((url: string) => imgUrl(url)),
+  )];
   const currentImage = allImages[currentImageIndex] || principal;
 
   const isSopa = categoriaNome.toLowerCase().includes("sopa");
@@ -379,14 +390,139 @@ export function ProductDetailModal({
     onClose();
   };
 
+  const purchaseControls = (
+            <div className="border-t border-[#dce7dd] bg-card px-4 py-2.5 sm:px-5 sm:py-4">
+              {(() => {
+                // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
+                const semDesconto = isNoDiscount(categoriaNome);
+                const podeTerDesconto = ehMarmita && !semDesconto;
+                const precoCheio = podeTerDesconto
+                  ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
+                  : currentPrice;
+                const precoComFaixa = podeTerDesconto
+                  ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
+                  : currentPrice;
+                const adicional =
+                  (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
+                  (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
+                const precoFinal = precoComFaixa + adicional;
+                const temDesconto =
+                  precoFinal < precoCheio + adicional ||
+                  adicional > 0 ||
+                  precoComFaixa < precoCheio;
+                const precoCheioTotal = precoCheio + adicional;
+
+                return (
+                  <div className="mb-2 flex items-center justify-between gap-3 md:mb-4">
+                    <div className="flex flex-col">
+                      <span className="text-base font-semibold text-muted-foreground">
+                        Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
+                      </span>
+                      {precoComFaixa < precoCheio ? (
+                        <>
+                          <span className="text-base font-semibold text-muted-foreground line-through">
+                            {formatBRL(precoCheioTotal * quantity)}
+                          </span>
+                          <span className="text-2xl font-semibold md:text-3xl text-[#086e45]">
+                            {formatBRL(precoFinal * quantity)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-semibold md:text-3xl text-primary">
+                          {formatBRL(precoFinal * quantity)}
+                        </span>
+                      )}
+                    </div>
+                    {selectedWeight && (
+                      <Badge variant="secondary" className="font-semibold">
+                        {selectedWeight}
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {!soldOut && (
+                <div className="mb-2 flex items-center justify-between gap-3 md:mb-3">
+                  <span className="text-base font-medium">Quantidade</span>
+                  <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
+                    <button
+                      type="button"
+                      aria-label="Diminuir quantidade do produto"
+                      disabled={quantity <= 1}
+                      onClick={() => setRequestedQuantity(quantity - 1)}
+                      className="grid size-10 place-items-center rounded-full text-primary disabled:opacity-40"
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <span
+                      aria-live="polite"
+                      className="min-w-6 text-center text-base font-semibold"
+                    >
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Aumentar quantidade do produto"
+                      disabled={remainingStock !== null && quantity >= remainingStock}
+                      onClick={() => setRequestedQuantity(quantity + 1)}
+                      className="grid size-10 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
+                <p className="mb-1.5 text-center text-sm font-semibold text-[#9a5b00] md:mb-2 md:text-base">
+                  {remainingStock === 1
+                    ? "Última unidade disponível"
+                    : `Últimas ${remainingStock} unidades disponíveis`}
+                </p>
+              )}
+              {soldOut ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      value={restockContact}
+                      onChange={(e) => setRestockContact(e.target.value)}
+                      placeholder="WhatsApp ou e-mail"
+                      aria-label="WhatsApp ou e-mail para aviso de reposição"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <Button
+                      type="button"
+                      onClick={requestRestock}
+                      disabled={restockSending}
+                      className="shrink-0 rounded-xl px-4 font-semibold"
+                    >
+                      {restockSending ? "Salvando..." : "Avise-me"}
+                    </Button>
+                  </div>
+                  <p className="text-base text-muted-foreground">
+                    Se você estiver logado, pode deixar o campo em branco.
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleAddToCart}
+                  className="h-12 w-full gap-2 rounded-xl text-base font-semibold shadow-sm transition-colors hover:shadow-md md:h-14 md:rounded-2xl md:text-lg"
+                >
+                  <ShoppingCart className="size-5" />
+                  {ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
+                </Button>
+              )}
+            </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[95vh] w-[95vw] overflow-y-auto md:overflow-hidden p-0 sm:max-w-5xl lg:max-w-7xl">
-        <div className="flex flex-col md:flex-row min-h-full md:h-[90vh]">
+      <DialogContent className="flex h-[94dvh] max-h-[94dvh] w-[calc(100vw-12px)] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:h-[90vh] md:max-h-[900px] sm:max-w-5xl lg:max-w-7xl [&>button]:z-40 [&>button]:rounded-full [&>button]:bg-white/95 [&>button]:p-2 [&>button]:shadow-md">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
-            <div className="relative aspect-square w-full overflow-hidden bg-muted md:aspect-auto md:min-h-0 md:flex-1">
-              <img src={currentImage} alt={product.nome} className="size-full object-cover" />
+            <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#f4f1e8] md:aspect-auto md:min-h-0 md:flex-1">
+              <img src={currentImage} alt={product.nome} className="absolute inset-0 h-full w-full object-contain p-2 md:p-3" />
               <ProductSeals product={product} size={52} />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
                 <Badge className="bg-sun text-sun-foreground hover:bg-sun">{categoriaNome}</Badge>
@@ -429,135 +565,14 @@ export function ProductDetailModal({
               )}
             </div>
 
-            <div className="shrink-0 border-t bg-card px-5 py-4">
-              {(() => {
-                // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
-                const semDesconto = isNoDiscount(categoriaNome);
-                const podeTerDesconto = ehMarmita && !semDesconto;
-                const precoCheio = podeTerDesconto
-                  ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
-                  : currentPrice;
-                const precoComFaixa = podeTerDesconto
-                  ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
-                  : currentPrice;
-                const adicional =
-                  (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
-                  (garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
-                const precoFinal = precoComFaixa + adicional;
-                const temDesconto =
-                  precoFinal < precoCheio + adicional ||
-                  adicional > 0 ||
-                  precoComFaixa < precoCheio;
-                const precoCheioTotal = precoCheio + adicional;
-
-                return (
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex flex-col">
-                      <span className="text-base font-semibold text-muted-foreground">
-                        Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
-                      </span>
-                      {precoComFaixa < precoCheio ? (
-                        <>
-                          <span className="text-base font-semibold text-muted-foreground line-through">
-                            {formatBRL(precoCheioTotal * quantity)}
-                          </span>
-                          <span className="text-3xl font-semibold text-[#086e45]">
-                            {formatBRL(precoFinal * quantity)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-3xl font-semibold text-primary">
-                          {formatBRL(precoFinal * quantity)}
-                        </span>
-                      )}
-                    </div>
-                    {selectedWeight && (
-                      <Badge variant="secondary" className="font-semibold">
-                        {selectedWeight}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {!soldOut && (
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <span className="text-base font-medium">Quantidade</span>
-                  <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
-                    <button
-                      type="button"
-                      aria-label="Diminuir quantidade do produto"
-                      disabled={quantity <= 1}
-                      onClick={() => setRequestedQuantity(quantity - 1)}
-                      className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"
-                    >
-                      <Minus size={18} />
-                    </button>
-                    <span
-                      aria-live="polite"
-                      className="min-w-6 text-center text-base font-semibold"
-                    >
-                      {quantity}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Aumentar quantidade do produto"
-                      disabled={remainingStock !== null && quantity >= remainingStock}
-                      onClick={() => setRequestedQuantity(quantity + 1)}
-                      className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-                </div>
-              )}
-              {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-                <p className="mb-2 text-center text-base font-semibold text-[#9a5b00]">
-                  {remainingStock === 1
-                    ? "Última unidade disponível"
-                    : `Últimas ${remainingStock} unidades disponíveis`}
-                </p>
-              )}
-              {soldOut ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      value={restockContact}
-                      onChange={(e) => setRestockContact(e.target.value)}
-                      placeholder="WhatsApp ou e-mail"
-                      aria-label="WhatsApp ou e-mail para aviso de reposição"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                    <Button
-                      type="button"
-                      onClick={requestRestock}
-                      disabled={restockSending}
-                      className="shrink-0 rounded-xl px-4 font-semibold"
-                    >
-                      {restockSending ? "Salvando..." : "Avise-me"}
-                    </Button>
-                  </div>
-                  <p className="text-base text-muted-foreground">
-                    Se você estiver logado, pode deixar o campo em branco.
-                  </p>
-                </div>
-              ) : (
-                <Button
-                  onClick={handleAddToCart}
-                  className="w-full h-14 rounded-2xl text-lg font-semibold gap-2 shadow-lg hover:shadow-primary/20 transition-all hover:scale-[1.02]"
-                >
-                  <ShoppingCart className="size-5" />
-                  {ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
-                </Button>
-              )}
-            </div>
+            <div className="hidden md:block">{purchaseControls}</div>
           </div>
 
           {/* Ficha do produto */}
-          <div className="flex min-w-0 flex-1 flex-col p-6 md:overflow-y-auto">
-            <DialogHeader className="mb-4">
+          <div className="flex min-w-0 flex-1 flex-col px-4 pb-5 pt-4 sm:px-6 sm:pt-6 md:overflow-y-auto md:p-6">
+            <DialogHeader className="mb-4 text-left">
               <div className="flex items-start justify-between gap-3 pr-8">
-                <DialogTitle className="text-2xl font-semibold text-[#075636]">
+                <DialogTitle className="text-xl font-semibold leading-snug text-[#075636] sm:text-2xl">
                   {codeMatch && (
                     <>
                       <span className="mr-2 inline-block rounded-lg bg-[#e4ede1] px-2 py-1 align-middle text-base font-semibold">
@@ -600,6 +615,8 @@ export function ProductDetailModal({
                           type="button"
                           onClick={() => {
                             setSelectedWeight(w);
+                            setCurrentImageIndex(0);
+                            setRequestedQuantity(1);
                             trackEvent("size_select", {
                               produtoId: product.id,
                               metadata: { gramatura: w },
@@ -776,6 +793,7 @@ export function ProductDetailModal({
             )}
           </div>
         </div>
+        <div className="z-30 shrink-0 pb-[env(safe-area-inset-bottom)] md:hidden">{purchaseControls}</div>
       </DialogContent>
     </Dialog>
   );
