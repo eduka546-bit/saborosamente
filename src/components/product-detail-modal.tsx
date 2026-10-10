@@ -533,7 +533,7 @@ export function ProductDetailModal({
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
             <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#f4f1e8] md:aspect-auto md:min-h-0 md:flex-1">
               <img src={currentImage} alt={product.nome} className="absolute inset-0 h-full w-full object-contain p-2 md:p-3" />
-              <ProductSeals product={product} size={52} />
+              <ProductSeals product={product} size={52} topOffset={68} />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
                 <Badge className="bg-sun text-sun-foreground hover:bg-sun">{categoriaNome}</Badge>
                 {product.proteina && (
