@@ -900,7 +900,7 @@ function Index() {
                 title: "É só aquecer e aproveitar",
                 text: "Pronto em até 7 minutos, com sabor e praticidade para o seu dia.",
                 card: "border-[#076342] bg-[#087149]",
-                bubble: "bg-[#123d30] text-[#f6d83d]",
+                bubble: "bg-[#13955e] text-white",
                 titleColor: "text-white",
                 textColor: "text-white/76",
               },
@@ -915,9 +915,7 @@ function Index() {
                     <div className={`grid size-11 place-items-center rounded-full shadow-sm ${step.bubble}`}>
                       <Icon size={20} strokeWidth={1.9} />
                     </div>
-                    <span className={`grid size-6 place-items-center rounded-full text-sm font-semibold ${
-                      index === 3 ? "bg-white/10 text-white/80" : "bg-white/70 text-[#45684f]"
-                    }`}>
+                    <span className="grid size-6 place-items-center rounded-full bg-white/70 text-sm font-semibold text-[#45684f]">
                       {index + 1}
                     </span>
                   </div>
