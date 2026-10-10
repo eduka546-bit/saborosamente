@@ -14,6 +14,8 @@ type Relatorio = {
   primeiro_registro: string | null;
   visualizacoes_pagina: number;
   navegadores_identificados: number;
+  visitas_estimadas: number;
+  clientes_autenticados: number;
   ativos_5min: number;
   eventos_total: number;
   funil: Etapa[];
@@ -92,9 +94,11 @@ export function AdminSiteAnalytics() {
       )}
       {isLoading ? <p className="rounded-xl border bg-white p-8 text-center text-sm text-gray-600">Carregando as métricas do site...</p> : data && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {[
-              { label: "Identificadores de navegação", val: numero(data.navegadores_identificados), icon: Users, obs: "Não equivalem a pessoas únicas" },
+              { label: "Visitas estimadas", val: numero(data.visitas_estimadas), icon: Activity, obs: "Nova visita após 30 minutos sem navegar" },
+              { label: "Navegadores identificados", val: numero(data.navegadores_identificados), icon: Users, obs: "Um navegador pode ser usado por várias pessoas" },
+              { label: "Clientes logados distintos", val: numero(data.clientes_autenticados), icon: Users, obs: "Pessoas reconhecidas por login no período" },
               { label: "Páginas visualizadas", val: numero(data.visualizacoes_pagina), icon: Eye, obs: "Total de visualizações" },
               { label: "Ativos nos últimos 5 min", val: numero(data.ativos_5min), icon: Clock3, obs: "Com interações recentes" },
               { label: "Chegaram ao checkout", val: numero(checkout), icon: ShoppingCart, obs: "Identificadores distintos" },
@@ -154,6 +158,9 @@ export function AdminSiteAnalytics() {
                   </div>}
             </div>
           </div>
+          <p className="text-xs leading-relaxed text-gray-500">
+            Visitas estimadas e navegadores não são contagens exatas de pessoas: trocar de aparelho, limpar dados ou compartilhar um dispositivo afeta a medição. Não coletamos IP para esse cálculo.
+          </p>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-[#dce8d5] bg-white p-4 sm:p-5">
