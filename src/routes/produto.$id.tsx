@@ -192,12 +192,18 @@ function ProdutoPage() {
   // Rating
   const rating = Number(product.rating);
 
-  // Imagens
-  const allImages = [imgUrl(product.imagem_url)];
-  if (product.imagens && Array.isArray(product.imagens)) {
-    allImages.push(...product.imagens);
-  }
-  const currentImage = allImages[currentImageIndex];
+  // Galeria sem cortes; a foto principal muda junto com a gramatura.
+  const imagemTamanho =
+    selectedWeight === "200g" ? product.imagem_200g :
+    selectedWeight === "300g" ? product.imagem_300g :
+    selectedWeight === "400g" ? product.imagem_400g : null;
+  const principal = imgUrl(imagemTamanho || product.imagem_url || product.imagem);
+  const allImages = [...new Set(
+    [principal, ...(Array.isArray(product.imagens) ? product.imagens : [])]
+      .filter(Boolean)
+      .map((url: string) => imgUrl(url)),
+  )];
+  const currentImage = allImages[currentImageIndex] || principal;
 
   // Preço
   const isSopa = product.categorias?.nome?.toLowerCase().includes("sopa");
@@ -334,7 +340,7 @@ function ProdutoPage() {
         Voltar
       </button>
 
-      <div className="grid gap-12 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-6 md:gap-10 lg:grid-cols-2 lg:gap-12">
         {/* Galeria de Imagens */}
         <div className="space-y-4">
           {/* Imagem Principal */}
@@ -344,7 +350,7 @@ function ProdutoPage() {
               alt={product.nome}
               widths={[512, 1024]}
               priority={false}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="h-full w-full object-contain p-2 md:p-3"
             />
 
             {/* Badge Categoria */}
@@ -407,7 +413,7 @@ function ProdutoPage() {
                     src={img}
                     alt={`${product.nome} ${idx + 1}`}
                     widths={[100]}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-contain bg-[#f4f1e8] p-1"
                   />
                 </button>
               ))}
@@ -420,7 +426,7 @@ function ProdutoPage() {
           {/* Cabeçalho */}
           <div>
             <div className="mb-2 flex items-start justify-between gap-3">
-              <h1 className="text-4xl font-semibold text-foreground">{product.nome}</h1>
+              <h1 className="min-w-0 break-words text-2xl font-semibold leading-snug text-foreground sm:text-3xl lg:text-4xl">{product.nome}</h1>
               <button
                 type="button"
                 onClick={handleShare}
@@ -472,6 +478,8 @@ function ProdutoPage() {
                     key={w}
                     onClick={() => {
                       setSelectedWeight(w);
+                      setCurrentImageIndex(0);
+                      setRequestedQuantity(1);
                       trackEvent("size_select", {
                         produtoId: product.id,
                         metadata: { gramatura: w, origem: "product_page" },
