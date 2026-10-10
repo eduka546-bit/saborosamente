@@ -1,7 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { trackGoogleAnalyticsEvent } from "@/lib/google-analytics";
+import { createPageViewDeduper } from "@/lib/page-view-dedupe";
 
 const SESSION_KEY = "saborosamente.analytics.session";
+const shouldRecordPageView = createPageViewDeduper();
 
 export function getAnalyticsSessionId() {
   if (typeof window === "undefined") return "server";
@@ -23,7 +25,14 @@ export async function trackEvent(
   } = {},
 ) {
   if (typeof window === "undefined") return;
-  if (evento !== "page_view") trackGoogleAnalyticsEvent(evento, options);
+  if (evento === "page_view") {
+    const path = typeof options.metadata?.pathname === "string"
+      ? options.metadata.pathname
+      : window.location.pathname;
+    if (!shouldRecordPageView(path)) return;
+  } else {
+    trackGoogleAnalyticsEvent(evento, options);
+  }
   try {
     await supabase.rpc("registrar_evento_analytics", {
       p_session_id: getAnalyticsSessionId(),
