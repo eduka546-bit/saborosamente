@@ -155,30 +155,32 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
   }
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-2xl rounded-2xl border border-black/10 bg-white/95 p-4 shadow-2xl backdrop-blur md:bottom-5 md:p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-xl">
-          <p className="text-sm font-bold text-gray-900">Cookies de métricas</p>
-          <p className="mt-1 text-xs leading-5 text-gray-600">
-            Usamos Google Analytics e Microsoft Clarity para entender acessos, cliques e navegação,
-            incluindo mapas de calor e gravações com dados sensíveis mascarados. Essas ferramentas
-            só são carregadas após sua autorização. Você pode recusar ou mudar sua escolha na Política de Privacidade.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+    <div
+      role="region"
+      aria-label="Preferências de cookies"
+      className="fixed inset-x-3 bottom-3 z-[100001] mx-auto max-w-2xl rounded-xl border border-[#d7e4d7] bg-white p-3 shadow-xl sm:bottom-4 sm:p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="min-w-0 flex-1 text-sm leading-5 text-[#243e31]">
+          Nosso site utiliza cookies para melhorar a navegação, você aceita os cookies?{" "}
+          <a href="/privacidade#cookies-metricas" className="whitespace-nowrap text-[#075d3a] underline underline-offset-2">
+            Política de Privacidade
+          </a>
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setGoogleAnalyticsConsent("denied")}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-50"
+            className="min-w-16 rounded-lg border border-[#c9d9cd] bg-white px-4 py-2 text-sm font-semibold text-[#075d3a] hover:bg-[#f3f7f3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
           >
-            Somente essenciais
+            Não
           </button>
           <button
             type="button"
             onClick={() => setGoogleAnalyticsConsent("granted")}
-            className="rounded-xl bg-[#086e45] px-4 py-2 text-xs font-bold text-white transition hover:opacity-90"
+            className="min-w-16 rounded-lg bg-[#086e45] px-4 py-2 text-sm font-semibold text-white hover:bg-[#075e3c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
           >
-            Aceitar métricas
+            Sim
           </button>
         </div>
       </div>
