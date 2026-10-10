@@ -106,6 +106,13 @@ function PrivacidadePage() {
             <li>O prêmio anunciado é uma semana de marmitas da SaborosaMente. Quantidades, tamanhos, sabores, modalidades de entrega ou retirada e datas de apuração devem ser apresentados nas regras específicas de cada edição.</li>
             <li>O participante contemplado não participa novamente no mesmo ano civil, mas pode voltar a ganhar em anos seguintes.</li>
             <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
+            <li>
+              Ao aceitar o regulamento no formulário, o participante também autoriza as métricas
+              do Google Analytics 4 e do Microsoft Clarity, que registram acessos, cliques e
+              navegação para melhorar a experiência no site. Essa confirmação atualiza eventual
+              recusa anterior de cookies de métricas. O participante pode alterar essa escolha
+              posteriormente nesta Política de Privacidade.
+            </li>
           </ul>
           <p className="mt-3">
             <strong>Finalidade dos dados:</strong> nome, WhatsApp, identificador de sessão
@@ -231,6 +238,12 @@ function PrivacidadePage() {
             O Google Analytics é utilizado para medir páginas visitadas, interações, início de
             checkout e compras. Não enviamos nome, e-mail ou telefone ao Google Analytics e não
             utilizamos essa integração para personalização de anúncios.
+          </p>
+          <p className="mt-2">
+            No formulário do sorteio, a aceitação explícita dos termos, que informam o uso
+            de Google Analytics e Clarity, atualiza a preferência de métricas para autorizada,
+            mesmo que você a tenha recusado anteriormente no aviso de cookies. Você pode
+            revisar ou revogar essa escolha aqui posteriormente.
           </p>
           <p className="mt-2">
             O Microsoft Clarity analisa cliques, rolagem, mapas de calor e reproduções de navegação
