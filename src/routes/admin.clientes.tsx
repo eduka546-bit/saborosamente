@@ -1,3 +1,4 @@
+import { montarClientesComerciais, filtrarClientesComerciais } from "@/lib/clientes-comercial";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Users,
@@ -53,13 +54,17 @@ function CashbackCliente({ userId }: { userId: string }) {
 
 function AdminClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [segmento, setSegmento] = useState("todos");
+  const [cadastro, setCadastro] = useState("todos");
+  const [ordem, setOrdem] = useState("recentes");
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [filtroCidade, setFiltroCidade] = useState("TODAS");
   const [cidadeEditada, setCidadeEditada] = useState("");
   const [salvandoCidade, setSalvandoCidade] = useState(false);
   const queryClient = useQueryClient();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   useEffect(() => {
     if (!selectedClient) return;
@@ -70,99 +75,86 @@ function AdminClientesPage() {
     return () => document.removeEventListener("keydown", fecharEsc);
   }, [selectedClient]);
 
-  const { data: clients = [], isLoading } = useQuery({
+  const {
+    data: clients = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["admin-clients"],
     ...createQueryConfig("clients"),
     queryFn: async () => {
-      // 1. Buscar perfis (clientes cadastrados)
-      console.log("Iniciando busca de perfis...");
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("nome", { ascending: true });
-
-      if (profileError) {
-        console.error("Erro ao buscar perfis:", profileError);
-        toast.error("Erro ao carregar perfis: " + profileError.message);
-        throw profileError;
-      }
-
-      console.log("Perfis encontrados no banco:", profiles?.length);
-
-      // 2. Buscar pedidos para histórico
-      const { data: orders, error: orderError } = await supabase
-        .from("pedidos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (orderError) throw orderError;
-
-      const clientMap = new Map();
-
-      // Mapear perfis primeiro
-      profiles?.forEach((profile) => {
-        clientMap.set(profile.id, {
-          id: profile.id,
-          profileId: profile.id,
-          cidade: profile.cidade || null,
-          nome: profile.nome,
-          telefone: profile.telefone,
-          email: profile.email || "Não informado",
-          cpf: profile.cpf,
-          bairro: profile.bairro,
-          totalPedidos: 0,
-          valorGasto: 0,
-          ultimoPedido: null,
-          pedidos: [],
-        });
-      });
-
-      // Vincular pedidos aos perfis ou criar clientes convidados
-      orders?.forEach((order) => {
-        const userId = order.user_id;
-        const key = userId || order.email_cliente || order.telefone_cliente;
-
-        if (!clientMap.has(key)) {
-          clientMap.set(key, {
-            nome: order.nome_cliente,
-            cidade: order.cidade || null,
-            telefone: order.telefone_cliente,
-            email: order.email_cliente || "Não informado",
-            totalPedidos: 1,
-            valorGasto: order.valor_total || 0,
-            ultimoPedido: order.created_at,
-            pedidos: [order],
-          });
-        } else {
-          const existing = clientMap.get(key);
-          existing.totalPedidos += 1;
-          existing.valorGasto += order.valor_total || 0;
-          existing.pedidos.push(order);
-          if (
-            !existing.ultimoPedido ||
-            new Date(order.created_at) > new Date(existing.ultimoPedido)
-          ) {
-            existing.ultimoPedido = order.created_at;
-          }
+      // Paginar também no banco: o limite de uma consulta não deve ocultar clientes.
+      async function carregarTabela(tabela: "profiles" | "pedidos") {
+        const rows: any[] = [];
+        for (let start = 0; ; start += 500) {
+          const { data, error } = await supabase
+            .from(tabela)
+            .select("*")
+            .order("id", { ascending: true })
+            .range(start, start + 499);
+          if (error) throw error;
+          rows.push(...(data || []));
+          if (!data || data.length < 500) return rows;
         }
-      });
-
-      return Array.from(clientMap.values());
+      }
+      const [profiles, orders] = await Promise.all([
+        carregarTabela("profiles"),
+        carregarTabela("pedidos"),
+      ]);
+      return montarClientesComerciais(profiles, orders);
     },
   });
 
-  const cidadesDisponiveis = useMemo(() => Array.from(new Set(clients.map((c: any) => String(c.cidade || "").trim()).filter(Boolean))).sort((a,b) => a.localeCompare(b,"pt-BR")), [clients]);
+  const cidadesDisponiveis = useMemo(
+    () =>
+      Array.from(
+        new Set(clients.map((c: any) => String(c.cidade || "").trim()).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [clients],
+  );
 
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
-      const texto = c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefone?.includes(searchTerm);
-      const cidade = String(c.cidade || "").trim();
-      return texto && (filtroCidade === "TODAS" || (filtroCidade === "SEM_CIDADE" ? !cidade : cidade === filtroCidade));
-    });
-  }, [clients, searchTerm, filtroCidade]);
+  const filteredClients = useMemo(
+    () =>
+      filtrarClientesComerciais(clients, {
+        busca: searchTerm,
+        cidade: filtroCidade,
+        segmento,
+        cadastro,
+        ordem,
+      }),
+    [clients, searchTerm, filtroCidade, segmento, cadastro, ordem],
+  );
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filtroCidade, segmento, cadastro, ordem, itemsPerPage]);
+  const indicadores = useMemo(
+    () => ({
+      todos: clients.length,
+      semPedidos: clients.filter((c) => c.pedidos.length === 0).length,
+      recorrentes: clients.filter((c) => c.totalPedidos >= 2).length,
+      inativos: filtrarClientesComerciais(clients, {
+        busca: "",
+        cidade: "TODAS",
+        segmento: "inativos_30",
+        cadastro: "todos",
+        ordem: "recentes",
+      }).length,
+    }),
+    [clients],
+  );
+  const limparFiltros = () => {
+    setSearchTerm("");
+    setFiltroCidade("TODAS");
+    setSegmento("todos");
+    setCadastro("todos");
+    setOrdem("recentes");
+    setCurrentPage(1);
+  };
 
   const salvarCidade = async () => {
-    if (!selectedClient?.profileId) return toast.error("Este cliente ainda não possui perfil cadastrado para editar.");
+    if (!selectedClient?.profileId)
+      return toast.error("Este cliente ainda não possui perfil cadastrado para editar.");
     setSalvandoCidade(true);
     try {
       const { data, error } = await supabase.rpc("atualizar_cidade_cliente_admin", {
@@ -184,10 +176,9 @@ function AdminClientesPage() {
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
+    const start = (Math.min(currentPage, Math.max(1, totalPages)) - 1) * itemsPerPage;
     return filteredClients.slice(start, start + itemsPerPage);
-  }, [filteredClients, currentPage, itemsPerPage]);
-
+  }, [filteredClients, currentPage, itemsPerPage, totalPages]);
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto min-h-screen">
@@ -210,6 +201,31 @@ function AdminClientesPage() {
         </Button>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Todos os clientes", value: indicadores.todos, segment: "todos" },
+          { label: "Nunca fizeram pedido", value: indicadores.semPedidos, segment: "sem_pedidos" },
+          { label: "Clientes recorrentes", value: indicadores.recorrentes, segment: "recorrentes" },
+          { label: "Sem comprar há 30+ dias", value: indicadores.inativos, segment: "inativos_30" },
+        ].map((item) => (
+          <button
+            key={item.segment}
+            type="button"
+            aria-pressed={segmento === item.segment}
+            onClick={() => {
+              setSegmento(item.segment);
+              setCadastro("todos");
+              setCurrentPage(1);
+            }}
+            className={`text-left rounded-xl border p-4 transition-colors ${segmento === item.segment ? "bg-green-50 border-green-600 text-green-900" : "bg-white border-gray-200 text-gray-700 hover:border-green-500"}`}
+          >
+            <span className="block text-sm">{item.label}</span>
+            <span className="block text-2xl font-semibold mt-1">
+              {isLoading ? "—" : item.value}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
@@ -218,32 +234,138 @@ function AdminClientesPage() {
               size={18}
             />
             <Input
-              placeholder="Buscar por nome ou telefone..."
+              placeholder="Buscar por nome, telefone ou e-mail..."
               className="pl-10 rounded-lg border-gray-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter size={18} className="text-gray-500 shrink-0"/>
-            <select aria-label="Filtrar clientes por cidade" value={filtroCidade}
-              onChange={e => { setFiltroCidade(e.target.value); setCurrentPage(1); }}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm min-w-[185px] w-full">
+            <Button
+              type="button"
+              variant="outline"
+              aria-expanded={filtrosAbertos}
+              onClick={() => setFiltrosAbertos(!filtrosAbertos)}
+            >
+              <Filter size={18} className="mr-2" />
+              Filtros
+            </Button>
+            <select
+              aria-label="Filtrar clientes por cidade"
+              value={filtroCidade}
+              onChange={(e) => {
+                setFiltroCidade(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm min-w-[185px] w-full"
+            >
               <option value="TODAS">Todas as cidades</option>
               <option value="SEM_CIDADE">Sem cidade</option>
-              {cidadesDisponiveis.map(cidade => <option key={cidade} value={cidade}>{cidade}</option>)}
+              {cidadesDisponiveis.map((cidade) => (
+                <option key={cidade} value={cidade}>
+                  {cidade}
+                </option>
+              ))}
             </select>
           </div>
         </div>
+        {filtrosAbertos && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+            <label className="text-sm text-gray-700">
+              Perfil de compra
+              <select
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                value={segmento}
+                onChange={(e) => setSegmento(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="sem_pedidos">Nunca fizeram pedido</option>
+                <option value="cancelados">Só pedidos cancelados</option>
+                <option value="primeira">Uma compra</option>
+                <option value="recorrentes">Recorrentes (2+ compras)</option>
+                <option value="inativos_30">Sem comprar há 30+ dias</option>
+                <option value="inativos_60">Sem comprar há 60+ dias</option>
+                <option value="inativos_90">Sem comprar há 90+ dias</option>
+              </select>
+            </label>
+            <label className="text-sm text-gray-700">
+              Período do cadastro
+              <select
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                value={cadastro}
+                onChange={(e) => setCadastro(e.target.value)}
+              >
+                <option value="todos">Todo o período</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="90">Últimos 90 dias</option>
+              </select>
+            </label>
+            <label className="text-sm text-gray-700">
+              Organizar por
+              <select
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                value={ordem}
+                onChange={(e) => setOrdem(e.target.value)}
+              >
+                <option value="recentes">Últimos cadastrados</option>
+                <option value="nome">Nome (A–Z)</option>
+                <option value="ultima">Compra mais recente</option>
+                <option value="inativos">Há mais tempo sem comprar</option>
+                <option value="pedidos">Mais pedidos</option>
+                <option value="gasto">Maior total gasto</option>
+                <option value="ticket">Maior ticket médio</option>
+              </select>
+            </label>
+            <label className="text-sm text-gray-700">
+              Clientes por página
+              <select
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </label>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
+          <p className="text-sm text-gray-600">
+            {isLoading ? "Carregando…" : `${filteredClients.length} de ${clients.length} clientes`}
+          </p>
+          <Button variant="ghost" type="button" onClick={limparFiltros}>
+            Limpar filtros
+          </Button>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Indicadores baseados no histórico de pedidos disponível neste site. Pedidos cancelados não entram nas compras, no total gasto ou na última compra. O histórico
+          permanece nos detalhes. Convidados sem perfil não possuem data de cadastro.
+        </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {isError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+        >
+          Não foi possível carregar a base de clientes.{" "}
+          <Button variant="outline" onClick={() => refetch()}>
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-200 text-xs font-bold uppercase tracking-wider text-gray-400">
             <tr>
               <th className="px-6 py-4">Cliente</th>
-              <th className="px-6 py-4">Pedidos</th>
+              <th className="px-6 py-4">Cadastro</th>
+              <th className="px-6 py-4">Compras</th>
               <th className="px-6 py-4">Total Gasto</th>
+              <th className="px-6 py-4">Ticket médio</th>
               <th className="px-6 py-4">Última Compra</th>
               <th className="px-6 py-4 text-center">Ações</th>
             </tr>
@@ -251,19 +373,19 @@ function AdminClientesPage() {
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="p-8 text-center">
+                <td colSpan={7} className="p-8 text-center">
                   Carregando clientes...
                 </td>
               </tr>
             ) : paginatedClients.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-gray-400">
+                <td colSpan={7} className="p-8 text-center text-gray-400">
                   Nenhum cliente encontrado.
                 </td>
               </tr>
             ) : (
-              paginatedClients.map((client, idx) => (
-                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+              paginatedClients.map((client) => (
+                <tr key={client.chave} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-[#5850ec]/10 flex items-center justify-center text-[#5850ec]">
@@ -273,26 +395,47 @@ function AdminClientesPage() {
                         <p className="text-sm font-bold text-gray-900">
                           {client.nome || "Cliente Final"}
                         </p>
-                        <p className="text-[10px] text-gray-400 font-medium">{client.email}</p>
-                        <p className="text-xs text-gray-500">{client.cidade || "Cidade não informada"}</p>
+                        <p className="text-xs text-gray-500">{client.email}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium">{client.totalPedidos} pedidos</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    {client.cadastradoEm
+                      ? new Date(client.cadastradoEm).toLocaleDateString("pt-BR")
+                      : client.profileId
+                        ? "Não informado"
+                        : "Convidado"}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium">{client.totalPedidos} compras</td>
                   <td className="px-6 py-4 text-sm font-bold text-green-600">
                     R$ {client.valorGasto.toFixed(2).replace(".", ",")}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                    {client.totalPedidos
+                      ? (client.valorGasto / client.totalPedidos).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })
+                      : "—"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {client.ultimoPedido
                       ? new Date(client.ultimoPedido).toLocaleDateString("pt-BR")
-                      : "N/A"}
+                      : "Sem compras"}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-full"
-                      onClick={() => { setSelectedClient(client); setCidadeEditada(client.cidade || ""); }}
+                      aria-label={`Ver detalhes de ${client.nome || "cliente"}`}
+                      onClick={() => {
+                        setSelectedClient(client);
+                        setCidadeEditada(client.cidade || "");
+                      }}
                     >
                       <Eye size={16} />
                     </Button>
@@ -307,7 +450,7 @@ function AdminClientesPage() {
       {/* Paginação */}
       {totalPages > 1 && (
         <Pagination
-          currentPage={currentPage}
+          currentPage={Math.min(currentPage, Math.max(1, totalPages))}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           itemsPerPage={itemsPerPage}
@@ -316,17 +459,25 @@ function AdminClientesPage() {
       )}
 
       {selectedClient && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedClient(null); }}>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-end z-50"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedClient(null);
+          }}
+        >
           <div className="bg-white h-full w-full max-w-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
             <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
-              <button type="button" aria-label="Fechar painel" onClick={() => setSelectedClient(null)}
-                className="pointer-events-auto rounded-full bg-white border shadow-md p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700">
+              <button
+                type="button"
+                aria-label="Fechar painel"
+                onClick={() => setSelectedClient(null)}
+                className="pointer-events-auto rounded-full bg-white border shadow-md p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+              >
                 <X size={22} />
               </button>
             </div>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-[#5850ec]">Detalhes do Cliente</h2>
-
             </div>
 
             <div className="bg-[#5850ec]/5 rounded-2xl p-6 mb-8 flex flex-col md:flex-row gap-6">
@@ -360,7 +511,7 @@ function AdminClientesPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Total Pedidos
+                  Compras válidas
                 </p>
                 <p className="text-lg font-black text-gray-900">{selectedClient.totalPedidos}</p>
               </div>
@@ -390,7 +541,7 @@ function AdminClientesPage() {
                 <p className="text-sm font-bold text-gray-700">
                   {selectedClient.ultimoPedido
                     ? new Date(selectedClient.ultimoPedido).toLocaleDateString("pt-BR")
-                    : "N/A"}
+                    : "Sem compras"}
                 </p>
               </div>
             </div>
@@ -420,22 +571,53 @@ function AdminClientesPage() {
             </div>
 
             <div className="rounded-xl border p-4 mb-6 space-y-2">
-              <label htmlFor="cidade-cliente-admin" className="flex items-center gap-2 font-bold text-sm text-gray-800">
-                <MapPin size={16}/> Cidade do cliente
+              <label
+                htmlFor="cidade-cliente-admin"
+                className="flex items-center gap-2 font-bold text-sm text-gray-800"
+              >
+                <MapPin size={16} /> Cidade do cliente
               </label>
               <div className="flex gap-2 flex-wrap">
-                <Input id="cidade-cliente-admin" value={cidadeEditada} disabled={!selectedClient.profileId}
-                  onChange={e => setCidadeEditada(e.target.value)} list="cidades-sugeridas-admin"
-                  placeholder="Informe a cidade" className="flex-1 min-w-[180px]"/>
+                <Input
+                  id="cidade-cliente-admin"
+                  value={cidadeEditada}
+                  disabled={!selectedClient.profileId}
+                  onChange={(e) => setCidadeEditada(e.target.value)}
+                  list="cidades-sugeridas-admin"
+                  placeholder="Informe a cidade"
+                  className="flex-1 min-w-[180px]"
+                />
                 <datalist id="cidades-sugeridas-admin">
-                  {Array.from(new Set([...cidadesDisponiveis, "São Bento do Sul","Rio Negrinho","Campo Alegre","Piên","Mafra","Corupá"])).map(c => <option key={c} value={c}/>)}
+                  {Array.from(
+                    new Set([
+                      ...cidadesDisponiveis,
+                      "São Bento do Sul",
+                      "Rio Negrinho",
+                      "Campo Alegre",
+                      "Piên",
+                      "Mafra",
+                      "Corupá",
+                    ]),
+                  ).map((c) => (
+                    <option key={c} value={c} />
+                  ))}
                 </datalist>
-                <Button onClick={salvarCidade} disabled={!selectedClient.profileId || salvandoCidade}>
+                <Button
+                  onClick={salvarCidade}
+                  disabled={!selectedClient.profileId || salvandoCidade}
+                >
                   {salvandoCidade ? "Salvando..." : "Salvar cidade"}
                 </Button>
               </div>
-              {!selectedClient.profileId && <p className="text-xs text-gray-500">Cadastro de convidado: a cidade poderá ser corrigida quando houver perfil vinculado.</p>}
-              <p className="text-xs text-gray-500">Altera apenas a cidade, sem modificar o endereço do cliente.</p>
+              {!selectedClient.profileId && (
+                <p className="text-xs text-gray-500">
+                  Cadastro de convidado: a cidade poderá ser corrigida quando houver perfil
+                  vinculado.
+                </p>
+              )}
+              <p className="text-xs text-gray-500">
+                Altera apenas a cidade, sem modificar o endereço do cliente.
+              </p>
             </div>
 
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
@@ -457,7 +639,9 @@ function AdminClientesPage() {
                         <Calendar size={12} /> {new Date(pedido.created_at).toLocaleString("pt-BR")}
                       </p>
                     </div>
-                    <p className="font-bold text-[#5850ec]">R$ {pedido.valor_total.toFixed(2)}</p>
+                    <p className="font-bold text-[#5850ec]">
+                      R$ {Number(pedido.valor_total || 0).toFixed(2)}
+                    </p>
                   </div>
                 </div>
               ))}
