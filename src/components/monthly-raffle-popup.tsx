@@ -73,8 +73,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
         p_telefone: digits,
         p_session_id: sessionId,
         p_aceite_regulamento: aceitePoliticas,
-        p_optin_marketing: false,
-        p_optin_carrinho: false,
+        p_optin_marketing: aceitePoliticas,
+        p_optin_carrinho: aceitePoliticas,
       });
       if (error) throw error;
       if (data === "ja_participando") {
@@ -86,9 +86,9 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       // O formulário informa explicitamente o uso de métricas. O aceite mais recente
       // substitui a recusa anterior de cookies, somente após a inscrição bem-sucedida.
       setGoogleAnalyticsConsent("granted");
-      // O aceite do sorteio não autoriza contato promocional nem recuperação via WhatsApp.
+      // O aceite informado no formulário inclui métricas e contato promocional/recuperação.
       window.localStorage.setItem(
-        "saborosamente.recovery_whatsapp_consent", "0",
+        "saborosamente.recovery_whatsapp_consent", "1",
       );
       window.localStorage.setItem(PARTICIPOU_KEY, "1");
       toast.success("Cadastro recebido! Você participará das próximas edições conforme as condições da promoção.");
@@ -174,13 +174,15 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
             <span>Aceito os termos do sorteio conforme{" "}
               <Link to="/privacidade" hash="regulamento-sorteio" target="_blank"
-                className="font-semibold underline">regulamento</Link>, incluindo o acompanhamento da navegação pelo Google Analytics e Microsoft Clarity.
+                className="font-semibold underline">regulamento</Link>, incluindo métricas, mensagens promocionais e recuperação de carrinho por WhatsApp.
             </span>
           </label>
           <p className="text-[11px] leading-relaxed text-[#657368]">
-            Ao se inscrever, você autoriza as métricas do site, mesmo que tenha escolhido
-            anteriormente “Somente essenciais”. É possível revisar essa preferência depois na{" "}
-            <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>.
+            Seu aceite autoriza Google Analytics, Microsoft Clarity, mensagens promocionais e
+            lembretes de carrinho por WhatsApp, substituindo escolhas anteriores para essas
+            finalidades. Você pode revogar as autorizações posteriormente na{" "}
+            <Link to="/privacidade" target="_blank" className="underline font-semibold">Política de Privacidade</Link>
+            {" "}ou solicitar a interrupção das mensagens.
           </p>
           {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
           <button type="submit" disabled={sending}
