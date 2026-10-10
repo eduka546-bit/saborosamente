@@ -47,7 +47,7 @@ function CashbackCliente({ userId }: { userId: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl text-sm">
       <Gift size={15} className="text-yellow-600" />
-      <span className="font-bold text-yellow-700">Cashback: R$ {(data ?? 0).toFixed(2)}</span>
+      <span className="font-bold text-yellow-700">Cashback: {(data ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
     </div>
   );
 }
@@ -235,7 +235,8 @@ function AdminClientesPage() {
             />
             <Input
               placeholder="Buscar por nome, telefone ou e-mail..."
-              className="pl-10 rounded-lg border-gray-200"
+              aria-label="Buscar clientes"
+              className="pl-10 rounded-lg border-gray-200 min-h-11 text-base"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -257,7 +258,7 @@ function AdminClientesPage() {
                 setFiltroCidade(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm min-w-[185px] w-full"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm min-w-0 md:min-w-[185px] w-full min-h-11"
             >
               <option value="TODAS">Todas as cidades</option>
               <option value="SEM_CIDADE">Sem cidade</option>
@@ -274,7 +275,7 @@ function AdminClientesPage() {
             <label className="text-sm text-gray-700">
               Perfil de compra
               <select
-                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white min-h-11 text-base"
                 value={segmento}
                 onChange={(e) => setSegmento(e.target.value)}
               >
@@ -291,7 +292,7 @@ function AdminClientesPage() {
             <label className="text-sm text-gray-700">
               Período do cadastro
               <select
-                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white min-h-11 text-base"
                 value={cadastro}
                 onChange={(e) => setCadastro(e.target.value)}
               >
@@ -304,7 +305,7 @@ function AdminClientesPage() {
             <label className="text-sm text-gray-700">
               Organizar por
               <select
-                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white min-h-11 text-base"
                 value={ordem}
                 onChange={(e) => setOrdem(e.target.value)}
               >
@@ -320,7 +321,7 @@ function AdminClientesPage() {
             <label className="text-sm text-gray-700">
               Clientes por página
               <select
-                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white"
+                className="block w-full rounded-lg border px-3 py-2 mt-1 bg-white min-h-11 text-base"
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
               >
@@ -340,9 +341,10 @@ function AdminClientesPage() {
             Limpar filtros
           </Button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Indicadores baseados no histórico de pedidos disponível neste site. Pedidos cancelados não entram nas compras, no total gasto ou na última compra. O histórico
-          permanece nos detalhes. Convidados sem perfil não possuem data de cadastro.
+        <p className="text-sm text-gray-600 mt-2">
+          Indicadores baseados no histórico de pedidos disponível neste site. Pedidos cancelados não
+          entram nas compras, no total gasto ou na última compra. O histórico permanece nos
+          detalhes. Convidados sem perfil não possuem data de cadastro.
         </p>
       </div>
 
@@ -357,9 +359,93 @@ function AdminClientesPage() {
           </Button>
         </div>
       )}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+      <div className="md:hidden space-y-3" aria-label="Lista de clientes">
+        {isLoading ? (
+          <p className="rounded-xl border bg-white p-5 text-center">Carregando clientes...</p>
+        ) : paginatedClients.length === 0 ? (
+          <p className="rounded-xl border bg-white p-5 text-center text-gray-600">
+            Nenhum cliente encontrado.
+          </p>
+        ) : (
+          paginatedClients.map((client) => (
+            <article
+              key={client.chave}
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-gray-900 break-words">
+                    {client.nome || "Cliente Final"}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1 break-all">{client.email}</p>
+                  <p className="text-sm text-gray-600 mt-1 break-words">
+                    {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0"
+                  aria-label={`Ver detalhes de ${client.nome || "cliente"}`}
+                  onClick={() => {
+                    setSelectedClient(client);
+                    setCidadeEditada(client.cidade || "");
+                  }}
+                >
+                  <Eye size={20} />
+                </Button>
+              </div>
+              <dl className="grid grid-cols-2 gap-3 border-t mt-4 pt-3 text-sm">
+                <div>
+                  <dt className="text-gray-600">Cadastro</dt>
+                  <dd className="font-medium mt-1">
+                    {client.cadastradoEm
+                      ? new Date(client.cadastradoEm).toLocaleDateString("pt-BR")
+                      : client.profileId
+                        ? "Não informado"
+                        : "Convidado"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-gray-600">Compras</dt>
+                  <dd className="font-medium mt-1">{client.totalPedidos}</dd>
+                </div>
+                <div>
+                  <dt className="text-gray-600">Total gasto</dt>
+                  <dd className="font-semibold text-green-800 mt-1">
+                    {client.valorGasto.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-gray-600">Ticket médio</dt>
+                  <dd className="font-medium mt-1">
+                    {client.totalPedidos
+                      ? (client.valorGasto / client.totalPedidos).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })
+                      : "—"}
+                  </dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-gray-600">Última compra</dt>
+                  <dd className="font-medium mt-1">
+                    {client.ultimoPedido
+                      ? new Date(client.ultimoPedido).toLocaleDateString("pt-BR")
+                      : "Sem compras"}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+          ))
+        )}
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto hidden md:block">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200 text-xs font-bold uppercase tracking-wider text-gray-400">
+          <thead className="bg-gray-50 border-b border-gray-200 text-xs font-bold uppercase tracking-wider text-gray-600">
             <tr>
               <th className="px-6 py-4">Cliente</th>
               <th className="px-6 py-4">Cadastro</th>
@@ -395,8 +481,8 @@ function AdminClientesPage() {
                         <p className="text-sm font-bold text-gray-900">
                           {client.nome || "Cliente Final"}
                         </p>
-                        <p className="text-xs text-gray-500">{client.email}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-sm text-gray-600">{client.email}</p>
+                        <p className="text-sm text-gray-600 mt-1">
                           {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
                         </p>
                       </div>
@@ -430,7 +516,7 @@ function AdminClientesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 rounded-full"
+                      className="h-11 w-11 rounded-full"
                       aria-label={`Ver detalhes de ${client.nome || "cliente"}`}
                       onClick={() => {
                         setSelectedClient(client);
@@ -465,7 +551,7 @@ function AdminClientesPage() {
             if (event.target === event.currentTarget) setSelectedClient(null);
           }}
         >
-          <div className="bg-white h-full w-full max-w-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+          <div className="bg-white h-full w-full max-w-2xl p-4 sm:p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
             <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
               <button
                 type="button"
@@ -477,7 +563,9 @@ function AdminClientesPage() {
               </button>
             </div>
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-[#5850ec]">Detalhes do Cliente</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold text-green-900 pr-10">
+                Detalhes do Cliente
+              </h2>
             </div>
 
             <div className="bg-[#5850ec]/5 rounded-2xl p-6 mb-8 flex flex-col md:flex-row gap-6">
@@ -510,34 +598,29 @@ function AdminClientesPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Compras válidas
-                </p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Compras válidas</p>
                 <p className="text-lg font-black text-gray-900">{selectedClient.totalPedidos}</p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Total Gasto
-                </p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Gasto</p>
                 <p className="text-lg font-black text-green-600">
-                  R$ {selectedClient.valorGasto.toFixed(2)}
+                  {selectedClient.valorGasto.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
                 </p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Ticket Médio
-                </p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Ticket Médio</p>
                 <p className="text-lg font-black text-[#5850ec]">
-                  R${" "}
-                  {selectedClient.totalPedidos > 0
-                    ? (selectedClient.valorGasto / selectedClient.totalPedidos).toFixed(2)
-                    : "0,00"}
+                  {(selectedClient.totalPedidos > 0
+                    ? selectedClient.valorGasto / selectedClient.totalPedidos
+                    : 0
+                  ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </p>
               </div>
               <div className="bg-white border rounded-xl p-4 shadow-sm">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                  Último Pedido
-                </p>
+                <p className="text-sm font-medium text-gray-600 mb-1">Último Pedido</p>
                 <p className="text-sm font-bold text-gray-700">
                   {selectedClient.ultimoPedido
                     ? new Date(selectedClient.ultimoPedido).toLocaleDateString("pt-BR")
@@ -547,7 +630,7 @@ function AdminClientesPage() {
             </div>
 
             {/* Ações rápidas */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex flex-wrap gap-3 mb-6">
               {selectedClient.telefone && (
                 <a
                   href={`https://wa.me/${selectedClient.telefone.replace(/\D/g, "")}`}
@@ -610,12 +693,12 @@ function AdminClientesPage() {
                 </Button>
               </div>
               {!selectedClient.profileId && (
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-gray-600">
                   Cadastro de convidado: a cidade poderá ser corrigida quando houver perfil
                   vinculado.
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-600">
                 Altera apenas a cidade, sem modificar o endereço do cliente.
               </p>
             </div>
@@ -627,20 +710,23 @@ function AdminClientesPage() {
                   key={pedido.id}
                   className="border rounded-xl p-4 hover:border-[#5850ec]/30 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
                     <div>
-                      <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900 flex flex-wrap items-center gap-2">
                         Pedido #{pedido.id.slice(0, 8)}
                         <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">
                           {pedido.status}
                         </Badge>
                       </p>
-                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                      <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                         <Calendar size={12} /> {new Date(pedido.created_at).toLocaleString("pt-BR")}
                       </p>
                     </div>
                     <p className="font-bold text-[#5850ec]">
-                      R$ {Number(pedido.valor_total || 0).toFixed(2)}
+                      {Number(pedido.valor_total || 0).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
                     </p>
                   </div>
                 </div>
