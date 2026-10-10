@@ -1,6 +1,8 @@
 export type ClienteComercial = {
   id?: string;
   profileId?: string;
+  sorteioLeadId?: string;
+  sorteioCadastradoEm?: string;
   chave: string;
   nome?: string;
   telefone?: string;
@@ -28,7 +30,7 @@ const date = (v: unknown) => {
   const n = Date.parse(String(v ?? ""));
   return Number.isFinite(n) ? n : 0;
 };
-export function montarClientesComerciais(profiles: any[], orders: any[]): ClienteComercial[] {
+export function montarClientesComerciais(profiles: any[], orders: any[], leads: any[] = []): ClienteComercial[] {
   const clients = new Map<string, ClienteComercial>();
   const phones = new Map<string, Set<string>>(),
     emails = new Map<string, Set<string>>();
@@ -94,6 +96,43 @@ export function montarClientesComerciais(profiles: any[], orders: any[]): Client
     c.valorGasto += Number(o.valor_total) || 0;
     if (date(o.created_at) > date(c.ultimoPedido)) c.ultimoPedido = o.created_at;
   }
+  // Inclui participantes do sorteio sem lhes criar artificialmente uma conta de acesso.
+  // Combina com perfil ou cliente convidado apenas se o telefone identificar
+  // exatamente um contato, evitando colar dados de pessoas diferentes.
+  for (const lead of leads) {
+    const tel = phone(lead.telefone);
+    const candidateKeys = [...clients.entries()]
+      .filter(([, c]) => tel.length >= 10 && phone(c.telefone) === tel)
+      .map(([key]) => key);
+    const profileKey = lead.user_id ? `perfil:${lead.user_id}` : null;
+    const key = profileKey && clients.has(profileKey)
+      ? profileKey
+      : candidateKeys.length === 1
+        ? candidateKeys[0]
+        : `sorteio:${lead.id}`;
+    const existing = clients.get(key);
+    if (existing) {
+      existing.sorteioLeadId = lead.id;
+      existing.sorteioCadastradoEm = lead.created_at ?? null;
+      if (!existing.nome) existing.nome = lead.nome;
+      if (!existing.telefone) existing.telefone = lead.telefone;
+    } else {
+      clients.set(key, {
+        chave: key,
+        sorteioLeadId: lead.id,
+        sorteioCadastradoEm: lead.created_at ?? null,
+        nome: lead.nome,
+        telefone: lead.telefone,
+        email: "Não informado",
+        cidade: null,
+        cadastradoEm: lead.created_at ?? null,
+        totalPedidos: 0,
+        valorGasto: 0,
+        ultimoPedido: null,
+        pedidos: [],
+      });
+    }
+  }
   return [...clients.values()];
 }
 export type FiltrosClientes = {
@@ -127,7 +166,7 @@ export function filtrarClientesComerciais(
       return false;
     if (
       filtros.cadastro !== "todos" &&
-      (!c.profileId ||
+      (!(c.profileId || c.sorteioLeadId) ||
         !date(c.cadastradoEm) ||
         agora - date(c.cadastradoEm) > Number(filtros.cadastro) * day ||
         date(c.cadastradoEm) > agora)
