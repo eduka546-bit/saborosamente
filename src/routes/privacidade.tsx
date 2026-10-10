@@ -85,8 +85,8 @@ function PrivacidadePage() {
             <li>Prestar atendimento ao cliente, inclusive via assistente virtual (IA).</li>
             <li>Enviar ofertas e promoções (somente com seu consentimento).</li>
             <li>
-              Recuperar carrinhos abandonados por WhatsApp quando você autorizar
-              expressamente esse contato no checkout ou no cadastro promocional.
+              Recuperar carrinhos abandonados por WhatsApp somente quando houver
+              autorização específica para esse contato, como a opção do checkout.
             </li>
             <li>Cumprir obrigações legais e fiscais.</li>
             <li>Melhorar nossos produtos, serviços e experiência de compra.</li>
@@ -106,14 +106,6 @@ function PrivacidadePage() {
             <li>O prêmio anunciado é uma semana de marmitas da SaborosaMente. Quantidades, tamanhos, sabores, modalidades de entrega ou retirada e datas de apuração devem ser apresentados nas regras específicas de cada edição.</li>
             <li>O participante contemplado não participa novamente no mesmo ano civil, mas pode voltar a ganhar em anos seguintes.</li>
             <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
-            <li>
-              Ao aceitar o regulamento no formulário, o participante autoriza expressamente
-              as métricas do Google Analytics 4 e Microsoft Clarity, o envio de novidades e ofertas
-              da SaborosaMente por WhatsApp e os lembretes para recuperar carrinhos não finalizados
-              por WhatsApp. A inscrição atualiza escolhas anteriores de recusa relativas a essas
-              finalidades. Todas essas autorizações são informadas antes do envio do formulário
-              e podem ser revogadas posteriormente.
-            </li>
           </ul>
           <p className="mt-3">
             <strong>Finalidade dos dados:</strong> nome, WhatsApp, identificador de sessão
@@ -124,19 +116,39 @@ function PrivacidadePage() {
             comerciais de terceiros.
           </p>
           <p className="mt-2">
-            O aceite expresso do regulamento no formulário inclui autorização para usar
-            nome e telefone para enviar novidades, ofertas, avisos da campanha e
-            mensagens de atendimento e recuperação de carrinhos abandonados pelo WhatsApp.
-            Não são enviadas mensagens automáticas simplesmente por se inscrever no sorteio.
-            As comunicações são exclusivamente sobre produtos e serviços da SaborosaMente.
-            Prestadores de tecnologia, como o serviço de WhatsApp, poderão processar
-            dados para viabilizar esse atendimento, nas condições desta política.
+            <strong>Consentimento para o sorteio:</strong> ao marcar “Aceito os termos do sorteio
+            conforme regulamento”, o participante concorda com estas condições e com o
+            tratamento de nome, telefone e identificador de sessão para administrar a inscrição,
+            verificar elegibilidade e entrar em contato sobre a campanha e eventual premiação.
+            Participar não cria automaticamente uma conta, não exige compras e não autoriza
+            por si só anúncios, ofertas ou mensagens de recuperação de carrinho.
           </p>
           <p className="mt-2">
-            O titular pode interromper mensagens a qualquer momento respondendo
+            <strong>Google Analytics 4 e Microsoft Clarity:</strong> são ferramentas opcionais
+            para medir visitas, interações, comportamento de navegação e melhorar a experiência
+            no site. O Clarity pode gerar mapas de calor e gravações com campos sensíveis
+            mascarados. Só são carregados após o visitante aceitar métricas no aviso
+            específico de cookies, independentemente da participação no sorteio.
+            Recusar ou revogar métricas não impede a inscrição.
+          </p>
+          <p className="mt-2">
+            <strong>Promoções por WhatsApp:</strong> ofertas, novidades e campanhas comerciais
+            exigem autorização própria. O aceite do sorteio não ativa a opção de marketing,
+            não substitui uma recusa anterior nem permite envio automático de promoções.
+            Mensagens necessárias ao andamento do sorteio ou à entrega do prêmio são distintas
+            das mensagens comerciais.
+          </p>
+          <p className="mt-2">
+            <strong>Recuperação de carrinhos por WhatsApp:</strong> lembretes sobre pedidos não
+            finalizados dependem de autorização específica, como a opção disponível no checkout.
+            O cadastro no sorteio não a concede. O usuário pode desmarcar essa opção no
+            checkout e solicitar a interrupção das mensagens respondendo
             <strong> PARAR</strong> ou pelos canais de contato indicados abaixo.
-            A revogação posterior dessas autorizações não cancela automaticamente a inscrição no sorteio.
-            Participar não cria automaticamente uma conta nem obriga a realizar compras.
+          </p>
+          <p className="mt-2">
+            As autorizações opcionais podem ser recusadas ou revogadas sem cancelar a inscrição
+            no sorteio. Prestadores de tecnologia envolvidos nas respectivas finalidades
+            poderão tratar dados conforme esta Política de Privacidade.
           </p>
         </section>
 
@@ -243,10 +255,9 @@ function PrivacidadePage() {
             utilizamos essa integração para personalização de anúncios.
           </p>
           <p className="mt-2">
-            No formulário do sorteio, a aceitação explícita dos termos, que informam o uso
-            de Google Analytics, Clarity, ofertas por WhatsApp e recuperação de carrinho,
-            atualiza essas preferências para autorizadas, mesmo que você as tenha recusado antes. Você pode
-            revisar ou revogar essa escolha aqui posteriormente.
+            A inscrição no sorteio não altera suas escolhas de cookies nem autoriza
+            automaticamente o Google Analytics, o Clarity ou mensagens promocionais.
+            Você pode revisar ou revogar sua escolha de métricas nesta página.
           </p>
           <p className="mt-2">
             O Microsoft Clarity analisa cliques, rolagem, mapas de calor e reproduções de navegação
@@ -256,10 +267,10 @@ function PrivacidadePage() {
             segue também a política de privacidade da Microsoft.
           </p>
           <p className="mt-2">
-            No cadastro promocional e no checkout, você pode autorizar mensagens de recuperação por
-            WhatsApp caso não conclua o pedido. A autorização pode ser retirada
-            desmarcando a opção no checkout ou respondendo <strong>PARAR</strong>
-            ao lembrete recebido.
+            No checkout, você pode autorizar mensagens de recuperação de carrinho por
+            WhatsApp caso não conclua o pedido. Essa autorização é independente da
+            inscrição no sorteio e pode ser retirada desmarcando a opção no checkout
+            ou respondendo <strong>PARAR</strong> ao lembrete recebido.
           </p>
           <button
             type="button"
