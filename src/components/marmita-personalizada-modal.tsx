@@ -367,7 +367,7 @@ export function MarmitaPersonalizadaModal({
               {/* Proteína — só mostra se excedeu ou se está no desktop */}
               {excedenteProteina > 0 && (
                 <p className="text-sm text-red-600 font-medium">
-                  Proteína excedeu {limiteProt}g (+{excedenteProteina}g = {formatBRL(adicionalProteina)}/un)
+                  Proteína excedeu {config.percentualMaxProteina}% do tamanho {tamanho?.sigla} (até {limiteProt}g): +{excedenteProteina}g = {formatBRL(adicionalProteina)}/un
                 </p>
               )}
             </div>
