@@ -108,12 +108,20 @@ function PrivacidadePage() {
             <li>A SaborosaMente poderá conferir elegibilidade, inconsistências e duplicidades.</li>
           </ul>
           <p className="mt-3">
-            <strong>Finalidade dos dados:</strong> nome, WhatsApp, identificador de sessão
-            e eventual atividade de carrinho são usados pela SaborosaMente para
-            registrar e administrar a participação, identificar o visitante, facilitar
-            um futuro cadastro de compras e relacionar carrinhos abandonados.
-            A empresa não vende esses dados nem os disponibiliza para campanhas
-            comerciais de terceiros.
+            <strong>Finalidade dos dados do sorteio:</strong> nome, WhatsApp e identificador
+            de sessão são utilizados para registrar a participação, verificar critérios,
+            evitar duplicidade e entrar em contato sobre a campanha e eventual premiação.
+            Informações de carrinho só podem ser associadas para fins de atendimento e
+            funcionamento da loja; o envio de lembretes promocionais depende de autorização
+            específica. O cadastro no sorteio não autoriza automaticamente outros usos comerciais.
+          </p>
+          <p className="mt-2">
+            <strong>Proteção das informações:</strong> não vendemos, alugamos nem cedemos
+            cadastros de participantes, dados de pedidos, conversas ou informações de
+            navegação para campanhas independentes de terceiros. Somente fornecedores
+            envolvidos na operação dos serviços poderão processar os dados necessários
+            à sua finalidade, conforme detalhado nesta política; isso não significa que
+            nenhum prestador externo tenha acesso técnico aos dados.
           </p>
           <p className="mt-2">
             <strong>Consentimento para o sorteio:</strong> ao marcar “Aceito os termos do sorteio
@@ -171,8 +179,16 @@ function PrivacidadePage() {
         <section>
           <h2 className="text-lg font-bold text-gray-800 mb-2">5. Compartilhamento de dados</h2>
           <p>
-            Seus dados <strong>não são vendidos</strong> a terceiros. Podemos compartilhá-los apenas
-            com:
+            <strong>Seus dados não são vendidos, alugados ou cedidos a terceiros para
+            comercializar listas de clientes, fazer propaganda própria ou explorar
+            comercialmente informações da SaborosaMente.</strong> Não divulgamos
+            cadastros, telefones, histórico de pedidos ou conversas a empresas externas
+            para campanhas independentes.
+          </p>
+          <p className="mt-2">
+            Para operar a loja e prestar os serviços solicitados, alguns dados estritamente
+            necessários podem ser tratados por prestadores contratados, parceiros
+            operacionais ou plataformas de tecnologia, nas finalidades informadas abaixo:
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>
@@ -193,6 +209,13 @@ function PrivacidadePage() {
               <strong>Autoridades públicas</strong> — quando exigido por lei.
             </li>
           </ul>
+          <p className="mt-2">
+            Esses prestadores não recebem autorização da SaborosaMente para vender sua
+            base de clientes nem utilizá-la para campanhas comerciais independentes.
+            O tratamento técnico eventualmente realizado por provedores segue os
+            respectivos contratos e políticas. Você pode pedir informações sobre
+            essas operações nos canais de contato informados abaixo.
+          </p>
         </section>
 
         <section>
@@ -242,12 +265,29 @@ function PrivacidadePage() {
           </p>
         </section>
 
-        <section>
+        <section id="cookies-metricas" className="scroll-mt-24">
           <h2 className="text-lg font-bold text-gray-800 mb-2">8. Cookies e métricas</h2>
           <p>
-            Utilizamos armazenamento e cookies técnicos essenciais para manter o carrinho, a sessão
-            e outras funções necessárias do site. Google Analytics 4 e Microsoft Clarity são opcionais
-            e só são carregados depois que você aceita cookies de métricas.
+            Utilizamos cookies e armazenamento técnico essenciais para manter o carrinho,
+            identificar a sessão e permitir as funções necessárias do site. Esses recursos
+            funcionam mesmo que você recuse cookies opcionais.
+          </p>
+          <p className="mt-2">
+            <strong>Escolha do visitante:</strong> no aviso “Nosso site utiliza cookies
+            para melhorar a navegação, você aceita os cookies?”, o botão <strong>Sim</strong>
+            autoriza as ferramentas opcionais de medição Google Analytics 4 e Microsoft
+            Clarity. O botão <strong>Não</strong> as mantém desativadas. As duas opções
+            permitem navegar, participar do sorteio e comprar normalmente.
+            Nenhuma opção é marcada por padrão. Sua preferência é lembrada no navegador
+            até que você a altere, limpe os dados armazenados ou revogue a escolha.
+          </p>
+          <p className="mt-2">
+            <strong>Métricas internas:</strong> o site também pode registrar eventos
+            operacionais próprios, como páginas abertas, cliques e etapas da compra,
+            no banco de dados Supabase, associados a um identificador aleatório
+            de navegador. Esses registros não representam necessariamente visitantes
+            únicos nem comprovam o recebimento pelos serviços externos.
+            Não utilizamos o IP como identificador de visitantes no relatório interno.
           </p>
           <p className="mt-2">
             O Google Analytics é utilizado para medir páginas visitadas, interações, início de
@@ -255,9 +295,13 @@ function PrivacidadePage() {
             utilizamos essa integração para personalização de anúncios.
           </p>
           <p className="mt-2">
-            A inscrição no sorteio não altera suas escolhas de cookies nem autoriza
-            automaticamente o Google Analytics, o Clarity ou mensagens promocionais.
-            Você pode revisar ou revogar sua escolha de métricas nesta página.
+            <strong>Participação em sorteios e alterações de escolha:</strong> aceitar
+            os termos do sorteio ou ler esta política não substitui uma recusa anterior
+            de cookies e não ativa automaticamente o Google Analytics, o Clarity ou
+            comunicações promocionais. Uma nova manifestação expressa do visitante
+            no botão <strong>Sim</strong> atualiza a preferência anterior, inclusive
+            se ele havia escolhido <strong>Não</strong>. O consentimento pode ser
+            revogado gratuitamente a qualquer momento no botão abaixo.
           </p>
           <p className="mt-2">
             O Microsoft Clarity analisa cliques, rolagem, mapas de calor e reproduções de navegação
@@ -265,6 +309,10 @@ function PrivacidadePage() {
             são mascarados nas gravações. Não enviamos intencionalmente nome, telefone ou e-mail
             como identificadores personalizados ao Clarity; o tratamento de dados da ferramenta
             segue também a política de privacidade da Microsoft.
+            O Google Analytics e o Clarity são prestadores externos e podem receber
+            dados técnicos de navegação quando você autoriza as métricas;
+            por isso, não seria correto afirmar que nenhum dado técnico
+            é processado fora dos sistemas da SaborosaMente.
           </p>
           <p className="mt-2">
             No checkout, você pode autorizar mensagens de recuperação de carrinho por
