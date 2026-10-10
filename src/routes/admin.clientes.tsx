@@ -85,6 +85,9 @@ function AdminClientesPage() {
   } = useQuery({
     queryKey: ["admin-clients"],
     ...createQueryConfig("clients"),
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryFn: async () => {
       // Paginar também no banco: o limite de uma consulta não deve ocultar clientes.
       async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads") {
@@ -193,15 +196,23 @@ function AdminClientesPage() {
           </p>
         </div>
 
-        <Button
-          asChild
-          className="bg-[#086e45] hover:bg-[#065a38] text-white flex items-center gap-2"
-        >
-          <Link to="/admin/config/importar-clientes">
-            <Upload size={18} />
-            Importar Clientes
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" className="border-green-200 text-green-800 hover:bg-green-50">
+            <Link to="/admin/pedidos/leads">
+              <Gift size={18} className="mr-2" />
+              Participantes do sorteio
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className="bg-[#086e45] hover:bg-[#065a38] text-white flex items-center gap-2"
+          >
+            <Link to="/admin/config/importar-clientes">
+              <Upload size={18} />
+              Importar Clientes
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
