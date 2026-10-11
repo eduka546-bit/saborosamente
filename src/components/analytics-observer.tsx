@@ -19,6 +19,7 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
   const [measurementId, setMeasurementId] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [consent, setConsent] = useState<GoogleAnalyticsConsent | null>(null);
+  const [raffleVisible, setRaffleVisible] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
@@ -31,6 +32,14 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
     };
     window.addEventListener("saborosamente:analytics-consent", onConsent);
     return () => window.removeEventListener("saborosamente:analytics-consent", onConsent);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onVisibility = (event: Event) =>
+      setRaffleVisible(Boolean((event as CustomEvent<boolean>).detail));
+    window.addEventListener("saborosamente:sorteio-visibilidade", onVisibility);
+    return () => window.removeEventListener("saborosamente:sorteio-visibilidade", onVisibility);
   }, []);
 
   useEffect(() => {
@@ -146,6 +155,7 @@ export function AnalyticsObserver({ pathname }: { pathname: string }) {
 
   if (
     isPrivateArea ||
+    raffleVisible ||
     !settingsLoaded ||
     !enabled ||
     !measurementId ||
