@@ -985,12 +985,18 @@ function Checkout() {
       <h1 className="text-2xl font-semibold text-[#075d3a] sm:text-3xl">Finalizar pedido</h1>
 
       {!session && (
-        <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-base text-[#075636]">
-          Para confirmar o pedido, entre ou crie sua conta. Seu carrinho fica salvo.{" "}
-          <button type="button" className="font-semibold underline underline-offset-4" onClick={() => {
-            saveCheckoutDraft(getValues());
-            navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false } });
-          }}>Entrar ou criar conta</button>
+        <div className="mt-3 space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm text-[#075636]">
+          <p className="font-medium">Sua compra fica salva enquanto você entra ou cria sua conta.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="min-h-10 rounded-lg bg-[#086e45] px-4 text-sm font-semibold text-white" onClick={() => {
+              saveCheckoutDraft(getValues());
+              navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false, mode: "signup" } });
+            }}>Criar conta</button>
+            <button type="button" className="min-h-10 rounded-lg border border-[#a9c5b0] bg-white px-4 text-sm font-semibold text-[#075d3a]" onClick={() => {
+              saveCheckoutDraft(getValues());
+              navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false, mode: "login" } });
+            }}>Já tenho conta</button>
+          </div>
         </div>
       )}
 
