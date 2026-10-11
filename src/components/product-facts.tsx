@@ -51,14 +51,14 @@ export function ProductFacts({
         {weight && <p className="mt-1 text-sm text-muted-foreground">Porção de {weight}</p>}
         {nutrition?.kcal != null ? (
           <div
-            className="mt-3 flex w-full flex-nowrap items-center justify-center gap-1 whitespace-nowrap text-[clamp(11px,2.9vw,15px)] font-semibold text-[#075636] sm:gap-2"
+            className="mt-3 grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5 text-center text-sm font-semibold leading-relaxed text-[#075636] sm:gap-2 sm:text-base"
             aria-label={`${nutrition.kcal} quilocalorias, ${nutrition.prot ?? "não informado"} gramas de proteína, ${nutrition.carb ?? "não informado"} gramas de carboidratos`}
           >
-            <span>{nutrition.kcal} KCAL</span>
+            <span className="whitespace-nowrap">{nutrition.kcal} KCAL</span>
             <span aria-hidden="true" className="text-[#91b28a]">|</span>
-            <span>{nutrition.prot != null ? `${nutrition.prot}g` : "—"} PROT</span>
+            <span className="whitespace-nowrap">{nutrition.prot != null ? `${nutrition.prot}g` : "—"} PROT</span>
             <span aria-hidden="true" className="text-[#91b28a]">|</span>
-            <span>{nutrition.carb != null ? `${nutrition.carb}g` : "—"} CARB</span>
+            <span className="whitespace-nowrap">{nutrition.carb != null ? `${nutrition.carb}g` : "—"} CARB</span>
           </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">Consulte a embalagem para detalhes.</p>
@@ -66,18 +66,17 @@ export function ProductFacts({
       </section>
       <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
         <h4 className={heading}>Restrições</h4>
-        <div className="mt-3 flex w-full flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-[clamp(10px,2.8vw,14px)] text-[#375244] sm:gap-x-2">
-          <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
-            <strong className="font-semibold">Glúten:</strong> {glutenStatus}
+        <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-2 text-center text-sm leading-snug text-[#375244] sm:text-base">
+          <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-0.5 border-r border-[#91b28a]/60 pr-1.5">
+            <strong className="font-semibold">Glúten:</strong> <span>{glutenStatus}</span>
             {glutenStatus === "não contém" && (
-              <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-4 shrink-0" />
+              <img src="/selo-sem-gluten.png" alt="Sem glúten" className="size-5 shrink-0" />
             )}
           </span>
-          <span aria-hidden="true" className="text-[#91b28a]">|</span>
-          <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
-            <strong className="font-semibold">Lactose:</strong> {lactoseStatus}
+          <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-0.5 pl-0.5">
+            <strong className="font-semibold">Lactose:</strong> <span>{lactoseStatus}</span>
             {lactoseStatus === "não contém" && (
-              <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-4 shrink-0" />
+              <img src="/selo-sem-lactose.png" alt="Sem lactose" className="size-5 shrink-0" />
             )}
           </span>
         </div>
