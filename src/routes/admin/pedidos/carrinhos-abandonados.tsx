@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +11,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Eye,
+  ArrowLeft,
   X,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
@@ -141,6 +142,28 @@ function AdminCarrinhosAbandonadosPage() {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1600px] overflow-x-clip p-3 sm:p-4 md:p-6">
+      {/* Navegação sempre visível, mesmo ao deslizar a tabela no celular. */}
+      <nav
+        aria-label="Voltar da tela de carrinhos abandonados"
+        className="sticky top-0 z-40 -mx-3 mb-4 flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50/95 px-3 py-2 shadow-sm backdrop-blur sm:-mx-4 sm:px-4 md:-mx-6 md:px-6"
+      >
+        <Link
+          to="/admin/pedidos"
+          className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[#075d3a] hover:bg-green-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#075d3a]"
+          aria-label="Voltar aos pedidos"
+        >
+          <ArrowLeft className="size-5 shrink-0" aria-hidden="true" />
+          <span>Voltar aos pedidos</span>
+        </Link>
+        <Link
+          to="/admin/pedidos"
+          aria-label="Fechar carrinhos abandonados e voltar aos pedidos"
+          title="Fechar carrinhos abandonados"
+          className="grid size-11 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-[#075d3a] shadow-sm transition-colors hover:bg-green-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#075d3a]"
+        >
+          <X className="size-6" aria-hidden="true" />
+        </Link>
+      </nav>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Carrinhos Abandonados</h1>
         <p className="text-gray-500 text-sm mt-1">
@@ -365,16 +388,18 @@ function AdminCarrinhosAbandonadosPage() {
       {/* Modal de detalhes */}
       {selectedCarrinho && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedCarrinho(null); }}>
-          <div className="bg-white h-full w-full max-w-md p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
-            <div className="sticky top-0 z-30 flex justify-end pointer-events-none -mb-10">
-              <button type="button" aria-label="Fechar painel" onClick={() => setSelectedCarrinho(null)}
-                className="pointer-events-auto rounded-full bg-white border shadow-md p-2 text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700">
-                <X size={22} />
+          <div className="h-full w-full max-w-md overflow-y-auto bg-white p-4 pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-right duration-300 sm:p-6">
+            <div className="sticky top-0 z-30 -mx-4 mb-5 flex min-h-14 items-center justify-between gap-3 border-b bg-white px-4 py-2 sm:-mx-6 sm:px-6">
+              <h2 className="min-w-0 text-lg font-bold text-[#5850ec] sm:text-xl">Detalhes do Carrinho</h2>
+              <button
+                type="button"
+                aria-label="Fechar detalhes do carrinho"
+                title="Fechar detalhes"
+                onClick={() => setSelectedCarrinho(null)}
+                className="grid size-11 shrink-0 place-items-center rounded-full border border-gray-200 bg-white text-[#075d3a] shadow-sm hover:bg-green-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075d3a]"
+              >
+                <X size={22} aria-hidden="true" />
               </button>
-            </div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-[#5850ec]">Detalhes do Carrinho</h2>
-
             </div>
 
             <div className="space-y-6">
