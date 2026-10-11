@@ -15,6 +15,14 @@ export function CartMarketingOptin({ compact = false }: { compact?: boolean }) {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
+    try {
+      const confirmedPhone = window.sessionStorage.getItem("saborosamente.whatsapp_ofertas_telefone");
+      if (confirmedPhone && /^\d{10,11}$/.test(confirmedPhone)) {
+        setTelefone(confirmedPhone);
+        setRegistrado(true);
+        return;
+      }
+    } catch { /* Storage indisponível: não bloquear formulário. */ }
     const lead = lerLeadPreCadastro();
     if (lead?.telefone) setTelefone(lead.telefone);
   }, []);
