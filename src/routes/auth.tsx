@@ -49,7 +49,6 @@ function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -187,10 +186,6 @@ function AuthPage() {
           toast.error("Informe uma senha.");
           return;
         }
-        if (password !== confirmPassword) {
-          toast.error("As senhas não conferem.");
-          return;
-        }
 
         let referral: { code?: string; capturedAt?: string; expiresAt?: number } | null = null;
         if (typeof window !== "undefined") {
@@ -273,15 +268,14 @@ function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-soft">
+    <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-3 py-5 sm:px-4 sm:py-12">
+      <div className="w-full max-w-md space-y-5 rounded-3xl border border-border bg-card p-4 shadow-soft sm:p-8">
         <div className="text-center">
           <button
             type="button"
             onClick={() => {
               setIsLogin(!isLogin);
               setPassword("");
-              setConfirmPassword("");
             }}
             className="text-base text-primary hover:underline font-medium"
           >
@@ -293,7 +287,7 @@ function AuthPage() {
           <p className="mt-2 text-base text-muted-foreground">
             {isLogin
               ? "Entre com seu e-mail e sua senha"
-              : "Cadastre-se para acompanhar pedidos, cashback e indicações"}
+              : "Crie sua conta para comprar e acompanhar seus pedidos"}
           </p>
           {!isLogin && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
             <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
@@ -337,7 +331,7 @@ function AuthPage() {
             </Button>
           </form>
         ) : (
-        <form onSubmit={handleAuth} className="mt-8 space-y-4">
+        <form onSubmit={handleAuth} className="mt-4 space-y-3 sm:space-y-4">
           {!isLogin && (
             <>
               <div className="space-y-2">
@@ -413,7 +407,7 @@ function AuthPage() {
           )}
 
           <div className="space-y-2">
-            <Label className="text-base" htmlFor="password">{isLogin ? "Senha" : "Crie uma senha"}</Label>
+            <Label className="text-base" htmlFor="password">{isLogin ? "Senha" : "Crie sua senha"}</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -446,21 +440,6 @@ function AuthPage() {
               </button>
             )}
           </div>
-
-          {!isLogin && (
-            <div className="space-y-2">
-              <Label className="text-base" htmlFor="confirm-password">Confirmar senha</Label>
-              <Input
-                className="h-11 text-base md:text-base"
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                required
-              />
-            </div>
-          )}
 
           <Button type="submit" className="w-full rounded-full py-6 font-bold" disabled={loading}>
             {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
