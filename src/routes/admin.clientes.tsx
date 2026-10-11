@@ -103,12 +103,17 @@ function AdminClientesPage() {
           if (!data || data.length < 500) return rows;
         }
       }
-      const [profiles, orders, raffleLeads] = await Promise.all([
+      const [profiles, orders, raffleLeads, contatosWhatsApp] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
         carregarTabela("sorteio_leads"),
+        (async () => {
+          const { data, error } = await (supabase as any).rpc("listar_whatsapp_cadastros_admin");
+          if (error) throw error;
+          return Array.isArray(data) ? data : [];
+        })(),
       ]);
-      return montarClientesComerciais(profiles, orders, raffleLeads);
+      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp);
     },
   });
 
@@ -192,7 +197,7 @@ function AdminClientesPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Clientes</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Gerencie clientes, participantes do sorteio e histórico de compras.
+            Clientes completos, pré-cadastros por WhatsApp, sorteios e histórico de compras.
           </p>
         </div>
 
@@ -295,6 +300,7 @@ function AdminClientesPage() {
               >
                 <option value="todos">Todos</option>
                 <option value="sem_pedidos">Nunca fizeram pedido</option>
+                <option value="pre_cadastro_whatsapp">Pré-cadastros pelo WhatsApp</option>
                 <option value="cancelados">Só pedidos cancelados</option>
                 <option value="primeira">Uma compra</option>
                 <option value="recorrentes">Recorrentes (2+ compras)</option>
@@ -389,9 +395,11 @@ function AdminClientesPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold text-gray-900 break-words">
-                    {client.nome || "Cliente Final"}
+                    {client.nome || client.telefone || "Sem nome"}
                   </h2>
                   {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
+                  {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
+                  {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
                   <p className="text-sm text-gray-600 mt-1 break-all">{client.email}</p>
                   <p className="text-sm text-gray-600 mt-1 break-words">
                     {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
@@ -494,9 +502,11 @@ function AdminClientesPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-900">
-                          {client.nome || "Cliente Final"}
+                          {client.nome || client.telefone || "Sem nome"}
                         </p>
                         {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
+                  {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
+                  {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
                         <p className="text-sm text-gray-600">{client.email}</p>
                         <p className="text-sm text-gray-600 mt-1">
                           {client.telefone || "Sem telefone"} · {client.cidade || "Sem cidade"}
@@ -621,8 +631,11 @@ function AdminClientesPage() {
                 {selectedClient.nome?.charAt(0) || "C"}
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome}</h3>
+                <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome || selectedClient.telefone || "Sem nome"}</h3>
                 {selectedClient.sorteioLeadId && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
+                {selectedClient.preCadastroWhatsApp && <Badge className="border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro por WhatsApp</Badge>}
+                {selectedClient.whatsappOfertasAutorizado === true && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Cupons e ofertas autorizados</Badge>}
+                {selectedClient.whatsappOfertasAutorizado === false && <Badge className="border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-50">Ofertas não autorizadas</Badge>}
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
                   <span className="flex items-center gap-1">
                     <Phone size={14} className="text-[#5850ec]" /> {selectedClient.telefone}
