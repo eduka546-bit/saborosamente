@@ -140,7 +140,7 @@ function AdminCarrinhosAbandonadosPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
+    <div className="mx-auto w-full min-w-0 max-w-[1600px] overflow-x-clip p-3 sm:p-4 md:p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#5850ec]">Carrinhos Abandonados</h1>
         <p className="text-gray-500 text-sm mt-1">
@@ -195,7 +195,7 @@ function AdminCarrinhosAbandonadosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl border p-4 mb-6 flex flex-wrap gap-3">
+      <div className="mb-6 flex min-w-0 flex-wrap gap-3 rounded-xl border bg-white p-3 sm:p-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
@@ -208,12 +208,16 @@ function AdminCarrinhosAbandonadosPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div
+          className="flex w-full min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x md:w-auto"
+          role="group"
+          aria-label="Filtrar carrinhos por status"
+        >
           {["todos", "em_andamento", "abandonado", "recuperado", "convertido", "esvaziado"].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all border ${
+              className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all border ${
                 filterStatus === s
                   ? "bg-[#5850ec] text-white border-[#5850ec]"
                   : "border-gray-200 text-gray-500 hover:border-[#5850ec]"
@@ -245,8 +249,17 @@ function AdminCarrinhosAbandonadosPage() {
           <p className="text-gray-400 font-medium">Nenhum carrinho encontrado.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full text-sm text-left">
+        <section className="min-w-0 rounded-xl border bg-white" aria-label="Tabela de carrinhos abandonados">
+          <p className="flex items-center gap-2 border-b px-3 py-2 text-xs font-medium text-gray-500 md:hidden" aria-hidden="true">
+            <span className="text-base">↔</span> Deslize a tabela para os lados para ver todas as colunas
+          </p>
+          <div
+            className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]"
+            role="region"
+            aria-label="Carrinhos abandonados: deslize horizontalmente para consultar todas as colunas"
+            tabIndex={0}
+          >
+            <table className="w-max min-w-[1040px] text-left text-sm lg:w-full">
             <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
               <tr>
                 <th className="px-6 py-4">Cliente</th>
@@ -344,8 +357,9 @@ function AdminCarrinhosAbandonadosPage() {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* Modal de detalhes */}
