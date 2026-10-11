@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
 import { getPublicProducts } from "@/lib/products.functions";
 import { trackEvent } from "@/lib/analytics";
+import { CartMarketingOptin } from "@/components/cart-marketing-optin";
 import { useEffect, useMemo } from "react";
 
 export const Route = createFileRoute("/carrinho")({
@@ -372,6 +373,8 @@ function Carrinho() {
             >
               Finalizar pedido
             </Link>
+
+            <div className="mt-4"><CartMarketingOptin /></div>
 
             {suggestions.length > 0 && (
               <div className="mt-6 rounded-2xl border border-[#dce7d5] bg-[#f7faf4] p-4">
