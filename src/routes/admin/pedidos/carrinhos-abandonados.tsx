@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -386,11 +387,20 @@ function AdminCarrinhosAbandonadosPage() {
       )}
 
       {/* Modal de detalhes */}
-      {selectedCarrinho && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-end z-50" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedCarrinho(null); }}>
-          <div className="h-full w-full max-w-md overflow-y-auto bg-white p-4 pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-right duration-300 sm:p-6">
-            <div className="sticky top-0 z-30 -mx-4 mb-5 flex min-h-14 items-center justify-between gap-3 border-b bg-white px-4 py-2 sm:-mx-6 sm:px-6">
-              <h2 className="min-w-0 text-lg font-bold text-[#5850ec] sm:text-xl">Detalhes do Carrinho</h2>
+      {selectedCarrinho && typeof document !== "undefined" && createPortal(
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[100010] flex items-stretch justify-end bg-black/55"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedCarrinho(null); }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="carrinho-detalhes-titulo"
+            className="flex h-[100dvh] min-h-0 w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300"
+          >
+            <div className="z-30 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2 pt-[max(8px,env(safe-area-inset-top))] sm:px-6">
+              <h2 id="carrinho-detalhes-titulo" className="min-w-0 text-lg font-bold text-[#5850ec] sm:text-xl">Detalhes do Carrinho</h2>
               <button
                 type="button"
                 aria-label="Fechar detalhes do carrinho"
@@ -402,7 +412,7 @@ function AdminCarrinhosAbandonadosPage() {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4 pb-[max(20px,env(safe-area-inset-bottom))] sm:p-6">
               {/* Cliente */}
               <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
                 <p className="font-bold text-gray-900">{selectedCarrinho.nome ?? "Anônimo"}</p>
@@ -513,7 +523,8 @@ function AdminCarrinhosAbandonadosPage() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
