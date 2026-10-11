@@ -37,16 +37,17 @@ export const Route = createFileRoute("/auth")({
     return {
       redirect: commerceReturnPath(search.redirect),
       confirmed: search.confirmed === "1" || search.confirmed === true,
+      mode: search.mode === "signup" ? "signup" : undefined,
     };
   },
   component: AuthPage,
 });
 
 function AuthPage() {
-  const { redirect, confirmed } = Route.useSearch();
+  const { redirect, confirmed, mode } = Route.useSearch();
   const checkCpfFn = useServerFn(checkCpfAlreadyRegistered);
 
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(mode !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
