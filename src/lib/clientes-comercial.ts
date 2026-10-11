@@ -3,6 +3,9 @@ export type ClienteComercial = {
   profileId?: string;
   sorteioLeadId?: string;
   sorteioCadastradoEm?: string;
+  whatsappOfertasAutorizado?: boolean;
+  whatsappOfertasCadastradoEm?: string;
+  preCadastroWhatsApp?: boolean;
   chave: string;
   nome?: string;
   telefone?: string;
@@ -30,7 +33,12 @@ const date = (v: unknown) => {
   const n = Date.parse(String(v ?? ""));
   return Number.isFinite(n) ? n : 0;
 };
-export function montarClientesComerciais(profiles: any[], orders: any[], leads: any[] = []): ClienteComercial[] {
+export function montarClientesComerciais(
+  profiles: any[],
+  orders: any[],
+  leads: any[] = [],
+  whatsappContacts: any[] = [],
+): ClienteComercial[] {
   const clients = new Map<string, ClienteComercial>();
   const phones = new Map<string, Set<string>>(),
     emails = new Map<string, Set<string>>();
@@ -133,6 +141,50 @@ export function montarClientesComerciais(profiles: any[], orders: any[], leads: 
       });
     }
   }
+  // Capturas somente por WhatsApp entram na mesma ficha comercial quando já
+  // existe o telefone, sem criar conta no Auth nem sobrescrever nome do cliente.
+  // Conflitos antigos entre contas distintas são preservados: a autorização
+  // fica em uma ficha existente, nunca criando uma terceira duplicata.
+  for (const contact of whatsappContacts) {
+    const tel = phone(contact.telefone);
+    if (!/^\d{10,11}$/.test(tel)) continue;
+    const matchingKeys = [...clients.entries()]
+      .filter(([, c]) => phone(c.telefone) === tel)
+      .map(([key]) => key);
+    const key = matchingKeys.find((k) => Boolean(clients.get(k)?.profileId)) ||
+      matchingKeys.find((k) => Boolean(clients.get(k)?.totalPedidos)) ||
+      matchingKeys[0] || `whatsapp:${tel}`;
+    const existing = clients.get(key);
+    if (existing) {
+      existing.whatsappOfertasAutorizado = Boolean(contact.consentimento);
+      existing.whatsappOfertasCadastradoEm = contact.cadastrado_em ?? undefined;
+      if (!existing.nome && String(contact.nome ?? "").trim()) {
+        existing.nome = String(contact.nome).trim();
+      }
+      if (!existing.telefone) existing.telefone = tel;
+      // Não substituir a data do cadastro real de uma conta existente.
+      if (!existing.cadastradoEm) existing.cadastradoEm = contact.cadastrado_em ?? null;
+      if (!existing.profileId && !existing.sorteioLeadId) {
+        existing.preCadastroWhatsApp = true;
+      }
+    } else {
+      clients.set(key, {
+        chave: key,
+        nome: String(contact.nome ?? "").trim() || undefined,
+        telefone: tel,
+        email: "Não informado",
+        cidade: null,
+        cadastradoEm: contact.cadastrado_em ?? null,
+        preCadastroWhatsApp: true,
+        whatsappOfertasAutorizado: Boolean(contact.consentimento),
+        whatsappOfertasCadastradoEm: contact.cadastrado_em ?? undefined,
+        totalPedidos: 0,
+        valorGasto: 0,
+        ultimoPedido: null,
+        pedidos: [],
+      });
+    }
+  }
   return [...clients.values()];
 }
 export type FiltrosClientes = {
@@ -166,13 +218,14 @@ export function filtrarClientesComerciais(
       return false;
     if (
       filtros.cadastro !== "todos" &&
-      (!(c.profileId || c.sorteioLeadId) ||
+      (!(c.profileId || c.sorteioLeadId || c.preCadastroWhatsApp) ||
         !date(c.cadastradoEm) ||
         agora - date(c.cadastradoEm) > Number(filtros.cadastro) * day ||
         date(c.cadastradoEm) > agora)
     )
       return false;
     const s = filtros.segmento;
+    if (s === "pre_cadastro_whatsapp" && !c.preCadastroWhatsApp) return false;
     if (s === "sem_pedidos" && c.pedidos.length !== 0) return false;
     if (s === "cancelados" && !(c.pedidos.length > 0 && c.totalPedidos === 0)) return false;
     if (s === "primeira" && c.totalPedidos !== 1) return false;
