@@ -37,7 +37,7 @@ export const Route = createFileRoute("/auth")({
     return {
       redirect: commerceReturnPath(search.redirect),
       confirmed: search.confirmed === "1" || search.confirmed === true,
-      mode: search.mode === "signup" ? "signup" : undefined,
+      mode: search.mode === "signup" ? "signup" : search.mode === "login" ? "login" : undefined,
     };
   },
   component: AuthPage,
@@ -66,8 +66,8 @@ function AuthPage() {
     if (!lead) return;
     setNome(lead.nome);
     setTelefone(lead.telefone);
-    if (!confirmed) setIsLogin(false);
-  }, [confirmed]);
+    if (!confirmed && mode !== "login") setIsLogin(false);
+  }, [confirmed, mode]);
 
   const senhaValida = (value: string) => value.length > 0;
 
