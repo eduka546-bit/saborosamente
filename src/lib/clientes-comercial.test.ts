@@ -145,3 +145,69 @@ describe("integração dos inscritos no sorteio à aba Clientes", () => {
     expect(base.find(c => c.sorteioLeadId === "lead-1")?.profileId).toBeUndefined();
   });
 });
+
+
+describe("pré-cadastro por WhatsApp no carrinho", () => {
+  const contato = {
+    telefone: "47977776666",
+    nome: null,
+    consentimento: true,
+    cadastrado_em: "2026-10-11T18:00:00Z",
+  };
+  it("cria uma ficha de cliente só com número, sem nome e sem conta", () => {
+    const c = montarClientesComerciais([], [], [], [contato]);
+    expect(c).toHaveLength(1);
+    expect(c[0].nome).toBeUndefined();
+    expect(c[0].telefone).toBe(contato.telefone);
+    expect(c[0].preCadastroWhatsApp).toBe(true);
+    expect(c[0].profileId).toBeUndefined();
+    expect(c[0].sorteioLeadId).toBeUndefined();
+    expect(c[0].whatsappOfertasAutorizado).toBe(true);
+    expect(
+      filtrarClientesComerciais(c, { ...filters, segmento: "pre_cadastro_whatsapp" }),
+    ).toHaveLength(1);
+    expect(
+      filtrarClientesComerciais(
+        c, { ...filters, cadastro: "7" }, Date.parse("2026-10-11T19:00:00Z"),
+      ),
+    ).toHaveLength(1);
+  });
+  it("usa a mesma ficha quando telefone já pertence a um cliente cadastrado", () => {
+    const c = montarClientesComerciais(
+      [{ ...profiles[0], telefone: "+55 (47) 97777-6666" }],
+      [], [], [contato],
+    );
+    expect(c).toHaveLength(1);
+    expect(c[0].profileId).toBe("a");
+    expect(c[0].nome).toBe("José");
+    expect(c[0].whatsappOfertasAutorizado).toBe(true);
+    expect(c[0].preCadastroWhatsApp).toBeUndefined();
+  });
+  it("não duplica o pré-cadastro existente no sorteio", () => {
+    const c = montarClientesComerciais([], [], [{
+      id: "lead-wa",
+      telefone: "55 47 97777-6666",
+      nome: "Nome no sorteio",
+      created_at: "2026-10-10T17:00:00Z",
+    }], [contato]);
+    expect(c).toHaveLength(1);
+    expect(c[0].sorteioLeadId).toBe("lead-wa");
+    expect(c[0].nome).toBe("Nome no sorteio");
+    expect(c[0].whatsappOfertasAutorizado).toBe(true);
+  });
+  it("mantém no histórico quando consentimento de ofertas é revogado", () => {
+    const c = montarClientesComerciais([], [], [], [{ ...contato, consentimento: false }]);
+    expect(c).toHaveLength(1);
+    expect(c[0].preCadastroWhatsApp).toBe(true);
+    expect(c[0].whatsappOfertasAutorizado).toBe(false);
+  });
+  it("não cria uma terceira ficha em caso de dois perfis antigos com o mesmo telefone", () => {
+    const existing = [
+      { ...profiles[0], telefone: contato.telefone },
+      { ...profiles[0], id: "outro", telefone: "+55 47 97777-6666" },
+    ];
+    const c = montarClientesComerciais(existing, [], [], [contato]);
+    expect(c).toHaveLength(2);
+    expect(c.filter(x=>x.whatsappOfertasAutorizado===true)).toHaveLength(1);
+  });
+});
