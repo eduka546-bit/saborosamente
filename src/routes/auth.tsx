@@ -11,6 +11,7 @@ import { Link } from "@tanstack/react-router";
 import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
 
 export const Route = createFileRoute("/auth")({
@@ -63,10 +64,16 @@ function AuthPage() {
   // os campos que ele já preencheu, sem considerar o lead uma conta ativa.
   useEffect(() => {
     const lead = lerLeadPreCadastro();
-    if (!lead) return;
-    setNome(lead.nome);
-    setTelefone(lead.telefone);
-    if (!confirmed && mode !== "login") setIsLogin(false);
+    if (lead) {
+      setNome(lead.nome);
+      setTelefone(lead.telefone);
+      if (!confirmed && mode !== "login") setIsLogin(false);
+      return;
+    }
+    // Se o visitante só informou WhatsApp no carrinho, já preenche o
+    // telefone, sem inventar nome e sem considerar uma conta criada.
+    const telefoneDoCarrinho = lerTelefonePreCadastroWhatsApp();
+    if (telefoneDoCarrinho) setTelefone((atual) => atual || telefoneDoCarrinho);
   }, [confirmed, mode]);
 
   const senhaValida = (value: string) => value.length > 0;
