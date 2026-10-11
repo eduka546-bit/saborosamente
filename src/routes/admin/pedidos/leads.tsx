@@ -25,6 +25,7 @@ type Lead = {
 };
 type Vencedor = { lead_id: string; ano: number; mes: number; registrado_em: string; nome: string; telefone: string; email: string | null };
 type Config = { ativo: boolean; regulamento_url: string | null; certificado: string | null };
+type ContatoOfertas = { telefone: string; nome: string; consentido_em: string | null };
 
 function LeadsSorteioAdmin() {
   const qc = useQueryClient();
@@ -65,6 +66,29 @@ function LeadsSorteioAdmin() {
       return (data ?? []) as Vencedor[];
     },
   });
+  const { data: contatosOfertas = [], isLoading: carregandoOfertas } = useQuery({
+    queryKey: ["admin-whatsapp-ofertas"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_whatsapp_ofertas_admin");
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as ContatoOfertas[];
+    },
+    staleTime: 30_000,
+  });
+
+  const revogarOferta = useMutation({
+    mutationFn: async (telefone: string) => {
+      const { data, error } = await (supabase as any).rpc("revogar_whatsapp_ofertas_admin", { p_telefone: telefone });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin-whatsapp-ofertas"] });
+      toast.success("Autorização de ofertas revogada.");
+    },
+    onError: () => toast.error("Não foi possível revogar a autorização."),
+  });
+
   const idsContemplados = useMemo(() => new Set(vencedores.map(v => v.lead_id)), [vencedores]);
   const mesesOcupados = useMemo(() => new Set(vencedores.map(v => v.mes)), [vencedores]);
 
@@ -287,6 +311,57 @@ function LeadsSorteioAdmin() {
           ))}
         </div>
         <p className="text-xs text-gray-400">A lista exibe os 1.000 cadastros mais recentes; se o volume aumentar, adicionaremos paginação.</p>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border bg-white p-4 sm:p-5" aria-label="WhatsApp para cupons e descontos">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-[#075d3a]">
+            <MessageCircle size={20} aria-hidden="true" /> Ofertas por WhatsApp
+          </h2>
+          <span className="rounded-full bg-[#edf5e9] px-3 py-1 text-sm font-semibold text-[#075d3a]">
+            {contatosOfertas.length} autorizados
+          </span>
+        </div>
+        <p className="text-sm text-gray-600">
+          Pessoas que aceitaram receber cupons e descontos pelo formulário do carrinho.
+          Esta lista é independente do sorteio e da recuperação de carrinho.
+          Se alguém pedir para parar, revogue a autorização antes de novos envios.
+        </p>
+        {carregandoOfertas ? (
+          <p className="text-sm text-gray-500">Carregando contatos autorizados...</p>
+        ) : contatosOfertas.length === 0 ? (
+          <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-500">Nenhuma autorização registrada ainda.</p>
+        ) : (
+          <div className="divide-y rounded-xl border">
+            {contatosOfertas.map(contato => (
+              <div key={contato.telefone} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900">{contato.nome || contato.telefone}</p>
+                  <p className="text-xs text-gray-500">
+                    {contato.telefone} · Autorizado em {contato.consentido_em ? new Date(contato.consentido_em).toLocaleDateString("pt-BR") : "data não informada"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://wa.me/55${contato.telefone}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="rounded-lg border border-[#a8c4ac] px-3 py-2 text-sm font-semibold text-[#075d3a]"
+                  >WhatsApp</a>
+                  <button
+                    type="button"
+                    disabled={revogarOferta.isPending}
+                    onClick={() => {
+                      if (window.confirm("Revogar autorização de ofertas deste contato?")) {
+                        revogarOferta.mutate(contato.telefone);
+                      }
+                    }}
+                    className="rounded-lg border px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  >Revogar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
