@@ -1,6 +1,6 @@
 import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { ProductFacts } from "@/components/product-facts";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
@@ -74,6 +74,13 @@ export function ProductDetailModal({
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(true);
+  const updateScrollHint = () => {
+    const node = mobileScrollRef.current;
+    if (!node) return;
+    setHasMoreBelow(node.scrollHeight - node.scrollTop - node.clientHeight > 36);
+  };
   useEffect(() => {
     if (!isOpen) return;
     setRequestedQuantity(1);
@@ -121,6 +128,11 @@ export function ProductDetailModal({
   const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
   const [garfoEFaca, setGarfoEFaca] = useState(false);
   const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined") return;
+    const frame = window.requestAnimationFrame(updateScrollHint);
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen, product?.id, selectedWeight, tabelaNutricionalAberta]);
   const [restockContact, setRestockContact] = useState("");
   const [restockSending, setRestockSending] = useState(false);
   const ctaVariant = experimentVariant("product_modal_cta_v1");
@@ -392,6 +404,16 @@ export function ProductDetailModal({
     onClose();
   };
 
+  const chooseWeight = (weight: string) => {
+    if (selectedWeight === weight) return;
+    const stock = stockForWeight(product, weight);
+    if (stock !== null && stock <= 0) return;
+    setSelectedWeight(weight);
+    setCurrentImageIndex(0);
+    setRequestedQuantity(1);
+    trackEvent("size_select", { produtoId: product.id, metadata: { gramatura: weight } });
+  };
+
   const purchaseControls = (
             <div className="border-t border-[#dce7dd] bg-card px-4 py-2.5 sm:px-5 sm:py-4">
               {(() => {
@@ -435,11 +457,35 @@ export function ProductDetailModal({
                         </span>
                       )}
                     </div>
-                    {selectedWeight && (
-                      <Badge variant="secondary" className="font-semibold">
-                        {selectedWeight}
-                      </Badge>
-                    )}
+                    {weights.length > 1 ? (
+                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1">
+                        {weights.map((w: string) => {
+                          const stock = stockForWeight(product, w);
+                          const unavailable = stock !== null && stock <= 0;
+                          return (
+                            <button
+                              key={w}
+                              type="button"
+                              aria-label={`Selecionar tamanho ${w}${unavailable ? ", esgotado" : ""}`}
+                              aria-pressed={selectedWeight === w}
+                              disabled={unavailable}
+                              onClick={() => chooseWeight(w)}
+                              className={cn(
+                                "min-h-9 min-w-[42px] rounded-full px-2 text-sm font-semibold transition-colors sm:min-w-[52px] sm:text-base",
+                                selectedWeight === w
+                                  ? "bg-[#086e45] text-white shadow-sm"
+                                  : "bg-transparent text-[#375244] hover:bg-white",
+                                unavailable && "cursor-not-allowed opacity-35",
+                              )}
+                            >
+                              {weightLabel(w)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : selectedWeight ? (
+                      <Badge variant="secondary" className="font-semibold">{selectedWeight}</Badge>
+                    ) : null}
                   </div>
                 );
               })()}
@@ -529,7 +575,7 @@ export function ProductDetailModal({
         >
           <X className="size-6" aria-hidden="true" />
         </button>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
+        <div ref={mobileScrollRef} onScroll={updateScrollHint} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
           {/* Imagem grande / galeria + ação de engajamento */}
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
             <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#f4f1e8] md:aspect-auto md:min-h-0 md:flex-1">
@@ -604,7 +650,7 @@ export function ProductDetailModal({
               )}
 
               {weights.length > 1 && (
-                <div>
+                <div className="hidden md:block">
                   <h4 className="mb-2 text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {weights.map((w: string) => {
@@ -615,13 +661,7 @@ export function ProductDetailModal({
                           key={w}
                           type="button"
                           onClick={() => {
-                            setSelectedWeight(w);
-                            setCurrentImageIndex(0);
-                            setRequestedQuantity(1);
-                            trackEvent("size_select", {
-                              produtoId: product.id,
-                              metadata: { gramatura: w },
-                            });
+                            chooseWeight(w);
                           }}
                           className={cn(
                             "relative min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
@@ -819,6 +859,12 @@ export function ProductDetailModal({
             </div>
           </div>
         </div>
+        {hasMoreBelow && (
+          <div aria-hidden="true" className="z-20 flex shrink-0 items-center justify-center gap-1 bg-[#f3f7ef] py-1.5 text-xs font-semibold text-[#075d3a] md:hidden">
+            <ChevronDown className="size-4" />
+            Deslize para ver mais informações
+          </div>
+        )}
         <div className="z-30 shrink-0 pb-[env(safe-area-inset-bottom)] md:hidden">{purchaseControls}</div>
       </DialogContent>
     </Dialog>
