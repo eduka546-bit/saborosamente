@@ -51,7 +51,7 @@ export function ProductFacts({
         {weight && <p className="mt-1 text-sm text-muted-foreground">Porção de {weight}</p>}
         {nutrition?.kcal != null ? (
           <div
-            className="mt-3 grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5 text-center text-sm font-semibold leading-relaxed text-[#075636] sm:gap-2 sm:text-base"
+            className="mt-3 grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5 text-center text-base font-semibold leading-relaxed text-[#075636] sm:gap-2 sm:text-base"
             aria-label={`${nutrition.kcal} quilocalorias, ${nutrition.prot ?? "não informado"} gramas de proteína, ${nutrition.carb ?? "não informado"} gramas de carboidratos`}
           >
             <span className="whitespace-nowrap">{nutrition.kcal} KCAL</span>
@@ -66,7 +66,7 @@ export function ProductFacts({
       </section>
       <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
         <h4 className={heading}>Restrições</h4>
-        <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-2 text-center text-sm leading-snug text-[#375244] sm:text-base">
+        <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-2 text-center text-base leading-snug text-[#375244] sm:text-base">
           <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-0.5 border-r border-[#91b28a]/60 pr-1.5">
             <strong className="font-semibold">Glúten:</strong> <span>{glutenStatus}</span>
             {glutenStatus === "não contém" && (
