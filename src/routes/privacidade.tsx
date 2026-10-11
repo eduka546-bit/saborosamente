@@ -320,6 +320,14 @@ function PrivacidadePage() {
             inscrição no sorteio e pode ser retirada desmarcando a opção no checkout
             ou respondendo <strong>PARAR</strong> ao lembrete recebido.
           </p>
+          <p className="mt-2">
+            <strong>Ofertas por WhatsApp:</strong> no carrinho, o cliente pode informar
+            seu número e marcar uma autorização específica para receber cupons,
+            descontos e novidades. O cadastro é opcional, independente do sorteio,
+            dos cookies de métricas e da recuperação de carrinho. A escolha é
+            registrada com data e identificador de sessão e pode ser revogada
+            a qualquer momento, inclusive respondendo PARAR às mensagens.
+          </p>
           <button
             type="button"
             onClick={() => {
