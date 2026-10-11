@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { DiscountProgressWidget } from "./discount-progress-widget";
+import { CartMarketingOptin } from "@/components/cart-marketing-optin";
 
 function estoqueDaLinha(product: any, weight?: string) {
   const raw =
@@ -135,6 +136,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
               </ul>
 
               <DiscountProgressWidget className="bg-white" />
+              <CartMarketingOptin compact />
 
               <button
                 onClick={clear}
