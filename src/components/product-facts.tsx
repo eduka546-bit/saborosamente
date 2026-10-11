@@ -18,8 +18,8 @@ export function ProductFacts({
   const format = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
   const heading = "text-lg font-semibold leading-snug text-[#075636]";
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-5 rounded-2xl bg-[#f5f3e9] p-4 xl:grid-cols-3 xl:gap-0">
-      <section className="min-w-0 xl:pr-4">
+    <div className="grid min-w-0 grid-cols-1 gap-5 rounded-2xl bg-[#f5f3e9] p-4 xl:grid-cols-2 xl:gap-4">
+      <section className="min-w-0 xl:col-span-2">
         <h4 className={heading}>Composição</h4>
         <p className="mt-1 text-sm leading-snug text-muted-foreground">{COMPOSITION_MARGIN}</p>
         <div className="mt-3 space-y-3 text-base">
@@ -46,7 +46,7 @@ export function ProductFacts({
           )}
         </div>
       </section>
-      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:px-4 xl:pt-0">
+      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l-0 xl:border-t xl:px-0 xl:pt-4">
         <h4 className={heading}>Valor Nutricional</h4>
         {weight && <p className="mt-1 text-sm text-muted-foreground">Porção de {weight}</p>}
         {nutrition?.kcal != null ? (
@@ -64,7 +64,7 @@ export function ProductFacts({
           <p className="mt-3 text-sm text-muted-foreground">Consulte a embalagem para detalhes.</p>
         )}
       </section>
-      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+      <section className="min-w-0 border-t border-[#075636]/15 pt-4 text-center xl:border-l xl:border-t xl:pl-4 xl:pt-4">
         <h4 className={heading}>Restrições</h4>
         <div className="mt-3 grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-2 text-center text-base leading-snug text-[#375244] sm:text-base">
           <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-1 gap-y-0.5 border-r border-[#91b28a]/60 pr-1.5">
