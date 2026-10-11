@@ -22,6 +22,18 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
   const [sending, setSending] = useState(false);
   const [erro, setErro] = useState("");
 
+  // Garante que o aviso de cookies não se sobreponha ao formulário do sorteio.
+  // Ao fechar o sorteio, o aviso de cookies volta a aparecer, se ainda necessário.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent("saborosamente:sorteio-visibilidade", { detail: open }));
+    return () => {
+      if (open) {
+        window.dispatchEvent(new CustomEvent("saborosamente:sorteio-visibilidade", { detail: false }));
+      }
+    };
+  }, [open]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const openManually = () => { setErro(""); setOpen(true); };
