@@ -43,6 +43,7 @@ import { calcularRegraCupom } from "@/lib/coupon-rules";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
 
 export const Route = createFileRoute("/checkout")({
@@ -575,6 +576,12 @@ function Checkout() {
           }
           if (!String(getValues("telefone") ?? "").trim()) {
             setValue("telefone", preCadastro.telefone, { shouldValidate: false });
+          }
+        } else if (!String(getValues("telefone") ?? "").trim()) {
+          // Pré-cadastro de WhatsApp opcional, sem nome ou conta.
+          const telefoneDoCarrinho = lerTelefonePreCadastroWhatsApp();
+          if (telefoneDoCarrinho) {
+            setValue("telefone", telefoneDoCarrinho, { shouldValidate: false });
           }
         }
         return;
