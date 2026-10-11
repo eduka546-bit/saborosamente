@@ -42,17 +42,16 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       openManually();
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
-    let timeout: ReturnType<typeof setTimeout> | undefined;
     const visto = window.sessionStorage.getItem(EXIBIDO_KEY) === "1";
     const participou = window.localStorage.getItem(PARTICIPOU_KEY) === "1";
+    // Abre imediatamente após a página carregar as configurações do sorteio.
+    // Preserva a preferência do visitante: só apresenta uma vez por sessão
+    // e não insiste com quem já concluiu a inscrição neste navegador.
     if (!visto && !participou) {
-      timeout = setTimeout(() => {
-        window.sessionStorage.setItem(EXIBIDO_KEY, "1");
-        setOpen(true);
-      }, 7500);
+      window.sessionStorage.setItem(EXIBIDO_KEY, "1");
+      setOpen(true);
     }
     return () => {
-      if (timeout) clearTimeout(timeout);
       window.removeEventListener("saborosamente:abrir-sorteio", openManually);
     };
   }, []);
