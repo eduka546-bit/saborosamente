@@ -974,7 +974,7 @@ function Checkout() {
 
   // ── formulário principal ─────────────────────────────────────────────────────
   return (
-    <section className="mx-auto max-w-6xl px-4 py-6 md:py-8">
+    <section className="mx-auto max-w-6xl px-3 py-4 sm:px-4 md:py-8">
       <Link
         to="/"
         hash="cardapio"
@@ -982,10 +982,7 @@ function Checkout() {
       >
         ← Voltar ao cardápio
       </Link>
-      <h1 className="text-4xl font-semibold">Checkout</h1>
-      <p className="mt-3 text-base text-muted-foreground">
-        Finalize seu pedido em três etapas simples.
-      </p>
+      <h1 className="text-2xl font-semibold text-[#075d3a] sm:text-3xl">Finalizar pedido</h1>
 
       {!session && (
         <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 text-base text-[#075636]">
@@ -996,21 +993,6 @@ function Checkout() {
           }}>Entrar ou criar conta</button>
         </div>
       )}
-
-      <div className="mt-6 grid grid-cols-3 gap-2">
-        {[
-          ["1", "Dados e entrega"],
-          ["2", "Pagamento"],
-          ["3", "Confirmar"],
-        ].map(([numero, label]) => (
-          <div key={numero} className="rounded-2xl border border-[#dce7d5] bg-[#f7faf4] px-3 py-3 text-center">
-            <span className="mx-auto flex size-7 items-center justify-center rounded-full bg-[#086e45] text-base font-semibold text-white">
-              {numero}
-            </span>
-            <span className="mt-1 block text-base font-semibold text-[#315440]">{label}</span>
-          </div>
-        ))}
-      </div>
 
       <details className="sticky top-2 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
@@ -1073,11 +1055,11 @@ function Checkout() {
         </div>
       </details>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+      <div className="mt-4 grid gap-5 lg:grid-cols-[1.6fr_1fr] lg:gap-8">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-soft"
+          className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-soft sm:space-y-6 sm:rounded-3xl sm:p-6"
         >
           {/* ── dados pessoais ─────────────────────────────────────────────── */}
           <fieldset className="space-y-4">
@@ -1088,7 +1070,7 @@ function Checkout() {
               <label htmlFor="nome" className="text-base font-medium">
                 Nome completo
               </label>
-              <input id="nome" className={fieldClass} {...register("nome")} />
+              <input id="nome" autoComplete="name" className={fieldClass} {...register("nome")} />
               {errors.nome && (
                 <p className="mt-1 text-base text-destructive">{errors.nome.message}</p>
               )}
@@ -1098,7 +1080,7 @@ function Checkout() {
                 <label htmlFor="email" className="text-base font-medium">
                   E-mail
                 </label>
-                <input id="email" type="email" className={fieldClass} {...register("email")} />
+                <input id="email" type="email" autoComplete="email" className={fieldClass} {...register("email")} />
                 {errors.email && (
                   <p className="mt-1 text-base text-destructive">{errors.email.message}</p>
                 )}
@@ -1107,7 +1089,7 @@ function Checkout() {
                 <label htmlFor="telefone" className="text-base font-medium">
                   Telefone / WhatsApp
                 </label>
-                <input id="telefone" className={fieldClass} {...register("telefone")} />
+                <input id="telefone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} {...register("telefone")} />
                 {errors.telefone && (
                   <p className="mt-1 text-base text-destructive">{errors.telefone.message}</p>
                 )}
@@ -1122,9 +1104,8 @@ function Checkout() {
                 className="mt-0.5 size-4 accent-[#086e45]"
               />
               <span className="text-base leading-5 text-muted-foreground">
-                Aceito receber uma mensagem no WhatsApp caso eu não conclua este pedido,
-                para receber ajuda na recuperação do carrinho. Posso desmarcar esta opção
-                a qualquer momento.
+                Quero receber ajuda pelo WhatsApp se não finalizar o pedido.
+                Posso cancelar quando quiser.
               </span>
             </label>
           </fieldset>
