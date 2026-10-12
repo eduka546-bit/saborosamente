@@ -520,17 +520,17 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                                   {formatBRL(hasDiscount ? tierPrice : price)}
                                 </span>
                               </div>
-                              <div className="mt-1 flex w-full items-center justify-center gap-1 lg:mt-0 lg:w-auto lg:shrink-0 lg:gap-0.5">
+                              <div className="mt-1 flex w-full items-center justify-center gap-0.5 sm:gap-1 lg:mt-0 lg:w-auto lg:shrink-0 lg:gap-0.5">
                                 <button type="button" aria-label={"Diminuir " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, -1)} disabled={qty === 0}
-                                  className={cn("flex size-8 shrink-0 items-center justify-center rounded-full border sm:size-9 lg:size-7",
+                                  className={cn("flex size-6 min-[360px]:size-7 min-[400px]:size-8 shrink-0 items-center justify-center rounded-full border sm:size-9 lg:size-7",
                                     qty > 0 ? "border-[#086e45] text-[#086e45]" : "border-gray-200 text-gray-300")}>
                                   <Minus size={14} />
                                 </button>
-                                <span className={cn("min-w-4 text-center text-sm font-semibold tabular-nums lg:min-w-3 lg:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
+                                <span className={cn("min-w-3 text-center text-xs font-semibold tabular-nums sm:text-sm lg:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
                                 <button type="button" aria-label={"Aumentar " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, 1)}
-                                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-9 lg:size-7">
+                                  className="flex size-6 min-[360px]:size-7 min-[400px]:size-8 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-9 lg:size-7">
                                   <Plus size={14} />
                                 </button>
                               </div>
