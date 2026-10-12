@@ -140,7 +140,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           <p className="relative mx-auto mt-2 max-w-[340px] text-xs leading-snug text-[#f0f7ee] md:mt-5 md:text-[15px] md:leading-relaxed">
             <strong className="font-semibold text-white">Não precisa comprar nada!</strong> Só de se cadastrar, você já está concorrendo a uma semana de marmitas gratuitas.
           </p>
-          <div className="relative mx-auto mt-5 hidden items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white md:inline-flex">
+          <div className="relative mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white md:mt-5 md:px-4 md:py-2 md:text-xs">
             <ShieldCheck size={16}/> Participe gratuitamente
           </div>
         </div>
@@ -150,7 +150,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
             <p className="hidden text-xs font-semibold uppercase tracking-[0.1em] text-[#6e8655] md:block">Participe do sorteio</p>
             <h3 className="text-lg font-bold text-[#075d3a] md:mt-1 md:text-xl">Faça sua inscrição</h3>
           </div>
-          <p className="hidden items-start gap-2 text-sm leading-relaxed text-[#375244] md:flex">
+          <p className="flex items-start gap-2 text-[13px] leading-relaxed text-[#375244] md:text-sm">
             <TicketCheck size={19} className="mt-0.5 shrink-0 text-[#08764a]"/>
             Cadastre-se uma vez e continue elegível nos próximos sorteios previstos, até ser contemplado.
           </p>
