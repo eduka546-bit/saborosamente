@@ -32,6 +32,9 @@ interface ProductDetailModalProps {
   onClose: () => void;
   product: any;
   allProducts?: any[];
+  // Em Monte seu Combo, adiciona ao combo em vez de ir direto ao carrinho.
+  onAddToCombo?: (weight: string, quantity: number) => void;
+  comboCount?: number;
 }
 
 const stockForWeight = (product: any, weight: string): number | null => {
@@ -69,6 +72,8 @@ export function ProductDetailModal({
   onClose,
   product,
   allProducts = [],
+  onAddToCombo,
+  comboCount,
 }: ProductDetailModalProps) {
   const { add, count, lines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
@@ -218,7 +223,7 @@ export function ProductDetailModal({
       : Math.max(0, stockNumber - quantityAlreadyInCart);
   const soldOut = remainingStock !== null && remainingStock <= 0;
   const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
-  const projectedCount = count + quantity;
+  const projectedCount = (comboCount ?? count) + quantity;
 
   const currentRestrictions =
     selectedWeight === "200g" && product.restricoes_200g
@@ -384,6 +389,13 @@ export function ProductDetailModal({
   const handleAddToCart = () => {
     if (soldOut) {
       toast.info("Esta gramatura já atingiu a quantidade disponível.");
+      return;
+    }
+    if (onAddToCombo) {
+      onAddToCombo(selectedWeight, quantity);
+      toast.success("Adicionado ao seu combo!", {
+        description: quantity + " × " + product.nome + " (" + selectedWeight + ")",
+      });
       return;
     }
     const opcoes = ehMarmita
@@ -557,7 +569,7 @@ export function ProductDetailModal({
                   className="h-12 w-full gap-2 rounded-xl text-base font-semibold shadow-sm transition-colors hover:shadow-md md:h-14 md:rounded-2xl md:text-lg"
                 >
                   <ShoppingCart className="size-5" />
-                  {ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
+                  {onAddToCombo ? "Adicionar ao combo" : ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
                 </Button>
               )}
             </div>
