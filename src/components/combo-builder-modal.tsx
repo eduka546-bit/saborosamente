@@ -485,7 +485,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                         </div>
                       </button>
                       <div className={cn(
-                        "grid gap-1.5 border-t border-gray-100 px-2 pb-3 pt-2 sm:gap-2 sm:px-3",
+                        "grid gap-1.5 border-t border-gray-100 px-2 pb-3 pt-2 sm:gap-2 sm:px-3 lg:gap-1.5 lg:pb-2 lg:pt-2",
                         weights.length >= 3 ? "grid-cols-3" : weights.length === 2 ? "grid-cols-2" : "max-w-[180px] grid-cols-1",
                       )}>
                         {weights.map((w) => {
@@ -495,25 +495,25 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           const tierPrice = noDiscount ? price : precoMarmitaPorFaixa(w, totalQty, fullPrice, tabelaPrecos);
                           const hasDiscount = !noDiscount && tierPrice < fullPrice;
                           return (
-                            <div key={w} className="flex min-w-0 flex-col items-center rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1 py-2 text-center">
-                              <span className="text-xs font-bold text-gray-600 sm:text-sm">{w}</span>
-                              <div className="mt-1 flex min-h-[34px] flex-col items-center justify-center leading-tight">
+                            <div key={w} className="flex min-w-0 flex-col items-center rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1 py-2 text-center lg:flex-row lg:justify-between lg:gap-1 lg:px-1.5 lg:py-1.5">
+                              <span className="shrink-0 text-xs font-bold text-gray-600 sm:text-sm lg:text-xs">{w}</span>
+                              <div className="mt-1 flex min-h-[34px] flex-col items-center justify-center leading-tight lg:mt-0 lg:min-h-0 lg:flex-1">
                                 {hasDiscount && <span className="text-[10px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
-                                <span className="whitespace-nowrap text-[12px] font-bold text-[#086e45] sm:text-sm">
+                                <span className="whitespace-nowrap text-[12px] font-bold text-[#086e45] sm:text-sm lg:text-xs">
                                   {formatBRL(hasDiscount ? tierPrice : price)}
                                 </span>
                               </div>
-                              <div className="mt-1 flex w-full items-center justify-center gap-1">
+                              <div className="mt-1 flex w-full items-center justify-center gap-1 lg:mt-0 lg:w-auto lg:shrink-0 lg:gap-0.5">
                                 <button type="button" aria-label={"Diminuir " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, -1)} disabled={qty === 0}
-                                  className={cn("flex size-8 shrink-0 items-center justify-center rounded-full border sm:size-9",
+                                  className={cn("flex size-8 shrink-0 items-center justify-center rounded-full border sm:size-9 lg:size-7",
                                     qty > 0 ? "border-[#086e45] text-[#086e45]" : "border-gray-200 text-gray-300")}>
                                   <Minus size={14} />
                                 </button>
-                                <span className={cn("min-w-4 text-center text-sm font-semibold tabular-nums", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
+                                <span className={cn("min-w-4 text-center text-sm font-semibold tabular-nums lg:min-w-3 lg:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
                                 <button type="button" aria-label={"Aumentar " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, 1)}
-                                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-9">
+                                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-9 lg:size-7">
                                   <Plus size={14} />
                                 </button>
                               </div>
