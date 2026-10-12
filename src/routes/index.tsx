@@ -1634,6 +1634,8 @@ function Index() {
                   isOpen={comboModalOpen}
                   onClose={() => setComboModalOpen(false)}
                   combo={{ id: "combo-global", nome: "Monte seu Combo" }}
+                  bestSellerIds={bestSellerIds}
+                  bestSellerRank={bestSellerRank}
                   products={products
                     .filter((p: any) => {
                       const cat = p.categorias?.nome || "";
