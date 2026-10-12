@@ -1638,9 +1638,15 @@ function Index() {
                   bestSellerRank={bestSellerRank}
                   products={products
                     .filter((p: any) => {
-                      const cat = p.categorias?.nome || "";
+                      const cat = p.categorias?.nome || p.categoria || "";
                       const nome = p.nome || "";
-                      return !isComboEscolhaVoceMesmo(nome, cat);
+                      const tipo = String(p.tipo_produto || "").toLowerCase();
+                      // Somente itens avulsos entram no Monte seu Combo.
+                      // Combos Prontos possuem preços próprios e não podem ser selecionados aqui.
+                      return !isComboEscolhaVoceMesmo(nome, cat) &&
+                        !isComboPronto(nome, cat, tipo) &&
+                        !tipo.includes("combo") &&
+                        !/\bcombos?\b/i.test(`${nome} ${cat}`);
                     })
                     .map((p: any) => ({
                       ...p,
