@@ -13,7 +13,7 @@ import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Minus, ShoppingCart, Info, Search, Tag, SlidersHorizontal, ChevronRight } from "lucide-react";
+import { X, Plus, Minus, ShoppingCart, Info, Search, Tag, SlidersHorizontal, ChevronRight, Dumbbell } from "lucide-react";
 import { ProductDetailModal } from "@/components/product-detail-modal";
 import { isHighProteinFlavor, maxProteinForFlavor } from "@/lib/nutrition-rules";
 import { cn } from "@/lib/utils";
@@ -310,7 +310,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
           </button>
         </div>
 
-        {/* Faixas em uma única linha no mobile, com progresso sempre visível. */}
+        {/* Faixas compactas em uma única linha no mobile. */}
         <div className="shrink-0 border-b bg-[#eef5f0] px-3 py-3 md:px-6">
           <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
@@ -325,9 +325,6 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                     <Tag size={12} className="shrink-0" /> {rule.badge}
                   </span>
                   <span className="mt-1 text-[11px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
-                  <span className="mt-1 text-[10px] font-semibold text-[#087443] sm:text-xs">
-                    {active ? "✓ ATIVO" : "FALTAM " + (rule.min - totalQty)}
-                  </span>
                 </div>
               );
             })}
@@ -378,6 +375,13 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                     {cat}
                   </button>
                 ))}
+              </div>
+              {/* A mesma legenda de selos usada no cardápio, em um único local no topo. */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-[#dce7d5] bg-white/70 px-2.5 py-2 text-xs text-[#315440] sm:gap-x-4">
+                <span className="font-semibold">Legenda</span>
+                <span className="inline-flex items-center gap-1.5"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
+                <span className="inline-flex items-center gap-1.5"><img src="/selo-sem-gluten.png" alt="" className="size-6 shrink-0 object-contain" />Sem glúten</span>
+                <span className="inline-flex items-center gap-1.5"><img src="/selo-sem-lactose.png" alt="" className="size-6 shrink-0 object-contain" />Sem lactose</span>
               </div>
               {filtersOpen && (
                 <div id="combo-filtros" className="absolute left-3 right-3 top-[calc(100%-4px)] z-30 max-h-[55dvh] overflow-y-auto overscroll-contain rounded-2xl border border-[#cfe0c4] bg-[#f5f9f1] p-3 shadow-xl md:left-4 md:right-4">
@@ -472,7 +476,20 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           ) : <div className="flex h-full w-full items-center justify-center text-lg text-gray-300">🍱</div>}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold leading-snug text-gray-900 sm:text-base">{product.nome}</p>
+                          <p className="text-sm font-semibold leading-snug text-gray-900 sm:text-base">
+                            {product.nome}
+                            {isHighProteinFlavor(product) && (
+                              <span className="ml-1 inline-grid size-[22px] align-middle place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow-sm" title="Alta proteína" role="img" aria-label="Alta proteína">
+                                <Dumbbell size={14} />
+                              </span>
+                            )}
+                            {product.sem_gluten && (
+                              <img src="/selo-sem-gluten.png" alt="Sem glúten" title="Sem glúten" className="ml-1 inline-block size-[22px] align-middle object-contain" />
+                            )}
+                            {product.sem_lactose && (
+                              <img src="/selo-sem-lactose.png" alt="Sem lactose" title="Sem lactose" className="ml-1 inline-block size-[22px] align-middle object-contain" />
+                            )}
+                          </p>
                           {product.ingredientes && (
                             <p className="mt-1 text-xs leading-relaxed text-gray-500 sm:text-sm">
                               {Array.isArray(product.ingredientes) ? product.ingredientes.join(", ") : String(product.ingredientes)}
@@ -495,7 +512,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           const tierPrice = noDiscount ? price : precoMarmitaPorFaixa(w, totalQty, fullPrice, tabelaPrecos);
                           const hasDiscount = !noDiscount && tierPrice < fullPrice;
                           return (
-                            <div key={w} className="flex min-w-0 flex-col items-center rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1 py-2 text-center lg:flex-row lg:justify-between lg:gap-1 lg:px-1.5 lg:py-1.5">
+                            <div key={w} className="flex min-w-0 flex-col items-center rounded-xl border border-[#dce8df] bg-[#fdfefd] px-2 py-2 text-center lg:flex-row lg:justify-between lg:gap-1 lg:px-2.5 lg:py-1.5">
                               <span className="shrink-0 text-xs font-bold text-gray-600 sm:text-sm lg:text-xs">{w}</span>
                               <div className="mt-1 flex min-h-[34px] flex-col items-center justify-center leading-tight lg:mt-0 lg:min-h-0 lg:flex-1">
                                 {hasDiscount && <span className="text-[10px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
