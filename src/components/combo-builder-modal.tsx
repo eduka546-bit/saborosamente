@@ -346,7 +346,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                     <div key={rule.min} className={cn(
                       "flex min-w-0 flex-col items-center justify-center rounded-lg border px-0.5 py-2 text-center leading-tight transition-colors sm:rounded-xl sm:px-1",
                       active
-                        ? "border-[#b7e7d1] bg-[#d4f0df] text-[#075636]"
+                        ? "border-[#efd986] bg-[#fff3c4] text-[#075636]"
                         : "border-white/80 bg-white text-[#526457]",
                     )}>
                       <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[9px] font-extrabold sm:gap-1 sm:text-xs">
