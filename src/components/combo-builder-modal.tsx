@@ -293,48 +293,52 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
 
       {/* Modal */}
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Monte seu Combo" className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-[#086e45] px-4 md:px-6 py-3 md:py-4 text-white flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-xl font-bold">{combo.nome}</h2>
-            <p className="text-base text-white/75 mt-0.5">
-              Escolha suas marmitas — quanto mais, maior o desconto!
-            </p>
+        {/* Cabeçalho único: título à esquerda e faixas à direita no desktop. */}
+        <header className="relative shrink-0 bg-[#086e45] px-3 pb-3 pt-3 text-white sm:px-5 lg:px-7 lg:py-4">
+          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
+            <div className="min-w-0 pr-11 lg:flex-[0_0_37%] lg:pr-0">
+              <h2 className="text-xl font-bold leading-tight">{combo.nome}</h2>
+              <p className="mt-1 text-sm leading-snug text-white/85 sm:text-base">
+                Escolha suas marmitas — quanto mais, maior o desconto!
+              </p>
+            </div>
+
+            <div className="min-w-0 flex-1 lg:border-l lg:border-white/35 lg:pl-5 lg:pr-12">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
+                  const active = totalQty >= rule.min;
+                  return (
+                    <div key={rule.min} className={cn(
+                      "flex min-w-0 flex-col items-center justify-center rounded-xl border px-1 py-2 text-center leading-tight transition-colors",
+                      active
+                        ? "border-[#b7e7d1] bg-[#d4f0df] text-[#075636]"
+                        : "border-white/80 bg-white text-[#526457]",
+                    )}>
+                      <span className="flex items-center justify-center gap-1 text-[11px] font-extrabold sm:text-xs">
+                        <Tag size={12} className="shrink-0" /> {rule.badge}
+                      </span>
+                      <span className="mt-1 text-[10px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p aria-live="polite" className="mt-1.5 text-center text-[11px] font-medium leading-tight text-white/85 sm:text-xs">
+                {nextRule
+                  ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para {nextRule.badge}</>
+                  : <strong className="text-white">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
+              </p>
+            </div>
           </div>
+
           <button
+            type="button"
             aria-label="Fechar modal"
             onClick={onClose}
-            className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full border border-white/50 bg-white/10 transition-colors hover:bg-white/20 lg:right-4 lg:top-4"
           >
             <X size={18} />
           </button>
-        </div>
-
-        {/* Faixas compactas em uma única linha no mobile. */}
-        <div className="shrink-0 border-b bg-[#eef5f0] px-3 py-3 md:px-6">
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-            {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
-              const active = totalQty >= rule.min;
-              return (
-                <div key={rule.min} className={cn(
-                  "flex min-w-0 flex-col items-center justify-center rounded-xl border px-1 py-2 text-center leading-tight transition-colors",
-                  active ? "border-[#086e45] bg-[#dcefe3] text-[#075636]" :
-                    "border-[#d6e7dd] bg-white/70 text-[#526457]",
-                )}>
-                  <span className="flex items-center justify-center gap-1 text-[12px] font-extrabold sm:text-sm">
-                    <Tag size={12} className="shrink-0" /> {rule.badge}
-                  </span>
-                  <span className="mt-1 text-[11px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
-                </div>
-              );
-            })}
-          </div>
-          <p aria-live="polite" className="mt-2 text-center text-xs font-medium text-[#315440] sm:text-sm">
-            {nextRule
-              ? <>Faltam <strong className="text-[#086e45]">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para {nextRule.badge}</>
-              : <strong className="text-[#086e45]">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
-          </p>
-        </div>
+        </header>
 
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Coluna esquerda — catálogo */}
