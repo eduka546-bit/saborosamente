@@ -10,6 +10,8 @@ interface ReceiptItem {
   quantidade: number;
   preco_unitario: number;
   observacao?: string | null;
+  tamanho?: string | null;
+  peso?: string | null;
 }
 
 interface ThermalReceiptProps {
@@ -34,6 +36,24 @@ interface ThermalReceiptProps {
     troco?: string;
     itens: ReceiptItem[];
   };
+}
+
+
+function receiptWeight(item: ReceiptItem): string {
+  const raw = [item.tamanho, item.peso, item.observacao, item.nome].filter(Boolean).join(" ");
+  const match = raw.match(/(?:peso\\s*:\\s*)?(200|300|400|250|350|450|600)\\s*g\\b/i);
+  return match ? match[1] + "g" : "";
+}
+function receiptItemName(item: ReceiptItem): string {
+  const weight = receiptWeight(item);
+  // Remove apenas o peso que já será exibido separadamente.
+  return weight ? item.nome.replace(new RegExp("\\s*[-–|()]?\\s*" + weight + "\\b", "i"), "").trim() : item.nome;
+}
+function receiptItemNote(item: ReceiptItem): string {
+  return String(item.observacao ?? "").replace(/(?:peso\\s*:\\s*)?(?:200|300|400|250|350|450|600)\\s*g\\b/gi, "").replace(/^\\s*[|,;–-]+\\s*|\\s*[|,;–-]+\\s*$/g, "").trim();
+}
+function receiptItemCount(order: ThermalReceiptProps["order"]): number {
+  return order.itens.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0);
 }
 
 // Centra texto em N colunas
@@ -128,17 +148,19 @@ ${order.endereco_cep ?? ""}`
           {order.itens
             .map((item) => {
               const total_item = item.preco_unitario * item.quantidade;
-              const lineProd = `${item.quantidade}x ${item.nome}`;
+              const lineProd = `${item.quantidade}x ${receiptItemName(item)}${receiptWeight(item) ? ` - ${receiptWeight(item)}` : ""}`;
               const lineVal = `R$ ${total_item.toFixed(2)}`;
               const gap = 32 - lineProd.length - lineVal.length;
               return [
                 lineProd + " ".repeat(Math.max(1, gap)) + lineVal,
-                item.observacao ? `  Obs: ${item.observacao}` : null,
+                receiptItemNote(item) ? `  Obs: ${receiptItemNote(item)}` : null,
               ]
                 .filter(Boolean)
                 .join("\n");
             })
             .join("\n")}
+          {SEP_THIN}
+          {row("TOTAL DE ITENS:", String(receiptItemCount(order)))}
           {SEP_THIN}
           {row("Subtotal:", `R$ ${subtotal.toFixed(2)}`)}
           {entrega > 0 ? row("Entrega:", `R$ ${entrega.toFixed(2)}`) : row("Entrega:", "GRATIS")}
@@ -196,10 +218,10 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     // Extrai o sabor da observação ("Peso: 300g | TD01 - Nome" ou só "Peso: 300g")
     const obs = item.observacao ?? "";
     // Remove só o "Peso: XXXg" da observação pra não duplicar
-    const obsLimpa = obs.replace(/Peso:\s*\d+\s*g\s*\|?\s*/i, "").trim();
+    const obsLimpa = receiptItemNote(item);
     return `
       <tr class="item-row">
-        <td class="desc">${escapeHtml(item.quantidade)}x ${escapeHtml(item.nome)}</td>
+        <td class="desc">${escapeHtml(item.quantidade)}x ${escapeHtml(receiptItemName(item))}${receiptWeight(item) ? `<div class="weight">${escapeHtml(receiptWeight(item))}</div>` : ""}</td>
         <td class="tot">R$&nbsp;${tot}</td>
       </tr>
       ${obsLimpa ? `<tr><td colspan="2" class="obs">* ${escapeHtml(obsLimpa)}</td></tr>` : ""}
@@ -238,7 +260,9 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     .desc { text-align: left; vertical-align: top; padding: 3px 2px; overflow-wrap: anywhere; }
     .tot  { text-align: right; vertical-align: top; padding: 3px 1px; white-space: nowrap; }
     .obs  { font-size: 8pt; font-weight: normal; padding: 0 2px 2px 4px; color: #000; }
+    .weight { font-size: 9pt; font-weight: bold; margin-top: 1px; }
     /* Totais */
+    .items-count { font-size: 10pt; font-weight: bold; margin: 3px 0; }
     .totals { width: 100%; margin-top: 2px; }
     .totals td { padding: 1px 1px; font-size: 9pt; }
     .totals .lbl { text-align: left; font-weight: normal; }
@@ -280,6 +304,8 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
     </tbody>
   </table>
 
+  <div class="sep"></div>
+  <div class="items-count">TOTAL DE ITENS: <strong>${receiptItemCount(order)}</strong></div>
   <div class="sep"></div>
 
   <table class="totals">
