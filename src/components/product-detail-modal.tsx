@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { isMarmita } from "@/lib/combo-rules";
 import { isNoDiscount, precoMarmitaPorFaixa, precoCheioMarmita } from "@/lib/combo-rules";
 import { usePrecosMarmita } from "@/lib/use-precos-marmita";
-import { ProductSeals } from "@/components/product-seals";
 import { FoodTypeIcon } from "@/components/food-type-icon";
 import {
   ChevronDown,
@@ -470,7 +469,7 @@ export function ProductDetailModal({
                       )}
                     </div>
                     {weights.length > 1 ? (
-                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1">
+                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1 md:hidden">
                         {weights.map((w: string) => {
                           const stock = stockForWeight(product, w);
                           const unavailable = stock !== null && stock <= 0;
@@ -496,7 +495,7 @@ export function ProductDetailModal({
                         })}
                       </div>
                     ) : selectedWeight ? (
-                      <Badge variant="secondary" className="font-semibold">{selectedWeight}</Badge>
+                      <Badge variant="secondary" className="font-semibold md:hidden">{selectedWeight}</Badge>
                     ) : null}
                   </div>
                 );
@@ -592,7 +591,6 @@ export function ProductDetailModal({
           <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
             <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#f4f1e8] md:aspect-auto md:min-h-0 md:flex-1">
               <img src={currentImage} alt={product.nome} className="absolute inset-0 h-full w-full object-contain p-2 md:p-3" />
-              <ProductSeals product={product} size={52} topOffset={68} />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
                 <Badge className="bg-sun text-sun-foreground hover:bg-sun">{categoriaNome}</Badge>
                 {product.proteina && (
@@ -663,7 +661,7 @@ export function ProductDetailModal({
 
               {weights.length > 1 && (
                 <div className="hidden md:block">
-                  <h4 className="mb-2 text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
+                  <h4 className="mb-2 text-right text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {weights.map((w: string) => {
                       const price = priceForWeight(w);
