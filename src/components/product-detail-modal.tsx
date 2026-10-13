@@ -427,6 +427,7 @@ export function ProductDetailModal({
 
   const purchaseControls = (
             <div className="border-t border-[#dce7dd] bg-card px-4 py-2.5 sm:px-5 sm:py-4">
+              <div className="md:flex md:items-center md:justify-between md:gap-4">
               {(() => {
                 // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
                 const semDesconto = isNoDiscount(categoriaNome);
@@ -448,7 +449,7 @@ export function ProductDetailModal({
                 const precoCheioTotal = precoCheio + adicional;
 
                 return (
-                  <div className="mb-2 flex items-center justify-between gap-3 md:mb-4">
+                  <div className="mb-2 flex items-center justify-between gap-3 md:mb-0">
                     <div className="flex flex-col">
                       <span className="text-base font-semibold text-muted-foreground">
                         Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
@@ -502,7 +503,7 @@ export function ProductDetailModal({
               })()}
 
               {!soldOut && (
-                <div className="mb-2 flex items-center justify-between gap-3 md:mb-3">
+                <div className="mb-2 flex items-center justify-between gap-3 md:mb-0">
                   <span className="text-base font-medium">Quantidade</span>
                   <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
                     <button
@@ -532,6 +533,7 @@ export function ProductDetailModal({
                   </div>
                 </div>
               )}
+              </div>
               {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
                 <p className="mb-1.5 text-center text-sm font-semibold text-[#9a5b00] md:mb-2 md:text-base">
                   {remainingStock === 1
