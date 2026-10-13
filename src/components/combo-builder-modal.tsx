@@ -359,7 +359,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
               </div>
               <p aria-live="polite" className="mt-1 text-center text-[10px] font-medium leading-tight text-white/85 sm:text-xs">
                 {nextRule
-                  ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para {nextRule.badge}</>
+                  ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para <strong className="font-bold text-white">{nextRule.badge}</strong></>
                   : <strong className="text-white">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
               </p>
             </div>
