@@ -303,7 +303,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
               </p>
             </div>
 
-            <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 lg:pl-5 lg:pr-12 lg:pt-0">
+            <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 md:pr-10 md:pt-0 lg:pl-5 lg:pr-12">
               <div className="mx-auto grid w-full max-w-[560px] grid-cols-3 gap-1 sm:gap-2">
                 {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
                   const active = totalQty >= rule.min;
@@ -334,7 +334,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             type="button"
             aria-label="Fechar modal"
             onClick={onClose}
-            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full border border-white/65 bg-white/10 transition-colors hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white sm:size-9 lg:right-3 lg:top-3"
+            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full border border-white/65 bg-white/10 transition-colors hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white sm:size-8 md:size-9 lg:right-3 lg:top-3"
           >
             <X size={18} />
           </button>
