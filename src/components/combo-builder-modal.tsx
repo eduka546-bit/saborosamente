@@ -13,7 +13,7 @@ import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Minus, ShoppingCart, Info, Search, Tag, SlidersHorizontal, ChevronRight, Dumbbell } from "lucide-react";
+import { X, Plus, Minus, ShoppingCart, Info, Search, Tag, SlidersHorizontal, ChevronRight, Dumbbell, Utensils, Trophy, Leaf, WheatOff, MilkOff, Soup } from "lucide-react";
 import { ProductDetailModal } from "@/components/product-detail-modal";
 import { isHighProteinFlavor, maxProteinForFlavor } from "@/lib/nutrition-rules";
 import { cn } from "@/lib/utils";
@@ -34,11 +34,25 @@ import { imgUrl } from "@/lib/image-proxy";
 
 export { COMBO_RULES };
 
-const quickFilters = [
-  "Mais escolhidas", "Até 300 kcal", "Alta proteína", "Mais leves",
-  "Mais calóricas", "Mais proteicas", "Frango", "Carne bovina",
-  "Peixes", "Suína", "Misto", "Sopas",
-];
+// Preferências do Cardápio Completo: mesmos rótulos, ícones e cores da vitrine.
+const catalogPreferences = [
+  { filter: "Todas", label: "Cardápio Completo", icon: Utensils, tone: "orange" },
+  { filter: "Mais escolhidas", label: "Mais escolhidas", icon: Trophy, tone: "yellow" },
+  { filter: "Mais proteicas", label: "Mais proteína", icon: Dumbbell, tone: "rose" },
+  { filter: "Mais leves", label: "Mais Leves", icon: Leaf, tone: "green" },
+  { filter: "Sem Glúten", label: "Sem Glúten", icon: WheatOff, tone: "brown" },
+  { filter: "Sem Lactose", label: "Sem Lactose", icon: MilkOff, tone: "blue" },
+  { filter: "Sopas", label: "Sopas e Caldos", icon: Soup, tone: "purple" },
+] as const;
+const preferenceTones = {
+  brown: "bg-[#efe2d2] text-[#805e3e] border-[#dbc5ae]",
+  rose: "bg-[#fde8e7] text-[#b52f36] border-[#f2caca]",
+  orange: "bg-[#fae2cf] text-[#bf5d1e] border-[#efc6a8]",
+  green: "bg-[#e5f2d5] text-[#358332] border-[#cde1b9]",
+  yellow: "bg-[#fff3c9] text-[#b87800] border-[#ebdda1]",
+  blue: "bg-[#deeffb] text-[#276cab] border-[#c3ddef]",
+  purple: "bg-[#eee5fb] text-[#6e42b5] border-[#d8c9ee]",
+};
 const sortFilters = ["Mais leves", "Mais calóricas", "Mais proteicas"];
 const proteinFilters = ["Frango", "Carne bovina", "Peixes", "Suína", "Misto"];
 const normalizeText = (value: unknown) => String(value ?? "").toLowerCase()
@@ -97,11 +111,12 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
   const subgroups = useMemo(() => Array.from(new Set(
     products.map((p: any) => String(p.subgrupo || "").trim()).filter(Boolean),
   )).sort((a: string, b: string) => a.localeCompare(b, "pt-BR")), [products]);
-  const restrictionFilters = [
-    ...(products.some((p: any) => p.sem_gluten) ? ["Sem Glúten"] : []),
-    ...(products.some((p: any) => p.sem_lactose) ? ["Sem Lactose"] : []),
-  ];
   const toggleFilter = (filter: string) => {
+    if (filter === "Todas") {
+      setSelectedFilters([]);
+      setSelectedCategory("Todas");
+      return;
+    }
     setSelectedFilters((current) => current.includes(filter)
       ? current.filter((item) => item !== filter)
       : [...current.filter((item) => !sortFilters.includes(filter) || !sortFilters.includes(item)), filter]);
@@ -296,7 +311,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
         {/* Cabeçalho único em todas as telas: título à esquerda e descontos à direita. */}
         <header className="relative shrink-0 bg-[#086e45] px-2 pb-2 pt-2 text-white sm:px-4 lg:px-7 lg:py-3">
           <div className="flex min-w-0 flex-row items-center gap-1.5 sm:gap-3 lg:gap-5">
-            <div className="min-w-0 basis-[42%] shrink-0 sm:basis-[40%] lg:basis-[37%]">
+            <div className="min-w-0 basis-[37%] shrink-0 sm:basis-[35%] lg:basis-[34%]">
               <h2 className="text-[15px] font-bold leading-tight sm:text-xl">{combo.nome}</h2>
               <p className="mt-1 text-[10px] leading-snug text-white/85 sm:text-sm lg:text-base">
                 Escolha suas marmitas — quanto mais, maior o desconto!
@@ -394,32 +409,32 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                     <button type="button" onClick={() => { setSelectedFilters([]); setSelectedCategory("Todas"); }}
                       className="text-xs font-semibold text-[#075636] underline">Limpar filtros</button>
                   </div>
-                  <p className="mb-2 text-xs font-bold uppercase text-[#567044]">Preferências</p>
-                  <div className="flex flex-wrap gap-2">
-                    {quickFilters.map((filter) => (
-                      <button key={filter} type="button" aria-pressed={selectedFilters.includes(filter)}
-                        onClick={() => toggleFilter(filter)}
-                        className={cn("rounded-full border px-3 py-2 text-xs font-semibold uppercase",
-                          selectedFilters.includes(filter)
-                            ? "border-[#075636] bg-[#075636] text-white"
-                            : "border-[#c6d9b9] bg-white text-[#28513a]")}>
-                        {filter}
-                      </button>
-                    ))}
-                  </div>
-                  {restrictionFilters.length > 0 && <>
-                    <div className="my-3 border-t border-[#cfe0c4]" />
-                    <p className="mb-2 text-xs font-bold uppercase text-[#567044]">Restrições</p>
-                    <div className="flex flex-wrap gap-2">
-                      {restrictionFilters.map((filter) => (
-                        <button key={filter} type="button" aria-pressed={selectedFilters.includes(filter)}
+                  <p className="mb-2 text-sm font-semibold text-[#567044]">Preferências</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {catalogPreferences.map(({ filter, label, icon: Icon, tone }) => {
+                      const selected = filter === "Todas"
+                        ? selectedFilters.length === 0 && selectedCategory === "Todas"
+                        : selectedFilters.includes(filter);
+                      return (
+                        <button
+                          key={filter}
+                          type="button"
                           onClick={() => toggleFilter(filter)}
-                          className={cn("rounded-full border px-3 py-2 text-xs font-semibold uppercase",
-                            selectedFilters.includes(filter) ? "border-[#075636] bg-[#075636] text-white" :
-                              "border-[#c6d9b9] bg-white text-[#28513a]")}>{filter}</button>
-                      ))}
-                    </div>
-                  </>}
+                          aria-pressed={selected}
+                          className={cn(
+                            "flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-xs font-semibold uppercase transition sm:min-h-14 sm:text-sm",
+                            preferenceTones[tone],
+                            selected && "ring-2 ring-[#075636] ring-offset-1",
+                          )}
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/75">
+                            <Icon size={17} />
+                          </span>
+                          <span className="min-w-0 leading-tight">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <div className="my-3 border-t border-[#cfe0c4]" />
                   <p className="mb-2 text-xs font-bold uppercase text-[#567044]">Categorias</p>
                   <div className="flex flex-wrap gap-2">
