@@ -92,17 +92,17 @@ export function VisaoSemanalCozinha({
       for (const linha of dia.ingredientes) {
         const chave = `${linha.id}:${linha.unidade}`;
         const atual = mapa.get(chave) || { ...linha, quantidade: 0, qb: false, pratos: [], dias: [] };
-        atual.quantidade += linha.qb ? 0 : quantidade(linha.quantidade);
+        atual.quantidade += quantidade(linha.quantidade);
         atual.qb = atual.qb || linha.qb;
         atual.pratos = Array.from(new Set([...atual.pratos, ...linha.pratos]));
-        atual.dias.push({ data: dia.data, quantidade: linha.qb ? 0 : quantidade(linha.quantidade) });
+        atual.dias.push({ data: dia.data, quantidade: quantidade(linha.quantidade) });
         mapa.set(chave, atual);
       }
     }
     return [...mapa.values()].map((linha) => {
       const registro = estoque.find((e: any) => e.ingrediente_id === linha.id);
       const disponivel = quantidade(registro?.quantidade_atual);
-      const comprar = linha.qb ? 0 : Math.max(0, linha.quantidade - disponivel);
+      const comprar = linha.quantidade > 0 ? Math.max(0, linha.quantidade - disponivel) : 0;
       return { ...linha, disponivel, comprar };
     }).sort((a, b) => String(a.item?.nome || "").localeCompare(String(b.item?.nome || ""), "pt-BR"));
   }, [dias, estoque]);
@@ -111,7 +111,7 @@ export function VisaoSemanalCozinha({
     unidades: dias.reduce((s, dia) => s + dia.linhas.reduce((v, p) => v + quantidade(p.quantidade_planejada), 0), 0),
     pendentes: dias.reduce((s, dia) => s + dia.pendentes.reduce((v, p) => v + quantidade(p.quantidade_planejada), 0), 0),
     semFicha: dias.reduce((s, dia) => s + dia.producoesSemFicha.length, 0),
-    faltantes: compras.filter((x) => x.qb || x.comprar > 0).length,
+    faltantes: compras.filter((x) => x.comprar > 0 || (x.qb && x.quantidade <= 0)).length,
   }), [dias, compras]);
 
   if (carregando) {
@@ -148,7 +148,7 @@ export function VisaoSemanalCozinha({
     </div>
     {totais.semFicha > 0 && <p role="alert" className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><AlertTriangle size={18} className="shrink-0"/>Há {totais.semFicha} lançamento(s) sem ficha técnica. Os ingredientes e a lista de compras podem estar incompletos; confira os cadastros antes de comprar.</p>}
     <p className="rounded-xl bg-[#f1f7ec] p-3 text-xs leading-relaxed text-[#406050]">
-      <b>Preparações sempre separadas por dia.</b> Os ingredientes usam as mesmas fichas, rendimentos e perdas da produção diária. Na lista de compras, só as produções pendentes entram na soma, e o estoque de ingredientes é descontado uma vez no total da semana.
+      <b>Preparações sempre separadas por dia.</b> Os ingredientes brutos usam as fichas, rendimentos e perdas da produção diária. Na lista de compras, só as produções pendentes entram na soma, e o estoque é descontado uma vez. Preparos já prontos indicados apenas durante a abertura da ficha diária não são abatidos automaticamente; confira-os antes de fechar a compra.
     </p>
 
     {visualizacao === "producao" && <div className="grid gap-3 lg:grid-cols-2">
@@ -175,7 +175,7 @@ export function VisaoSemanalCozinha({
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold capitalize text-[#075636]">{fmtDia(dia.data)}</h3><button type="button" onClick={() => onAbrirDia(dia.data)} className="text-xs font-bold text-[#087443] underline underline-offset-2">Ver ficha do dia</button></div>
         <p className="mb-3 text-xs text-[#62766b]">Ingredientes das produções ainda pendentes, calculados somente para este dia.</p>
         {!dia.ingredientes.length ? <p className="text-sm text-[#62766b]">{dia.linhas.length ? "Sem ingredientes pendentes (produções concluídas ou fichas indisponíveis)." : "Sem produções planejadas."}</p> :
-          <div className="max-h-80 space-y-1 overflow-y-auto">{dia.ingredientes.map((linha) => <div key={`${linha.id}:${linha.unidade}`} className="flex items-start justify-between gap-2 border-b border-[#edf1ed] py-1.5 text-sm"><span className="min-w-0 break-words">{linha.item?.nome}</span><b className="shrink-0 text-[#087443]">{linha.qb ? "QB · conferir" : formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome)}</b></div>)}</div>}
+          <div className="max-h-80 space-y-1 overflow-y-auto">{dia.ingredientes.map((linha) => <div key={`${linha.id}:${linha.unidade}`} className="flex items-start justify-between gap-2 border-b border-[#edf1ed] py-1.5 text-sm"><span className="min-w-0 break-words">{linha.item?.nome}</span><b className="shrink-0 text-[#087443]">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</b></div>)}</div>}
       </article>)}
     </div>}
 
@@ -186,10 +186,10 @@ export function VisaoSemanalCozinha({
           <table className="w-full min-w-[550px] text-left text-sm">
             <thead className="bg-[#f1f7ed] text-xs font-semibold uppercase text-[#527164]"><tr><th className="px-3 py-3">Ingrediente / dias</th><th className="px-3 py-3 text-right">Necessário</th><th className="px-3 py-3 text-right">Em estoque</th><th className="px-3 py-3 text-right">Comprar</th></tr></thead>
             <tbody>{compras.map((linha) => <tr key={`${linha.id}:${linha.unidade}`} className="border-t border-[#edf1ed] align-top">
-              <td className="px-3 py-2.5"><b>{linha.item?.nome}</b><details className="mt-1 text-xs text-[#62766b]"><summary className="cursor-pointer">Ver necessidade por dia</summary><div className="mt-1 space-y-1">{linha.dias.map((d) => <p key={d.data}>{fmtData(d.data)}: {linha.qb ? "QB · conferir" : formatarQuantidade(d.quantidade, linha.unidade, linha.item?.nome)}</p>)}</div></details></td>
-              <td className="px-3 py-2.5 text-right font-semibold">{linha.qb ? "QB" : formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome)}</td>
+              <td className="px-3 py-2.5"><b>{linha.item?.nome}</b><details className="mt-1 text-xs text-[#62766b]"><summary className="cursor-pointer">Ver necessidade por dia</summary><div className="mt-1 space-y-1">{linha.dias.map((d) => <p key={d.data}>{fmtData(d.data)}: {d.quantidade > 0 ? formatarQuantidade(d.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</p>)}</div></details></td>
+              <td className="px-3 py-2.5 text-right font-semibold">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB"}</td>
               <td className="px-3 py-2.5 text-right">{formatarQuantidade(linha.disponivel, linha.unidade, linha.item?.nome)}</td>
-              <td className="px-3 py-2.5 text-right font-bold text-[#087443]">{linha.qb ? "Conferir" : linha.comprar > 0 ? formatarQuantidade(linha.comprar, linha.unidade, linha.item?.nome) : "—"}</td>
+              <td className="px-3 py-2.5 text-right font-bold text-[#087443]">{linha.comprar > 0 ? formatarQuantidade(linha.comprar, linha.unidade, linha.item?.nome) : linha.qb && linha.quantidade <= 0 ? "Conferir QB" : "—"}</td>
             </tr>)}</tbody>
           </table>
         </div>}
