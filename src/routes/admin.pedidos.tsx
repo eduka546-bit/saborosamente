@@ -213,245 +213,136 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
   // Early return depois dos hooks (mantém a ordem dos hooks estável)
   if (!order) return null;
 
+  const subtotal = (order.itens ?? []).reduce(
+    (sum: number, item: any) =>
+      sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0),
+    0,
+  );
+  const isRetirada = String(order.metodo_entrega ?? "").toLowerCase() === "retirada";
+  const steps = isRetirada
+    ? [
+        { label: "Recebido", icon: CheckCircle2 },
+        { label: "Preparando", icon: Package },
+        { label: "Pronto", icon: Package },
+        { label: "Retirado", icon: CheckCircle2 },
+      ]
+    : [
+        { label: "Recebido", icon: CheckCircle2 },
+        { label: "Preparando", icon: Package },
+        { label: "Em entrega", icon: Truck },
+        { label: "Entregue", icon: CheckCircle2 },
+      ];
+  const stepByStatus: Record<string, number> = {
+    rascunho: 0,
+    pendente: 0,
+    preparando: 1,
+    "saiu para entrega": 2,
+    "pronto para retirada": 2,
+    entregue: 3,
+  };
+  const currentStep = stepByStatus[String(order.status ?? "").toLowerCase()] ?? 0;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white rounded-xl">
-        <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between bg-gray-50">
-          <div className="flex items-center gap-4">
-            <DialogTitle className="text-xl font-bold text-gray-800">
-              Pedido #{order.id.slice(0, 8)}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto rounded-2xl border-0 bg-white p-0 shadow-2xl">
+        <DialogHeader className="border-b border-gray-100 px-5 py-5 sm:px-7">
+          <div className="flex flex-wrap items-center gap-2 pr-8">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-gray-900">
+              Pedido #{order.id.slice(0, 8).toUpperCase()}
             </DialogTitle>
-            <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-700"}>
-              {order.status}
+            <Badge className={`border px-3 py-1 text-sm font-semibold ${statusColors[order.status] || "bg-gray-100 text-gray-700"}`}>
+              {orderStatusText(order.status, order.metodo_entrega).replace(/^[^\s]+\s/, "")}
             </Badge>
           </div>
-          <div className="flex gap-2">
-            {order.status === "rascunho" && (
-              <Button
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  confirmarRascunho(order.id);
-                }}
-              >
-                ✓ Confirmar Pedido
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => {
-                if (!order) return;
-                printReceipt({
-                  ...order,
-                  itens: (order.itens ?? []).map((i: any) => ({
-                    nome: i.produtos?.nome ?? i.nome_item ?? i.nome ?? "Produto",
-                    quantidade: i.quantidade,
-                    preco_unitario: i.preco_unitario,
-                    observacao: i.observacao,
-                  })),
-                });
-              }}
-            >
-              <Printer size={14} /> Imprimir
-            </Button>
-          </div>
+          <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+            <Calendar size={15} />
+            Realizado em {format(new Date(order.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+          </p>
         </DialogHeader>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8 max-h-[70vh] overflow-y-auto">
-          <div className="md:col-span-2 space-y-8">
-            {/* Itens do Pedido */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <Package size={16} /> Itens do Pedido
-              </h3>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr className="text-left">
-                      <th className="px-4 py-3 font-semibold text-gray-600">Produto</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 text-center">Qtd</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 text-right">Preço</th>
-                      <th className="px-4 py-3 font-semibold text-gray-600 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {order.itens?.map((item: any) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-4">
-                          <div className="font-medium text-gray-900">{item.produtos?.nome}</div>
-                          {item.observacao && (
-                            <div className="text-xs text-red-500 mt-1 italic">
-                              Obs: {item.observacao}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-center">{item.quantidade}x</td>
-                        <td className="px-4 py-4 text-right">
-                          R$ {item.preco_unitario.toFixed(2).replace(".", ",")}
-                        </td>
-                        <td className="px-4 py-4 text-right font-medium">
-                          R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace(".", ",")}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50/50 font-semibold">
-                    <tr>
-                      <td colSpan={3} className="px-4 py-3 text-right text-gray-500">
-                        Produtos:
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        R 
-                        {(order.itens ?? [])
-                          .reduce(
-                            (sum: number, item: any) =>
-                              sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0),
-                            0,
-                          )
-                          .toFixed(2)
-                          .replace(".", ",")}
-                      </td>
-                    </tr>
-                    {Number(order.desconto_aplicado || 0) > 0 && (
-                      <tr className="text-red-500">
-                        <td colSpan={3} className="px-4 py-3 text-right">
-                          Descontos registrados:
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          R$ {Number(order.desconto_aplicado).toFixed(2).replace(".", ",")}
-                        </td>
-                      </tr>
+        {String(order.status).toLowerCase() !== "cancelado" && (
+          <div className="border-b border-gray-100 px-5 py-5 sm:px-7">
+            <div className="grid grid-cols-4 gap-1 sm:gap-3">
+              {steps.map((step, index) => {
+                const reached = currentStep >= index;
+                const active = currentStep === index;
+                const StepIcon = step.icon;
+                return (
+                  <div key={step.label} className="relative flex flex-col items-center text-center">
+                    {index > 0 && (
+                      <div className={`absolute right-1/2 top-4 h-0.5 w-full ${reached ? "bg-[#315440]" : "bg-gray-200"}`} />
                     )}
-                    <tr>
-                      <td colSpan={3} className="px-4 py-3 text-right text-gray-500">
-                        Taxa de Entrega:
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        R$ {Number(order.taxa_entrega || 0).toFixed(2).replace(".", ",")}
-                      </td>
-                    </tr>
-                    <tr className="text-lg text-[#5850ec]">
-                      <td colSpan={3} className="px-4 py-3 text-right">
-                        Total final:
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold">
-                        R$ {Number(order.valor_total || 0).toFixed(2).replace(".", ",")}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </section>
-
-            {/* Pagamento */}
-            <section className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-blue-600 mb-3 flex items-center gap-2">
-                <Receipt size={16} /> Pagamento
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-bold mb-1">Método</p>
-                  <p className="font-semibold text-gray-800">
-                    {order.metodo_pagamento || "Não informado"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-bold mb-1">
-                    Status do Pagamento
-                  </p>
-                  <p className="font-semibold text-amber-600 flex items-center gap-1">
-                    <Clock3 size={14} /> A confirmar
-                  </p>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-8">
-            {/* Cliente */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <User size={16} /> Cliente
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                    <User className="text-gray-400" size={20} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">
-                      {order.nome_cliente || "Cliente Final"}
-                    </p>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Smartphone size={12} /> {order.telefone_cliente || "(00) 00000-0000"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Entrega */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <MapPin size={16} /> Endereço de Entrega
-              </h3>
-              <div className="p-4 bg-gray-50 rounded-lg text-sm border">
-                <p className="font-bold mb-1">
-                  {order.endereco_rua || "Endereço não informado"}, {order.endereco_numero}
-                </p>
-                <p className="text-gray-600">
-                  {order.endereco_bairro} - {order.endereco_cidade || "Cidade"}
-                </p>
-                {order.endereco_referencia && (
-                  <p className="mt-2 text-xs text-gray-500 italic">
-                    Ref: {order.endereco_referencia}
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {/* Data/Hora */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <Clock size={16} /> Horários
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Realizado:</span>
-                  <span className="font-medium">
-                    {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  </span>
-                </div>
-                {order.updated_at !== order.created_at && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Última atualização:</span>
-                    <span className="font-medium">
-                      {format(new Date(order.updated_at), "HH:mm")}
+                    <span className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 ${reached ? "border-[#315440] bg-[#315440] text-white" : "border-gray-200 bg-white text-gray-300"} ${active ? "ring-4 ring-[#315440]/10" : ""}`}>
+                      <StepIcon size={15} />
                     </span>
+                    <span className={`mt-2 text-xs font-semibold sm:text-sm ${reached ? "text-[#315440]" : "text-gray-400"}`}>{step.label}</span>
                   </div>
-                )}
-              </div>
-            </section>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-            {/* Histórico */}
-            <section>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-                <History size={16} /> Status Atual
-              </h3>
-              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:h-full before:w-0.5 before:bg-gray-100">
-                <div className="relative pl-6">
-                  <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm"></div>
-                  <p className="text-xs font-bold text-gray-800">{order.status}</p>
-                  <p className="text-[10px] text-gray-500">
-                    {format(new Date(order.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
+        <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(290px,0.9fr)] sm:p-7">
+          <div className="space-y-5">
+            <section className="overflow-hidden rounded-2xl border border-gray-200">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900"><Package size={19} className="text-[#315440]" /> Itens do pedido</h3>
+                <span className="text-sm font-medium text-gray-500">{(order.itens ?? []).length} {(order.itens ?? []).length === 1 ? "item" : "itens"}</span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {(order.itens ?? []).map((item: any) => {
+                  const quantity = Number(item.quantidade || 0);
+                  const unitPrice = Number(item.preco_unitario || 0);
+                  return (
+                    <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 px-5 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.produtos?.nome ?? item.nome_item ?? "Produto"}</p>
+                        {item.observacao && <p className="mt-1 text-sm text-amber-700">Obs.: {item.observacao}</p>}
+                        <span className="mt-2 inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-600">{quantity} {quantity === 1 ? "unidade" : "unidades"} · {formatOrderMoney(unitPrice)} cada</span>
+                      </div>
+                      <p className="self-center whitespace-nowrap font-bold text-gray-900">{formatOrderMoney(quantity * unitPrice)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="m-4 rounded-xl bg-[#315440]/[0.06] p-4 text-sm">
+                <div className="flex justify-between py-1 text-gray-600"><span>Produtos</span><span>{formatOrderMoney(subtotal)}</span></div>
+                {Number(order.desconto_aplicado || 0) > 0 && <div className="flex justify-between py-1 font-medium text-emerald-700"><span>Desconto</span><span>− {formatOrderMoney(order.desconto_aplicado)}</span></div>}
+                <div className="flex justify-between py-1 text-gray-600"><span>{isRetirada ? "Retirada" : "Taxa de entrega"}</span><span>{formatOrderMoney(order.taxa_entrega)}</span></div>
+                <div className="mt-2 flex justify-between border-t border-[#315440]/15 pt-3 text-lg font-bold text-gray-900"><span>Total do pedido</span><span className="text-[#315440]">{formatOrderMoney(order.valor_total)}</span></div>
               </div>
             </section>
           </div>
+
+          <aside className="space-y-4">
+            <section className="rounded-2xl border border-gray-200 p-4">
+              <h3 className="flex items-center gap-2 font-bold text-gray-900"><User size={18} className="text-[#315440]" /> Cliente</h3>
+              <p className="mt-3 font-semibold text-gray-900">{order.nome_cliente || "Cliente final"}</p>
+              <p className="mt-1 flex items-center gap-2 text-sm text-gray-600"><Smartphone size={14} /> {order.telefone_cliente || "Telefone não informado"}</p>
+              <Button variant="outline" className="mt-4 w-full border-[#315440] text-[#315440] hover:bg-[#315440]/5" onClick={() => openOrderWhatsapp(order)}><Smartphone size={16} /> Abrir conversa no WhatsApp</Button>
+            </section>
+
+            <section className="rounded-2xl border border-gray-200 p-4">
+              <h3 className="flex items-center gap-2 font-bold text-gray-900"><MapPin size={18} className="text-[#315440]" /> {isRetirada ? "Retirada" : "Entrega"}</h3>
+              {isRetirada ? <p className="mt-3 text-sm text-gray-700">Retirada na loja SaborosaMente.</p> : <><p className="mt-3 text-sm font-medium text-gray-900">{order.endereco_rua || "Endereço não informado"}{order.endereco_numero ? `, ${order.endereco_numero}` : ""}</p><p className="mt-1 text-sm text-gray-600">{[order.endereco_bairro, order.endereco_cidade].filter(Boolean).join(" — ") || "Cidade não informada"}</p>{order.endereco_referencia && <p className="mt-2 text-sm text-gray-500">Ref.: {order.endereco_referencia}</p>}</>}
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Data e horário escolhidos</p>
+                <p className="mt-1 flex items-start gap-2 text-sm font-semibold text-gray-900"><Clock size={15} className="mt-0.5 shrink-0 text-[#315440]" />{order.horario_recebimento || "Ainda não informado"}</p>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-gray-200 p-4">
+              <h3 className="flex items-center gap-2 font-bold text-gray-900"><Receipt size={18} className="text-[#315440]" /> Pagamento</h3>
+              <p className="mt-3 text-sm font-semibold text-gray-900">{order.metodo_pagamento || "Não informado"}{order.tipo_cartao ? ` · ${order.tipo_cartao}` : ""}</p>
+            </section>
+
+            <section className="rounded-2xl border border-[#315440]/15 bg-[#315440]/[0.035] p-4">
+              <h3 className="font-bold text-gray-900">Ações do pedido</h3>
+              {order.status === "rascunho" && <Button className="mt-3 w-full bg-[#315440] hover:bg-[#24432f]" disabled={confirmMutation.isPending} onClick={() => confirmarRascunho(order.id)}><CheckCircle2 size={16} /> {confirmMutation.isPending ? "Confirmando..." : "Confirmar pedido"}</Button>}
+              <Button variant={order.status === "rascunho" ? "outline" : "default"} className={`mt-3 w-full ${order.status !== "rascunho" ? "bg-[#315440] hover:bg-[#24432f]" : ""}`} onClick={() => printReceipt({ ...order, itens: (order.itens ?? []).map((i: any) => ({ nome: i.produtos?.nome ?? i.nome_item ?? i.nome ?? "Produto", quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })}><Printer size={16} /> Imprimir pedido</Button>
+            </section>
+          </aside>
         </div>
       </DialogContent>
     </Dialog>
