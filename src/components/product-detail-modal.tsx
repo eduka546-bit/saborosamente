@@ -632,7 +632,6 @@ export function ProductDetailModal({
               )}
             </div>
 
-            <div className="hidden md:block">{purchaseControls}</div>
           </div>
 
           {/* Ficha do produto */}
@@ -708,6 +707,9 @@ export function ProductDetailModal({
                   </div>
                 </div>
               )}
+
+              {/* Compra no painel de informações, liberando toda a coluna esquerda para a foto. */}
+              <div className="hidden md:block -mx-2">{purchaseControls}</div>
 
               <ProductFacts
                 product={product}
