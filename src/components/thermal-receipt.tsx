@@ -116,6 +116,7 @@ export function ThermalReceipt({ order }: ThermalReceiptProps) {
           word-break: break-all;
           font-family: inherit;
           font-size: inherit;
+          font-weight: 700;
           margin: 0;
         }
         .receipt-bold { font-weight: bold; }
@@ -234,40 +235,45 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <meta charset="utf-8">
   <title>Comanda #${seq}</title>
   <style>
-    @page { margin: 2mm; size: 58mm auto; }
+    @page { margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { width: 58mm; padding: 0; margin: 0; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 10pt;
-      font-weight: 600;
-      line-height: 1.35;
-      width: 54mm;
+      font-size: 9pt;
+      font-weight: bold;
+      line-height: 1.32;
+      width: 48mm;
+      max-width: 48mm;
+      margin: 0 auto;
+      padding: 1mm 0;
       color: #000;
       background: white;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    body, body * { font-weight: bold !important; text-shadow: none; }
     .center { text-align: center; }
     .sep { border-top: 1px solid #000; margin: 3px 0; }
     .sep-solid { border-top: 1px solid #000; margin: 3px 0; }
-    .label { font-size: 8pt; font-weight: normal; }
-    .big { font-size: 11pt; font-weight: bold; }
+    .label { font-size: 8.5pt; font-weight: 900; }
+    .big { font-size: 11pt; font-weight: 900; }
     /* Tabela de itens */
-    table { width: 100%; border-collapse: collapse; }
-    th { font-size: 8pt; font-weight: bold; border-bottom: 1px solid #000; padding: 2px 1px; }
-    .th-desc { width: 72%; text-align: left; }
-    .th-tot  { width: 28%; text-align: right; }
+    table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; }
+    th { font-size: 8pt; font-weight: 900; border-bottom: 1px solid #000; padding: 2px 1px; }
+    .th-desc { width: 70%; text-align: left; }
+    .th-tot  { width: 30%; text-align: right; }
     .desc { text-align: left; vertical-align: top; padding: 3px 2px; overflow-wrap: anywhere; }
     .tot  { text-align: right; vertical-align: top; padding: 3px 1px; white-space: nowrap; }
-    .obs  { font-size: 8pt; font-weight: normal; padding: 0 2px 2px 4px; color: #000; }
-    .weight { font-size: 9pt; font-weight: bold; margin-top: 1px; }
+    .obs  { font-size: 8.5pt; font-weight: 900; padding: 0 2px 2px 4px; color: #000; }
+    .weight { font-size: 9pt; font-weight: 900; margin-top: 1px; }
     /* Totais */
-    .items-count { font-size: 10pt; font-weight: bold; margin: 3px 0; }
+    .items-count { font-size: 10pt; font-weight: 900; margin: 3px 0; }
     .totals { width: 100%; margin-top: 2px; }
     .totals td { padding: 1px 1px; font-size: 9pt; }
-    .totals .lbl { text-align: left; font-weight: normal; }
+    .totals .lbl { text-align: left; font-weight: 900; }
     .totals .val { text-align: right; white-space: nowrap; }
-    .totals .total-row td { font-size: 10pt; font-weight: bold; border-top: 1px solid #000; padding-top: 2px; }
+    .totals .total-row td { font-size: 10pt; font-weight: 900; border-top: 1px solid #000; padding-top: 2px; }
   </style>
 </head>
 <body>
