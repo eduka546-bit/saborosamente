@@ -293,36 +293,36 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
 
       {/* Modal */}
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Monte seu Combo" className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
-        {/* Cabeçalho único: título à esquerda e faixas à direita no desktop. */}
-        <header className="relative shrink-0 bg-[#086e45] px-3 pb-3 pt-3 text-white sm:px-5 lg:px-7 lg:py-4">
-          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
-            <div className="min-w-0 pr-11 lg:flex-[0_0_37%] lg:pr-0">
-              <h2 className="text-xl font-bold leading-tight">{combo.nome}</h2>
-              <p className="mt-1 text-sm leading-snug text-white/85 sm:text-base">
+        {/* Cabeçalho único em todas as telas: título à esquerda e descontos à direita. */}
+        <header className="relative shrink-0 bg-[#086e45] px-2.5 pb-2.5 pt-3 text-white sm:px-5 lg:px-7 lg:py-4">
+          <div className="flex min-w-0 flex-row items-center gap-2 sm:gap-3 lg:gap-5">
+            <div className="min-w-0 basis-[38%] shrink-0 pr-0 sm:basis-[40%] lg:basis-[37%]">
+              <h2 className="text-[15px] font-bold leading-tight sm:text-xl">{combo.nome}</h2>
+              <p className="mt-1 text-[10px] leading-snug text-white/85 sm:text-sm lg:text-base">
                 Escolha suas marmitas — quanto mais, maior o desconto!
               </p>
             </div>
 
-            <div className="min-w-0 flex-1 lg:border-l lg:border-white/35 lg:pl-5 lg:pr-12">
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            <div className="min-w-0 flex-1 border-l border-white/35 pl-2 pt-9 sm:pl-3 lg:pl-5 lg:pr-12 lg:pt-0">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
                 {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
                   const active = totalQty >= rule.min;
                   return (
                     <div key={rule.min} className={cn(
-                      "flex min-w-0 flex-col items-center justify-center rounded-xl border px-1 py-2 text-center leading-tight transition-colors",
+                      "flex min-w-0 flex-col items-center justify-center rounded-lg border px-0.5 py-2 text-center leading-tight transition-colors sm:rounded-xl sm:px-1",
                       active
                         ? "border-[#b7e7d1] bg-[#d4f0df] text-[#075636]"
                         : "border-white/80 bg-white text-[#526457]",
                     )}>
-                      <span className="flex items-center justify-center gap-1 text-[11px] font-extrabold sm:text-xs">
-                        <Tag size={12} className="shrink-0" /> {rule.badge}
+                      <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[9px] font-extrabold sm:gap-1 sm:text-xs">
+                        <Tag size={12} className="hidden shrink-0 min-[430px]:block" /> {rule.badge}
                       </span>
-                      <span className="mt-1 text-[10px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
+                      <span className="mt-1 whitespace-nowrap text-[9px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
                     </div>
                   );
                 })}
               </div>
-              <p aria-live="polite" className="mt-1.5 text-center text-[11px] font-medium leading-tight text-white/85 sm:text-xs">
+              <p aria-live="polite" className="mt-1 text-center text-[10px] font-medium leading-tight text-white/85 sm:text-xs">
                 {nextRule
                   ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para {nextRule.badge}</>
                   : <strong className="text-white">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
