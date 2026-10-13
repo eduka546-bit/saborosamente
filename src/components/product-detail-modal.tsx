@@ -376,7 +376,7 @@ export function ProductDetailModal({
           canal: email ? "email" : telefone ? "telefone" : "conta",
         },
       });
-      toast.success("Pronto! Vamos registrar seu interesse.");
+      toast.success(`Solicitação registrada para ${selectedWeight || "este produto"}!`);
       setRestockContact("");
     } catch {
       toast.error("Informe seu WhatsApp ou e-mail para receber o aviso.");
@@ -417,8 +417,7 @@ export function ProductDetailModal({
 
   const chooseWeight = (weight: string) => {
     if (selectedWeight === weight) return;
-    const stock = stockForWeight(product, weight);
-    if (stock !== null && stock <= 0) return;
+    // Tamanhos esgotados continuam selecionáveis para consulta e pedido de aviso.
     setSelectedWeight(weight);
     setCurrentImageIndex(0);
     setRequestedQuantity(1);
@@ -489,14 +488,14 @@ export function ProductDetailModal({
                     type="button"
                     aria-label={`Selecionar tamanho ${w}${unavailable ? ", esgotado" : ""}`}
                     aria-pressed={selectedWeight === w}
-                    disabled={unavailable}
+                    title={unavailable ? "Esgotado — veja informações e peça aviso" : undefined}
                     onClick={() => chooseWeight(w)}
                     className={cn(
                       "min-h-9 min-w-[42px] rounded-full px-2 text-sm font-semibold transition-colors sm:min-w-[52px] sm:text-base",
                       selectedWeight === w
                         ? "bg-[#086e45] text-white shadow-sm"
                         : "bg-transparent text-[#375244] hover:bg-white",
-                      unavailable && "cursor-not-allowed opacity-35",
+                      unavailable && selectedWeight !== w && "ring-1 ring-inset ring-rose-300 text-rose-700",
                     )}
                   >
                     {weightLabel(w)}
@@ -554,7 +553,7 @@ export function ProductDetailModal({
                 disabled={restockSending}
                 className="shrink-0 rounded-xl font-semibold"
               >
-                {restockSending ? "Salvando..." : "Avise-me"}
+                {restockSending ? "Salvando..." : "Avise-me quando voltar"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -571,13 +570,6 @@ export function ProductDetailModal({
           </Button>
         )}
 
-        {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-          <p className="order-5 text-xs font-semibold text-[#9a5b00] md:col-span-2">
-            {remainingStock === 1
-              ? "Última unidade disponível"
-              : `Últimas ${remainingStock} unidades disponíveis`}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -608,6 +600,27 @@ export function ProductDetailModal({
                   </span>
                 )}
               </div>
+              {/* O estoque fica sobre a foto, sem deslocar o seletor ou o botão de compra. */}
+              {remainingStock !== null && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={cn(
+                    "pointer-events-none absolute bottom-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm",
+                    remainingStock <= 0
+                      ? "border-red-200 bg-red-100 text-red-800"
+                      : remainingStock <= 5
+                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        : "border-[#d2e5d4] bg-[#e6f2e5] text-[#225a3a]",
+                  )}
+                >
+                  {remainingStock <= 0
+                    ? `Sem unidades disponíveis · ${selectedWeight}`
+                    : remainingStock <= 5
+                      ? `${remainingStock === 1 ? "Última unidade" : `Últimas ${remainingStock} unidades`} · ${selectedWeight}`
+                      : `Estoque: ${remainingStock} unidades · ${selectedWeight}`}
+                </div>
+              )}
               {allImages.length > 1 && (
                 <>
                   <button
@@ -624,7 +637,10 @@ export function ProductDetailModal({
                   >
                     <ChevronRight size={20} />
                   </button>
-                  <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+                  <div className={cn(
+                    "absolute bottom-4 z-20 flex gap-2",
+                    remainingStock !== null ? "right-3" : "left-1/2 -translate-x-1/2",
+                  )}>
                     {allImages.map((_, idx) => (
                       <button
                         key={idx}
