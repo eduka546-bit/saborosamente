@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { updateAdminOrderStatus } from "@/lib/orders.functions";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X } from "lucide-react";
+import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X, Pencil } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 
 export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
@@ -103,12 +106,12 @@ export function DashboardPedidosPreview() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[#668071]">
               <a href="/admin/pedidos?modo=lista" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Pedidos atuais</a>
-              <span>/</span><span>Prévia do dashboard</span>
+              <span>/</span><span>Dashboard</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#194e32]">Painel de Pedidos</h1>
-            <p className="text-xs text-[#758379]">SaborosaMente • Painel experimental, utilizando os pedidos reais em modo de consulta</p>
+            <p className="text-xs text-[#758379]">SaborosaMente • Gestão de pedidos em tempo real</p>
           </div>
-          <span className="rounded-full border border-[#d1e5d5] bg-[#eff8ef] px-3 py-1.5 text-xs font-semibold text-[#347a44]">● Prévia — sem alterar pedidos</span>
+          <span className="rounded-full border border-[#d1e5d5] bg-[#eff8ef] px-3 py-1.5 text-xs font-semibold text-[#347a44]">● Painel de pedidos</span>
         </div>
         <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
           {summary.map((s) => <div key={s.text} className="rounded-xl border border-[#e5e9e3] bg-white p-3 shadow-sm">
