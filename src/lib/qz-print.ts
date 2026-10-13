@@ -137,13 +137,19 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const entrega = order.taxa_entrega ?? 0;
   const acrescimo = Math.max(0, Number(order.valor_total ?? 0) - (subtotal + entrega - desconto));
 
+  const itensCount = itens.reduce((sum: number, item: any) => sum + (Number(item.quantidade) || 0), 0);
+  const pesoItem = (item: any) => {
+    const combined = [item.tamanho,item.peso,item.observacao,item.nome].filter(Boolean).join(" ");
+    const match = combined.match(/(?:peso\\s*:\\s*)?(200|300|400|250|350|450|600)\\s*g\\b/i);
+    return match ? match[1] + "g" : "";
+  };
   const itensLines = itens
     .map((item: any) => {
       const tot = item.preco_unitario * item.quantidade;
       return [
-        wrap(`${item.quantidade}x ${item.nome}`),
+        wrap(`${item.quantidade}x ${item.nome}${pesoItem(item) ? " - " + pesoItem(item) : ""}`),
         r("", `R$ ${tot.toFixed(2)}`),
-        ...(item.observacao ? [wrap(`Obs: ${item.observacao}`, "  ")] : []),
+        ...(item.observacao ? [wrap(`Obs: ${String(item.observacao).replace(/(?:peso\\s*:\\s*)?(?:200|300|400|250|350|450|600)\\s*g\\b/gi, "").trim()}`, "  ")] : []),
       ].join("\n");
     })
     .join("\n");
@@ -171,6 +177,8 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
     "ITENS:",
     SEP,
     itensLines,
+    SEP,
+    r("TOTAL DE ITENS:", String(itensCount)),
     SEP,
     r("Subtotal:", `R$ ${subtotal.toFixed(2)}`),
     r("Frete:", entrega > 0 ? `R$ ${entrega.toFixed(2)}` : "GRATIS"),
