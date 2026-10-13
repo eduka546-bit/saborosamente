@@ -135,7 +135,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 })}
               </ul>
 
-              <DiscountProgressWidget className="bg-white" />
+              <DiscountProgressWidget />
               <CartMarketingOptin compact />
 
               <button
