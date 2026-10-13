@@ -212,6 +212,17 @@ export function DashboardPedidosPreview() {
         </div>
         <p className="mt-4 text-center text-xs text-[#91a094]">Prévia visual conectada aos pedidos existentes • As alterações de status continuam na tela original</p>
       </div>
+      {editing && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b p-4"><h2 className="text-lg font-bold">Editar pedido #{String(editing.id).slice(0,8).toUpperCase()}</h2><button aria-label="Fechar" onClick={()=>setEditing(null)}><X size={20}/></button></div>
+          <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
+            {([["nome_cliente","Nome do cliente"],["telefone_cliente","Telefone"],["endereco_rua","Rua"],["endereco_numero","Número"],["endereco_bairro","Bairro"],["endereco_cidade","Cidade"],["horario_recebimento","Data e horário"],["metodo_pagamento","Forma de pagamento"]] as const).map(([field,label])=>
+              <label key={field} className="flex flex-col gap-1 text-xs font-semibold"><span>{label}</span><input className="rounded-lg border p-2 text-sm font-normal" value={String(editing[field]??"")} onChange={e=>setEditing((prev:any)=>({...prev,[field]:e.target.value}))}/></label>)}
+            <p className="text-xs text-gray-500 sm:col-span-2">Para editar itens, quantidades e valores, utilize a gestão completa para preservar as regras de estoque e cálculo.</p>
+          </div>
+          <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button><a href="/admin/pedidos?modo=lista" className="rounded-lg border px-4 py-2 text-sm">Gestão completa</a></div>
+        </div>
+      </div>}
       {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
         <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[min(90dvh,790px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8ede7] px-4 py-3 sm:px-5">
