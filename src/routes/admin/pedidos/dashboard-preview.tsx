@@ -26,7 +26,7 @@ const deliveryTime = (o: any) => {
   const raw = String(o.horario_entrega || o.horario_recebimento || o.horario_agendado || "").trim();
   if (!raw) return "";
   // Algumas reservas armazenam data e intervalo no mesmo campo.
-  const withoutDate = raw.replace(/^\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/, "").trim();
+  const withoutDate = raw.replace(/\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/g, "").trim();
   return withoutDate || raw;
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
