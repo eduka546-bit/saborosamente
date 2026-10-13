@@ -19,7 +19,20 @@ const dateOnly = (v: unknown) => {
   return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("pt-BR");
 };
 const deliveryDate = (o: any) => o.data_entrega || o.data_recebimento || o.data_agendada || null;
-const deliveryTime = (o: any) => o.horario_entrega || o.horario_recebimento || o.horario_agendado || "";
+const deliveryTime = (o: any) => {
+  const raw = String(o.horario_entrega || o.horario_recebimento || o.horario_agendado || "").trim();
+  if (!raw) return "";
+  // Algumas reservas armazenam data e intervalo no mesmo campo.
+  const withoutDate = raw.replace(/^\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/, "").trim();
+  return withoutDate || raw;
+};
+const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
+const itemWeight = (item: any) => {
+  const obs = String(item.observacao || "");
+  const match = obs.match(/(?:Peso:\s*)?(200|300|400)\s*g/i);
+  return match ? match[1] + "g" : "";
+};
+const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
 const sections = [
   { id: "novo", title: "Solicitados / Novos", icon: Clock3, accent: "#d58a18", bg: "#fff7e7", statuses: ["pendente", "rascunho"] },
   { id: "preparando", title: "Em preparação", icon: ChefHat, accent: "#347e4e", bg: "#eff8f1", statuses: ["preparando"] },
@@ -38,7 +51,25 @@ export function DashboardPedidosPreview() {
     queryFn: async () => {
       const { data, error } = await supabase.from("pedidos").select("*, itens:pedido_itens(*)").order("created_at", { ascending: false }).limit(800);
       if (error) throw error;
-      return data ?? [];
+      const productIds = Array.from(new Set<string>(
+        (data ?? []).flatMap((order: any) =>
+          (order.itens ?? []).map((item: any) => String(item.produto_id || "")).filter(Boolean)
+        )
+      ));
+      const names: Record<string, string> = {};
+      // Produtos consultados em lotes para evitar limite de resposta em períodos extensos.
+      for (let i = 0; i < productIds.length; i += 200) {
+        const { data: products, error: productError } = await supabase.from("produtos").select("id,nome").in("id", productIds.slice(i, i + 200));
+        if (productError) throw productError;
+        for (const product of products ?? []) names[product.id] = product.nome;
+      }
+      return (data ?? []).map((order: any) => ({
+        ...order,
+        itens: (order.itens ?? []).map((item: any) => ({
+          ...item,
+          produtos: { nome: names[item.produto_id] || item.nome_item || item.nome || "" },
+        })),
+      }));
     },
     refetchInterval: 30000,
   });
@@ -135,23 +166,56 @@ export function DashboardPedidosPreview() {
         </div>
         <p className="mt-4 text-center text-xs text-[#91a094]">Prévia visual conectada aos pedidos existentes • As alterações de status continuam na tela original</p>
       </div>
-      {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-3" onClick={() => setSelected(null)}>
-        <div role="dialog" aria-modal="true" aria-label="Resumo do pedido" className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-          <div className="mb-4 flex items-start justify-between gap-2"><div><p className="text-xs font-semibold text-[#7c9482]">VISUALIZAR PEDIDO</p><h2 className="text-xl font-bold">#{String(selected.id).slice(0,8).toUpperCase()}</h2><p className="text-sm">{selected.nome_cliente || "Cliente"}</p></div><button onClick={() => setSelected(null)} aria-label="Fechar" className="rounded-lg p-2 hover:bg-gray-100"><X size={20}/></button></div>
-          <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-[#f5f8f3] p-3 text-sm">
-            <div><p className="text-xs text-gray-500">Status</p><p className="font-semibold capitalize">{selected.status}</p></div>
-            <div><p className="text-xs text-gray-500">Origem</p><p className="font-semibold">{selected.origem || "site"}</p></div>
-            <div><p className="text-xs text-gray-500">Data</p><p className="font-semibold">{dateOnly(deliveryDate(selected) || selected.created_at)}</p></div>
-            <div><p className="text-xs text-gray-500">Horário</p><p className="font-semibold">{deliveryTime(selected) || "Não informado"}</p></div>
-            <div><p className="text-xs text-gray-500">Modalidade</p><p className="font-semibold">{selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega"}</p></div>
-            <div><p className="text-xs text-gray-500">Cidade</p><p className="font-semibold">{selected.endereco_cidade || "Não informada"}</p></div>
+      {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[min(90dvh,790px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8ede7] px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-wider text-[#799284]">VISUALIZAR PEDIDO</p>
+              <h2 className="text-xl font-bold text-[#183e2b]">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
+              <p className="truncate text-sm text-[#43594a]">{selected.nome_cliente || "Cliente sem nome"}</p>
+            </div>
+            <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-lg p-2 hover:bg-gray-100"><X size={20}/></button>
           </div>
-          <h3 className="mb-2 text-sm font-bold">Itens do pedido</h3>
-          <div className="mb-4 divide-y rounded-lg border">{(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="flex justify-between gap-3 px-3 py-2 text-sm"><span>{item.quantidade}x {item.nome_item || item.nome || "Produto"} {item.observacao ? "— " + item.observacao : ""}</span><span className="shrink-0 font-semibold">{money(Number(item.quantidade) * Number(item.preco_unitario))}</span></div>)}</div>
-          <div className="mb-4 flex justify-between text-lg font-bold"><span>Total</span><span>{money(selected.valor_total)}</span></div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => printReceipt({ ...selected, itens: (selected.itens || []).map((i: any) => ({ nome: i.nome_item || i.nome || "Produto", quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })} className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm"><Printer size={15}/> Imprimir</button>
-            <a href="/admin/pedidos?modo=lista" className="flex items-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white"><PackageCheck size={15}/> Abrir gestão de pedidos</a>
+          <div className="shrink-0 px-4 pt-3 sm:px-5">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-[#f4f8f3] p-3 text-xs sm:grid-cols-3">
+              {[
+                ["Status", selected.status],
+                ["Origem", selected.origem || "site"],
+                ["Data de entrega", dateOnly(deliveryDate(selected) || selected.created_at)],
+                ["Horário", deliveryTime(selected) || "Não informado"],
+                ["Modalidade", selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega"],
+                ["Cidade", selected.endereco_cidade || "Não informada"],
+              ].map(([label, value]) => <div key={label} className="min-w-0">
+                <p className="mb-0.5 text-[11px] text-[#728478]">{label}</p>
+                <p className="break-words font-semibold capitalize text-[#213d2a]">{value}</p>
+              </div>)}
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col px-4 pt-3 sm:px-5">
+            <div className="mb-2 flex shrink-0 items-center justify-between">
+              <h3 className="text-sm font-bold">Itens do pedido</h3>
+              <span className="text-xs text-[#75867a]">{(selected.itens || []).reduce((total: number, i: any) => total + Number(i.quantidade || 0), 0)} unidades</span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#e0e9df]">
+              {(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="flex justify-between gap-3 border-b border-[#edf1eb] px-3 py-2.5 text-sm last:border-b-0">
+                <div className="min-w-0">
+                  <p className="font-semibold text-[#234630]">{item.quantidade}x {itemName(item)}</p>
+                  {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-xs text-[#78877b]">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" • ")}</p>}
+                </div>
+                <span className="shrink-0 font-semibold tabular-nums text-[#234630]">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</span>
+              </div>)}
+              {!(selected.itens || []).length && <p className="p-5 text-center text-sm text-gray-500">Nenhum item registrado.</p>}
+            </div>
+          </div>
+          <div className="shrink-0 border-t border-[#e8ede7] bg-white px-4 py-3 sm:px-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-sm font-bold text-[#244a32]">Total do pedido</span>
+              <strong className="text-xl font-bold tabular-nums text-[#1f5835]">{money(selected.valor_total)}</strong>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => printReceipt({ ...selected, itens: (selected.itens || []).map((i: any) => ({ nome: itemName(i), quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#cdddcf] px-4 py-2 text-sm font-semibold text-[#245b38] hover:bg-[#f1f7f0]"><Printer size={15}/> Imprimir</button>
+              <a href="/admin/pedidos?modo=lista" className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4d2e]"><PackageCheck size={15}/> Gestão completa do pedido</a>
+            </div>
           </div>
         </div>
       </div>}
