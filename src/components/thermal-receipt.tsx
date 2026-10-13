@@ -234,7 +234,7 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   <meta charset="utf-8">
   <title>Comanda #${seq}</title>
   <style>
-    @page { size: 58mm auto; margin: 0; }
+    @page { margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { width: 58mm; padding: 0; margin: 0; }
     body {
