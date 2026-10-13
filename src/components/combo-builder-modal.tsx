@@ -545,94 +545,79 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             </div>
           </div>
 
-          {/* Coluna direita — resumo */}
-          <div className="w-full md:w-72 flex flex-col shrink-0 border-t md:border-t-0">
-            <div className="px-4 pt-4 pb-2 border-b shrink-0">
-              <h3 className="text-lg font-semibold text-[#064e32] tracking-normal flex items-center gap-2">
-                <ShoppingCart size={14} /> Seu combo
-                <span className="ml-auto text-[#086e45] font-bold text-base">{totalQty}</span>
+          {/* Rodapé compacto no mobile; sidebar completa no desktop. */}
+          <div className="grid w-full shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2.5 md:flex md:w-72 md:flex-col md:gap-0 md:border-t-0 md:px-0 md:pb-0 md:pt-0">
+            {/* À direita do mobile: resumo do combo e quantidade. */}
+            <div className="col-start-2 row-start-1 flex min-w-0 items-center justify-between gap-1 md:border-b md:px-4 md:pb-2 md:pt-4">
+              <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-[#064e32] md:gap-2 md:text-lg">
+                <ShoppingCart size={15} className="shrink-0" /> Seu combo
               </h3>
+              <span className="shrink-0 text-sm font-bold text-[#086e45] md:text-base">{totalQty}</span>
             </div>
 
-            {/* Itens selecionados — escondido no mobile */}
-            <div className="hidden md:block max-h-none md:flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {/* Itens selecionados: continuam detalhados apenas na barra lateral desktop. */}
+            <div className="hidden md:block md:max-h-none md:flex-1 md:space-y-2 md:overflow-y-auto md:px-4 md:py-3">
               {items.length === 0 ? (
                 <div className="py-8 text-center">
-                  <div className="text-3xl mb-2">🍱</div>
+                  <div className="mb-2 text-3xl">🍱</div>
                   <p className="text-sm text-gray-600">Adicione marmitas ao seu combo</p>
                 </div>
               ) : (
                 items.map((item) => (
-                  <div
-                    key={getItemKey(item.productId, item.weight)}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <span className="font-bold text-[#086e45] w-5 text-center shrink-0">
-                      {item.quantity}×
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-gray-800 font-medium leading-tight">
-                        {item.nome}
-                      </p>
+                  <div key={getItemKey(item.productId, item.weight)} className="flex items-center gap-2 text-sm">
+                    <span className="w-5 shrink-0 text-center font-bold text-[#086e45]">{item.quantity}×</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium leading-tight text-gray-800">{item.nome}</p>
                       <p className="text-gray-600">{item.weight}</p>
                     </div>
-                    <span className="font-bold text-gray-600 shrink-0">
-                      {formatBRL(item.preco * item.quantity)}
-                    </span>
+                    <span className="shrink-0 font-bold text-gray-600">{formatBRL(item.preco * item.quantity)}</span>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Totais e CTA */}
-            <div className="px-4 pb-4 pt-3 border-t space-y-3 shrink-0">
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between text-gray-500">
-                  <span>Subtotal</span>
-                  <span>{formatBRL(subtotal)}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-green-600 font-bold">
-                    <span>Desconto nas marmitas</span>
-                    <span>− {formatBRL(discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-base text-gray-900 pt-1 border-t">
-                  <span>Total</span>
-                  <span className="text-[#086e45]">{formatBRL(total)}</span>
-                </div>
+            {/* À esquerda do mobile: subtotal, desconto e total sempre visíveis. */}
+            <div className="col-start-1 row-span-2 row-start-1 flex min-w-0 flex-col justify-center gap-1 self-stretch text-[11px] leading-tight md:gap-1.5 md:border-t md:px-4 md:pt-3 md:text-sm">
+              <div className="flex min-w-0 items-center justify-between gap-1 text-gray-500">
+                <span>Subtotal</span>
+                <span className="shrink-0 tabular-nums">{formatBRL(subtotal)}</span>
               </div>
-
-              {/* Info sobre sopas */}
-              {items.some((i) => isNoDiscountLocal(i.categoria)) && (
-                <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-2.5 text-sm text-blue-700">
-                  <Info size={12} className="shrink-0 mt-0.5" />
-                  <span>
-                    Sopas e complementos têm preço fixo e não recebem desconto, mas contam na
-                    quantidade do combo.
-                  </span>
-                </div>
-              )}
-
-              <button
-                onClick={handleAddToCart}
-                disabled={items.length === 0}
-                className={cn(
-                  "w-full rounded-2xl py-3.5 text-base font-semibold transition-all flex items-center justify-center gap-2",
-                  items.length > 0
-                    ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg hover:shadow-[#086e45]/30"
-                    : "bg-gray-100 text-gray-600 cursor-not-allowed",
-                )}
-              >
-                <ShoppingCart size={16} />
-                Adicionar ao carrinho
-                {totalQty > 0 && (
-                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
-                    {totalQty} itens
-                  </span>
-                )}
-              </button>
+              <div className={cn("flex min-w-0 items-center justify-between gap-1 font-medium text-green-700", discount <= 0 && "md:hidden")}>
+                <span>Desconto</span>
+                <span className="shrink-0 tabular-nums">− {formatBRL(discount)}</span>
+              </div>
+              <div className="flex min-w-0 items-center justify-between gap-1 border-t border-gray-200 pt-1 text-sm font-bold text-gray-900 md:text-base">
+                <span>Total</span>
+                <span className="shrink-0 tabular-nums text-[#086e45]">{formatBRL(total)}</span>
+              </div>
             </div>
+
+            {/* À direita do mobile, imediatamente abaixo de Seu combo. */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={items.length === 0}
+              className={cn(
+                "col-start-2 row-start-2 flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold leading-tight transition-colors sm:text-xs md:mt-3 md:min-h-12 md:gap-2 md:rounded-2xl md:py-3.5 md:text-base",
+                items.length > 0
+                  ? "bg-[#086e45] text-white hover:bg-[#065a38] md:shadow-lg"
+                  : "cursor-not-allowed bg-gray-100 text-gray-600",
+              )}
+            >
+              <ShoppingCart size={15} className="shrink-0" />
+              <span>Adicionar ao carrinho</span>
+              {totalQty > 0 && (
+                <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-sm md:inline">{totalQty} itens</span>
+              )}
+            </button>
+
+            {/* Aviso de preço fixo somente quando houver sopas/complementos. */}
+            {items.some((i) => isNoDiscountLocal(i.categoria)) && (
+              <div className="col-span-2 row-start-3 flex items-start gap-1.5 rounded-lg bg-blue-50 p-2 text-[11px] text-blue-700 md:mt-3 md:mx-4 md:text-sm">
+                <Info size={13} className="mt-0.5 shrink-0" />
+                <span>Sopas e complementos têm preço fixo, sem desconto, mas contam na quantidade do combo.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
