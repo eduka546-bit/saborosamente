@@ -512,15 +512,15 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           const tierPrice = noDiscount ? price : precoMarmitaPorFaixa(w, totalQty, fullPrice, tabelaPrecos);
                           const hasDiscount = !noDiscount && tierPrice < fullPrice;
                           return (
-                            <div key={w} className="flex min-w-0 flex-col items-center rounded-xl border border-[#dce8df] bg-[#fdfefd] px-2 py-2 text-center lg:flex-row lg:justify-between lg:gap-1 lg:px-2.5 lg:py-1.5">
-                              <span className="shrink-0 text-xs font-bold text-gray-600 sm:text-sm lg:text-xs">{w}</span>
-                              <div className="mt-1 flex min-h-[34px] flex-col items-center justify-center leading-tight lg:mt-0 lg:min-h-0 lg:flex-1">
+                            <div key={w} className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-1 gap-y-1 rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1.5 py-2 text-center min-[390px]:px-2 lg:flex lg:flex-row lg:justify-between lg:gap-1 lg:px-2.5 lg:py-1.5">
+                              <span className="shrink-0 text-[11px] font-bold text-gray-600 sm:text-sm lg:text-xs">{w}</span>
+                              <div className="flex min-w-0 flex-col items-end justify-center leading-tight lg:items-center lg:flex-1">
                                 {hasDiscount && <span className="text-[10px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
-                                <span className="whitespace-nowrap text-[12px] font-bold text-[#086e45] sm:text-sm lg:text-xs">
+                                <span className="whitespace-nowrap text-[11px] font-bold text-[#086e45] sm:text-sm lg:text-xs">
                                   {formatBRL(hasDiscount ? tierPrice : price)}
                                 </span>
                               </div>
-                              <div className="mt-1 flex w-full items-center justify-center gap-0.5 sm:gap-1 lg:mt-0 lg:w-auto lg:shrink-0 lg:gap-0.5">
+                              <div className="col-span-2 flex w-full items-center justify-center gap-0.5 sm:gap-1 lg:col-auto lg:w-auto lg:shrink-0 lg:gap-0.5">
                                 <button type="button" aria-label={"Diminuir " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, -1)} disabled={qty === 0}
                                   className={cn("flex size-6 min-[360px]:size-7 min-[400px]:size-8 shrink-0 items-center justify-center rounded-full border sm:size-9 lg:size-7",
