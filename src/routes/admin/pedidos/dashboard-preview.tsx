@@ -46,6 +46,25 @@ const sections = [
 
 export function DashboardPedidosPreview() {
   const client = useQueryClient();
+  const statusFn = useServerFn(updateAdminOrderStatus);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<any>(null);
+  const changeStatus = async (order:any, status:string) => {
+    if (order.status === status) return;
+    if (status === "cancelado" && !window.confirm("Confirma cancelar este pedido?")) return;
+    setBusyId(order.id);
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const result = await statusFn({data:{id:order.id,status:status as "pendente" | "preparando" | "saiu para entrega" | "pronto para retirada" | "entregue" | "cancelado",accessToken:session.access_token}});
+      const effectiveStatus=String((result as any)?.status || status);
+      try { await supabase.functions.invoke("whatsapp-notify",{body:{pedido_id:order.id,status_anterior:order.status,status_novo:effectiveStatus}}); } catch(err) { console.warn("Notificação",err); }
+      await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
+      await client.invalidateQueries({queryKey:["admin-orders"]});
+      toast.success("Status atualizado");
+    } catch(err:any) { toast.error(err?.message || "Erro ao atualizar status"); }
+    finally {setBusyId(null);}
+  };
   const [query, setQuery] = useState("");
   const [range, setRange] = useState("7");
   const [selected, setSelected] = useState<any>(null);
