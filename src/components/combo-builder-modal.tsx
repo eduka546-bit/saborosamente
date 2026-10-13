@@ -506,8 +506,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                         </div>
                       </button>
                       <div className={cn(
-                        "grid grid-cols-1 gap-1.5 border-t border-gray-100 px-2 pb-2 pt-2 sm:gap-2 sm:px-3 lg:gap-1.5 lg:pb-2 lg:pt-2",
-                        weights.length >= 3 ? "sm:grid-cols-3" : weights.length === 2 ? "sm:grid-cols-2" : "sm:max-w-[220px]",
+                        "grid gap-1 border-t border-gray-100 px-1 pb-2 pt-2 sm:gap-2 sm:px-3 lg:gap-1.5 lg:pb-2 lg:pt-2",
+                        weights.length >= 3 ? "grid-cols-3" : weights.length === 2 ? "grid-cols-2" : "max-w-[220px] grid-cols-1",
                       )}>
                         {weights.map((w) => {
                           const price = getPrice(product, w);
@@ -516,29 +516,29 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           const tierPrice = noDiscount ? price : precoMarmitaPorFaixa(w, totalQty, fullPrice, tabelaPrecos);
                           const hasDiscount = !noDiscount && tierPrice < fullPrice;
                           return (
-                            <div key={w} className="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-[#dce8df] bg-[#fdfefd] px-3 py-1.5 text-left sm:gap-1 sm:px-2 lg:px-2.5">
-                              {/* Mobile: gramatura e valor à esquerda, quantidade à direita, na mesma linha. */}
-                              <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-1.5">
-                                <span className="shrink-0 text-xs font-bold text-gray-600 lg:text-xs">{w}</span>
-                                <div className="flex min-w-0 flex-col items-start justify-center leading-tight">
+                            <div key={w} className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1 py-1.5 text-center sm:px-2 lg:flex-row lg:justify-between lg:gap-1 lg:py-2">
+                              {/* Três gramaturas em paralelo no mobile, sem rolagem horizontal. */}
+                              <div className="flex min-w-0 items-center justify-center gap-1 leading-tight lg:gap-1.5">
+                                <span className="shrink-0 text-[10px] font-bold text-gray-600 sm:text-xs">{w}</span>
+                                <div className="flex min-w-0 flex-col items-center justify-center leading-tight">
                                   {hasDiscount && <span className="whitespace-nowrap text-[9px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
-                                  <span className="whitespace-nowrap text-xs font-bold text-[#086e45] sm:text-[11px] lg:text-xs">
+                                  <span className="whitespace-nowrap text-[10px] font-bold text-[#086e45] sm:text-xs">
                                     {formatBRL(hasDiscount ? tierPrice : price)}
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-0.5">
+                              <div className="flex shrink-0 items-center justify-center gap-0.5">
                                 <button type="button" aria-label={"Diminuir " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, -1)} disabled={qty === 0}
-                                  className={cn("flex size-8 shrink-0 items-center justify-center rounded-full border sm:size-7",
+                                  className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border sm:size-7",
                                     qty > 0 ? "border-[#086e45] text-[#086e45]" : "border-gray-200 text-gray-300")}>
-                                  <Minus size={14} />
+                                  <Minus size={12} />
                                 </button>
-                                <span className={cn("min-w-[12px] text-center text-xs font-semibold tabular-nums", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
+                                <span className={cn("min-w-[12px] text-center text-[11px] font-semibold tabular-nums sm:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
                                 <button type="button" aria-label={"Aumentar " + product.nome + ", " + w}
                                   onClick={() => changeQty(product, w, 1)}
-                                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-7">
-                                  <Plus size={14} />
+                                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-7">
+                                  <Plus size={12} />
                                 </button>
                               </div>
                             </div>
