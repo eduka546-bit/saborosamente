@@ -99,7 +99,7 @@ interface ComboBuilderModalProps {
 }
 
 export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSellerIds, bestSellerRank }: ComboBuilderModalProps) {
-  const { add } = useCart();
+  const { add, lines: cartLines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<ComboItem[]>([]);
   const [search, setSearch] = useState("");
@@ -239,6 +239,24 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
     return peso ? [peso] : ["200g"];
   }
 
+  function availableForCombo(product: any, weight: string): number | null {
+    const raw = weight === "200g"
+      ? product.estoque_200g
+      : weight === "300g"
+        ? product.estoque_300g
+        : weight === "400g"
+          ? product.estoque_400g
+          : (product.estoque ?? product.estoque_200g);
+    if (raw === null || raw === undefined || raw === "") return null;
+    const totalStock = Number(raw);
+    if (!Number.isFinite(totalStock)) return null;
+    const inCart = cartLines.reduce((total, line) =>
+      line.productId === product.id && line.weight === weight && !line.custom && !line.comboPronto
+        ? total + Number(line.quantity || 0)
+        : total, 0);
+    return Math.max(0, totalStock - inCart);
+  }
+
   function getItemKey(productId: string, weight: string) {
     return `${productId}__${weight}`;
   }
@@ -254,6 +272,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
 
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product.id && i.weight === weight);
+      const available = availableForCombo(product, weight);
+      if (delta > 0 && available !== null && (existing?.quantity ?? 0) + delta > available) return prev;
       if (existing) {
         const newQty = existing.quantity + delta;
         if (newQty <= 0)
@@ -527,6 +547,8 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                         {weights.map((w) => {
                           const price = getPrice(product, w);
                           const qty = getQty(product.id, w);
+                          const available = availableForCombo(product, w);
+                          const cannotAdd = available !== null && qty >= available;
                           const fullPrice = noDiscount ? price : precoCheioMarmita(w, tabelaPrecos) || price;
                           const tierPrice = noDiscount ? price : precoMarmitaPorFaixa(w, totalQty, fullPrice, tabelaPrecos);
                           const hasDiscount = !noDiscount && tierPrice < fullPrice;
@@ -550,9 +572,10 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                                   <Minus size={12} />
                                 </button>
                                 <span className={cn("min-w-[12px] text-center text-[11px] font-semibold tabular-nums sm:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
-                                <button type="button" aria-label={"Aumentar " + product.nome + ", " + w}
-                                  onClick={() => changeQty(product, w, 1)}
-                                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white sm:size-7">
+                                <button type="button" aria-label={cannotAdd ? "Sem estoque para " + w + "; toque no prato para solicitar aviso" : "Aumentar " + product.nome + ", " + w}
+                                  title={cannotAdd ? "Esgotado — toque na foto ou nome do prato e selecione este tamanho para solicitar aviso" : undefined}
+                                  onClick={() => changeQty(product, w, 1)} disabled={cannotAdd}
+                                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#086e45] text-white disabled:cursor-not-allowed disabled:opacity-35 sm:size-7">
                                   <Plus size={12} />
                                 </button>
                               </div>
