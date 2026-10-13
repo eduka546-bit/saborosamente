@@ -71,7 +71,7 @@ export function DiscountProgressWidget({ className }: { className?: string }) {
 
       <p aria-live="polite" className="mt-2 text-center text-[11px] font-medium leading-snug text-[#527164] sm:text-sm">
         {nextLevel ? (
-          <>Faltam <strong className="font-bold text-primary">{nextLevel.min - count} {nextLevel.min - count === 1 ? "marmita" : "marmitas"}</strong> para {nextLevel.badge}</>
+          <>Faltam <strong className="font-bold text-primary">{nextLevel.min - count} {nextLevel.min - count === 1 ? "marmita" : "marmitas"}</strong> para <strong className="font-bold text-primary">{nextLevel.badge}</strong></>
         ) : (
           <strong className="text-primary">Parabéns! Você desbloqueou o maior desconto: {currentLevel?.badge}.</strong>
         )}
