@@ -48,6 +48,7 @@ import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { DashboardPedidosPreview } from "@/routes/admin/pedidos/dashboard-preview";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminPedidosRouter,
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/admin/pedidos")({
 function AdminPedidosRouter() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const isOverview = pathname.replace(/\/+$/, "") === "/admin/pedidos";
-  return isOverview ? <AdminOrdersPage /> : <Outlet />;
+  return isOverview ? (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("modo") === "lista" ? <AdminOrdersPage /> : <DashboardPedidosPreview />) : <Outlet />;
 }
 
 
