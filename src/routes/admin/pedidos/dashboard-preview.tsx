@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,7 @@ const sections = [
   { id: "cancelado", title: "Cancelados", icon: CircleX, accent: "#bd4b4b", bg: "#fff0f0", statuses: ["cancelado"] },
 ];
 
-function DashboardPedidosPreview() {
+export function DashboardPedidosPreview() {
   const client = useQueryClient();
   const [query, setQuery] = useState("");
   const [range, setRange] = useState("7");
@@ -71,7 +71,7 @@ function DashboardPedidosPreview() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[#668071]">
-              <Link to="/admin/pedidos" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Pedidos atuais</Link>
+              <a href="/admin/pedidos?modo=lista" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Pedidos atuais</a>
               <span>/</span><span>Prévia do dashboard</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#194e32]">Painel de Pedidos</h1>
@@ -99,7 +99,7 @@ function DashboardPedidosPreview() {
           <button className="flex items-center gap-2 rounded-lg border border-[#d2dfd3] px-3 py-2 text-sm hover:bg-[#f0f7ef]" onClick={() => client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] })}>
             <RefreshCw size={15} /> Atualizar
           </button>
-          <Link to="/admin/pedidos" className="rounded-lg bg-[#28633c] px-4 py-2 text-center text-sm font-semibold text-white hover:bg-[#1d4d2e]">Gerenciar pedidos</Link>
+          <a href="/admin/pedidos?modo=lista" className="rounded-lg bg-[#28633c] px-4 py-2 text-center text-sm font-semibold text-white hover:bg-[#1d4d2e]">Gerenciar pedidos</a>
         </div>
         {isError && <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar os pedidos. Verifique sua sessão e tente atualizar.</div>}
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
@@ -151,7 +151,7 @@ function DashboardPedidosPreview() {
           <div className="mb-4 flex justify-between text-lg font-bold"><span>Total</span><span>{money(selected.valor_total)}</span></div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => printReceipt({ ...selected, itens: (selected.itens || []).map((i: any) => ({ nome: i.nome_item || i.nome || "Produto", quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })} className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm"><Printer size={15}/> Imprimir</button>
-            <Link to="/admin/pedidos" className="flex items-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white"><PackageCheck size={15}/> Abrir gestão de pedidos</Link>
+            <a href="/admin/pedidos?modo=lista" className="flex items-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white"><PackageCheck size={15}/> Abrir gestão de pedidos</a>
           </div>
         </div>
       </div>}
