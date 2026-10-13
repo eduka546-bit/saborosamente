@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { updateAdminOrderStatus } from "@/lib/orders.functions";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X } from "lucide-react";
+import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X, Pencil } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 
 export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
@@ -23,7 +26,7 @@ const deliveryTime = (o: any) => {
   const raw = String(o.horario_entrega || o.horario_recebimento || o.horario_agendado || "").trim();
   if (!raw) return "";
   // Algumas reservas armazenam data e intervalo no mesmo campo.
-  const withoutDate = raw.replace(/^\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/, "").trim();
+  const withoutDate = raw.replace(/\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/g, "").trim();
   return withoutDate || raw;
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
@@ -43,6 +46,25 @@ const sections = [
 
 export function DashboardPedidosPreview() {
   const client = useQueryClient();
+  const statusFn = useServerFn(updateAdminOrderStatus);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<any>(null);
+  const changeStatus = async (order:any, status:string) => {
+    if (order.status === status) return;
+    if (status === "cancelado" && !window.confirm("Confirma cancelar este pedido?")) return;
+    setBusyId(order.id);
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const result = await statusFn({data:{id:order.id,status:status as "pendente" | "preparando" | "saiu para entrega" | "pronto para retirada" | "entregue" | "cancelado",accessToken:session.access_token}});
+      const effectiveStatus=String((result as any)?.status || status);
+      try { await supabase.functions.invoke("whatsapp-notify",{body:{pedido_id:order.id,status_anterior:order.status,status_novo:effectiveStatus}}); } catch(err) { console.warn("Notificação",err); }
+      await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
+      await client.invalidateQueries({queryKey:["admin-orders"]});
+      toast.success("Status atualizado");
+    } catch(err:any) { toast.error(err?.message || "Erro ao atualizar status"); }
+    finally {setBusyId(null);}
+  };
   const [query, setQuery] = useState("");
   const [range, setRange] = useState("7");
   const [selected, setSelected] = useState<any>(null);
@@ -80,6 +102,28 @@ export function DashboardPedidosPreview() {
     return () => { supabase.removeChannel(channel); };
   }, [client]);
 
+  const saveQuickEdit = async () => {
+    if (!editing) return;
+    setBusyId(editing.id);
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
+      if(!session?.access_token) throw new Error("Sessão expirada");
+      const original = (orders as any[]).find(o=>o.id===editing.id);
+      if(!original) throw new Error("Pedido não encontrado");
+      const fields=["nome_cliente","telefone_cliente","endereco_rua","endereco_numero","endereco_bairro","endereco_cidade","horario_recebimento","metodo_pagamento"];
+      const changes:Record<string,any>={};
+      for(const field of fields) if(String(original[field]??"")!==String(editing[field]??"")) changes[field]=editing[field];
+      if(Object.keys(changes).length){
+        const {error}=await supabase.from("pedidos").update(changes).eq("id",editing.id);
+        if(error) throw error;
+      }
+      await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
+      await client.invalidateQueries({queryKey:["admin-orders"]});
+      setEditing(null);
+      toast.success("Informações atualizadas");
+    } catch(err:any){toast.error(err?.message||"Erro ao salvar pedido")}
+    finally {setBusyId(null)}
+  };
   const filtered = useMemo(() => {
     const cutoff = range === "all" ? null : new Date(Date.now() - Number(range) * 86400000);
     const search = query.trim().toLowerCase();
@@ -103,12 +147,12 @@ export function DashboardPedidosPreview() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[#668071]">
               <a href="/admin/pedidos?modo=lista" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Pedidos atuais</a>
-              <span>/</span><span>Prévia do dashboard</span>
+              <span>/</span><span>Dashboard</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[#194e32]">Painel de Pedidos</h1>
-            <p className="text-xs text-[#758379]">SaborosaMente • Painel experimental, utilizando os pedidos reais em modo de consulta</p>
+            <p className="text-xs text-[#758379]">SaborosaMente • Gestão de pedidos em tempo real</p>
           </div>
-          <span className="rounded-full border border-[#d1e5d5] bg-[#eff8ef] px-3 py-1.5 text-xs font-semibold text-[#347a44]">● Prévia — sem alterar pedidos</span>
+          <span className="rounded-full border border-[#d1e5d5] bg-[#eff8ef] px-3 py-1.5 text-xs font-semibold text-[#347a44]">● Painel de pedidos</span>
         </div>
         <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
           {summary.map((s) => <div key={s.text} className="rounded-xl border border-[#e5e9e3] bg-white p-3 shadow-sm">
@@ -152,12 +196,14 @@ export function DashboardPedidosPreview() {
                     <span className="font-bold text-[#315c3e]">#{String(o.id).slice(0,8).toUpperCase()}</span>
                     <div className="min-w-0"><p className="truncate font-semibold">{o.nome_cliente || "Cliente sem nome"}</p><p className="truncate text-[10px] text-[#96a098]">{o.origem || "site"} • {o.endereco_cidade || "São Bento do Sul"}</p></div>
                     <div className="text-[#667a69]">
-                      <p className="font-semibold">{deliveryDate(o) ? dateOnly(deliveryDate(o)) : dateOnly(o.created_at)} {deliveryTime(o) ? " • " + deliveryTime(o) : ""}</p>
+                      <select aria-label="Alterar status" disabled={busyId===o.id} value={o.status} onChange={e=>changeStatus(o,e.target.value)} className="mb-1 max-w-full rounded-md border border-[#dce6d9] bg-[#f2f8f2] px-1 py-1 text-[10px] font-semibold">{["pendente","preparando","pronto para retirada","saiu para entrega","entregue","cancelado"].map(v=><option value={v} key={v}>{v}</option>)}</select>
+<p className="font-semibold">{deliveryDate(o) ? dateOnly(deliveryDate(o)) : dateOnly(o.created_at)} {deliveryTime(o) ? " • " + deliveryTime(o) : ""}</p>
                       <p className="text-[10px]">{o.metodo_entrega === "retirada" ? "Retirada" : "Entrega"}</p>
                     </div>
                     <span className="font-bold text-[#245a38]">{money(o.valor_total)}</span>
                     <div className="flex items-center gap-1">
-                      <button aria-label="Visualizar pedido" title="Visualizar pedido" onClick={() => setSelected(o)} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dbe9da]"><Eye size={15}/></button>
+                      <button aria-label="Visualizar pedido" title="Visualizar pedido" onClick={() => setSelected(o)} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dbe9da]"><Eye size={15}/></button><button aria-label="Editar pedido" title="Editar informações" onClick={() => setEditing({...o})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Pencil size={15}/></button>
+<button aria-label="Imprimir pedido" title="Imprimir pedido" onClick={() => printReceipt({...o,itens:(o.itens||[]).map((i:any)=>({nome:itemName(i),quantidade:i.quantidade,preco_unitario:i.preco_unitario,observacao:i.observacao}))})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Printer size={15}/></button>
                     </div>
                   </div>)}
               </div>
@@ -166,6 +212,17 @@ export function DashboardPedidosPreview() {
         </div>
         <p className="mt-4 text-center text-xs text-[#91a094]">Prévia visual conectada aos pedidos existentes • As alterações de status continuam na tela original</p>
       </div>
+      {editing && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b p-4"><h2 className="text-lg font-bold">Editar pedido #{String(editing.id).slice(0,8).toUpperCase()}</h2><button aria-label="Fechar" onClick={()=>setEditing(null)}><X size={20}/></button></div>
+          <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
+            {([["nome_cliente","Nome do cliente"],["telefone_cliente","Telefone"],["endereco_rua","Rua"],["endereco_numero","Número"],["endereco_bairro","Bairro"],["endereco_cidade","Cidade"],["horario_recebimento","Data e horário"],["metodo_pagamento","Forma de pagamento"]] as const).map(([field,label])=>
+              <label key={field} className="flex flex-col gap-1 text-xs font-semibold"><span>{label}</span><input className="rounded-lg border p-2 text-sm font-normal" value={String(editing[field]??"")} onChange={e=>setEditing((prev:any)=>({...prev,[field]:e.target.value}))}/></label>)}
+            <p className="text-xs text-gray-500 sm:col-span-2">Para editar itens, quantidades e valores, utilize a gestão completa para preservar as regras de estoque e cálculo.</p>
+          </div>
+          <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button><a href="/admin/pedidos?modo=lista" className="rounded-lg border px-4 py-2 text-sm">Gestão completa</a></div>
+        </div>
+      </div>}
       {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
         <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[min(90dvh,790px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8ede7] px-4 py-3 sm:px-5">
