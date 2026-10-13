@@ -23,16 +23,16 @@ const deliveryTime = (o: any) => {
   const raw = String(o.horario_entrega || o.horario_recebimento || o.horario_agendado || "").trim();
   if (!raw) return "";
   // Algumas reservas armazenam data e intervalo no mesmo campo.
-  const withoutDate = raw.replace(/^\\d{2}\\/\\d{2}\\/\\d{4}\\s*[·,–-]?\\s*/, "").trim();
+  const withoutDate = raw.replace(/^\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/, "").trim();
   return withoutDate || raw;
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
 const itemWeight = (item: any) => {
   const obs = String(item.observacao || "");
-  const match = obs.match(/(?:Peso:\\s*)?(200|300|400)\\s*g/i);
+  const match = obs.match(/(?:Peso:\s*)?(200|300|400)\s*g/i);
   return match ? match[1] + "g" : "";
 };
-const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\\s*)?(?:200|300|400)\\s*g/gi, "").replace(/[|—-]?\\s*Congelada/gi, "").replace(/^[\\s|—–,;-]+|[\\s|—–,;-]+$/g, "").trim();
+const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
 const sections = [
   { id: "novo", title: "Solicitados / Novos", icon: Clock3, accent: "#d58a18", bg: "#fff7e7", statuses: ["pendente", "rascunho"] },
   { id: "preparando", title: "Em preparação", icon: ChefHat, accent: "#347e4e", bg: "#eff8f1", statuses: ["preparando"] },
