@@ -358,9 +358,14 @@ export function ProductDetailModal({
     if (restockSending) return;
     setRestockSending(true);
     const contact = restockContact.trim();
-    const email = contact.includes("@") ? contact : null;
-    const telefone = contact && !email ? contact : null;
     try {
+      const { data: authData } = contact ? { data: null } : await supabase.auth.getUser();
+      const email = contact.includes("@") ? contact : (authData?.user?.email || null);
+      const telefone = contact && !contact.includes("@") ? contact : null;
+      if (!email && !telefone) {
+        toast.error("Informe seu WhatsApp ou e-mail para receber o aviso.");
+        return;
+      }
       const { error } = await supabase.rpc("solicitar_alerta_reposicao", {
         p_produto_id: product.id,
         p_gramatura: selectedWeight || null,
@@ -378,8 +383,13 @@ export function ProductDetailModal({
       });
       toast.success(`Solicitação registrada para ${selectedWeight || "este produto"}!`);
       setRestockContact("");
-    } catch {
-      toast.error("Informe seu WhatsApp ou e-mail para receber o aviso.");
+    } catch (error: any) {
+      const msg = String(error?.message || "");
+      toast.error(/telefone.inválido/i.test(msg)
+        ? "Informe um WhatsApp válido com DDD."
+        : /email.inválido/i.test(msg)
+          ? "Informe um e-mail válido."
+          : "Não foi possível registrar o aviso. Confira o contato e tente novamente.");
     } finally {
       setRestockSending(false);
     }
@@ -557,7 +567,7 @@ export function ProductDetailModal({
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Se você estiver logado, pode deixar o campo em branco.
+              Informe seu WhatsApp ou e-mail. Se sua conta tiver e-mail, podemos utilizá-lo.
             </p>
           </div>
         ) : (
