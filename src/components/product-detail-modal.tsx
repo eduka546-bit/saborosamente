@@ -426,155 +426,160 @@ export function ProductDetailModal({
   };
 
   const purchaseControls = (
-            <div className="border-t border-[#dce7dd] bg-card px-4 py-2.5 sm:px-5 sm:py-4">
-              <p className="mb-2 hidden text-sm font-semibold text-[#075636] md:block">Escolha o tamanho:</p>
-              <div className="space-y-2">
-              {(() => {
-                // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
-                const semDesconto = isNoDiscount(categoriaNome);
-                const podeTerDesconto = ehMarmita && !semDesconto;
-                const precoCheio = podeTerDesconto
-                  ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
-                  : currentPrice;
-                const precoComFaixa = podeTerDesconto
-                  ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
-                  : currentPrice;
-                const adicional =
-                  (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
-                  (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
-                const precoFinal = precoComFaixa + adicional;
-                const temDesconto =
-                  precoFinal < precoCheio + adicional ||
-                  adicional > 0 ||
-                  precoComFaixa < precoCheio;
-                const precoCheioTotal = precoCheio + adicional;
+    <div className="shrink-0 border-t border-[#dce7dd] bg-card px-3 py-3 sm:px-4 sm:py-4">
+      {/* Desktop: preço e CTA à esquerda; tamanho e quantidade à direita.
+          Mobile: leitura linear e botão no final, sem duplicar ações. */}
+      <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2.5 md:grid-cols-2 md:items-end md:gap-y-2">
+        <div className="order-1 min-w-0 md:col-start-1 md:row-start-1">
+          {(() => {
+            const semDesconto = isNoDiscount(categoriaNome);
+            const podeTerDesconto = ehMarmita && !semDesconto;
+            const precoCheio = podeTerDesconto
+              ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
+              : currentPrice;
+            const precoComFaixa = podeTerDesconto
+              ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
+              : currentPrice;
+            const adicional =
+              (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
+              (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
+            const precoFinal = precoComFaixa + adicional;
+            const precoCheioTotal = precoCheio + adicional;
 
-                return (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="text-base font-semibold text-muted-foreground">
-                        Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
-                      </span>
-                      {precoComFaixa < precoCheio ? (
-                        <>
-                          <span className="text-base font-semibold text-muted-foreground line-through">
-                            {formatBRL(precoCheioTotal * quantity)}
-                          </span>
-                          <span className="text-2xl font-semibold md:text-3xl text-[#086e45]">
-                            {formatBRL(precoFinal * quantity)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-2xl font-semibold md:text-3xl text-primary">
-                          {formatBRL(precoFinal * quantity)}
-                        </span>
-                      )}
-                    </div>
-                    {weights.length > 1 ? (
-                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1">
-                        {weights.map((w: string) => {
-                          const stock = stockForWeight(product, w);
-                          const unavailable = stock !== null && stock <= 0;
-                          return (
-                            <button
-                              key={w}
-                              type="button"
-                              aria-label={`Selecionar tamanho ${w}${unavailable ? ", esgotado" : ""}`}
-                              aria-pressed={selectedWeight === w}
-                              disabled={unavailable}
-                              onClick={() => chooseWeight(w)}
-                              className={cn(
-                                "min-h-9 min-w-[42px] rounded-full px-2 text-sm font-semibold transition-colors sm:min-w-[52px] sm:text-base",
-                                selectedWeight === w
-                                  ? "bg-[#086e45] text-white shadow-sm"
-                                  : "bg-transparent text-[#375244] hover:bg-white",
-                                unavailable && "cursor-not-allowed opacity-35",
-                              )}
-                            >
-                              {weightLabel(w)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : selectedWeight ? (
-                      <Badge variant="secondary" className="font-semibold">{selectedWeight}</Badge>
-                    ) : null}
-                  </div>
-                );
-              })()}
-
-              {!soldOut && (
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-base font-medium">Quantidade</span>
-                  <div className="flex items-center gap-3 rounded-full border border-border bg-white p-1">
-                    <button
-                      type="button"
-                      aria-label="Diminuir quantidade do produto"
-                      disabled={quantity <= 1}
-                      onClick={() => setRequestedQuantity(quantity - 1)}
-                      className="grid size-10 place-items-center rounded-full text-primary disabled:opacity-40"
-                    >
-                      <Minus size={18} />
-                    </button>
-                    <span
-                      aria-live="polite"
-                      className="min-w-6 text-center text-base font-semibold"
-                    >
-                      {quantity}
+            return (
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm font-semibold text-muted-foreground">
+                  Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
+                </span>
+                {precoComFaixa < precoCheio ? (
+                  <>
+                    <span className="text-sm font-semibold text-muted-foreground line-through">
+                      {formatBRL(precoCheioTotal * quantity)}
                     </span>
-                    <button
-                      type="button"
-                      aria-label="Aumentar quantidade do produto"
-                      disabled={remainingStock !== null && quantity >= remainingStock}
-                      onClick={() => setRequestedQuantity(quantity + 1)}
-                      className="grid size-10 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-                </div>
-              )}
+                    <span className="text-2xl font-semibold leading-tight text-[#086e45] md:text-3xl">
+                      {formatBRL(precoFinal * quantity)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-semibold leading-tight text-primary md:text-3xl">
+                    {formatBRL(precoFinal * quantity)}
+                  </span>
+                )}
               </div>
-              {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
-                <p className="mb-1.5 text-center text-sm font-semibold text-[#9a5b00] md:mb-2 md:text-base">
-                  {remainingStock === 1
-                    ? "Última unidade disponível"
-                    : `Últimas ${remainingStock} unidades disponíveis`}
-                </p>
-              )}
-              {soldOut ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      value={restockContact}
-                      onChange={(e) => setRestockContact(e.target.value)}
-                      placeholder="WhatsApp ou e-mail"
-                      aria-label="WhatsApp ou e-mail para aviso de reposição"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                    <Button
-                      type="button"
-                      onClick={requestRestock}
-                      disabled={restockSending}
-                      className="shrink-0 rounded-xl px-4 font-semibold"
-                    >
-                      {restockSending ? "Salvando..." : "Avise-me"}
-                    </Button>
-                  </div>
-                  <p className="text-base text-muted-foreground">
-                    Se você estiver logado, pode deixar o campo em branco.
-                  </p>
-                </div>
-              ) : (
-                <Button
-                  onClick={handleAddToCart}
-                  className="h-12 w-full gap-2 rounded-xl text-base font-semibold shadow-sm transition-colors hover:shadow-md md:h-14 md:rounded-2xl md:text-lg"
-                >
-                  <ShoppingCart className="size-5" />
-                  {onAddToCombo ? "Adicionar ao combo" : ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
-                </Button>
-              )}
+            );
+          })()}
+        </div>
+
+        <div className="order-2 min-w-0 md:col-start-2 md:row-start-1">
+          <p className="mb-1.5 text-sm font-semibold text-[#075636]">
+            {weights.length > 1 ? "Escolha o tamanho:" : "Tamanho"}
+          </p>
+          {weights.length > 1 ? (
+            <div
+              role="group"
+              aria-label="Escolha o tamanho da marmita"
+              className="flex w-fit max-w-full items-center gap-1 rounded-full bg-[#f2f4eb] p-1"
+            >
+              {weights.map((w: string) => {
+                const stock = stockForWeight(product, w);
+                const unavailable = stock !== null && stock <= 0;
+                return (
+                  <button
+                    key={w}
+                    type="button"
+                    aria-label={`Selecionar tamanho ${w}${unavailable ? ", esgotado" : ""}`}
+                    aria-pressed={selectedWeight === w}
+                    disabled={unavailable}
+                    onClick={() => chooseWeight(w)}
+                    className={cn(
+                      "min-h-9 min-w-[42px] rounded-full px-2 text-sm font-semibold transition-colors sm:min-w-[52px] sm:text-base",
+                      selectedWeight === w
+                        ? "bg-[#086e45] text-white shadow-sm"
+                        : "bg-transparent text-[#375244] hover:bg-white",
+                      unavailable && "cursor-not-allowed opacity-35",
+                    )}
+                  >
+                    {weightLabel(w)}
+                  </button>
+                );
+              })}
             </div>
+          ) : selectedWeight ? (
+            <Badge variant="secondary" className="font-semibold">{selectedWeight}</Badge>
+          ) : null}
+        </div>
+
+        {!soldOut && (
+          <div className="order-3 flex min-w-0 items-center justify-between gap-2 md:col-start-2 md:row-start-2">
+            <span className="text-sm font-medium">Quantidade</span>
+            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white p-1">
+              <button
+                type="button"
+                aria-label="Diminuir quantidade do produto"
+                disabled={quantity <= 1}
+                onClick={() => setRequestedQuantity(quantity - 1)}
+                className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"
+              >
+                <Minus size={17} />
+              </button>
+              <span aria-live="polite" className="min-w-5 text-center text-base font-semibold">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                aria-label="Aumentar quantidade do produto"
+                disabled={remainingStock !== null && quantity >= remainingStock}
+                onClick={() => setRequestedQuantity(quantity + 1)}
+                className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
+              >
+                <Plus size={17} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {soldOut ? (
+          <div className="order-4 min-w-0 space-y-2 md:col-start-1 md:row-start-2">
+            <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
+              <input
+                value={restockContact}
+                onChange={(e) => setRestockContact(e.target.value)}
+                placeholder="WhatsApp ou e-mail"
+                aria-label="WhatsApp ou e-mail para aviso de reposição"
+                className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <Button
+                type="button"
+                onClick={requestRestock}
+                disabled={restockSending}
+                className="shrink-0 rounded-xl font-semibold"
+              >
+                {restockSending ? "Salvando..." : "Avise-me"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Se você estiver logado, pode deixar o campo em branco.
+            </p>
+          </div>
+        ) : (
+          <Button
+            onClick={handleAddToCart}
+            className="order-4 h-12 w-full min-w-0 gap-2 rounded-xl px-2 text-sm font-semibold shadow-sm transition-colors hover:shadow-md md:col-start-1 md:row-start-2 md:text-base"
+          >
+            <ShoppingCart className="size-4 shrink-0" />
+            {onAddToCombo ? "Adicionar ao combo" : ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
+          </Button>
+        )}
+
+        {remainingStock !== null && remainingStock > 0 && remainingStock <= 5 && (
+          <p className="order-5 text-xs font-semibold text-[#9a5b00] md:col-span-2">
+            {remainingStock === 1
+              ? "Última unidade disponível"
+              : `Últimas ${remainingStock} unidades disponíveis`}
+          </p>
+        )}
+      </div>
+    </div>
   );
 
   return (
