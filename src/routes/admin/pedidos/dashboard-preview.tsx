@@ -174,12 +174,14 @@ export function DashboardPedidosPreview() {
                     <span className="font-bold text-[#315c3e]">#{String(o.id).slice(0,8).toUpperCase()}</span>
                     <div className="min-w-0"><p className="truncate font-semibold">{o.nome_cliente || "Cliente sem nome"}</p><p className="truncate text-[10px] text-[#96a098]">{o.origem || "site"} • {o.endereco_cidade || "São Bento do Sul"}</p></div>
                     <div className="text-[#667a69]">
-                      <p className="font-semibold">{deliveryDate(o) ? dateOnly(deliveryDate(o)) : dateOnly(o.created_at)} {deliveryTime(o) ? " • " + deliveryTime(o) : ""}</p>
+                      <select aria-label="Alterar status" disabled={busyId===o.id} value={o.status} onChange={e=>changeStatus(o,e.target.value)} className="mb-1 max-w-full rounded-md border border-[#dce6d9] bg-[#f2f8f2] px-1 py-1 text-[10px] font-semibold">{["pendente","preparando","pronto para retirada","saiu para entrega","entregue","cancelado"].map(v=><option value={v} key={v}>{v}</option>)}</select>
+<p className="font-semibold">{deliveryDate(o) ? dateOnly(deliveryDate(o)) : dateOnly(o.created_at)} {deliveryTime(o) ? " • " + deliveryTime(o) : ""}</p>
                       <p className="text-[10px]">{o.metodo_entrega === "retirada" ? "Retirada" : "Entrega"}</p>
                     </div>
                     <span className="font-bold text-[#245a38]">{money(o.valor_total)}</span>
                     <div className="flex items-center gap-1">
-                      <button aria-label="Visualizar pedido" title="Visualizar pedido" onClick={() => setSelected(o)} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dbe9da]"><Eye size={15}/></button>
+                      <button aria-label="Visualizar pedido" title="Visualizar pedido" onClick={() => setSelected(o)} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dbe9da]"><Eye size={15}/></button><button aria-label="Editar pedido" title="Editar informações" onClick={() => setEditing({...o})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Pencil size={15}/></button>
+<button aria-label="Imprimir pedido" title="Imprimir pedido" onClick={() => printReceipt({...o,itens:(o.itens||[]).map((i:any)=>({nome:itemName(i),quantidade:i.quantidade,preco_unitario:i.preco_unitario,observacao:i.observacao}))})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Printer size={15}/></button>
                     </div>
                   </div>)}
               </div>
