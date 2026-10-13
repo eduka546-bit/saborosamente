@@ -51,7 +51,11 @@ export function DashboardPedidosPreview() {
     queryFn: async () => {
       const { data, error } = await supabase.from("pedidos").select("*, itens:pedido_itens(*)").order("created_at", { ascending: false }).limit(800);
       if (error) throw error;
-      const productIds = [...new Set((data ?? []).flatMap((o: any) => (o.itens ?? []).map((i: any) => i.produto_id).filter(Boolean))] as string[];
+      const productIds = Array.from(new Set<string>(
+        (data ?? []).flatMap((order: any) =>
+          (order.itens ?? []).map((item: any) => String(item.produto_id || "")).filter(Boolean)
+        )
+      ));
       const names: Record<string, string> = {};
       // Produtos consultados em lotes para evitar limite de resposta em períodos extensos.
       for (let i = 0; i < productIds.length; i += 200) {
