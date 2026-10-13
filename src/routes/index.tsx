@@ -17,8 +17,6 @@ import {
   ChefHat,
   ShieldCheck,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Search,
   SlidersHorizontal,
   ShoppingCart,
@@ -45,7 +43,7 @@ import { formatBRL } from "@/lib/products";
 import { imgUrl } from "@/lib/image-proxy";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { CombosProntosModal } from "@/components/combos-prontos-modal";
 import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
@@ -318,41 +316,6 @@ function Index() {
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [storeModalOpen, setStoreModalOpen] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
-
-  // Carrossel de objetivos: barra visível e sincronizada com a rolagem.
-  const objectiveScrollRef = useRef<HTMLDivElement>(null);
-  const [objectiveScroll, setObjectiveScroll] = useState({ position: 0, max: 0 });
-
-  const syncObjectiveScroll = () => {
-    const viewport = objectiveScrollRef.current;
-    if (!viewport) return;
-    const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-    const position = Math.max(0, Math.min(max, viewport.scrollLeft));
-    setObjectiveScroll((prev) =>
-      Math.abs(prev.position - position) < 1 && Math.abs(prev.max - max) < 1
-        ? prev
-        : { position, max },
-    );
-  };
-
-  useEffect(() => {
-    const viewport = objectiveScrollRef.current;
-    if (!viewport) return;
-    const observer = new ResizeObserver(syncObjectiveScroll);
-    observer.observe(viewport);
-    window.addEventListener("resize", syncObjectiveScroll);
-    syncObjectiveScroll();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", syncObjectiveScroll);
-    };
-  }, []);
-
-  const moveObjectiveScroll = (direction: -1 | 1) => {
-    const viewport = objectiveScrollRef.current;
-    if (!viewport) return;
-    viewport.scrollBy({ left: direction * Math.max(200, viewport.clientWidth * 0.6), behavior: "smooth" });
-  };
 
   const {
     data: products = [],
@@ -1204,10 +1167,8 @@ function Index() {
           </div>
 
           <div
-            ref={objectiveScrollRef}
-            onScroll={syncObjectiveScroll}
             aria-label="Opções por objetivo, deslize horizontalmente para ver mais"
-            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar md:mx-0 md:px-0"
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0"
           >
             {objetivos.map((objetivo) => {
               const Icon = objetivo.icon;
@@ -1301,43 +1262,6 @@ function Index() {
             })}
           </div>
 
-          {/* Barra horizontal com setas, visível também quando o navegador oculta a barra nativa. */}
-          <div className="mt-2 flex items-center gap-2" aria-label="Controle de rolagem dos objetivos">
-            <button
-              type="button"
-              aria-label="Ver objetivos anteriores"
-              title="Voltar"
-              disabled={objectiveScroll.position <= 1}
-              onClick={() => moveObjectiveScroll(-1)}
-              className="grid size-6 shrink-0 place-items-center rounded-full text-[#777e7b] transition-colors hover:bg-[#e9eee4] disabled:opacity-40"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={objectiveScroll.max > 0 ? Math.round(objectiveScroll.position / objectiveScroll.max * 100) : 0}
-              disabled={objectiveScroll.max <= 0}
-              onChange={(event) => {
-                const viewport = objectiveScrollRef.current;
-                if (viewport) viewport.scrollLeft = Number(event.target.value) / 100 * objectiveScroll.max;
-              }}
-              aria-label="Deslizar a lista de objetivos"
-              className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[#e2e5e0] outline-none focus-visible:ring-2 focus-visible:ring-[#087443] disabled:opacity-50 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-24 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#90938f] [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-24 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#90938f]"
-            />
-            <button
-              type="button"
-              aria-label="Ver próximos objetivos"
-              title="Avançar"
-              disabled={objectiveScroll.max <= 0 || objectiveScroll.position >= objectiveScroll.max - 1}
-              onClick={() => moveObjectiveScroll(1)}
-              className="grid size-6 shrink-0 place-items-center rounded-full text-[#777e7b] transition-colors hover:bg-[#e9eee4] disabled:opacity-40"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
         </div>
       </section>
 
