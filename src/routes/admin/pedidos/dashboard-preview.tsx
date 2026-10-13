@@ -102,6 +102,28 @@ export function DashboardPedidosPreview() {
     return () => { supabase.removeChannel(channel); };
   }, [client]);
 
+  const saveQuickEdit = async () => {
+    if (!editing) return;
+    setBusyId(editing.id);
+    try {
+      const {data:{session}} = await supabase.auth.getSession();
+      if(!session?.access_token) throw new Error("Sessão expirada");
+      const original = (orders as any[]).find(o=>o.id===editing.id);
+      if(!original) throw new Error("Pedido não encontrado");
+      const fields=["nome_cliente","telefone_cliente","endereco_rua","endereco_numero","endereco_bairro","endereco_cidade","horario_recebimento","metodo_pagamento"];
+      const changes:Record<string,any>={};
+      for(const field of fields) if(String(original[field]??"")!==String(editing[field]??"")) changes[field]=editing[field];
+      if(Object.keys(changes).length){
+        const {error}=await supabase.from("pedidos").update(changes).eq("id",editing.id);
+        if(error) throw error;
+      }
+      await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
+      await client.invalidateQueries({queryKey:["admin-orders"]});
+      setEditing(null);
+      toast.success("Informações atualizadas");
+    } catch(err:any){toast.error(err?.message||"Erro ao salvar pedido")}
+    finally {setBusyId(null)}
+  };
   const filtered = useMemo(() => {
     const cutoff = range === "all" ? null : new Date(Date.now() - Number(range) * 86400000);
     const search = query.trim().toLowerCase();
