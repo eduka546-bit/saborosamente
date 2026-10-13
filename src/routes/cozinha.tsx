@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomeComponenteMontagem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calcularCustoPreparacao, linhasCustoReceita, custoLinhaReceita, custoComMargemReceita, custoUnitarioIngrediente, MARGEM_SEGURANCA_RECEITA } from "@/lib/cozinha-custos";
@@ -8,6 +8,7 @@ import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProduca
 import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
 import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
+import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
 import { EtiquetasManager } from "./cozinha.etiquetas";
@@ -70,6 +71,16 @@ const labelGramatura = (gramatura: string) =>
     ? "Personalizada"
     : TAMANHOS.find((t) => t.id === gramatura)?.label || "400 g";
 const hoje = () => new Date().toISOString().slice(0, 10);
+// Operações em UTC ao meio-dia: datas de produção nunca mudam por fuso/horário de verão.
+const somarDiasISO = (iso: string, dias: number) => {
+  const data = new Date(`${iso}T12:00:00Z`);
+  data.setUTCDate(data.getUTCDate() + dias);
+  return data.toISOString().slice(0, 10);
+};
+const inicioSemanaISO = (iso: string) => {
+  const dia = new Date(`${iso}T12:00:00Z`).getUTCDay();
+  return somarDiasISO(iso, -(dia === 0 ? 6 : dia - 1));
+};
 const n = (v: unknown) => Number(v || 0);
 const arredondarProducao = (v: unknown, unidade: "g" | "un" = "g") => {
   const valor = Math.max(0, n(v));
@@ -160,6 +171,7 @@ function CozinhaPage() {
   const [ok, setOk] = useState(false),
     [aba, setAba] = useState<Aba>("producao"),
     [dataProducao, setDataProducao] = useState(hoje()),
+    [modoProducao, setModoProducao] = useState<"dia" | "semana">("dia"),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
     [modal, setModal] = useState<null | "producao" | "editar-producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
@@ -257,6 +269,24 @@ function CozinhaPage() {
       return data ?? [];
     },
   });
+  const segundaSemana = useMemo(() => inicioSemanaISO(dataProducao), [dataProducao]);
+  const domingoSemana = useMemo(() => somarDiasISO(segundaSemana, 6), [segundaSemana]);
+  const { data: producoesSemana = [], isLoading: carregandoSemana, isError: erroSemana } = useQuery({
+    queryKey: ["coz-prod-semana", segundaSemana],
+    enabled: ok && modoProducao === "semana",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cozinha_producoes")
+        .select("*")
+        .gte("data_producao", segundaSemana)
+        .lte("data_producao", domingoSemana)
+        .order("data_producao")
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const marmitas = useMemo(
     () =>
       (produtos as any[]).filter((p) =>
@@ -291,7 +321,9 @@ function CozinhaPage() {
     return calcularCustoPreparacao(id, prep, itensPrep, ing, visitados).porGrama;
   };
 
-  const separar = useMemo(() => {
+  // Mesma rotina de matérias-primas para a ficha diária e cada dia da semana.
+  // Jamais calcular uma preparação com produções de dias diferentes.
+  const calcularNecessidades = useCallback((linhasProducao: any[]) => {
     const mapa = new Map<string, { id: string; quantidade: number; pratos: string[]; unidade: "g" | "un" | "L"; item: any; qb: boolean }>();
     const unidadeItemPreparacao = (item: any): "g" | "un" | "L" => {
       if (item?.preparacao_componente_id) return "g";
@@ -373,7 +405,7 @@ function CozinhaPage() {
       });
     };
 
-    (producoes as any[]).forEach((p) => {
+    (linhasProducao as any[]).forEach((p) => {
       const prato = produto.get(p.produto_id), r = rec.get(p.produto_id);
       if (!prato || !r) return;
       const campo = campoGramasReceita(p.gramatura || "400");
@@ -434,7 +466,8 @@ function CozinhaPage() {
       });
     });
     return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
-  }, [producoes, produto, rec, itensRec, itensMontagem, ing, prep, itensPrep]);
+  }, [produto, rec, itensRec, itensMontagem, ing, prep, itensPrep]);
+  const separar = useMemo(() => calcularNecessidades(producoes as any[]), [producoes, calcularNecessidades]);
   const alertasEstoquePlanejado = useMemo(
     () =>
       separar
@@ -477,7 +510,10 @@ function CozinhaPage() {
     [estoqueMarmitas],
   );
   const invalidar = (...keys: string[]) =>
-    Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey: [queryKey] })));
+    Promise.all([
+      ...keys.map((queryKey) => qc.invalidateQueries({ queryKey: [queryKey] })),
+      ...(keys.includes("coz-prod-dia") ? [qc.invalidateQueries({ queryKey: ["coz-prod-semana"] })] : []),
+    ]);
   const salvarIngredienteCadastro = async (itemAtual: any, dados: any) => {
     const nomeNormalizado = normalizarNomeIngrediente(dados?.nome);
     if (!nomeNormalizado) {
@@ -591,6 +627,28 @@ function CozinhaPage() {
                   </div>
                 }
               />
+              <div className="mb-4 flex w-fit gap-1 rounded-xl border border-[#dbe7dd] bg-[#edf5e6] p-1" role="group" aria-label="Visualização da produção">
+                <button type="button" aria-pressed={modoProducao === "dia"} onClick={() => setModoProducao("dia")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${modoProducao === "dia" ? "bg-white text-[#087443] shadow-sm" : "text-[#527164] hover:bg-white/60"}`}>Dia</button>
+                <button type="button" aria-pressed={modoProducao === "semana"} onClick={() => setModoProducao("semana")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${modoProducao === "semana" ? "bg-white text-[#087443] shadow-sm" : "text-[#527164] hover:bg-white/60"}`}>Semana</button>
+              </div>
+              {modoProducao === "semana" ? (
+                <VisaoSemanalCozinha
+                  inicioSemana={segundaSemana}
+                  producoes={producoesSemana as any[]}
+                  carregando={carregandoSemana}
+                  erro={erroSemana}
+                  produtosPorId={produto}
+                  receitasPorProduto={rec}
+                  preparacoesPorId={prep}
+                  estoque={estoque as any[]}
+                  calcularNecessidades={calcularNecessidades}
+                  formatarQuantidade={formatarQuantidadeProducao}
+                  rotuloProduto={rotuloProduto}
+                  onMudarSemana={(dias) => setDataProducao((data) => somarDiasISO(inicioSemanaISO(data), dias))}
+                  onAbrirDia={(data) => { setDataProducao(data); setModoProducao("dia"); }}
+                />
+              ) : (
+                <>
               <div className="mb-5 grid gap-3 rounded-2xl border border-[#dbe7dd] bg-white p-4 lg:grid-cols-[185px_1fr_auto]">
                 <Campo label="Dia da produção"><input className={input} type="date" value={dataProducao} onChange={(e) => setDataProducao(e.target.value)} /></Campo>
                 <Campo label="Buscar item"><input className={input} value={buscaProducao} onChange={(e) => setBuscaProducao(e.target.value)} placeholder="Ex.: frango, sopa, lasanha..." /></Campo>
@@ -715,6 +773,8 @@ function CozinhaPage() {
                     );
                   })}
                 </div>
+              )}
+                </>
               )}
             </section>
           )}
