@@ -427,6 +427,7 @@ export function ProductDetailModal({
 
   const purchaseControls = (
             <div className="border-t border-[#dce7dd] bg-card px-4 py-2.5 sm:px-5 sm:py-4">
+              <p className="mb-2 hidden text-sm font-semibold text-[#075636] md:block">Escolha o tamanho:</p>
               <div className="md:flex md:items-center md:justify-between md:gap-4">
               {(() => {
                 // Calcula preço efetivo: desconto progressivo (se marmita) + acréscimos
@@ -470,7 +471,7 @@ export function ProductDetailModal({
                       )}
                     </div>
                     {weights.length > 1 ? (
-                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1 md:hidden">
+                      <div role="group" aria-label="Escolha o tamanho da marmita" className="flex shrink-0 items-center gap-1 rounded-full bg-[#f2f4eb] p-1">
                         {weights.map((w: string) => {
                           const stock = stockForWeight(product, w);
                           const unavailable = stock !== null && stock <= 0;
@@ -496,7 +497,7 @@ export function ProductDetailModal({
                         })}
                       </div>
                     ) : selectedWeight ? (
-                      <Badge variant="secondary" className="font-semibold md:hidden">{selectedWeight}</Badge>
+                      <Badge variant="secondary" className="font-semibold">{selectedWeight}</Badge>
                     ) : null}
                   </div>
                 );
@@ -590,7 +591,7 @@ export function ProductDetailModal({
         </button>
         <div ref={mobileScrollRef} onScroll={updateScrollHint} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain md:flex-row md:overflow-hidden">
           {/* Imagem grande / galeria + ação de engajamento */}
-          <div className="flex w-full flex-col bg-[#fbfaf5] md:w-[44%] md:shrink-0">
+          <div className="flex w-full flex-col bg-[#fbfaf5] md:min-h-0 md:w-[44%] md:shrink-0 md:overflow-hidden">
             <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-[#f4f1e8] md:aspect-auto md:min-h-0 md:flex-1">
               <img src={currentImage} alt={product.nome} className="absolute inset-0 h-full w-full object-contain p-2 md:p-3" />
               <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
@@ -633,11 +634,12 @@ export function ProductDetailModal({
                 </>
               )}
             </div>
-
+            {/* Compra fixa abaixo da imagem: apenas o painel direito tem rolagem no desktop. */}
+            <div className="hidden shrink-0 md:block">{purchaseControls}</div>
           </div>
 
           {/* Ficha do produto */}
-          <div className="flex min-w-0 flex-1 flex-col px-4 pb-5 pt-4 sm:px-6 sm:pt-6 md:overflow-y-auto md:p-6">
+          <div className="flex min-w-0 flex-1 flex-col px-4 pb-5 pt-4 sm:px-6 sm:pt-6 md:min-h-0 md:overflow-y-auto md:overscroll-contain md:p-6">
             <DialogHeader className="mb-4 text-left">
               <DialogTitle
                 title={title}
@@ -659,59 +661,6 @@ export function ProductDetailModal({
                   <p className="text-sm leading-relaxed sm:text-base">{ingredientesDetalhados}</p>
                 </div>
               )}
-
-              {weights.length > 1 && (
-                <div className="hidden md:block">
-                  <h4 className="mb-2 text-right text-lg font-semibold text-[#075636]">Escolha o tamanho:</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {weights.map((w: string) => {
-                      const price = priceForWeight(w);
-                      const selected = selectedWeight === w;
-                      return (
-                        <button
-                          key={w}
-                          type="button"
-                          onClick={() => {
-                            chooseWeight(w);
-                          }}
-                          className={cn(
-                            "relative min-w-0 rounded-xl border-2 px-2 py-3 text-center transition-all",
-                            selected
-                              ? "border-primary bg-primary/5 text-primary shadow-sm"
-                              : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                          )}
-                        >
-                          {selected && (
-                            <span
-                              aria-hidden="true"
-                              className="absolute right-1 top-1 text-xs text-primary"
-                            >
-                              ✓
-                            </span>
-                          )}
-                          <span className="block text-base font-semibold">{weightLabel(w)}</span>
-                          {isComboPronto && (
-                            <span className="block text-base font-normal text-muted-foreground">
-                              {w}
-                            </span>
-                          )}
-                          <span
-                            className={cn(
-                              "mt-1 block text-base font-semibold",
-                              selected ? "text-[#086e45]" : "text-foreground",
-                            )}
-                          >
-                            {formatBRL(price)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Compra no painel de informações, liberando toda a coluna esquerda para a foto. */}
-              <div className="hidden md:block -mx-2">{purchaseControls}</div>
 
               <ProductFacts
                 product={product}
