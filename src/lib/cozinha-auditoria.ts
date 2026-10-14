@@ -1,6 +1,7 @@
-/** Confere exclusivamente preparações de rendimento TEÓRICO totalmente mensuráveis em gramas.
- * Preparações de rendimento REAL (pesagem), com líquidos, ovos, QB ou componentes
- * são intencionalmente excluídas: não inventar perdas de evaporação/absorção.
+/** Compara rendimentos com insumos convertíveis a massa (g e leite em L).
+ * Não altera rendimentos medidos nem infere evaporação. Água em litros só entra
+ * quando a receita declara explicitamente que ela é integralmente incorporada.
+ * Ovos e subpreparos de massas não são estimados automaticamente.
  * Entradas de preparação são matérias-primas CRUAS: aplica a perda ao rendimento
  * teórico final, mas não ao peso de compra de um insumo já cru.
  */
@@ -25,6 +26,7 @@ type ItemPreparacao = {
   ingrediente_id?: string | null;
   preparacao_componente_id?: string | null;
   quantidade?: number | null;
+  quantidade_texto?: string | null;
 };
 type PreparacaoRendimento = {
   id: string;
@@ -64,9 +66,17 @@ export function auditarRendimentosTeoricos(
     for (const linha of linhas) {
       const ingrediente = porId.get(linha.ingrediente_id || "");
       const bruto = Number(linha.quantidade);
-      if (!ingrediente || linha.preparacao_componente_id || !(bruto > 0)) {
+      if (!ingrediente || linha.preparacao_componente_id) {
         valido = false;
         break;
+      }
+      // QB não soma massa; quantidade de compra medida nunca é anulada por QB.
+      if (bruto === 0 && /^(?:\s*q\.?b\.?\b|\s*a\s*gosto\b|\s*quanto\s*baste\b)/i.test(String(linha.quantidade_texto || ""))) continue;
+      if (!(bruto > 0)) { valido = false; break; }
+      if (ingrediente.unidade_medida === "L" &&
+          /^leite$/i.test(String(ingrediente.nome || "").trim())) {
+        total += bruto * 1000; // massa equivalente do litro de leite; evaporação não estimada
+        continue;
       }
       if (ingrediente.unidade_medida === "L" &&
           aguaIntegral && /^agua$/i.test(String(ingrediente.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) {
