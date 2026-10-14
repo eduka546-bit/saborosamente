@@ -1,4 +1,5 @@
 import { montarClientesComerciais, filtrarClientesComerciais } from "@/lib/clientes-comercial";
+import { useEtiquetasClientes, chaveEtiquetaCliente, EtiquetaPills, GerenciarEtiquetasClientes, EtiquetasDoClienteEditor } from "@/components/admin-client-tags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Users,
@@ -62,6 +63,8 @@ function AdminClientesPage() {
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [filtrosAbertos, setFiltrosAbertos] = useState(true);
   const [filtroCidade, setFiltroCidade] = useState("TODAS");
+  const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
+  const etiquetasCliente = useEtiquetasClientes();
   const [cidadeEditada, setCidadeEditada] = useState("");
   const [salvandoCidade, setSalvandoCidade] = useState(false);
   const queryClient = useQueryClient();
@@ -125,20 +128,18 @@ function AdminClientesPage() {
     [clients],
   );
 
-  const filteredClients = useMemo(
-    () =>
-      filtrarClientesComerciais(clients, {
-        busca: searchTerm,
-        cidade: filtroCidade,
-        segmento,
-        cadastro,
-        ordem,
-      }),
-    [clients, searchTerm, filtroCidade, segmento, cadastro, ordem],
-  );
+  const filteredClients = useMemo(() => {
+    const encontrados = filtrarClientesComerciais(clients, {
+      busca: searchTerm, cidade: filtroCidade, segmento, cadastro, ordem,
+    });
+    if (filtroEtiqueta === "todas") return encontrados;
+    if (filtroEtiqueta === "sem_etiqueta")
+      return encontrados.filter((cliente) => !etiquetasCliente.porCliente.get(chaveEtiquetaCliente(cliente))?.size);
+    return encontrados.filter((cliente) => etiquetasCliente.porCliente.get(chaveEtiquetaCliente(cliente))?.has(filtroEtiqueta));
+  }, [clients, searchTerm, filtroCidade, segmento, cadastro, ordem, filtroEtiqueta, etiquetasCliente.porCliente]);
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filtroCidade, segmento, cadastro, ordem, itemsPerPage]);
+  }, [searchTerm, filtroCidade, filtroEtiqueta, segmento, cadastro, ordem, itemsPerPage]);
   const indicadores = useMemo(
     () => ({
       todos: clients.length,
@@ -157,6 +158,7 @@ function AdminClientesPage() {
   const limparFiltros = () => {
     setSearchTerm("");
     setFiltroCidade("TODAS");
+    setFiltroEtiqueta("todas");
     setSegmento("todos");
     setCadastro("todos");
     setOrdem("recentes");
@@ -289,6 +291,17 @@ function AdminClientesPage() {
             </select>
           </div>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <label htmlFor="filtrar-por-etiqueta" className="text-sm font-semibold text-gray-700">Etiqueta</label>
+          <select id="filtrar-por-etiqueta" value={filtroEtiqueta} onChange={(event) => setFiltroEtiqueta(event.target.value)}
+            disabled={etiquetasCliente.isLoading || etiquetasCliente.isError}
+            className="min-h-10 min-w-[180px] rounded-lg border border-gray-200 bg-white px-3 text-sm">
+            <option value="todas">Todas as etiquetas</option>
+            <option value="sem_etiqueta">Sem etiqueta</option>
+            {etiquetasCliente.etiquetas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+        </div>
+        <GerenciarEtiquetasClientes controlador={etiquetasCliente} />
         {filtrosAbertos && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t">
             <label className="text-sm text-gray-700">
@@ -397,6 +410,7 @@ function AdminClientesPage() {
                   <h2 className="text-base font-semibold text-gray-900 break-words">
                     {client.nome || client.telefone || "Sem nome"}
                   </h2>
+                  <EtiquetaPills cliente={client} controlador={etiquetasCliente} />
                   {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                   {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
                   {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
@@ -504,6 +518,7 @@ function AdminClientesPage() {
                         <p className="text-sm font-bold text-gray-900">
                           {client.nome || client.telefone || "Sem nome"}
                         </p>
+                        <EtiquetaPills cliente={client} controlador={etiquetasCliente} />
                         {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                   {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
                   {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
@@ -658,6 +673,7 @@ function AdminClientesPage() {
               </div>
             </div>
 
+            <EtiquetasDoClienteEditor cliente={selectedClient} controlador={etiquetasCliente} />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white border rounded-xl p-4 shadow-sm">
                 <p className="text-sm font-medium text-gray-600 mb-1">Compras válidas</p>
