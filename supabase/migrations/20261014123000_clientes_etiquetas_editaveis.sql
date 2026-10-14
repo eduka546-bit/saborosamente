@@ -24,14 +24,22 @@ revoke all on public.clientes_etiquetas_atribuicoes from anon;
 grant select, insert, update, delete on public.clientes_etiquetas to authenticated;
 grant select, insert, update, delete on public.clientes_etiquetas_atribuicoes to authenticated;
 
-create policy "Etiquetas apenas administradores" on public.clientes_etiquetas
-  for all to authenticated
-  using (public.has_role((select auth.uid()), 'admin'::public.app_role))
-  with check (public.has_role((select auth.uid()), 'admin'::public.app_role));
-create policy "Atribuicoes apenas administradores" on public.clientes_etiquetas_atribuicoes
-  for all to authenticated
-  using (public.has_role((select auth.uid()), 'admin'::public.app_role))
-  with check (public.has_role((select auth.uid()), 'admin'::public.app_role));
+do $
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'clientes_etiquetas' and policyname = 'Etiquetas apenas administradores') then
+    create policy "Etiquetas apenas administradores" on public.clientes_etiquetas
+      for all to authenticated
+      using (public.has_role((select auth.uid()), 'admin'::public.app_role))
+      with check (public.has_role((select auth.uid()), 'admin'::public.app_role));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'clientes_etiquetas_atribuicoes' and policyname = 'Atribuicoes apenas administradores') then
+    create policy "Atribuicoes apenas administradores" on public.clientes_etiquetas_atribuicoes
+      for all to authenticated
+      using (public.has_role((select auth.uid()), 'admin'::public.app_role))
+      with check (public.has_role((select auth.uid()), 'admin'::public.app_role));
+  end if;
+end;
+$;
 
 insert into public.clientes_etiquetas(nome, cor) values
   ('VIP','#8b5cf6'),
