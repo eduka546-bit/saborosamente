@@ -33,6 +33,32 @@ describe("conferência tripla do rendimento da tilápia", () => {
     // Perda direta (sem preparação) usa pronta/(1-perda).
     expect(quantidadeBrutaPorRendimento(100, ingredientes[0])).toBeCloseTo(166.666667, 4);
   });
+  it("detecta SO12 com rendimento antigo de 30% e aceita 40% no caldo", () => {
+    const ensaio = {
+      id: "caldo", nome: "Caldo de Peixe (Tilápia)",
+      observacao: "Rendimento TEÓRICO com água incorporada. AUDITORIA_AGUA_INTEGRAL.",
+    };
+    const insumos = [
+      { id:"caldo-base", unidade_medida:"g" },
+      { id:"tilapia-tiras", unidade_medida:"g", tipo_rendimento:"perda", quebra_percentual:40 },
+      { id:"tomate", unidade_medida:"g", tipo_rendimento:"perda", quebra_percentual:24 },
+      { id:"cebola", unidade_medida:"g", tipo_rendimento:"perda", quebra_percentual:23 },
+      { id:"alho", unidade_medida:"g", tipo_rendimento:"perda", quebra_percentual:10 },
+      { id:"oleo", unidade_medida:"g" },
+      { id:"salsinha", unidade_medida:"g" },
+      { id:"sal", unidade_medida:"g" },
+      { id:"agua", nome:"Água", unidade_medida:"L" },
+    ];
+    const dosagens = [
+      ["caldo-base",4000],["tilapia-tiras",400],["tomate",500],["cebola",200],
+      ["alho",40],["oleo",50],["salsinha",50],["sal",100],["agua",1.5],
+    ].map(([id,qty]) => ({ preparacao_id:"caldo", ingrediente_id:id as string, quantidade:qty as number }));
+    const antigos = auditarRendimentosTeoricos([{...ensaio,rendimento_final_g:6550}], dosagens, insumos);
+    expect(antigos).toHaveLength(1);
+    expect(antigos[0].teorico).toBeCloseTo(6510, 5);
+    expect(antigos[0].diferenca).toBeCloseTo(40, 5);
+    expect(auditarRendimentosTeoricos([{...ensaio,rendimento_final_g:6510}], dosagens, insumos)).toHaveLength(0);
+  });
   it("não finge exatidão em preparos com água, ovos ou receita-base pesada", () => {
     const outras = [
       { id: "molho", nome: "Molho com água", observacao: "Rendimento TEÓRICO", rendimento_final_g: 700 },
