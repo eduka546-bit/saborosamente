@@ -10,6 +10,7 @@ export type AlertaRendimentoCozinha = {
   cadastrado: number;
   teorico: number;
   diferenca: number;
+  tipo: "inconsistencia_teorica" | "rendimento_a_conferir";
 };
 
 type IngredienteRendimento = {
@@ -49,7 +50,10 @@ export function auditarRendimentosTeoricos(
   }
   const alertas: AlertaRendimentoCozinha[] = [];
   for (const prep of preparacoes) {
-    if (!/rendimento\s+te[oó]ric/i.test(String(prep.observacao || ""))) continue;
+    const nota = String(prep.observacao || "");
+    const teoricoDeclarado = /rendimento\s+te[oó]ric/i.test(nota);
+    const medido = /rendimento\s+operacional|rendimento\s+real|medido|medida|pesado|pesada|confirmad|observad|lote\s+real/i.test(nota);
+    if (!teoricoDeclarado && medido) continue;
     const linhas = porPreparacao.get(prep.id) || [];
     const cadastrado = Number(prep.rendimento_final_g);
     if (!(cadastrado > 0) || !linhas.length) continue;
@@ -86,10 +90,14 @@ export function auditarRendimentosTeoricos(
     }
     if (!valido) continue;
     const diferenca = cadastrado - total;
-    if (Math.abs(diferenca) > Math.max(1, total * 0.005)) {
+    // Preparações sem teoria declarada podem evaporar durante o preparo:
+    // destacar somente desvios grandes (>15%) para conferir, nunca recalcular automaticamente.
+    const tolerancia = teoricoDeclarado ? Math.max(1, total * 0.005) : Math.max(10, total * 0.15);
+    if (Math.abs(diferenca) > tolerancia) {
       alertas.push({
         preparacaoId: prep.id, preparacao: prep.nome, cadastrado,
         teorico: total, diferenca,
+        tipo: teoricoDeclarado ? "inconsistencia_teorica" : "rendimento_a_conferir",
       });
     }
   }
