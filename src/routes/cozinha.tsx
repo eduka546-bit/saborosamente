@@ -8,6 +8,7 @@ import { SugestoesProducaoSinergia } from "@/components/cozinha/SugestoesProduca
 import { EmbalagensManager } from "@/components/cozinha/EmbalagensManager";
 import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
+import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
@@ -310,6 +311,10 @@ function CozinhaPage() {
     ),
     itensRec = useMemo(() => agrupar(receitaItens as any[], "receita_id"), [receitaItens]),
     itensMontagem = useMemo(() => agrupar(montagemItens as any[], "receita_id"), [montagemItens]);
+  const alertasRendimentoTeorico = useMemo(
+    () => auditarRendimentosTeoricos(preparacoes as any[], preparacaoItens as any[], ingredientes as any[]),
+    [preparacoes, preparacaoItens, ingredientes],
+  );
   const custoIng = custoUnitarioIngrediente;
   const quantidadeCorreta = (gramas: number, linha: any) => {
     const fator = n(linha?.fator_producao || 1);
@@ -612,6 +617,20 @@ function CozinhaPage() {
           ))}
         </aside>
         <main className="min-w-0 p-3 sm:p-4 md:p-8">
+          {alertasRendimentoTeorico.length > 0 && ["producao", "preparacoes", "ingredientes"].includes(aba) && (
+            <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-black">Atenção: rendimento teórico diferente das perdas cadastradas</p>
+              <p className="mt-1 text-xs">Verificação preventiva dos preparos com insumos em gramas. Os rendimentos medidos, que incluem água, ovos ou subpreparações não são alterados automaticamente.</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {alertasRendimentoTeorico.map((alerta) => (
+                  <li key={alerta.preparacaoId}>
+                    <b>{alerta.preparacao}</b> — cadastrado {formatarQuantidadeProducao(alerta.cadastrado,"g")},
+                    estimado pelas perdas atuais {formatarQuantidadeProducao(alerta.teorico,"g")}.
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {aba === "demanda" && <DemandaProducao />}
           {aba === "producao" && (
             <section>
