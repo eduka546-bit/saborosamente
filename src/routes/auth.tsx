@@ -219,7 +219,7 @@ function AuthPage() {
         if (cpfCheck?.exists) {
           setIsLogin(true);
           setPassword("");
-          setConfirmPassword("");
+          setConfirmNewPassword("");
           toast.error(
             "Este CPF já possui uma conta. Entre na conta existente ou use “Esqueci minha senha”.",
           );
@@ -252,7 +252,7 @@ function AuthPage() {
         if (!signupData.session) {
           setIsLogin(true);
           setPassword("");
-          setConfirmPassword("");
+          setConfirmNewPassword("");
           toast.success("Cadastro realizado! Confira seu e-mail para confirmar sua conta.");
           return;
         }
