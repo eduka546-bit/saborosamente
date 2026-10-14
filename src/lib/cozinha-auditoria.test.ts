@@ -80,6 +80,32 @@ describe("conferência tripla do rendimento da tilápia", () => {
       { id:"alcatra",nome:"Alcatra molho madeira",rendimento_final_g:3508,observacao:"Rendimento real medido na cozinha." },
     ],itensAlcatra,[carne,...outros])).toHaveLength(0);
   });
+  it("alerta três preparos com leite antes de assumir evaporação como rendimento", () => {
+    const leite = { id: "leite", nome: "Leite", unidade_medida: "L" };
+    const carne = { id: "carne", nome: "Carne", unidade_medida: "g", tipo_rendimento: "perda", quebra_percentual: 30 };
+    const frango = { id: "frango", nome: "Sassami", unidade_medida: "g", tipo_rendimento: "perda", quebra_percentual: 20 };
+    const outros = ["margarina","farinha","creme","catchup","mostarda","demi","sal"]
+      .map(id => ({id,nome:id,unidade_medida:"g"}));
+    const produtos = [
+      { id:"strog-carne", nome:"Estrogonofe de carne",rendimento_final_g:1460 },
+      { id:"strog-frango", nome:"Estrogonofe de frango",rendimento_final_g:1510 },
+      { id:"alla",nome:"Molho alla creme",rendimento_final_g:1380 },
+    ].map(p=>({...p,observacao:"Importado da ficha"}));
+    const rows = [
+      ...["strog-carne","strog-frango"].flatMap(id=> [
+        {preparacao_id:id,ingrediente_id:id==="strog-carne"?"carne":"frango",quantidade:1000},
+        ...[["margarina",100],["farinha",100],["leite",1],["creme",200],["catchup",50],["mostarda",20]].map(([ing,q])=>({preparacao_id:id,ingrediente_id:ing as string,quantidade:q as number})),
+        {preparacao_id:id,ingrediente_id:"sal",quantidade:0,quantidade_texto:"QB · a gosto"}
+      ]),
+      ...[["carne",1000],["margarina",40],["farinha",40],["leite",1],["demi",200]].map(([ing,q])=>({preparacao_id:"alla",ingrediente_id:ing as string,quantidade:q as number}))
+    ];
+    const avisos = auditarRendimentosTeoricos(produtos,rows,[leite,carne,frango,...outros]);
+    expect(avisos).toHaveLength(3);
+    expect(avisos.find(x=>x.preparacao==="Estrogonofe de carne")?.teorico).toBeCloseTo(2170,2);
+    expect(avisos.find(x=>x.preparacao==="Estrogonofe de frango")?.teorico).toBeCloseTo(2270,2);
+    expect(avisos.find(x=>x.preparacao==="Molho alla creme")?.teorico).toBeCloseTo(1980,2);
+    expect(avisos.every(x=>x.tipo==="rendimento_a_conferir")).toBe(true);
+  });
   it("não finge exatidão em preparos com água, ovos ou receita-base pesada", () => {
     const outras = [
       { id: "molho", nome: "Molho com água", observacao: "Rendimento TEÓRICO", rendimento_final_g: 700 },
