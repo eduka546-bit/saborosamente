@@ -30,7 +30,7 @@ function applyGoogleAnalyticsConsent(value: GoogleAnalyticsConsent) {
 
   // A troca de preferência precisa alcançar a tag que já está carregada.
   if (window.__saborosamenteGaId) {
-    (window as Window & Record<string, unknown>)[`ga-disable-${window.__saborosamenteGaId}`] =
+    (window as unknown as Window & Record<string, unknown>)[`ga-disable-${window.__saborosamenteGaId}`] =
       value !== "granted";
   }
   window.gtag("consent", "update", {
