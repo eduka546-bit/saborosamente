@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { revisarTodasReceitas } from "./cozinha-revisao-receitas";
 
-const base = () => ({
+const base = (): any => ({
   produtos: [{ id:"prod-1",nome:"TD14 - Tilápia assada",codigo_integracao:"TD14",tipo_produto:"marmita" }],
   receitas: [{id:"rec-1",produto_id:"prod-1",preparacoes:[{id:"prep-1",nome:"Tilápia assada"}]}],
   receitaItens: [{receita_id:"rec-1",preparacao_id:"prep-1",gramas_200:70,gramas_300:100,gramas_400:130}],
