@@ -15,6 +15,7 @@ export type AlertaRendimentoCozinha = {
 type IngredienteRendimento = {
   id: string;
   unidade_medida?: string | null;
+  nome?: string | null;
   tipo_rendimento?: string | null;
   quebra_percentual?: number | null;
   fator_rendimento?: number | null;
@@ -54,12 +55,22 @@ export function auditarRendimentosTeoricos(
     if (!(cadastrado > 0) || !linhas.length) continue;
     let total = 0;
     let valido = true;
+    // Só somar água em litros quando a ficha assumir explicitamente incorporação integral.
+    const aguaIntegral = /AUDITORIA_AGUA_INTEGRAL/.test(String(prep.observacao || ""));
     for (const linha of linhas) {
       const ingrediente = porId.get(linha.ingrediente_id || "");
       const bruto = Number(linha.quantidade);
-      if (!ingrediente || ingrediente.unidade_medida !== "g" ||
-          linha.preparacao_componente_id || !(bruto > 0)) {
-        // Não deduzir perda/ganho de preparos com água, ovo, QB ou subpreparações.
+      if (!ingrediente || linha.preparacao_componente_id || !(bruto > 0)) {
+        valido = false;
+        break;
+      }
+      if (ingrediente.unidade_medida === "L" &&
+          aguaIntegral && /^agua$/i.test(String(ingrediente.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) {
+        total += bruto * 1000;
+        continue;
+      }
+      if (ingrediente.unidade_medida !== "g") {
+        // Água descartada, ovos e unidades exigem regra/medição explícita.
         valido = false;
         break;
       }
