@@ -59,6 +59,27 @@ describe("conferência tripla do rendimento da tilápia", () => {
     expect(antigos[0].diferenca).toBeCloseTo(40, 5);
     expect(auditarRendimentosTeoricos([{...ensaio,rendimento_final_g:6510}], dosagens, insumos)).toHaveLength(0);
   });
+  it("avisa quando o rendimento da alcatra não é justificado por pesagem", () => {
+    const carne = { id:"patinho", unidade_medida:"g", tipo_rendimento:"perda", quebra_percentual:30 };
+    const outros = [
+      { id:"molho",unidade_medida:"g" },
+      { id:"glace",unidade_medida:"g" },
+      { id:"champignon",unidade_medida:"g" },
+    ];
+    const itensAlcatra = [
+      ["patinho",3500],["molho",800],["glace",800],["champignon",400],
+    ].map(([id,quantidade]) => ({ preparacao_id:"alcatra", ingrediente_id:id as string, quantidade:quantidade as number }));
+    const avisos = auditarRendimentosTeoricos([
+      { id:"alcatra",nome:"Alcatra molho madeira",rendimento_final_g:3508,observacao:"Preparo do TD01. Base sem rendimento real informado." },
+    ],itensAlcatra,[carne,...outros]);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0].teorico).toBeCloseTo(4450,3);
+    expect(avisos[0].tipo).toBe("rendimento_a_conferir");
+    // Nunca alterar rendimento teórico de um lote confirmado em balança.
+    expect(auditarRendimentosTeoricos([
+      { id:"alcatra",nome:"Alcatra molho madeira",rendimento_final_g:3508,observacao:"Rendimento real medido na cozinha." },
+    ],itensAlcatra,[carne,...outros])).toHaveLength(0);
+  });
   it("não finge exatidão em preparos com água, ovos ou receita-base pesada", () => {
     const outras = [
       { id: "molho", nome: "Molho com água", observacao: "Rendimento TEÓRICO", rendimento_final_g: 700 },
