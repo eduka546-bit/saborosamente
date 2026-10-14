@@ -619,13 +619,13 @@ function CozinhaPage() {
         <main className="min-w-0 p-3 sm:p-4 md:p-8">
           {alertasRendimentoTeorico.length > 0 && ["producao", "preparacoes", "ingredientes"].includes(aba) && (
             <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-              <p className="font-black">Atenção: rendimento teórico diferente das perdas cadastradas</p>
-              <p className="mt-1 text-xs">Verificação preventiva dos preparos com insumos em gramas. Os rendimentos medidos, que incluem água, ovos ou subpreparações não são alterados automaticamente.</p>
+              <p className="font-black">Atenção: rendimentos que precisam de conferência</p>
+              <p className="mt-1 text-xs">Compara as perdas cadastradas com os rendimentos calculáveis. Divergências sem rendimento teórico declarado precisam ser pesadas no lote real antes de qualquer alteração. Preparamos o aviso sem modificar automaticamente receitas medidas, ingredientes, água ou subpreparações.</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {alertasRendimentoTeorico.map((alerta) => (
                   <li key={alerta.preparacaoId}>
-                    <b>{alerta.preparacao}</b> — cadastrado {formatarQuantidadeProducao(alerta.cadastrado,"g")},
-                    estimado pelas perdas atuais {formatarQuantidadeProducao(alerta.teorico,"g")}.
+                    <b>{alerta.preparacao}</b> — {alerta.tipo === "rendimento_a_conferir" ? "revisar/pesar lote: " : "divergência teórica: "} cadastrado {formatarQuantidadeProducao(alerta.cadastrado,"g")},
+                    soma modelada das perdas {formatarQuantidadeProducao(alerta.teorico,"g")}.
                   </li>
                 ))}
               </ul>
