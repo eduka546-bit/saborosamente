@@ -93,3 +93,15 @@ export function alocarQuantidadePorPesos<T extends { peso: number }>(total: numb
   if (!(somaPesos>0)) return [] as Array<T & { quantidade: number }>;
   return validos.map((destino)=>({...destino,quantidade:quantidade*Number(destino.peso)/somaPesos}));
 }
+
+/** Quantidades medidas sempre prevalecem sobre QB, mesmo se outras fichas
+ * registrarem o mesmo ingrediente como "a gosto". Evita ocultar compras. */
+export function acumularQuantidadeComQB(
+  atual: { quantidade: number; qb: boolean },
+  quantidade: number,
+  qb: boolean,
+): { quantidade: number; qb: boolean } {
+  const medida = Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 0;
+  const total = Math.max(0, Number(atual.quantidade) || 0) + medida;
+  return { quantidade: total, qb: total <= 0 && (atual.qb || qb) };
+}
