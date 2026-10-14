@@ -10,6 +10,7 @@ import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
 import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
+import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapioCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
 import { EtiquetasManager } from "./cozinha.etiquetas";
@@ -1073,17 +1074,28 @@ function CozinhaPage() {
             </section>
           )}
           {aba === "cardapio" && (
-            <CardapioCompleto
-              produtos={marmitas}
-              receitas={receitas as any[]}
-              receitaItens={receitaItens as any[]}
-              montagemItens={montagemItens as any[]}
-              preparacoes={preparacoes as any[]}
-              preparacaoItens={preparacaoItens as any[]}
-              ingredientes={ingredientes as any[]}
-              embalagens={embalagens as any[]}
-              onOpenRecipe={(produtoSelecionado) => abrir("receita", produtoSelecionado)}
-            />
+            <>
+              <AuditoriaCardapioCozinha
+                produtos={marmitas}
+                receitas={receitas as any[]}
+                receitaItens={receitaItens as any[]}
+                montagemItens={montagemItens as any[]}
+                preparacoes={preparacoes as any[]}
+                preparacaoItens={preparacaoItens as any[]}
+                ingredientes={ingredientes as any[]}
+              />
+              <CardapioCompleto
+                produtos={marmitas}
+                receitas={receitas as any[]}
+                receitaItens={receitaItens as any[]}
+                montagemItens={montagemItens as any[]}
+                preparacoes={preparacoes as any[]}
+                preparacaoItens={preparacaoItens as any[]}
+                ingredientes={ingredientes as any[]}
+                embalagens={embalagens as any[]}
+                onOpenRecipe={(produtoSelecionado) => abrir("receita", produtoSelecionado)}
+              />
+            </>
           )}
           {aba === "embalagens" && <EmbalagensManager />}
           {aba === "etiquetas" && <EtiquetasManager />}
