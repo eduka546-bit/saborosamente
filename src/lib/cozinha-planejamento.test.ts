@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alocarQuantidadePorPesos, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
+import { alocarQuantidadePorPesos, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, acumularQuantidadeComQB, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "./cozinha-planejamento";
 
 describe("planejamento interligado da cozinha", () => {
   it("calcula a massa pela contagem de discos e usa 8 ovos para cada 30", () => {
@@ -42,6 +42,16 @@ describe("planejamento interligado da cozinha", () => {
     const costelaDoLote=quantidadeNoLote(2000,12182.4,4800);
     expect(costelaDoLote).toBeCloseTo(5076,3);
     expect(quantidadeRestante(costelaDoLote,costelaDoLote)).toBe(0);
+  });
+
+  it("nunca apaga quantidade medida quando outra receita registra QB", () => {
+    const inicio = { quantidade:0, qb:false };
+    const soQB = acumularQuantidadeComQB(inicio, 0, true);
+    expect(soQB).toEqual({ quantidade:0, qb:true });
+    const medidoDepois = acumularQuantidadeComQB(soQB, 50, false);
+    expect(medidoDepois).toEqual({ quantidade:50, qb:false });
+    expect(acumularQuantidadeComQB(medidoDepois, 0, true)).toEqual({ quantidade:50, qb:false });
+    expect(acumularQuantidadeComQB(medidoDepois, 10, false)).toEqual({ quantidade:60, qb:false });
   });
 
   it("não confunde Arroz Branco com Molho Branco", () => {
