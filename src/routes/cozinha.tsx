@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomeComponenteMontagem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas } from "@/lib/cozinha-planejamento";
+import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomeComponenteMontagem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas, acumularQuantidadeComQB } from "@/lib/cozinha-planejamento";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -349,8 +349,9 @@ function CozinhaPage() {
       if (!item || !Number.isFinite(q) || (q <= 0 && !qb)) return;
       const chave = `${id}:${unidade}`;
       const atual = mapa.get(chave) || { id, quantidade: 0, pratos: [], unidade, item, qb: false };
-      if (!qb) atual.quantidade += q;
-      atual.qb = atual.qb || qb;
+      const consolidado = acumularQuantidadeComQB(atual, q, qb);
+      atual.quantidade = consolidado.quantidade;
+      atual.qb = consolidado.qb;
       if (!atual.pratos.includes(nomePrato)) atual.pratos.push(nomePrato);
       mapa.set(chave, atual);
     };
@@ -426,7 +427,8 @@ function CozinhaPage() {
         // A preparação vinculada só completa ingredientes que não aparecem
         // diretamente na ficha, evitando dupla contagem e bases antigas.
         const idsIngredientesDiretos = new Set<string>(
-          linhasIngredientes.map((linha: any) => linha.ingrediente_id).filter(Boolean),
+          linhasIngredientes.filter((linha: any) => quantidadeCorreta(n(linha[campo]), linha) > 0)
+            .map((linha: any) => linha.ingrediente_id).filter(Boolean),
         );
 
         linhasIngredientes.forEach((linha: any) => {
@@ -472,7 +474,9 @@ function CozinhaPage() {
     });
     return [...mapa.values()].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
   }, [produto, rec, itensRec, itensMontagem, ing, prep, itensPrep]);
-  const separar = useMemo(() => calcularNecessidades(producoes as any[]), [producoes, calcularNecessidades]);
+  const separar = useMemo(() => calcularNecessidades(
+    (producoes as any[]).filter((p) => p.status !== "concluida" && n(p.quantidade_planejada) > 0),
+  ), [producoes, calcularNecessidades]);
   const alertasEstoquePlanejado = useMemo(
     () =>
       separar
