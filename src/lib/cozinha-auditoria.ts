@@ -52,7 +52,7 @@ export function auditarRendimentosTeoricos(
   for (const prep of preparacoes) {
     const nota = String(prep.observacao || "");
     const teoricoDeclarado = /rendimento\s+te[oó]ric/i.test(nota);
-    const medido = /rendimento\s+operacional|rendimento\s+real|medido|medida|pesado|pesada|confirmad|observad|lote\s+real/i.test(nota);
+    const medido = /rendimento\s+operacional|rendimento\s+real\s+(?:medid[oa]|pesad[oa]|confirmad[oa])|\b(?:medid[oa]|pesad[oa]|confirmad[oa]|observad[oa]|lote\s+real)\b/i.test(nota);
     if (!teoricoDeclarado && medido) continue;
     const linhas = porPreparacao.get(prep.id) || [];
     const cadastrado = Number(prep.rendimento_final_g);
