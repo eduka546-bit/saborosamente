@@ -212,11 +212,16 @@ export function VisaoSemanalCozinha({
       async function carregar(tabela: string, campos: string) {
         const resultado: any[] = [];
         for (let offset = 0; ; offset += 500) {
-          const { data, error } = await (supabase as any).from(tabela)
+          const base = (supabase as any).from(tabela)
             .select(campos)
             .gte("data_producao", periodo.inicio)
             .lte("data_producao", periodo.fim)
-            .order("data_producao").range(offset, offset + 499);
+            .order("data_producao");
+          // Ordenação estável evita ignorar entradas na paginação de períodos longos.
+          const ordenado = tabela === "cozinha_ingredientes_separados"
+            ? base.order("ingrediente_id").order("unidade")
+            : base.order("tipo").order("chave");
+          const { data, error } = await ordenado.range(offset, offset + 499);
           if (error) throw error;
           resultado.push(...(data || []));
           if (!data || data.length < 500) return resultado;
