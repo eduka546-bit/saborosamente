@@ -175,6 +175,14 @@ function minutosInicioFaixa(horario: string) {
   return hora * 60 + minuto;
 }
 
+function horarioDentroFuncionamentoSabado(horario: string) {
+  const match = String(horario || "").match(/(\d{1,2}):(\d{2})\s*h?\s*~\s*(\d{1,2}):(\d{2})/);
+  if (!match) return false;
+  const inicio = Number(match[1]) * 60 + Number(match[2]);
+  const fim = Number(match[3]) * 60 + Number(match[4]);
+  return inicio >= 9 * 60 + 30 && fim <= 13 * 60 && fim > inicio;
+}
+
 /**
  * Remove faixas cujo horário inicial já passou quando a data escolhida é hoje.
  * Usa o fuso oficial da operação (America/Sao_Paulo), independentemente do
@@ -188,6 +196,10 @@ export function horariosDisponiveisParaData(
 
   const parsed = parseDataBR(data);
   if (!parsed) return cfg.horarios;
+  // Loja fecha às 13h aos sábados, incluindo retiradas em São Bento do Sul.
+  const faixasDia = parsed.weekday === 6
+    ? cfg.horarios.filter(horarioDentroFuncionamentoSabado)
+    : cfg.horarios;
 
   const agora = agoraSaoPaulo();
   const mesmoDia =
@@ -195,10 +207,10 @@ export function horariosDisponiveisParaData(
     parsed.mm === agora.month &&
     parsed.dd === agora.day;
 
-  if (!mesmoDia) return cfg.horarios;
+  if (!mesmoDia) return faixasDia;
 
   const agoraMinutos = agora.hour * 60 + agora.minute;
-  return cfg.horarios.filter((horario) => {
+  return faixasDia.filter((horario) => {
     const inicio = minutosInicioFaixa(horario);
     // Se a faixa não seguir o padrão HH:MM, preserva para não quebrar
     // configurações personalizadas de texto livre.
@@ -269,6 +281,9 @@ export function validarEntregaProgramada(args: {
 
   if (!cfg.horarios.includes(args.horario)) {
     return { ok: false as const, erro: "Horário de entrega indisponível para esta cidade." };
+  }
+  if (parsed.weekday === 6 && !horarioDentroFuncionamentoSabado(args.horario)) {
+    return { ok: false as const, erro: "Aos sábados, o atendimento é até 13h. Escolha outro horário." };
   }
 
   const mesmoDia =
