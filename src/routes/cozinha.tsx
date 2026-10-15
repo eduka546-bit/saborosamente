@@ -12,6 +12,10 @@ import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
 import { periodoComDuracao, type PeriodoProducao } from "@/lib/cozinha-periodo";
 import { consultarEstoquePronto } from "@/lib/cozinha-estoque-producao";
+import {
+  aplicarIngredientesManuais, EditarQuantidadeIngrediente,
+  NovaAdicaoIngrediente, useIngredientesManuais,
+} from "@/components/cozinha/EdicaoIngredientesCozinha";
 import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapioCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
@@ -489,7 +493,16 @@ function CozinhaPage() {
   const separar = useMemo(() => calcularNecessidades(
     (producoes as any[]).filter((p) => p.status !== "concluida" && n(p.quantidade_planejada) > 0),
   ), [producoes, calcularNecessidades]);
-  const alertasEstoquePlanejado = useMemo(
+  // Ajustes manuais são somente do planejamento da data escolhida.
+  // Mantemos as receitas e seus cálculos originais inalterados.
+  const ingredientesManuaisDia = useIngredientesManuais(
+    dataProducao, dataProducao, ok && (aba === "separar" || aba === "compras"),
+  );
+  const separarAjustado = useMemo(
+    () => aplicarIngredientesManuais(separar, ingredientesManuaisDia.dados, ingredientes as any[]),
+    [separar, ingredientesManuaisDia.dados, ingredientes],
+  );
+    const alertasEstoquePlanejado = useMemo(
     () =>
       separar
         .filter((x) => {
@@ -819,18 +832,23 @@ function CozinhaPage() {
               <Titulo
                 titulo="Separar e preparar hoje"
                 texto="Totais calculados conforme as fichas técnicas e a produção planejada."
-                acao={separar.length ? (
+                acao={separarAjustado.length ? (
                   <Botao leve onClick={() => imprimirElemento("separar-hoje-impressao", `Separar hoje — ${new Date(`${dataProducao}T12:00:00`).toLocaleDateString("pt-BR")}`)}>
                     <BookOpen size={18} />
                     Exportar PDF
                   </Botao>
                 ) : null}
               />
-              <div className="grid gap-3 md:grid-cols-2">
-                {!separar.length ? (
+              {ingredientesManuaisDia.isLoading && <p role="status" className="mb-3 rounded-lg bg-white p-3 text-sm">Carregando ajustes de ingredientes…</p>}
+              {ingredientesManuaisDia.isError && <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">Não foi possível carregar os ajustes deste dia. Confira a conexão antes de usar os totais.</p>}
+              {!ingredientesManuaisDia.isLoading && !ingredientesManuaisDia.isError &&
+                <NovaAdicaoIngrediente data={dataProducao} calculados={separar} catalogo={ingredientes as any[]} controle={ingredientesManuaisDia} />
+              }
+                            <div className="grid gap-3 md:grid-cols-2">
+                {!separarAjustado.length ? (
                   <Vazio texto="Adicione produção e cadastre fichas técnicas para gerar a lista." />
                 ) : (
-                  separar.map((x) => (
+                  separarAjustado.map((x) => (
                     <article key={x.id} className="rounded-2xl border bg-white p-4">
                       <h3 className="font-bold">{x.item.nome}</h3>
                       <p className="mt-2 text-2xl font-black text-[#087443]">
@@ -839,12 +857,13 @@ function CozinhaPage() {
                       <p className="mt-2 text-xs text-[#62766b]">
                         Usado em: {x.pratos.join(" · ")}
                       </p>
+                      <EditarQuantidadeIngrediente data={dataProducao} linha={x} controle={ingredientesManuaisDia} catalogo={ingredientes as any[]} />
                     </article>
                   ))
                 )}
               </div>
 
-              {separar.length > 0 && (
+              {separarAjustado.length > 0 && (
                 <div id="separar-hoje-impressao" className="hidden print-only">
                   <section>
                     <p className="text-sm font-black text-[#087443]">SaborosaMente - Separar e preparar hoje</p>
@@ -857,7 +876,7 @@ function CozinhaPage() {
                       <div className="grid bg-[#173a2d] px-3 py-2 text-xs font-bold uppercase text-white" style={{gridTemplateColumns:"minmax(260px,1fr) 150px 1fr"}}>
                         <span>Ingrediente</span><span>Quantidade</span><span>Usado em</span>
                       </div>
-                      {separar.map((x) => (
+                      {separarAjustado.map((x) => (
                         <div key={`pdf-${x.id}-${x.unidade}`} className="grid min-w-0 items-center border-t border-[#dbe7dd] px-2 py-2 text-[13px] sm:px-3 sm:text-sm" style={{gridTemplateColumns:"minmax(260px,1fr) 150px 1fr"}}>
                           <b>{x.item.nome}</b>
                           <b className="text-[#087443]">{x.qb ? "QB · a gosto" : formatarQuantidadeProducao(x.quantidade, x.unidade, x.item?.nome)}</b>
@@ -871,11 +890,17 @@ function CozinhaPage() {
             </section>
           )}
           {aba === "compras" && (
-            <ListaCompras
+            <>
+              {ingredientesManuaisDia.isLoading && <p className="mb-3 p-3">Carregando ajustes manuais…</p>}
+              {ingredientesManuaisDia.isError && <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">Erro ao carregar ajustes manuais. Lista de compras indisponível até corrigir a conexão.</p>}
+              {!ingredientesManuaisDia.isLoading && !ingredientesManuaisDia.isError &&
+              <NovaAdicaoIngrediente data={dataProducao} calculados={separar} catalogo={ingredientes as any[]} controle={ingredientesManuaisDia} />}
+              {!ingredientesManuaisDia.isError && !ingredientesManuaisDia.isLoading && <ListaCompras
               dataProducao={dataProducao}
-              necessidades={separar}
+              necessidades={ingredientesManuaisDia.isLoading || ingredientesManuaisDia.isError ? [] : separarAjustado}
               estoque={estoque as any[]}
-            />
+            />}
+            </>
           )}
           {aba === "gestao" && <GestaoOperacional />}
           {aba === "ingredientes" && (
