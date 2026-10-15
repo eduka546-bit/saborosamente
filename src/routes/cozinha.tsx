@@ -11,6 +11,7 @@ import { ListaCompras } from "@/components/cozinha/ListaCompras";
 import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
 import { periodoComDuracao, type PeriodoProducao } from "@/lib/cozinha-periodo";
+import { consultarEstoquePronto } from "@/lib/cozinha-estoque-producao";
 import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapioCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
@@ -28,6 +29,7 @@ import {
   Package,
   Pencil,
   Plus,
+  RefreshCw,
   Salad,
   Store,
   Table2,
@@ -1436,6 +1438,30 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
     [salvando, setSalvando] = useState(false);
   const produtoSelecionado = marmitas.find((x: any) => x.id === produto);
   const tamanhosDisponiveis = tamanhosDoProduto(produtoSelecionado);
+  // A consulta é refeita ao escolher cada produto e ao retornar à aba.
+  // Estoque pronto = loja + cozinha; não confundir com produções planejadas.
+  const {
+    data: saldos, isLoading: carregandoEstoque, isFetching: atualizandoEstoque,
+    isError: erroEstoque, refetch: atualizarEstoque,
+  } = useQuery({
+    queryKey: ["coz-estoque-pronto-form-producao", produto],
+    enabled: Boolean(produto),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const [loja, cozinha] = await Promise.all([
+        supabase.from("produtos")
+          .select("estoque_200g,estoque_300g,estoque_400g")
+          .eq("id", produto).single(),
+        supabase.from("cozinha_estoque_marmitas")
+          .select("estoque_200g,estoque_300g,estoque_400g")
+          .eq("produto_id", produto).maybeSingle(),
+      ]);
+      if (loja.error) throw loja.error;
+      if (cozinha.error) throw cozinha.error;
+      return { loja: loja.data, cozinha: cozinha.data };
+    },
+  });
   return (
     <Janela titulo="Adicionar à produção" fechar={fechar}>
       <div className="grid gap-4">
@@ -1452,18 +1478,68 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
             ))}
           </select>
         </Campo>
-        <div className="grid gap-3 sm:grid-cols-4">
-          {tamanhosDisponiveis.map((t) => (
-            <Campo key={t.id} label={t.label}>
-              <input
-                className={input}
-                min="0"
-                type="number"
-                value={q[t.id] || ""}
-                onChange={(e) => setQ({ ...q, [t.id]: e.target.value })}
-              />
-            </Campo>
-          ))}
+        {produto && (
+          <div className="rounded-xl border border-[#c9dfd0] bg-[#f3f9f3] p-3" aria-live="polite">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-bold text-[#075636]">
+                  <Package size={17} /> Estoque atual de marmitas prontas
+                </p>
+                <p className="mt-0.5 text-xs text-[#62766b]">
+                  Total disponível na loja + cozinha, antes desta produção.
+                </p>
+              </div>
+              <button type="button" disabled={atualizandoEstoque}
+                onClick={() => { void atualizarEstoque(); }}
+                className="flex items-center gap-1 rounded-lg border border-[#bdd5c3] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#087443] hover:bg-[#e4f1e8] disabled:opacity-50">
+                <RefreshCw size={13} className={atualizandoEstoque ? "animate-spin" : ""} />
+                Atualizar
+              </button>
+            </div>
+            {carregandoEstoque && <p className="mt-2 text-xs text-[#527164]">Consultando estoque…</p>}
+            {erroEstoque && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">
+              Não foi possível consultar o estoque. Tente atualizar antes de decidir a quantidade.
+            </p>}
+            {saldos && !erroEstoque && <div className="mt-2 flex flex-wrap gap-2">
+              {tamanhosDisponiveis.map((t) => {
+                const saldo = consultarEstoquePronto(saldos.loja, saldos.cozinha, t.id);
+                return saldo ? <span key={t.id} className="rounded-lg border border-[#d5e5d9] bg-white px-2.5 py-1 text-xs text-[#527164]">
+                  {t.label}: <b className="text-[#075636]">{saldo.total.toLocaleString("pt-BR")} un</b>
+                </span> : <span key={t.id} className="text-xs text-amber-800">{t.label}: sem estoque específico cadastrado</span>;
+              })}
+            </div>}
+          </div>
+        )}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {tamanhosDisponiveis.map((t) => {
+            const saldo = saldos && !erroEstoque
+              ? consultarEstoquePronto(saldos.loja, saldos.cozinha, t.id) : null;
+            return (
+              <div key={t.id} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
+                <Campo label={t.label}>
+                  <input
+                    className={input}
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    type="number"
+                    aria-label={`Quantidade a produzir de ${t.label}`}
+                    value={q[t.id] || ""}
+                    onChange={(e) => setQ({ ...q, [t.id]: e.target.value })}
+                  />
+                </Campo>
+                {produto && saldo && (
+                  <p className="mt-2 text-xs leading-relaxed text-[#527164]">
+                    Em estoque: <b className="text-[#075636]">{saldo.total.toLocaleString("pt-BR")} un</b>
+                    <span className="block">Loja {saldo.loja.toLocaleString("pt-BR")} · Cozinha {saldo.cozinha.toLocaleString("pt-BR")}</span>
+                  </p>
+                )}
+                {produto && saldos && !saldo && (
+                  <p className="mt-2 text-xs text-amber-800">Sem controle de estoque específico para este tamanho.</p>
+                )}
+              </div>
+            );
+          })}
         </div>
         <Campo label="Observação">
           <input
