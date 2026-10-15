@@ -419,8 +419,10 @@ export function VisaoSemanalCozinha({
     </div>
     {datasEscolhidas.length === 0 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Selecione pelo menos um dia acima para visualizar a produção e os ingredientes.</p>}
     {totais.semFicha > 0 && <p role="alert" className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><AlertTriangle size={18} className="shrink-0"/>Há {totais.semFicha} lançamento(s) sem ficha técnica. Os ingredientes e a lista de compras podem estar incompletos; confira os cadastros antes de comprar.</p>}
+    {carregandoChecklist && <p role="status" className="rounded-xl border border-[#dbe7dd] bg-white p-3 text-sm text-[#527164]">Carregando itens marcados como prontos…</p>}
+    {erroChecklist && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">Não foi possível carregar as marcações. Os botões de confirmação ficam desativados até que a conexão seja restabelecida.</p>}
     <p className="rounded-xl bg-[#f1f7ec] p-3 text-xs leading-relaxed text-[#406050]">
-      <b>Preparações sempre separadas por dia.</b> Os ingredientes brutos usam as fichas, rendimentos e perdas da produção diária. Na lista de compras, só as produções pendentes entram na soma, e o estoque é descontado uma vez. Preparos já prontos indicados apenas durante a abertura da ficha diária não são abatidos automaticamente; confira-os antes de fechar a compra.
+      <b>Preparações sempre separadas por dia.</b> Os ingredientes brutos usam as fichas, rendimentos e perdas da produção diária. Na lista de compras, só as produções pendentes entram na soma, e o estoque é descontado uma vez. Os ✔️ de ingredientes, preparações, componentes e marmitas ficam salvos por dia, mas não alteram as quantidades, o estoque nem o status oficial. Se as quantidades mudarem, a marcação correspondente precisa ser refeita. Preparos já prontos informados apenas na ficha diária não são abatidos automaticamente.
     </p>
 
     {visualizacao === "producao" && <div className="grid gap-3 lg:grid-cols-2">
@@ -497,7 +499,16 @@ export function VisaoSemanalCozinha({
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold capitalize text-[#075636]">{fmtDia(dia.data)}</h3><button type="button" onClick={() => onAbrirDia(dia.data)} className="text-xs font-bold text-[#087443] underline underline-offset-2">Ver ficha do dia</button></div>
         <p className="mb-3 text-xs text-[#62766b]">Ingredientes das produções ainda pendentes, calculados somente para este dia.</p>
         {!dia.ingredientes.length ? <p className="text-sm text-[#62766b]">{dia.linhas.length ? "Sem ingredientes pendentes (produções concluídas ou fichas indisponíveis)." : "Sem produções planejadas."}</p> :
-          <div className="max-h-80 space-y-1 overflow-y-auto">{dia.ingredientes.map((linha) => <div key={`${linha.id}:${linha.unidade}`} className="flex items-start justify-between gap-2 border-b border-[#edf1ed] py-1.5 text-sm"><span className="min-w-0 break-words">{linha.item?.nome}</span><b className="shrink-0 text-[#087443]">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</b></div>)}</div>}
+          <div className="max-h-80 space-y-1 overflow-y-auto">{dia.ingredientes.map((linha) => <div key={`${linha.id}:${linha.unidade}`} className="flex items-start justify-between gap-2 border-b border-[#edf1ed] py-1.5 text-sm">
+            <div className="min-w-0 flex-1">
+              <CaixaChecklist
+                marcada={ingredienteMarcado(dia.data, linha)}
+                desabilitada={bloqueado}
+                onMudar={(marcada) => { void marcarIngrediente(dia.data, linha, marcada); }}
+                texto={String(linha.item?.nome || "Ingrediente")} />
+            </div>
+            <b className="shrink-0 pt-1.5 text-xs text-[#087443] sm:text-sm">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</b>
+          </div>)}</div>}
       </article>)}
     </div>}
 
@@ -508,7 +519,26 @@ export function VisaoSemanalCozinha({
           <table className="w-full min-w-[550px] text-left text-sm">
             <thead className="bg-[#f1f7ed] text-xs font-semibold uppercase text-[#527164]"><tr><th className="px-3 py-3">Ingrediente / dias</th><th className="px-3 py-3 text-right">Necessário</th><th className="px-3 py-3 text-right">Em estoque</th><th className="px-3 py-3 text-right">Comprar</th></tr></thead>
             <tbody>{compras.map((linha) => <tr key={`${linha.id}:${linha.unidade}`} className="border-t border-[#edf1ed] align-top">
-              <td className="px-3 py-2.5"><b>{linha.item?.nome}</b><details className="mt-1 text-xs text-[#62766b]"><summary className="cursor-pointer">Ver necessidade por dia</summary><div className="mt-1 space-y-1">{linha.dias.map((d) => <p key={d.data}>{fmtData(d.data)}: {d.quantidade > 0 ? formatarQuantidade(d.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</p>)}</div></details></td>
+              <td className="px-3 py-2.5">
+                <CaixaChecklist
+                  marcada={linha.dias.length > 0 && linha.dias.every((d) => ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade }))}
+                  desabilitada={bloqueado}
+                  onMudar={(marcada) => { void marcarIngredienteTodosDias(linha, marcada); }}
+                  texto={String(linha.item?.nome || "Ingrediente")}
+                  complemento="Marcar como separado em todos os dias selecionados" />
+                <details className="mt-1 text-xs text-[#62766b]">
+                  <summary className="cursor-pointer">Conferir ou marcar por dia</summary>
+                  <div className="mt-1 space-y-1">{linha.dias.map((d) =>
+                    <div key={d.data} className="flex flex-wrap items-center justify-between gap-2 border-t border-[#edf1ed] pt-1">
+                      <CaixaChecklist marcada={ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade })}
+                        desabilitada={bloqueado}
+                        onMudar={(marcada) => { void marcarIngrediente(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade }, marcada); }}
+                        texto={fmtData(d.data)} />
+                      <span>{d.quantidade > 0 ? formatarQuantidade(d.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</span>
+                    </div>
+                  )}</div>
+                </details>
+              </td>
               <td className="px-3 py-2.5 text-right font-semibold">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB"}</td>
               <td className="px-3 py-2.5 text-right">{formatarQuantidade(linha.disponivel, linha.unidade, linha.item?.nome)}</td>
               <td className="px-3 py-2.5 text-right font-bold text-[#087443]">{linha.comprar > 0 ? formatarQuantidade(linha.comprar, linha.unidade, linha.item?.nome) : linha.qb && linha.quantidade <= 0 ? "Conferir QB" : "—"}</td>
