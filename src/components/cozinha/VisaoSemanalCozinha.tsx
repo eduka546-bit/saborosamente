@@ -430,13 +430,63 @@ export function VisaoSemanalCozinha({
           <button type="button" onClick={() => onAbrirDia(dia.data)} className="rounded-lg border border-[#b9d0c0] px-2.5 py-1.5 text-xs font-bold text-[#087443] hover:bg-[#f3f8f4]">Abrir dia</button>
         </div>
         {dia.pratos.length === 0 ? <p className="text-sm text-[#62766b]">Nenhuma produção cadastrada.</p> : <>
+          {dia.preparacoes.length > 0 && <details className="mb-3 rounded-xl border border-[#cce2d0] bg-[#f7fbf5] p-3 text-sm">
+            <summary className="cursor-pointer font-bold text-[#075636]">
+              Preparações do dia · {dia.preparacoes.filter((p) => etapaMarcada(dia.data, "preparacao", p.id, p.assinatura)).length}/{dia.preparacoes.length} prontas
+            </summary>
+            <p className="mt-2 text-xs text-[#62766b]">Marque somente o que já foi preparado neste dia. A mesma preparação de outra data continua independente.</p>
+            <div className="mt-2 space-y-0.5">{dia.preparacoes.map((p) =>
+              <CaixaChecklist key={p.id}
+                marcada={etapaMarcada(dia.data, "preparacao", p.id, p.assinatura)}
+                desabilitada={bloqueado}
+                onMudar={(marcada) => { void marcarEtapa(dia.data, "preparacao", p.id, p.assinatura, marcada); }}
+                texto={p.nome} />
+            )}</div>
+          </details>}
           <div className="space-y-2">
-            {dia.pratos.map((prato) => <div key={prato.produtoId} className="flex items-start justify-between gap-2 rounded-lg bg-[#f7f9f5] px-3 py-2">
-              <div className="min-w-0"><b className="block break-words text-sm">{rotuloProduto(prato.produto)}</b><p className="text-xs text-[#62766b]">{prato.tamanhos.map((t) => `${t.quantidade}× ${t.peso}g`).join(" · ")}</p></div>
-              <div className="text-right"><b className="block text-sm text-[#087443]">{prato.total} un</b>{prato.concluida && <small className="text-[#527164]">Produzido</small>}</div>
+            {dia.pratos.map((prato) => <div key={prato.produtoId} className="rounded-xl border border-[#e4ece4] bg-[#f7f9f5] p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <b className="block break-words text-sm text-[#173a2d]">{rotuloProduto(prato.produto)}</b>
+                  <p className="mt-0.5 text-xs text-[#62766b]">{prato.tamanhos.map((t) => `${t.quantidade}× ${t.peso}g`).join(" · ")}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <b className="block text-sm text-[#087443]">{prato.total} un</b>
+                  {prato.concluida && <small className="text-[#527164]">Produção concluída</small>}
+                </div>
+              </div>
+              <details className="mt-2 rounded-lg border border-[#dbe7dd] bg-white p-2.5">
+                <summary className="cursor-pointer text-xs font-bold text-[#075636]">
+                  Componentes do prato · {prato.componentes.filter((c) => etapaMarcada(dia.data, "componente", `${prato.produtoId}:${c.id}`, c.assinatura)).length}/{prato.componentes.length} prontos
+                </summary>
+                <p className="mt-2 text-xs text-[#62766b]">Marque individualmente cada item que já está pronto para a montagem.</p>
+                <div className="mt-1 space-y-0.5">{prato.componentes.map((c) =>
+                  <CaixaChecklist key={c.id}
+                    marcada={etapaMarcada(dia.data, "componente", `${prato.produtoId}:${c.id}`, c.assinatura)}
+                    desabilitada={bloqueado}
+                    onMudar={(marcada) => { void marcarEtapa(dia.data, "componente", `${prato.produtoId}:${c.id}`, c.assinatura, marcada); }}
+                    texto={c.nome}
+                    complemento={c.gramas > 0 ? formatarQuantidade(c.gramas, "g", c.nome) : undefined} />
+                )}</div>
+                {!prato.componentes.length && <p className="mt-2 text-xs text-amber-800">Montagem não cadastrada. Confira a ficha deste prato.</p>}
+              </details>
+              <details className="mt-2 rounded-lg border border-[#dbe7dd] bg-white p-2.5">
+                <summary className="cursor-pointer text-xs font-bold text-[#075636]">
+                  Marmitas montadas por tamanho · {prato.tamanhos.filter((t) =>
+                    etapaMarcada(dia.data, "prato", `${prato.produtoId}:${t.peso}`, assinaturaChecklist([prato.produtoId, t.peso, t.quantidade]))
+                  ).length}/{prato.tamanhos.length} tamanhos concluídos
+                </summary>
+                <div className="mt-2 space-y-0.5">{prato.tamanhos.map((t) =>
+                  <CaixaChecklist key={t.peso}
+                    marcada={etapaMarcada(dia.data, "prato", `${prato.produtoId}:${t.peso}`, assinaturaChecklist([prato.produtoId, t.peso, t.quantidade]))}
+                    desabilitada={bloqueado}
+                    onMudar={(marcada) => { void marcarEtapa(dia.data, "prato", `${prato.produtoId}:${t.peso}`, assinaturaChecklist([prato.produtoId, t.peso, t.quantidade]), marcada); }}
+                    texto={`${t.peso} g — ${t.quantidade} marmita(s) montadas`} />
+                )}</div>
+                <p className="mt-2 text-xs text-[#62766b]">Esta marcação visual não muda o status oficial da produção nem movimenta o estoque.</p>
+              </details>
             </div>)}
           </div>
-          {dia.preparacoes.length > 0 && <details className="mt-3 rounded-lg border border-[#e4ece4] px-3 py-2 text-sm"><summary className="cursor-pointer font-semibold text-[#075636]">Preparações deste dia ({dia.preparacoes.length})</summary><p className="mt-1 text-xs text-[#62766b]">Lista por dia, sem misturar ou somar preparos de outras datas. Para os pesos exatos e os já prontos, abra a ficha do dia.</p><div className="mt-2 flex flex-wrap gap-1.5">{dia.preparacoes.map((nome) => <span key={nome} className="rounded-full bg-[#edf5e6] px-2 py-1 text-xs">{nome}</span>)}</div></details>}
           <p className="mt-3 text-xs font-semibold text-[#527164]">Total do dia: {dia.pratos.reduce((v, p) => v + p.total, 0)} unidades</p>
         </>}
       </article>)}
