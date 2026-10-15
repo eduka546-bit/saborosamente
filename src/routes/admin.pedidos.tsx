@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
+import { sortOrderItems } from "@/lib/order-item-order";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
@@ -100,7 +101,7 @@ function orderStatusText(status: unknown, metodoEntrega: unknown) {
 function buildOrderWhatsappMessage(order: any) {
   const protocolo = String(order?.id ?? "").slice(0, 8).toUpperCase();
   const nome = String(order?.nome_cliente ?? "cliente").trim();
-  const itens = Array.isArray(order?.itens) ? order.itens : [];
+  const itens = sortOrderItems(Array.isArray(order?.itens) ? order.itens : []);
 
   const itemLines = itens.map((item: any) => {
     const productName = item?.produtos?.nome ?? item?.nome_item ?? "Produto";
@@ -279,7 +280,7 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {order.itens?.map((item: any) => (
+                    {sortOrderItems(order.itens ?? []).map((item: any) => (
                       <tr key={item.id}>
                         <td className="px-4 py-4">
                           <div className="font-medium text-gray-900">{item.produtos?.nome}</div>
@@ -1222,7 +1223,7 @@ function AdminOrdersPage() {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex -space-x-2 overflow-hidden">
-                        {order.itens?.slice(0, 3).map((item: any, idx: number) => (
+                        {sortOrderItems(order.itens ?? []).slice(0, 3).map((item: any, idx: number) => (
                           <div
                             key={item.id}
                             className="h-7 w-7 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-bold"
