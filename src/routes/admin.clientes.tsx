@@ -70,6 +70,7 @@ function AdminClientesPage() {
   const queryClient = useQueryClient();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [vinculandoHistorico, setVinculandoHistorico] = useState(false);
 
   useEffect(() => {
     if (!selectedClient) return;
@@ -106,7 +107,7 @@ function AdminClientesPage() {
           if (!data || data.length < 500) return rows;
         }
       }
-      const [profiles, orders, raffleLeads, contatosWhatsApp] = await Promise.all([
+      const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
         carregarTabela("sorteio_leads"),
@@ -115,8 +116,14 @@ function AdminClientesPage() {
           if (error) throw error;
           return Array.isArray(data) ? data : [];
         })(),
+        (async () => {
+          const { data, error } = await (supabase as any)
+            .from("clientes_whatsapp_historico").select("*").order("ultimo_pedido_em", { ascending: false }).limit(1500);
+          if (error) throw error;
+          return data ?? [];
+        })(),
       ]);
-      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp);
+      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp);
     },
   });
 
@@ -649,6 +656,7 @@ function AdminClientesPage() {
                 <h3 className="text-xl font-bold text-gray-900">{selectedClient.nome || selectedClient.telefone || "Sem nome"}</h3>
                 {selectedClient.sorteioLeadId && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                 {selectedClient.preCadastroWhatsApp && <Badge className="border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro por WhatsApp</Badge>}
+                {selectedClient.historicoWhatsapp && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Histórico de pedidos WhatsApp</Badge>}
                 {selectedClient.whatsappOfertasAutorizado === true && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Cupons e ofertas autorizados</Badge>}
                 {selectedClient.whatsappOfertasAutorizado === false && <Badge className="border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-50">Ofertas não autorizadas</Badge>}
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">
@@ -729,6 +737,22 @@ function AdminClientesPage() {
                 </Link>
               )}
               {selectedClient.id && <CashbackCliente userId={selectedClient.id} />}
+              {selectedClient.profileId && selectedClient.pedidos?.some((p: any) => p.origem === "whatsapp" && !p.user_id) && (
+                <button type="button" disabled={vinculandoHistorico} onClick={async () => {
+                  if (!window.confirm("Confirme que esta conta pertence ao cliente dos pedidos WhatsApp com o mesmo telefone. Vincular ao histórico de compras?")) return;
+                  setVinculandoHistorico(true);
+                  try {
+                    const { data, error } = await (supabase as any).rpc("vincular_historico_whatsapp_admin", { p_cliente_id: selectedClient.profileId });
+                    if (error) throw error;
+                    await queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
+                    setSelectedClient(null);
+                    toast.success(`${Number(data || 0)} pedido(s) vinculado(s) à conta do cliente.`);
+                  } catch (err: any) { toast.error(err?.message || "Não foi possível vincular o histórico."); }
+                  finally { setVinculandoHistorico(false); }
+                }} className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 disabled:opacity-60">
+                  <ShoppingBag size={15}/> {vinculandoHistorico ? "Vinculando..." : "Vincular pedidos WhatsApp à conta"}
+                </button>
+              )}
             </div>
 
             <div className="rounded-xl border p-4 mb-6 space-y-2">
