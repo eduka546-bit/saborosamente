@@ -12,6 +12,7 @@ import { commerceReturnPath } from "@/lib/commerce-return-path";
 import { checkCpfAlreadyRegistered } from "@/lib/signup.functions";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
+import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
 
 export const Route = createFileRoute("/auth")({
@@ -75,6 +76,29 @@ function AuthPage() {
     const telefoneDoCarrinho = lerTelefonePreCadastroWhatsApp();
     if (telefoneDoCarrinho) setTelefone((atual) => atual || telefoneDoCarrinho);
   }, [confirmed, mode]);
+
+  // Se chegou ao login com itens no carrinho, conserva o e-mail digitado
+  // como contato NÃO VERIFICADO do rascunho, sem conceder autorização comercial.
+  useEffect(() => {
+    if (redirect !== "/checkout" || typeof window === "undefined") return;
+    const value = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return;
+    if (!window.localStorage.getItem("saborosamente.session_id")) return;
+    let canceled = false;
+    const timer = window.setTimeout(async () => {
+      for (let attempt = 0; attempt < 2 && !canceled; attempt++) {
+        const { data, error } = await supabase.rpc("capture_checkout_identity", {
+          p_session_id: getAbandonedCartSessionId(),
+          p_email: value,
+          p_nome: null,
+          p_telefone: null,
+        });
+        if (error || data) break;
+        if (!canceled && attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 1400));
+      }
+    }, 900);
+    return () => { canceled = true; window.clearTimeout(timer); };
+  }, [email, redirect]);
 
   const senhaValida = (value: string) => value.length > 0;
 
