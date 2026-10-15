@@ -410,6 +410,9 @@ function Checkout() {
   const recoveryNome = watch("nome");
   const recoveryEmail = watch("email");
   const recoveryTelefone = watch("telefone");
+  const recoveryCep = watch("cep");
+  const [cepFeedback, setCepFeedback] = useState("");
+  const [cepPrecisaAjuda, setCepPrecisaAjuda] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -431,6 +434,57 @@ function Checkout() {
       });
     }
   }, [recoveryConsent]);
+
+  // Consulta de CEP é uma ajuda de preenchimento: a cidade e o bairro
+  // continuam sujeitos à tabela real de áreas atendidas/frete.
+  useEffect(() => {
+    const cep = String(recoveryCep ?? "").replace(/\D/g, "");
+    if (cep.length !== 8) {
+      setCepFeedback(cep.length ? "Digite os 8 números do CEP." : "");
+      setCepPrecisaAjuda(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCepFeedback("Consultando CEP...");
+      try {
+        const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal });
+        if (!resposta.ok) throw new Error("Consulta indisponível");
+        const enderecoCep = await resposta.json();
+        if (enderecoCep.erro) {
+          setCepFeedback("CEP não encontrado. Selecione a cidade e o bairro manualmente ou fale conosco.");
+          setCepPrecisaAjuda(true);
+          return;
+        }
+        const normalizar = (valor: string) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+        const cidadeCadastrada = [...new Set(taxas.map((t) => t.cidade))].find((cidade) => normalizar(cidade) === normalizar(enderecoCep.localidade));
+        if (!cidadeCadastrada || enderecoCep.uf !== "SC" && enderecoCep.uf !== "PR") {
+          setCepFeedback("Esta cidade não consta entre nossas áreas de entrega. Consulte nossa equipe pelo WhatsApp.");
+          setCepPrecisaAjuda(true);
+          return;
+        }
+        setValue("cidade", cidadeCadastrada, { shouldValidate: true });
+        setSelectedCity(cidadeCadastrada);
+        const bairroCadastrado = taxas.find((taxa) => taxa.cidade === cidadeCadastrada && normalizar(taxa.bairro) === normalizar(enderecoCep.bairro));
+        setSelectedBairro(bairroCadastrado?.bairro ?? "");
+        if (!String(getValues("endereco") ?? "").trim() && enderecoCep.logradouro) {
+          setValue("endereco", enderecoCep.logradouro, { shouldValidate: false });
+        }
+        if (bairroCadastrado) {
+          setCepFeedback("Cidade e bairro identificados. Confira o endereço e número.");
+          setCepPrecisaAjuda(false);
+        } else {
+          setCepFeedback("Cidade identificada. Escolha seu bairro na lista; se não aparecer, chame nossa equipe no WhatsApp.");
+          setCepPrecisaAjuda(true);
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setCepFeedback("Não foi possível consultar o CEP. Selecione cidade e bairro manualmente ou fale conosco.");
+        setCepPrecisaAjuda(true);
+      }
+    }, 600);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [recoveryCep, taxas, getValues, setValue, setSelectedCity, setSelectedBairro]);
 
   useEffect(() => {
     if (!recoveryConsent || lines.length === 0) return;
@@ -1249,6 +1303,15 @@ function Checkout() {
                       </option>
                     ))}
                 </select>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Não encontrou seu bairro? Verifique a cidade selecionada ou{" "}
+                  <a
+                    className="font-semibold text-primary underline underline-offset-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={`https://wa.me/${String((siteSettings as any)?.contato_whatsapp || (siteSettings as any)?.footer_whatsapp || "5547991607757").replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Não encontrei meu bairro na lista de entrega da SaborosaMente. Cidade: ${selectedCity || "não selecionada"}. CEP: ${String(recoveryCep ?? "")}. Poderiam me ajudar?`)}`}
+                  >fale conosco pelo WhatsApp</a>.
+                </p>
               </div>
               <div>
                 <label htmlFor="cep" className="text-base font-medium">
@@ -1259,7 +1322,21 @@ function Checkout() {
                   placeholder="00000-000"
                   className={fieldClass}
                   {...register("cep")}
+                  inputMode="numeric"
+                  maxLength={9}
+                  autoComplete="postal-code"
                 />
+                {cepFeedback && <p className="mt-2 text-sm text-muted-foreground" role="status">{cepFeedback}</p>}
+                {cepPrecisaAjuda && (
+                  <a
+                    className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary underline underline-offset-2"
+                    href={`https://wa.me/${String((siteSettings as any)?.contato_whatsapp || (siteSettings as any)?.footer_whatsapp || "5547991607757").replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Preciso de ajuda com a entrega. Meu CEP é ${String(recoveryCep ?? "")}.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Pedir ajuda com meu CEP no WhatsApp
+                  </a>
+                )}
               </div>
             </div>
 
