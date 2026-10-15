@@ -14,6 +14,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { sortOrderItems } from "@/lib/order-item-order";
 import { formatBRL } from "@/lib/products";
 import {
   configEntregaParaCidade,
@@ -851,7 +852,7 @@ function Checkout() {
           userId: session?.user?.id,
           accessToken: session.access_token,
           cashbackUsado: cashbackDesconto,
-          items: lines.map((l) => ({
+          items: sortOrderItems(lines).map((l) => ({
             productId: l.custom ? null : (l.comboPronto?.comboId ?? l.product.id),
             quantity: l.quantity,
             weight: l.weight,
@@ -1114,7 +1115,7 @@ function Checkout() {
         </summary>
         <div className="border-t border-border px-4 py-3">
           <ul className="space-y-2 text-base">
-            {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
+            {sortOrderItems(lines).map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
                 key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                 className="flex justify-between gap-3"
@@ -1917,7 +1918,7 @@ function Checkout() {
         <aside className="hidden h-fit rounded-3xl border border-border bg-card p-6 shadow-soft lg:sticky lg:top-6 lg:block">
           <h2 className="text-lg font-semibold">Seu pedido</h2>
           <ul className="mt-4 space-y-3 text-base">
-            {lines.map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
+            {sortOrderItems(lines).map(({ product, quantity, weight, opcoes, subtotal: lineTotal }) => (
               <li
                 key={`${product.id}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
                 className="flex justify-between gap-3"

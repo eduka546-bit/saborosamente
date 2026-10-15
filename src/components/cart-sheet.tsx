@@ -1,5 +1,6 @@
 import { Minus, Plus, Trash2, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { sortOrderItems } from "@/lib/order-item-order";
 import { trackEvent } from "@/lib/analytics";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
@@ -73,7 +74,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
           ) : (
             <>
               <ul className="space-y-4">
-                {lines.map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
+                {sortOrderItems(lines).map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
                   const stock = custom ? null : estoqueDaLinha(product, weight);
                   const reachedStock = stock !== null && quantity >= stock;
                   return (

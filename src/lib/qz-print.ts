@@ -1,3 +1,5 @@
+import { sortOrderItems } from "@/lib/order-item-order";
+
 /**
  * QZ Tray helper — impressão direta via TCP/porta 9100
  *
@@ -131,7 +133,7 @@ export function gerarConteudoComanda(order: any, colunas = 32): string {
   const timeStr = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const seq = order.id.slice(-6).toUpperCase();
   const isDelivery = order.metodo_entrega === "entrega";
-  const itens: any[] = order.itens ?? [];
+  const itens: any[] = sortOrderItems(order.itens ?? []);
   const subtotal = itens.reduce((s: number, i: any) => s + i.preco_unitario * i.quantidade, 0);
   const desconto = order.desconto_aplicado ?? 0;
   const entrega = order.taxa_entrega ?? 0;

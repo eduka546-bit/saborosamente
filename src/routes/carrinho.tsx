@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Gift, Minus, Plus, Trash2 } from "lucide-react";
 import { FREE_SHIPPING_FROM, useCart } from "@/lib/cart";
+import { sortOrderItems } from "@/lib/order-item-order";
 import { formatBRL } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import { regraEntregaCidade } from "@/lib/entrega-config";
@@ -143,7 +144,7 @@ function Carrinho() {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           <ul className="space-y-4">
-            {lines.map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
+            {sortOrderItems(lines).map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
               const stock = custom ? null : estoqueDaLinha(product, weight);
               const reachedStock = stock !== null && quantity >= stock;
               return (
