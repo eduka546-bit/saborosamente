@@ -19,6 +19,7 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
       const disponivel = Math.max(0, n(saldo?.quantidade_atual));
       const necessario = Math.max(0, n(x.quantidade));
       const comprar = x.qb ? 0 : Math.max(0, necessario - disponivel);
+      const semCadastro = String(x.id).startsWith("avulso:");
       const custoUnitario =
         x.unidade === "un" || x.unidade === "L"
           ? n(x.item?.custo_por_unidade)
@@ -29,6 +30,7 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
         necessario,
         comprar,
         custoEstimado: comprar * custoUnitario,
+        semCadastro,
       };
     });
   }, [necessidades, estoque]);
@@ -37,6 +39,7 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
   const visiveis = mostrarTodos ? linhas : faltantes;
   const custoTotal = faltantes.reduce((s: number, x: any) => s + n(x.custoEstimado), 0);
   const suficientes = linhas.filter((x: any) => !x.qb && x.comprar <= 0).length;
+  const extrasSemPreco = faltantes.filter((x: any) => x.semCadastro).length;
 
   const imprimir = () => {
     const area = document.getElementById("lista-compras-impressao");
@@ -81,16 +84,16 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
           <>
           <div className="grid gap-2 p-3 md:hidden">
             {visiveis.map((x: any) => (
-              <article key={`mobile-${x.id}`} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
+              <article key={`mobile-${x.id}:${x.unidade}`} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
                 <div className="flex min-w-0 items-start justify-between gap-3">
-                  <div className="min-w-0"><b className="block break-words">{x.item?.nome}</b>{x.pratos?.length ? <p className="mt-1 break-words text-[11px] text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p> : null}</div>
+                  <div className="min-w-0"><b className="block break-words">{x.item?.nome}</b>{x.manual && <small className="mt-0.5 block font-semibold text-[#a16207]">Incluído ou ajustado manualmente</small>}{x.pratos?.length ? <p className="mt-1 break-words text-[11px] text-[#62766b]">Usado em: {x.pratos.join(" · ")}</p> : null}</div>
                   <b className="shrink-0 text-[#087443]">{x.qb ? "conferir" : x.comprar > 0 ? formatarQtd(x.comprar, x.unidade) : "—"}</b>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg bg-[#f4f8f4] p-2"><span className="text-[#62766b]">Necessário</span><b className="mt-0.5 block">{x.qb ? "a gosto" : formatarQtd(x.necessario, x.unidade)}</b></div>
-                  <div className="rounded-lg bg-[#f4f8f4] p-2"><span className="text-[#62766b]">Em estoque</span><b className="mt-0.5 block">{formatarQtd(x.disponivel, x.unidade)}</b></div>
+                  <div className="rounded-lg bg-[#f4f8f4] p-2"><span className="text-[#62766b]">Em estoque</span><b className="mt-0.5 block">{x.semCadastro ? "Sem cadastro" : formatarQtd(x.disponivel, x.unidade)}</b></div>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#edf1ed] pt-2 text-xs"><span className="text-[#62766b]">Estimativa</span><b>{x.qb ? "—" : dinheiro(x.custoEstimado)}</b></div>
+                <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#edf1ed] pt-2 text-xs"><span className="text-[#62766b]">Estimativa</span><b>{x.qb || x.semCadastro ? "—" : dinheiro(x.custoEstimado)}</b></div>
               </article>
             ))}
           </div>
@@ -99,12 +102,12 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
               <thead className="bg-[#f4f8f4] text-left text-xs uppercase text-[#527164]"><tr><th className="px-4 py-3">Ingrediente</th><th className="px-4 py-3">Necessário</th><th className="px-4 py-3">Em estoque</th><th className="px-4 py-3">Comprar</th><th className="px-4 py-3 text-right">Estimativa</th></tr></thead>
               <tbody>
                 {visiveis.map((x: any) => (
-                  <tr key={x.id} className="border-t border-[#edf1ed]">
-                    <td className="px-4 py-3"><div className="font-bold">{x.item?.nome}</div>{x.pratos?.length ? <div className="mt-0.5 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</div> : null}</td>
+                  <tr key={`${x.id}:${x.unidade}`} className="border-t border-[#edf1ed]">
+                    <td className="px-4 py-3"><div className="font-bold">{x.item?.nome}</div>{x.manual && <div className="text-[11px] font-semibold text-[#a16207]">Manual</div>}{x.pratos?.length ? <div className="mt-0.5 text-xs text-[#62766b]">Usado em: {x.pratos.join(" · ")}</div> : null}</td>
                     <td className="px-4 py-3 font-semibold">{x.qb ? "a gosto" : formatarQtd(x.necessario, x.unidade)}</td>
-                    <td className="px-4 py-3">{formatarQtd(x.disponivel, x.unidade)}</td>
+                    <td className="px-4 py-3">{x.semCadastro ? "Sem cadastro" : formatarQtd(x.disponivel, x.unidade)}</td>
                     <td className="px-4 py-3"><strong>{x.qb ? "conferir estoque" : x.comprar > 0 ? formatarQtd(x.comprar, x.unidade) : "—"}</strong></td>
-                    <td className="px-4 py-3 text-right font-bold">{x.qb ? "—" : dinheiro(x.custoEstimado)}</td>
+                    <td className="px-4 py-3 text-right font-bold">{x.qb || x.semCadastro ? "—" : dinheiro(x.custoEstimado)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -113,7 +116,7 @@ export function ListaCompras({ dataProducao, necessidades = [], estoque = [] }: 
           </>
         )}
       </div>
-      <div className="mt-4 flex items-center gap-2 rounded-xl bg-[#edf5e6] p-3 text-sm text-[#315e49]"><ShoppingCart size={18} /><span>Os valores usam o custo cadastrado em cada ingrediente e servem como estimativa. Ao atualizar o último valor pago, a previsão também muda.</span></div>
+      <div className="mt-4 flex items-center gap-2 rounded-xl bg-[#edf5e6] p-3 text-sm text-[#315e49]"><ShoppingCart size={18} /><span>Os valores usam o custo cadastrado em cada ingrediente e servem como estimativa. Ao atualizar o último valor pago, a previsão também muda. {extrasSemPreco > 0 && `${extrasSemPreco} item(ns) sem cadastro ficam fora da estimativa de custos até serem cadastrados.`}</span></div>
     </section>
   );
 }
