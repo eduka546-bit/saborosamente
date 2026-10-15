@@ -1,3 +1,5 @@
+import { sortOrderItems } from "@/lib/order-item-order";
+
 /**
  * Comanda térmica para impressora POS58 (papel 58mm, ~32 colunas)
  *
@@ -146,7 +148,7 @@ ${order.endereco_cep ?? ""}`
           {SEP}
           ITENS
           {SEP_THIN}
-          {order.itens
+          {sortOrderItems(order.itens)
             .map((item) => {
               const total_item = item.preco_unitario * item.quantidade;
               const lineProd = `${item.quantidade}x ${receiptItemName(item)}${receiptWeight(item) ? ` - ${receiptWeight(item)}` : ""}`;
@@ -214,7 +216,7 @@ export function printReceipt(order: ThermalReceiptProps["order"]) {
   const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[char] ?? char);
-  const itensHtml = order.itens.map((item) => {
+  const itensHtml = sortOrderItems(order.itens).map((item) => {
     const tot = (item.preco_unitario * item.quantidade).toFixed(2);
     // Extrai o sabor da observação ("Peso: 300g | TD01 - Nome" ou só "Peso: 300g")
     const obs = item.observacao ?? "";
