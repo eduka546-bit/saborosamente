@@ -494,7 +494,11 @@ function Checkout() {
         }
         const normalizar = (valor: string) => String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
         const cidadeCadastrada = [...new Set(taxas.map((t) => t.cidade))].find((cidade) => normalizar(cidade) === normalizar(enderecoCep.localidade));
-        if (!cidadeCadastrada || enderecoCep.uf !== "SC" && enderecoCep.uf !== "PR") {
+        if (!cidadeCadastrada || (enderecoCep.uf !== "SC" && enderecoCep.uf !== "PR")) {
+          // Evita reutilizar um frete de cidade anteriormente selecionada.
+          setValue("cidade", "", { shouldValidate: true });
+          setSelectedCity("");
+          setSelectedBairro("");
           setCepFeedback("Esta cidade não consta entre nossas áreas de entrega. Consulte nossa equipe pelo WhatsApp.");
           setCepPrecisaAjuda(true);
           return;
