@@ -1367,6 +1367,7 @@ function Checkout() {
                   maxLength={9}
                   autoComplete="postal-code"
                 />
+                {errors.cep && <p className="mt-2 text-sm text-destructive">{errors.cep.message}</p>}
                 {cepFeedback && <p className="mt-2 text-sm text-muted-foreground" role="status">{cepFeedback}</p>}
                 {cepPrecisaAjuda && (
                   <a
