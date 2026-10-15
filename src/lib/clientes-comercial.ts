@@ -6,6 +6,7 @@ export type ClienteComercial = {
   whatsappOfertasAutorizado?: boolean;
   whatsappOfertasCadastradoEm?: string;
   preCadastroWhatsApp?: boolean;
+  historicoWhatsapp?: boolean;
   chave: string;
   nome?: string;
   telefone?: string;
@@ -38,6 +39,7 @@ export function montarClientesComerciais(
   orders: any[],
   leads: any[] = [],
   whatsappContacts: any[] = [],
+  historicoWhatsapp: any[] = [],
 ): ClienteComercial[] {
   const clients = new Map<string, ClienteComercial>();
   const phones = new Map<string, Set<string>>(),
@@ -178,6 +180,40 @@ export function montarClientesComerciais(
         preCadastroWhatsApp: true,
         whatsappOfertasAutorizado: Boolean(contact.consentimento),
         whatsappOfertasCadastradoEm: contact.cadastrado_em ?? undefined,
+        totalPedidos: 0,
+        valorGasto: 0,
+        ultimoPedido: null,
+        pedidos: [],
+      });
+    }
+  }
+  // Fichas persistentes de pedidos manuais, inclusive quando ainda não existe
+  // cadastro com login. Nunca geram consentimento de marketing.
+  for (const ficha of historicoWhatsapp) {
+    const tel = phone(ficha.telefone_normalizado);
+    const candidates = [...clients.entries()]
+      .filter(([, c]) => tel.length >= 10 && phone(c.telefone) === tel)
+      .map(([key]) => key);
+    const key = candidates.length === 1 ? candidates[0] : "whatsapp-historico:" + ficha.id;
+    const existing = clients.get(key);
+    if (existing) {
+      existing.historicoWhatsapp = true;
+      if (!existing.nome) existing.nome = ficha.nome || undefined;
+      if (!existing.telefone && tel) existing.telefone = tel;
+      if ((!existing.email || existing.email === "Não informado") && ficha.email) existing.email = ficha.email;
+      if (!existing.cidade && ficha.cidade) existing.cidade = ficha.cidade;
+      if (!existing.bairro && ficha.bairro) existing.bairro = ficha.bairro;
+      if (!existing.cadastradoEm) existing.cadastradoEm = ficha.primeiro_pedido_em ?? null;
+    } else {
+      clients.set(key, {
+        chave: key,
+        nome: ficha.nome || undefined,
+        telefone: tel || undefined,
+        email: ficha.email || "Não informado",
+        bairro: ficha.bairro || undefined,
+        cidade: ficha.cidade || null,
+        cadastradoEm: ficha.primeiro_pedido_em ?? null,
+        historicoWhatsapp: true,
         totalPedidos: 0,
         valorGasto: 0,
         ultimoPedido: null,
