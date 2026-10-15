@@ -141,7 +141,7 @@ export function DashboardPedidosPreview() {
     finally {setBusyId(null);}
   };
   const [query, setQuery] = useState("");
-  const [range, setRange] = useState("all");
+  const [range, setRange] = useState("7");
   const [selected, setSelected] = useState<any>(null);
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["admin-orders-dashboard-preview"],
@@ -273,7 +273,8 @@ export function DashboardPedidosPreview() {
     const cutoff = range === "all" ? null : new Date(Date.now() - Number(range) * 86400000);
     const search = query.trim().toLowerCase();
     return orders.filter((o: any) => {
-      if (cutoff && new Date(o.created_at) < cutoff) return false;
+      // Pedidos ainda abertos não desaparecem só porque têm mais de 7 dias.
+      if (cutoff && new Date(o.created_at) < cutoff && !isOpenOrder(o.status) && o.status !== "rascunho") return false;
       if (originFilter !== "todos" && String(o.origem || "site") !== originFilter) return false;
       if (statusFilter !== "todos" && String(o.status) !== statusFilter) return false;
       if (minValue !== "" && Number(o.valor_total || 0) < Number(minValue)) return false;
@@ -285,7 +286,7 @@ export function DashboardPedidosPreview() {
   const shown = filtered.filter((o: any) => o.status !== "rascunho");
   const today = new Date().toLocaleDateString("pt-BR");
   const summary = [
-    { text: "Pedidos no período", value: shown.length, color: "#24563e" },
+    { text: "Pedidos exibidos", value: shown.length, color: "#24563e" },
     { text: "Em preparação", value: shown.filter((o: any) => o.status === "preparando").length, color: "#37814b" },
     { text: "A entregar / retirar", value: shown.filter((o: any) => ["pronto para retirada", "saiu para entrega"].includes(o.status)).length, color: "#2f79b8" },
     { text: "Concluídos", value: shown.filter((o: any) => o.status === "entregue").length, color: "#7f5aae" },
