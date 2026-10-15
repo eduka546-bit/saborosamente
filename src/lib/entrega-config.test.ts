@@ -67,6 +67,15 @@ describe("agenda e elegibilidade de cada cidade em três passadas", () => {
     expect(validarEntregaProgramada({ cidade: "Mafra", data: "16/10/2026", horario: "13:30h ~ 14:30h", totalUnidades: 5 }).ok).toBe(false);
   });
 
+  it("não oferece janelas que ultrapassam 13h no sábado", () => {
+    const cfg = configEntregaParaCidade(null, "São Bento do Sul");
+    const sabado = horariosDisponiveisParaData(cfg, "17/10/2026");
+    expect(sabado).toContain("11:30h ~ 12:30h");
+    expect(sabado).not.toContain("12:30h ~ 13:30h");
+    expect(sabado).not.toContain("13:30h ~ 14:30h");
+    expect(validarEntregaProgramada({ cidade: "São Bento do Sul", data: "17/10/2026", horario: "12:30h ~ 13:30h", totalUnidades: 1 }).ok).toBe(false);
+  });
+
   it("bloqueia horário de entrega passado hoje", () => {
     vi.setSystemTime(new Date("2026-10-15T15:00:00.000Z"));
     expect(validarEntregaProgramada({ cidade: "São Bento do Sul", data: "15/10/2026", horario: "09:30h ~ 10:30h", totalUnidades: 1 }).ok).toBe(false);
