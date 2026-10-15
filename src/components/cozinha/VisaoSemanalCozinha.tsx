@@ -188,7 +188,7 @@ export function VisaoSemanalCozinha({
   // SOMENTE ingredientes que ainda serão necessários entram no consolidado.
   // A chave inclui a unidade para não misturar g, L ou unidades.
   const compras = useMemo(() => {
-    const mapa = new Map<string, Necessidade & { dias: { data: string; quantidade: number }[] }>();
+    const mapa = new Map<string, Necessidade & { dias: { data: string; quantidade: number; manualId?: string }[] }>();
     for (const dia of dias) {
       for (const linha of dia.ingredientes) {
         const chave = `${linha.id}:${linha.unidade}`;
@@ -196,7 +196,7 @@ export function VisaoSemanalCozinha({
         atual.quantidade += quantidade(linha.quantidade);
         atual.qb = atual.qb || linha.qb;
         atual.pratos = Array.from(new Set([...atual.pratos, ...linha.pratos]));
-        atual.dias.push({ data: dia.data, quantidade: quantidade(linha.quantidade) });
+        atual.dias.push({ data: dia.data, quantidade: quantidade(linha.quantidade), manualId: linha.manualId });
         mapa.set(chave, atual);
       }
     }
@@ -529,9 +529,11 @@ export function VisaoSemanalCozinha({
                 desabilitada={bloqueado}
                 onMudar={(marcada) => { void marcarIngrediente(dia.data, linha, marcada); }}
                 texto={String(linha.item?.nome || "Ingrediente")} />
+              <div className="pl-2">
+                <EditarQuantidadeIngrediente data={dia.data} linha={linha} controle={manuaisPeriodo} catalogo={catalogoIngredientes} />
+              </div>
             </div>
-            <b className="shrink-0 pt-1.5 text-xs text-[#087443] sm:text-sm">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</b>
-            <EditarQuantidadeIngrediente data={dia.data} linha={linha} controle={manuaisPeriodo} catalogo={catalogoIngredientes} />
+            <b className="shrink-0 pt-1.5 text-xs text-[#087443] sm:text-sm">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : linha.qb ? "QB · conferir" : "0"}</b>
           </div>)}</div>}
       </article>)}
     </div>}
@@ -544,19 +546,23 @@ export function VisaoSemanalCozinha({
             <thead className="bg-[#f1f7ed] text-xs font-semibold uppercase text-[#527164]"><tr><th className="px-3 py-3">Ingrediente / dias</th><th className="px-3 py-3 text-right">Necessário</th><th className="px-3 py-3 text-right">Em estoque</th><th className="px-3 py-3 text-right">Comprar</th></tr></thead>
             <tbody>{compras.map((linha) => <tr key={`${linha.id}:${linha.unidade}`} className="border-t border-[#edf1ed] align-top">
               <td className="px-3 py-2.5">
-                <CaixaChecklist
-                  marcada={linha.dias.length > 0 && linha.dias.every((d) => ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade }))}
-                  desabilitada={bloqueado}
-                  onMudar={(marcada) => { void marcarIngredienteTodosDias(linha, marcada); }}
-                  texto={String(linha.item?.nome || "Ingrediente")}
-                  complemento="Marcar como separado em todos os dias selecionados" />
+                {linha.id.startsWith("avulso:") ? (
+                  <p className="font-bold text-[#173a2d]">{linha.item?.nome} <span className="block text-xs font-normal text-[#62766b]">Item avulso: marque por dia abaixo</span></p>
+                ) : (
+                  <CaixaChecklist
+                    marcada={linha.dias.length > 0 && linha.dias.every((d) => ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade }))}
+                    desabilitada={bloqueado}
+                    onMudar={(marcada) => { void marcarIngredienteTodosDias(linha, marcada); }}
+                    texto={String(linha.item?.nome || "Ingrediente")}
+                    complemento="Marcar como separado em todos os dias selecionados" />
+                )}
                 <details className="mt-1 text-xs text-[#62766b]">
                   <summary className="cursor-pointer">Conferir ou marcar por dia</summary>
                   <div className="mt-1 space-y-1">{linha.dias.map((d) =>
                     <div key={d.data} className="flex flex-wrap items-center justify-between gap-2 border-t border-[#edf1ed] pt-1">
-                      <CaixaChecklist marcada={ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade })}
+                      <CaixaChecklist marcada={ingredienteMarcado(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade, manualId: d.manualId })}
                         desabilitada={bloqueado}
-                        onMudar={(marcada) => { void marcarIngrediente(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade }, marcada); }}
+                        onMudar={(marcada) => { void marcarIngrediente(d.data, { id: linha.id, unidade: linha.unidade, quantidade: d.quantidade, manualId: d.manualId }, marcada); }}
                         texto={fmtData(d.data)} />
                       <span>{d.quantidade > 0 ? formatarQuantidade(d.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</span>
                     </div>
