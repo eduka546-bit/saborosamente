@@ -26,6 +26,23 @@ const filters = {
   ordem: "recentes",
 };
 describe("filtros comerciais de clientes", () => {
+  it("reúne compras manuais do mesmo telefone mesmo quando o e-mail muda", () => {
+    const semConta = {
+      id: "whats-a", user_id: null, origem: "whatsapp", status: "preparando",
+      nome_cliente: "Cliente manual", email_cliente: "primeiro@example.com",
+      telefone_cliente: "(47) 99999-7777", valor_total: 90,
+      created_at: "2026-10-10T10:00:00Z",
+    };
+    const clientes = montarClientesComerciais([], [
+      semConta,
+      { ...semConta, id: "whats-b", email_cliente: "outro@example.com",
+        telefone_cliente: "+55 47 99999-7777", created_at: "2026-10-11T10:00:00Z" },
+    ]);
+    expect(clientes).toHaveLength(1);
+    expect(clientes[0].totalPedidos).toBe(2);
+    expect(clientes[0].valorGasto).toBe(180);
+  });
+
   it("vincula pedido convidado por telefone e não classifica comprador como sem pedidos", () => {
     const c = montarClientesComerciais(profiles, [
       { ...order, user_id: null, telefone_cliente: "+55 47 99999-0000" },
