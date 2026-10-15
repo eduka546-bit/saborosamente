@@ -3,7 +3,7 @@
  * O acesso é sempre limitado ao user_id da sessão, respeitando o RLS do Supabase.
  */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ function MeusPedidosPage() {
   const [pedidos, setPedidos] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [repetindo, setRepetindo] = useState<string | null>(null);
+  const vinculoConsultado = useRef<string | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -106,6 +107,12 @@ function MeusPedidosPage() {
   async function buscar(userId: string) {
     setLoading(true);
     try {
+      // Telefone digitado pelo visitante não basta para liberar histórico privado.
+      if (vinculoConsultado.current !== userId) {
+        vinculoConsultado.current = userId;
+        const { error: vinculoError } = await supabase.rpc("vincular_historico_whatsapp_verificado" as any);
+        if (vinculoError) console.warn("Histórico do WhatsApp: vinculação indisponível.");
+      }
       const { data, error } = await supabase
         .from("pedidos")
         .select("id, created_at, status, valor_total, metodo_entrega, origem, itens:pedido_itens(*)")
