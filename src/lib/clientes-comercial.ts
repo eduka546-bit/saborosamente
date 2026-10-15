@@ -83,7 +83,7 @@ export function montarClientesComerciais(
       direct ||
       (candidates.size === 1
         ? [...candidates][0]
-        : `convidado:${normalize(o.email_cliente) || phone(o.telefone_cliente) || o.id}`);
+        : `convidado:${phone(o.telefone_cliente) || normalize(o.email_cliente) || o.id}`);
     if (!clients.has(key))
       clients.set(key, {
         id: o.user_id || undefined,
