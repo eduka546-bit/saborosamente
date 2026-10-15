@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ClipboardList, Package, ShoppingCart, AlertTriangle, CalendarDays } from "lucide-react";
+import {
+  MAX_DIAS_PLANEJAMENTO, alterarLimitePeriodo, deslocarPeriodo,
+  listarDatasPeriodo, periodoComDuracao, selecionarDiasPeriodo,
+  type PeriodoProducao,
+} from "@/lib/cozinha-periodo";
 
 type Unidade = "g" | "un" | "L";
 type Necessidade = {
@@ -12,7 +17,7 @@ type Necessidade = {
 };
 
 type Props = {
-  inicioSemana: string;
+  periodo: PeriodoProducao;
   producoes: any[];
   carregando: boolean;
   erro: boolean;
@@ -23,32 +28,66 @@ type Props = {
   calcularNecessidades: (linhas: any[]) => Necessidade[];
   formatarQuantidade: (quantidade: unknown, unidade: Unidade, nome?: unknown) => string;
   rotuloProduto: (produto: any) => string;
-  onMudarSemana: (dias: number) => void;
+  onAlterarPeriodo: (periodo: PeriodoProducao) => void;
   onAbrirDia: (data: string) => void;
 };
 
-const somarDias = (iso: string, dias: number) => {
-  const date = new Date(`${iso}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + dias);
-  return date.toISOString().slice(0, 10);
-};
 const fmtData = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" });
 const fmtDia = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC", weekday: "long", day: "2-digit", month: "2-digit" });
+const fmtDiaCurto = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC", weekday: "short" });
 const quantidade = (v: unknown) => Math.max(0, Number(v) || 0);
 
 export function VisaoSemanalCozinha({
-  inicioSemana, producoes, carregando, erro, produtosPorId, receitasPorProduto,
+  periodo, producoes, carregando, erro, produtosPorId, receitasPorProduto,
   preparacoesPorId, estoque, calcularNecessidades, formatarQuantidade, rotuloProduto,
-  onMudarSemana, onAbrirDia,
+  onAlterarPeriodo, onAbrirDia,
 }: Props) {
   const [visualizacao, setVisualizacao] = useState<"producao" | "ingredientes" | "compras">("producao");
+  const chavePeriodo = `${periodo.inicio}:${periodo.fim}`;
+  // Exclusões vinculadas ao período: mudar datas não deixa filtros antigos escondidos.
+  const [filtroDias, setFiltroDias] = useState<{ chave: string; excluidas: string[] }>({
+    chave: "", excluidas: [],
+  });
+  const todasDatas = useMemo(
+    () => listarDatasPeriodo(periodo.inicio, periodo.fim),
+    [periodo.inicio, periodo.fim],
+  );
+  const datasExcluidas = useMemo(
+    () => new Set(filtroDias.chave === chavePeriodo ? filtroDias.excluidas : []),
+    [filtroDias, chavePeriodo],
+  );
+  const datasEscolhidas = useMemo(
+    () => selecionarDiasPeriodo(todasDatas, datasExcluidas),
+    [todasDatas, datasExcluidas],
+  );
+  const producoesPorDia = useMemo(() => {
+    const mapa = new Map<string, any[]>();
+    for (const p of producoes) {
+      const linhas = mapa.get(p.data_producao) || [];
+      linhas.push(p);
+      mapa.set(p.data_producao, linhas);
+    }
+    return mapa;
+  }, [producoes]);
+  const alterarDatasEscolhidas = (selecionadas: string[]) => {
+    const escolhidas = new Set(selecionadas);
+    setFiltroDias({
+      chave: chavePeriodo,
+      excluidas: todasDatas.filter((data) => !escolhidas.has(data)),
+    });
+  };
+  const alternarDia = (data: string) => {
+    const atual = new Set(datasEscolhidas);
+    if (atual.has(data)) atual.delete(data);
+    else atual.add(data);
+    alterarDatasEscolhidas([...atual]);
+  };
 
   // A produção e os preparos são calculados por DIA. Nunca agrupamos ou
   // reaproveitamos preparos entre dias; somente os ingredientes brutos
   // dos dias ainda pendentes entram na lista de compras semanal.
-  const dias = useMemo(() => Array.from({ length: 7 }, (_, indice) => {
-    const data = somarDias(inicioSemana, indice);
-    const linhas = producoes.filter((p) => p.data_producao === data);
+  const dias = useMemo(() => datasEscolhidas.map((data) => {
+    const linhas = producoesPorDia.get(data) || [];
     const pendentes = linhas.filter((p) => p.status !== "concluida" && quantidade(p.quantidade_planejada) > 0);
     const ingredientes = calcularNecessidades(pendentes);
     const producoesSemFicha = pendentes.filter((p) => !receitasPorProduto.has(p.produto_id));
@@ -82,7 +121,7 @@ export function VisaoSemanalCozinha({
         concluida: rows.every((r) => r.status === "concluida"),
       })).sort((a, b) => String(a.produto?.nome || "").localeCompare(String(b.produto?.nome || ""), "pt-BR")),
     };
-  }), [inicioSemana, producoes, produtosPorId, receitasPorProduto, preparacoesPorId, calcularNecessidades]);
+  }), [datasEscolhidas, producoesPorDia, produtosPorId, receitasPorProduto, preparacoesPorId, calcularNecessidades]);
 
   // SOMENTE ingredientes que ainda serão necessários entram no consolidado.
   // A chave inclui a unidade para não misturar g, L ou unidades.
