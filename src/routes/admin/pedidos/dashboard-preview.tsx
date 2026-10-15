@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X, Pencil } from "lucide-react";
+import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
+import { orderWhatsappUrl, isOpenOrder } from "@/lib/order-whatsapp";
+import { imprimirTCP } from "@/lib/qz-print";
+import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 
 export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
   component: DashboardPedidosPreview,
@@ -50,6 +53,72 @@ export function DashboardPedidosPreview() {
   const statusFn = useServerFn(updateAdminOrderStatus);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"quadro" | "lista">("quadro");
+  const [originFilter, setOriginFilter] = useState("todos");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [minValue, setMinValue] = useState("");
+  const [maxValue, setMaxValue] = useState("");
+  const [autoPrint, setAutoPrint] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("admin.autoPrint") === "true"
+  );
+  const [pushState, setPushState] = useState<"nao-suportado" | "inscrito" | "nao-inscrito" | "bloqueado" | "carregando">("carregando");
+  const [pushBusy, setPushBusy] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const seenOrdersRef = useRef(new Set<string>());
+  const { data: printSettings } = useQuery({
+    queryKey: ["config-impressao"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("config_impressao").maybeSingle();
+      return (data?.config_impressao as any) ?? null;
+    },
+    staleTime: 60_000,
+  });
+  useEffect(() => {
+    void statusPush().then(setPushState).catch(() => setPushState("nao-suportado"));
+    if (typeof window !== "undefined" && "Notification" in window) setPermission(Notification.permission);
+  }, []);
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushState === "inscrito") {
+        await desativarPush();
+        setPushState("nao-inscrito");
+        toast.success("Notificações push desativadas neste aparelho.");
+      } else {
+        await ativarPush();
+        setPushState("inscrito");
+        toast.success("Notificações push ativadas neste aparelho.");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível configurar as notificações.");
+      setPushState(await statusPush());
+    } finally { setPushBusy(false); }
+  };
+  const printOrder = (order: any) => printReceipt({
+    ...order,
+    itens: (order.itens || []).map((i: any) => ({
+      nome: itemName(i), quantidade: i.quantidade,
+      preco_unitario: Number(i.preco_unitario || 0), observacao: i.observacao,
+    })),
+  });
+  const orderActions = (order: any) => (
+    <div className="flex flex-wrap items-center gap-1">
+      <button aria-label="Visualizar pedido" title="Visualizar pedido"
+        onClick={() => setSelected(order)}
+        className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Eye size={16}/></button>
+      <button aria-label="Editar pedido" title="Editar informações"
+        onClick={() => setEditing({ ...order })}
+        className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Pencil size={16}/></button>
+      {isOpenOrder(order.status) && (orderWhatsappUrl(order)
+        ? <a title="Enviar mensagem no WhatsApp" aria-label={"WhatsApp para " + (order.nome_cliente || "cliente")}
+            href={orderWhatsappUrl(order)!} target="_blank" rel="noopener noreferrer"
+            className="rounded-lg bg-[#e4f7e8] p-2 text-[#168443] hover:bg-[#c9efcf]"><MessageCircle size={16}/></a>
+        : <button title="Telefone não cadastrado ou inválido" aria-label="WhatsApp indisponível"
+            disabled className="cursor-not-allowed rounded-lg bg-gray-100 p-2 text-gray-300"><MessageCircle size={16}/></button>)}
+      <button aria-label="Imprimir pedido" title="Imprimir comanda POS58" onClick={() => printOrder(order)}
+        className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Printer size={16}/></button>
+    </div>
+  );
   const changeStatus = async (order:any, status:string) => {
     if (order.status === status) return;
     if (status === "cancelado" && !window.confirm("Confirma cancelar este pedido?")) return;
@@ -67,7 +136,7 @@ export function DashboardPedidosPreview() {
     finally {setBusyId(null);}
   };
   const [query, setQuery] = useState("");
-  const [range, setRange] = useState("7");
+  const [range, setRange] = useState("all");
   const [selected, setSelected] = useState<any>(null);
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["admin-orders-dashboard-preview"],
