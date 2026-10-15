@@ -131,6 +131,7 @@ function Checkout() {
     return window.localStorage.getItem("saborosamente.recovery_whatsapp_consent") === "1";
   });
   const leadCaptureSignatureRef = useRef("");
+  const checkoutIdentitySignatureRef = useRef("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [selectedFlag, setSelectedFlag] = useState<string>("");
   const [session, setSession] = useState<any>(null);
@@ -411,6 +412,41 @@ function Checkout() {
   const recoveryEmail = watch("email");
   const recoveryTelefone = watch("telefone");
   const recoveryCep = watch("cep");
+
+  // O registro do pedido em andamento é separado da autorização para contato.
+  // Nunca marcar consentimento de WhatsApp ou marketing com este efeito.
+  useEffect(() => {
+    if (!lines.length) return;
+    const email = String(recoveryEmail ?? "").trim().toLowerCase();
+    const nome = String(recoveryNome ?? "").trim();
+    const telefone = String(recoveryTelefone ?? "").replace(/\D/g, "");
+    const contato = {
+      p_session_id: getAbandonedCartSessionId(),
+      p_email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null,
+      p_nome: nome.length >= 3 ? nome : null,
+      p_telefone: telefone.length >= 10 && telefone.length <= 13 ? telefone : null,
+    };
+    if (!contato.p_email && !contato.p_nome && !contato.p_telefone) return;
+    const signature = JSON.stringify(contato);
+    if (checkoutIdentitySignatureRef.current === signature) return;
+    let canceled = false;
+    const timer = window.setTimeout(async () => {
+      for (let attempt = 0; attempt < 2 && !canceled; attempt++) {
+        const { data, error } = await supabase.rpc("capture_checkout_identity", contato);
+        if (error) {
+          console.warn("[Checkout] não foi possível vincular dados digitados ao carrinho:", error);
+          return;
+        }
+        if (data) {
+          checkoutIdentitySignatureRef.current = signature;
+          return;
+        }
+        // Um snapshot do carrinho pode estar sendo salvo em paralelo.
+        if (!canceled && attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 1400));
+      }
+    }, 1100);
+    return () => { canceled = true; window.clearTimeout(timer); };
+  }, [recoveryEmail, recoveryNome, recoveryTelefone, lines.length]);
   const [cepFeedback, setCepFeedback] = useState("");
   const [cepPrecisaAjuda, setCepPrecisaAjuda] = useState(false);
 
@@ -1163,6 +1199,7 @@ function Checkout() {
               </div>
             </div>
 
+            <p className="text-xs text-muted-foreground">Se você interromper a compra, os dados informados poderão ficar vinculados ao carrinho para facilitar sua continuação. Mensagens de recuperação pelo WhatsApp dependem da sua autorização abaixo.</p>
             <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-3">
               <input
                 type="checkbox"
