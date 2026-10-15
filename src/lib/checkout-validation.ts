@@ -5,7 +5,7 @@ export const checkoutSchema = z
     nome: z.string().trim().min(3, "Informe seu nome completo").max(80),
     email: z.string().trim().email("E-mail inválido").max(120),
     telefone: z.string().trim().min(10, "Telefone com DDD").max(20),
-    cep: z.string().trim().optional(),
+    cep: z.string().trim().refine((cep) => !cep || /^\d{5}-?\d{3}$/.test(cep), "Informe um CEP válido com 8 números").optional(),
     endereco: z.string().trim().max(160).optional(),
     complemento: z.string().trim().max(80).optional(),
     cidade: z.string().trim().max(80).optional(),
