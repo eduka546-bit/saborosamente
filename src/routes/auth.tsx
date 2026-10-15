@@ -80,7 +80,7 @@ function AuthPage() {
   // Se chegou ao login com itens no carrinho, conserva o e-mail digitado
   // como contato NÃO VERIFICADO do rascunho, sem conceder autorização comercial.
   useEffect(() => {
-    if (redirect !== "/checkout" || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
     const value = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return;
     if (!window.localStorage.getItem("saborosamente.session_id")) return;
@@ -98,7 +98,7 @@ function AuthPage() {
       }
     }, 900);
     return () => { canceled = true; window.clearTimeout(timer); };
-  }, [email, redirect]);
+  }, [email]);
 
   const senhaValida = (value: string) => value.length > 0;
 
