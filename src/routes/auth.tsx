@@ -113,8 +113,7 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const redirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/auth` : undefined;
+      const redirectTo = "https://www.saborosamente.com/auth";
       const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
         redirectTo,
       });
