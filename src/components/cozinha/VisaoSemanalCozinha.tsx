@@ -153,22 +153,15 @@ export function VisaoSemanalCozinha({
     faltantes: compras.filter((x) => x.comprar > 0 || (x.qb && x.quantidade <= 0)).length,
   }), [dias, compras]);
 
-  if (carregando) {
-    return <div role="status" className="rounded-2xl border border-[#dbe7dd] bg-white p-6 text-sm text-[#62766b]">Carregando produções e ingredientes da semana…</div>;
-  }
-  if (erro) {
-    return <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 font-semibold text-red-700">Não foi possível carregar as produções da semana. Tente novamente antes de usar a lista de compras.</div>;
-  }
-
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#dbe7dd] bg-white p-3 sm:p-4">
       <div className="flex items-center gap-2">
-        <button type="button" aria-label="Semana anterior" title="Semana anterior" onClick={() => onMudarSemana(-7)} className="grid size-9 place-items-center rounded-full border border-[#dbe7dd] hover:bg-[#f4f8f4]"><ChevronLeft size={18}/></button>
+        <button type="button" aria-label="Período anterior" title="Período anterior" onClick={() => onAlterarPeriodo(deslocarPeriodo(periodo, -1))} className="grid size-9 place-items-center rounded-full border border-[#dbe7dd] hover:bg-[#f4f8f4]"><ChevronLeft size={18}/></button>
         <div className="min-w-0 text-center">
-          <p className="text-xs font-semibold uppercase text-[#62766b]">Semana de produção</p>
-          <b className="text-sm text-[#075636] sm:text-base">{fmtData(inicioSemana)} a {fmtData(somarDias(inicioSemana, 6))}</b>
+          <p className="text-xs font-semibold uppercase text-[#62766b]">Planejamento por período</p>
+          <b className="text-sm text-[#075636] sm:text-base">{fmtData(periodo.inicio)} a {fmtData(periodo.fim)}</b>
         </div>
-        <button type="button" aria-label="Próxima semana" title="Próxima semana" onClick={() => onMudarSemana(7)} className="grid size-9 place-items-center rounded-full border border-[#dbe7dd] hover:bg-[#f4f8f4]"><ChevronRight size={18}/></button>
+        <button type="button" aria-label="Próximo período" title="Próximo período" onClick={() => onAlterarPeriodo(deslocarPeriodo(periodo, 1))} className="grid size-9 place-items-center rounded-full border border-[#dbe7dd] hover:bg-[#f4f8f4]"><ChevronRight size={18}/></button>
       </div>
       <div className="grid w-full grid-cols-3 gap-1 rounded-xl bg-[#eff4ec] p-1 sm:w-auto">
         {([
@@ -178,13 +171,82 @@ export function VisaoSemanalCozinha({
         ] as const).map(([id, nome, Icon]) => <button key={id} type="button" onClick={() => setVisualizacao(id)} aria-pressed={visualizacao === id} className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-bold sm:px-3 sm:text-sm ${visualizacao === id ? "bg-white text-[#087443] shadow-sm" : "text-[#52695f] hover:bg-white/50"}`}><Icon size={15}/>{nome}</button>)}
       </div>
     </div>
+    <section className="rounded-2xl border border-[#dbe7dd] bg-white p-3 sm:p-4" aria-label="Filtros do período">
+      <div className="flex flex-wrap items-center gap-2">
+        <CalendarDays size={19} className="text-[#087443]" />
+        <h3 className="font-black text-[#075636]">Escolha o período e os dias</h3>
+        <span className="text-xs text-[#62766b]">Até {MAX_DIAS_PLANEJAMENTO} dias</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-lg">
+        <label className="flex min-w-0 flex-col gap-1 text-xs font-bold text-[#52695f]">
+          Data inicial
+          <input type="date" aria-label="Início do período" value={periodo.inicio}
+            onChange={(e) => onAlterarPeriodo(alterarLimitePeriodo(periodo, "inicio", e.target.value))}
+            className="h-10 w-full min-w-0 rounded-lg border border-[#dbe7dd] bg-white px-2 text-sm text-[#173a2d] focus-visible:outline-[#087443]" />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1 text-xs font-bold text-[#52695f]">
+          Data final
+          <input type="date" aria-label="Fim do período" value={periodo.fim}
+            onChange={(e) => onAlterarPeriodo(alterarLimitePeriodo(periodo, "fim", e.target.value))}
+            className="h-10 w-full min-w-0 rounded-lg border border-[#dbe7dd] bg-white px-2 text-sm text-[#173a2d] focus-visible:outline-[#087443]" />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-semibold text-[#52695f]">Atalhos:</span>
+        {([3, 7, 14, 30, 60, 90] as const).map((n) => (
+          <button type="button" key={n} aria-pressed={todasDatas.length === n}
+            onClick={() => onAlterarPeriodo(periodoComDuracao(periodo.inicio, n))}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${todasDatas.length === n
+              ? "border-[#087443] bg-[#e0f2e7] text-[#075636]"
+              : "border-[#dbe7dd] bg-white text-[#52695f] hover:bg-[#f2f7ef]"}`}>
+            {n} dias
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#e9eee8] pt-3">
+        <p className="text-sm font-semibold text-[#075636]">
+          {datasEscolhidas.length} de {todasDatas.length} dias selecionados
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => alterarDatasEscolhidas(todasDatas)}
+            className="rounded-lg border border-[#c8dbc9] px-2.5 py-1.5 text-xs font-semibold text-[#087443] hover:bg-[#f2f7ef]">Todos</button>
+          <button type="button"
+            onClick={() => alterarDatasEscolhidas(todasDatas.filter((data) => (producoesPorDia.get(data) || []).some((p) => quantidade(p.quantidade_planejada) > 0)))}
+            disabled={carregando || erro}
+            className="rounded-lg border border-[#c8dbc9] px-2.5 py-1.5 text-xs font-semibold text-[#087443] hover:bg-[#f2f7ef] disabled:opacity-50">Com produção</button>
+          <button type="button" onClick={() => alterarDatasEscolhidas([])}
+            className="rounded-lg border border-[#dbe7dd] px-2.5 py-1.5 text-xs font-semibold text-[#52695f] hover:bg-[#f2f7ef]">Limpar</button>
+        </div>
+      </div>
+      <div role="group" aria-label="Dias que entram no planejamento" className="mt-2 grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto rounded-xl bg-[#f6f9f4] p-2 sm:grid-cols-5 lg:grid-cols-7">
+        {todasDatas.map((data) => {
+          const ativo = !datasExcluidas.has(data);
+          const numProducoes = (producoesPorDia.get(data) || []).reduce((s, p) => s + quantidade(p.quantidade_planejada), 0);
+          return <button key={data} type="button" aria-pressed={ativo}
+            aria-label={`${fmtDia(data)}: ${ativo ? "incluído" : "excluído"} do planejamento, ${numProducoes} marmitas`}
+            onClick={() => alternarDia(data)}
+            className={`min-w-0 rounded-lg border px-1.5 py-2 text-center transition-colors ${ativo
+              ? "border-[#9fcab0] bg-[#e0f2e7] text-[#075636]"
+              : "border-[#dbe7dd] bg-white text-[#8c9990] hover:bg-[#eef4ec]"}`}>
+            <span className="block truncate text-[10px] font-semibold capitalize">{fmtDiaCurto(data)}</span>
+            <span className="block font-black">{fmtData(data)}</span>
+            {numProducoes > 0 && <span className="block text-[10px] font-semibold">{numProducoes} un</span>}
+          </button>;
+        })}
+      </div>
+      <p className="mt-2 text-xs text-[#62766b]">Toque nos dias para incluir ou retirar. Produções, ingredientes e compras consideram somente os dias destacados. As preparações continuam separadas por data.</p>
+    </section>
+    {carregando && <div role="status" className="rounded-2xl border border-[#dbe7dd] bg-white p-5 text-sm text-[#62766b]">Carregando produções e ingredientes do período escolhido…</div>}
+    {erro && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">Não foi possível carregar o período. Selecione outro intervalo ou tente novamente; não use a lista de compras enquanto houver esse erro.</div>}
+    {!carregando && !erro && <>
     <div className="grid grid-cols-3 gap-2">
       {[
-        ["Total da semana", totais.unidades, "bg-[#e0f2e7] text-[#087443]"],
+        ["Total do período", totais.unidades, "bg-[#e0f2e7] text-[#087443]"],
         ["Ainda a produzir", totais.pendentes, "bg-[#f2f6e6] text-[#315e49]"],
         ["Itens para comprar", totais.faltantes, "bg-[#fff4d9] text-[#875b19]"],
       ].map(([titulo, valor, estilo]) => <article key={String(titulo)} className={`rounded-xl p-3 ${estilo}`}><p className="text-[11px] font-semibold sm:text-xs">{titulo}</p><p className="text-xl font-black sm:text-2xl">{valor}</p></article>)}
     </div>
+    {datasEscolhidas.length === 0 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Selecione pelo menos um dia acima para visualizar a produção e os ingredientes.</p>}
     {totais.semFicha > 0 && <p role="alert" className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><AlertTriangle size={18} className="shrink-0"/>Há {totais.semFicha} lançamento(s) sem ficha técnica. Os ingredientes e a lista de compras podem estar incompletos; confira os cadastros antes de comprar.</p>}
     <p className="rounded-xl bg-[#f1f7ec] p-3 text-xs leading-relaxed text-[#406050]">
       <b>Preparações sempre separadas por dia.</b> Os ingredientes brutos usam as fichas, rendimentos e perdas da produção diária. Na lista de compras, só as produções pendentes entram na soma, e o estoque é descontado uma vez. Preparos já prontos indicados apenas durante a abertura da ficha diária não são abatidos automaticamente; confira-os antes de fechar a compra.
@@ -219,8 +281,8 @@ export function VisaoSemanalCozinha({
     </div>}
 
     {visualizacao === "compras" && <div className="overflow-hidden rounded-2xl border border-[#dbe7dd] bg-white">
-      <div className="border-b bg-[#f6f9f4] p-4"><h3 className="text-lg font-black text-[#075636]">Lista de ingredientes da semana</h3><p className="mt-1 text-sm text-[#62766b]">Total das necessidades pendentes de todos os dias menos o estoque atual, descontado uma única vez. Preparações não são somadas entre dias.</p></div>
-      {!compras.length ? <p className="p-6 text-sm text-[#62766b]">Nenhum ingrediente pendente nesta semana.</p> :
+      <div className="border-b bg-[#f6f9f4] p-4"><h3 className="text-lg font-black text-[#075636]">Lista de ingredientes do período</h3><p className="mt-1 text-sm text-[#62766b]">Total das necessidades pendentes dos dias selecionados, menos o estoque atual descontado uma única vez. Preparações não são somadas entre datas.</p></div>
+      {!compras.length ? <p className="p-6 text-sm text-[#62766b]">Nenhum ingrediente pendente nos dias selecionados.</p> :
         <div className="overflow-x-auto">
           <table className="w-full min-w-[550px] text-left text-sm">
             <thead className="bg-[#f1f7ed] text-xs font-semibold uppercase text-[#527164]"><tr><th className="px-3 py-3">Ingrediente / dias</th><th className="px-3 py-3 text-right">Necessário</th><th className="px-3 py-3 text-right">Em estoque</th><th className="px-3 py-3 text-right">Comprar</th></tr></thead>
@@ -233,5 +295,6 @@ export function VisaoSemanalCozinha({
           </table>
         </div>}
     </div>}
+    </>}
   </div>;
 }
