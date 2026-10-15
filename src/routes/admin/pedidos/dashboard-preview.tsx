@@ -269,9 +269,14 @@ export function DashboardPedidosPreview() {
     const search = query.trim().toLowerCase();
     return orders.filter((o: any) => {
       if (cutoff && new Date(o.created_at) < cutoff) return false;
-      return !search || [o.id, o.nome_cliente, o.telefone_cliente, o.endereco_cidade].some((v) => String(v ?? "").toLowerCase().includes(search));
+      if (originFilter !== "todos" && String(o.origem || "site") !== originFilter) return false;
+      if (statusFilter !== "todos" && String(o.status) !== statusFilter) return false;
+      if (minValue !== "" && Number(o.valor_total || 0) < Number(minValue)) return false;
+      if (maxValue !== "" && Number(o.valor_total || 0) > Number(maxValue)) return false;
+      return !search || [o.id, o.nome_cliente, o.telefone_cliente, o.endereco_cidade]
+        .some((v) => String(v ?? "").toLowerCase().includes(search));
     });
-  }, [orders, query, range]);
+  }, [orders, query, range, originFilter, statusFilter, minValue, maxValue]);
   const shown = filtered.filter((o: any) => o.status !== "rascunho");
   const today = new Date().toLocaleDateString("pt-BR");
   const summary = [
@@ -326,22 +331,58 @@ export function DashboardPedidosPreview() {
             <p className="text-[11px] text-[#7c8a80]">{s.text}</p><p className="mt-1 text-[26px] font-bold" style={{ color: s.color }}>{s.value}</p>
           </div>)}
         </div>
-        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-[#e5e9e3] bg-white p-3 shadow-sm">
-          <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-[#e1e5dd] px-3 py-2">
-            <Search size={15} className="text-[#7f9284]" />
-            <input className="w-full bg-transparent text-sm outline-none" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar pedido, cliente, cidade ou telefone" />
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-[#e1e5dd] px-3 py-2">
-            <CalendarDays size={15} className="text-[#64816f]" />
-            <select className="bg-transparent text-sm outline-none" value={range} onChange={(e) => setRange(e.target.value)}>
-              <option value="1">Últimas 24 horas</option><option value="7">Últimos 7 dias</option>
-              <option value="30">Últimos 30 dias</option><option value="all">Todos (até 800 recentes)</option>
+        <div className="mb-5 rounded-xl border border-[#e5e9e3] bg-white p-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-[210px] flex-1 items-center gap-2 rounded-lg border border-[#e1e5dd] px-3 py-2">
+              <Search size={15} className="text-[#7f9284]"/>
+              <input className="w-full bg-transparent text-sm outline-none" value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Pedido, nome, cidade ou telefone"/>
+            </div>
+            <label className="flex items-center gap-2 rounded-lg border border-[#e1e5dd] px-2 py-2">
+              <CalendarDays size={15} className="text-[#64816f]"/>
+              <select aria-label="Período" className="bg-transparent text-xs" value={range} onChange={e => setRange(e.target.value)}>
+                <option value="1">Últimas 24 horas</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="all">Todos os pedidos</option>
+              </select>
+            </label>
+            <select aria-label="Filtrar por origem" value={originFilter} onChange={e => setOriginFilter(e.target.value)}
+              className="rounded-lg border border-[#e1e5dd] bg-white px-3 py-2 text-xs">
+              <option value="todos">Todas as origens</option>
+              <option value="site">Site</option><option value="whatsapp">WhatsApp</option>
+              <option value="pdv">PDV</option><option value="pedidos10">Pedidos10</option>
             </select>
+            <select aria-label="Filtrar por status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              className="rounded-lg border border-[#e1e5dd] bg-white px-3 py-2 text-xs">
+              <option value="todos">Todos os status</option>
+              {["pendente","rascunho","preparando","pronto para retirada","saiu para entrega","entregue","cancelado"].map(v =>
+                <option key={v} value={v}>{v}</option>)}
+            </select>
+            <button title="Atualizar pedidos" aria-label="Atualizar pedidos" className="rounded-lg border border-[#d2dfd3] p-2 hover:bg-[#f0f7ef]"
+              onClick={() => client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] })}>
+              <RefreshCw size={16}/></button>
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-[#d2dfd3] px-3 py-2 text-sm hover:bg-[#f0f7ef]" onClick={() => client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] })}>
-            <RefreshCw size={15} /> Atualizar
-          </button>
-          <a href="/admin/pedidos?modo=lista" className="rounded-lg bg-[#28633c] px-4 py-2 text-center text-sm font-semibold text-white hover:bg-[#1d4d2e]">Gerenciar pedidos</a>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-[#61776a]">
+              <span>Valor de R$</span>
+              <input aria-label="Valor mínimo" type="number" min={0} placeholder="mín." value={minValue}
+                onChange={e=>setMinValue(e.target.value)} className="w-20 rounded-md border px-2 py-1.5"/>
+              <span>até</span>
+              <input aria-label="Valor máximo" type="number" min={0} placeholder="máx." value={maxValue}
+                onChange={e=>setMaxValue(e.target.value)} className="w-20 rounded-md border px-2 py-1.5"/>
+            </div>
+            <div className="flex items-center gap-1 rounded-lg bg-[#f1f5ef] p-1">
+              <button aria-pressed={viewMode==="quadro"} onClick={()=>setViewMode("quadro")}
+                className={"inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold " +
+                  (viewMode==="quadro"?"bg-white text-[#245a38] shadow-sm":"text-[#73877a]")}>
+                <LayoutDashboard size={15}/> Etapas</button>
+              <button aria-pressed={viewMode==="lista"} onClick={()=>setViewMode("lista")}
+                className={"inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold " +
+                  (viewMode==="lista"?"bg-white text-[#245a38] shadow-sm":"text-[#73877a]")}>
+                <List size={15}/> Lista completa</button>
+            </div>
+          </div>
         </div>
         {isError && <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar os pedidos. Verifique sua sessão e tente atualizar.</div>}
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
