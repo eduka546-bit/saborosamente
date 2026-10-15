@@ -539,7 +539,7 @@ export function VisaoSemanalCozinha({
     </div>}
 
     {visualizacao === "compras" && <div className="overflow-hidden rounded-2xl border border-[#dbe7dd] bg-white">
-      <div className="border-b bg-[#f6f9f4] p-4"><h3 className="text-lg font-black text-[#075636]">Lista de ingredientes do período</h3><p className="mt-1 text-sm text-[#62766b]">Total das necessidades pendentes dos dias selecionados, menos o estoque atual descontado uma única vez. Preparações não são somadas entre datas.</p></div>
+      <div className="border-b bg-[#f6f9f4] p-4"><h3 className="text-lg font-black text-[#075636]">Lista de ingredientes do período</h3><p className="mt-1 text-sm text-[#62766b]">Total das necessidades pendentes dos dias selecionados, menos o estoque atual descontado uma única vez. Preparações não são somadas entre datas. Itens avulsos sem cadastro são incluídos integralmente para compra; o saldo não é presumido.</p></div>
       {!compras.length ? <p className="p-6 text-sm text-[#62766b]">Nenhum ingrediente pendente nos dias selecionados.</p> :
         <div className="overflow-x-auto">
           <table className="w-full min-w-[550px] text-left text-sm">
@@ -570,7 +570,7 @@ export function VisaoSemanalCozinha({
                 </details>
               </td>
               <td className="px-3 py-2.5 text-right font-semibold">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB"}</td>
-              <td className="px-3 py-2.5 text-right">{formatarQuantidade(linha.disponivel, linha.unidade, linha.item?.nome)}</td>
+              <td className="px-3 py-2.5 text-right">{linha.id.startsWith("avulso:") ? <span className="text-xs text-amber-800">Sem cadastro</span> : formatarQuantidade(linha.disponivel, linha.unidade, linha.item?.nome)}</td>
               <td className="px-3 py-2.5 text-right font-bold text-[#087443]">{linha.comprar > 0 ? formatarQuantidade(linha.comprar, linha.unidade, linha.item?.nome) : linha.qb && linha.quantidade <= 0 ? "Conferir QB" : "—"}</td>
             </tr>)}</tbody>
           </table>
