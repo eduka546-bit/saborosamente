@@ -285,14 +285,41 @@ export function DashboardPedidosPreview() {
       <div className="mx-auto max-w-[1500px]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-[#668071]">
-              <a href="/admin/pedidos?modo=lista" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={13} /> Pedidos atuais</a>
-              <span>/</span><span>Dashboard</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#194e32]">Painel de Pedidos</h1>
-            <p className="text-xs text-[#758379]">SaborosaMente • Gestão de pedidos em tempo real</p>
+            <h1 className="text-2xl font-bold tracking-tight text-[#194e32]">Gestão de Pedidos</h1>
+            <p className="text-xs text-[#758379]">Todos os pedidos e ações em uma única tela, atualizados em tempo real</p>
           </div>
-          <span className="rounded-full border border-[#d1e5d5] bg-[#eff8ef] px-3 py-1.5 text-xs font-semibold text-[#347a44]">● Painel de pedidos</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="/admin/pedidos/whatsapp" className="inline-flex items-center gap-1.5 rounded-lg bg-[#28633c] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1c4c31]">
+              <Plus size={15}/> Novo pedido WhatsApp
+            </a>
+            <a href="/admin/pdv" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">PDV</a>
+            <a href="/admin/registrar-p10" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">P10</a>
+            <a href="/admin/pedidos/entregadores" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">Entregadores</a>
+            <a href="/admin/pedidos/leads" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">Leads</a>
+          </div>
+        </div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => {
+            const next = !autoPrint;
+            setAutoPrint(next);
+            window.localStorage.setItem("admin.autoPrint", String(next));
+            toast.success(next ? "Impressão automática ativada" : "Impressão automática desativada");
+          }} aria-pressed={autoPrint} className={"inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold " +
+            (autoPrint ? "border-green-700 bg-green-700 text-white" : "border-[#d4e2d3] bg-white text-[#245a38]")}>
+            <Printer size={15}/> Auto-imprimir {autoPrint ? "ON" : "OFF"}
+          </button>
+          {pushState !== "nao-suportado" && (
+            <button type="button" disabled={pushBusy || pushState === "carregando" || pushState === "bloqueado"} onClick={togglePush}
+              className={"inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50 " +
+                (pushState === "inscrito" ? "border-green-700 bg-[#e6f5e9] text-green-800" : "border-[#d4e2d3] bg-white text-[#245a38]")}>
+              <Bell size={15}/>{pushState === "inscrito" ? "Push ON" : "Ativar notificações"}
+            </button>
+          )}
+          {permission === "denied" && <span className="text-xs text-amber-700">Notificações bloqueadas pelo navegador</span>}
+          {permission === "default" && typeof window !== "undefined" && "Notification" in window && (
+            <button type="button" onClick={async () => setPermission(await Notification.requestPermission())}
+              className="text-xs font-medium text-amber-700 underline">Permitir avisos de novos pedidos</button>
+          )}
         </div>
         <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
           {summary.map((s) => <div key={s.text} className="rounded-xl border border-[#e5e9e3] bg-white p-3 shadow-sm">
