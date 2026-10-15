@@ -45,6 +45,30 @@ const fmtDia = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(
 const fmtDiaCurto = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC", weekday: "short" });
 const quantidade = (v: unknown) => Math.max(0, Number(v) || 0);
 
+type MarcacaoEtapa = {
+  data_producao: string;
+  tipo: "preparacao" | "componente" | "prato";
+  chave: string;
+  assinatura_referencia: string;
+};
+
+function CaixaChecklist({ marcada, desabilitada, onMudar, texto, complemento }: {
+  marcada: boolean;
+  desabilitada: boolean;
+  onMudar: (marcada: boolean) => void;
+  texto: string;
+  complemento?: string;
+}) {
+  return <label className={`flex min-w-0 cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-[#edf5e6] ${desabilitada ? "cursor-wait opacity-60" : ""}`}>
+    <input type="checkbox" checked={marcada} disabled={desabilitada} onChange={(e) => onMudar(e.target.checked)}
+      className="mt-0.5 size-[18px] shrink-0 cursor-pointer accent-[#087443]" />
+    <span className="min-w-0">
+      <span className={`block break-words font-semibold ${marcada ? "text-[#527164] line-through" : "text-[#173a2d]"}`}>{texto}</span>
+      {complemento && <span className="block text-xs text-[#62766b]">{complemento}</span>}
+    </span>
+  </label>;
+}
+
 export function VisaoSemanalCozinha({
   periodo, producoes, carregando, erro, produtosPorId, receitasPorProduto,
   preparacoesPorId, montagensPorReceita, estoque, calcularNecessidades, formatarQuantidade, rotuloProduto,
@@ -175,6 +199,123 @@ export function VisaoSemanalCozinha({
       return { ...linha, disponivel, comprar };
     }).sort((a, b) => String(a.item?.nome || "").localeCompare(String(b.item?.nome || ""), "pt-BR"));
   }, [dias, estoque]);
+
+  // Marcações compartilhadas entre celular/computador, mantidas separadamente
+  // por dia. Sem alteração automática de estoque ou status da produção.
+  const qc = useQueryClient();
+  const [salvandoChave, setSalvandoChave] = useState<string | null>(null);
+  const {
+    data: checklist, isLoading: carregandoChecklist, isError: erroChecklist,
+  } = useQuery({
+    queryKey: ["coz-checklist-periodo", periodo.inicio, periodo.fim],
+    queryFn: async () => {
+      async function carregar(tabela: string, campos: string) {
+        const resultado: any[] = [];
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await (supabase as any).from(tabela)
+            .select(campos)
+            .gte("data_producao", periodo.inicio)
+            .lte("data_producao", periodo.fim)
+            .order("data_producao").range(offset, offset + 499);
+          if (error) throw error;
+          resultado.push(...(data || []));
+          if (!data || data.length < 500) return resultado;
+        }
+      }
+      const [ingredientes, etapas] = await Promise.all([
+        carregar("cozinha_ingredientes_separados", "data_producao,ingrediente_id,unidade,quantidade_referencia"),
+        carregar("cozinha_etapas_marcadas", "data_producao,tipo,chave,assinatura_referencia"),
+      ]);
+      return { ingredientes: ingredientes as MarcacaoIngrediente[], etapas: etapas as MarcacaoEtapa[] };
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  const ingredientesMarcados = useMemo(() =>
+    new Map((checklist?.ingredientes || []).map((m) =>
+      [chaveChecklistIngrediente(m.data_producao, m.ingrediente_id, m.unidade), m])),
+    [checklist],
+  );
+  const etapasMarcadas = useMemo(() =>
+    new Map((checklist?.etapas || []).map((m) =>
+      [`${m.data_producao}:${m.tipo}:${m.chave}`, m])),
+    [checklist],
+  );
+  const bloqueado = carregandoChecklist || erroChecklist || Boolean(salvandoChave);
+  const ingredienteMarcado = (data: string, linha: { id: string; unidade: Unidade; quantidade: number }) =>
+    ingredienteEstaSeparado(
+      ingredientesMarcados.get(chaveChecklistIngrediente(data, linha.id, linha.unidade)),
+      quantidade(linha.quantidade),
+    );
+  const etapaMarcada = (data: string, tipo: MarcacaoEtapa["tipo"], chave: string, assinatura: string) =>
+    etapaEstaMarcada(etapasMarcadas.get(`${data}:${tipo}:${chave}`), assinatura);
+
+  const recarregarChecklist = async () => {
+    await qc.invalidateQueries({ queryKey: ["coz-checklist-periodo"] });
+  };
+  const marcarIngrediente = async (
+    data: string, linha: { id: string; unidade: Unidade; quantidade: number },
+    marcada: boolean,
+  ) => {
+    if (bloqueado) return;
+    const chave = chaveChecklistIngrediente(data, linha.id, linha.unidade);
+    setSalvandoChave(chave);
+    try {
+      const { error } = marcada
+        ? await (supabase as any).from("cozinha_ingredientes_separados")
+          .upsert({
+            data_producao: data, ingrediente_id: linha.id, unidade: linha.unidade,
+            quantidade_referencia: quantidade(linha.quantidade), marcado_em: new Date().toISOString(),
+          }, { onConflict: "data_producao,ingrediente_id,unidade" })
+        : await (supabase as any).from("cozinha_ingredientes_separados")
+          .delete().eq("data_producao", data).eq("ingrediente_id", linha.id).eq("unidade", linha.unidade);
+      if (error) throw error;
+      await recarregarChecklist();
+    } catch (e: any) { toast.error(e?.message || "Não foi possível atualizar o ingrediente."); }
+    finally { setSalvandoChave(null); }
+  };
+  const marcarIngredienteTodosDias = async (
+    linha: { id: string; unidade: Unidade; dias: { data: string; quantidade: number }[] },
+    marcada: boolean,
+  ) => {
+    if (bloqueado || !linha.dias.length) return;
+    setSalvandoChave(`todos:${linha.id}:${linha.unidade}`);
+    try {
+      const { error } = marcada
+        ? await (supabase as any).from("cozinha_ingredientes_separados")
+          .upsert(linha.dias.map((d) => ({
+            data_producao: d.data, ingrediente_id: linha.id, unidade: linha.unidade,
+            quantidade_referencia: quantidade(d.quantidade), marcado_em: new Date().toISOString(),
+          })), { onConflict: "data_producao,ingrediente_id,unidade" })
+        : await (supabase as any).from("cozinha_ingredientes_separados")
+          .delete().eq("ingrediente_id", linha.id).eq("unidade", linha.unidade)
+          .in("data_producao", linha.dias.map((d) => d.data));
+      if (error) throw error;
+      await recarregarChecklist();
+    } catch (e: any) { toast.error(e?.message || "Não foi possível atualizar as marcações."); }
+    finally { setSalvandoChave(null); }
+  };
+  const marcarEtapa = async (
+    data: string, tipo: MarcacaoEtapa["tipo"], chave: string, assinatura: string,
+    marcada: boolean,
+  ) => {
+    if (bloqueado) return;
+    setSalvandoChave(`${data}:${tipo}:${chave}`);
+    try {
+      const { error } = marcada
+        ? await (supabase as any).from("cozinha_etapas_marcadas")
+          .upsert({
+            data_producao: data, tipo, chave, assinatura_referencia: assinatura,
+            marcado_em: new Date().toISOString(),
+          }, { onConflict: "data_producao,tipo,chave" })
+        : await (supabase as any).from("cozinha_etapas_marcadas")
+          .delete().eq("data_producao", data).eq("tipo", tipo).eq("chave", chave);
+      if (error) throw error;
+      await recarregarChecklist();
+    } catch (e: any) { toast.error(e?.message || "Não foi possível salvar a marcação."); }
+    finally { setSalvandoChave(null); }
+  };
 
   const totais = useMemo(() => ({
     unidades: dias.reduce((s, dia) => s + dia.linhas.reduce((v, p) => v + quantidade(p.quantidade_planejada), 0), 0),
