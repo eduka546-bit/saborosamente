@@ -385,6 +385,7 @@ export function DashboardPedidosPreview() {
           </div>
         </div>
         {isError && <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível carregar os pedidos. Verifique sua sessão e tente atualizar.</div>}
+        {viewMode === "quadro" ? (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           {sections.map((section) => {
             const list = filtered.filter((o: any) => section.statuses.includes(String(o.status)));
@@ -409,16 +410,43 @@ export function DashboardPedidosPreview() {
                       <p className="text-[10px]">{o.metodo_entrega === "retirada" ? "Retirada" : "Entrega"}</p>
                     </div>
                     <span className="font-bold text-[#245a38]">{money(o.valor_total)}</span>
-                    <div className="flex items-center gap-1">
-                      <button aria-label="Visualizar pedido" title="Visualizar pedido" onClick={() => setSelected(o)} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dbe9da]"><Eye size={15}/></button><button aria-label="Editar pedido" title="Editar informações" onClick={() => setEditing({...o})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Pencil size={15}/></button>
-<button aria-label="Imprimir pedido" title="Imprimir pedido" onClick={() => printReceipt({...o,itens:(o.itens||[]).map((i:any)=>({nome:itemName(i),quantidade:i.quantidade,preco_unitario:i.preco_unitario,observacao:i.observacao}))})} className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941]"><Printer size={15}/></button>
-                    </div>
+                    {orderActions(o)}
                   </div>)}
               </div>
             </section>;
           })}
         </div>
-        <p className="mt-4 text-center text-xs text-[#91a094]">Prévia visual conectada aos pedidos existentes • As alterações de status continuam na tela original</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-[#e1e8dc] bg-white shadow-sm">
+            <div className="border-b border-[#edf0ea] px-4 py-3 text-sm font-semibold text-[#245a38]">
+              Lista completa • {filtered.length} pedido(s)
+            </div>
+            <div className="max-h-[70vh] overflow-auto">
+              {filtered.length === 0 ? <p className="p-8 text-center text-sm text-gray-500">Nenhum pedido encontrado.</p> :
+                filtered.map((o: any) => (
+                  <div key={o.id} className="grid gap-2 border-b border-[#edf0ea] p-3 text-xs last:border-b-0 hover:bg-[#f8fbf8] md:grid-cols-[110px_minmax(140px,1fr)_minmax(170px,1fr)_100px_160px] md:items-center">
+                    <div><p className="font-bold text-[#245a38]">#{String(o.id).slice(0,8).toUpperCase()}</p>
+                      <p className="text-[#89988e]">{new Date(o.created_at).toLocaleDateString("pt-BR")}</p></div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{o.nome_cliente || "Cliente sem nome"}</p>
+                      <p className="text-[#87958b]">{o.origem || "site"} • {o.endereco_cidade || "Sem cidade"}</p>
+                    </div>
+                    <div>
+                      <select aria-label="Alterar status" disabled={busyId === o.id} value={o.status}
+                        onChange={e => changeStatus(o,e.target.value)} className="mb-1 w-full rounded-md border border-[#dce6d9] bg-[#f2f8f2] px-2 py-1 text-xs">
+                        {["rascunho","pendente","preparando","pronto para retirada","saiu para entrega","entregue","cancelado"].map(v=>
+                          <option key={v} value={v}>{v}</option>)}
+                      </select>
+                      <p className="font-medium text-[#61776a]">{deliveryDate(o) ? dateOnly(deliveryDate(o)) : dateOnly(o.created_at)} {deliveryTime(o) ? " • " + deliveryTime(o) : ""}</p>
+                    </div>
+                    <strong className="text-[#245a38]">{money(o.valor_total)}</strong>
+                    {orderActions(o)}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
       </div>
       {editing && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
         <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
