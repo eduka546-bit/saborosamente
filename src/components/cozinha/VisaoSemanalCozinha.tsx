@@ -1,4 +1,11 @@
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  assinaturaChecklist, chaveChecklistIngrediente, etapaEstaMarcada,
+  ingredienteEstaSeparado, type MarcacaoIngrediente,
+} from "@/lib/cozinha-checklist-ingredientes";
 import { ChevronLeft, ChevronRight, ClipboardList, Package, ShoppingCart, AlertTriangle, CalendarDays } from "lucide-react";
 import {
   MAX_DIAS_PLANEJAMENTO, alterarLimitePeriodo, deslocarPeriodo,
@@ -24,6 +31,7 @@ type Props = {
   produtosPorId: Map<string, any>;
   receitasPorProduto: Map<string, any>;
   preparacoesPorId: Map<string, any>;
+  montagensPorReceita: Map<string, any[]>;
   estoque: any[];
   calcularNecessidades: (linhas: any[]) => Necessidade[];
   formatarQuantidade: (quantidade: unknown, unidade: Unidade, nome?: unknown) => string;
@@ -39,7 +47,7 @@ const quantidade = (v: unknown) => Math.max(0, Number(v) || 0);
 
 export function VisaoSemanalCozinha({
   periodo, producoes, carregando, erro, produtosPorId, receitasPorProduto,
-  preparacoesPorId, estoque, calcularNecessidades, formatarQuantidade, rotuloProduto,
+  preparacoesPorId, montagensPorReceita, estoque, calcularNecessidades, formatarQuantidade, rotuloProduto,
   onAlterarPeriodo, onAbrirDia,
 }: Props) {
   const [visualizacao, setVisualizacao] = useState<"producao" | "ingredientes" | "compras">("producao");
@@ -98,18 +106,25 @@ export function VisaoSemanalCozinha({
       porProduto.set(linha.produto_id, rows);
     }
 
-    const preparacoesDoDia = new Set<string>();
+    const preparacoesDoDia = new Map<string, { id: string; nome: string; linhas: string[] }>();
     for (const linha of pendentes) {
       const receita = receitasPorProduto.get(linha.produto_id);
       for (const referencia of Array.isArray(receita?.preparacoes) ? receita.preparacoes : []) {
-        const nome = preparacoesPorId.get(referencia?.id)?.nome || referencia?.nome;
-        if (nome) preparacoesDoDia.add(String(nome));
+        const id = String(referencia?.id || "");
+        if (!id) continue;
+        const nome = preparacoesPorId.get(id)?.nome || referencia?.nome;
+        if (!nome) continue;
+        const atual = preparacoesDoDia.get(id) || { id, nome: String(nome), linhas: [] };
+        atual.linhas.push(`${linha.produto_id}:${linha.gramatura}:${quantidade(linha.quantidade_planejada)}`);
+        preparacoesDoDia.set(id, atual);
       }
     }
 
     return {
       data, linhas, pendentes, ingredientes, producoesSemFicha,
-      preparacoes: [...preparacoesDoDia].sort((a, b) => a.localeCompare(b, "pt-BR")),
+      preparacoes: [...preparacoesDoDia.values()]
+        .map((p) => ({ id: p.id, nome: p.nome, assinatura: assinaturaChecklist(p.linhas.sort()) }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
       pratos: [...porProduto.entries()].map(([produtoId, rows]) => ({
         produtoId,
         produto: produtosPorId.get(produtoId),
@@ -119,9 +134,24 @@ export function VisaoSemanalCozinha({
           quantidade: rows.filter((r) => String(r.gramatura) === peso).reduce((s, r) => s + quantidade(r.quantidade_planejada), 0),
         })).filter((r) => r.quantidade > 0),
         concluida: rows.every((r) => r.status === "concluida"),
+        componentes: (montagensPorReceita.get(receitasPorProduto.get(produtoId)?.id) || [])
+          .map((componente: any) => {
+            const porTamanho = [...new Set(rows.map((r) => String(r.gramatura)))].sort().map((peso) => ({
+              tamanho: peso,
+              pratos: rows.filter((r) => String(r.gramatura) === peso).reduce((s, r) => s + quantidade(r.quantidade_planejada), 0),
+              gramas: quantidade(componente[`gramas_${peso}`]),
+            }));
+            const gramas = porTamanho.reduce((s, v) => s + v.pratos * v.gramas, 0);
+            return {
+              id: String(componente.id),
+              nome: String(componente.nome || "Componente"),
+              gramas,
+              assinatura: assinaturaChecklist(porTamanho.flatMap((v) => [v.tamanho,v.pratos,v.gramas])),
+            };
+          }).filter((c) => c.gramas > 0),
       })).sort((a, b) => String(a.produto?.nome || "").localeCompare(String(b.produto?.nome || ""), "pt-BR")),
     };
-  }), [datasEscolhidas, producoesPorDia, produtosPorId, receitasPorProduto, preparacoesPorId, calcularNecessidades]);
+  }), [datasEscolhidas, producoesPorDia, produtosPorId, receitasPorProduto, preparacoesPorId, montagensPorReceita, calcularNecessidades]);
 
   // SOMENTE ingredientes que ainda serão necessários entram no consolidado.
   // A chave inclui a unidade para não misturar g, L ou unidades.
