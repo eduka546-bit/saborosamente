@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ArrowLeft, ShoppingBag, RefreshCw, X, Pencil } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
+import { sortOrderItems } from "@/lib/order-item-order";
 
 export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
   component: DashboardPedidosPreview,
@@ -254,7 +255,7 @@ export function DashboardPedidosPreview() {
               <span className="text-xs text-[#75867a]">{(selected.itens || []).reduce((total: number, i: any) => total + Number(i.quantidade || 0), 0)} unidades</span>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#e0e9df]">
-              {(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="flex justify-between gap-3 border-b border-[#edf1eb] px-3 py-2.5 text-sm last:border-b-0">
+              {sortOrderItems(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="flex justify-between gap-3 border-b border-[#edf1eb] px-3 py-2.5 text-sm last:border-b-0">
                 <div className="min-w-0">
                   <p className="font-semibold text-[#234630]">{item.quantidade}x {itemName(item)}</p>
                   {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-xs text-[#78877b]">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" • ")}</p>}
