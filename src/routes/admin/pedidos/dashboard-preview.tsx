@@ -165,12 +165,82 @@ export function DashboardPedidosPreview() {
     },
     refetchInterval: 30000,
   });
+  // Centraliza Realtime, aviso de novos pedidos e impressão automática
+  // na mesma tela. A antiga tela não monta mais um segundo monitor.
   useEffect(() => {
-    const channel = supabase.channel("dashboard-pedidos-preview").on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
-      client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] });
-    }).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [client]);
+    const channel = supabase.channel("pedidos-dashboard-unificado")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pedidos" }, async ({ new: row }) => {
+        const order = row as any;
+        if (!order?.id || seenOrdersRef.current.has(order.id)) return;
+        seenOrdersRef.current.add(order.id);
+        void client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] });
+        if (order.status === "rascunho") return;
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            const audio = new AudioCtx();
+            if (audio.state === "suspended") await audio.resume();
+            for (let i = 0; i < 3; i++) {
+              const oscillator = audio.createOscillator(), gain = audio.createGain();
+              oscillator.connect(gain); gain.connect(audio.destination);
+              oscillator.frequency.value = [880, 1100, 1320][i];
+              gain.gain.setValueAtTime(0.18, audio.currentTime + i * 0.26);
+              gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + i * 0.26 + 0.22);
+              oscillator.start(audio.currentTime + i * 0.26);
+              oscillator.stop(audio.currentTime + i * 0.26 + 0.22);
+            }
+            window.setTimeout(() => void audio.close(), 1500);
+          }
+        } catch { /* navegador pode bloquear som sem interação */ }
+        if ("Notification" in window && Notification.permission === "granted") {
+          try {
+            const n = new Notification("🍱 Novo pedido SaborosaMente", {
+              body: (order.nome_cliente || "Cliente") + " — " + money(order.valor_total),
+              icon: "/favicon.png", tag: "pedido-" + order.id,
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+          } catch { /* permissão do sistema indisponível */ }
+        }
+        toast.info("Novo pedido de " + (order.nome_cliente || "cliente") + "!", { duration: 12000 });
+
+        if (!(autoPrint || printSettings?.impressao_automatica) ||
+            printSettings?.imprimir_ao_confirmar === false) return;
+        try {
+          // Espera o pedido e seus itens serem finalizados no banco.
+          await new Promise(resolve => window.setTimeout(resolve, 1200));
+          const { data: items, error } = await supabase
+            .from("pedido_itens").select("*").eq("pedido_id", order.id);
+          if (error || !items?.length) {
+            console.warn("Impressão automática: pedido sem itens completos, confira a comanda manual.");
+            return;
+          }
+          const ids = [...new Set(items.map((i: any) => i.produto_id).filter(Boolean))];
+          const productNames: Record<string, string> = {};
+          if (ids.length) {
+            const { data: products } = await supabase.from("produtos").select("id,nome").in("id", ids);
+            for (const product of products || []) productNames[product.id] = product.nome;
+          }
+          const printable = {
+            ...order,
+            itens: items.map((i: any) => ({
+              nome: productNames[i.produto_id] || i.nome_item || "Produto",
+              quantidade: i.quantidade, preco_unitario: i.preco_unitario,
+              observacao: i.observacao,
+            })),
+          };
+          const ip = printSettings?.impressora_ip;
+          const porta = Number(printSettings?.impressora_porta || 9100);
+          const copies = Number(printSettings?.copias || 1);
+          const paper = printSettings?.tamanho_papel || "58mm";
+          if (!ip || !(await imprimirTCP(printable, ip, porta, copies, paper))) printReceipt(printable);
+        } catch (error) { console.error("Falha ao imprimir pedido automaticamente:", error); }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos" }, () => {
+        void client.invalidateQueries({ queryKey: ["admin-orders-dashboard-preview"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [client, autoPrint, printSettings]);
 
   const saveQuickEdit = async () => {
     if (!editing) return;
