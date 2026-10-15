@@ -98,7 +98,7 @@ const createOrderSchema = z.object({
   bairro: z.string().trim().max(120).optional(),
   endereco: z.string().trim().max(160).optional(),
   complemento: z.string().trim().max(80).optional(),
-  cep: z.string().trim().max(20).optional(),
+  cep: z.string().trim().max(20).refine((cep) => !cep || /^\d{5}-?\d{3}$/.test(cep), "CEP inválido. Informe 8 números.").optional(),
   pagamento: z.string().trim().min(2).max(50),
   observacoes: z.string().trim().max(300).optional(),
   // Valores abaixo chegam do navegador apenas para compatibilidade. O servidor recalcula tudo.
