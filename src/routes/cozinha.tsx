@@ -10,6 +10,7 @@ import { DemandaProducao } from "@/components/cozinha/DemandaProducao";
 import { ListaCompras } from "@/components/cozinha/ListaCompras";
 import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
+import { periodoComDuracao, type PeriodoProducao } from "@/lib/cozinha-periodo";
 import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapioCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
@@ -174,6 +175,9 @@ function CozinhaPage() {
     [aba, setAba] = useState<Aba>("producao"),
     [dataProducao, setDataProducao] = useState(hoje()),
     [modoProducao, setModoProducao] = useState<"dia" | "semana">("dia"),
+    [periodoProducao, setPeriodoProducao] = useState<PeriodoProducao>(() =>
+      periodoComDuracao(inicioSemanaISO(hoje()), 7),
+    ),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
     [modal, setModal] = useState<null | "producao" | "editar-producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
@@ -271,21 +275,26 @@ function CozinhaPage() {
       return data ?? [];
     },
   });
-  const segundaSemana = useMemo(() => inicioSemanaISO(dataProducao), [dataProducao]);
-  const domingoSemana = useMemo(() => somarDiasISO(segundaSemana, 6), [segundaSemana]);
-  const { data: producoesSemana = [], isLoading: carregandoSemana, isError: erroSemana } = useQuery({
-    queryKey: ["coz-prod-semana", segundaSemana],
+  const { data: producoesPeriodo = [], isLoading: carregandoPeriodo, isError: erroPeriodo } = useQuery({
+    queryKey: ["coz-prod-periodo", periodoProducao.inicio, periodoProducao.fim],
     enabled: ok && modoProducao === "semana",
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cozinha_producoes")
-        .select("*")
-        .gte("data_producao", segundaSemana)
-        .lte("data_producao", domingoSemana)
-        .order("data_producao")
-        .order("created_at");
-      if (error) throw error;
-      return data ?? [];
+      // Paginar para não descartar lançamentos ao consultar vários meses.
+      const total: any[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await supabase
+          .from("cozinha_producoes")
+          .select("*")
+          .gte("data_producao", periodoProducao.inicio)
+          .lte("data_producao", periodoProducao.fim)
+          .order("data_producao")
+          .order("created_at")
+          .order("id")
+          .range(offset, offset + 499);
+        if (error) throw error;
+        total.push(...(data ?? []));
+        if (!data || data.length < 500) return total;
+      }
     },
   });
 
@@ -522,7 +531,7 @@ function CozinhaPage() {
   const invalidar = (...keys: string[]) =>
     Promise.all([
       ...keys.map((queryKey) => qc.invalidateQueries({ queryKey: [queryKey] })),
-      ...(keys.includes("coz-prod-dia") ? [qc.invalidateQueries({ queryKey: ["coz-prod-semana"] })] : []),
+      ...(keys.includes("coz-prod-dia") ? [qc.invalidateQueries({ queryKey: ["coz-prod-periodo"] })] : []),
     ]);
   const salvarIngredienteCadastro = async (itemAtual: any, dados: any) => {
     const nomeNormalizado = normalizarNomeIngrediente(dados?.nome);
@@ -653,14 +662,14 @@ function CozinhaPage() {
               />
               <div className="mb-4 flex w-fit gap-1 rounded-xl border border-[#dbe7dd] bg-[#edf5e6] p-1" role="group" aria-label="Visualização da produção">
                 <button type="button" aria-pressed={modoProducao === "dia"} onClick={() => setModoProducao("dia")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${modoProducao === "dia" ? "bg-white text-[#087443] shadow-sm" : "text-[#527164] hover:bg-white/60"}`}>Dia</button>
-                <button type="button" aria-pressed={modoProducao === "semana"} onClick={() => setModoProducao("semana")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${modoProducao === "semana" ? "bg-white text-[#087443] shadow-sm" : "text-[#527164] hover:bg-white/60"}`}>Semana</button>
+                <button type="button" aria-pressed={modoProducao === "semana"} onClick={() => setModoProducao("semana")} className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${modoProducao === "semana" ? "bg-white text-[#087443] shadow-sm" : "text-[#527164] hover:bg-white/60"}`}>Período</button>
               </div>
               {modoProducao === "semana" ? (
                 <VisaoSemanalCozinha
-                  inicioSemana={segundaSemana}
-                  producoes={producoesSemana as any[]}
-                  carregando={carregandoSemana}
-                  erro={erroSemana}
+                  periodo={periodoProducao}
+                  producoes={producoesPeriodo as any[]}
+                  carregando={carregandoPeriodo}
+                  erro={erroPeriodo}
                   produtosPorId={produto}
                   receitasPorProduto={rec}
                   preparacoesPorId={prep}
@@ -668,7 +677,7 @@ function CozinhaPage() {
                   calcularNecessidades={calcularNecessidades}
                   formatarQuantidade={formatarQuantidadeProducao}
                   rotuloProduto={rotuloProduto}
-                  onMudarSemana={(dias) => setDataProducao((data) => somarDiasISO(inicioSemanaISO(data), dias))}
+                  onAlterarPeriodo={setPeriodoProducao}
                   onAbrirDia={(data) => { setDataProducao(data); setModoProducao("dia"); }}
                 />
               ) : (
