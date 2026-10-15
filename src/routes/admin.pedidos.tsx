@@ -62,7 +62,7 @@ export const Route = createFileRoute("/admin/pedidos")({
 function AdminPedidosRouter() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const isOverview = pathname.replace(/\/+$/, "") === "/admin/pedidos";
-  return isOverview ? (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("modo") === "lista" ? <AdminOrdersPage /> : <DashboardPedidosPreview />) : <Outlet />;
+  return isOverview ? <DashboardPedidosPreview /> : <Outlet />;
 }
 
 
@@ -460,7 +460,7 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
   );
 }
 
-function AdminOrdersPage() {
+export function AdminOrdersPage() {
   const queryClient = useQueryClient();
   const updateAdminOrderStatusFn = useServerFn(updateAdminOrderStatus);
   const [searchTerm, setSearchTerm] = useState("");
