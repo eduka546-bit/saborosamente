@@ -3,6 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
+  aplicarIngredientesManuais, EditarQuantidadeIngrediente,
+  NovaAdicaoIngrediente, useIngredientesManuais,
+} from "@/components/cozinha/EdicaoIngredientesCozinha";
+import {
   assinaturaChecklist, chaveChecklistIngrediente, etapaEstaMarcada,
   ingredienteEstaSeparado, type MarcacaoIngrediente,
 } from "@/lib/cozinha-checklist-ingredientes";
@@ -33,6 +37,7 @@ type Props = {
   preparacoesPorId: Map<string, any>;
   montagensPorReceita: Map<string, any[]>;
   estoque: any[];
+  catalogoIngredientes: any[];
   calcularNecessidades: (linhas: any[]) => Necessidade[];
   formatarQuantidade: (quantidade: unknown, unidade: Unidade, nome?: unknown) => string;
   rotuloProduto: (produto: any) => string;
@@ -71,7 +76,7 @@ function CaixaChecklist({ marcada, desabilitada, onMudar, texto, complemento }: 
 
 export function VisaoSemanalCozinha({
   periodo, producoes, carregando, erro, produtosPorId, receitasPorProduto,
-  preparacoesPorId, montagensPorReceita, estoque, calcularNecessidades, formatarQuantidade, rotuloProduto,
+  preparacoesPorId, montagensPorReceita, estoque, catalogoIngredientes, calcularNecessidades, formatarQuantidade, rotuloProduto,
   onAlterarPeriodo, onAbrirDia,
 }: Props) {
   const [visualizacao, setVisualizacao] = useState<"producao" | "ingredientes" | "compras">("producao");
@@ -115,13 +120,16 @@ export function VisaoSemanalCozinha({
     alterarDatasEscolhidas([...atual]);
   };
 
+  const manuaisPeriodo = useIngredientesManuais(periodo.inicio, periodo.fim);
   // A produção e os preparos são calculados por DIA. Nunca agrupamos ou
   // reaproveitamos preparos entre dias; somente os ingredientes brutos
   // dos dias ainda pendentes entram na lista de compras semanal.
   const dias = useMemo(() => datasEscolhidas.map((data) => {
     const linhas = producoesPorDia.get(data) || [];
     const pendentes = linhas.filter((p) => p.status !== "concluida" && quantidade(p.quantidade_planejada) > 0);
-    const ingredientes = calcularNecessidades(pendentes);
+    const ingredientes = aplicarIngredientesManuais(
+      calcularNecessidades(pendentes), manuaisPeriodo.doDia(data), catalogoIngredientes,
+    );
     const producoesSemFicha = pendentes.filter((p) => !receitasPorProduto.has(p.produto_id));
     const porProduto = new Map<string, any[]>();
     for (const linha of linhas) {
@@ -175,7 +183,7 @@ export function VisaoSemanalCozinha({
           }).filter((c) => c.gramas > 0),
       })).sort((a, b) => String(a.produto?.nome || "").localeCompare(String(b.produto?.nome || ""), "pt-BR")),
     };
-  }), [datasEscolhidas, producoesPorDia, produtosPorId, receitasPorProduto, preparacoesPorId, montagensPorReceita, calcularNecessidades]);
+  }), [datasEscolhidas, producoesPorDia, produtosPorId, receitasPorProduto, preparacoesPorId, montagensPorReceita, calcularNecessidades, manuaisPeriodo.dados, catalogoIngredientes]);
 
   // SOMENTE ingredientes que ainda serão necessários entram no consolidado.
   // A chave inclui a unidade para não misturar g, L ou unidades.
@@ -247,12 +255,14 @@ export function VisaoSemanalCozinha({
       [`${m.data_producao}:${m.tipo}:${m.chave}`, m])),
     [checklist],
   );
-  const bloqueado = carregandoChecklist || erroChecklist || Boolean(salvandoChave);
-  const ingredienteMarcado = (data: string, linha: { id: string; unidade: Unidade; quantidade: number }) =>
-    ingredienteEstaSeparado(
-      ingredientesMarcados.get(chaveChecklistIngrediente(data, linha.id, linha.unidade)),
-      quantidade(linha.quantidade),
-    );
+  const bloqueado = carregandoChecklist || erroChecklist || manuaisPeriodo.indisponivel || Boolean(salvandoChave);
+  const ingredienteMarcado = (data: string, linha: { id: string; unidade: Unidade; quantidade: number; manualId?: string; manualMarcado?: boolean }) =>
+    linha.id.startsWith("avulso:")
+      ? Boolean(manuaisPeriodo.doDia(data).find((m) => m.id === linha.manualId)?.marcado_em)
+      : ingredienteEstaSeparado(
+        ingredientesMarcados.get(chaveChecklistIngrediente(data, linha.id, linha.unidade)),
+        quantidade(linha.quantidade),
+      );
   const etapaMarcada = (data: string, tipo: MarcacaoEtapa["tipo"], chave: string, assinatura: string) =>
     etapaEstaMarcada(etapasMarcadas.get(`${data}:${tipo}:${chave}`), assinatura);
 
@@ -260,10 +270,14 @@ export function VisaoSemanalCozinha({
     await qc.invalidateQueries({ queryKey: ["coz-checklist-periodo"] });
   };
   const marcarIngrediente = async (
-    data: string, linha: { id: string; unidade: Unidade; quantidade: number },
+    data: string, linha: { id: string; unidade: Unidade; quantidade: number; manualId?: string },
     marcada: boolean,
   ) => {
     if (bloqueado) return;
+    if (linha.id.startsWith("avulso:") && linha.manualId) {
+      await manuaisPeriodo.marcarExtra(linha.manualId, marcada);
+      return;
+    }
     const chave = chaveChecklistIngrediente(data, linha.id, linha.unidade);
     setSalvandoChave(chave);
     try {
@@ -412,9 +426,9 @@ export function VisaoSemanalCozinha({
       </div>
       <p className="mt-2 text-xs text-[#62766b]">Toque nos dias para incluir ou retirar. Produções, ingredientes e compras consideram somente os dias destacados. As preparações continuam separadas por data.</p>
     </section>
-    {carregando && <div role="status" className="rounded-2xl border border-[#dbe7dd] bg-white p-5 text-sm text-[#62766b]">Carregando produções e ingredientes do período escolhido…</div>}
-    {erro && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">Não foi possível carregar o período. Selecione outro intervalo ou tente novamente; não use a lista de compras enquanto houver esse erro.</div>}
-    {!carregando && !erro && <>
+    {(carregando || manuaisPeriodo.isLoading) && <div role="status" className="rounded-2xl border border-[#dbe7dd] bg-white p-5 text-sm text-[#62766b]">Carregando produções e ingredientes do período escolhido…</div>}
+    {(erro || manuaisPeriodo.isError) && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">Não foi possível carregar o período. Selecione outro intervalo ou tente novamente; não use a lista de compras enquanto houver esse erro.</div>}
+    {!carregando && !erro && !manuaisPeriodo.isLoading && !manuaisPeriodo.isError && <>
     <div className="grid grid-cols-3 gap-2">
       {[
         ["Total do período", totais.unidades, "bg-[#e0f2e7] text-[#087443]"],
@@ -503,6 +517,10 @@ export function VisaoSemanalCozinha({
       {dias.map((dia) => <article key={dia.data} className="rounded-2xl border border-[#dbe7dd] bg-white p-4">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold capitalize text-[#075636]">{fmtDia(dia.data)}</h3><button type="button" onClick={() => onAbrirDia(dia.data)} className="text-xs font-bold text-[#087443] underline underline-offset-2">Ver ficha do dia</button></div>
         <p className="mb-3 text-xs text-[#62766b]">Ingredientes das produções ainda pendentes, calculados somente para este dia.</p>
+        <NovaAdicaoIngrediente data={dia.data}
+          calculados={calcularNecessidades(dia.pendentes)}
+          catalogo={catalogoIngredientes}
+          controle={manuaisPeriodo} />
         {!dia.ingredientes.length ? <p className="text-sm text-[#62766b]">{dia.linhas.length ? "Sem ingredientes pendentes (produções concluídas ou fichas indisponíveis)." : "Sem produções planejadas."}</p> :
           <div className="max-h-80 space-y-1 overflow-y-auto">{dia.ingredientes.map((linha) => <div key={`${linha.id}:${linha.unidade}`} className="flex items-start justify-between gap-2 border-b border-[#edf1ed] py-1.5 text-sm">
             <div className="min-w-0 flex-1">
@@ -513,6 +531,7 @@ export function VisaoSemanalCozinha({
                 texto={String(linha.item?.nome || "Ingrediente")} />
             </div>
             <b className="shrink-0 pt-1.5 text-xs text-[#087443] sm:text-sm">{linha.quantidade > 0 ? formatarQuantidade(linha.quantidade, linha.unidade, linha.item?.nome) : "QB · conferir"}</b>
+            <EditarQuantidadeIngrediente data={dia.data} linha={linha} controle={manuaisPeriodo} catalogo={catalogoIngredientes} />
           </div>)}</div>}
       </article>)}
     </div>}
