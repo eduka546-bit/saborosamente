@@ -25,12 +25,16 @@ const dateOnly = (v: unknown) => {
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("pt-BR");
 };
-const deliveryDate = (o: any) => o.data_entrega || o.data_recebimento || o.data_agendada || null;
+const deliveryDate = (o: any) => {
+  const raw = String(o.horario_recebimento || o.horario_entrega || "").trim();
+  const dateMatch = raw.match(/\b\d{4}-\d{2}-\d{2}\b/) || raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
+  return o.data_entrega || o.data_recebimento || o.data_agendada || dateMatch?.[0] || null;
+};
 const deliveryTime = (o: any) => {
   const raw = String(o.horario_entrega || o.horario_recebimento || o.horario_agendado || "").trim();
   if (!raw) return "";
   // Algumas reservas armazenam data e intervalo no mesmo campo.
-  const withoutDate = raw.replace(/\d{2}\/\d{2}\/\d{4}\s*[·,–-]?\s*/g, "").trim();
+  const withoutDate = raw.replace(/(?:\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})\s*[·,–-]?\s*/g, "").trim();
   return withoutDate || raw;
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
@@ -131,6 +135,7 @@ export function DashboardPedidosPreview() {
       try { await supabase.functions.invoke("whatsapp-notify",{body:{pedido_id:order.id,status_anterior:order.status,status_novo:effectiveStatus}}); } catch(err) { console.warn("Notificação",err); }
       await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
       await client.invalidateQueries({queryKey:["admin-orders"]});
+      setSelected((current: any) => current?.id === order.id ? { ...current, status: effectiveStatus } : current);
       toast.success("Status atualizado");
     } catch(err:any) { toast.error(err?.message || "Erro ao atualizar status"); }
     finally {setBusyId(null);}
@@ -454,9 +459,9 @@ export function DashboardPedidosPreview() {
           <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
             {([["nome_cliente","Nome do cliente"],["telefone_cliente","Telefone"],["endereco_rua","Rua"],["endereco_numero","Número"],["endereco_bairro","Bairro"],["endereco_cidade","Cidade"],["horario_recebimento","Data e horário"],["metodo_pagamento","Forma de pagamento"]] as const).map(([field,label])=>
               <label key={field} className="flex flex-col gap-1 text-xs font-semibold"><span>{label}</span><input className="rounded-lg border p-2 text-sm font-normal" value={String(editing[field]??"")} onChange={e=>setEditing((prev:any)=>({...prev,[field]:e.target.value}))}/></label>)}
-            <p className="text-xs text-gray-500 sm:col-span-2">Para editar itens, quantidades e valores, utilize a gestão completa para preservar as regras de estoque e cálculo.</p>
+            <p className="text-xs text-gray-500 sm:col-span-2">Itens, valores e baixas de estoque permanecem protegidos contra alterações sem conferência. Edite os dados do atendimento aqui.</p>
           </div>
-          <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button><a href="/admin/pedidos?modo=lista" className="rounded-lg border px-4 py-2 text-sm">Gestão completa</a></div>
+          <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
       </div>}
       {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
@@ -470,6 +475,15 @@ export function DashboardPedidosPreview() {
             <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-lg p-2 hover:bg-gray-100"><X size={20}/></button>
           </div>
           <div className="shrink-0 px-4 pt-3 sm:px-5">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-[#61776a]">
+              {selected.telefone_cliente && <span className="inline-flex items-center gap-1"><Phone size={13}/>{selected.telefone_cliente}</span>}
+              {selected.metodo_pagamento && <span className="inline-flex items-center gap-1"><CreditCard size={13}/>{selected.metodo_pagamento}</span>}
+              {selected.metodo_entrega === "entrega" && (selected.endereco_rua || selected.endereco_bairro) && (
+                <span className="inline-flex items-center gap-1"><MapPin size={13}/>
+                  {[selected.endereco_rua,selected.endereco_numero,selected.endereco_bairro,selected.endereco_cidade].filter(Boolean).join(", ")}
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-[#f4f8f3] p-3 text-xs sm:grid-cols-3">
               {[
                 ["Status", selected.status],
@@ -507,7 +521,12 @@ export function DashboardPedidosPreview() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => printReceipt({ ...selected, itens: (selected.itens || []).map((i: any) => ({ nome: itemName(i), quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#cdddcf] px-4 py-2 text-sm font-semibold text-[#245b38] hover:bg-[#f1f7f0]"><Printer size={15}/> Imprimir</button>
-              <a href="/admin/pedidos?modo=lista" className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4d2e]"><PackageCheck size={15}/> Gestão completa do pedido</a>
+              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4d2e]"><Pencil size={15}/> Editar informações</button>
+              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#bbe0bf] bg-[#e4f7e8] px-4 py-2 text-sm font-semibold text-green-800">
+                  <MessageCircle size={15}/> WhatsApp
+                </a>}
             </div>
           </div>
         </div>
