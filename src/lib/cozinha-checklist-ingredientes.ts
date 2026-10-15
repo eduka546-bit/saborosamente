@@ -28,3 +28,25 @@ export function ingredienteEstaSeparado(
   return Number.isFinite(registrado) && Number.isFinite(atual)
     && Math.abs(registrado - atual) <= 0.005;
 }
+
+/** Assinatura estável da quantidade/montagem relevante para uma etapa.
+ * Se o planejamento mudar, uma marcação antiga deixa de parecer concluída.
+ */
+export function assinaturaChecklist(partes: readonly (string | number)[]): string {
+  const texto = partes.map((v) => String(v)).join("|");
+  let a = 2166136261;
+  let b = 5381;
+  for (let i = 0; i < texto.length; i++) {
+    const codigo = texto.charCodeAt(i);
+    a = Math.imul(a ^ codigo, 16777619);
+    b = Math.imul(b, 33) ^ codigo;
+  }
+  return `${(a >>> 0).toString(16).padStart(8, "0")}${(b >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+export function etapaEstaMarcada(
+  valorSalvo: { assinatura_referencia: string } | undefined,
+  assinaturaAtual: string,
+): boolean {
+  return Boolean(valorSalvo && valorSalvo.assinatura_referencia === assinaturaAtual);
+}
