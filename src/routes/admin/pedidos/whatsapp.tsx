@@ -376,7 +376,7 @@ function WhatsappAdminOrderPage() {
       } else if (data?.emailStatus === "falhou") {
         toast.error("Pedido salvo, mas o e-mail não foi enviado. Confira o serviço de e-mail.", { duration: 10000 });
       } else {
-        toast.info("Pedido salvo sem e-mail: a conta selecionada não possui endereço cadastrado.");
+        toast.info("Pedido salvo sem e-mail de confirmação cadastrado.");
       }
       navigate({ to: "/admin/pedidos" as any });
     },
@@ -427,20 +427,21 @@ function WhatsappAdminOrderPage() {
           <section className="bg-white border rounded-xl p-5 space-y-3">
             <h2 className="font-bold text-gray-800 flex items-center gap-2">
               <UserRoundCheck size={18} className="text-green-700" />
-              Vincular à conta do cliente
+              Buscar cliente ou conta
             </h2>
             <p className="text-xs text-gray-500">
-              Selecione quem já possui conta no site. Este pedido aparecerá em Meus Pedidos,
-              junto com as compras online. Nenhum cadastro novo será criado.
+              Busque pelo nome ou telefone. Clientes com compras anteriores têm os dados
+              preenchidos automaticamente, mesmo sem conta no site. Somente contas
+              identificadas como "Conta do site" vinculam o pedido a Meus Pedidos.
             </p>
             {selectedCustomer ? (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 p-3">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-green-800 truncate">
-                    Conta vinculada: {selectedCustomer.nome || "Cliente cadastrado"}
+                    {selectedCustomer.source === "conta" ? "Conta vinculada" : "Ficha comercial selecionada"}: {selectedCustomer.nome || "Cliente cadastrado"}
                   </p>
                   <p className="text-xs text-green-700">
-                    {selectedCustomer.telefone || "Telefone não informado"} · Histórico do site
+                    {selectedCustomer.telefone || "Telefone não informado"} · {selectedCustomer.source === "conta" ? "Conta do site" : "Sem login: histórico preservado no CRM"}
                   </p>
                 </div>
                 <Button type="button" size="sm" variant="outline" onClick={() => setSelectedCustomer(null)}>
@@ -452,31 +453,40 @@ function WhatsappAdminOrderPage() {
                 <Input
                   value={customerSearch}
                   onChange={(event) => setCustomerSearch(event.target.value)}
-                  placeholder="Pesquisar conta pelo nome ou telefone"
-                  aria-label="Pesquisar conta do cliente"
+                  placeholder="Buscar clientes por nome ou telefone"
+                  aria-label="Buscar clientes e contas"
                 />
-                {customersLoading && <p className="text-xs text-gray-500">Buscando contas...</p>}
-                {searchTerm.length >= 2 && !customersLoading && registeredCustomers.length === 0 && (
-                  <p className="text-xs text-amber-700">Nenhuma conta encontrada. Confira o nome ou registre o pedido sem vínculo.</p>
+                {customersLoading && <p className="text-xs text-gray-500">Buscando contas e pedidos anteriores...</p>}
+                {customersError && <p role="alert" className="text-xs text-red-600">Não foi possível consultar os clientes. Atualize a página ou verifique sua sessão administrativa.</p>}
+                {searchTerm.length >= 2 && !customersLoading && !customersError && registeredCustomers.length === 0 && (
+                  <p className="text-xs text-amber-700">Nenhum cliente encontrado nos cadastros ou pedidos. Você pode informar os dados manualmente.</p>
                 )}
                 {registeredCustomers.length > 0 && (
                   <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 divide-y">
                     {registeredCustomers.map((profile) => (
                       <button
                         type="button"
-                        key={profile.id}
+                        key={profile.key}
                         onClick={() => selecionarConta(profile)}
                         className="w-full px-3 py-2 text-left hover:bg-green-50 transition-colors"
                       >
                         <p className="text-sm font-medium text-gray-800">{profile.nome || "Cliente sem nome"}</p>
-                        <p className="text-xs text-gray-500">{profile.telefone || "Telefone não cadastrado"}</p>
+                        <p className="text-xs text-gray-500">
+                          {profile.telefone || "Telefone não cadastrado"} • {profile.source === "conta" ? "Conta do site" : profile.source === "historico" ? "Histórico WhatsApp" : "Pedido anterior"}
+                        </p>
+                        {(profile.endereco || profile.bairro || profile.cidade) && (
+                          <p className="text-[11px] text-gray-500">
+                            {[profile.endereco, profile.bairro, profile.cidade].filter(Boolean).join(" • ")}
+                          </p>
+                        )}
                       </button>
                     ))}
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Sem seleção, o sistema só vincula automaticamente se identificar uma única conta pelo telefone.
-                  Caso contrário, o pedido fica como atendimento de convidado.
+                  A ficha de histórico preenche o atendimento, sem criar login e sem dar
+                  acesso aos pedidos antigos. Para vincular a uma conta existente, selecione
+                  explicitamente o resultado "Conta do site".
                 </p>
               </>
             )}
@@ -507,12 +517,12 @@ function WhatsappAdminOrderPage() {
             <h2 className="font-bold text-gray-800">Cliente e atendimento</h2>
             <div>
               <label className="text-xs font-bold text-gray-500">Nome *</label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Input value={nome} onChange={(e) => { setNome(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-gray-500">Telefone</label>
-                <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                <Input value={telefone} onChange={(e) => { setTelefone(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }} />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500">E-mail</label>
@@ -520,9 +530,9 @@ function WhatsappAdminOrderPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={selectedCustomer ? "Será usado o e-mail da conta do site" : "E-mail para receber a confirmação"}
+                  placeholder={selectedCustomer?.source === "conta" ? "Será usado o e-mail da conta do site" : "E-mail para receber a confirmação"}
                 />
-                {selectedCustomer && (
+                {selectedCustomer?.source === "conta" && (
                   <p className="text-xs text-green-700 mt-1">
                     Para pedidos vinculados, a confirmação é enviada automaticamente ao e-mail de login do cliente.
                   </p>
