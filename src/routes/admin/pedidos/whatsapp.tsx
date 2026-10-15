@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
+import { montarBuscaWhatsapp, type ClienteBuscaWhatsApp } from "@/lib/whatsapp-customer-match";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { toast } from "sonner";
@@ -41,17 +42,7 @@ type Product = {
   estoque_400g?: number | null;
 };
 
-type RegisteredCustomer = {
-  id: string;
-  nome: string | null;
-  telefone: string | null;
-  cidade: string | null;
-  bairro: string | null;
-  endereco: string | null;
-  numero: string | null;
-  complemento: string | null;
-  cep: string | null;
-};
+type RegisteredCustomer = ClienteBuscaWhatsApp;
 
 type DraftItem = {
   key: string;
@@ -134,50 +125,52 @@ function WhatsappAdminOrderPage() {
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
 
-  // A lista de clientes é protegida pelas políticas RLS de administradores.
-  // Busca apenas quando o operador digita; não baixa a base inteira.
+  // Busca administrativamente nas contas de login, fichas comerciais e pedidos.
+  // Não cria nem vincula login ao selecionar uma ficha comercial.
   const searchTerm = customerSearch.trim().replace(/[%_,()]/g, "");
-  const { data: registeredCustomers = [], isFetching: customersLoading } = useQuery({
+  const { data: registeredCustomers = [], isFetching: customersLoading, isError: customersError } = useQuery({
     queryKey: ["whatsapp-customer-search", searchTerm],
     queryFn: async () => {
-      const columns = "id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep";
-      const nameQuery = supabase.from("profiles").select(columns).ilike("nome", `%${searchTerm}%`).limit(12);
       const digits = searchTerm.replace(/\D/g, "");
-      const result = await Promise.all([
-        nameQuery,
-        ...(digits.length >= 4
-          ? [supabase.from("profiles").select(columns).ilike("telefone", `%${digits.slice(-4)}%`).limit(30)]
-          : []),
-      ]);
-      const profiles = new Map<string, RegisteredCustomer>();
-      for (const response of result) {
-        if (response.error) throw response.error;
-        for (const profile of (response.data ?? []) as unknown as RegisteredCustomer[]) {
-          profiles.set(profile.id, profile);
-        }
+      const like = "%" + searchTerm + "%";
+      const profileCols = "id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep";
+      const historyCols = "id,nome,telefone_normalizado,email,cidade,bairro,rua,numero,complemento,cep";
+      const orderCols = "id,nome_cliente,telefone_cliente,email_cliente,endereco_cidade,endereco_bairro,endereco_rua,endereco_numero,endereco_complemento,endereco_cep";
+      const reqs: any[] = [
+        supabase.from("profiles").select(profileCols).ilike("nome",like).limit(20),
+        supabase.from("clientes_whatsapp_historico").select(historyCols).ilike("nome",like).limit(20),
+        supabase.from("pedidos").select(orderCols).ilike("nome_cliente",like).order("created_at", { ascending: false }).limit(20),
+      ];
+      if (digits.length >= 4) {
+        const lastDigits = "%" + digits.slice(-4) + "%";
+        reqs.push(supabase.from("profiles").select(profileCols).ilike("telefone",lastDigits).limit(30));
+        reqs.push(supabase.from("clientes_whatsapp_historico").select(historyCols).ilike("telefone_normalizado",lastDigits).limit(30));
+        reqs.push(supabase.from("pedidos").select(orderCols).ilike("telefone_cliente",lastDigits).order("created_at", { ascending: false }).limit(30));
       }
-      const lower = searchTerm.toLocaleLowerCase("pt-BR");
-      const filtered = [...profiles.values()].filter((profile) =>
-        String(profile.nome ?? "").toLocaleLowerCase("pt-BR").includes(lower) ||
-        (digits.length >= 4 && String(profile.telefone ?? "").replace(/\D/g, "").includes(digits)),
-      );
-      return filtered.slice(0, 15);
+      const replies = await Promise.all(reqs);
+      for (const reply of replies) if (reply.error) throw reply.error;
+      const profiles = [...(replies[0].data ?? []), ...(replies[3]?.data ?? [])];
+      const historicos = [...(replies[1].data ?? []), ...(replies[4]?.data ?? [])];
+      const pedidos = [...(replies[2].data ?? []), ...(replies[5]?.data ?? [])];
+      return montarBuscaWhatsapp(profiles, historicos, pedidos, searchTerm);
     },
     enabled: searchTerm.length >= 2,
     staleTime: 20_000,
   });
 
-  const selecionarConta = (profile: RegisteredCustomer) => {
-    setSelectedCustomer(profile);
+  const selecionarConta = (customer: RegisteredCustomer) => {
+    setSelectedCustomer(customer);
     setCustomerSearch("");
-    setNome(profile.nome || "");
-    setTelefone(profile.telefone || "");
-    if (profile.cidade) setCidade(profile.cidade);
-    if (profile.bairro) setBairro(profile.bairro);
-    if (profile.endereco) setRua(profile.endereco);
-    if (profile.numero) setNumero(profile.numero);
-    if (profile.complemento) setComplemento(profile.complemento);
-    if (profile.cep) setCep(profile.cep);
+    setNome(customer.nome || "");
+    setTelefone(customer.telefone || "");
+    setEmail(customer.source === "conta" ? "" : customer.email || "");
+    // Limpa os campos antigos para não misturar pessoas ao trocar a seleção.
+    setCidade(customer.cidade || "");
+    setBairro(customer.bairro || "");
+    setRua(customer.endereco || "");
+    setNumero(customer.numero || "");
+    setComplemento(customer.complemento || "");
+    setCep(customer.cep || "");
   };
 
   useEffect(() => {
@@ -189,7 +182,7 @@ function WhatsappAdminOrderPage() {
       .eq("id", initialCustomerId)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!cancelled && !error && data) selecionarConta(data as RegisteredCustomer);
+        if (!cancelled && !error && data) selecionarConta({ ...data, key: "conta:" + data.id, source: "conta", email: "" } as RegisteredCustomer);
         if (!cancelled && (error || !data)) toast.error("Não foi possível carregar a conta selecionada.");
       });
     return () => { cancelled = true; };
@@ -349,7 +342,7 @@ function WhatsappAdminOrderPage() {
           nome,
           telefone,
           email,
-          linkedUserId: selectedCustomer?.id ?? null,
+          linkedUserId: selectedCustomer?.source === "conta" ? selectedCustomer.id : null,
           metodoEntrega,
           horarioEntrega: horario,
           pagamento,
