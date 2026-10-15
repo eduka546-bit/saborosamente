@@ -690,6 +690,7 @@ function CozinhaPage() {
                   preparacoesPorId={prep}
                   montagensPorReceita={itensMontagem}
                   estoque={estoque as any[]}
+                  catalogoIngredientes={ingredientes as any[]}
                   calcularNecessidades={calcularNecessidades}
                   formatarQuantidade={formatarQuantidadeProducao}
                   rotuloProduto={rotuloProduto}
