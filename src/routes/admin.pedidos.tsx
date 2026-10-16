@@ -45,6 +45,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
+import { orderWhatsappMessage } from "@/lib/order-whatsapp";
 import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
@@ -99,56 +100,7 @@ function orderStatusText(status: unknown, metodoEntrega: unknown) {
 }
 
 function buildOrderWhatsappMessage(order: any) {
-  const protocolo = String(order?.id ?? "").slice(0, 8).toUpperCase();
-  const nome = String(order?.nome_cliente ?? "cliente").trim();
-  const itens = sortOrderItems(Array.isArray(order?.itens) ? order.itens : []);
-
-  const itemLines = itens.map((item: any) => {
-    const productName = item?.produtos?.nome ?? item?.nome_item ?? "Produto";
-    const weight = orderItemWeight(item?.observacao);
-    const qty = Number(item?.quantidade ?? 0);
-    const unit = Number(item?.preco_unitario ?? 0);
-    const lineTotal = qty * unit;
-    return `• ${qty}x ${productName}${weight ? ` (${weight})` : ""} — ${formatOrderMoney(lineTotal)}`;
-  });
-
-  const entrega = String(order?.metodo_entrega ?? "").toLowerCase();
-  const isRetirada = entrega === "retirada";
-
-  const addressParts = [
-    [order?.endereco_rua, order?.endereco_numero].filter(Boolean).join(", "),
-    order?.endereco_bairro,
-    order?.endereco_cidade,
-  ].filter(Boolean);
-
-  const lines = [
-    `Olá, ${nome}! 😊`,
-    "",
-    "Segue o resumo do seu pedido na *SaborosaMente* 🍱",
-    "",
-    `*Pedido #${protocolo}*`,
-    ...itemLines,
-    "",
-    isRetirada ? "🛍️ *Retirada na loja*" : "🚚 *Entrega*",
-    !isRetirada && addressParts.length ? `📍 ${addressParts.join(" - ")}` : null,
-    order?.horario_recebimento ? `🕒 Horário: ${order.horario_recebimento}` : null,
-    order?.metodo_pagamento
-      ? `💳 Pagamento: ${order.metodo_pagamento}${order?.tipo_cartao ? ` — ${order.tipo_cartao}` : ""}`
-      : null,
-    Number(order?.taxa_entrega ?? 0) > 0
-      ? `🚚 Taxa de entrega: ${formatOrderMoney(order.taxa_entrega)}`
-      : null,
-    Number(order?.desconto_aplicado ?? 0) > 0
-      ? `🏷️ Descontos: -${formatOrderMoney(order.desconto_aplicado)}`
-      : null,
-    `💰 *Total: ${formatOrderMoney(order?.valor_total)}*`,
-    "",
-    `*${orderStatusText(order?.status, order?.metodo_entrega)}*`,
-    "",
-    "Qualquer dúvida, é só chamar por aqui. 💚",
-  ].filter((line): line is string => line !== null);
-
-  return lines.join("\n");
+  return orderWhatsappMessage(order);
 }
 
 function openOrderWhatsapp(order: any) {
