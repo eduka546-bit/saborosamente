@@ -256,12 +256,20 @@ function WhatsappAdminOrderPage() {
     }
 
     const interpretado = interpretarResumoWhatsapp(pasteText);
-    if (interpretado.nome && !selectedCustomer) {
+    if (interpretado.nome) {
+      const limparNome = (v: string) => v.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      // Ao colar pedido de outra pessoa, nunca preservar vínculo anterior.
+      const clienteDiferente = !!selectedCustomer &&
+        limparNome(selectedCustomer.nome ?? "") !== limparNome(interpretado.nome);
+      if (clienteDiferente) {
+        setSelectedCustomer(null);
+        toast.info("O comprovante tem outro nome. Confira o cliente antes de vincular uma conta.");
+      }
       setNome(interpretado.nome);
-      // Sugere a conta do cliente sem vinculá-la automaticamente pelo nome.
-      // Ex.: "Marcela Feliski" encontra "Marcela Bastos Feliski".
-      const sobrenome = interpretado.nome.split(/\s+/).at(-1) ?? "";
-      if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
+      if (!selectedCustomer || clienteDiferente) {
+        const sobrenome = interpretado.nome.split(/\s+/).at(-1) ?? "";
+        if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
+      }
     }
     if (interpretado.cidadeSigla === "SBS") setCidade("São Bento do Sul");
 
@@ -300,6 +308,9 @@ function WhatsappAdminOrderPage() {
     });
 
     setItems(novosItens);
+    if (interpretado.telefone) setTelefone(interpretado.telefone);
+    if (interpretado.complemento !== null) setComplemento(interpretado.complemento);
+    if (interpretado.tipoCartao !== null) setTipoCartao(interpretado.tipoCartao);
     if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
     if (interpretado.metodoEntrega) setMetodoEntrega(interpretado.metodoEntrega);
     if (interpretado.endereco) {
@@ -310,10 +321,15 @@ function WhatsappAdminOrderPage() {
     }
     if (interpretado.horario) setHorario(interpretado.horario);
     setPagamento(interpretado.pagamento ?? "nao_informado");
-    if (interpretado.referencia) {
+    if (interpretado.referencia || interpretado.observacoesAdicionais) {
       setObservacao((previous) => {
-        const atual = previous.replace(/(?:^|\n)Referência de entrega:[^\n]*/g, "").trim();
-        return [atual, "Referência de entrega: " + interpretado.referencia].filter(Boolean).join("\n");
+        const atual = previous.replace(/(?:^|\n)Referência de entrega:[^\n]*/g, "")
+          .replace(/(?:^|\n)Instruções do comprovante:[^\n]*/g, "").trim();
+        return [
+          atual,
+          interpretado.referencia ? "Referência de entrega: " + interpretado.referencia : "",
+          interpretado.observacoesAdicionais ? "Instruções do comprovante: " + interpretado.observacoesAdicionais : "",
+        ].filter(Boolean).join("\n");
       });
     }
     setDescontoAplicado(interpretado.descontoValor);
@@ -326,7 +342,7 @@ function WhatsappAdminOrderPage() {
     setDeclaredTotal(interpretado.totalPedido);
     setSaldoAnterior(interpretado.saldoAnterior);
     setTotalAcumulado(interpretado.totalAcumulado);
-    toast.success(`${quantidadeInterpretada} refeições interpretadas. Confira os dados antes de salvar.`);
+    toast.success(`${quantidadeInterpretada} produto(s) interpretado(s), incluindo cliente e entrega quando informados. Confira antes de salvar.`);
   };
 
   const createMutation = useMutation({
