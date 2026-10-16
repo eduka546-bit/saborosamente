@@ -146,7 +146,7 @@ export function SiteHeader() {
           <SheetTrigger asChild>
             <button
               aria-label="Abrir menu"
-              className="md:hidden flex h-10 w-10 items-center justify-center rounded-full border border-border"
+              className="xl:hidden flex h-10 w-10 items-center justify-center rounded-full border border-border"
               style={{ color: navText }}
             >
               <Menu size={20} />
@@ -193,22 +193,22 @@ export function SiteHeader() {
 
         <Link
           to="/"
-          className="absolute left-1/2 -translate-x-1/2 md:hidden"
+          className="flex min-w-0 flex-1 justify-center xl:hidden"
           aria-label="SaborosaMente"
         >
           <img
             src={logoSrc}
             alt="SaborosaMente"
-            className="h-9 w-40 object-contain object-center"
+            className="h-9 w-full max-w-40 object-contain object-center"
           />
         </Link>
 
-        <Link to="/" className="hidden md:flex shrink-0 items-center mr-6" aria-label="SaborosaMente">
+        <Link to="/" className="hidden xl:flex shrink-0 items-center mr-6" aria-label="SaborosaMente">
           <img src={logoSrc} alt="SaborosaMente" className="h-11 w-48 object-contain object-left" />
         </Link>
 
         {/* Navigation Links - Centered options */}
-        <nav className="hidden flex-1 md:flex items-center justify-center gap-4 sm:gap-6 lg:gap-10">
+        <nav className="hidden min-w-0 flex-1 xl:flex items-center justify-center gap-3 xl:gap-4 2xl:gap-7">
           {visibleLinks.map((l) =>
             l.type === "modal" ? (
               <button
@@ -242,7 +242,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Right side - User and Cart */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
