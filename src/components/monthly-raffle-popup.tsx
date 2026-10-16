@@ -131,16 +131,16 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
           <div className="relative mx-auto mb-5 hidden h-16 w-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 md:flex">
             <Gift size={32}/>
           </div>
-          <p className="relative pr-10 text-[10px] font-semibold uppercase tracking-[0.09em] text-[#d8eebf] md:pr-0 md:text-xs md:tracking-[0.14em]">
+          <p className="relative pr-10 text-xs font-semibold uppercase tracking-[0.09em] text-[#d8eebf] md:pr-0 md:text-xs md:tracking-[0.14em]">
             Sorteio mensal SaborosaMente
           </p>
           <h2 id="sorteio-titulo" className="relative mx-auto mt-2 max-w-[370px] text-[21px] font-semibold leading-[1.18] tracking-[-0.02em] sm:text-[24px] md:mt-3 md:text-[2rem]">
             Uma semana de marmitas congeladas gratuitas pra você!
           </h2>
-          <p className="relative mx-auto mt-2 max-w-[340px] text-xs leading-snug text-[#f0f7ee] md:mt-5 md:text-[15px] md:leading-relaxed">
+          <p className="relative mx-auto mt-2 max-w-[340px] text-sm leading-snug text-[#f0f7ee] md:mt-5 md:text-[15px] md:leading-relaxed">
             <strong className="font-semibold text-white">Não precisa comprar nada!</strong> Só de se cadastrar, você já está concorrendo a uma semana de marmitas gratuitas.
           </p>
-          <div className="relative mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white md:mt-5 md:px-4 md:py-2 md:text-xs">
+          <div className="relative mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white md:mt-5 md:px-4 md:py-2 md:text-xs">
             <ShieldCheck size={16}/> Participe gratuitamente
           </div>
         </div>
@@ -155,14 +155,14 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
             Cadastre-se uma vez e continue elegível nos próximos sorteios previstos, até ser contemplado.
           </p>
           <div>
-            <label htmlFor="sorteio-nome" className="mb-1 block text-xs font-semibold text-[#243e31] md:text-sm">Nome completo</label>
+            <label htmlFor="sorteio-nome" className="mb-1 block text-sm font-semibold text-[#243e31]">Nome completo</label>
             <input id="sorteio-nome" autoComplete="name" required maxLength={80}
               value={nome} onChange={e => setNome(e.target.value)}
               placeholder="Seu nome"
               className="w-full rounded-xl border border-[#cbdacc] bg-white px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-[#08764a] md:px-4 md:py-3"/>
           </div>
           <div>
-            <label htmlFor="sorteio-telefone" className="mb-1 block text-xs font-semibold text-[#243e31] md:text-sm">WhatsApp com DDD</label>
+            <label htmlFor="sorteio-telefone" className="mb-1 block text-sm font-semibold text-[#243e31]">WhatsApp com DDD</label>
             <div className="relative">
               <Phone size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#547765]"/>
               <input id="sorteio-telefone" autoComplete="tel" type="tel" required maxLength={18}
@@ -171,7 +171,7 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
                 className="w-full rounded-xl border border-[#cbdacc] bg-white py-2.5 pl-10 pr-3 text-base outline-none focus:ring-2 focus:ring-[#08764a] md:py-3 md:pr-4"/>
             </div>
           </div>
-          <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-[#375244]">
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-relaxed text-[#375244]">
             <input type="checkbox" required checked={aceitePoliticas}
               onChange={e => setAceitePoliticas(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#08764a]"/>
