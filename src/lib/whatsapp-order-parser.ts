@@ -1,3 +1,5 @@
+import { interpretarComprovanteP10 } from "./pedidos10-whatsapp-parser";
+
 /**
  * Interpreta resumos recebidos pelo WhatsApp, sem registrar nem modificar pedidos.
  * Cada seção pode ter tamanhos, produtos e preços próprios.
@@ -21,6 +23,10 @@ export type BlocoPedido = {
 };
 export type PedidoInterpretado = {
   nome: string | null;
+  telefone: string | null;
+  complemento: string | null;
+  tipoCartao: string | null;
+  observacoesAdicionais: string | null;
   cidadeSigla: string | null;
   peso: PesoPedido;
   precoUnitario: number | null;
@@ -80,6 +86,10 @@ const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)[õo]es?|Combo|Comple
 const precoLinha = /(?:^|\s)(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i;
 
 export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
+  // Comprovantes da Pedidos10 exigem tratamento distinto para combo fechado,
+  // endereços estruturados e sabores com gramaturas mistas.
+  const p10 = interpretarComprovanteP10(texto);
+  if (p10) return p10;
   const linhas = texto.split(/\r?\n/).map((l) => l.replace(/[*_]/g, "").trim());
   const linha = (regex: RegExp) => linhas.find((l) => regex.test(l)) ?? "";
   const cabecalho = linha(/^Pedido\s+/i);
@@ -197,7 +207,8 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     avisos.push("Desconto percentual inválido.");
   }
   return {
-    nome, cidadeSigla, peso, precoUnitario, itens, itensDetalhados, blocos, avisos,
+    nome, telefone: null, complemento: null, tipoCartao: null, observacoesAdicionais: null,
+    cidadeSigla, peso, precoUnitario, itens, itensDetalhados, blocos, avisos,
     quantidadeDeclarada, subtotalDeclarado, taxaEntrega, metodoEntrega,
     endereco, referencia, horario, pagamento, descontoPercentual, descontoValor,
     cashbackUsado: cashbackRecibo, totalPedido, saldoAnterior, totalAcumulado,
