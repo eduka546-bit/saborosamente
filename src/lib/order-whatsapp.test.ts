@@ -38,7 +38,7 @@ describe("Mensagem WhatsApp dos pedidos", () => {
     expect(msg).toContain("1x TD01 - Frango 200g");
     expect(msg).not.toContain("200g (200g)");
     expect(msg).toContain("2x TD09 - Panqueca (300g)");
-    expect(msg).toContain("*Total:* R$ 112,50");
+    expect(msg.replace(/\u00a0/g, " ")).toContain("*Total:* R$ 112,50");
     expect(msg).toContain("Qualquer dúvida, estamos à disposição! 🤩");
     const link = orderWhatsappUrl(order);
     expect(link).toContain("https://wa.me/5547999998888?text=");
