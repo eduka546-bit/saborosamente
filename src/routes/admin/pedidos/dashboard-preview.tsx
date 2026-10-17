@@ -39,9 +39,28 @@ const deliveryTime = (o: any) => {
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
 const itemWeight = (item: any) => {
-  const obs = String(item.observacao || "");
-  const match = obs.match(/(?:Peso:\s*)?(200|300|400)\s*g/i);
+  const raw = [item.tamanho, item.peso, item.gramatura, item.variacao, item.observacao, itemName(item)].filter(Boolean).join(" ");
+  const match = raw.match(/\b(150|200|300|400)\s*g\b/i);
   return match ? match[1] + "g" : "";
+};
+const itemCategory = (item: any) => {
+  const raw = [item.tipo, item.categoria, itemName(item), item.observacao].filter(Boolean).join(" ").toLowerCase();
+  if (/personalizad/.test(raw)) return "Personalizados";
+  if (/etopa|etoppq|etoppq|etopp/.test(raw)) return "Etopaqs";
+  return itemWeight(item) || "Outros";
+};
+const orderPayments = (order: any) => {
+  const fields = [order.pagamentos, order.formas_pagamento, order.payment_details];
+  for (const value of fields) {
+    let parsed = value;
+    if (typeof parsed === "string") { try { parsed = JSON.parse(parsed); } catch { continue; } }
+    if (Array.isArray(parsed) && parsed.length) return parsed.map((p: any) => ({
+      name: String(p.metodo || p.forma || p.tipo || p.metodo_pagamento || "Pagamento"),
+      amount: Number(p.valor ?? p.amount ?? 0),
+      status: p.status ? String(p.status) : "",
+    }));
+  }
+  return order.metodo_pagamento ? [{ name: String(order.metodo_pagamento), amount: Number(order.valor_total || 0), status: String(order.status_pagamento || "") }] : [];
 };
 const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
 const sections = [
@@ -465,73 +484,92 @@ export function DashboardPedidosPreview() {
           <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
       </div>}
-      {selected && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
-        <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[min(90dvh,790px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8ede7] px-4 py-3 sm:px-5">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold tracking-wider text-[#799284]">VISUALIZAR PEDIDO</p>
-              <h2 className="text-xl font-bold text-[#183e2b]">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
-              <p className="truncate text-sm text-[#43594a]">{selected.nome_cliente || "Cliente sem nome"}</p>
-            </div>
-            <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-lg p-2 hover:bg-gray-100"><X size={20}/></button>
-          </div>
-          <div className="shrink-0 px-4 pt-3 sm:px-5">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-[#61776a]">
-              {selected.telefone_cliente && <span className="inline-flex items-center gap-1"><Phone size={13}/>{selected.telefone_cliente}</span>}
-              {selected.metodo_pagamento && <span className="inline-flex items-center gap-1"><CreditCard size={13}/>{selected.metodo_pagamento}</span>}
-              {selected.metodo_entrega === "entrega" && (selected.endereco_rua || selected.endereco_bairro) && (
-                <span className="inline-flex items-center gap-1"><MapPin size={13}/>
-                  {[selected.endereco_rua,selected.endereco_numero,selected.endereco_bairro,selected.endereco_cidade].filter(Boolean).join(", ")}
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-[#f4f8f3] p-3 text-xs sm:grid-cols-3">
-              {[
-                ["Status", selected.status],
-                ["Origem", selected.origem || "site"],
-                ["Data de entrega", dateOnly(deliveryDate(selected) || selected.created_at)],
-                ["Horário", deliveryTime(selected) || "Não informado"],
-                ["Modalidade", selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega"],
-                ["Cidade", selected.endereco_cidade || "Não informada"],
-              ].map(([label, value]) => <div key={label} className="min-w-0">
-                <p className="mb-0.5 text-[11px] text-[#728478]">{label}</p>
-                <p className="break-words font-semibold capitalize text-[#213d2a]">{value}</p>
-              </div>)}
-            </div>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col px-4 pt-3 sm:px-5">
-            <div className="mb-2 flex shrink-0 items-center justify-between">
-              <h3 className="text-sm font-bold">Itens do pedido</h3>
-              <span className="text-xs text-[#75867a]">{(selected.itens || []).reduce((total: number, i: any) => total + Number(i.quantidade || 0), 0)} unidades</span>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#e0e9df]">
-              {sortOrderItems(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="flex justify-between gap-3 border-b border-[#edf1eb] px-3 py-2.5 text-sm last:border-b-0">
-                <div className="min-w-0">
-                  <p className="font-semibold text-[#234630]">{item.quantidade}x {itemName(item)}</p>
-                  {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-xs text-[#78877b]">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" • ")}</p>}
+      {selected && (() => {
+        const totalUnits = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0), 0);
+        const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Etopaqs": 0, "Personalizados": 0 };
+        for (const item of selected.itens || []) {
+          const category = itemCategory(item);
+          if (category in counts) counts[category] += Number(item.quantidade || 0);
+        }
+        const otherUnits = totalUnits - Object.values(counts).reduce((a, b) => a + b, 0);
+        const payments = orderPayments(selected);
+        const itemSubtotal = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0), 0);
+        return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white text-[#203b2b] shadow-2xl" onClick={event => event.stopPropagation()}>
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c9183]">Pedido</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-bold text-[#174b32]">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
+                  <select aria-label="Alterar status do pedido" value={selected.status || "pendente"} disabled={busyId === selected.id}
+                    onChange={e => void changeStatus(selected, e.target.value)}
+                    className="max-w-[170px] rounded-xl bg-[#e8f5ea] px-2 py-1 text-xs font-semibold text-[#175934]">
+                    {["pendente", "preparando", "pronto para retirada", "saiu para entrega", "entregue", "cancelado"].map(status => <option key={status} value={status}>{status}</option>)}
+                  </select>
                 </div>
-                <span className="shrink-0 font-semibold tabular-nums text-[#234630]">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</span>
-              </div>)}
-              {!(selected.itens || []).length && <p className="p-5 text-center text-sm text-gray-500">Nenhum item registrado.</p>}
+                <p className="text-[11px] text-[#728579]">{dateOnly(selected.created_at)} · {selected.origem || "Site"}</p>
+              </div>
+              <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-lg p-2 hover:bg-gray-100"><X size={21}/></button>
+            </header>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 sm:px-5">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-[#e1eae1] p-3">
+                  <p className="font-bold">{selected.nome_cliente || "Cliente sem nome"}</p>
+                  {selected.telefone_cliente && <p className="mt-1 flex items-center gap-2 text-sm text-[#63766b]"><Phone size={14}/>{selected.telefone_cliente}</p>}
+                </div>
+                <div className="rounded-xl border border-[#e1eae1] p-3">
+                  <p className="flex items-start gap-2 text-sm font-semibold"><MapPin size={16} className="mt-0.5 shrink-0"/>{[selected.endereco_rua, selected.endereco_numero, selected.endereco_bairro, selected.endereco_cidade].filter(Boolean).join(", ") || "Endereço não informado"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#f1f7f0] p-3 sm:grid-cols-4">
+                {([["Entrega", dateOnly(deliveryDate(selected) || selected.created_at)], ["Horário", deliveryTime(selected) || "Não informado"], ["Modalidade", selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega"], ["Cidade", selected.endereco_cidade || "Não informada"]] as const).map(([label, value]) =>
+                  <div key={label} className="min-w-0"><p className="text-[11px] text-[#78897d]">{label}</p><p className="break-words text-xs font-semibold sm:text-sm">{value}</p></div>)}
+              </div>
+              <section className="rounded-xl border border-[#e2ebe2] p-3">
+                <h3 className="mb-2 text-sm font-bold">Resumo das unidades</h3>
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-7">
+                  {Object.entries(counts).map(([label, amount]) => <div key={label} className="rounded-lg bg-[#eff6ef] px-1 py-2 text-center"><p className="text-[10px] font-semibold">{label}</p><p className="text-lg font-bold tabular-nums text-[#175934]">{amount}</p></div>)}
+                  <div className="rounded-lg bg-[#dff0e3] px-1 py-2 text-center"><p className="text-[10px] font-bold">Total</p><p className="text-lg font-extrabold tabular-nums text-[#175934]">{totalUnits}</p></div>
+                </div>
+                {otherUnits > 0 && <p className="mt-2 text-xs text-[#7a6551]">Sem categoria identificada: {otherUnits} unidade(s), já incluídas no total.</p>}
+              </section>
+              <section className="min-w-0">
+                <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-bold">Itens do pedido</h3><span className="rounded-full bg-[#edf3ed] px-2 py-1 text-xs font-semibold">{totalUnits} unidades</span></div>
+                <div className="max-h-[250px] overflow-y-auto overscroll-contain rounded-xl border border-[#e1eae1] [scrollbar-color:#779b80_#eef3ee] [scrollbar-width:thin]" tabIndex={0} aria-label="Lista de itens do pedido, rolável">
+                  {sortOrderItems(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#edf1eb] px-3 py-2.5 text-xs last:border-0 sm:gap-3 sm:text-sm">
+                    <span className="rounded-lg bg-[#e9f5e9] px-2 py-1 font-bold">{Number(item.quantidade || 0)}x</span>
+                    <div className="min-w-0"><p className="font-semibold leading-snug">{itemName(item)}</p><p className="text-xs text-[#748578]">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p></div>
+                    <span className="whitespace-nowrap font-bold tabular-nums">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</span>
+                  </div>)}
+                  {!(selected.itens || []).length && <p className="p-4 text-center text-xs text-gray-500">Nenhum item registrado.</p>}
+                </div>
+              </section>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <section className="min-w-0 rounded-xl border border-[#e1eae1] p-3">
+                  <h3 className="mb-2 flex items-center gap-2 text-sm font-bold"><CreditCard size={16}/> Formas de pagamento</h3>
+                  <div className="space-y-2">
+                    {payments.map((payment, i) => <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-[#f3f7f3] px-3 py-2 text-xs">
+                      <span className="min-w-0 truncate font-semibold">{payment.name}{payment.status ? " · " + payment.status : ""}</span><strong className="shrink-0">{money(payment.amount)}</strong>
+                    </div>)}
+                    {!payments.length && <p className="text-xs text-[#728579]">Forma de pagamento não informada.</p>}
+                  </div>
+                </section>
+                <section className="rounded-xl border border-[#e1eae1] p-3">
+                  <h3 className="mb-2 text-sm font-bold">Resumo financeiro</h3>
+                  <div className="flex justify-between text-xs text-[#657568]"><span>Itens</span><span>{money(itemSubtotal)}</span></div>
+                  <div className="mt-2 flex justify-between border-t pt-2 text-base font-extrabold text-[#175934]"><span>Total do pedido</span><span>{money(selected.valor_total)}</span></div>
+                </section>
+              </div>
+              {(selected.observacoes || selected.observacao) && <div className="rounded-xl bg-[#fff7e6] p-3 text-xs"><strong>Observações: </strong>{selected.observacoes || selected.observacao}</div>}
             </div>
+            <footer className="flex shrink-0 flex-wrap gap-2 border-t bg-white px-3 py-3 sm:px-5">
+              <button onClick={() => printOrder(selected)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold sm:text-sm"><Printer size={15}/> Imprimir</button>
+              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold sm:text-sm"><Pencil size={15}/> Editar informações</button>
+              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-[#175934] px-3 py-2 text-xs font-semibold text-white sm:text-sm"><MessageCircle size={15}/> WhatsApp</a>}
+            </footer>
           </div>
-          <div className="shrink-0 border-t border-[#e8ede7] bg-white px-4 py-3 sm:px-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="text-sm font-bold text-[#244a32]">Total do pedido</span>
-              <strong className="text-xl font-bold tabular-nums text-[#1f5835]">{money(selected.valor_total)}</strong>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => printReceipt({ ...selected, itens: (selected.itens || []).map((i: any) => ({ nome: itemName(i), quantidade: i.quantidade, preco_unitario: i.preco_unitario, observacao: i.observacao })) })} className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#cdddcf] px-4 py-2 text-sm font-semibold text-[#245b38] hover:bg-[#f1f7f0]"><Printer size={15}/> Imprimir</button>
-              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4d2e]"><Pencil size={15}/> Editar informações</button>
-              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#bbe0bf] bg-[#e4f7e8] px-4 py-2 text-sm font-semibold text-green-800">
-                  <MessageCircle size={15}/> WhatsApp
-                </a>}
-            </div>
-          </div>
-        </div>
-      </div>}
+        </div>;
+      })()}
     </div>
   );
 }
