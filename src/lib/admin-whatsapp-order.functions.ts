@@ -34,25 +34,6 @@ const schema = z.object({
   items: z.array(itemSchema).min(1).max(100),
 });
 
-function phoneCandidates(raw: string) {
-  const digits = raw.replace(/\D/g, "");
-  const values = new Set<string>();
-  if (!digits) return [];
-
-  values.add(raw.trim());
-  values.add(digits);
-
-  if (digits.startsWith("55")) {
-    values.add(`+${digits}`);
-    values.add(digits.slice(2));
-  } else if (digits.length === 10 || digits.length === 11) {
-    values.add(`55${digits}`);
-    values.add(`+55${digits}`);
-  }
-
-  return [...values].filter(Boolean);
-}
-
 export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof schema>) => schema.parse(data))
   .handler(async ({ data }) => {
@@ -105,44 +86,10 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
         throw new Error("A conta selecionada não existe mais. Selecione novamente o cliente.");
       }
       linkedUserId = selectedProfile.id;
-    } else {
-      // Compatibilidade com lançamentos anteriores: vinculação automática SOMENTE
-      // quando o telefone, após normalizar DDI/pontuação, identifica 1 conta.
-      // Telefone ambíguo continua como pedido de convidado para evitar vazamentos.
-      const digits = data.telefone.replace(/\D/g, "");
-      const phoneKey = (value: string) => {
-        const normalized = value.replace(/\D/g, "");
-        return normalized.startsWith("55") && normalized.length >= 12
-          ? normalized.slice(2)
-          : normalized;
-      };
-      if (digits.length >= 10) {
-        const candidates = phoneCandidates(data.telefone);
-        const { data: direct, error: directError } = await supabase
-          .from("profiles")
-          .select("id,telefone")
-          .in("telefone", candidates)
-          .limit(50);
-        if (directError) throw new Error("Não foi possível conferir a conta do cliente.");
-
-        const found = new Map<string, { id: string; telefone: string | null }>();
-        for (const profile of direct ?? []) found.set(profile.id, profile);
-
-        // Inclui telefones com espaços, parênteses e hífens no cadastro.
-        const { data: formatted, error: formattedError } = await supabase
-          .from("profiles")
-          .select("id,telefone")
-          .ilike("telefone", `%${digits.slice(-4)}%`)
-          .limit(100);
-        if (formattedError) throw new Error("Não foi possível conferir o telefone do cliente.");
-        for (const profile of formatted ?? []) found.set(profile.id, profile);
-
-        const matched = [...found.values()].filter((profile) =>
-          phoneKey(String(profile.telefone ?? "")) === phoneKey(digits),
-        );
-        if (matched.length === 1) linkedUserId = matched[0].id;
-      }
     }
+
+    // Pedidos de convidados nunca concedem acesso a uma conta só pela
+    // coincidência de telefone: a conta deve ser selecionada pelo admin.
 
     // A conta de login é a fonte confiável do e-mail. O perfil público
     // não possui coluna email, portanto selecionar um cliente não preenche

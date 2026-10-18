@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
+import { montarBuscaWhatsapp, type ClienteBuscaWhatsApp } from "@/lib/whatsapp-customer-match";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { toast } from "sonner";
@@ -41,17 +42,7 @@ type Product = {
   estoque_400g?: number | null;
 };
 
-type RegisteredCustomer = {
-  id: string;
-  nome: string | null;
-  telefone: string | null;
-  cidade: string | null;
-  bairro: string | null;
-  endereco: string | null;
-  numero: string | null;
-  complemento: string | null;
-  cep: string | null;
-};
+type RegisteredCustomer = ClienteBuscaWhatsApp;
 
 type DraftItem = {
   key: string;
@@ -134,50 +125,52 @@ function WhatsappAdminOrderPage() {
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
 
-  // A lista de clientes é protegida pelas políticas RLS de administradores.
-  // Busca apenas quando o operador digita; não baixa a base inteira.
+  // Busca administrativamente nas contas de login, fichas comerciais e pedidos.
+  // Não cria nem vincula login ao selecionar uma ficha comercial.
   const searchTerm = customerSearch.trim().replace(/[%_,()]/g, "");
-  const { data: registeredCustomers = [], isFetching: customersLoading } = useQuery({
+  const { data: registeredCustomers = [], isFetching: customersLoading, isError: customersError } = useQuery({
     queryKey: ["whatsapp-customer-search", searchTerm],
     queryFn: async () => {
-      const columns = "id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep";
-      const nameQuery = supabase.from("profiles").select(columns).ilike("nome", `%${searchTerm}%`).limit(12);
       const digits = searchTerm.replace(/\D/g, "");
-      const result = await Promise.all([
-        nameQuery,
-        ...(digits.length >= 4
-          ? [supabase.from("profiles").select(columns).ilike("telefone", `%${digits.slice(-4)}%`).limit(30)]
-          : []),
-      ]);
-      const profiles = new Map<string, RegisteredCustomer>();
-      for (const response of result) {
-        if (response.error) throw response.error;
-        for (const profile of (response.data ?? []) as unknown as RegisteredCustomer[]) {
-          profiles.set(profile.id, profile);
-        }
+      const like = "%" + searchTerm + "%";
+      const profileCols = "id,nome,telefone,cidade,bairro,endereco,numero,complemento,cep";
+      const historyCols = "id,nome,telefone_normalizado,email,cidade,bairro,rua,numero,complemento,cep";
+      const orderCols = "id,nome_cliente,telefone_cliente,email_cliente,endereco_cidade,endereco_bairro,endereco_rua,endereco_numero,endereco_complemento,endereco_cep";
+      const reqs: any[] = [
+        supabase.from("profiles").select(profileCols).ilike("nome",like).limit(20),
+        supabase.from("clientes_whatsapp_historico").select(historyCols).ilike("nome",like).limit(20),
+        supabase.from("pedidos").select(orderCols).ilike("nome_cliente",like).order("created_at", { ascending: false }).limit(20),
+      ];
+      if (digits.length >= 4) {
+        const lastDigits = "%" + digits.slice(-4) + "%";
+        reqs.push(supabase.from("profiles").select(profileCols).ilike("telefone",lastDigits).limit(30));
+        reqs.push(supabase.from("clientes_whatsapp_historico").select(historyCols).ilike("telefone_normalizado",lastDigits).limit(30));
+        reqs.push(supabase.from("pedidos").select(orderCols).ilike("telefone_cliente",lastDigits).order("created_at", { ascending: false }).limit(30));
       }
-      const lower = searchTerm.toLocaleLowerCase("pt-BR");
-      const filtered = [...profiles.values()].filter((profile) =>
-        String(profile.nome ?? "").toLocaleLowerCase("pt-BR").includes(lower) ||
-        (digits.length >= 4 && String(profile.telefone ?? "").replace(/\D/g, "").includes(digits)),
-      );
-      return filtered.slice(0, 15);
+      const replies = await Promise.all(reqs);
+      for (const reply of replies) if (reply.error) throw reply.error;
+      const profiles = [...(replies[0].data ?? []), ...(replies[3]?.data ?? [])];
+      const historicos = [...(replies[1].data ?? []), ...(replies[4]?.data ?? [])];
+      const pedidos = [...(replies[2].data ?? []), ...(replies[5]?.data ?? [])];
+      return montarBuscaWhatsapp(profiles, historicos, pedidos, searchTerm);
     },
     enabled: searchTerm.length >= 2,
     staleTime: 20_000,
   });
 
-  const selecionarConta = (profile: RegisteredCustomer) => {
-    setSelectedCustomer(profile);
+  const selecionarConta = (customer: RegisteredCustomer) => {
+    setSelectedCustomer(customer);
     setCustomerSearch("");
-    setNome(profile.nome || "");
-    setTelefone(profile.telefone || "");
-    if (profile.cidade) setCidade(profile.cidade);
-    if (profile.bairro) setBairro(profile.bairro);
-    if (profile.endereco) setRua(profile.endereco);
-    if (profile.numero) setNumero(profile.numero);
-    if (profile.complemento) setComplemento(profile.complemento);
-    if (profile.cep) setCep(profile.cep);
+    setNome(customer.nome || "");
+    setTelefone(customer.telefone || "");
+    setEmail(customer.source === "conta" ? "" : customer.email || "");
+    // Limpa os campos antigos para não misturar pessoas ao trocar a seleção.
+    setCidade(customer.cidade || "");
+    setBairro(customer.bairro || "");
+    setRua(customer.endereco || "");
+    setNumero(customer.numero || "");
+    setComplemento(customer.complemento || "");
+    setCep(customer.cep || "");
   };
 
   useEffect(() => {
@@ -189,7 +182,7 @@ function WhatsappAdminOrderPage() {
       .eq("id", initialCustomerId)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!cancelled && !error && data) selecionarConta(data as RegisteredCustomer);
+        if (!cancelled && !error && data) selecionarConta({ ...data, key: "conta:" + data.id, source: "conta", email: "" } as RegisteredCustomer);
         if (!cancelled && (error || !data)) toast.error("Não foi possível carregar a conta selecionada.");
       });
     return () => { cancelled = true; };
@@ -365,7 +358,7 @@ function WhatsappAdminOrderPage() {
           nome,
           telefone,
           email,
-          linkedUserId: selectedCustomer?.id ?? null,
+          linkedUserId: selectedCustomer?.source === "conta" ? selectedCustomer.id : null,
           metodoEntrega,
           horarioEntrega: horario,
           pagamento,
@@ -399,7 +392,7 @@ function WhatsappAdminOrderPage() {
       } else if (data?.emailStatus === "falhou") {
         toast.error("Pedido salvo, mas o e-mail não foi enviado. Confira o serviço de e-mail.", { duration: 10000 });
       } else {
-        toast.info("Pedido salvo sem e-mail: a conta selecionada não possui endereço cadastrado.");
+        toast.info("Pedido salvo sem e-mail de confirmação cadastrado.");
       }
       navigate({ to: "/admin/pedidos" as any });
     },
@@ -450,20 +443,21 @@ function WhatsappAdminOrderPage() {
           <section className="bg-white border rounded-xl p-5 space-y-3">
             <h2 className="font-bold text-gray-800 flex items-center gap-2">
               <UserRoundCheck size={18} className="text-green-700" />
-              Vincular à conta do cliente
+              Buscar cliente ou conta
             </h2>
             <p className="text-xs text-gray-500">
-              Selecione quem já possui conta no site. Este pedido aparecerá em Meus Pedidos,
-              junto com as compras online. Nenhum cadastro novo será criado.
+              Busque pelo nome ou telefone. Clientes com compras anteriores têm os dados
+              preenchidos automaticamente, mesmo sem conta no site. Somente contas
+              identificadas como "Conta do site" vinculam o pedido a Meus Pedidos.
             </p>
             {selectedCustomer ? (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 p-3">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-green-800 truncate">
-                    Conta vinculada: {selectedCustomer.nome || "Cliente cadastrado"}
+                    {selectedCustomer.source === "conta" ? "Conta vinculada" : "Ficha comercial selecionada"}: {selectedCustomer.nome || "Cliente cadastrado"}
                   </p>
                   <p className="text-xs text-green-700">
-                    {selectedCustomer.telefone || "Telefone não informado"} · Histórico do site
+                    {selectedCustomer.telefone || "Telefone não informado"} · {selectedCustomer.source === "conta" ? "Conta do site" : "Sem login: histórico preservado no CRM"}
                   </p>
                 </div>
                 <Button type="button" size="sm" variant="outline" onClick={() => setSelectedCustomer(null)}>
@@ -475,31 +469,40 @@ function WhatsappAdminOrderPage() {
                 <Input
                   value={customerSearch}
                   onChange={(event) => setCustomerSearch(event.target.value)}
-                  placeholder="Pesquisar conta pelo nome ou telefone"
-                  aria-label="Pesquisar conta do cliente"
+                  placeholder="Buscar clientes por nome ou telefone"
+                  aria-label="Buscar clientes e contas"
                 />
-                {customersLoading && <p className="text-xs text-gray-500">Buscando contas...</p>}
-                {searchTerm.length >= 2 && !customersLoading && registeredCustomers.length === 0 && (
-                  <p className="text-xs text-amber-700">Nenhuma conta encontrada. Confira o nome ou registre o pedido sem vínculo.</p>
+                {customersLoading && <p className="text-xs text-gray-500">Buscando contas e pedidos anteriores...</p>}
+                {customersError && <p role="alert" className="text-xs text-red-600">Não foi possível consultar os clientes. Atualize a página ou verifique sua sessão administrativa.</p>}
+                {searchTerm.length >= 2 && !customersLoading && !customersError && registeredCustomers.length === 0 && (
+                  <p className="text-xs text-amber-700">Nenhum cliente encontrado nos cadastros ou pedidos. Você pode informar os dados manualmente.</p>
                 )}
                 {registeredCustomers.length > 0 && (
                   <div className="max-h-52 overflow-y-auto rounded-lg border border-gray-200 divide-y">
                     {registeredCustomers.map((profile) => (
                       <button
                         type="button"
-                        key={profile.id}
+                        key={profile.key}
                         onClick={() => selecionarConta(profile)}
                         className="w-full px-3 py-2 text-left hover:bg-green-50 transition-colors"
                       >
                         <p className="text-sm font-medium text-gray-800">{profile.nome || "Cliente sem nome"}</p>
-                        <p className="text-xs text-gray-500">{profile.telefone || "Telefone não cadastrado"}</p>
+                        <p className="text-xs text-gray-500">
+                          {profile.telefone || "Telefone não cadastrado"} • {profile.source === "conta" ? "Conta do site" : profile.source === "historico" ? "Histórico WhatsApp" : "Pedido anterior"}
+                        </p>
+                        {(profile.endereco || profile.bairro || profile.cidade) && (
+                          <p className="text-[11px] text-gray-500">
+                            {[profile.endereco, profile.bairro, profile.cidade].filter(Boolean).join(" • ")}
+                          </p>
+                        )}
                       </button>
                     ))}
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Sem seleção, o sistema só vincula automaticamente se identificar uma única conta pelo telefone.
-                  Caso contrário, o pedido fica como atendimento de convidado.
+                  A ficha de histórico preenche o atendimento, sem criar login e sem dar
+                  acesso aos pedidos antigos. Para vincular a uma conta existente, selecione
+                  explicitamente o resultado "Conta do site".
                 </p>
               </>
             )}
@@ -530,12 +533,12 @@ function WhatsappAdminOrderPage() {
             <h2 className="font-bold text-gray-800">Cliente e atendimento</h2>
             <div>
               <label className="text-xs font-bold text-gray-500">Nome *</label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+              <Input value={nome} onChange={(e) => { setNome(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-gray-500">Telefone</label>
-                <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                <Input value={telefone} onChange={(e) => { setTelefone(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }} />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500">E-mail</label>
@@ -543,9 +546,9 @@ function WhatsappAdminOrderPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={selectedCustomer ? "Será usado o e-mail da conta do site" : "E-mail para receber a confirmação"}
+                  placeholder={selectedCustomer?.source === "conta" ? "Será usado o e-mail da conta do site" : "E-mail para receber a confirmação"}
                 />
-                {selectedCustomer && (
+                {selectedCustomer?.source === "conta" && (
                   <p className="text-xs text-green-700 mt-1">
                     Para pedidos vinculados, a confirmação é enviada automaticamente ao e-mail de login do cliente.
                   </p>
