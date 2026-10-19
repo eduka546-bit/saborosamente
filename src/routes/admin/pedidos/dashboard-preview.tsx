@@ -62,7 +62,7 @@ const orderPayments = (order: any) => {
   }
   return order.metodo_pagamento ? [{ name: String(order.metodo_pagamento), amount: Number(order.valor_total || 0), status: String(order.status_pagamento || "") }] : [];
 };
-const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
+const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:150|200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
 const sections = [
   { id: "novo", title: "Solicitados / Novos", icon: Clock3, accent: "#d58a18", bg: "#fff7e7", statuses: ["pendente", "rascunho"] },
   { id: "preparando", title: "Em preparação", icon: ChefHat, accent: "#347e4e", bg: "#eff8f1", statuses: ["preparando"] },
@@ -173,17 +173,18 @@ export function DashboardPedidosPreview() {
         )
       ));
       const names: Record<string, string> = {};
+      const images: Record<string, string> = {};
       // Produtos consultados em lotes para evitar limite de resposta em períodos extensos.
       for (let i = 0; i < productIds.length; i += 200) {
-        const { data: products, error: productError } = await supabase.from("produtos").select("id,nome").in("id", productIds.slice(i, i + 200));
+        const { data: products, error: productError } = await supabase.from("produtos").select("id,nome,imagem_url").in("id", productIds.slice(i, i + 200));
         if (productError) throw productError;
-        for (const product of products ?? []) names[product.id] = product.nome;
+        for (const product of products ?? []) { names[product.id] = product.nome; images[product.id] = product.imagem_url || ""; }
       }
       return (data ?? []).map((order: any) => ({
         ...order,
         itens: (order.itens ?? []).map((item: any) => ({
           ...item,
-          produtos: { nome: names[item.produto_id] || item.nome_item || item.nome || "" },
+          produtos: { nome: names[item.produto_id] || item.nome_item || item.nome || "", imagem_url: images[item.produto_id] || "" },
         })),
       }));
     },
@@ -473,7 +474,7 @@ export function DashboardPedidosPreview() {
         )}
 
       </div>
-      {editing && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
+      {editing && <div className="fixed inset-0 z-[10060] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
         <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
           <div className="flex items-center justify-between border-b p-4"><h2 className="text-lg font-bold">Editar pedido #{String(editing.id).slice(0,8).toUpperCase()}</h2><button aria-label="Fechar" onClick={()=>setEditing(null)}><X size={20}/></button></div>
           <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
@@ -494,78 +495,156 @@ export function DashboardPedidosPreview() {
         const otherUnits = totalUnits - Object.values(counts).reduce((a, b) => a + b, 0);
         const payments = orderPayments(selected);
         const itemSubtotal = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0), 0);
-        return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-2 sm:p-4" onClick={() => setSelected(null)}>
-          <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white text-[#203b2b] shadow-2xl" onClick={event => event.stopPropagation()}>
-            <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c9183]">Pedido</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold text-[#174b32]">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
-                  <select aria-label="Alterar status do pedido" value={selected.status || "pendente"} disabled={busyId === selected.id}
-                    onChange={e => void changeStatus(selected, e.target.value)}
-                    className="max-w-[170px] rounded-xl bg-[#e8f5ea] px-2 py-1 text-xs font-semibold text-[#175934]">
-                    {["pendente", "preparando", "pronto para retirada", "saiu para entrega", "entregue", "cancelado"].map(status => <option key={status} value={status}>{status}</option>)}
-                  </select>
+        const discount = Number(selected.desconto_aplicado || 0);
+        const deliveryFee = Number(selected.taxa_entrega || 0);
+        const totalValue = Number(selected.valor_total || 0);
+        const otherAdjustments = Math.round((totalValue - itemSubtotal + discount - deliveryFee) * 100) / 100;
+        const created = selected.created_at ? new Date(selected.created_at) : null;
+        const createdTime = created && !Number.isNaN(created.getTime()) ? created.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+        const unitStyle: Record<string, string> = {
+          "150g": "bg-[#eaf4ff] text-[#1d547c]",
+          "200g": "bg-[#edf7ed] text-[#226342]",
+          "300g": "bg-[#fff5df] text-[#8a570e]",
+          "400g": "bg-[#fff0f0] text-[#9d3939]",
+          "Etopaqs": "bg-[#f4ebff] text-[#673b90]",
+          "Personalizados": "bg-[#e9f6f0] text-[#245c4d]",
+        };
+        return <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/55 p-2 sm:p-4" onClick={() => setSelected(null)}>
+          <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[94dvh] max-h-[900px] w-full max-w-5xl flex-col overflow-hidden rounded-[22px] bg-white text-[#203b2b] shadow-2xl sm:rounded-[26px]" onClick={event => event.stopPropagation()}>
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#e7ede8] bg-white px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e8f4ea] text-[#16593a] min-[355px]:flex sm:h-12 sm:w-12"><ShoppingBag size={22}/></div>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[#708178] sm:text-xs">Pedido</span>
+                  <h2 className="text-base font-extrabold leading-tight tracking-tight text-[#143c2c] sm:text-2xl">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
+                  <p className="text-[10px] text-[#7b8881] sm:text-xs">{dateOnly(selected.created_at)}{createdTime ? " · " + createdTime : ""}</p>
                 </div>
-                <p className="text-[11px] text-[#728579]">{dateOnly(selected.created_at)} · {selected.origem || "Site"}</p>
               </div>
-              <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-lg p-2 hover:bg-gray-100"><X size={21}/></button>
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+                <select aria-label="Alterar status do pedido" value={selected.status || "pendente"} disabled={busyId === selected.id}
+                  onChange={e => void changeStatus(selected, e.target.value)}
+                  className="max-w-[126px] rounded-xl border-0 bg-[#e8f5ea] px-2 py-2 text-[11px] font-bold capitalize text-[#175934] outline-offset-2 disabled:opacity-50 sm:max-w-none sm:px-4 sm:text-sm">
+                  {["rascunho", "pendente", "preparando", "pronto para retirada", "saiu para entrega", "entregue", "cancelado"].map(status => <option key={status} value={status} disabled={status === "rascunho"}>{status}</option>)}
+                </select>
+                <button onClick={() => setSelected(null)} aria-label="Fechar detalhes" className="rounded-xl p-2 text-[#365445] hover:bg-gray-100"><X size={19}/></button>
+              </div>
             </header>
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 sm:px-5">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="rounded-xl border border-[#e1eae1] p-3">
-                  <p className="font-bold">{selected.nome_cliente || "Cliente sem nome"}</p>
-                  {selected.telefone_cliente && <p className="mt-1 flex items-center gap-2 text-sm text-[#63766b]"><Phone size={14}/>{selected.telefone_cliente}</p>}
-                </div>
-                <div className="rounded-xl border border-[#e1eae1] p-3">
-                  <p className="flex items-start gap-2 text-sm font-semibold"><MapPin size={16} className="mt-0.5 shrink-0"/>{[selected.endereco_rua, selected.endereco_numero, selected.endereco_bairro, selected.endereco_cidade].filter(Boolean).join(", ") || "Endereço não informado"}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#f1f7f0] p-3 sm:grid-cols-4">
-                {([["Entrega", dateOnly(deliveryDate(selected) || selected.created_at)], ["Horário", deliveryTime(selected) || "Não informado"], ["Modalidade", selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega"], ["Cidade", selected.endereco_cidade || "Não informada"]] as const).map(([label, value]) =>
-                  <div key={label} className="min-w-0"><p className="text-[11px] text-[#78897d]">{label}</p><p className="break-words text-xs font-semibold sm:text-sm">{value}</p></div>)}
-              </div>
-              <section className="rounded-xl border border-[#e2ebe2] p-3">
-                <h3 className="mb-2 text-sm font-bold">Resumo das unidades</h3>
-                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-7">
-                  {Object.entries(counts).map(([label, amount]) => <div key={label} className="rounded-lg bg-[#eff6ef] px-1 py-2 text-center"><p className="text-[10px] font-semibold">{label}</p><p className="text-lg font-bold tabular-nums text-[#175934]">{amount}</p></div>)}
-                  <div className="rounded-lg bg-[#dff0e3] px-1 py-2 text-center"><p className="text-[10px] font-bold">Total</p><p className="text-lg font-extrabold tabular-nums text-[#175934]">{totalUnits}</p></div>
-                </div>
-                {otherUnits > 0 && <p className="mt-2 text-xs text-[#7a6551]">Sem categoria identificada: {otherUnits} unidade(s), já incluídas no total.</p>}
-              </section>
-              <section className="min-w-0">
-                <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-bold">Itens do pedido</h3><span className="rounded-full bg-[#edf3ed] px-2 py-1 text-xs font-semibold">{totalUnits} unidades</span></div>
-                <div className="max-h-[250px] overflow-y-auto overscroll-contain rounded-xl border border-[#e1eae1] [scrollbar-color:#779b80_#eef3ee] [scrollbar-width:thin]" tabIndex={0} aria-label="Lista de itens do pedido, rolável">
-                  {sortOrderItems(selected.itens || []).map((item: any, i: number) => <div key={item.id || i} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#edf1eb] px-3 py-2.5 text-xs last:border-0 sm:gap-3 sm:text-sm">
-                    <span className="rounded-lg bg-[#e9f5e9] px-2 py-1 font-bold">{Number(item.quantidade || 0)}x</span>
-                    <div className="min-w-0"><p className="font-semibold leading-snug">{itemName(item)}</p><p className="text-xs text-[#748578]">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p></div>
-                    <span className="whitespace-nowrap font-bold tabular-nums">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</span>
-                  </div>)}
-                  {!(selected.itens || []).length && <p className="p-4 text-center text-xs text-gray-500">Nenhum item registrado.</p>}
-                </div>
-              </section>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <section className="min-w-0 rounded-xl border border-[#e1eae1] p-3">
-                  <h3 className="mb-2 flex items-center gap-2 text-sm font-bold"><CreditCard size={16}/> Formas de pagamento</h3>
-                  <div className="space-y-2">
-                    {payments.map((payment, i) => <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-[#f3f7f3] px-3 py-2 text-xs">
-                      <span className="min-w-0 truncate font-semibold">{payment.name}{payment.status ? " · " + payment.status : ""}</span><strong className="shrink-0">{money(payment.amount)}</strong>
-                    </div>)}
-                    {!payments.length && <p className="text-xs text-[#728579]">Forma de pagamento não informada.</p>}
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-2.5 py-3 [scrollbar-width:thin] sm:space-y-3 sm:px-5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <section className="min-w-0 rounded-2xl border border-[#e1e9e2] bg-white p-2.5 sm:p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="hidden shrink-0 rounded-xl bg-[#eff4f1] p-2 text-[#21573b] min-[385px]:flex"><Phone size={16}/></span>
+                    <div className="min-w-0">
+                      <p className="break-words text-xs font-extrabold leading-snug text-[#172b21] sm:text-base">{selected.nome_cliente || "Cliente sem nome"}</p>
+                      {selected.telefone_cliente && <p className="mt-1 break-all text-[11px] text-[#64766c] sm:text-sm">{selected.telefone_cliente}</p>}
+                    </div>
                   </div>
                 </section>
-                <section className="rounded-xl border border-[#e1eae1] p-3">
-                  <h3 className="mb-2 text-sm font-bold">Resumo financeiro</h3>
-                  <div className="flex justify-between text-xs text-[#657568]"><span>Itens</span><span>{money(itemSubtotal)}</span></div>
-                  <div className="mt-2 flex justify-between border-t pt-2 text-base font-extrabold text-[#175934]"><span>Total do pedido</span><span>{money(selected.valor_total)}</span></div>
+                <section className="min-w-0 rounded-2xl border border-[#e1e9e2] bg-white p-2.5 sm:p-4">
+                  <div className="flex items-start gap-2">
+                    <span className="hidden shrink-0 rounded-xl bg-[#fff0f0] p-2 text-[#9f303e] min-[385px]:flex"><MapPin size={16}/></span>
+                    <div className="min-w-0">
+                      <p className="break-words text-[11px] font-bold leading-snug text-[#172b21] sm:text-sm">
+                        {[selected.endereco_rua, selected.endereco_numero].filter(Boolean).join(", ") || "Endereço não informado"}
+                      </p>
+                      <p className="mt-0.5 break-words text-[10px] leading-snug text-[#697a70] sm:text-xs">{[selected.endereco_bairro, selected.endereco_cidade].filter(Boolean).join(", ")}</p>
+                      {(selected.endereco_referencia || selected.ponto_referencia) && <p className="mt-1 text-[10px] text-[#667a6e]">Ref.: {selected.endereco_referencia || selected.ponto_referencia}</p>}
+                    </div>
+                  </div>
                 </section>
               </div>
-              {(selected.observacoes || selected.observacao) && <div className="rounded-xl bg-[#fff7e6] p-3 text-xs"><strong>Observações: </strong>{selected.observacoes || selected.observacao}</div>}
+
+              <section className="grid grid-cols-4 divide-x divide-[#d9e5da] rounded-2xl bg-[#f0f7f0] px-1.5 py-3 sm:px-3">
+                {([
+                  { label: "Entrega", text: dateOnly(deliveryDate(selected) || selected.created_at), Icon: CalendarDays },
+                  { label: "Horário", text: deliveryTime(selected) || "Não informado", Icon: Clock3 },
+                  { label: "Modalidade", text: selected.metodo_entrega === "retirada" ? "Retirada" : "Entrega", Icon: Truck },
+                  { label: "Cidade", text: selected.endereco_cidade || "Não informada", Icon: MapPin },
+                ]).map(({ label, text, Icon }) => <div key={label} className="flex min-w-0 flex-col gap-0.5 px-1.5 sm:flex-row sm:items-center sm:gap-2 sm:px-3">
+                  <Icon size={16} className="hidden shrink-0 text-[#18583a] sm:block"/>
+                  <div className="min-w-0"><p className="text-[9px] text-[#78887e] sm:text-xs">{label}</p><p className="break-words text-[10px] font-bold leading-tight text-[#193a29] sm:text-sm">{text}</p></div>
+                </div>)}
+              </section>
+
+              <section className="rounded-2xl border border-[#e2ebe2] bg-white p-2 sm:p-3">
+                <h3 className="mb-2 flex items-center gap-2 text-xs font-extrabold text-[#1a3927] sm:text-sm"><PackageCheck size={17} className="text-[#195b3b]"/> Resumo das unidades</h3>
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                  {Object.entries(counts).map(([label, amount]) => <div key={label} title={label} aria-label={label + ": " + amount + " unidades"}
+                    className={"flex min-w-0 flex-col items-center justify-center rounded-lg px-0.5 py-2 text-center sm:rounded-xl sm:py-3 " + unitStyle[label]}>
+                    <p className="w-full truncate text-[8px] font-bold leading-tight min-[420px]:text-[9px] sm:text-[11px]">
+                      <span className="sm:hidden">{label === "Personalizados" ? "Pers." : label}</span>
+                      <span className="hidden sm:inline">{label}</span>
+                    </p>
+                    <p className="mt-0.5 text-base font-extrabold leading-none tabular-nums sm:text-xl">{amount}</p>
+                  </div>)}
+                  <div className="flex min-w-0 flex-col items-center justify-center rounded-lg bg-[#e0f0e2] px-0.5 py-2 text-center text-[#155436] sm:rounded-xl sm:py-3">
+                    <p className="text-[8px] font-extrabold sm:text-[11px]">Total</p>
+                    <p className="mt-0.5 text-base font-black leading-none tabular-nums sm:text-xl">{totalUnits}</p>
+                  </div>
+                </div>
+                {otherUnits > 0 && <p className="mt-1.5 text-[10px] text-[#7b6c51]">Outros tamanhos: {otherUnits} unidade(s), incluídas no total.</p>}
+              </section>
+
+              <section className="min-w-0">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#1a3927]"><PackageCheck size={18} className="text-[#195b3b]"/> Itens do pedido</h3>
+                  <span className="shrink-0 rounded-full bg-[#f1f4f2] px-2.5 py-1 text-[11px] font-semibold text-[#496357]">{totalUnits} unidades</span>
+                </div>
+                <div className="max-h-[290px] overflow-y-auto overscroll-contain rounded-2xl border border-[#e1eae1] [scrollbar-color:#8cab91_#edf3ec] [scrollbar-width:thin] sm:max-h-[360px]" tabIndex={0} aria-label="Lista de itens do pedido, rolável">
+                  <div className="hidden grid-cols-[32px_52px_minmax(0,1fr)_65px_82px] items-center gap-2 bg-[#f7f9f7] px-3 py-2 text-[10px] font-bold text-[#6c7d71] sm:grid">
+                    <span>QTD</span><span></span><span>PRODUTO</span><span>TAMANHO</span><span className="text-right">TOTAL</span>
+                  </div>
+                  {sortOrderItems(selected.itens || []).map((item: any, i: number) => <div key={item.id || i}
+                    className="grid grid-cols-[auto_38px_minmax(0,1fr)_auto] items-center gap-1.5 border-b border-[#e8eee9] px-2 py-2 text-[11px] last:border-b-0 sm:grid-cols-[32px_52px_minmax(0,1fr)_65px_82px] sm:gap-2 sm:px-3 sm:py-2.5">
+                    <span className="rounded-lg bg-[#e8f5e8] px-1.5 py-1.5 text-center text-xs font-extrabold text-[#155639]">{Number(item.quantidade || 0)}x</span>
+                    <div className="flex h-10 w-[38px] items-center justify-center overflow-hidden rounded-lg bg-[#f0f6ef] sm:h-[46px] sm:w-[52px]">
+                      {item.produtos?.imagem_url ? <img src={item.produtos.imagem_url} alt="" loading="lazy" className="h-full w-full object-contain"/> : <ShoppingBag size={18} className="text-[#9ab0a1]"/>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold leading-snug text-[#19372a]">{itemName(item)}</p>
+                      {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-[10px] leading-tight text-[#76887d] sm:hidden">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p>}
+                      {itemNote(item) && <p className="mt-0.5 hidden truncate text-[10px] text-[#76887d] sm:block">{itemNote(item)}</p>}
+                    </div>
+                    {itemWeight(item) && <span className="hidden justify-self-center rounded-lg bg-[#fff0f0] px-1.5 py-1 text-[11px] text-[#954646] sm:inline">{itemWeight(item)}</span>}
+                    <div className="min-w-0 text-right">
+                      <strong className="whitespace-nowrap text-[11px] tabular-nums text-[#16392a] sm:text-sm">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</strong>
+                      <p className="hidden text-[10px] text-[#809187] sm:block">{money(item.preco_unitario)} / un.</p>
+                    </div>
+                  </div>)}
+                  {!(selected.itens || []).length && <p className="p-5 text-center text-sm text-gray-500">Nenhum item registrado.</p>}
+                </div>
+              </section>
+
+              <div className="grid grid-cols-2 gap-2 xl:grid-cols-[1.25fr_1fr_.9fr]">
+                <section className="min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 sm:p-3">
+                  <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold text-[#1a3927] sm:text-sm"><CreditCard size={16} className="shrink-0 text-[#195b3b]"/> Formas de pagamento</h3>
+                  <div className="space-y-1.5">
+                    {payments.map((payment, i) => <div key={i} className="flex flex-col gap-0.5 rounded-lg bg-[#f3f7f3] px-2 py-1.5 text-[10px] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:text-xs">
+                      <span className="min-w-0 break-words font-semibold">{payment.name}{payment.status ? <span className="ml-1 text-[#647e6d]">· {payment.status}</span> : null}</span><strong className="shrink-0 tabular-nums">{money(payment.amount)}</strong>
+                    </div>)}
+                    {!payments.length && <p className="text-xs text-[#728579]">Pagamento não informado.</p>}
+                  </div>
+                </section>
+                <section className="min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 sm:p-3">
+                  <h3 className="mb-2 text-[11px] font-extrabold text-[#1a3927] sm:text-sm">Resumo financeiro</h3>
+                  <div className="space-y-1 text-[10px] text-[#67786d] sm:text-xs">
+                    <p className="flex justify-between gap-1"><span>Itens</span><span className="tabular-nums">{money(itemSubtotal)}</span></p>
+                    <p className="flex justify-between gap-1"><span>Desconto</span><span className="tabular-nums">{money(discount)}</span></p>
+                    <p className="flex justify-between gap-1"><span>Entrega</span><span className="tabular-nums">{money(deliveryFee)}</span></p>
+                    {Math.abs(otherAdjustments) > 0.009 && <p className="flex justify-between gap-1"><span>Ajustes</span><span className="tabular-nums">{money(otherAdjustments)}</span></p>}
+                  </div>
+                  <div className="mt-2 flex items-end justify-between gap-1 border-t border-[#e2ebe2] pt-2 text-[11px] font-extrabold text-[#165438] sm:text-sm"><span>Total</span><span className="text-sm tabular-nums sm:text-xl">{money(totalValue)}</span></div>
+                </section>
+                <section className="col-span-2 min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 xl:col-span-1">
+                  <h3 className="mb-2 text-[11px] font-extrabold text-[#1a3927] sm:text-sm">Observações</h3>
+                  <p className="rounded-xl bg-[#fff7df] p-2 text-xs leading-relaxed text-[#7d6a39]">{selected.observacoes || selected.observacao || "Nenhuma observação registrada."}</p>
+                </section>
+              </div>
             </div>
-            <footer className="flex shrink-0 flex-wrap gap-2 border-t bg-white px-3 py-3 sm:px-5">
-              <button onClick={() => printOrder(selected)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold sm:text-sm"><Printer size={15}/> Imprimir</button>
-              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold sm:text-sm"><Pencil size={15}/> Editar informações</button>
-              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-[#175934] px-3 py-2 text-xs font-semibold text-white sm:text-sm"><MessageCircle size={15}/> WhatsApp</a>}
+            <footer className="flex shrink-0 items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
+              <button onClick={() => printOrder(selected)} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Printer size={16} className="shrink-0"/> Imprimir</button>
+              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Pencil size={15} className="shrink-0"/> Editar informações</button>
+              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#175934] px-2 py-2 text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:px-4 sm:text-sm"><MessageCircle size={16} className="shrink-0"/> WhatsApp</a>}
             </footer>
           </div>
         </div>;
