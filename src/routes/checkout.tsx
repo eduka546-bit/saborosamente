@@ -743,8 +743,9 @@ function Checkout() {
       setSelectedCity(addr.cidade);
     }
     if (addr.bairro) setSelectedBairro(addr.bairro);
-    const rua = [addr.rua, addr.numero].filter(Boolean).join(", ");
-    if (rua) setValue("endereco", rua, { shouldValidate: false });
+    if (addr.rua) setValue("endereco", addr.rua, { shouldValidate: false });
+    setValue("numero", addr.numero ?? "", { shouldValidate: false });
+    setValue("referencia", addr.referencia ?? addr.ponto_referencia ?? "", { shouldValidate: false });
     setValue("complemento", addr.complemento ?? "", { shouldValidate: false });
     setValue("cep", addr.cep ?? "", { shouldValidate: false });
   }
@@ -772,10 +773,15 @@ function Checkout() {
     }
 
     if (metodoEntrega === "entrega") {
-      if (!data.cidade || !selectedBairro || !data.endereco) {
-        toast.error("Informe cidade, bairro e endereço para entrega.");
+      if (!data.cidade || !selectedBairro || !data.endereco?.trim()) {
+        toast.error("Informe cidade, bairro e rua para entrega.");
         return;
       }
+    }
+
+    if (metodoEntrega === "entrega" && (!data.numero?.trim() || !data.referencia?.trim())) {
+      toast.error("Informe o número e o ponto de referência da entrega.");
+      return;
     }
 
     if (pedidoAbaixoMinimoEntrega) {
@@ -839,6 +845,8 @@ function Checkout() {
           cidade: metodoEntrega === "entrega" ? data.cidade : undefined,
           bairro: metodoEntrega === "entrega" ? selectedBairro : undefined,
           endereco: metodoEntrega === "entrega" ? data.endereco : undefined,
+           numero: metodoEntrega === "entrega" ? data.numero : undefined,
+           referencia: metodoEntrega === "entrega" ? data.referencia : undefined,
           complemento: metodoEntrega === "entrega" ? data.complemento : undefined,
           cep: metodoEntrega === "entrega" ? data.cep : undefined,
           pagamento: data.pagamento,
@@ -1391,12 +1399,22 @@ function Checkout() {
 
             <div>
               <label htmlFor="endereco" className="text-base font-medium">
-                Endereço e número
+                Rua *
               </label>
-              <input id="endereco" className={fieldClass} {...register("endereco")} />
+              <input id="endereco" className={fieldClass} placeholder="Nome da rua" {...register("endereco")} />
               {errors.endereco && (
                 <p className="mt-1 text-base text-destructive">{errors.endereco.message}</p>
               )}
+            </div>
+            <div>
+              <label htmlFor="numero" className="text-base font-medium">Número *</label>
+              <input id="numero" className={fieldClass} placeholder="Ex.: 123 ou S/N" required {...register("numero")} />
+              {errors.numero && <p className="mt-1 text-base text-destructive">{errors.numero.message}</p>}
+            </div>
+            <div>
+              <label htmlFor="referencia" className="text-base font-medium">Ponto de referência *</label>
+              <input id="referencia" className={fieldClass} placeholder="Ex.: Casa com portão preto, ao lado da farmácia" required {...register("referencia")} />
+              {errors.referencia && <p className="mt-1 text-base text-destructive">{errors.referencia.message}</p>}
             </div>
             <div>
               <label htmlFor="complemento" className="text-base font-medium">
