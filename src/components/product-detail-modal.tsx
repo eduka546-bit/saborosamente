@@ -435,11 +435,11 @@ export function ProductDetailModal({
   };
 
   const purchaseControls = (
-    <div className="shrink-0 border-t border-[#dce7dd] bg-card px-3 py-3 sm:px-4 sm:py-4">
-      {/* Desktop: preço e CTA à esquerda; tamanho e quantidade à direita.
-          Mobile: leitura linear e botão no final, sem duplicar ações. */}
-      <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-2.5 md:grid-cols-2 md:items-end md:gap-y-2">
-        <div className="order-1 min-w-0 md:col-start-1 md:row-start-1">
+    <div className="shrink-0 border-t border-[#dce7dd] bg-card px-3 py-2 sm:px-4 sm:py-3 md:py-4">
+      {/* Mobile: preço/tamanho na primeira linha, quantidade/CTA na segunda.
+          Desktop mantém as posições originais sem duplicar controles. */}
+      <div className="grid min-w-0 grid-cols-[minmax(0,0.91fr)_minmax(0,1.09fr)] items-end gap-x-2 gap-y-2 sm:gap-x-3 md:grid-cols-2 md:gap-x-4">
+        <div className="col-start-1 row-start-1 min-w-0">
           {(() => {
             const semDesconto = isNoDiscount(categoriaNome);
             const podeTerDesconto = ehMarmita && !semDesconto;
@@ -457,20 +457,20 @@ export function ProductDetailModal({
 
             return (
               <div className="flex min-w-0 flex-col">
-                <span className="text-sm font-semibold text-muted-foreground">
+                <span className="text-[11px] font-semibold leading-tight text-muted-foreground md:text-sm">
                   Total · {quantity} {quantity === 1 ? "unidade" : "unidades"}
                 </span>
                 {precoComFaixa < precoCheio ? (
                   <>
-                    <span className="text-sm font-semibold text-muted-foreground line-through">
+                    <span className="text-xs font-semibold leading-tight text-muted-foreground line-through md:text-sm">
                       {formatBRL(precoCheioTotal * quantity)}
                     </span>
-                    <span className="text-2xl font-semibold leading-tight text-[#086e45] md:text-3xl">
+                    <span className="text-[21px] font-bold leading-tight text-[#086e45] min-[390px]:text-2xl md:text-3xl">
                       {formatBRL(precoFinal * quantity)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-2xl font-semibold leading-tight text-primary md:text-3xl">
+                  <span className="text-[21px] font-bold leading-tight text-primary min-[390px]:text-2xl md:text-3xl">
                     {formatBRL(precoFinal * quantity)}
                   </span>
                 )}
@@ -479,15 +479,15 @@ export function ProductDetailModal({
           })()}
         </div>
 
-        <div className="order-2 min-w-0 md:col-start-2 md:row-start-1">
-          <p className="mb-1.5 text-sm font-semibold text-[#075636]">
+        <div className="col-start-2 row-start-1 min-w-0">
+          <p className="mb-1 text-[11px] font-semibold leading-tight text-[#075636] min-[390px]:text-xs md:mb-1.5 md:text-sm">
             {weights.length > 1 ? "Escolha o tamanho:" : "Tamanho"}
           </p>
           {weights.length > 1 ? (
             <div
               role="group"
               aria-label="Escolha o tamanho da marmita"
-              className="flex w-fit max-w-full items-center gap-1 rounded-full bg-[#f2f4eb] p-1"
+              className="flex w-full min-w-0 items-center justify-between gap-0.5 rounded-full bg-[#f2f4eb] p-0.5 md:w-fit md:max-w-full md:gap-1 md:p-1"
             >
               {weights.map((w: string) => {
                 const stock = stockForWeight(product, w);
@@ -501,7 +501,7 @@ export function ProductDetailModal({
                     title={unavailable ? "Esgotado — veja informações e peça aviso" : undefined}
                     onClick={() => chooseWeight(w)}
                     className={cn(
-                      "min-h-9 min-w-[42px] rounded-full px-2 text-sm font-semibold transition-colors sm:min-w-[52px] sm:text-base",
+                      "min-h-9 min-w-0 flex-1 rounded-full px-0.5 text-[11px] font-semibold transition-colors min-[390px]:text-xs md:min-w-[42px] md:flex-none md:px-2 md:text-sm lg:min-w-[52px] lg:text-base",
                       selectedWeight === w
                         ? "bg-[#086e45] text-white shadow-sm"
                         : "bg-transparent text-[#375244] hover:bg-white",
@@ -519,19 +519,19 @@ export function ProductDetailModal({
         </div>
 
         {!soldOut && (
-          <div className="order-3 flex min-w-0 items-center justify-between gap-2 md:col-start-2 md:row-start-2">
-            <span className="text-sm font-medium">Quantidade</span>
-            <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white p-1">
+          <div className="col-start-1 row-start-2 flex min-w-0 items-center justify-start border-t border-[#e3e9e2] pt-2 md:col-start-2 md:justify-between md:border-t-0 md:pt-0">
+            <span className="sr-only md:not-sr-only md:mr-2 md:text-sm md:font-medium">Quantidade</span>
+            <div className="flex min-w-0 items-center gap-0.5 rounded-full border border-border bg-white p-0.5 md:gap-1.5 md:p-1">
               <button
                 type="button"
                 aria-label="Diminuir quantidade do produto"
                 disabled={quantity <= 1}
                 onClick={() => setRequestedQuantity(quantity - 1)}
-                className="grid size-9 place-items-center rounded-full text-primary disabled:opacity-40"
+                className="grid size-9 shrink-0 place-items-center rounded-full text-primary disabled:opacity-40"
               >
                 <Minus size={17} />
               </button>
-              <span aria-live="polite" className="min-w-5 text-center text-base font-semibold">
+              <span aria-live="polite" className="min-w-4 flex-1 text-center text-sm font-semibold md:min-w-5 md:text-base">
                 {quantity}
               </span>
               <button
@@ -539,7 +539,7 @@ export function ProductDetailModal({
                 aria-label="Aumentar quantidade do produto"
                 disabled={remainingStock !== null && quantity >= remainingStock}
                 onClick={() => setRequestedQuantity(quantity + 1)}
-                className="grid size-9 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white disabled:opacity-40"
               >
                 <Plus size={17} />
               </button>
@@ -548,7 +548,7 @@ export function ProductDetailModal({
         )}
 
         {soldOut ? (
-          <div className="order-4 min-w-0 space-y-2 md:col-start-1 md:row-start-2">
+          <div className="col-span-2 row-start-2 min-w-0 space-y-2 border-t border-[#e3e9e2] pt-2 md:col-span-1 md:col-start-1 md:border-t-0 md:pt-0">
             <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
               <input
                 value={restockContact}
@@ -573,7 +573,7 @@ export function ProductDetailModal({
         ) : (
           <Button
             onClick={handleAddToCart}
-            className="order-4 h-12 w-full min-w-0 gap-2 rounded-xl px-2 text-sm font-semibold shadow-sm transition-colors hover:shadow-md md:col-start-1 md:row-start-2 md:text-base"
+            className="col-start-2 row-start-2 h-10 w-full min-w-0 gap-1 rounded-xl px-1.5 text-[11px] font-semibold shadow-sm transition-colors hover:shadow-md min-[390px]:text-xs md:col-start-1 md:h-12 md:gap-2 md:px-2 md:text-base"
           >
             <ShoppingCart className="size-4 shrink-0" />
             {onAddToCombo ? "Adicionar ao combo" : ctaVariant === "B" ? "Adicionar ao pedido" : "Adicionar ao Carrinho"}
@@ -686,6 +686,12 @@ export function ProductDetailModal({
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-base text-muted-foreground">
+              {product.descricao && (
+                <section>
+                  <h4 className="mb-1 text-base font-semibold text-[#075636] sm:text-lg">Descrição</h4>
+                  <p className="whitespace-pre-line text-sm leading-relaxed sm:text-base">{String(product.descricao)}</p>
+                </section>
+              )}
               {ingredientesDetalhados && (
                 <div>
                   <h4 className="mb-1 text-lg font-semibold text-[#075636]">Ingredientes</h4>
