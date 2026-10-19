@@ -97,6 +97,8 @@ const createOrderSchema = z.object({
   cidade: z.string().trim().max(80).optional(),
   bairro: z.string().trim().max(120).optional(),
   endereco: z.string().trim().max(160).optional(),
+  numero: z.string().trim().max(20).optional(),
+  referencia: z.string().trim().max(160).optional(),
   complemento: z.string().trim().max(80).optional(),
   cep: z.string().trim().max(20).refine((cep) => !cep || /^\d{5}-?\d{3}$/.test(cep), "CEP inválido. Informe 8 números.").optional(),
   pagamento: z.string().trim().min(2).max(50),
@@ -135,6 +137,8 @@ interface PedidoInsert {
   endereco_cidade?: string;
   endereco_bairro?: string;
   endereco_rua?: string;
+  endereco_numero?: string;
+  endereco_referencia?: string;
   endereco_complemento?: string;
   endereco_cep?: string;
 }
@@ -523,8 +527,8 @@ export const createOrder = createServerFn({ method: "POST" })
 
     let taxaEntrega = 0;
     if (data.metodoEntrega === "entrega") {
-      if (!data.cidade || !data.bairro || !data.endereco) {
-        throw new Error("Informe cidade, bairro e endereço para entrega.");
+      if (!data.cidade?.trim() || !data.bairro?.trim() || !data.endereco?.trim() || !data.numero?.trim() || !data.referencia?.trim()) {
+        throw new Error("Informe cidade, bairro, rua, número e ponto de referência para entrega.");
       }
 
       const { data: rateRows, error: rateError } = await supabase
@@ -692,6 +696,8 @@ export const createOrder = createServerFn({ method: "POST" })
       insertData.endereco_cidade = data.cidade!;
       insertData.endereco_bairro = data.bairro!;
       insertData.endereco_rua = data.endereco!;
+      insertData.endereco_numero = data.numero!;
+      insertData.endereco_referencia = data.referencia!;
       if (data.complemento) insertData.endereco_complemento = data.complemento;
       if (data.cep) insertData.endereco_cep = data.cep;
     }
