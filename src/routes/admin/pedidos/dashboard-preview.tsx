@@ -517,7 +517,7 @@ export function DashboardPedidosPreview() {
                 <div className="min-w-0">
                   <span className="text-[10px] text-[#708178] sm:text-xs">Pedido</span>
                   <h2 className="text-base font-extrabold leading-tight tracking-tight text-[#143c2c] sm:text-2xl">#{String(selected.id).slice(0, 8).toUpperCase()}</h2>
-                  <p className="text-[10px] text-[#7b8881] sm:text-xs">{dateOnly(selected.created_at)}{createdTime ? " · " + createdTime : ""}</p>
+                  <p className="text-[10px] text-[#7b8881] sm:text-xs">{dateOnly(selected.created_at)}{createdTime ? " · " + createdTime : ""} · {selected.origem || "site"}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
@@ -568,7 +568,7 @@ export function DashboardPedidosPreview() {
 
               <section className="rounded-2xl border border-[#e2ebe2] bg-white p-2 sm:p-3">
                 <h3 className="mb-2 flex items-center gap-2 text-xs font-extrabold text-[#1a3927] sm:text-sm"><PackageCheck size={17} className="text-[#195b3b]"/> Resumo das unidades</h3>
-                <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2 md:grid-cols-[repeat(6,minmax(0,1fr))_minmax(125px,1.45fr)]">
                   {Object.entries(counts).map(([label, amount]) => <div key={label} title={label} aria-label={label + ": " + amount + " unidades"}
                     className={"flex min-w-0 flex-col items-center justify-center rounded-lg px-0.5 py-2 text-center sm:rounded-xl sm:py-3 " + unitStyle[label]}>
                     <p className="w-full truncate text-[8px] font-bold leading-tight min-[420px]:text-[9px] sm:text-[11px]">
@@ -576,10 +576,12 @@ export function DashboardPedidosPreview() {
                       <span className="hidden sm:inline">{label}</span>
                     </p>
                     <p className="mt-0.5 text-base font-extrabold leading-none tabular-nums sm:text-xl">{amount}</p>
+                    <p className="mt-0.5 hidden text-[10px] leading-none sm:block">unid.</p>
                   </div>)}
-                  <div className="flex min-w-0 flex-col items-center justify-center rounded-lg bg-[#e0f0e2] px-0.5 py-2 text-center text-[#155436] sm:rounded-xl sm:py-3">
-                    <p className="text-[8px] font-extrabold sm:text-[11px]">Total</p>
+                  <div className="flex min-w-0 flex-col items-center justify-center rounded-lg bg-[#e0f0e2] px-0.5 py-2 text-center text-[#155436] sm:rounded-xl sm:py-3 md:ml-1 md:border-l md:border-[#c9ddcc]">
+                    <p className="text-[8px] font-extrabold sm:text-[11px]"><span className="md:hidden">Total</span><span className="hidden md:inline">Total de itens</span></p>
                     <p className="mt-0.5 text-base font-black leading-none tabular-nums sm:text-xl">{totalUnits}</p>
+                    <p className="mt-0.5 hidden text-[10px] leading-none sm:block">unidades</p>
                   </div>
                 </div>
                 {otherUnits > 0 && <p className="mt-1.5 text-[10px] text-[#7b6c51]">Outros tamanhos: {otherUnits} unidade(s), incluídas no total.</p>}
@@ -605,7 +607,7 @@ export function DashboardPedidosPreview() {
                       {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-[10px] leading-tight text-[#76887d] sm:hidden">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p>}
                       {itemNote(item) && <p className="mt-0.5 hidden truncate text-[10px] text-[#76887d] sm:block">{itemNote(item)}</p>}
                     </div>
-                    {itemWeight(item) && <span className="hidden justify-self-center rounded-lg bg-[#fff0f0] px-1.5 py-1 text-[11px] text-[#954646] sm:inline">{itemWeight(item)}</span>}
+                    <span className="hidden justify-self-center rounded-lg bg-[#fff0f0] px-1.5 py-1 text-[11px] text-[#954646] sm:inline">{itemWeight(item) || "—"}</span>
                     <div className="min-w-0 text-right">
                       <strong className="whitespace-nowrap text-[11px] tabular-nums text-[#16392a] sm:text-sm">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</strong>
                       <p className="hidden text-[10px] text-[#809187] sm:block">{money(item.preco_unitario)} / un.</p>
