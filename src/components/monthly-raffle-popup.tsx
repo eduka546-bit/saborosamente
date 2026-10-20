@@ -1,3 +1,4 @@
+import { useModalBackNavigation } from "@/lib/use-modal-back-navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
@@ -110,6 +111,8 @@ export function MonthlyRafflePopup({ regulamentoUrl }: MonthlyRafflePopupProps) 
       setSending(false);
     }
   };
+
+  useModalBackNavigation(open, () => setOpen(false));
 
   if (!open || typeof document === "undefined") return null;
 
