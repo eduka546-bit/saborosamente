@@ -17,6 +17,7 @@ const schema = z.object({
   telefone: z.string().trim().max(30).optional().default(""),
   email: z.string().trim().max(160).optional().default(""),
   linkedUserId: z.string().uuid().nullable().optional(),
+  atualizarEnderecoCadastro: z.boolean().optional().default(false),
   metodoEntrega: z.enum(["entrega", "retirada"]),
   horarioEntrega: z.string().trim().max(120).optional().default(""),
   pagamento: z.string().trim().min(2).max(80),
@@ -77,6 +78,9 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       (!data.rua.trim() || !data.bairro.trim() || !data.cidade.trim())
     ) {
       throw new Error("Informe rua, bairro e cidade para pedidos de entrega.");
+    }
+    if (data.atualizarEnderecoCadastro && (!data.linkedUserId || data.metodoEntrega !== "entrega")) {
+      throw new Error("Selecione uma conta cadastrada e entrega para atualizar seu endereço.");
     }
 
     const ids = [...new Set(data.items.map((item) => item.productId))];
@@ -193,6 +197,37 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       throw new Error(error?.message || "Não foi possível registrar o pedido do WhatsApp.");
     }
 
+    // Atualização da conta só ocorre com consentimento explícito do atendente,
+    // após a criação do pedido, e exclusivamente na conta selecionada.
+    // A falha nesta etapa NÃO invalida o pedido nem permite reenvio que duplique
+    // a baixa de estoque: o retorno apresenta o resultado separadamente.
+    let enderecoCadastroStatus: "nao_solicitado" | "atualizado" | "falhou" = "nao_solicitado";
+    if (data.atualizarEnderecoCadastro && data.linkedUserId && linkedUserId === data.linkedUserId) {
+      try {
+        const { data: atualizacao, error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            cidade: data.cidade.trim(),
+            bairro: data.bairro.trim(),
+            endereco: data.rua.trim(),
+            numero: data.numero.trim() || null,
+            complemento: data.complemento.trim() || null,
+            cep: data.cep.trim() || null,
+          })
+          .eq("id", data.linkedUserId)
+          .select("id")
+          .maybeSingle();
+        if (updateError || !atualizacao) throw updateError || new Error("Conta não encontrada.");
+        enderecoCadastroStatus = "atualizado";
+      } catch (updateError) {
+        enderecoCadastroStatus = "falhou";
+        console.error("Pedido criado, mas falhou atualização opcional do endereço da conta", {
+          orderId: String((order as any).id),
+          error: updateError instanceof Error ? updateError.message : "Erro na atualização",
+        });
+      }
+    }
+
     // Falha no envio nunca desfaz o pedido que já foi salvo nem gera
     // uma segunda baixa de estoque. Informa ao atendente o resultado real.
     let emailStatus: "enviado" | "sem_email" | "falhou" = "sem_email";
@@ -220,6 +255,7 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
     return {
       ...(order as any),
       linkedUserId,
+      enderecoCadastroStatus,
       emailStatus,
     };
   });

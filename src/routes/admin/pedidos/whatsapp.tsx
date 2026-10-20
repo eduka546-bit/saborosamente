@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  MapPin,
   ArrowLeft,
   Plus,
   Save,
@@ -62,6 +63,10 @@ type DraftItem = {
   observacao: string;
 };
 
+const compararEndereco = (value: unknown) =>
+  String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
+const compararCep = (value: unknown) => String(value ?? "").replace(/\D/g, "");
+
 const money = (value: number) =>
   Number(value || 0).toLocaleString("pt-BR", {
     style: "currency",
@@ -113,6 +118,7 @@ function WhatsappAdminOrderPage() {
   const [email, setEmail] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<RegisteredCustomer | null>(null);
+  const [salvarEnderecoCadastro, setSalvarEnderecoCadastro] = useState(false);
   const [metodoEntrega, setMetodoEntrega] = useState<"entrega" | "retirada">("entrega");
   const [cidade, setCidade] = useState("São Bento do Sul");
   const [bairro, setBairro] = useState("");
@@ -133,6 +139,17 @@ function WhatsappAdminOrderPage() {
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
+  const enderecoDiferente = Boolean(
+    selectedCustomer && metodoEntrega === "entrega" &&
+    ([
+      [cidade, selectedCustomer.cidade],
+      [bairro, selectedCustomer.bairro],
+      [rua, selectedCustomer.endereco],
+      [numero, selectedCustomer.numero],
+      [complemento, selectedCustomer.complemento],
+    ].some(([novo, cadastro]) => compararEndereco(novo) !== compararEndereco(cadastro)) ||
+    compararCep(cep) !== compararCep(selectedCustomer.cep))
+  );
 
   // A lista de clientes é protegida pelas políticas RLS de administradores.
   // Busca apenas quando o operador digita; não baixa a base inteira.
@@ -169,15 +186,17 @@ function WhatsappAdminOrderPage() {
 
   const selecionarConta = (profile: RegisteredCustomer) => {
     setSelectedCustomer(profile);
+    setSalvarEnderecoCadastro(false);
     setCustomerSearch("");
     setNome(profile.nome || "");
     setTelefone(profile.telefone || "");
-    if (profile.cidade) setCidade(profile.cidade);
-    if (profile.bairro) setBairro(profile.bairro);
-    if (profile.endereco) setRua(profile.endereco);
-    if (profile.numero) setNumero(profile.numero);
-    if (profile.complemento) setComplemento(profile.complemento);
-    if (profile.cep) setCep(profile.cep);
+    // Não misturar o endereço de uma cliente com o de outra ao mudar a seleção.
+    setCidade(profile.cidade || "");
+    setBairro(profile.bairro || "");
+    setRua(profile.endereco || "");
+    setNumero(profile.numero || "");
+    setComplemento(profile.complemento || "");
+    setCep(profile.cep || "");
   };
 
   useEffect(() => {
@@ -366,6 +385,7 @@ function WhatsappAdminOrderPage() {
           telefone,
           email,
           linkedUserId: selectedCustomer?.id ?? null,
+          atualizarEnderecoCadastro: Boolean(selectedCustomer && metodoEntrega === "entrega" && enderecoDiferente && salvarEnderecoCadastro),
           metodoEntrega,
           horarioEntrega: horario,
           pagamento,
@@ -394,6 +414,11 @@ function WhatsappAdminOrderPage() {
       toast.success(
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
+      if (data?.enderecoCadastroStatus === "atualizado") {
+        toast.success("Endereço atualizado também no cadastro da cliente.");
+      } else if (data?.enderecoCadastroStatus === "falhou") {
+        toast.error("Pedido salvo, mas não foi possível atualizar o endereço do cadastro. Atualize a ficha manualmente se necessário.", { duration: 12000 });
+      }
       if (data?.emailStatus === "enviado") {
         toast.success("E-mail de confirmação enviado para processamento.");
       } else if (data?.emailStatus === "falhou") {
@@ -466,7 +491,7 @@ function WhatsappAdminOrderPage() {
                     {selectedCustomer.telefone || "Telefone não informado"} · Histórico do site
                   </p>
                 </div>
-                <Button type="button" size="sm" variant="outline" onClick={() => setSelectedCustomer(null)}>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setSelectedCustomer(null); setSalvarEnderecoCadastro(false); }}>
                   <X size={14} className="mr-1" /> Alterar
                 </Button>
               </div>
@@ -633,6 +658,37 @@ function WhatsappAdminOrderPage() {
                   <Input value={cep} onChange={(e) => setCep(e.target.value)} />
                 </div>
               </div>
+              {selectedCustomer && (
+                <div className={`rounded-xl border p-3 text-sm ${enderecoDiferente ? "border-amber-300 bg-amber-50 text-amber-950" : "border-green-200 bg-green-50 text-green-900"}`}>
+                  <p className="flex items-center gap-2 font-semibold">
+                    {enderecoDiferente ? <AlertTriangle size={17} /> : <MapPin size={17} />}
+                    {enderecoDiferente ? "Endereço diferente do cadastro da cliente" : "Endereço igual ao cadastrado"}
+                  </p>
+                  {enderecoDiferente && (
+                    <>
+                      <p className="mt-2 text-xs leading-relaxed text-amber-900">
+                        <strong>Endereço cadastrado:</strong> {[selectedCustomer.endereco, selectedCustomer.numero, selectedCustomer.bairro, selectedCustomer.cidade, selectedCustomer.cep].filter(Boolean).join(", ") || "Não informado"}
+                      </p>
+                      <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-200 bg-white/80 p-3">
+                        <input
+                          type="checkbox"
+                          checked={salvarEnderecoCadastro}
+                          onChange={(event) => setSalvarEnderecoCadastro(event.target.checked)}
+                          className="mt-0.5 size-4 shrink-0 accent-[#086e45]"
+                        />
+                        <span className="text-xs font-semibold leading-relaxed">
+                          Salvar este endereço também no cadastro da cliente
+                        </span>
+                      </label>
+                      <p className="mt-2 text-xs leading-relaxed text-amber-900">
+                        {salvarEnderecoCadastro
+                          ? "Ao lançar o pedido, o novo endereço substituirá o cadastrado nessa conta."
+                          : "O novo endereço será usado somente neste pedido e no histórico de atendimentos WhatsApp."}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="text-xs font-bold text-gray-500">Taxa de entrega</label>
                 <Input
