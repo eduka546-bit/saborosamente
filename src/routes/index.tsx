@@ -973,6 +973,7 @@ function Index() {
 
           <div className="grid items-start gap-4 lg:grid-cols-3">
             <div
+              onClick={() => setDeliveryModalOpen(true)}
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -988,7 +989,7 @@ function Index() {
                 <button type="button" onClick={() => setDeliveryModalOpen(true)} aria-label="Abrir detalhes das áreas de entrega" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <button type="button" onClick={() => setOpenInfoSummary(open => open === "delivery" ? null : "delivery")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "delivery"}>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpenInfoSummary(open => open === "delivery" ? null : "delivery"); }} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "delivery"}>
                 {openInfoSummary === "delivery" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "delivery" && "rotate-180")} />
               </button>
               {openInfoSummary === "delivery" && <div className="p-4">
@@ -1008,10 +1009,12 @@ function Index() {
                 <p className="mt-3 text-sm leading-relaxed text-[#6a7a71]">
                   Veja bairros atendidos, taxas e a localização correta de cada cidade.
                 </p>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setDeliveryModalOpen(true); }} className="mt-4 w-full rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
               </div>}
             </div>
 
             <div
+              onClick={() => setStoreModalOpen(true)}
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -1027,7 +1030,7 @@ function Index() {
                 <button type="button" onClick={() => setStoreModalOpen(true)} aria-label="Abrir detalhes da loja" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <button type="button" onClick={() => setOpenInfoSummary(open => open === "store" ? null : "store")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "store"}>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpenInfoSummary(open => open === "store" ? null : "store"); }} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "store"}>
                 {openInfoSummary === "store" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "store" && "rotate-180")} />
               </button>
               {openInfoSummary === "store" && <div className="grid flex-1 grid-cols-[1.1fr_.9fr] overflow-hidden">
@@ -1070,10 +1073,12 @@ function Index() {
                     loading="lazy"
                   />
                 </div>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setStoreModalOpen(true); }} className="col-span-2 mx-3 mb-3 rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
               </div>}
             </div>
 
             <div
+              onClick={() => setDiscountModalOpen(true)}
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -1089,7 +1094,7 @@ function Index() {
                 <button type="button" onClick={() => setDiscountModalOpen(true)} aria-label="Abrir detalhes dos descontos" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <button type="button" onClick={() => setOpenInfoSummary(open => open === "discount" ? null : "discount")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "discount"}>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpenInfoSummary(open => open === "discount" ? null : "discount"); }} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "discount"}>
                 {openInfoSummary === "discount" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "discount" && "rotate-180")} />
               </button>
               {openInfoSummary === "discount" && <div className="flex flex-1 flex-col gap-3 p-4">
@@ -1107,6 +1112,7 @@ function Index() {
                   <Gift size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setDiscountModalOpen(true); }} className="w-full rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
               </div>}
             </div>
           </div>
