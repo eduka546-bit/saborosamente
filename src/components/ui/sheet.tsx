@@ -6,8 +6,32 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useModalBackNavigation } from "@/lib/use-modal-back-navigation";
 
-const Sheet = SheetPrimitive.Root;
+const Sheet = ({
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof SheetPrimitive.Root>) => {
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen);
+  const isOpen = controlledOpen ?? internalOpen;
+  const setOpen = React.useCallback(
+    (value: boolean) => {
+      if (controlledOpen === undefined) setInternalOpen(value);
+      onOpenChange?.(value);
+    },
+    [controlledOpen, onOpenChange],
+  );
+  useModalBackNavigation(isOpen, () => setOpen(false));
+  return (
+    <SheetPrimitive.Root
+      {...props}
+      open={isOpen}
+      onOpenChange={setOpen}
+    />
+  );
+};
 
 const SheetTrigger = SheetPrimitive.Trigger;
 
