@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { DashboardPedidosPreview } from "@/routes/admin/pedidos/dashboard-preview";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -60,7 +61,9 @@ export const Route = createFileRoute("/admin/pedidos")({
 function AdminPedidosRouter() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const isOverview = pathname.replace(/\/+$/, "") === "/admin/pedidos";
-  return isOverview ? <AdminOrdersPage /> : <Outlet />;
+  // A rota principal mostra o dashboard aprovado. Rotas filhas continuam
+  // funcionando normalmente via Outlet (WhatsApp, carrinhos, itens etc.).
+  return isOverview ? <DashboardPedidosPreview /> : <Outlet />;
 }
 
 
