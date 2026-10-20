@@ -41,7 +41,7 @@ export type PedidoInterpretado = {
   endereco: { rua: string; numero: string; bairro: string; cidade: string } | null;
   referencia: string | null;
   horario: string | null;
-  pagamento: "pix" | "alimentacao" | "mercadopago" | "dinheiro" | "cartao" | null;
+  pagamento: "pix" | "alimentacao" | "mercadopago" | "dinheiro" | "cartao" | "link" | null;
   descontoPercentual: number | null;
   descontoValor: number;
   cashbackUsado: number;
@@ -82,7 +82,7 @@ export function lerCodigos(texto: string): ItemInterpretado[] {
   return itens;
 }
 
-const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)[õo]es?|Combo|Complementos?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
+const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Combo|Complementos?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
 const precoLinha = /(?:^|\s)(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i;
 
 export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
@@ -98,6 +98,8 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
         .replace(/\s+-\s+[A-Z]{2,5}$/i, "").trim() || null
     : null;
   const cidadeSigla = cabecalho.match(/\s+-\s+([A-Z]{2,5})\s*:?\s*$/i)?.[1]?.toUpperCase() ?? null;
+  const telefone = linha(/^(?:Telefone|Fone|Celular|WhatsApp)\s*:/i)
+    .replace(/^(?:Telefone|Fone|Celular|WhatsApp)\s*:\s*/i, "").trim() || null;
 
   // Comprovante/recibo de pedidos: lista livre com código, produto em
   // múltiplas linhas e valores no rodapé (sem blocos com tamanhos).
@@ -148,7 +150,8 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     /^Entrega(?:\s*\/\s*Retirada)?\s*:\s*Retirada\b/i.test(entrega)
       ? 0 : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
   const local = linha(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:/i);
-  const localTexto = local.replace(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:\s*/i, "").trim();
+  const localTexto = local.replace(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:\s*/i, "").trim()
+    || linha(/^Endere[cç]o\s*:/i).replace(/^Endere[cç]o\s*:\s*/i, "").trim();
   const metodoEntrega = /:\s*retirada\b/i.test(entrega) || /^retirada\b/i.test(localTexto)
     ? "retirada"
     : localTexto || /:\s*(?:R\$\s*)?[\d.,]+/i.test(entrega) || (temRecibo && taxaRecibo !== null) ? "entrega" : null;
@@ -165,6 +168,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     };
     referencia = partes.slice(3).join(" - ") || null;
   }
+  referencia = referencia || linha(/^Refer[eê]ncia\s*:/i).replace(/^Refer[eê]ncia\s*:\s*/i, "").trim() || null;
   const horarioTexto = linha(/^Hor[aá]rio\s+de\s+(?:Entrega|Retirada)\s*:/i)
     .replace(/^Hor[aá]rio\s+de\s+(?:Entrega|Retirada)\s*:\s*/i, "").trim();
   const horario = horarioTexto && horarioTexto !== "?" ? horarioTexto : null;
@@ -174,6 +178,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     pagamentoTexto.includes("pix") || pagamentoTexto.includes("transferência") ? "pix" :
     pagamentoTexto.includes("alimenta") || pagamentoTexto.includes("refei") ? "alimentacao" :
     pagamentoTexto.includes("mercado") ? "mercadopago" :
+    pagamentoTexto.includes("link") ? "link" :
     pagamentoTexto.includes("dinheiro") ? "dinheiro" : "cartao";
 
   const totalLinha = linha(/^Total\s*:/i);
@@ -207,7 +212,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     avisos.push("Desconto percentual inválido.");
   }
   return {
-    nome, telefone: null, complemento: null, tipoCartao: null, observacoesAdicionais: null,
+    nome, telefone, complemento: null, tipoCartao: null, observacoesAdicionais: null,
     cidadeSigla, peso, precoUnitario, itens, itensDetalhados, blocos, avisos,
     quantidadeDeclarada, subtotalDeclarado, taxaEntrega, metodoEntrega,
     endereco, referencia, horario, pagamento, descontoPercentual, descontoValor,
