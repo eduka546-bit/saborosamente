@@ -90,12 +90,14 @@ export function MarmitaPersonalizadaModal({
       if (next[ing.id]) {
         delete next[ing.id];
       } else {
+        const isMolho = grupo.nome.toLowerCase().includes("molho");
         next[ing.id] = {
           ingredienteId: ing.id,
           grupo: grupo.nome,
           nome: ing.nome,
           modoPreparo: ing.modos_preparo?.[0],
-          gramatura: GRAMATURA_PADRAO,
+          // Molhos são um bônus de escolha: não entram na gramatura nem no preço.
+          gramatura: isMolho ? 0 : GRAMATURA_PADRAO,
         };
       }
       return next;
@@ -236,6 +238,7 @@ export function MarmitaPersonalizadaModal({
                   {grupo.ingredientes.map((ing) => {
                     const sel = selecoes[ing.id];
                     const ativo = !!sel;
+                    const isMolho = grupo.nome.toLowerCase().includes("molho");
                     return (
                       <div
                         key={ing.id}
@@ -291,33 +294,20 @@ export function MarmitaPersonalizadaModal({
                                 ))}
                               </div>
                             )}
-                            {/* Gramatura */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600 font-bold">
-                                Gramatura
-                              </span>
-                              <div className="flex items-center gap-1 ml-auto">
-                                <button
-                                  type="button"
-                                  aria-label={`Diminuir gramatura de ${ing.nome}`}
-                                  onClick={() => mudarGramatura(ing.id, -PASSO_GRAMATURA)}
-                                  className="h-10 w-10 rounded-full border border-[#086e45] text-[#086e45] flex items-center justify-center hover:bg-[#086e45] hover:text-white transition-all"
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span className="w-14 text-center text-base font-semibold text-[#086e45]">
-                                  {sel?.gramatura ?? 0}g
-                                </span>
-                                <button
-                                  type="button"
-                                  aria-label={`Aumentar gramatura de ${ing.nome}`}
-                                  onClick={() => mudarGramatura(ing.id, PASSO_GRAMATURA)}
-                                  className="h-10 w-10 rounded-full bg-[#086e45] text-white flex items-center justify-center hover:bg-[#065a38] transition-colors"
-                                >
-                                  <Plus size={12} />
-                                </button>
+                            {isMolho ? (
+                              <p className="rounded-xl bg-[#edf5e6] px-3 py-2 text-sm font-semibold text-[#075636]">
+                                Molho incluso como bônus — não altera a gramatura nem o valor.
+                              </p>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600 font-bold">Gramatura</span>
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <button type="button" aria-label={`Diminuir gramatura de ${ing.nome}`} onClick={() => mudarGramatura(ing.id, -PASSO_GRAMATURA)} className="h-10 w-10 rounded-full border border-[#086e45] text-[#086e45] flex items-center justify-center hover:bg-[#086e45] hover:text-white transition-all"><Minus size={12} /></button>
+                                  <span className="w-14 text-center text-base font-semibold text-[#086e45]">{sel?.gramatura ?? 0}g</span>
+                                  <button type="button" aria-label={`Aumentar gramatura de ${ing.nome}`} onClick={() => mudarGramatura(ing.id, PASSO_GRAMATURA)} className="h-10 w-10 rounded-full bg-[#086e45] text-white flex items-center justify-center hover:bg-[#065a38] transition-colors"><Plus size={12} /></button>
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         )}
                       </div>

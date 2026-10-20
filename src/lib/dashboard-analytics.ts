@@ -50,19 +50,22 @@ export function calculateKPIs(orders: any[], customers: any[], previousOrders?: 
   // Hora de pico (assumindo formato de data padrão)
   const hourMap: Record<string, number> = {};
   orders.forEach((o) => {
-    const hour = new Date(o.created_at).getHours();
+    const createdAt = new Date(o.created_at);
+    if (!Number.isFinite(createdAt.getTime())) return;
+    const hour = createdAt.getHours();
     const key = `${hour}:00`;
     hourMap[key] = (hourMap[key] || 0) + 1;
   });
-  const peakHour = Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+  const peakHour = Object.entries(hourMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sem dados";
 
   // Método de pagamento mais usado
   const paymentMap: Record<string, number> = {};
   orders.forEach((o) => {
-    const method = o.metodo_pagamento || "indefinido";
+    const method = String(o.metodo_pagamento || "").trim() || "Não informado";
     paymentMap[method] = (paymentMap[method] || 0) + 1;
   });
-  const topPaymentMethod = Object.entries(paymentMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+  const topPaymentMethod =
+    Object.entries(paymentMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sem dados";
 
   return {
     totalRevenue,

@@ -742,9 +742,7 @@ export const createOrder = createServerFn({ method: "POST" })
         partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
         const dataPersonalizada = adicionarDiasDataBR(data.dataProgramada, 7);
         if (dataPersonalizada) {
-          partes.push(
-            `Entrega personalizada prevista: ${dataPersonalizada} • ${data.faixaHorario}`,
-          );
+          partes.push(`Personalizada prevista para: ${dataPersonalizada} • ${data.faixaHorario}`);
         }
         if (comp) partes.push(comp);
       }

@@ -4,11 +4,13 @@ import { getPublicSiteSettings } from "@/lib/site-settings";
 import { configEntregaParaCidade, DIAS_SEMANA } from "@/lib/entrega-config";
 import {
   BadgeDollarSign,
+  ChefHat,
   Clock3,
   House,
   MapPin,
   PackageCheck,
   ShoppingBag,
+  Gift,
   Store,
   Truck,
   Search,
@@ -498,7 +500,7 @@ function DeliveryContent() {
               {citySchedule.minUnidades && (
                 <p className="mt-1 text-base text-[#607168]">Pedido mínimo: {citySchedule.minUnidades} unidades.</p>
               )}
-              <p className="mt-1 text-base text-[#71857b]">Escolha a data no checkout para conferir as faixas efetivamente disponíveis.</p>
+              <p className="mt-1 text-base text-[#71857b]">Escolha a data e horário de entrega no checkout.</p>
             </div>
           </div>
           {selectedCity === "São Bento do Sul" && (
@@ -634,9 +636,9 @@ function StoreContent() {
 
       <div className="grid overflow-hidden rounded-[1.65rem] border border-[#dde6d7] bg-white shadow-sm md:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center gap-3 p-4 sm:p-5">
-          <div className="rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
-            <p className="text-base font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p>
-            <p className="mt-1 text-base leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p>
+          <div className="flex items-start gap-3 rounded-xl border border-[#d7e7cb] bg-[#eff6e9] px-4 py-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#dceccf] text-[#075636]"><ChefHat size={20} strokeWidth={1.8} /></span>
+            <div><p className="text-base font-semibold leading-snug text-[#075636]">Todos os sabores à pronta entrega!</p><p className="mt-1 text-base leading-relaxed text-[#4d715c]">Venha conhecer e escolher pessoalmente suas marmitas favoritas.</p></div>
           </div>
           <a
             href={MAPS_URL}
@@ -665,7 +667,8 @@ function StoreContent() {
             <span>
               <strong className="block text-lg font-semibold text-[#173a2d]">Horário da loja</strong>
               <span className="mt-0.5 block text-base leading-relaxed text-[#607168]">
-                Seg–Sex 9h30–19h · Sáb 9h30–13h
+                <span className="block">Seg–Sex 9h30–19h</span>
+                <span className="block">Sáb 9h30–13h</span>
               </span>
             </span>
           </div>
@@ -678,11 +681,11 @@ function StoreContent() {
           </div>
         </div>
 
-        <div className="flex min-h-[260px] items-center justify-center bg-[#f7f5ed] p-3 sm:min-h-[310px]">
+        <div className="flex aspect-[4/3] min-h-0 items-center justify-center bg-[#f7f5ed] p-3 sm:min-h-[310px]">
           <img
             src="/loja-saborosamente.jpg"
             alt="Loja física SaborosaMente em São Bento do Sul"
-            className="h-full max-h-[340px] w-full rounded-[1.35rem] object-contain"
+            className="size-full rounded-[1.35rem] object-contain"
           />
         </div>
       </div>
@@ -746,13 +749,13 @@ function DiscountContent() {
         </div>
       </div>
 
-      <a href="/perfil#cashback" className="block rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
-        <h3 className="text-lg font-semibold text-[#075636]">Cashback</h3>
-        <p className="mt-1 text-base leading-relaxed text-[#607168]">Após a entrega do pedido, o cashback é creditado na sua conta para usar como desconto em uma próxima compra. Entre na sua conta para consultar o saldo, a validade e as condições de uso; no fechamento do pedido você pode aplicar o saldo disponível.</p>
+      <a href="/perfil#cashback" className="flex items-start gap-3 rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e8f1dd] text-[#075636]"><BadgeDollarSign size={19} /></span>
+        <span><span className="block text-lg font-semibold text-[#075636]">Cashback</span><span className="mt-1 block text-base leading-relaxed text-[#607168]">Após a entrega, o valor é creditado na sua conta para usar como desconto em uma próxima compra.</span></span>
       </a>
-      <a href="/indicar" className="block rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
-        <h3 className="text-lg font-semibold text-[#075636]">Indique e Ganhe</h3>
-        <p className="mt-1 text-base leading-relaxed text-[#607168]">Entre na sua conta e abra Indique e Ganhe para compartilhar seu link. Seu amigo ganha 5% na primeira compra e, quando esse pedido for entregue, você recebe R$ 5,00 de cashback.</p>
+      <a href="/indicar" className="flex items-start gap-3 rounded-[1.4rem] border border-[#dfe8d7] bg-[#f5f8f1] p-4 transition hover:border-primary/40 hover:bg-[#edf4e7]">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fff4bf] text-[#6e5c00]"><Gift size={19} /></span>
+        <span><span className="block text-lg font-semibold text-[#075636]">Indique e Ganhe</span><span className="mt-1 block text-base leading-relaxed text-[#607168]">Compartilhe seu link: seu amigo ganha 5% na primeira compra e você recebe R$ 5,00 de cashback após a entrega.</span></span>
       </a>
     </>
   );
@@ -761,7 +764,7 @@ function DiscountContent() {
 export function HomeInfoModal({ kind, open, onOpenChange }: HomeInfoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-h-[92vh] w-[calc(100%-1.25rem)] gap-4 overflow-y-auto rounded-[1.9rem] border-[#e1e6db] bg-[#fffef9] p-5 shadow-2xl sm:p-6 ${kind === "delivery" || kind === "store" ? "max-w-4xl" : "max-w-xl"}`}>
+      <DialogContent className={`max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.25rem)] gap-4 overflow-y-auto rounded-[1.9rem] border-[#e1e6db] bg-[#fffef9] p-5 shadow-2xl sm:max-h-[92vh] sm:p-6 ${kind === "delivery" || kind === "store" ? "max-w-4xl" : "max-w-xl"}`}>
         {kind === "delivery" ? (
           <DeliveryContent />
         ) : kind === "store" ? (

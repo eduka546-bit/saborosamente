@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      E2E_BASE_URL: https://saborosamente.vercel.app
+      E2E_BASE_URL: https://saborosamente.com
     steps:
       - name: Checkout
         uses: actions/checkout@v4

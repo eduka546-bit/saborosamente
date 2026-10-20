@@ -95,7 +95,7 @@ function AdminDashboard() {
         supabase.from("produtos").select("*", { count: "exact", head: true }).eq("ativo", true),
         supabase
           .from("pedidos")
-          .select("valor_total,taxa_entrega,desconto_aplicado")
+          .select("valor_total,taxa_entrega,desconto_aplicado,created_at,metodo_pagamento,user_id,telefone_cliente")
           .gte("created_at", firstDayOfMonth)
           .neq("status", "cancelado"),
         supabase

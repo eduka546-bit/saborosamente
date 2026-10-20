@@ -36,5 +36,23 @@ export function useCommerceDialog(open: boolean, onClose: () => void) {
       if (previous?.isConnected) previous.focus();
     };
   }, [open]);
+
+  // Cria uma entrada de histórico enquanto o modal está aberto. Assim, o botão
+  // Voltar do celular fecha apenas o modal, sem tirar a pessoa da loja.
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    const key = `commerce-dialog-${Date.now()}-${Math.random()}`;
+    let pushed = true;
+    window.history.pushState({ ...window.history.state, [key]: true }, "");
+    const handlePopState = () => {
+      pushed = false;
+      closeRef.current();
+    };
+    window.addEventListener("popstate", handlePopState, { once: true });
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (pushed && window.history.state?.[key]) window.history.back();
+    };
+  }, [open]);
   return ref;
 }

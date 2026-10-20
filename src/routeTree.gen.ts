@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcessoRouteImport } from './routes/acesso'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -36,7 +37,9 @@ import { Route as AdminCombosRouteImport } from './routes/admin/combos'
 import { Route as AdminCombosProntosRouteImport } from './routes/admin/combos-prontos'
 import { Route as AdminComplementosRouteImport } from './routes/admin/complementos'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
+import { Route as AdminCustosRouteImport } from './routes/admin.custos'
 import { Route as AdminEmbalagensRouteImport } from './routes/admin/embalagens'
+import { Route as AdminInteligenciaRouteImport } from './routes/admin.inteligencia'
 import { Route as AdminOuvidoriaRouteImport } from './routes/admin/ouvidoria'
 import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
@@ -44,6 +47,8 @@ import { Route as AdminPontuacaoRouteImport } from './routes/admin/pontuacao'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminRegistrarP10RouteImport } from './routes/admin.registrar-p10'
 import { Route as AdminStorageCleanupRouteImport } from './routes/admin/storage-cleanup'
+import { Route as CozinhaEtiquetasRouteImport } from './routes/cozinha.etiquetas'
+import { Route as CozinhaFichasRouteImport } from './routes/cozinha.fichas'
 import { Route as PedidoIndexRouteImport } from './routes/pedido/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as AdminConfigIndexRouteImport } from './routes/admin/config/index'
@@ -68,6 +73,7 @@ import { Route as AdminConfigRespostasRouteImport } from './routes/admin/config/
 import { Route as AdminConfigSiteRouteImport } from './routes/admin.config.site'
 import { Route as AdminConfigTaxasRouteImport } from './routes/admin/config/taxas'
 import { Route as AdminConfigUnidadesRouteImport } from './routes/admin/config/unidades'
+import { Route as AdminConfigWhatsappNotificacoesRouteImport } from './routes/admin/config/whatsapp-notificacoes'
 import { Route as AdminCuponsNovoRouteImport } from './routes/admin/cupons/novo'
 import { Route as AdminFinanceiroIndexRouteImport } from './routes/admin/financeiro/index'
 import { Route as AdminFinanceiroLancamentosRouteImport } from './routes/admin/financeiro/lancamentos'
@@ -76,7 +82,11 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/in
 import { Route as AdminPedidosAcompanhamentosRouteImport } from './routes/admin/pedidos/acompanhamentos'
 import { Route as AdminPedidosCarrinhosAbandonadosRouteImport } from './routes/admin/pedidos/carrinhos-abandonados'
 import { Route as AdminPedidosComplementosRouteImport } from './routes/admin/pedidos/complementos'
+import { Route as AdminPedidosDashboardPreviewRouteImport } from './routes/admin/pedidos/dashboard-preview'
+import { Route as AdminPedidosEntregadoresRouteImport } from './routes/admin/pedidos/entregadores'
 import { Route as AdminPedidosItensRouteImport } from './routes/admin/pedidos/itens'
+import { Route as AdminPedidosLeadsRouteImport } from './routes/admin/pedidos/leads'
+import { Route as AdminPedidosWhatsappRouteImport } from './routes/admin/pedidos/whatsapp'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosClientesRouteImport } from './routes/admin/relatorios/clientes'
 import { Route as AdminRelatoriosComunicacaoRouteImport } from './routes/admin/relatorios/comunicacao'
@@ -91,6 +101,11 @@ import { Route as AdminRelatoriosVendasRouteImport } from './routes/admin/relato
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcessoRoute = AcessoRouteImport.update({
+  id: '/acesso',
+  path: '/acesso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -223,9 +238,19 @@ const AdminCuponsRoute = AdminCuponsRouteImport.update({
   path: '/cupons',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCustosRoute = AdminCustosRouteImport.update({
+  id: '/custos',
+  path: '/custos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEmbalagensRoute = AdminEmbalagensRouteImport.update({
   id: '/embalagens',
   path: '/embalagens',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInteligenciaRoute = AdminInteligenciaRouteImport.update({
+  id: '/inteligencia',
+  path: '/inteligencia',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOuvidoriaRoute = AdminOuvidoriaRouteImport.update({
@@ -262,6 +287,16 @@ const AdminStorageCleanupRoute = AdminStorageCleanupRouteImport.update({
   id: '/storage-cleanup',
   path: '/storage-cleanup',
   getParentRoute: () => AdminRoute,
+} as any)
+const CozinhaEtiquetasRoute = CozinhaEtiquetasRouteImport.update({
+  id: '/etiquetas',
+  path: '/etiquetas',
+  getParentRoute: () => CozinhaRoute,
+} as any)
+const CozinhaFichasRoute = CozinhaFichasRouteImport.update({
+  id: '/fichas',
+  path: '/fichas',
+  getParentRoute: () => CozinhaRoute,
 } as any)
 const PedidoIndexRoute = PedidoIndexRouteImport.update({
   id: '/pedido/',
@@ -387,6 +422,12 @@ const AdminConfigUnidadesRoute = AdminConfigUnidadesRouteImport.update({
   path: '/config/unidades',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminConfigWhatsappNotificacoesRoute =
+  AdminConfigWhatsappNotificacoesRouteImport.update({
+    id: '/config/whatsapp-notificacoes',
+    path: '/config/whatsapp-notificacoes',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminCuponsNovoRoute = AdminCuponsNovoRouteImport.update({
   id: '/novo',
   path: '/novo',
@@ -432,9 +473,31 @@ const AdminPedidosComplementosRoute =
     path: '/complementos',
     getParentRoute: () => AdminPedidosRoute,
   } as any)
+const AdminPedidosDashboardPreviewRoute =
+  AdminPedidosDashboardPreviewRouteImport.update({
+    id: '/dashboard-preview',
+    path: '/dashboard-preview',
+    getParentRoute: () => AdminPedidosRoute,
+  } as any)
+const AdminPedidosEntregadoresRoute =
+  AdminPedidosEntregadoresRouteImport.update({
+    id: '/entregadores',
+    path: '/entregadores',
+    getParentRoute: () => AdminPedidosRoute,
+  } as any)
 const AdminPedidosItensRoute = AdminPedidosItensRouteImport.update({
   id: '/itens',
   path: '/itens',
+  getParentRoute: () => AdminPedidosRoute,
+} as any)
+const AdminPedidosLeadsRoute = AdminPedidosLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AdminPedidosRoute,
+} as any)
+const AdminPedidosWhatsappRoute = AdminPedidosWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
   getParentRoute: () => AdminPedidosRoute,
 } as any)
 const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
@@ -494,12 +557,13 @@ const AdminRelatoriosVendasRoute = AdminRelatoriosVendasRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
-  '/cozinha': typeof CozinhaRoute
+  '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
@@ -519,7 +583,9 @@ export interface FileRoutesByFullPath {
   '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/custos': typeof AdminCustosRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
   '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
@@ -527,6 +593,8 @@ export interface FileRoutesByFullPath {
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
+  '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
   '/pedido/': typeof PedidoIndexRoute
@@ -551,13 +619,18 @@ export interface FileRoutesByFullPath {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/config/whatsapp-notificacoes': typeof AdminConfigWhatsappNotificacoesRoute
   '/admin/cupons/novo': typeof AdminCuponsNovoRoute
   '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
   '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
   '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
   '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
   '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/dashboard-preview': typeof AdminPedidosDashboardPreviewRoute
+  '/admin/pedidos/entregadores': typeof AdminPedidosEntregadoresRoute
   '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/whatsapp': typeof AdminPedidosWhatsappRoute
   '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
@@ -574,11 +647,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
-  '/cozinha': typeof CozinhaRoute
+  '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
@@ -598,13 +672,17 @@ export interface FileRoutesByTo {
   '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/custos': typeof AdminCustosRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
   '/admin/pdv': typeof AdminPdvRoute
   '/admin/pontuacao': typeof AdminPontuacaoRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
+  '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin': typeof AdminIndexRoute
   '/pedido': typeof PedidoIndexRoute
@@ -629,13 +707,18 @@ export interface FileRoutesByTo {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/config/whatsapp-notificacoes': typeof AdminConfigWhatsappNotificacoesRoute
   '/admin/cupons/novo': typeof AdminCuponsNovoRoute
   '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
   '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
   '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
   '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
   '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/dashboard-preview': typeof AdminPedidosDashboardPreviewRoute
+  '/admin/pedidos/entregadores': typeof AdminPedidosEntregadoresRoute
   '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/whatsapp': typeof AdminPedidosWhatsappRoute
   '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
@@ -653,12 +736,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
-  '/cozinha': typeof CozinhaRoute
+  '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
@@ -678,7 +762,9 @@ export interface FileRoutesById {
   '/admin/combos-prontos': typeof AdminCombosProntosRoute
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
+  '/admin/custos': typeof AdminCustosRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
+  '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
   '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
@@ -686,6 +772,8 @@ export interface FileRoutesById {
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
+  '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/': typeof AdminIndexRoute
   '/pedido/': typeof PedidoIndexRoute
@@ -710,13 +798,18 @@ export interface FileRoutesById {
   '/admin/config/site': typeof AdminConfigSiteRoute
   '/admin/config/taxas': typeof AdminConfigTaxasRoute
   '/admin/config/unidades': typeof AdminConfigUnidadesRoute
+  '/admin/config/whatsapp-notificacoes': typeof AdminConfigWhatsappNotificacoesRoute
   '/admin/cupons/novo': typeof AdminCuponsNovoRoute
   '/admin/financeiro/lancamentos': typeof AdminFinanceiroLancamentosRoute
   '/admin/financeiro/transacoes': typeof AdminFinanceiroTransacoesRoute
   '/admin/pedidos/acompanhamentos': typeof AdminPedidosAcompanhamentosRoute
   '/admin/pedidos/carrinhos-abandonados': typeof AdminPedidosCarrinhosAbandonadosRoute
   '/admin/pedidos/complementos': typeof AdminPedidosComplementosRoute
+  '/admin/pedidos/dashboard-preview': typeof AdminPedidosDashboardPreviewRoute
+  '/admin/pedidos/entregadores': typeof AdminPedidosEntregadoresRoute
   '/admin/pedidos/itens': typeof AdminPedidosItensRoute
+  '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/whatsapp': typeof AdminPedidosWhatsappRoute
   '/admin/relatorios/clientes': typeof AdminRelatoriosClientesRoute
   '/admin/relatorios/comunicacao': typeof AdminRelatoriosComunicacaoRoute
   '/admin/relatorios/estoque': typeof AdminRelatoriosEstoqueRoute
@@ -735,6 +828,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acesso'
     | '/admin'
     | '/admin-login'
     | '/auth'
@@ -760,7 +854,9 @@ export interface FileRouteTypes {
     | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
+    | '/admin/custos'
     | '/admin/embalagens'
+    | '/admin/inteligencia'
     | '/admin/ouvidoria'
     | '/admin/pdv'
     | '/admin/pedidos'
@@ -768,6 +864,8 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/cozinha/etiquetas'
+    | '/cozinha/fichas'
     | '/produto/$id'
     | '/admin/'
     | '/pedido/'
@@ -792,13 +890,18 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
+    | '/admin/config/whatsapp-notificacoes'
     | '/admin/cupons/novo'
     | '/admin/financeiro/lancamentos'
     | '/admin/financeiro/transacoes'
     | '/admin/pedidos/acompanhamentos'
     | '/admin/pedidos/carrinhos-abandonados'
     | '/admin/pedidos/complementos'
+    | '/admin/pedidos/dashboard-preview'
+    | '/admin/pedidos/entregadores'
     | '/admin/pedidos/itens'
+    | '/admin/pedidos/leads'
+    | '/admin/pedidos/whatsapp'
     | '/admin/relatorios/clientes'
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
@@ -815,6 +918,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acesso'
     | '/admin-login'
     | '/auth'
     | '/carrinho'
@@ -839,13 +943,17 @@ export interface FileRouteTypes {
     | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
+    | '/admin/custos'
     | '/admin/embalagens'
+    | '/admin/inteligencia'
     | '/admin/ouvidoria'
     | '/admin/pdv'
     | '/admin/pontuacao'
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/cozinha/etiquetas'
+    | '/cozinha/fichas'
     | '/produto/$id'
     | '/admin'
     | '/pedido'
@@ -870,13 +978,18 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
+    | '/admin/config/whatsapp-notificacoes'
     | '/admin/cupons/novo'
     | '/admin/financeiro/lancamentos'
     | '/admin/financeiro/transacoes'
     | '/admin/pedidos/acompanhamentos'
     | '/admin/pedidos/carrinhos-abandonados'
     | '/admin/pedidos/complementos'
+    | '/admin/pedidos/dashboard-preview'
+    | '/admin/pedidos/entregadores'
     | '/admin/pedidos/itens'
+    | '/admin/pedidos/leads'
+    | '/admin/pedidos/whatsapp'
     | '/admin/relatorios/clientes'
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
@@ -893,6 +1006,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acesso'
     | '/admin'
     | '/admin-login'
     | '/auth'
@@ -918,7 +1032,9 @@ export interface FileRouteTypes {
     | '/admin/combos-prontos'
     | '/admin/complementos'
     | '/admin/cupons'
+    | '/admin/custos'
     | '/admin/embalagens'
+    | '/admin/inteligencia'
     | '/admin/ouvidoria'
     | '/admin/pdv'
     | '/admin/pedidos'
@@ -926,6 +1042,8 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/cozinha/etiquetas'
+    | '/cozinha/fichas'
     | '/produto/$id'
     | '/admin/'
     | '/pedido/'
@@ -950,13 +1068,18 @@ export interface FileRouteTypes {
     | '/admin/config/site'
     | '/admin/config/taxas'
     | '/admin/config/unidades'
+    | '/admin/config/whatsapp-notificacoes'
     | '/admin/cupons/novo'
     | '/admin/financeiro/lancamentos'
     | '/admin/financeiro/transacoes'
     | '/admin/pedidos/acompanhamentos'
     | '/admin/pedidos/carrinhos-abandonados'
     | '/admin/pedidos/complementos'
+    | '/admin/pedidos/dashboard-preview'
+    | '/admin/pedidos/entregadores'
     | '/admin/pedidos/itens'
+    | '/admin/pedidos/leads'
+    | '/admin/pedidos/whatsapp'
     | '/admin/relatorios/clientes'
     | '/admin/relatorios/comunicacao'
     | '/admin/relatorios/estoque'
@@ -974,12 +1097,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcessoRoute: typeof AcessoRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
-  CozinhaRoute: typeof CozinhaRoute
+  CozinhaRoute: typeof CozinhaRouteWithChildren
   CozinhaLoginRoute: typeof CozinhaLoginRoute
   FaleConoscoRoute: typeof FaleConoscoRoute
   IndicarRoute: typeof IndicarRoute
@@ -997,6 +1121,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acesso': {
+      id: '/acesso'
+      path: '/acesso'
+      fullPath: '/acesso'
+      preLoaderRoute: typeof AcessoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1181,11 +1312,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCuponsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/custos': {
+      id: '/admin/custos'
+      path: '/custos'
+      fullPath: '/admin/custos'
+      preLoaderRoute: typeof AdminCustosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/embalagens': {
       id: '/admin/embalagens'
       path: '/embalagens'
       fullPath: '/admin/embalagens'
       preLoaderRoute: typeof AdminEmbalagensRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/inteligencia': {
+      id: '/admin/inteligencia'
+      path: '/inteligencia'
+      fullPath: '/admin/inteligencia'
+      preLoaderRoute: typeof AdminInteligenciaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/ouvidoria': {
@@ -1236,6 +1381,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/storage-cleanup'
       preLoaderRoute: typeof AdminStorageCleanupRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/cozinha/etiquetas': {
+      id: '/cozinha/etiquetas'
+      path: '/etiquetas'
+      fullPath: '/cozinha/etiquetas'
+      preLoaderRoute: typeof CozinhaEtiquetasRouteImport
+      parentRoute: typeof CozinhaRoute
+    }
+    '/cozinha/fichas': {
+      id: '/cozinha/fichas'
+      path: '/fichas'
+      fullPath: '/cozinha/fichas'
+      preLoaderRoute: typeof CozinhaFichasRouteImport
+      parentRoute: typeof CozinhaRoute
     }
     '/pedido/': {
       id: '/pedido/'
@@ -1405,6 +1564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfigUnidadesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/config/whatsapp-notificacoes': {
+      id: '/admin/config/whatsapp-notificacoes'
+      path: '/config/whatsapp-notificacoes'
+      fullPath: '/admin/config/whatsapp-notificacoes'
+      preLoaderRoute: typeof AdminConfigWhatsappNotificacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cupons/novo': {
       id: '/admin/cupons/novo'
       path: '/novo'
@@ -1461,11 +1627,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosComplementosRouteImport
       parentRoute: typeof AdminPedidosRoute
     }
+    '/admin/pedidos/dashboard-preview': {
+      id: '/admin/pedidos/dashboard-preview'
+      path: '/dashboard-preview'
+      fullPath: '/admin/pedidos/dashboard-preview'
+      preLoaderRoute: typeof AdminPedidosDashboardPreviewRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/entregadores': {
+      id: '/admin/pedidos/entregadores'
+      path: '/entregadores'
+      fullPath: '/admin/pedidos/entregadores'
+      preLoaderRoute: typeof AdminPedidosEntregadoresRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
     '/admin/pedidos/itens': {
       id: '/admin/pedidos/itens'
       path: '/itens'
       fullPath: '/admin/pedidos/itens'
       preLoaderRoute: typeof AdminPedidosItensRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/leads': {
+      id: '/admin/pedidos/leads'
+      path: '/leads'
+      fullPath: '/admin/pedidos/leads'
+      preLoaderRoute: typeof AdminPedidosLeadsRouteImport
+      parentRoute: typeof AdminPedidosRoute
+    }
+    '/admin/pedidos/whatsapp': {
+      id: '/admin/pedidos/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/pedidos/whatsapp'
+      preLoaderRoute: typeof AdminPedidosWhatsappRouteImport
       parentRoute: typeof AdminPedidosRoute
     }
     '/admin/relatorios/': {
@@ -1557,7 +1751,11 @@ interface AdminPedidosRouteChildren {
   AdminPedidosAcompanhamentosRoute: typeof AdminPedidosAcompanhamentosRoute
   AdminPedidosCarrinhosAbandonadosRoute: typeof AdminPedidosCarrinhosAbandonadosRoute
   AdminPedidosComplementosRoute: typeof AdminPedidosComplementosRoute
+  AdminPedidosDashboardPreviewRoute: typeof AdminPedidosDashboardPreviewRoute
+  AdminPedidosEntregadoresRoute: typeof AdminPedidosEntregadoresRoute
   AdminPedidosItensRoute: typeof AdminPedidosItensRoute
+  AdminPedidosLeadsRoute: typeof AdminPedidosLeadsRoute
+  AdminPedidosWhatsappRoute: typeof AdminPedidosWhatsappRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
 }
 
@@ -1565,7 +1763,11 @@ const AdminPedidosRouteChildren: AdminPedidosRouteChildren = {
   AdminPedidosAcompanhamentosRoute: AdminPedidosAcompanhamentosRoute,
   AdminPedidosCarrinhosAbandonadosRoute: AdminPedidosCarrinhosAbandonadosRoute,
   AdminPedidosComplementosRoute: AdminPedidosComplementosRoute,
+  AdminPedidosDashboardPreviewRoute: AdminPedidosDashboardPreviewRoute,
+  AdminPedidosEntregadoresRoute: AdminPedidosEntregadoresRoute,
   AdminPedidosItensRoute: AdminPedidosItensRoute,
+  AdminPedidosLeadsRoute: AdminPedidosLeadsRoute,
+  AdminPedidosWhatsappRoute: AdminPedidosWhatsappRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
 }
 
@@ -1587,7 +1789,9 @@ interface AdminRouteChildren {
   AdminCombosProntosRoute: typeof AdminCombosProntosRoute
   AdminComplementosRoute: typeof AdminComplementosRoute
   AdminCuponsRoute: typeof AdminCuponsRouteWithChildren
+  AdminCustosRoute: typeof AdminCustosRoute
   AdminEmbalagensRoute: typeof AdminEmbalagensRoute
+  AdminInteligenciaRoute: typeof AdminInteligenciaRoute
   AdminOuvidoriaRoute: typeof AdminOuvidoriaRoute
   AdminPdvRoute: typeof AdminPdvRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
@@ -1617,6 +1821,7 @@ interface AdminRouteChildren {
   AdminConfigSiteRoute: typeof AdminConfigSiteRoute
   AdminConfigTaxasRoute: typeof AdminConfigTaxasRoute
   AdminConfigUnidadesRoute: typeof AdminConfigUnidadesRoute
+  AdminConfigWhatsappNotificacoesRoute: typeof AdminConfigWhatsappNotificacoesRoute
   AdminFinanceiroLancamentosRoute: typeof AdminFinanceiroLancamentosRoute
   AdminFinanceiroTransacoesRoute: typeof AdminFinanceiroTransacoesRoute
   AdminRelatoriosClientesRoute: typeof AdminRelatoriosClientesRoute
@@ -1647,7 +1852,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCombosProntosRoute: AdminCombosProntosRoute,
   AdminComplementosRoute: AdminComplementosRoute,
   AdminCuponsRoute: AdminCuponsRouteWithChildren,
+  AdminCustosRoute: AdminCustosRoute,
   AdminEmbalagensRoute: AdminEmbalagensRoute,
+  AdminInteligenciaRoute: AdminInteligenciaRoute,
   AdminOuvidoriaRoute: AdminOuvidoriaRoute,
   AdminPdvRoute: AdminPdvRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
@@ -1677,6 +1884,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConfigSiteRoute: AdminConfigSiteRoute,
   AdminConfigTaxasRoute: AdminConfigTaxasRoute,
   AdminConfigUnidadesRoute: AdminConfigUnidadesRoute,
+  AdminConfigWhatsappNotificacoesRoute: AdminConfigWhatsappNotificacoesRoute,
   AdminFinanceiroLancamentosRoute: AdminFinanceiroLancamentosRoute,
   AdminFinanceiroTransacoesRoute: AdminFinanceiroTransacoesRoute,
   AdminRelatoriosClientesRoute: AdminRelatoriosClientesRoute,
@@ -1695,14 +1903,28 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CozinhaRouteChildren {
+  CozinhaEtiquetasRoute: typeof CozinhaEtiquetasRoute
+  CozinhaFichasRoute: typeof CozinhaFichasRoute
+}
+
+const CozinhaRouteChildren: CozinhaRouteChildren = {
+  CozinhaEtiquetasRoute: CozinhaEtiquetasRoute,
+  CozinhaFichasRoute: CozinhaFichasRoute,
+}
+
+const CozinhaRouteWithChildren =
+  CozinhaRoute._addFileChildren(CozinhaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcessoRoute: AcessoRoute,
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
-  CozinhaRoute: CozinhaRoute,
+  CozinhaRoute: CozinhaRouteWithChildren,
   CozinhaLoginRoute: CozinhaLoginRoute,
   FaleConoscoRoute: FaleConoscoRoute,
   IndicarRoute: IndicarRoute,

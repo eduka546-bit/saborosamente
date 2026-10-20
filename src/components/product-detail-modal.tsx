@@ -634,6 +634,8 @@ export function ProductDetailModal({
               {allImages.length > 1 && (
                 <>
                   <button
+                    type="button"
+                    aria-label="Foto anterior"
                     onClick={() =>
                       setCurrentImageIndex((p) => (p === 0 ? allImages.length - 1 : p - 1))
                     }
@@ -642,6 +644,8 @@ export function ProductDetailModal({
                     <ChevronLeft size={20} />
                   </button>
                   <button
+                    type="button"
+                    aria-label="Próxima foto"
                     onClick={() => setCurrentImageIndex((p) => (p + 1) % allImages.length)}
                     className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg hover:bg-white"
                   >
@@ -654,6 +658,9 @@ export function ProductDetailModal({
                     {allImages.map((_, idx) => (
                       <button
                         key={idx}
+                        type="button"
+                        aria-label={`Ir para foto ${idx + 1}`}
+                        aria-current={currentImageIndex === idx ? "true" : undefined}
                         onClick={() => setCurrentImageIndex(idx)}
                         className={cn(
                           "rounded-full transition-all",

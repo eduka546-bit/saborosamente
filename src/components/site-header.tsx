@@ -98,6 +98,10 @@ export function SiteHeader() {
   const navText = settings?.nav_text_color || "#086e45";
   const announceBg = settings?.announcement_bg_color || "#086e45";
   const announceText = settings?.announcement_text_color || "#ffffff";
+  const configuredAnnouncement = settings?.announcement_text?.trim();
+  const announcementText = configuredAnnouncement?.toLowerCase().includes("pessoalmente em nossa loja")
+    ? "Peça para entrega ou retire na loja em São Bento do Sul!"
+    : configuredAnnouncement || "Peça para entrega ou retire na loja em São Bento do Sul!";
 
   const logoSrc = "/logo-saborosamente-oficial.png";
   const abrirSorteio = () => {
@@ -121,10 +125,9 @@ export function SiteHeader() {
       {announcementVisible && (
         <div
           style={{ backgroundColor: announceBg, color: announceText }}
-          className="relative px-10 py-2.5 text-center text-sm font-medium leading-snug z-[60] pointer-events-auto"
+          className="relative px-10 py-2 text-center text-sm font-medium leading-5 z-[60] pointer-events-auto"
         >
-          {settings?.announcement_text ||
-            "Peça para entrega ou venha escolher pessoalmente em nossa loja em São Bento do Sul!"}
+          {announcementText}
           <button
             type="button"
             onClick={() => setAnnouncementVisible(false)}

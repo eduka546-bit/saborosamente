@@ -196,13 +196,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     return w;
   };
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
-  const currentPrice = isSopa
+  const priceForWeight = (weight: string) => isSopa
     ? 18.0
-    : selectedWeight === "300g" && product.preco_300g
+    : weight === "300g" && product.preco_300g
       ? product.preco_300g
-      : selectedWeight === "400g" && product.preco_400g
+      : weight === "400g" && product.preco_400g
         ? product.preco_400g
         : product.preco;
+  const currentPrice = priceForWeight(selectedWeight);
 
   // Imagem por tamanho — usa a específica se cadastrada, senão a principal
   const currentImage = (() => {
@@ -519,13 +520,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
                     )}
                   >
-                    {weightLabel(w)}
+                    {weightLabel(w)}{isComboPronto && <span className="ml-1.5 font-semibold">{formatBRL(priceForWeight(w))}</span>}
                   </button>
                 ))}
               </div>
             ) : null}
 
-            {currentNutritional?.kcal != null && (
+            {!isComboPronto && currentNutritional?.kcal != null && (
               <button type="button" onClick={openInformation} aria-label={`Informações nutricionais de ${product.nome}`} className="flex min-h-7 w-full min-w-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap text-[12px] leading-4 font-semibold text-[#086e45] hover:text-primary">
                 <span className="shrink-0">{currentNutritional.kcal} KCAL</span>
                 {currentNutritional.prot != null && <><span aria-hidden="true">•</span><span>{currentNutritional.prot}g PROT</span></>}
@@ -542,12 +543,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
             {/* Preço + botão adicionar */}
             <div className="flex items-center justify-between mt-auto">
               <div className="flex flex-col">
-                {selectedWeight && (
+                {selectedWeight && !isComboPronto && (
                   <span className="text-sm font-medium text-gray-500">
                     {selectedWeight}
                   </span>
                 )}
-                {temDescontoAtivo ? (
+                {isComboPronto ? null : temDescontoAtivo ? (
                   <>
                     <span className="text-sm font-semibold text-gray-400 line-through leading-none">
                       {formatBRL(precoCheioCard)}
@@ -645,7 +646,7 @@ function ProductCarousel({ images }: { images: string[] }) {
   return (
     <div className="relative size-full overflow-hidden">
       <div
-        className="flex size-full transition-transform duration-500 ease-in-out"
+        className="flex size-full transition-transform duration-300 ease-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {images.map((img, i) => (
@@ -664,12 +665,16 @@ function ProductCarousel({ images }: { images: string[] }) {
       {images.length > 1 && (
         <>
           <button
+            type="button"
+            aria-label="Foto anterior"
             onClick={prev}
             className="absolute left-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
           >
             <ChevronLeft className="size-6" />
           </button>
           <button
+            type="button"
+            aria-label="Próxima foto"
             onClick={next}
             className="absolute right-2 top-1/2 -translate-y-1/2 size-10 rounded-full bg-white/80 flex items-center justify-center text-primary shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
           >

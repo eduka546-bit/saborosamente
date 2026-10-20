@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const BASE_URL = process.env.E2E_BASE_URL || "https://saborosamente.vercel.app";
-const PRODUCT = "TD24 - Espaguete à Carbonara com Ovos Mexidos e Bacon";
+const BASE_URL = process.env.E2E_BASE_URL || "https://saborosamente.com";
+const PRODUCT = "TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis";
 
 function observe(page: Page) {
   const problems: string[] = [];
@@ -181,7 +181,7 @@ test("desktop: montar combo adiciona item ao carrinho", async ({ page }) => {
   await expect(page.locator("h2").filter({ hasText: "Monte seu Combo" })).toBeVisible({ timeout: 10000 });
 
   const busca = page.getByPlaceholder("Buscar marmita...");
-  await busca.fill("TD24");
+  await busca.fill("TD01");
   const productRow = page.locator("div.rounded-2xl").filter({ hasText: PRODUCT }).first();
   await expect(productRow).toBeVisible();
 
@@ -362,6 +362,21 @@ test("admin autenticado: percorre rotas principais quando credenciais E2E estão
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
+test("admin: painel de carrinho abandonado fecha pelo botão visível", async ({ page }) => {
+  await loginE2EAdmin(page);
+  await page.goto(`${BASE_URL}/admin/pedidos/carrinhos-abandonados`, {
+    waitUntil: "domcontentloaded",
+  });
+
+  const details = page.getByRole("button", { name: "Ver detalhes" }).first();
+  await expect(details).toBeVisible({ timeout: 15000 });
+  await details.click();
+
+  const close = page.getByRole("button", { name: "Fechar painel" });
+  await expect(close).toBeVisible();
+  await close.click();
+  await expect(close).toBeHidden();
+});
 
 async function loginE2EAdmin(page: Page) {
   const email = process.env.E2E_ADMIN_EMAIL;
@@ -388,7 +403,7 @@ test("segurança HTTP e SEO básico de produção", async ({ page, request }) =>
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "https://www.saborosamente.com/",
+    "https://saborosamente.com/",
   );
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /index,\s*follow/i);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Saborosamente/i);
@@ -739,7 +754,7 @@ test("cobertura total: rota pública de produto gerada pelo sitemap", async ({ p
   const sitemap = await request.get(`${BASE_URL}/sitemap.xml`);
   expect(sitemap.status()).toBe(200);
   const xml = await sitemap.text();
-  const match = xml.match(/https:\/\/www\.saborosamente\.com\/produto\/([0-9a-f-]{36})/i);
+  const match = xml.match(/https:\/\/saborosamente\.com\/produto\/([0-9a-f-]{36})/i);
   expect(match?.[1], "Sitemap precisa conter ao menos um produto público").toBeTruthy();
 
   const response = await page.goto(`${BASE_URL}/produto/${match![1]}`, {

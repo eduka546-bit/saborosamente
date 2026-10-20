@@ -43,7 +43,7 @@ import { formatBRL } from "@/lib/products";
 import { imgUrl } from "@/lib/image-proxy";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicSiteSettings } from "@/lib/site-settings";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { ComboBuilderModal } from "@/components/combo-builder-modal";
 import { CombosProntosModal } from "@/components/combos-prontos-modal";
 import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
@@ -101,23 +101,43 @@ const productPrice = (product: any) => {
 };
 
 function InstagramFeedSection() {
-  useEffect(() => {
-    const scriptId = "sociablekit-instagram-feed-script";
-    document.getElementById(scriptId)?.remove();
+  const sectionRef = useRef<HTMLElement>(null);
 
-    const script = document.createElement("script");
-    script.id = scriptId;
-    script.src = "https://widgets.sociablekit.com/instagram-feed/widget.js";
-    script.defer = true;
-    document.body.appendChild(script);
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const scriptId = "sociablekit-instagram-feed-script";
+    let loaded = false;
+    const loadFeed = () => {
+      if (loaded) return;
+      loaded = true;
+      if (document.getElementById(scriptId)) return;
+
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://widgets.sociablekit.com/instagram-feed/widget.js";
+      script.defer = true;
+      document.body.appendChild(script);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        loadFeed();
+        observer.disconnect();
+      },
+      { rootMargin: "300px 0px" },
+    );
+    observer.observe(section);
 
     return () => {
-      script.remove();
+      observer.disconnect();
     };
   }, []);
 
   return (
-    <section className="border-t border-[#e8eadf] bg-[#fbfaf5] py-4 md:py-5">
+    <section ref={sectionRef} className="border-t border-[#e8eadf] bg-[#fbfaf5] py-4 md:py-5">
       <div className="mx-auto max-w-7xl px-4">
         <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
@@ -316,6 +336,7 @@ function Index() {
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [storeModalOpen, setStoreModalOpen] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
+  const [infoSummariesOpen, setInfoSummariesOpen] = useState(false);
 
   const {
     data: products = [],
@@ -812,22 +833,22 @@ function Index() {
                   Marmitas artesanais congeladas, saborosas e sem conservantes para facilitar seus dias.
                 </p>
 
-                <div className="mt-6 grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-3 lg:gap-x-4">
+                <div className="mt-6 grid grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 lg:gap-x-4">
                   {heroFeatures.slice(1).map((feature: any, index: number) => {
                     const Icon = [Calendar, Leaf, ShieldCheck][index] ?? Sparkles;
                     return (
                       <div
                         key={`hero-legend-${feature.label}`}
-                        className="flex min-w-0 items-center gap-3 text-[#315c46]"
+                        className="flex min-w-0 items-center gap-2 text-[#315c46] sm:gap-3"
                       >
-                        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#075636] text-[#f7f5ed] md:size-12">
-                          <Icon size={22} strokeWidth={1.9} />
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#075636] text-[#f7f5ed] sm:size-11 md:size-12">
+                          <Icon size={18} strokeWidth={1.9} />
                         </span>
                         <span className="min-w-0 leading-[1.2]">
-                          <span className="block text-[15px] font-semibold text-[#173a2d] md:text-[16px]">
+                          <span className="block text-[12px] font-semibold text-[#173a2d] sm:text-[15px] md:text-[16px]">
                             {feature.label}
                           </span>
-                          <span className="mt-1 block text-[14px] font-semibold text-[#426252] md:text-[15px]">
+                          <span className="mt-0.5 block text-[11px] font-semibold text-[#426252] sm:mt-1 sm:text-[14px] md:text-[15px]">
                             {feature.value}
                           </span>
                         </span>
@@ -947,13 +968,19 @@ function Index() {
               <h2 className="font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
                 Entrega, retirada e descontos
               </h2>
-              <p className="text-sm leading-relaxed text-[#6a7a71] md:text-sm">
-                Clique nos cards para ver todos os detalhes.
-              </p>
+              <button
+                type="button"
+                onClick={() => setInfoSummariesOpen((open) => !open)}
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-[#cfe0c4] bg-white px-3 py-2 text-sm font-semibold text-[#075636] transition hover:bg-[#edf5e6]"
+                aria-expanded={infoSummariesOpen}
+              >
+                {infoSummariesOpen ? "Ocultar resumo" : "Ver resumo"}
+                <ChevronDown size={16} className={cn("transition-transform", infoSummariesOpen && "rotate-180")} />
+              </button>
             </div>
           </div>
 
-          <div className="grid items-stretch gap-4 lg:grid-cols-3">
+          {infoSummariesOpen && <div className="grid items-stretch gap-4 lg:grid-cols-3">
             <button
               type="button"
               onClick={() => setDeliveryModalOpen(true)}
@@ -1033,7 +1060,7 @@ function Index() {
                     </p>
                     <p className="flex items-start gap-2">
                       <Clock size={15} className="mt-0.5 shrink-0 text-[#075636]" />
-                      <span>Seg–Sex 9h30–19h · Sáb 9h30–13h</span>
+                      <span><span className="block">Seg–Sex 9h30–19h</span><span className="block">Sáb 9h30–13h</span></span>
                     </p>
                     <p className="flex items-start gap-2 font-semibold text-[#315c46]">
                       <Calendar size={15} className="mt-0.5 shrink-0" />
@@ -1073,22 +1100,22 @@ function Index() {
 
               <div className="flex flex-1 flex-col gap-3 p-4">
                 <div className="rounded-2xl border border-[#eedb92] bg-[#fff7d0] p-3">
-                  <p className="text-sm font-semibold text-[#173a2d]">Quanto mais você compra, mais economiza.</p>
+                  <p className="text-sm font-semibold text-[#173a2d]">Desconto automático conforme a quantidade.</p>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     {COMBO_RULES.map((rule) => <div key={rule.min} className="rounded-xl bg-white/80 px-1 py-2"><p className="text-sm text-[#607168]">{rule.min} marmitas</p><p className="mt-1 font-semibold text-[#075636]">{rule.badge}</p></div>)}
                   </div>
                 </div>
-                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#e8d17b] bg-[#fff0b8] p-3">
+                <div className="flex items-center gap-3 rounded-xl border border-[#e8d17b] bg-[#fff0b8] p-3">
                   <BadgeDollarSign size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Cashback</p><p className="text-sm text-[#607168]">Ganhe cashback para a próxima compra.</p></div>
                 </div>
-                <div className="flex flex-1 items-center gap-3 rounded-xl border border-[#f1e2aa] bg-[#fffbe8] p-3">
+                <div className="flex items-center gap-3 rounded-xl border border-[#f1e2aa] bg-[#fffbe8] p-3">
                   <Gift size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
               </div>
             </button>
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -1112,7 +1139,7 @@ function Index() {
               icon={Gift}
               badge="Combinações prontas"
               title="Combos Prontos"
-              text="Combos Prontos para facilitar na correria, separados especialmente pra você"
+              text="Combos de 5, 10 ou 20 marmitas para facilitar sua semana."
               action="Ver Combos"
               chips={["5, 10 ou 20 marmitas"]}
               image="/combos-trio-transparent.webp"
@@ -1754,7 +1781,7 @@ function OrderChoiceBanner({
         strokeWidth={1.1}
       />
 
-      <div className={`relative z-20 p-5 ${isCustom ? "max-w-[68%]" : "max-w-[78%]"}`}>
+      <div className={`relative z-20 p-5 ${isCustom ? "max-w-[68%]" : tone === "ready" ? "max-w-[54%] sm:max-w-[78%]" : "max-w-[78%]"}`}>
         <div className="flex min-w-0 items-center gap-2">
           <div className={`grid size-10 shrink-0 place-items-center rounded-full border ${styles.icon}`}>
             <Icon size={18} strokeWidth={1.9} />
@@ -1808,8 +1835,8 @@ function OrderChoiceBanner({
           className={`pointer-events-none absolute z-10 ${
             isCustom
               ? "bottom-[-6%] right-[-5%] h-[72%] w-[50%] rotate-[12deg]"
-              : tone === "ready"
-                ? "bottom-0 right-[-5%] h-[72%] w-[72%]"
+                : tone === "ready"
+                ? "bottom-0 right-[-10%] h-[58%] w-[62%] sm:right-[-5%] sm:h-[72%] sm:w-[72%]"
                 : "bottom-[-2%] right-[-3%] h-[43%] w-[98%]"
           }`}
 
