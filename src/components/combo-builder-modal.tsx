@@ -107,7 +107,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<any | null>(null);
-  const dialogRef = useCommerceDialog(isOpen && !detailProduct, onClose);
+  const dialogRef = useCommerceDialog(isOpen, onClose, !detailProduct);
   const subgroups = useMemo(() => Array.from(new Set(
     products.map((p: any) => String(p.subgrupo || "").trim()).filter(Boolean),
   )).sort((a: string, b: string) => a.localeCompare(b, "pt-BR")), [products]);
