@@ -364,8 +364,9 @@ function WhatsappAdminOrderPage() {
       setNome(interpretado.nome);
       if (!selectedCustomer || clienteDiferente) {
         const sobrenome = interpretado.nome.split(/\s+/).at(-1) ?? "";
-        if (interpretado.telefone?.replace(/\D/g, "").length >= 10) {
-          setCustomerSearch(interpretado.telefone.replace(/\D/g, ""));
+        const telefoneParaBusca = (interpretado.telefone ?? "").replace(/\D/g, "");
+        if (telefoneParaBusca.length >= 10) {
+          setCustomerSearch(telefoneParaBusca);
         } else if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
       }
     }
