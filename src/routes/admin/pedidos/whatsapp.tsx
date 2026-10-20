@@ -268,7 +268,7 @@ function WhatsappAdminOrderPage() {
         const repetir: DraftItem[] = (linhas ?? [])
           .filter((row: any) => row.produto_id && Number(row.quantidade) > 0)
           .map((row: any) => {
-            const tamanho = String(row.observacao || "").match(/Peso:\\s*(200|300|400)g/i)?.[1];
+            const tamanho = String(row.observacao || "").match(/Peso:\s*(200|300|400)g/i)?.[1];
             return {
               key: newKey(),
               productId: String(row.produto_id),
