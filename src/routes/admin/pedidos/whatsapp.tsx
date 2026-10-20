@@ -27,6 +27,7 @@ export const Route = createFileRoute("/admin/pedidos/whatsapp")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     cliente: typeof search.cliente === "string" ? search.cliente : undefined,
+    historico: typeof search.historico === "string" ? search.historico : undefined,
   }),
 });
 
@@ -109,7 +110,7 @@ const newKey = () =>
 
 function WhatsappAdminOrderPage() {
   const navigate = useNavigate();
-  const { cliente: initialCustomerId } = Route.useSearch();
+  const { cliente: initialCustomerId, historico: initialHistoryId } = Route.useSearch();
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
 
   const [pasteText, setPasteText] = useState("");
@@ -214,6 +215,79 @@ function WhatsappAdminOrderPage() {
     return () => { cancelled = true; };
   }, [initialCustomerId]);
 
+
+  // Ficha comercial sem login: permite repetir o último pedido sem criar
+  // outra conta e sem efetuar a venda automaticamente.
+  useEffect(() => {
+    if (!initialHistoryId || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(initialHistoryId)) return;
+    let cancelled = false;
+    const carregarHistorico = async () => {
+      try {
+        const { data: ficha, error: fichaError } = await (supabase as any)
+          .from("clientes_whatsapp_historico")
+          .select("nome,telefone_normalizado,email,cidade,bairro,rua,numero,complemento,cep,ultimo_pedido_id")
+          .eq("id", initialHistoryId).maybeSingle();
+        if (fichaError || !ficha) throw new Error("Ficha comercial não encontrada.");
+
+        const { data: ultimo, error: pedidoError } = await supabase
+          .from("pedidos")
+          .select("origem,nome_cliente,telefone_cliente,metodo_entrega,horario_recebimento,metodo_pagamento,tipo_cartao,taxa_entrega,desconto_aplicado,endereco_cidade,endereco_bairro,endereco_rua,endereco_numero,endereco_complemento,endereco_cep")
+          .eq("id", ficha.ultimo_pedido_id).maybeSingle();
+        if (pedidoError || !ultimo || ultimo.origem !== "whatsapp")
+          throw new Error("Último pedido do WhatsApp indisponível.");
+
+        const { data: linhas, error: itensError } = await supabase
+          .from("pedido_itens")
+          .select("produto_id,quantidade,preco_unitario,observacao")
+          .eq("pedido_id", ficha.ultimo_pedido_id)
+          .order("created_at", { ascending: true });
+        if (itensError) throw new Error("Não foi possível carregar os produtos do pedido anterior.");
+        if (cancelled) return;
+
+        setNome(ficha.nome || ultimo.nome_cliente || "");
+        setTelefone(ficha.telefone_normalizado || ultimo.telefone_cliente || "");
+        setEmail(ficha.email || "");
+        setCidade(ficha.cidade || ultimo.endereco_cidade || "São Bento do Sul");
+        setBairro(ficha.bairro || ultimo.endereco_bairro || "");
+        setRua(ficha.rua || ultimo.endereco_rua || "");
+        setNumero(ficha.numero || ultimo.endereco_numero || "");
+        setComplemento(ficha.complemento || ultimo.endereco_complemento || "");
+        setCep(ficha.cep || ultimo.endereco_cep || "");
+        setMetodoEntrega(ultimo.metodo_entrega === "retirada" ? "retirada" : "entrega");
+        setHorario(ultimo.horario_recebimento || "");
+        setPagamento(ultimo.metodo_pagamento || "nao_informado");
+        setTipoCartao(ultimo.tipo_cartao || "");
+        setTaxaEntrega(Number(ultimo.taxa_entrega || 0));
+        // O novo atendimento não herda descontos, cashback ou observações antigas.
+        setDescontoAplicado(0);
+        setCashbackUsado(0);
+        setDeclaredTotal(null);
+        setAvisosInterpretacao([]);
+        setObservacao("");
+
+        const repetir: DraftItem[] = (linhas ?? [])
+          .filter((row: any) => row.produto_id && Number(row.quantidade) > 0)
+          .map((row: any) => {
+            const tamanho = String(row.observacao || "").match(/Peso:\\s*(200|300|400)g/i)?.[1];
+            return {
+              key: newKey(),
+              productId: String(row.produto_id),
+              quantity: Number(row.quantidade),
+              weight: (tamanho ? tamanho + "g" : "300g") as DraftItem["weight"],
+              unitPrice: Number(row.preco_unitario || 0),
+              observacao: "",
+            };
+          });
+        setItems(repetir);
+        toast.success("Cliente e último pedido recuperados. Confira itens, preços e entrega antes de salvar.");
+      } catch (error) {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : "Falha ao recuperar o histórico.");
+      }
+    };
+    void carregarHistorico();
+    return () => { cancelled = true; };
+  }, [initialHistoryId]);
+
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["whatsapp-admin-products"],
     queryFn: async () => {
@@ -278,8 +352,11 @@ function WhatsappAdminOrderPage() {
     if (interpretado.nome) {
       const limparNome = (v: string) => v.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       // Ao colar pedido de outra pessoa, nunca preservar vínculo anterior.
+      const telefoneAnterior = String(selectedCustomer?.telefone ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+      const telefoneNovo = String(interpretado.telefone ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
       const clienteDiferente = !!selectedCustomer &&
-        limparNome(selectedCustomer.nome ?? "") !== limparNome(interpretado.nome);
+        (limparNome(selectedCustomer.nome ?? "") !== limparNome(interpretado.nome) ||
+          (!!telefoneAnterior && !!telefoneNovo && telefoneAnterior !== telefoneNovo));
       if (clienteDiferente) {
         setSelectedCustomer(null);
         toast.info("O comprovante tem outro nome. Confira o cliente antes de vincular uma conta.");
@@ -287,7 +364,9 @@ function WhatsappAdminOrderPage() {
       setNome(interpretado.nome);
       if (!selectedCustomer || clienteDiferente) {
         const sobrenome = interpretado.nome.split(/\s+/).at(-1) ?? "";
-        if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
+        if (interpretado.telefone?.replace(/\D/g, "").length >= 10) {
+          setCustomerSearch(interpretado.telefone.replace(/\D/g, ""));
+        } else if (sobrenome.length >= 3) setCustomerSearch(sobrenome);
       }
     }
     if (interpretado.cidadeSigla === "SBS") setCidade("São Bento do Sul");
@@ -414,6 +493,11 @@ function WhatsappAdminOrderPage() {
       toast.success(
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
+      if (/^\d{10,11}$/.test(telefone.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, ""))) {
+        toast.success("Cliente e endereço registrados no histórico comercial do WhatsApp.");
+      } else {
+        toast.warning("Pedido salvo sem telefone válido: não será possível localizar o cadastro comercial pelo número.");
+      }
       if (data?.enderecoCadastroStatus === "atualizado") {
         toast.success("Endereço atualizado também no cadastro da cliente.");
       } else if (data?.enderecoCadastroStatus === "falhou") {
@@ -478,8 +562,9 @@ function WhatsappAdminOrderPage() {
               Vincular à conta do cliente
             </h2>
             <p className="text-xs text-gray-500">
-              Selecione quem já possui conta no site. Este pedido aparecerá em Meus Pedidos,
-              junto com as compras online. Nenhum cadastro novo será criado.
+              Selecione quem já possui conta no site, se houver. Com telefone válido,
+              o cliente também fica salvo no cadastro comercial do WhatsApp para repetir pedidos,
+              sem criar uma conta de login.
             </p>
             {selectedCustomer ? (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 p-3">
@@ -559,7 +644,7 @@ function WhatsappAdminOrderPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold text-gray-500">Telefone</label>
+                <label className="text-xs font-bold text-gray-500">Telefone (para histórico e repetição)</label>
                 <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
               </div>
               <div>
@@ -610,6 +695,7 @@ function WhatsappAdminOrderPage() {
                 <option value="pix">PIX</option>
                 <option value="alimentacao">Alimentação/Refeição</option>
                 <option value="mercadopago">Mercado Pago</option>
+                <option value="link">Link de pagamento</option>
                 <option value="dinheiro">Dinheiro</option>
               </select>
             </div>
