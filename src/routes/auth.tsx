@@ -302,16 +302,26 @@ function AuthPage() {
     <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-3 py-5 sm:px-4 sm:py-12">
       <div className="w-full max-w-md space-y-5 rounded-3xl border border-border bg-card p-4 shadow-soft sm:p-8">
         <div className="text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setPassword("");
-            }}
-            className="text-base text-primary hover:underline font-medium"
-          >
-            {isLogin ? "Não tem uma conta? Cadastre-se" : "Já tem uma conta? Entre agora"}
-          </button>
+          {isLogin ? (
+            <p className="text-base text-muted-foreground">
+              Não tem uma conta?{" "}
+              <button
+                type="button"
+                onClick={() => { setIsLogin(false); setPassword(""); }}
+                className="font-bold text-primary underline underline-offset-4"
+              >
+                Cadastre-se clicando aqui
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setIsLogin(true); setPassword(""); }}
+              className="text-base font-medium text-primary hover:underline"
+            >
+              Já tem uma conta? Entre agora
+            </button>
+          )}
           <h2 className="text-2xl font-bold tracking-normal">
             {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
@@ -320,6 +330,12 @@ function AuthPage() {
               ? "Entre com seu e-mail e sua senha"
               : "Crie sua conta para comprar e acompanhar seus pedidos"}
           </p>
+          {isLogin && (
+            <div className="mt-4 rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-3 text-left text-sm leading-relaxed text-[#315440] shadow-sm">
+              <strong className="block text-[#075d3a]">Já possuía cadastro no site antigo?</strong>
+              Seu login é seu e-mail e a senha é seu CPF. Após o primeiro login, você poderá alterar a senha.
+            </div>
+          )}
           {!isLogin && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
             <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
               Nome e WhatsApp preenchidos a partir do seu pré-cadastro. Confira os dados e complete e-mail, CPF e senha.

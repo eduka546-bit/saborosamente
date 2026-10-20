@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -46,6 +46,14 @@ import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
+import { getPublicProducts } from "@/lib/products.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -98,6 +106,21 @@ const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
+const HORARIO_AGORA = "Agora (entregue em até 20 minutos)";
+
+function estoqueDaLinha(product: any, weight?: string) {
+  const raw =
+    weight === "200g"
+      ? product?.estoque_200g
+      : weight === "300g"
+        ? product?.estoque_300g
+        : weight === "400g"
+          ? product?.estoque_400g
+          : product?.estoque ?? product?.estoque_200g;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.max(0, value) : null;
+}
 
 // ─── componente principal ─────────────────────────────────────────────────────
 
@@ -110,6 +133,8 @@ function Checkout() {
     total,
     discount,
     clear,
+    add,
+    remove,
     selectedCity,
     setSelectedCity,
     selectedBairro,
@@ -127,11 +152,6 @@ function Checkout() {
   const [feedbackNota, setFeedbackNota] = useState(0);
   const [feedbackComentario, setFeedbackComentario] = useState("");
   const [feedbackEnviado, setFeedbackEnviado] = useState(false);
-  const [recoveryConsent, setRecoveryConsent] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("saborosamente.recovery_whatsapp_consent") === "1";
-  });
-  const leadCaptureSignatureRef = useRef("");
   const checkoutIdentitySignatureRef = useRef("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentValue>("pix");
   const [selectedFlag, setSelectedFlag] = useState<string>("");
@@ -145,7 +165,17 @@ function Checkout() {
   // ── data e horário de entrega (entrega programada) ─────────────────────────
   const [dataEntrega, setDataEntrega] = useState<string>("");
   const [horarioEntrega, setHorarioEntrega] = useState<string>("");
+  const [tipoHorario, setTipoHorario] = useState<"agora" | "intervalo">("intervalo");
+  const [horarioInicio, setHorarioInicio] = useState<string>("");
+  const [horarioFim, setHorarioFim] = useState<string>("");
   const [agendaTick, setAgendaTick] = useState(0);
+  const [itemSemEstoque, setItemSemEstoque] = useState<any>(null);
+
+  const { data: catalogoAtual = [], refetch: atualizarCatalogo } = useQuery({
+    queryKey: ["checkout-public-products"],
+    queryFn: getPublicProducts,
+    staleTime: 0,
+  });
 
   // Mantém a agenda do mesmo dia atualizada se o cliente deixar o checkout aberto.
   useEffect(() => {
@@ -368,9 +398,18 @@ function Checkout() {
 
   useEffect(() => {
     if (!horarioEntrega) return;
-    if (!HORARIOS_ENTREGA.includes(horarioEntrega)) {
-      setHorarioEntrega("");
+    if (horarioEntrega === HORARIO_AGORA) {
+      setTipoHorario("agora");
+      return;
     }
+    const intervalo = horarioEntrega.match(/^Entre:\s*(.+?)\s+e\s+(.+)$/i);
+    if (intervalo) {
+      setTipoHorario("intervalo");
+      setHorarioInicio(intervalo[1]);
+      setHorarioFim(intervalo[2]);
+      if (HORARIOS_ENTREGA.includes(intervalo[1]) && HORARIOS_ENTREGA.includes(intervalo[2])) return;
+    }
+    setHorarioEntrega("");
   }, [dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
 
   // Há marmita personalizada no carrinho? (para o aviso de prazo)
@@ -451,27 +490,6 @@ function Checkout() {
   const [cepFeedback, setCepFeedback] = useState("");
   const [cepPrecisaAjuda, setCepPrecisaAjuda] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-      "saborosamente.recovery_whatsapp_consent",
-      recoveryConsent ? "1" : "0",
-    );
-
-    if (!recoveryConsent) {
-      leadCaptureSignatureRef.current = "";
-      void supabase.rpc("capture_checkout_recovery_lead", {
-        p_session_id: getAbandonedCartSessionId(),
-        p_nome: "",
-        p_telefone: "",
-        p_email: "",
-        p_itens: [],
-        p_valor_total: 0,
-        p_consent: false,
-      });
-    }
-  }, [recoveryConsent]);
-
   // Consulta de CEP é uma ajuda de preenchimento: a cidade e o bairro
   // continuam sujeitos à tabela real de áreas atendidas/frete.
   useEffect(() => {
@@ -526,66 +544,6 @@ function Checkout() {
     }, 600);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [recoveryCep, taxas, getValues, setValue, setSelectedCity, setSelectedBairro]);
-
-  useEffect(() => {
-    if (!recoveryConsent || lines.length === 0) return;
-    const nome = String(recoveryNome ?? "").trim();
-    const email = String(recoveryEmail ?? "").trim().toLowerCase();
-    const telefone = String(recoveryTelefone ?? "").replace(/\D/g, "");
-
-    if (nome.length < 3 || telefone.length < 10 || telefone.length > 13) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-
-    const itens = lines.map((l) => ({
-      productId: l.productId,
-      quantity: l.quantity,
-      weight: l.weight,
-      nome: l.product?.nome ?? l.productId,
-      preco: Number(l.product?.preco ?? 0),
-      subtotal: Number(l.subtotal ?? 0),
-      imagem: l.product?.imagem_url ?? "",
-    }));
-
-    const signature = JSON.stringify({
-      nome,
-      email,
-      telefone,
-      valor: Number(finalTotal || 0).toFixed(2),
-      itens: itens.map((item) => [item.productId, item.quantity, item.weight]),
-    });
-    if (leadCaptureSignatureRef.current === signature) return;
-
-    const timer = window.setTimeout(async () => {
-      try {
-        const { error } = await supabase.rpc("capture_checkout_recovery_lead", {
-          p_session_id: getAbandonedCartSessionId(),
-          p_nome: nome,
-          p_telefone: telefone,
-          p_email: email,
-          p_itens: itens,
-          p_valor_total: Number(finalTotal || 0),
-          p_consent: true,
-        });
-        if (error) throw error;
-        leadCaptureSignatureRef.current = signature;
-        trackEvent("recovery_lead_captured", {
-          valor: Number(finalTotal || 0),
-          metadata: { canal: "whatsapp", etapa: "checkout" },
-        });
-      } catch (error) {
-        console.warn("[Checkout] não foi possível registrar lead de recuperação:", error);
-      }
-    }, 900);
-
-    return () => window.clearTimeout(timer);
-  }, [
-    recoveryConsent,
-    recoveryNome,
-    recoveryEmail,
-    recoveryTelefone,
-    lines,
-    finalTotal,
-  ]);
 
   useEffect(() => {
     if (PAYMENT_OPTIONS.length === 0) return;
@@ -763,7 +721,42 @@ function Checkout() {
     setValue("pagamento", value, { shouldValidate: true });
   }
 
+  const sugestoesParaTroca = useMemo(() => {
+    if (!itemSemEstoque) return [];
+    const categoriaAtual = itemSemEstoque.line.product?.categorias?.nome ?? itemSemEstoque.line.product?.categoria;
+    return (catalogoAtual as any[])
+      .filter((product) => product.id !== itemSemEstoque.line.productId)
+      .filter((product) => !product.tipo_produto || product.tipo_produto === "marmita")
+      .filter((product) => {
+        const categoria = product.categorias?.nome ?? product.categoria;
+        return !categoriaAtual || categoria === categoriaAtual;
+      })
+      .filter((product) => {
+        const saldo = estoqueDaLinha(product, itemSemEstoque.line.weight);
+        return saldo === null || saldo > 0;
+      })
+      .slice(0, 8);
+  }, [catalogoAtual, itemSemEstoque]);
+
+  async function conferirEstoqueAtual() {
+    const { data: catalogoRecente } = await atualizarCatalogo();
+    const produtos = (catalogoRecente ?? catalogoAtual) as any[];
+    const indisponivel = lines.find((line) => {
+      if (line.custom || line.comboPronto) return false;
+      const produto = produtos.find((item) => item.id === line.productId);
+      const saldo = estoqueDaLinha(produto, line.weight);
+      return saldo !== null && saldo <= 0;
+    });
+    if (!indisponivel) return false;
+    setItemSemEstoque({
+      line: indisponivel,
+      product: produtos.find((item) => item.id === indisponivel.productId) ?? indisponivel.product,
+    });
+    return true;
+  }
+
   const onSubmit = async (data: CheckoutForm) => {
+    if (await conferirEstoqueAtual()) return;
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.
     if (!session) {
@@ -997,7 +990,7 @@ function Checkout() {
         <div className="mt-5">
               <div className="w-full rounded-[1.5rem] border border-[#dce7d5] bg-white p-5 shadow-sm">
                 <img
-                  src="/logo-saborosamente.png"
+                  src="/logo-saborosamente-oficial.png"
                   alt="SaborosaMente"
                   className="h-7 w-auto max-w-[180px] object-contain object-left"
                 />
@@ -1084,6 +1077,7 @@ function Checkout() {
 
   // ── formulário principal ─────────────────────────────────────────────────────
   return (
+    <>
     <section className="mx-auto max-w-6xl px-3 py-4 sm:px-4 md:py-8">
       <Link
         to="/"
@@ -1094,23 +1088,7 @@ function Checkout() {
       </Link>
       <h1 className="text-2xl font-semibold text-[#075d3a] sm:text-3xl">Finalizar pedido</h1>
 
-      {!session && (
-        <div className="mt-3 space-y-2 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm text-[#075636]">
-          <p className="font-medium">Sua compra fica salva enquanto você entra ou cria sua conta.</p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="min-h-10 rounded-lg bg-[#086e45] px-4 text-sm font-semibold text-white" onClick={() => {
-              saveCheckoutDraft(getValues());
-              navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false, mode: "signup" } });
-            }}>Criar conta</button>
-            <button type="button" className="min-h-10 rounded-lg border border-[#a9c5b0] bg-white px-4 text-sm font-semibold text-[#075d3a]" onClick={() => {
-              saveCheckoutDraft(getValues());
-              navigate({ to: "/auth", search: { redirect: "/checkout", confirmed: false, mode: "login" } });
-            }}>Já tenho conta</button>
-          </div>
-        </div>
-      )}
-
-      <details className="sticky top-2 z-20 mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white/95 shadow-sm backdrop-blur lg:hidden">
+      <details className="mt-4 overflow-hidden rounded-2xl border border-[#dce7d5] bg-white shadow-sm lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3">
           <div>
             <p className="text-base font-semibold text-[#315440]">Resumo do pedido</p>
@@ -1186,7 +1164,7 @@ function Checkout() {
               <label htmlFor="nome" className="text-base font-medium">
                 Nome completo
               </label>
-              <input id="nome" autoComplete="name" className={fieldClass} {...register("nome")} />
+              <input id="nome" autoComplete="name" required className={fieldClass} {...register("nome")} />
               {errors.nome && (
                 <p className="mt-1 text-base text-destructive">{errors.nome.message}</p>
               )}
@@ -1196,7 +1174,7 @@ function Checkout() {
                 <label htmlFor="email" className="text-base font-medium">
                   E-mail
                 </label>
-                <input id="email" type="email" autoComplete="email" className={fieldClass} {...register("email")} />
+                <input id="email" type="email" autoComplete="email" required className={fieldClass} {...register("email")} />
                 {errors.email && (
                   <p className="mt-1 text-base text-destructive">{errors.email.message}</p>
                 )}
@@ -1205,26 +1183,13 @@ function Checkout() {
                 <label htmlFor="telefone" className="text-base font-medium">
                   Telefone / WhatsApp
                 </label>
-                <input id="telefone" type="tel" inputMode="tel" autoComplete="tel" className={fieldClass} {...register("telefone")} />
+                <input id="telefone" type="tel" inputMode="tel" autoComplete="tel" required className={fieldClass} {...register("telefone")} />
                 {errors.telefone && (
                   <p className="mt-1 text-base text-destructive">{errors.telefone.message}</p>
                 )}
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">Se você interromper a compra, os dados informados poderão ficar vinculados ao carrinho para facilitar sua continuação. Mensagens de recuperação pelo WhatsApp dependem da sua autorização abaixo.</p>
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-3">
-              <input
-                type="checkbox"
-                checked={recoveryConsent}
-                onChange={(event) => setRecoveryConsent(event.target.checked)}
-                className="mt-0.5 size-4 accent-[#086e45]"
-              />
-              <span className="text-base leading-5 text-muted-foreground">
-                Quero receber ajuda pelo WhatsApp se não finalizar o pedido.
-                Posso cancelar quando quiser.
-              </span>
-            </label>
           </fieldset>
 
           {/* ── entrega ────────────────────────────────────────────────────── */}
@@ -1481,33 +1446,86 @@ function Checkout() {
                 </select>
               </div>
               <div>
-                <label htmlFor="horarioEntrega" className="text-base font-medium">
+                <span className="text-base font-medium">
                   {metodoEntrega === "entrega" ? "Horário de entrega" : "Horário de retirada"}
-                </label>
-                <select
-                  id="horarioEntrega"
-                  className={fieldClass}
-                  value={horarioEntrega}
-                  onChange={(e) => setHorarioEntrega(e.target.value)}
-                  disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
-                >
-                  <option value="">
-                    {!dataEntrega
-                      ? "Selecione primeiro a data"
-                      : HORARIOS_ENTREGA.length === 0
-                        ? "Sem horários disponíveis hoje"
-                        : "Selecione um horário"}
-                  </option>
-                  {HORARIOS_ENTREGA.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-                {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
-                  <p className="mt-1.5 text-base font-medium text-amber-700">
-                    Os horários de hoje já encerraram. Escolha outra data.
+                </span>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega}
+                    onClick={() => {
+                      setTipoHorario("agora");
+                      setHorarioInicio("");
+                      setHorarioFim("");
+                      setHorarioEntrega(HORARIO_AGORA);
+                    }}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                      tipoHorario === "agora" ? "border-[#086e45] bg-[#e9f3e7] text-[#075d3a]" : "border-input bg-background text-muted-foreground",
+                    )}
+                  >
+                    Agora
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
+                    onClick={() => {
+                      setTipoHorario("intervalo");
+                      setHorarioEntrega("");
+                    }}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                      tipoHorario === "intervalo" ? "border-[#086e45] bg-[#e9f3e7] text-[#075d3a]" : "border-input bg-background text-muted-foreground",
+                    )}
+                  >
+                    Escolher intervalo
+                  </button>
+                </div>
+                {tipoHorario === "agora" ? (
+                  <p className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-sm font-medium text-[#075d3a]">
+                    Agora (entregue em até 20 minutos)
                   </p>
+                ) : (
+                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-sm">
+                    <span className="font-semibold text-[#315440]">Entre:</span>
+                    <select
+                      aria-label="Horário inicial"
+                      className={cn(fieldClass, "mt-0 px-2 py-2 text-sm")}
+                      value={horarioInicio}
+                      disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
+                      onChange={(event) => {
+                        const inicio = event.target.value;
+                        setHorarioInicio(inicio);
+                        if (!horarioFim || HORARIOS_ENTREGA.indexOf(horarioFim) < HORARIOS_ENTREGA.indexOf(inicio)) {
+                          setHorarioFim("");
+                          setHorarioEntrega("");
+                        } else {
+                          setHorarioEntrega(`Entre: ${inicio} e ${horarioFim}`);
+                        }
+                      }}
+                    >
+                      <option value="">Início</option>
+                      {HORARIOS_ENTREGA.map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <span className="font-semibold text-[#315440]">e</span>
+                    <select
+                      aria-label="Horário final"
+                      className={cn(fieldClass, "mt-0 px-2 py-2 text-sm")}
+                      value={horarioFim}
+                      disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || !horarioInicio}
+                      onChange={(event) => {
+                        const fim = event.target.value;
+                        setHorarioFim(fim);
+                        if (horarioInicio && fim) setHorarioEntrega(`Entre: ${horarioInicio} e ${fim}`);
+                      }}
+                    >
+                      <option value="">Fim</option>
+                      {HORARIOS_ENTREGA.filter((h) => !horarioInicio || HORARIOS_ENTREGA.indexOf(h) >= HORARIOS_ENTREGA.indexOf(horarioInicio)).map((h) => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                )}
+                {dataEntrega && HORARIOS_ENTREGA.length === 0 && tipoHorario === "intervalo" && (
+                  <p className="mt-1.5 text-sm font-medium text-amber-700">Os horários de hoje já encerraram. Escolha outra data.</p>
                 )}
               </div>
             </div>
@@ -2004,5 +2022,65 @@ function Checkout() {
         </aside>
       </div>
     </section>
+    <Dialog open={Boolean(itemSemEstoque)} onOpenChange={(open) => !open && setItemSemEstoque(null)}>
+      <DialogContent className="max-h-[88vh] max-w-lg overflow-y-auto rounded-3xl border-[#dce7d5] p-5 sm:p-6">
+        <DialogHeader className="pr-8 text-left">
+          <DialogTitle className="text-2xl text-[#075d3a]">Ahhhh! Acabou :/ 😢</DialogTitle>
+          <DialogDescription className="pt-2 text-base leading-relaxed text-[#4f6659]">
+            Estamos sem estoque da: <strong className="text-[#075d3a]">{itemSemEstoque?.product?.nome}</strong>.
+            <br />Quer trocá-la ou retirar do pedido?
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-[#315440]">Opções mais parecidas com a que você escolheu:</p>
+          <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+            {sugestoesParaTroca.map((product: any) => (
+              <button
+                key={product.id}
+                type="button"
+                onClick={() => {
+                  const line = itemSemEstoque?.line;
+                  if (!line) return;
+                  remove(line.productId, line.weight, line.opcoes);
+                  add(product.id, line.quantity, line.weight, line.opcoes);
+                  setItemSemEstoque(null);
+                  toast.success("Item trocado no pedido.");
+                }}
+                className="w-44 shrink-0 snap-start rounded-2xl border border-[#dce7d5] bg-[#f8fbf6] p-3 text-left transition hover:border-[#086e45]"
+              >
+                <span className="line-clamp-2 block min-h-10 text-sm font-semibold text-[#075d3a]">{product.nome}</span>
+                <span className="mt-2 block text-sm font-bold text-[#087443]">Trocar por este</span>
+              </button>
+            ))}
+            {!sugestoesParaTroca.length && (
+              <p className="rounded-xl bg-muted px-3 py-4 text-sm text-muted-foreground">Não há uma sugestão disponível agora. Você pode consultar o cardápio completo.</p>
+            )}
+          </div>
+        </div>
+
+        <Link
+          to="/"
+          hash="cardapio"
+          onClick={() => setItemSemEstoque(null)}
+          className="block w-full rounded-full bg-[#087443] px-4 py-3 text-center text-sm font-bold text-white"
+        >
+          Ver cardápio completo
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            const line = itemSemEstoque?.line;
+            if (line) remove(line.productId, line.weight, line.opcoes);
+            setItemSemEstoque(null);
+            toast.success("Item retirado do pedido.");
+          }}
+          className="mx-auto block text-sm font-semibold text-[#597064] underline underline-offset-4"
+        >
+          Retirar do pedido
+        </button>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
