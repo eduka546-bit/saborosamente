@@ -175,12 +175,14 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                 * Entrega calculada no checkout
               </p>
             </div>
+            {/* Navegar primeiro: fechar o Sheet antes do Link disparava history.back()
+                via useModalBackNavigation e cancelava a ida ao checkout.
+                replace consome a entrada temporária do histórico criada pelo Sheet. */}
             <Button
-              onClick={() => setOpen(false)}
               asChild
               className="w-full h-14 rounded-2xl text-base font-semibold shadow-lg shadow-primary/20"
             >
-              <Link to="/checkout" search={{ cupom: undefined }}>
+              <Link to="/checkout" search={{ cupom: undefined }} replace>
                 Finalizar compra • {formatBRL(subtotal - discount)}
               </Link>
             </Button>
