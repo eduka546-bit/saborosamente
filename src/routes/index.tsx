@@ -974,7 +974,7 @@ function Index() {
           <div className="grid items-start gap-4 lg:grid-cols-3">
             <div
               onClick={() => setDeliveryModalOpen(true)}
-              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex cursor-pointer flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -1009,13 +1009,13 @@ function Index() {
                 <p className="mt-3 text-sm leading-relaxed text-[#6a7a71]">
                   Veja bairros atendidos, taxas e a localização correta de cada cidade.
                 </p>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setDeliveryModalOpen(true); }} className="mt-4 w-full rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
+                <p className="mt-4 text-center text-sm font-semibold text-[#075636]">Clique aqui para mais detalhes</p>
               </div>}
             </div>
 
             <div
               onClick={() => setStoreModalOpen(true)}
-              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex cursor-pointer flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -1073,13 +1073,13 @@ function Index() {
                     loading="lazy"
                   />
                 </div>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setStoreModalOpen(true); }} className="col-span-2 mx-3 mb-3 rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
+                <p className="col-span-2 mx-3 mb-3 text-center text-sm font-semibold text-[#075636]">Clique aqui para mais detalhes</p>
               </div>}
             </div>
 
             <div
               onClick={() => setDiscountModalOpen(true)}
-              className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
+              className="group flex cursor-pointer flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
                 <div className="flex items-center gap-3">
@@ -1112,7 +1112,7 @@ function Index() {
                   <Gift size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setDiscountModalOpen(true); }} className="w-full rounded-xl bg-[#edf5e6] px-3 py-2.5 text-sm font-semibold text-[#075636] transition hover:bg-[#dceccf]">Clique aqui para mais detalhes</button>
+                <p className="text-center text-sm font-semibold text-[#075636]">Clique aqui para mais detalhes</p>
               </div>}
             </div>
           </div>
