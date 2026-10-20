@@ -15,132 +15,108 @@ export const Route = createFileRoute("/admin")({
 });
 
 type AuthState = "checking" | "authorized" | "unauthorized" | "error";
-const ACCESS_CHECK_TIMEOUT_MS = 12000;
-
-// Supabase pode segurar um lock de auth durante refresh/sign-in. Não permitir
-// que uma verificação sem resposta deixe a UI indefinidamente no spinner.
-async function comTempoLimite<T>(query: PromiseLike<T>, etapa: string): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      Promise.resolve(query),
-      new Promise<T>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error(`Tempo excedido ao ${etapa}. Tente novamente.`)),
-          ACCESS_CHECK_TIMEOUT_MS,
-        );
-      }),
-    ]);
-  } finally {
-    if (timeout !== undefined) clearTimeout(timeout);
-  }
-}
 
 function AdminLayout() {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("checking");
-  const [accessError, setAccessError] = useState("");
-  const [retryKey, setRetryKey] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    let mounted = true;
-    let latestCheck = 0;
-    const scheduledChecks = new Set<ReturnType<typeof setTimeout>>();
+    let active = true;
+    let revision = 0;
+    const controllers = new Set<AbortController>();
 
-    const verificarAcesso = async (sessionHint?: Session | null) => {
-      const checkId = ++latestCheck;
-      if (!mounted) return;
+    // Recebe a sessão emitida pelo Supabase, evitando chamar getSession()
+    // dentro de onAuthStateChange (que roda sob o lock interno de Auth).
+    const verificarAcesso = async (session: Session | null, currentRevision: number) => {
+      if (!session?.user) {
+        if (active && currentRevision === revision) setAuthState("unauthorized");
+        return;
+      }
 
-      setAuthState((current) => current === "authorized" && sessionHint !== null ? current : "checking");
-      setAccessError("");
-
+      const controller = new AbortController();
+      controllers.add(controller);
+      const timeout = window.setTimeout(() => controller.abort(), 10_000);
       try {
-        // Eventos de auth já fornecem a sessão. Evitamos getSession() redundante
-        // durante o lock interno do Supabase, principalmente ao renovar token.
-        let session = sessionHint;
-        if (session === undefined) {
-          const { data, error } = await comTempoLimite(
-            supabase.auth.getSession(),
-            "verificar a sessão",
-          );
-          if (error) throw error;
-          session = data.session;
-        }
-        if (!mounted || checkId !== latestCheck) return;
-        if (!session?.user) {
-          setAuthState("unauthorized");
+        const { data: roleData, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .abortSignal(controller.signal)
+          .maybeSingle();
+
+        if (!active || currentRevision !== revision) return;
+        if (error) {
+          console.warn("[admin] Não foi possível verificar a permissão de acesso:", error);
+          setAuthState("error");
           return;
         }
-
-        const { data: roleData, error } = await comTempoLimite(
-          supabase.from("user_roles")
-            .select("role")
-            .eq("user_id", session.user.id)
-            .eq("role", "admin")
-            .maybeSingle(),
-          "verificar as permissões",
-        );
-        if (!mounted || checkId !== latestCheck) return;
-        if (error) throw error;
         setAuthState(roleData ? "authorized" : "unauthorized");
       } catch (error) {
-        if (!mounted || checkId !== latestCheck) return;
-        console.error("Falha ao verificar acesso administrativo:", error);
-        setAccessError(error instanceof Error ? error.message : "Falha temporária na verificação.");
-        // Erro de rede/timeout não equivale a permissão negada.
+        if (!active || currentRevision !== revision) return;
+        console.warn("[admin] Falha na verificação de acesso:", error);
         setAuthState("error");
+      } finally {
+        window.clearTimeout(timeout);
+        controllers.delete(controller);
       }
     };
 
-    void verificarAcesso();
-
+    // INITIAL_SESSION chega também na primeira abertura. Qualquer consulta
+    // ao banco precisa acontecer fora do callback para não bloquear o auth lock.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // CRÍTICO: nunca consultar Supabase sincronamente dentro do callback.
-      // O callback roda sob o lock de auth e outra chamada pode bloquear para sempre.
-      if (!["INITIAL_SESSION", "SIGNED_IN", "SIGNED_OUT", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) return;
-      const timer = setTimeout(() => {
-        scheduledChecks.delete(timer);
-        if (mounted) void verificarAcesso(session);
+      const currentRevision = ++revision;
+      if (event === "SIGNED_OUT" || !session) {
+        if (active) setAuthState("unauthorized");
+        return;
+      }
+
+      if (active) setAuthState("checking");
+      window.setTimeout(() => {
+        if (active && currentRevision === revision) {
+          void verificarAcesso(session, currentRevision);
+        }
       }, 0);
-      scheduledChecks.add(timer);
     });
 
-    return () => {
-      mounted = false;
-      latestCheck++;
-      subscription.unsubscribe();
-      for (const timer of scheduledChecks) clearTimeout(timer);
-      scheduledChecks.clear();
-    };
-  }, [retryKey]);
+    // Se nem INITIAL_SESSION for emitido (ex.: restauração de sessão travada),
+    // mostre um caminho de recuperação, sem liberar o painel indevidamente.
+    const initialTimeout = window.setTimeout(() => {
+      if (active) setAuthState((prev) => prev === "checking" ? "error" : prev);
+    }, 12_000);
 
-  // Só redireciona para login com ausência de sessão ou role realmente negada.
+    return () => {
+      active = false;
+      revision += 1;
+      window.clearTimeout(initialTimeout);
+      controllers.forEach((controller) => controller.abort());
+      subscription.unsubscribe();
+    };
+  }, [retryCount]);
+
   useEffect(() => {
     if (authState === "unauthorized") {
-      navigate({ to: "/admin-login" as any, replace: true });
+      void navigate({ to: "/admin-login" as any, replace: true });
     }
   }, [authState, navigate]);
 
   if (authState === "error") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div role="alert" className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-sm">
-          <h2 className="text-lg font-bold text-[#174c34]">Não foi possível verificar seu acesso</h2>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div role="alert" className="w-full max-w-sm rounded-2xl border border-[#c9ddcf] bg-white p-6 text-center shadow-sm">
+          <h1 className="text-lg font-bold text-[#075636]">Demora na verificação de acesso</h1>
           <p className="mt-2 text-sm text-gray-600">
-            A verificação demorou mais que o esperado ou ocorreu uma falha temporária.
-            Nenhuma informação foi alterada.
+            Não foi possível confirmar sua sessão e permissão de administrador.
+            Seus pedidos e informações permanecem salvos.
           </p>
-          {accessError && <p className="mt-2 break-words text-xs text-amber-800">{accessError}</p>}
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <button type="button" onClick={() => { setAuthState("checking"); setRetryKey((key) => key + 1); }}
-              className="rounded-xl bg-[#086e45] px-4 py-2.5 text-sm font-semibold text-white">
-              Tentar novamente
-            </button>
-            <button type="button" onClick={() => navigate({ to: "/" })}
-              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700">
-              Voltar à loja
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => { setAuthState("checking"); setRetryCount((count) => count + 1); }}
+            className="mt-5 min-h-11 w-full rounded-xl bg-[#086e45] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#075636]"
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
