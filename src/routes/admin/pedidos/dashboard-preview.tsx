@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
 import { toast } from "sonner";
@@ -162,6 +163,13 @@ export function DashboardPedidosPreview() {
   const [query, setQuery] = useState("");
   const [range, setRange] = useState("7");
   const [selected, setSelected] = useState<any>(null);
+  // Modais no document.body evitam o stacking context do cabeçalho sticky.
+  useEffect(() => {
+    if (!selected && !editing) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [selected?.id, editing?.id]);
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["admin-orders-dashboard-preview"],
     queryFn: async () => {
@@ -474,7 +482,7 @@ export function DashboardPedidosPreview() {
         )}
 
       </div>
-      {editing && <div className="fixed inset-0 z-[10060] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
+      {editing && typeof document !== "undefined" && createPortal(<div className="fixed inset-0 z-[10060] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
         <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
           <div className="flex items-center justify-between border-b p-4"><h2 className="text-lg font-bold">Editar pedido #{String(editing.id).slice(0,8).toUpperCase()}</h2><button aria-label="Fechar" onClick={()=>setEditing(null)}><X size={20}/></button></div>
           <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
@@ -484,8 +492,8 @@ export function DashboardPedidosPreview() {
           </div>
           <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
-      </div>}
-      {selected && (() => {
+      </div>, document.body)}
+      {selected && typeof document !== "undefined" && (() => {
         const totalUnits = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0), 0);
         const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Etopaqs": 0, "Personalizados": 0 };
         for (const item of selected.itens || []) {
@@ -509,7 +517,7 @@ export function DashboardPedidosPreview() {
           "Etopaqs": "bg-[#f4ebff] text-[#673b90]",
           "Personalizados": "bg-[#e9f6f0] text-[#245c4d]",
         };
-        return <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/55 p-2 sm:p-4" onClick={() => setSelected(null)}>
+        return createPortal(<div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/55 p-2 sm:p-4" onClick={() => setSelected(null)}>
           <div role="dialog" aria-modal="true" aria-label="Detalhes do pedido" className="flex h-[94dvh] max-h-[900px] w-full max-w-5xl flex-col overflow-hidden rounded-[22px] bg-white text-[#203b2b] shadow-2xl sm:rounded-[26px]" onClick={event => event.stopPropagation()}>
             <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#e7ede8] bg-white px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
               <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
@@ -649,7 +657,7 @@ export function DashboardPedidosPreview() {
               {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#175934] px-2 py-2 text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:px-4 sm:text-sm"><MessageCircle size={16} className="shrink-0"/> WhatsApp</a>}
             </footer>
           </div>
-        </div>;
+        </div>, document.body);
       })()}
     </div>
   );
