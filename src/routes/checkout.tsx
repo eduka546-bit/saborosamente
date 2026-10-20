@@ -1432,9 +1432,7 @@ function Checkout() {
               <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-base text-amber-800">
                 <span className="text-base leading-none">⏳</span>
                 <span>
-                  Seu pedido tem <strong>marmita(s) personalizada(s)</strong>. Elas precisam de cerca
-                  de <strong> 1 semana no total</strong> para preparo e entrega. Os demais itens saem
-                  na data e horário escolhidos.
+                  As <strong>marmitas personalizadas</strong> são preparadas após a compra e entregues <strong>na próxima semana</strong>. Os demais itens seguem a data e o horário escolhidos.
                 </span>
               </div>
             )}
