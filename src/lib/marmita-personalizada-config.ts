@@ -52,7 +52,7 @@ export const DEFAULT_MARMITA_CONFIG: MarmitaPersonalizadaConfig = {
   minUnidades: 3,
   pesoMaximo: 600,
   avisoPrazo:
-    "As marmitas personalizadas precisam de 1 semana de preparo. Você escolhe a data normalmente, mas esses itens serão entregues na semana seguinte.",
+    "Peça hoje e receba suas marmitas personalizadas na próxima semana.",
   tamanhos: [
     { sigla: "P", label: "Até 250g", pesoMin: 0, pesoMax: 250, preco: 18.9 },
     { sigla: "M", label: "250 a 350g", pesoMin: 251, pesoMax: 350, preco: 22.9 },
@@ -103,7 +103,9 @@ export function normalizarMarmitaConfig(raw: any): MarmitaPersonalizadaConfig {
     descricao: String(cfg.descricao ?? "").trim() || d.descricao,
     minUnidades: Math.max(1, Math.floor(num(cfg.minUnidades, d.minUnidades))),
     pesoMaximo: num(cfg.pesoMaximo, d.pesoMaximo),
-    avisoPrazo: String(cfg.avisoPrazo ?? "").trim() || d.avisoPrazo,
+    avisoPrazo: /precisam de 1 semana de preparo|preparo em ~1 semana/i.test(String(cfg.avisoPrazo ?? ""))
+      ? d.avisoPrazo
+      : String(cfg.avisoPrazo ?? "").trim() || d.avisoPrazo,
     tamanhos,
     percentualMaxProteina,
     adicionalProteinaPorGrama,
