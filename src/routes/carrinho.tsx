@@ -167,7 +167,7 @@ function Carrinho() {
                   </p>
                   {custom && (
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {custom.itens.filter((i) => i.gramatura > 0).map((i) => i.nome).join(", ")}
+                      {custom.itens.filter((i) => i.grupo !== "Adicional").map((i) => i.nome).join(", ")}
                     </p>
                   )}
                   <div className="mt-3 flex items-center gap-3">
