@@ -746,6 +746,15 @@ function AdminClientesPage() {
                   <ShoppingBag size={15} /> Lançar pedido na conta
                 </Link>
               )}
+              {selectedClient.historicoWhatsappId && (
+                <Link
+                  to="/admin/pedidos/whatsapp"
+                  search={{ historico: selectedClient.historicoWhatsappId }}
+                  className="flex items-center gap-2 rounded-xl bg-[#5850ec] px-4 py-2 text-sm font-bold text-white hover:bg-[#4740c5]"
+                >
+                  <ShoppingBag size={15} /> Repetir último pedido
+                </Link>
+              )}
               {selectedClient.id && <CashbackCliente userId={selectedClient.id} />}
               {selectedClient.profileId && selectedClient.pedidos?.some((p: any) => p.origem === "whatsapp" && !p.user_id) && (
                 <button type="button" disabled={vinculandoHistorico} onClick={async () => {

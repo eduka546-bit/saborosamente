@@ -7,6 +7,7 @@ export type ClienteComercial = {
   whatsappOfertasCadastradoEm?: string;
   preCadastroWhatsApp?: boolean;
   historicoWhatsapp?: boolean;
+  historicoWhatsappId?: string;
   chave: string;
   nome?: string;
   telefone?: string;
@@ -198,6 +199,7 @@ export function montarClientesComerciais(
     const existing = clients.get(key);
     if (existing) {
       existing.historicoWhatsapp = true;
+      existing.historicoWhatsappId = ficha.id;
       if (!existing.nome) existing.nome = ficha.nome || undefined;
       if (!existing.telefone && tel) existing.telefone = tel;
       if ((!existing.email || existing.email === "Não informado") && ficha.email) existing.email = ficha.email;
@@ -214,6 +216,7 @@ export function montarClientesComerciais(
         cidade: ficha.cidade || null,
         cadastradoEm: ficha.primeiro_pedido_em ?? null,
         historicoWhatsapp: true,
+        historicoWhatsappId: ficha.id,
         totalPedidos: 0,
         valorGasto: 0,
         ultimoPedido: null,

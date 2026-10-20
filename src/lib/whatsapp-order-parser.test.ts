@@ -195,4 +195,40 @@ Total: 280,20 + 5 = R$ 285,20`);
     expect(p.totalPedido).toBe(23);
   });
 
+  it("Augusto Gums: lê refeição no singular, telefone, endereço, link e os dois tamanhos", () => {
+    const texto = `Pedido Augusto Gums:
+Telefone: 47 9628-6543
+Endereço: Rua João Pauli, 200 - Colonial - São Bento do Sul
+
+5 - Refeição 400g (G) - 114,50
+_Combo 10un - 5 x 22,90_
+1xTD(7-9-22) + 2xTD(14)
+
+5 - Refeição 300g (M) - 99,50
+_Combo 10un - 5 x 19,90_
+1xTD(3-7-8-9-22)
+
+Entrega: R$ 5,00
+Forma de Pagamento: Link
+Total: 114,50 + 99,50 + 5,00 = 219,00`;
+    const pedido = interpretarResumoWhatsapp(texto);
+    expect(pedido.nome).toBe("Augusto Gums");
+    expect(pedido.telefone).toBe("47 9628-6543");
+    expect(pedido.endereco).toEqual({
+      rua: "Rua João Pauli", numero: "200", bairro: "Colonial", cidade: "São Bento do Sul",
+    });
+    expect(pedido.pagamento).toBe("link");
+    expect(pedido.blocos).toHaveLength(2);
+    expect(pedido.blocos.map(b => b.peso)).toEqual(["400g", "300g"]);
+    expect(pedido.itensDetalhados).toEqual([
+      ...["TD07", "TD09", "TD22"].map(codigo => ({ codigo, quantidade: 1, peso: "400g", pesoExibicao: "400g", precoUnitario: 22.9 })),
+      { codigo: "TD14", quantidade: 2, peso: "400g", pesoExibicao: "400g", precoUnitario: 22.9 },
+      ...["TD03", "TD07", "TD08", "TD09", "TD22"].map(codigo => ({ codigo, quantidade: 1, peso: "300g", pesoExibicao: "300g", precoUnitario: 19.9 })),
+    ]);
+    expect(pedido.itensDetalhados.reduce((t, item) => t + item.quantidade, 0)).toBe(10);
+    expect(pedido.taxaEntrega).toBe(5);
+    expect(pedido.totalPedido).toBe(219);
+    expect(pedido.avisos).toEqual([]);
+  });
+
 });
