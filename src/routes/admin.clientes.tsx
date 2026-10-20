@@ -107,21 +107,31 @@ function AdminClientesPage() {
           if (!data || data.length < 500) return rows;
         }
       }
+      // Falhas em fontes suplementares não podem bloquear a lista de clientes.
+      // Os dados principais (cadastros e pedidos) continuam obrigatórios.
+      const opcional = async (origem: string, consulta: () => Promise<any[]>): Promise<any[]> => {
+        try {
+          return await consulta();
+        } catch (erro) {
+          console.warn("Clientes: fonte complementar indisponível (" + origem + ")", erro);
+          return [];
+        }
+      };
       const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
-        carregarTabela("sorteio_leads"),
-        (async () => {
+        opcional("sorteio", () => carregarTabela("sorteio_leads")),
+        opcional("WhatsApp", async () => {
           const { data, error } = await (supabase as any).rpc("listar_whatsapp_cadastros_admin");
           if (error) throw error;
           return Array.isArray(data) ? data : [];
-        })(),
-        (async () => {
+        }),
+        opcional("histórico do WhatsApp", async () => {
           const { data, error } = await (supabase as any)
             .from("clientes_whatsapp_historico").select("*").order("ultimo_pedido_em", { ascending: false }).limit(1500);
           if (error) throw error;
           return data ?? [];
-        })(),
+        }),
       ]);
       return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp);
     },

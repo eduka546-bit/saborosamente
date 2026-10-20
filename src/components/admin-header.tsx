@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ClipboardList,
   Users,
@@ -155,6 +155,18 @@ function NavItem({ label, icon: Icon, items }: NavGroup) {
 
 export function AdminHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const previousPathname = useRef(pathname);
+
+  // Não feche o Sheet no onClick do Link: o histórico do menu poderia
+  // executar history.back() antes do TanStack Router concluir a navegação.
+  // Fechar somente após a URL mudar mantém os links do menu funcionando.
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      previousPathname.current = pathname;
+      setMobileOpen(false);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -186,7 +198,7 @@ export function AdminHeader() {
               <nav className="flex flex-col p-2">
                 <Link
                   to="/admin"
-                  onClick={() => setMobileOpen(false)}
+                  onClick={() => { if (pathname === "/admin") setMobileOpen(false); }}
                   className="flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-bold text-primary hover:bg-primary/10"
                 >
                   <LayoutHome />
@@ -203,7 +215,7 @@ export function AdminHeader() {
                         <Link
                           key={item.href}
                           to={item.href as any}
-                          onClick={() => setMobileOpen(false)}
+                          onClick={() => { if (pathname === item.href) setMobileOpen(false); }}
                           className="rounded-lg px-3 py-2.5 pl-9 text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-primary"
                         >
                           {item.label}

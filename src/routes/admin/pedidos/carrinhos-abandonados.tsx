@@ -72,7 +72,7 @@ function AdminCarrinhosAbandonadosPage() {
     return () => document.removeEventListener("keydown", fecharEsc);
   }, [selectedCarrinho]);
 
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError, error: loadError, refetch } = useQuery({
     queryKey: ["carrinhos-abandonados-admin"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,7 +80,7 @@ function AdminCarrinhosAbandonadosPage() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30_000, // atualiza a cada 30s
   });
@@ -263,11 +263,17 @@ function AdminCarrinhosAbandonadosPage() {
         </Button>
       </div>
 
+      {isError && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <span>Não foi possível carregar os carrinhos. {loadError instanceof Error ? loadError.message : "Verifique sua conexão ou suas permissões."}</span>
+          <Button type="button" variant="outline" onClick={() => void refetch()}>Tentar novamente</Button>
+        </div>
+      )}
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-[#5850ec]" size={32} />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : isError ? null : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed p-20 text-center">
           <ShoppingCart size={48} className="mx-auto text-gray-200 mb-4" />
           <p className="text-gray-400 font-medium">Nenhum carrinho encontrado.</p>
