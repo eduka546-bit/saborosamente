@@ -172,7 +172,7 @@ export function AdminHeader() {
             <SheetTrigger asChild>
               <button
                 aria-label="Abrir menu"
-                className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 border border-white/20 shrink-0"
+                className="2xl:hidden flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 border border-white/20 shrink-0"
               >
                 <Menu size={20} />
               </button>
@@ -194,7 +194,7 @@ export function AdminHeader() {
                 </Link>
                 {NAV_GROUPS.map((group) => (
                   <div key={group.label} className="mt-2">
-                    <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
                       <group.icon size={14} />
                       {group.label}
                     </div>
@@ -234,7 +234,7 @@ export function AdminHeader() {
           </Link>
 
           {/* Navegação desktop (hover) — escondida no mobile */}
-          <nav className="hidden lg:flex items-center">
+          <nav className="hidden 2xl:flex items-center">
             {NAV_GROUPS.map((group) => (
               <NavItem key={group.label} {...group} />
             ))}
