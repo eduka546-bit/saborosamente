@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatBRL, type Product } from "@/lib/products";
-import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -84,8 +84,6 @@ function ProdutoPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
   const tabelaPrecos = usePrecosMarmita();
-  const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
-  const [garfoEFaca, setGarfoEFaca] = useState(false);
 
   const {
     data: product,
@@ -248,11 +246,7 @@ function ProdutoPage() {
     ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
       ? precoMarmitaPorFaixa(selectedWeight, count + quantity, basePrice, tabelaPrecos)
       : currentPrice;
-  const purchaseTotal =
-    (effectivePrice +
-      (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
-      (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0)) *
-    quantity;
+  const purchaseTotal = effectivePrice * quantity;
 
   // Nutricional
   const currentNutritional =
@@ -286,10 +280,7 @@ function ProdutoPage() {
       toast.info("Esta gramatura está esgotada.");
       return;
     }
-    const opcoes = ehMarmita
-      ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
-      : undefined;
-    add(product.id, quantity, selectedWeight, opcoes);
+    add(product.id, quantity, selectedWeight);
     trackEvent("add_to_cart", {
       produtoId: product.id,
       valor: Number(currentPrice || 0),
@@ -495,62 +486,6 @@ function ProdutoPage() {
             </div>
           )}
 
-          {/* Opções (só marmitas): pronta/congelada + garfo e faca */}
-          {ehMarmita && (
-            <div className="space-y-3">
-              <div>
-                <h3 className="text-lg font-semibold text-[#075636] mb-3 tracking-normal">
-                  Como você quer receber?
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setConsumo("congelada")}
-                    className={cn(
-                      "rounded-xl border-2 py-4 text-base font-semibold transition-all",
-                      consumo === "congelada"
-                        ? "border-primary bg-primary/5 text-primary shadow-md"
-                        : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                    )}
-                  >
-                    Congelada
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConsumo("pronta")}
-                    className={cn(
-                      "rounded-xl border-2 py-4 text-base font-semibold transition-all",
-                      consumo === "pronta"
-                        ? "border-primary bg-primary/5 text-primary shadow-md"
-                        : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                    )}
-                  >
-                    Pronta para consumo
-                    <span className="block text-base font-medium text-muted-foreground mt-0.5">
-                      +R$ 1,00
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {consumo === "pronta" && (
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-background p-3">
-                  <input
-                    type="checkbox"
-                    checked={garfoEFaca}
-                    onChange={(e) => setGarfoEFaca(e.target.checked)}
-                    className="size-4 accent-primary"
-                  />
-                  <span className="text-base font-medium text-foreground">
-                    Quero garfo e faca
-                    <span className="text-base font-medium text-muted-foreground ml-1">
-                      +R$ 1,00
-                    </span>
-                  </span>
-                </label>
-              )}
-            </div>
-          )}
 
           {Array.isArray(product.ingredientes) && product.ingredientes.length > 0 && (
             <section className="space-y-2">

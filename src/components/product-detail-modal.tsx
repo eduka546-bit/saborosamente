@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { formatBRL } from "@/lib/products";
-import { useCart, ADICIONAL_PRONTA, ADICIONAL_GARFO_FACA } from "@/lib/cart";
+import { useCart } from "@/lib/cart";
 import { imgUrl } from "@/lib/image-proxy";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,8 +89,6 @@ export function ProductDetailModal({
     if (!isOpen) return;
     setRequestedQuantity(1);
     setCurrentImageIndex(0);
-    setConsumo("congelada");
-    setGarfoEFaca(false);
     setTabelaNutricionalAberta(false);
   }, [isOpen, product?.id]);
 
@@ -128,9 +126,6 @@ export function ProductDetailModal({
     weightsKey,
   ]);
 
-  // Opções (só marmitas): consumo pronta/congelada + garfo e faca.
-  const [consumo, setConsumo] = useState<"congelada" | "pronta">("congelada");
-  const [garfoEFaca, setGarfoEFaca] = useState(false);
   const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
   useEffect(() => {
     if (!isOpen || typeof window === "undefined") return;
@@ -318,18 +313,12 @@ export function ProductDetailModal({
 
   const addRelatedProduct = (candidate: any) => {
     const relatedCategory = candidate.categorias?.nome || candidate.categoria || "";
-    const relatedIsMarmita = isMarmita(candidate.nome, relatedCategory);
     const relatedWeight = candidate.preco_300g
       ? "300g"
       : candidate.preco_400g
         ? "400g"
         : candidate.peso || "";
-    add(
-      candidate.id,
-      1,
-      relatedWeight,
-      relatedIsMarmita ? { consumo: "congelada", garfoEFaca: false } : undefined,
-    );
+    add(candidate.id, 1, relatedWeight);
     toast.success("Adicionado ao carrinho!", {
       description: `${candidate.nome}${relatedWeight ? ` (${relatedWeight})` : ""}`,
     });
@@ -407,20 +396,14 @@ export function ProductDetailModal({
       });
       return;
     }
-    const opcoes = ehMarmita
-      ? { consumo, garfoEFaca: consumo === "pronta" ? garfoEFaca : false }
-      : undefined;
-    add(product.id, quantity, selectedWeight, opcoes);
+    add(product.id, quantity, selectedWeight);
     trackEvent("add_to_cart", {
       produtoId: product.id,
       valor: Number(priceForWeight(selectedWeight) || 0),
-      metadata: { gramatura: selectedWeight, consumo, quantidade: quantity },
+      metadata: { gramatura: selectedWeight, quantidade: quantity },
     });
-    const detalheOpcao = ehMarmita
-      ? ` — ${consumo === "pronta" ? "pronta para consumo" : "congelada"}`
-      : "";
     toast.success("Adicionado ao carrinho!", {
-      description: `${quantity} × ${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}${detalheOpcao}`,
+      description: `${quantity} × ${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
     });
     onClose();
   };
@@ -449,11 +432,8 @@ export function ProductDetailModal({
             const precoComFaixa = podeTerDesconto
               ? precoMarmitaPorFaixa(selectedWeight, projectedCount, precoCheio, tabelaPrecos)
               : currentPrice;
-            const adicional =
-              (consumo === "pronta" ? ADICIONAL_PRONTA : 0) +
-              (consumo === "pronta" && garfoEFaca ? ADICIONAL_GARFO_FACA : 0);
-            const precoFinal = precoComFaixa + adicional;
-            const precoCheioTotal = precoCheio + adicional;
+            const precoFinal = precoComFaixa;
+            const precoCheioTotal = precoCheio;
 
             return (
               <div className="flex min-w-0 flex-col">
@@ -693,12 +673,6 @@ export function ProductDetailModal({
             </DialogHeader>
 
             <div className="mb-6 space-y-4 text-base text-muted-foreground">
-              {product.descricao && (
-                <section>
-                  <h4 className="mb-1 text-base font-semibold text-[#075636] sm:text-lg">Descrição</h4>
-                  <p className="whitespace-pre-line text-sm leading-relaxed sm:text-base">{String(product.descricao)}</p>
-                </section>
-              )}
               {ingredientesDetalhados && (
                 <div>
                   <h4 className="mb-1 text-lg font-semibold text-[#075636]">Ingredientes</h4>
@@ -729,61 +703,6 @@ export function ProductDetailModal({
                 aoAlternar={() => setTabelaNutricionalAberta((aberta) => !aberta)}
               />
 
-              {ehMarmita && (
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="mb-2 text-lg font-semibold text-[#075636]">
-                      Como você quer receber?
-                    </h4>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setConsumo("congelada")}
-                        className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-base font-semibold transition-all",
-                          consumo === "congelada"
-                            ? "border-primary bg-primary/5 text-primary shadow-sm"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                        )}
-                      >
-                        Congelada
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConsumo("pronta")}
-                        className={cn(
-                          "flex-1 rounded-xl border-2 py-3 text-base font-semibold transition-all",
-                          consumo === "pronta"
-                            ? "border-primary bg-primary/5 text-primary shadow-sm"
-                            : "border-border bg-background text-muted-foreground hover:border-primary/30",
-                        )}
-                      >
-                        Pronta para consumo
-                        <span className="block text-base font-medium text-muted-foreground mt-0.5">
-                          +R$ 1,00
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {consumo === "pronta" && (
-                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border bg-background p-3">
-                      <input
-                        type="checkbox"
-                        checked={garfoEFaca}
-                        onChange={(e) => setGarfoEFaca(e.target.checked)}
-                        className="size-4 accent-primary"
-                      />
-                      <span className="text-base font-medium text-foreground">
-                        Quero garfo e faca
-                        <span className="text-base font-medium text-muted-foreground ml-1">
-                          +R$ 1,00
-                        </span>
-                      </span>
-                    </label>
-                  )}
-                </div>
-              )}
             </div>
 
             {relatedProducts.length > 0 && (

@@ -157,7 +157,7 @@ function MeusPedidosPage() {
       return;
     }
     const peso = extrairPeso(item.observacao) ?? "300g";
-    add(item.produto_id, 1, peso, { consumo: "congelada", garfoEFaca: false });
+    add(item.produto_id, 1, peso);
     toast.success("1 unidade adicionada ao carrinho", {
       description: `${item.nomeExibicao}${peso ? ` (${peso})` : ""}`,
     });
@@ -175,7 +175,7 @@ function MeusPedidosPage() {
           continue;
         }
         const peso = extrairPeso(item.observacao) ?? "300g";
-        add(item.produto_id, item.quantidade ?? 1, peso, { consumo: "congelada", garfoEFaca: false });
+        add(item.produto_id, item.quantidade ?? 1, peso);
         adicionados++;
       }
       if (adicionados === 0) {

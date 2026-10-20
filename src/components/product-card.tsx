@@ -195,6 +195,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
     if (w === "400g") return "G";
     return w;
   };
+  const comboUnits = Number(String(product.nome || "").match(/(\d+)\s*(?:un|unidades?)/i)?.[1] || 0);
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
   const priceForWeight = (weight: string) => isSopa
     ? 18.0
@@ -312,10 +313,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
       setComboSaboresOpen(true);
       return;
     }
-    add(product.id, 1, selectedWeight,
-      isMarmita(product.nome, product.categorias?.nome || product.categoria)
-        ? { consumo: "congelada", garfoEFaca: false } : undefined,
-    );
+    add(product.id, 1, selectedWeight);
     toast.success("Adicionado", {
       description: `${product.nome}${selectedWeight ? ` (${selectedWeight})` : ""}`,
       className: "max-w-[280px] text-sm font-medium",
@@ -368,11 +366,6 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
               <h3 className="text-base font-semibold font-mazzard leading-snug text-foreground group-hover:text-primary transition-colors">
                 {product.nome}
               </h3>
-              {product.descricao && (
-                <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
-                  {product.descricao}
-                </p>
-              )}
             </div>
             <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
               <div className="flex flex-col">
@@ -520,7 +513,12 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                         : "bg-white text-gray-500 border-gray-200 hover:border-[#086e45]/40",
                     )}
                   >
-                    {weightLabel(w)}{isComboPronto && <span className="ml-1.5 font-semibold">{formatBRL(priceForWeight(w))}</span>}
+                    {isComboPronto ? (
+                      <span className="flex flex-col items-center leading-tight">
+                        <span>{comboUnits ? `${comboUnits}un - ` : ""}{weightLabel(w)} ({w})</span>
+                        <span className="mt-0.5 font-semibold">{formatBRL(priceForWeight(w))}</span>
+                      </span>
+                    ) : weightLabel(w)}
                   </button>
                 ))}
               </div>

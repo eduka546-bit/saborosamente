@@ -336,7 +336,7 @@ function Index() {
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [storeModalOpen, setStoreModalOpen] = useState(false);
   const [discountModalOpen, setDiscountModalOpen] = useState(false);
-  const [infoSummariesOpen, setInfoSummariesOpen] = useState(false);
+  const [openInfoSummary, setOpenInfoSummary] = useState<"delivery" | "store" | "discount" | null>(null);
 
   const {
     data: products = [],
@@ -968,22 +968,11 @@ function Index() {
               <h2 className="font-sans text-[1.75rem] font-semibold leading-tight text-[#075636] md:text-[2rem]">
                 Entrega, retirada e descontos
               </h2>
-              <button
-                type="button"
-                onClick={() => setInfoSummariesOpen((open) => !open)}
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-[#cfe0c4] bg-white px-3 py-2 text-sm font-semibold text-[#075636] transition hover:bg-[#edf5e6]"
-                aria-expanded={infoSummariesOpen}
-              >
-                {infoSummariesOpen ? "Ocultar resumo" : "Ver resumo"}
-                <ChevronDown size={16} className={cn("transition-transform", infoSummariesOpen && "rotate-180")} />
-              </button>
             </div>
           </div>
 
-          {infoSummariesOpen && <div className="grid items-stretch gap-4 lg:grid-cols-3">
-            <button
-              type="button"
-              onClick={() => setDeliveryModalOpen(true)}
+          <div className="grid items-start gap-4 lg:grid-cols-3">
+            <div
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -996,10 +985,13 @@ function Index() {
                     <p className="text-sm leading-relaxed text-[#708078]">Cidades selecionadas de SC + PR</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                <button type="button" onClick={() => setDeliveryModalOpen(true)} aria-label="Abrir detalhes das áreas de entrega" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <div className="p-4">
+              <button type="button" onClick={() => setOpenInfoSummary(open => open === "delivery" ? null : "delivery")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "delivery"}>
+                {openInfoSummary === "delivery" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "delivery" && "rotate-180")} />
+              </button>
+              {openInfoSummary === "delivery" && <div className="p-4">
                 <DeliveryRegionMiniMap className="h-[190px] w-full" />
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -1016,12 +1008,10 @@ function Index() {
                 <p className="mt-3 text-sm leading-relaxed text-[#6a7a71]">
                   Veja bairros atendidos, taxas e a localização correta de cada cidade.
                 </p>
-              </div>
-            </button>
+              </div>}
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setStoreModalOpen(true)}
+            <div
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -1034,10 +1024,13 @@ function Index() {
                     <p className="text-sm leading-relaxed text-[#708078]">São Bento do Sul/SC</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                <button type="button" onClick={() => setStoreModalOpen(true)} aria-label="Abrir detalhes da loja" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <div className="grid flex-1 grid-cols-[1.1fr_.9fr] overflow-hidden">
+              <button type="button" onClick={() => setOpenInfoSummary(open => open === "store" ? null : "store")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "store"}>
+                {openInfoSummary === "store" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "store" && "rotate-180")} />
+              </button>
+              {openInfoSummary === "store" && <div className="grid flex-1 grid-cols-[1.1fr_.9fr] overflow-hidden">
                 <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
                   <div className="flex items-start gap-2 rounded-xl border border-[#d4e6c8] bg-[#eef6e7] p-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#dceccf] text-[#075636]">
@@ -1077,12 +1070,10 @@ function Index() {
                     loading="lazy"
                   />
                 </div>
-              </div>
-            </button>
+              </div>}
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setDiscountModalOpen(true)}
+            <div
               className="group flex flex-col overflow-hidden rounded-[1.55rem] border border-[#dce5d5] bg-white text-left shadow-[0_7px_18px_rgba(7,86,54,.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_26px_rgba(7,86,54,.11)]"
             >
               <div className="flex items-center justify-between gap-3 border-b border-[#edf1e9] px-4 py-3.5">
@@ -1095,10 +1086,13 @@ function Index() {
                     <p className="text-sm leading-relaxed text-[#708078]">Desconto progressivo automático</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-[#075636] transition group-hover:translate-x-1" />
+                <button type="button" onClick={() => setDiscountModalOpen(true)} aria-label="Abrir detalhes dos descontos" className="rounded-full p-1 text-[#075636] transition hover:bg-[#edf5e6]"><ArrowRight size={18} /></button>
               </div>
 
-              <div className="flex flex-1 flex-col gap-3 p-4">
+              <button type="button" onClick={() => setOpenInfoSummary(open => open === "discount" ? null : "discount")} className="flex w-full items-center justify-center gap-2 border-b border-[#edf1e9] px-4 py-2.5 text-sm font-semibold text-[#075636] hover:bg-[#f7faf4]" aria-expanded={openInfoSummary === "discount"}>
+                {openInfoSummary === "discount" ? "Ocultar resumo" : "Ver resumo"}<ChevronDown size={16} className={cn("transition-transform", openInfoSummary === "discount" && "rotate-180")} />
+              </button>
+              {openInfoSummary === "discount" && <div className="flex flex-1 flex-col gap-3 p-4">
                 <div className="rounded-2xl border border-[#eedb92] bg-[#fff7d0] p-3">
                   <p className="text-sm font-semibold text-[#173a2d]">Desconto automático conforme a quantidade.</p>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -1113,9 +1107,9 @@ function Index() {
                   <Gift size={22} className="shrink-0 text-[#075636]" />
                   <div><p className="font-semibold text-[#173a2d]">Indique e Ganhe</p><p className="text-sm text-[#607168]">Compartilhe com amigos e ganhe benefícios.</p></div>
                 </div>
-              </div>
-            </button>
-          </div>}
+              </div>}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1502,11 +1496,10 @@ function Index() {
                     </button>
                   )}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-[#dce7d5] bg-white/70 px-3 py-2 text-sm text-[#315440]">
-                  <span className="font-semibold">Legenda</span>
-                  <span className="inline-flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
-                  <span className="inline-flex items-center gap-2"><img src="/selo-sem-gluten.png" alt="" className="size-6" />Sem glúten</span>
-                  <span className="inline-flex items-center gap-2"><img src="/selo-sem-lactose.png" alt="" className="size-6" />Sem lactose</span>
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-[#dce7d5] bg-white/70 px-3 py-2 text-[12px] text-[#315440] sm:justify-start sm:gap-x-5 sm:text-sm">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"><span className="grid size-6 place-items-center rounded-full bg-[#b96527] text-[#fff8ed] shadow-sm"><Dumbbell size={16} /></span>Alta proteína</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"><img src="/selo-sem-gluten.png" alt="" className="size-6" />Sem glúten</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"><img src="/selo-sem-lactose.png" alt="" className="size-6" />Sem lactose</span>
                 </div>
                 <div className="mt-3">
                   <h1 className="font-sans text-2xl font-semibold leading-tight text-foreground md:text-3xl">

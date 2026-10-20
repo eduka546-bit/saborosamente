@@ -681,11 +681,11 @@ function StoreContent() {
           </div>
         </div>
 
-        <div className="flex aspect-[4/3] min-h-0 items-center justify-center bg-[#f7f5ed] p-3 sm:min-h-[310px]">
+        <div className="flex h-[185px] min-h-0 items-center justify-center bg-[#f7f5ed] p-3 sm:h-auto sm:min-h-[310px]">
           <img
             src="/loja-saborosamente.jpg"
             alt="Loja física SaborosaMente em São Bento do Sul"
-            className="size-full rounded-[1.35rem] object-contain"
+            className="size-full rounded-[1.35rem] object-contain object-center"
           />
         </div>
       </div>

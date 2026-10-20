@@ -1130,9 +1130,9 @@ function Checkout() {
               >
                 <span className="min-w-0 text-muted-foreground">
                   {quantity}× {product.nome}
-                  {(weight || opcoes) && (
+                  {weight && (
                     <span className="mt-0.5 block text-base font-medium text-[#315440]">
-                      {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
+                      {weight}
                     </span>
                   )}
                 </span>
@@ -1942,9 +1942,9 @@ function Checkout() {
               >
                 <span className="text-muted-foreground">
                   {quantity}× {product.nome}
-                  {(weight || opcoes) && (
+                  {weight && (
                     <span className="mt-0.5 block text-base font-medium text-[#315440]">
-                      {[weight, opcoes?.consumo === "pronta" ? `Pronta para consumo +${formatBRL(adicionalPronta)}` : opcoes ? "Congelada" : null, opcoes?.garfoEFaca ? `Garfo e faca +${formatBRL(adicionalGarfo)}` : null].filter(Boolean).join(" • ")}
+                      {weight}
                     </span>
                   )}
                 </span>

@@ -165,16 +165,6 @@ function Carrinho() {
                   <p className="text-sm text-muted-foreground">
                     {weight || product.peso} • {formatBRL(lineTotal / Math.max(1, quantity))} cada
                   </p>
-                  {opcoes && (
-                    <p className="mt-0.5 text-sm font-medium text-primary">
-                      {opcoes.consumo === "pronta"
-                        ? `Pronta para consumo +${formatBRL(adicionalPronta)}`
-                        : "Congelada"}
-                      {opcoes.consumo === "pronta" && opcoes.garfoEFaca
-                        ? ` • Garfo e faca +${formatBRL(adicionalGarfo)}`
-                        : ""}
-                    </p>
-                  )}
                   {custom && (
                     <p className="mt-0.5 text-sm text-muted-foreground">
                       {custom.itens.filter((i) => i.gramatura > 0).map((i) => i.nome).join(", ")}
