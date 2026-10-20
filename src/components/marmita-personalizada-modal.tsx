@@ -373,7 +373,7 @@ export function MarmitaPersonalizadaModal({
                 selecionados.map((s) => (
                   <div key={s.ingredienteId} className="flex items-center gap-2 text-sm">
                     <span className="font-bold text-[#086e45] w-12 text-right shrink-0">
-                      {s.gramatura}g
+                      {s.grupo.toLowerCase().includes("molho") ? "Molho" : `${s.gramatura}g`}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-gray-800 font-medium leading-tight">
@@ -417,7 +417,7 @@ export function MarmitaPersonalizadaModal({
 
               {/* Aviso de prazo — compacto no mobile */}
               <p className="text-sm md:text-sm text-amber-700 leading-tight">
-                ⏳ Preparo em ~1 semana. Entrega na semana seguinte.
+                ⏳ {config.avisoPrazo}
               </p>
 
               <button
