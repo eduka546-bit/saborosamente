@@ -1,3 +1,4 @@
+import { useModalBackNavigation } from "@/lib/use-modal-back-navigation";
 import { useState, useEffect } from "react";
 import { X, MessageCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ export function WelcomePopup({ config }: WelcomePopupProps) {
   const [open, setOpen] = useState(false);
   const [naoMostrar, setNaoMostrar] = useState(false);
   const buttonLink = normalizePopupLink(config.botao_link);
+  useModalBackNavigation(open, () => { setVisible(false); setOpen(false); });
 
   useEffect(() => {
     if (!config?.ativo) return;
