@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, CheckCircle2, FileUp, Loader2, Package, Printer, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useModalBackNavigation } from "@/lib/use-modal-back-navigation";
 
 type Sabor = {
   id: string;
@@ -35,6 +36,10 @@ export function EtiquetasPDFManager() {
   const [fabricacao, setFabricacao] = useState(formatoDataLocal);
   const [quantidades, setQuantidades] = useState<Quantidades>({ 200: 0, 300: 0, 400: 0 });
   const [gerando, setGerando] = useState(false);
+
+  useModalBackNavigation(Boolean(selecionado), () => {
+    if (!gerando) setSelecionado(null);
+  });
 
   useEffect(() => {
     let ativo = true;
