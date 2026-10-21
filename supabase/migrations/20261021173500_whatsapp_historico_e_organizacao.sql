@@ -14,6 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_whatsapp_historico_conversa_id
   ON public.whatsapp_mensagens_historico (conversa_id, id DESC);
 
 ALTER TABLE public.whatsapp_mensagens_historico ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.whatsapp_mensagens_historico TO authenticated;
 
 CREATE POLICY "Somente administradores consultam historico WhatsApp"
   ON public.whatsapp_mensagens_historico
@@ -98,6 +99,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_conversas_organizacao (
 );
 
 ALTER TABLE public.whatsapp_conversas_organizacao ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_conversas_organizacao TO authenticated;
 CREATE POLICY "Administradores organizam suas conversas"
  ON public.whatsapp_conversas_organizacao FOR ALL TO authenticated
  USING (user_id = (SELECT auth.uid()) AND public.usuario_tem_role(ARRAY['admin'::text]))
