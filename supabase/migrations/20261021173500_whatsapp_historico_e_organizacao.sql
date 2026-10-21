@@ -81,7 +81,8 @@ SELECT c.id, public.whatsapp_chave_historico(m.value), m.value,
 FROM public.whatsapp_conversas c
 CROSS JOIN LATERAL jsonb_array_elements(
   CASE WHEN jsonb_typeof(c.mensagens) = 'array' THEN c.mensagens ELSE '[]'::jsonb END
-) AS m(value)
+) WITH ORDINALITY AS m(value, posicao)
+ORDER BY c.id, m.posicao
 ON CONFLICT (conversa_id, chave) DO NOTHING;
 
 -- Organização pessoal do atendimento; não altera mensagens do cliente.
