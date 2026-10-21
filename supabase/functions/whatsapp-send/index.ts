@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const tipo = mediaType === "image" ? "image" : mediaType === "video" ? "video" : "document";
+      const tipo = ["image", "video", "audio"].includes(mediaType) ? mediaType : "document";
       const media: Record<string, unknown> = { link: mediaUrl };
       const legenda = String(caption ?? normalizedText ?? "").trim();
       if ((tipo === "image" || tipo === "video") && legenda) media.caption = legenda.slice(0, 1024);
