@@ -29,6 +29,7 @@ export function AdminWhatsappAlerts() {
   const [ativoNesteNavegador, setAtivoNesteNavegador] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mensagensVistas = useRef(new Map<string, string>());
+  const silenciadasRef = useRef(new Set<string>());
 
   const { data: ativoNaLoja = true } = useQuery({
     queryKey: SETTINGS_QUERY_KEY,
@@ -64,6 +65,25 @@ export function AdminWhatsappAlerts() {
       window.removeEventListener("storage", sincronizarPreferenciaLocal);
     };
   }, []);
+
+  const { data: preferencias } = useQuery({
+    queryKey: ["whatsapp-organizacao"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_conversas_organizacao")
+        .select("conversa_id,fixada,arquivada,silenciada,nao_lida_manual");
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { conversa_id: string; silenciada: boolean }[];
+    },
+    staleTime: 20_000,
+  });
+
+  useEffect(() => {
+    silenciadasRef.current = new Set(
+      (preferencias ?? []).filter((pref) => pref.silenciada).map((pref) => pref.conversa_id),
+    );
+  }, [preferencias]);
 
   const ativo = ativoNaLoja && ativoNesteNavegador;
 
@@ -121,13 +141,18 @@ export function AdminWhatsappAlerts() {
           const instante = Date.parse(mensagem.timestamp);
           if (!Number.isFinite(instante) || Math.abs(Date.now() - instante) > 2 * 60_000) return;
 
+          if (silenciadasRef.current.has(conversa.id)) return;
           const remetente = conversa.nome || conversa.telefone || "Cliente";
           tocarAlerta(audioContextRef.current);
-          new Notification(`Mensagem de ${remetente}`, {
+          const aviso = new Notification(`Mensagem de ${remetente}`, {
             body: mensagem.content.slice(0, 160),
             icon: "/favicon.png",
             tag: `whatsapp-${conversa.id}`,
           });
+          aviso.onclick = () => {
+            window.focus();
+            window.location.assign(`/admin/agente?conversa=${encodeURIComponent(conversa.id)}`);
+          };
         },
       )
       .subscribe();
