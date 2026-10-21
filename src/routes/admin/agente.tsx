@@ -2016,6 +2016,7 @@ function AdminAgentePage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const deepLinkAbertoRef = useRef(false);
   const [showConfig, setShowConfig] = useState(false);
   const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "fixadas" | "arquivadas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
@@ -2048,6 +2049,17 @@ function AdminAgentePage() {
     },
     refetchInterval: 8000,
   });
+
+  // Notificações podem abrir diretamente a conversa correta, inclusive
+  // depois de redirecionar o administrador pela página de login.
+  useEffect(() => {
+    if (deepLinkAbertoRef.current || typeof window === "undefined") return;
+    const conversaId = new URLSearchParams(window.location.search).get("conversa");
+    if (!conversaId || !/^[a-f0-9-]{36}$/i.test(conversaId)) return;
+    if (!(conversas as any[]).some((conversa) => conversa.id === conversaId)) return;
+    deepLinkAbertoRef.current = true;
+    setActiveId(conversaId);
+  }, [conversas]);
 
   // Atualizacao imediata de mensagens e status, com polling como fallback.
   useEffect(() => {
@@ -2642,6 +2654,20 @@ function AdminAgentePage() {
           </div>
         )}
       </div>
+
+      {/* Configurações também acessíveis no celular, sem esconder atrás da lista. */}
+      {showConfig && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col h-[100dvh] overflow-hidden">
+          <PainelConfig
+            dark={dark}
+            config={config}
+            setConfig={setConfig}
+            saveConfig={saveConfig}
+            saving={saving}
+            onClose={() => setShowConfig(false)}
+          />
+        </div>
+      )}
 
       {/* Mobile: chat em fullscreen */}
       {activeId && !showConfig && (
