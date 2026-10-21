@@ -446,7 +446,7 @@ async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
   // por um histórico antigo mantido em memória pelo webhook.
   const { data: conversaAtual } = await supabase
     .from("whatsapp_conversas")
-    .select("mensagens,ultima_msg")
+    .select("mensagens,ultima_msg,modo,nome,telefone")
     .eq("id", id)
     .maybeSingle();
 
@@ -464,10 +464,37 @@ async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
     ),
   ).toISOString();
 
-  await supabase
+  const { error: salvamentoErro } = await supabase
     .from("whatsapp_conversas")
     .update({ mensagens: atualizado, ultima_msg: ultimaMsg })
     .eq("id", id);
+  if (salvamentoErro) {
+    console.error("Falha ao registrar mensagem WhatsApp:", salvamentoErro.message);
+  }
+  // Notifica somente a equipe que já assumiu atendimento humano.
+  // Conversas com IA continuam silenciosas para evitar avisos excessivos.
+  if (!salvamentoErro && novaMensagem?.role === "user" && conversaAtual?.modo === "humano") {
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+        },
+        body: JSON.stringify({
+          title: "💬 Mensagem aguardando atendimento",
+          body: `${conversaAtual?.nome || conversaAtual?.telefone || "Cliente"} enviou uma mensagem.`,
+          url: `/admin/agente?conversa=${id}`,
+          tag: `whatsapp-${id}`,
+          conversation_id: id,
+        }),
+        signal: AbortSignal.timeout(2500),
+      });
+    } catch (err: any) {
+      console.error("Não foi possível enviar push WhatsApp:", err?.message ?? err);
+    }
+  }
   return atualizado;
 }
 
