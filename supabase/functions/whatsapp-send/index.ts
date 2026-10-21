@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
     const body = await req.json();
-    const { to, text, media_url, media_type, filename, caption, action, sync_type } = body ?? {};
+    const { to, text, media_url, media_type, filename, caption, action, sync_type, context_message_id, reaction_message_id, emoji } = body ?? {};
 
     if (action === "coexistence_status") {
       const statusUrl =
@@ -90,7 +90,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!normalizedText && !mediaUrl) {
+    const isReaction = action === "react";
+    const targetMessageId = String(reaction_message_id ?? "").trim();
+    const reactionEmoji = String(emoji ?? "");
+    if (isReaction && (!/^wamid\./.test(targetMessageId) || reactionEmoji.length > 16)) {
+      return new Response(JSON.stringify({ error: "Mensagem ou reação inválida" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (!isReaction && !normalizedText && !mediaUrl) {
       return new Response(JSON.stringify({ error: "Informe uma mensagem ou anexo" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -105,7 +114,9 @@ Deno.serve(async (req) => {
     }
 
     let payload: Record<string, unknown>;
-    if (mediaUrl) {
+    if (isReaction) {
+      payload = { messaging_product: "whatsapp", to: normalizedPhone, type: "reaction", reaction: { message_id: targetMessageId, emoji: reactionEmoji } };
+    } else if (mediaUrl) {
       if (!/^https:\/\//i.test(mediaUrl)) {
         return new Response(JSON.stringify({ error: "URL do anexo inválida" }), {
           status: 400,
@@ -135,6 +146,11 @@ Deno.serve(async (req) => {
         type: "text",
         text: { body: normalizedText },
       };
+    }
+
+    const replyId = String(context_message_id ?? "").trim();
+    if (!isReaction && replyId.startsWith("wamid.") && replyId.length <= 255) {
+      payload.context = { message_id: replyId };
     }
 
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
