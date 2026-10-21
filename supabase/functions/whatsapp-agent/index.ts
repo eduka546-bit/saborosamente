@@ -2253,7 +2253,17 @@ Deno.serve(async (req: Request) => {
                   : statusMeta === "sent"
                     ? "enviado"
                     : null;
+
           if (!statusBanco || !statusEvent?.id) continue;
+          // Registra recibos também das mensagens manuais do painel. O recibo
+          // é salvo por ID Meta, inclusive se chegar antes de a UI persistir a
+          // mensagem. A função SQL mantém estados monotônicos.
+          const { error: reciboErro } = await supabase.rpc("registrar_recibo_whatsapp", {
+            p_message_id: String(statusEvent.id),
+            p_status: statusBanco,
+            p_telefone: String(statusEvent.recipient_id || ""),
+          });
+          if (reciboErro) console.error("Falha ao salvar recibo:", reciboErro.message);
           const atualizacao: Record<string, string> = { status: statusBanco };
           if (statusBanco === "entregue") atualizacao.entregue_em = new Date().toISOString();
           if (statusBanco === "lido") atualizacao.lida_em = new Date().toISOString();
