@@ -1585,20 +1585,22 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   const selecionarAnexo = (file?: File) => {
     if (!file) return;
-    const ehImagem = file.type.startsWith("image/");
-    const ehVideo = file.type.startsWith("video/");
-    const ehAudio = ["audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/amr", "audio/x-m4a"]
-      .some((tipo) => file.type === tipo || file.type.startsWith(tipo + ";"));
-    const permitidos = ehImagem || ehVideo || ehAudio || [
+    const tipoArquivo = file.type.split(";")[0].toLowerCase().trim();
+    const ehImagem = ["image/jpeg", "image/png"].includes(tipoArquivo);
+    const ehVideo = ["video/mp4", "video/3gpp"].includes(tipoArquivo);
+    const ehAudio = ["audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/amr"].includes(tipoArquivo);
+    const ehDocumento = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "text/plain",
-    ].includes(file.type);
-    if (!permitidos) return toast.error("Envie foto, vídeo, áudio em formato compatível, PDF ou documento.");
-    const limite = ehImagem ? 5 : (ehVideo || ehAudio) ? 16 : 20;
+    ].includes(tipoArquivo);
+    if (!ehImagem && !ehVideo && !ehAudio && !ehDocumento) {
+      return toast.error("Formato indisponível na Meta. Use JPG/PNG, MP4, MP3/M4A/OGG, PDF ou documento compatível.");
+    }
+    const limite = ehImagem ? 5 : 16;
     if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
     setAnexoFile(file);
     if (anexoPreview) URL.revokeObjectURL(anexoPreview);
