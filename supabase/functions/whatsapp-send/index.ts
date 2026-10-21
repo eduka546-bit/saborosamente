@@ -1,8 +1,26 @@
 import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const storageAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const PRIVATE_BUCKET = "whatsapp-envios-privados";
+const MAX_MEDIA_BYTES = 16 * 1024 * 1024;
+const MEDIA_MIMES: Record<string, string[]> = {
+  image: ["image/jpeg", "image/png"],
+  video: ["video/mp4", "video/3gpp"],
+  audio: ["audio/mpeg", "audio/mp4", "audio/ogg", "audio/aac", "audio/amr"],
+  document: [
+    "application/pdf", "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain",
+  ],
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +42,7 @@ Deno.serve(async (req) => {
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
     const body = await req.json();
-    const { to, text, media_url, media_type, filename, caption, action, sync_type, context_message_id, reaction_message_id, emoji } = body ?? {};
+    const { to, text, media_url, media_type, filename, caption, action, sync_type, context_message_id, reaction_message_id, emoji, media_storage_path, media_mime } = body ?? {};
 
     if (action === "coexistence_status") {
       const statusUrl =
@@ -81,6 +99,7 @@ Deno.serve(async (req) => {
     const normalizedPhone = String(to ?? "").replace(/\D/g, "");
     const normalizedText = String(text ?? "").trim();
     const mediaUrl = String(media_url ?? "").trim();
+    const storagePath = String(media_storage_path ?? "").trim();
     const mediaType = String(media_type ?? "").toLowerCase().trim();
 
     if (!/^\d{10,15}$/.test(normalizedPhone)) {
@@ -99,7 +118,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!isReaction && !normalizedText && !mediaUrl) {
+    if (!isReaction && !normalizedText && !mediaUrl && !storagePath) {
       return new Response(JSON.stringify({ error: "Informe uma mensagem ou anexo" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -113,9 +132,68 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (storagePath && mediaUrl) {
+      return new Response(JSON.stringify({ error: "Escolha apenas uma origem de arquivo." }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     let payload: Record<string, unknown>;
     if (isReaction) {
       payload = { messaging_product: "whatsapp", to: normalizedPhone, type: "reaction", reaction: { message_id: targetMessageId, emoji: reactionEmoji } };
+    } else if (storagePath) {
+      // Sem URLs públicas e sem links assinados no Graph. Fazemos upload
+      // diretamente para o endpoint da Meta com credenciais somente no servidor.
+      // O prefixo vincula o arquivo ao telefone do destinatário.
+      const tipo = ["image", "video", "audio"].includes(mediaType) ? mediaType : "document";
+      const mime = String(media_mime ?? "").toLowerCase().trim();
+      const pathValido = storagePath.startsWith(`whatsapp-saida/${normalizedPhone}/`)
+        && storagePath.length <= 400 && !storagePath.includes("..") && !storagePath.includes("\\");
+      if (!pathValido || !MEDIA_MIMES[tipo].includes(mime)) {
+        return new Response(JSON.stringify({ error: "Anexo privado inválido ou não suportado." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const { data: arquivo, error: arquivoErro } = await storageAdmin.storage
+        .from(PRIVATE_BUCKET).download(storagePath);
+      if (arquivoErro || !arquivo) {
+        return new Response(JSON.stringify({ error: "Anexo privado não encontrado." }), {
+          status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      if (arquivo.size <= 0 || arquivo.size > MAX_MEDIA_BYTES) {
+        return new Response(JSON.stringify({ error: "Arquivo maior que 16 MB ou vazio." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const tipoSalvo = arquivo.type?.split(";")[0]?.trim()?.toLowerCase();
+      if (tipoSalvo && tipoSalvo !== "application/octet-stream" && tipoSalvo !== mime) {
+        return new Response(JSON.stringify({ error: "Tipo do anexo difere do arquivo armazenado." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const nomeSeguro = String(filename ?? storagePath.split("/").at(-1) ?? "arquivo")
+        .replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 150) || "arquivo";
+      const form = new FormData();
+      form.set("messaging_product", "whatsapp");
+      form.set("type", mime);
+      form.set("file", new File([arquivo], nomeSeguro, { type: mime }));
+      const upload = await fetch(
+        `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/media`,
+        { method: "POST", headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` }, body: form },
+      );
+      const uploadDados = await upload.json().catch(() => ({}));
+      if (!upload.ok || !uploadDados?.id) {
+        console.error("Falha de upload de mídia na Meta:", upload.status);
+        return new Response(JSON.stringify({ error: uploadDados?.error?.message || "Falha ao entregar arquivo à Meta." }), {
+          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const media: Record<string, unknown> = { id: String(uploadDados.id) };
+      const legenda = String(caption ?? normalizedText ?? "").trim().slice(0, 1024);
+      if (["image", "video", "document"].includes(tipo) && legenda) media.caption = legenda;
+      if (tipo === "document") media.filename = nomeSeguro;
+      payload = { messaging_product: "whatsapp", to: normalizedPhone, type: tipo, [tipo]: media };
     } else if (mediaUrl) {
       if (!/^https:\/\//i.test(mediaUrl)) {
         return new Response(JSON.stringify({ error: "URL do anexo inválida" }), {
