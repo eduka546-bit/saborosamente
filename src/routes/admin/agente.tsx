@@ -44,6 +44,7 @@ import {
   MoreVertical,
   CheckCircle2,
   MailOpen,
+  Star,
   Mic,
   Pause,
   Play,
@@ -1314,6 +1315,56 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     .sort((a, b) => a.id - b.id)
     .map((item) => item.mensagem);
   const mensagensCompletas = mesclarMensagensWhatsApp(historicoGuardado, mensagensDaConversa);
+  const idsRecibos = [...new Set(
+    mensagensCompletas.map((msg) => String(msg.whatsapp_message_id ?? "")).filter((id) => id.startsWith("wamid.")),
+  )].slice(-100);
+  const { data: recibos = [] } = useQuery({
+    queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagem_recibos")
+        .select("whatsapp_message_id,status,atualizado_em")
+        .in("whatsapp_message_id", idsRecibos);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { whatsapp_message_id: string; status: string; atualizado_em: string }[];
+    },
+    enabled: idsRecibos.length > 0,
+    refetchInterval: 8000,
+  });
+  const recibosPorId = new Map((recibos as { whatsapp_message_id: string; status: string }[])
+    .map((recibo) => [recibo.whatsapp_message_id, recibo.status]));
+
+  const { data: favoritas = [] } = useQuery({
+    queryKey: ["whatsapp-favoritas", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagens_favoritas").select("chave").eq("conversa_id", conversa.id);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { chave: string }[];
+    },
+  });
+  const favoritosSet = new Set((favoritas as {chave: string}[]).map((item) => item.chave));
+  const [soFavoritas, setSoFavoritas] = useState(false);
+  const alternarFavorito = useMutation({
+    mutationFn: async ({ chave, favorita }: { chave: string; favorita: boolean }) => {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error("Faça login novamente.");
+      let query;
+      if (favorita) {
+        query = (supabase as any).from("whatsapp_mensagens_favoritas").delete()
+          .eq("user_id", user.id).eq("conversa_id", conversa.id).eq("chave", chave);
+      } else {
+        query = (supabase as any).from("whatsapp_mensagens_favoritas")
+          .insert({user_id: user.id, conversa_id: conversa.id, chave});
+      }
+      const { error } = await query;
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({queryKey: ["whatsapp-favoritas", conversa.id]}),
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   useEffect(() => {
     void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
@@ -1689,9 +1740,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     }
   };
 
-  const mensagensFiltradas = buscaMensagens.trim()
-    ? mensagens.filter((msg) => String(msg.content ?? "").toLocaleLowerCase("pt-BR").includes(buscaMensagens.trim().toLocaleLowerCase("pt-BR")))
-    : mensagens;
+  const mensagensFiltradas = mensagens.filter((msg) => {
+    if (soFavoritas && !favoritosSet.has(chaveMensagemPainel(msg))) return false;
+    return !buscaMensagens.trim()
+      || String(msg.content ?? "").toLocaleLowerCase("pt-BR")
+        .includes(buscaMensagens.trim().toLocaleLowerCase("pt-BR"));
+  });
 
   // Agrupa mensagens por data
   const grupos: { date: string; msgs: any[] }[] = [];
@@ -1780,6 +1834,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             </p>
           )}
         </div>
+        <button type="button" title={soFavoritas ? "Mostrar todas as mensagens" : "Mostrar apenas favoritas"}
+          aria-label={soFavoritas ? "Mostrar todas as mensagens" : "Filtrar mensagens favoritas"}
+          onClick={() => setSoFavoritas((v) => !v)}
+          className={`p-2 rounded-full ${soFavoritas ? "text-yellow-400" : t.textSub}`}>
+          <Star size={18} fill={soFavoritas ? "currentColor" : "none"}/>
+        </button>
         <button type="button" title="Buscar mensagens" aria-label="Buscar mensagens na conversa"
           onClick={() => setMostrarBusca((v) => !v)} className={`p-2 rounded-full ${t.textSub}`}><Search size={18}/></button>
         {!somenteCampanha && (
@@ -1868,6 +1928,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
         {mensagensFiltradas.map((msg: any, i: number) => {
           const isOut = msg.role === "assistant";
+          const chaveMsg = chaveMensagemPainel(msg);
+          const estaFavorita = favoritosSet.has(chaveMsg);
+          const statusMensagem = recibosPorId.get(String(msg.whatsapp_message_id || "")) || msg.deliveryStatus;
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
 
@@ -1896,6 +1959,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                 <div className="flex items-center gap-1 mt-1 opacity-75 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                   <button type="button" title="Copiar mensagem" aria-label="Copiar mensagem" className="p-1 rounded hover:bg-black/10"
                     onClick={async () => { try { await navigator.clipboard.writeText(String(msg.content ?? "")); toast.success("Mensagem copiada"); } catch { toast.error("Não foi possível copiar"); } }}><Copy size={14}/></button>
+                  <button type="button" title={estaFavorita ? "Desfavoritar mensagem" : "Favoritar mensagem"}
+                    aria-label={estaFavorita ? "Desfavoritar mensagem" : "Favoritar mensagem"}
+                    disabled={alternarFavorito.isPending}
+                    onClick={() => alternarFavorito.mutate({chave: chaveMsg, favorita: estaFavorita})}
+                    className={`rounded p-1 hover:bg-black/10 ${estaFavorita ? "text-yellow-400" : ""}`}>
+                    <Star size={14} fill={estaFavorita ? "currentColor" : "none"}/>
+                  </button>
                   {!somenteCampanha && msg.whatsapp_message_id && (
                     <button type="button" title="Responder citando" aria-label="Responder citando" className="p-1 rounded hover:bg-black/10"
                       onClick={() => { setRespondendo({ id: msg.whatsapp_message_id, texto: String(msg.content || "Mídia").slice(0, 150) }); setBuscaMensagens(""); setMostrarBusca(false); }}><Reply size={15}/></button>
@@ -1909,13 +1979,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                     <CheckCheck
                       size={14}
                       aria-label={
-                        msg.deliveryStatus === "lido"
+                        statusMensagem === "lido"
                           ? "Lida"
-                          : msg.deliveryStatus === "entregue"
+                          : statusMensagem === "entregue"
                             ? "Entregue"
-                            : "Enviada"
+                            : statusMensagem === "falhou" ? "Falha informada pela Meta" : "Enviada"
                       }
-                      className={msg.deliveryStatus === "lido" ? "text-[#53bdeb]" : "opacity-50"}
+                      className={statusMensagem === "lido" ? "text-[#53bdeb]" : statusMensagem === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
