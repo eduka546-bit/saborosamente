@@ -53,7 +53,7 @@ BEGIN
     (conversa_id, chave, mensagem, enviada_em)
   VALUES (
     NEW.id, public.whatsapp_chave_historico(item), item,
-    CASE WHEN (item->>'timestamp') ~ '^\\d{4}-\\d{2}-\\d{2}T'
+    CASE WHEN (item->>'timestamp') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
          THEN (item->>'timestamp')::timestamptz ELSE NULL END
   )
   ON CONFLICT (conversa_id, chave) DO UPDATE
@@ -76,7 +76,7 @@ FOR EACH ROW EXECUTE FUNCTION public.whatsapp_salvar_historico();
 INSERT INTO public.whatsapp_mensagens_historico
   (conversa_id, chave, mensagem, enviada_em)
 SELECT c.id, public.whatsapp_chave_historico(m.value), m.value,
-       CASE WHEN (m.value->>'timestamp') ~ '^\\d{4}-\\d{2}-\\d{2}T'
+       CASE WHEN (m.value->>'timestamp') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
             THEN (m.value->>'timestamp')::timestamptz ELSE NULL END
 FROM public.whatsapp_conversas c
 CROSS JOIN LATERAL jsonb_array_elements(
