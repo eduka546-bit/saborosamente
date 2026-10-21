@@ -2379,6 +2379,8 @@ Deno.serve(async (req: Request) => {
           await appendMensagem(conversaPausada.id, conversaPausada.mensagens ?? [], {
             role: "user",
             content: conteudoPausado,
+            whatsapp_message_id: msg.id,
+            ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
             ...(midiaPausada ? {
               media_path: midiaPausada.path,
               media_type: msg.type,
@@ -2477,6 +2479,8 @@ Deno.serve(async (req: Request) => {
           await appendMensagem(conversa.id, historico, {
             role: "user",
             content: texto || menuId || "",
+            whatsapp_message_id: msg.id,
+            ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
           });
           return new Response("OK", { status: 200 });
         }
@@ -2805,6 +2809,8 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
       historico = await appendMensagem(conversa.id, historico, {
         role: "user",
         content: texto,
+        whatsapp_message_id: msg.id,
+        ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
         ...(mediaAnexo ? {
           media_path: mediaAnexo.path,
           media_type: msg.type,
