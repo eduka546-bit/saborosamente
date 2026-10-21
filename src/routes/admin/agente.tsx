@@ -1887,7 +1887,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("todos");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "fixadas" | "arquivadas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
@@ -1999,6 +1999,47 @@ function AdminAgentePage() {
       return data ?? [];
     },
     staleTime: 5 * 60_000,
+  });
+
+  // Preferências privadas por administrador. Arquivar/fixar não modifica
+  // o atendimento e jamais elimina mensagens do WhatsApp.
+  const { data: preferencias = [] } = useQuery({
+    queryKey: ["whatsapp-organizacao"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_conversas_organizacao")
+        .select("conversa_id,fixada,arquivada,silenciada,nao_lida_manual");
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [] as PreferenciaConversa[];
+      if (error) throw error;
+      return (data ?? []) as PreferenciaConversa[];
+    },
+    staleTime: 20_000,
+  });
+  const preferenciasPorId = new Map(
+    (preferencias as PreferenciaConversa[]).map((pref) => [pref.conversa_id, pref]),
+  );
+  const organizarConversa = useMutation({
+    mutationFn: async ({ conversaId, patch }: { conversaId: string; patch: Partial<PreferenciaConversa> }) => {
+      const { data: { user }, error: usuarioErro } = await supabase.auth.getUser();
+      if (usuarioErro || !user) throw new Error("Faça login para organizar as conversas.");
+      const anterior = preferenciasPorId.get(conversaId);
+      const { error } = await (supabase as any).from("whatsapp_conversas_organizacao")
+        .upsert({
+          user_id: user.id,
+          conversa_id: conversaId,
+          fixada: anterior?.fixada ?? false,
+          arquivada: anterior?.arquivada ?? false,
+          silenciada: anterior?.silenciada ?? false,
+          nao_lida_manual: anterior?.nao_lida_manual ?? false,
+          ...patch,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,conversa_id" });
+      if (error?.code === "42P01" || error?.code === "PGRST205") {
+        throw new Error("A organização será habilitada após publicar a atualização do banco.");
+      }
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["whatsapp-organizacao"] }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao organizar a conversa"),
   });
 
   const toggleAgenteMutation = useMutation({
@@ -2124,8 +2165,11 @@ function AdminAgentePage() {
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : conversasAtendimento;
   const filtered = itensDaLista.filter((c: any) => {
+    const pref = preferenciasPorId.get(c.id);
+    if (filterModo === "arquivadas" ? !pref?.arquivada : filterModo !== "campanhas" && pref?.arquivada) return false;
     const matchModo =
-      filterModo === "todos" || filterModo === "campanhas" ||
+      filterModo === "todos" || filterModo === "campanhas" || filterModo === "arquivadas" ||
+      (filterModo === "fixadas" && !!pref?.fixada) ||
       (filterModo === "pendentes" ? precisaResponder(c) :
        filterModo === "respondidas" ? foiRespondida(c) :
        filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
@@ -2136,6 +2180,11 @@ function AdminAgentePage() {
       c.telefone?.includes(search);
     const cidade = c.cidade || cidadesPorTelefone.get(String(c.telefone ?? "").replace(/\D/g, "")) || "Sem cidade";
     return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
+  }).sort((a: any, b: any) => {
+    const aFixada = !!preferenciasPorId.get(a.id)?.fixada;
+    const bFixada = !!preferenciasPorId.get(b.id)?.fixada;
+    return Number(bFixada) - Number(aFixada) ||
+      new Date(b.ultima_msg ?? 0).getTime() - new Date(a.ultima_msg ?? 0).getTime();
   });
 
   const iniciarConversa = async () => {
@@ -2263,7 +2312,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["pendentes", "respondidas", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["todos", "pendentes", "respondidas", "humano", "ia", "fixadas", "arquivadas", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -2287,7 +2336,11 @@ function AdminAgentePage() {
                       ? "Humano"
                       : f === "ia"
                         ? "IA"
-                        : `Campanhas${carregandoCampanhas ? "" : campanhasSemResposta.length ? ` (${campanhasSemResposta.length})` : ""}`}
+                        : f === "fixadas"
+                          ? "Fixadas"
+                          : f === "arquivadas"
+                            ? "Arquivadas"
+                            : `Campanhas${carregandoCampanhas ? "" : campanhasSemResposta.length ? ` (${campanhasSemResposta.length})` : ""}`}
             </button>
           ))}
         </div>
@@ -2317,6 +2370,7 @@ function AdminAgentePage() {
           ) : (
             filtered.map((c: any) => {
               const isActive = activeId === c.id;
+              const pref = preferenciasPorId.get(c.id);
               const isHumano = c.modo === "humano";
               const isCampanha = c.somenteCampanha === true;
               const lastMsg = c.mensagens?.at(-1);
@@ -2330,6 +2384,9 @@ function AdminAgentePage() {
                   onClick={() => {
                     setActiveId(c.id);
                     setShowConfig(false);
+                    if (pref?.nao_lida_manual && !isCampanha) {
+                      organizarConversa.mutate({ conversaId: c.id, patch: { nao_lida_manual: false } });
+                    }
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 min-h-[72px] cursor-pointer transition-all border-b ${t.divider} ${isActive ? t.contactItemActive : t.contactItem}`}
                 >
@@ -2343,6 +2400,8 @@ function AdminAgentePage() {
                       <p className={`font-semibold text-sm truncate ${t.text}`}>
                         {c.nome || c.telefone}
                       </p>
+                      {pref?.fixada && <Pin size={12} className={t.textSub} aria-label="Conversa fixada" />}
+                      {pref?.silenciada && <BellOff size={12} className={t.textSub} aria-label="Conversa silenciada" />}
                       <span
                         className={`text-[11px] shrink-0 ml-2 ${isHumano ? "text-[#f0a202]" : t.textTime}`}
                       >
@@ -2357,13 +2416,41 @@ function AdminAgentePage() {
                             ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
                             : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
                       </p>
-                      {pendente ? (
+                      {pref?.nao_lida_manual ? (
+                        <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-[#00a884] text-white" title="Marcada como não lida">●</span>
+                      ) : pendente ? (
                         <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-red-500 text-white" title="Aguardando sua resposta">{Math.max(1, naoRespondidas)}</span>
                       ) : isHumano ? (
                         <span className={`ml-2 px-1.5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}>VOCÊ</span>
                       ) : null}
                     </div>
                   </div>
+                  {!isCampanha && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" onClick={(event) => event.stopPropagation()}
+                          aria-label={`Opções para ${c.nome || c.telefone}`} title="Opções da conversa"
+                          className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}><MoreVertical size={19}/></button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { fixada: !pref?.fixada } })}>
+                          <Pin className="mr-2 h-4 w-4"/>{pref?.fixada ? "Desafixar conversa" : "Fixar conversa"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { arquivada: !pref?.arquivada } })}>
+                          {pref?.arquivada ? <ArchiveRestore className="mr-2 h-4 w-4"/> : <Archive className="mr-2 h-4 w-4"/>}
+                          {pref?.arquivada ? "Desarquivar" : "Arquivar conversa"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { silenciada: !pref?.silenciada } })}>
+                          {pref?.silenciada ? <Bell className="mr-2 h-4 w-4"/> : <BellOff className="mr-2 h-4 w-4"/>}
+                          {pref?.silenciada ? "Ativar avisos" : "Silenciar avisos"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { nao_lida_manual: !pref?.nao_lida_manual } })}>
+                          {pref?.nao_lida_manual ? <CheckCircle2 className="mr-2 h-4 w-4"/> : <MailOpen className="mr-2 h-4 w-4"/>}
+                          {pref?.nao_lida_manual ? "Marcar como lida" : "Marcar como não lida"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               );
             })
