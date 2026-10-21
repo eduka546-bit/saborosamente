@@ -33,6 +33,8 @@ import {
   ToggleRight,
   GripVertical,
   Pencil,
+  Copy,
+  Reply,
   X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -56,12 +58,14 @@ async function sendManualMessage(
   to: string,
   text: string,
   anexo?: AnexoSaida | null,
+  replyToId?: string,
 ): Promise<{ ok: boolean; errorMsg?: string; messageId?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("whatsapp-send", {
       body: {
         to,
         text,
+        ...(replyToId ? { context_message_id: replyToId } : {}),
         ...(anexo ? {
           media_url: anexo.url,
           media_type: anexo.tipo,
@@ -1196,6 +1200,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [respondendo, setRespondendo] = useState<{ id: string; texto: string } | null>(null);
+  const [buscaMensagens, setBuscaMensagens] = useState("");
+  const [mostrarBusca, setMostrarBusca] = useState(false);
   const [sending, setSending] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
@@ -1373,6 +1380,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   }, [mensagens.length]);
 
   useEffect(() => {
+    setRespondendo(null);
+    setBuscaMensagens("");
+    setMostrarBusca(false);
     setNomeEditado(conversa.nome || "");
     setEditandoNome(false);
   }, [conversa.id, conversa.nome]);
@@ -1445,6 +1455,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const handleSend = async () => {
     const texto = msgText.trim();
     if ((!texto && !anexoFile) || sending) return;
+    const respostaAtual = respondendo;
     setSending(true);
     try {
       let anexo: AnexoSaida | null = null;
@@ -1464,7 +1475,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
       }
 
-      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo);
+      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo, respostaAtual?.id);
       if (!ok) throw new Error(errorMsg || "Falha ao enviar");
 
       const agora = new Date().toISOString();
@@ -1474,6 +1485,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         manual: true,
         timestamp: agora,
         deliveryStatus: "enviado",
+        ...(respostaAtual ? { reply_to_message_id: respostaAtual.id, reply_to_preview: respostaAtual.texto } : {}),
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
         ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
@@ -1486,6 +1498,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
       toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
       setMsgText("");
+      setRespondendo(null);
       limparAnexo();
       setEmojiAberto(false);
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
@@ -1496,9 +1509,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     }
   };
 
+  const mensagensFiltradas = buscaMensagens.trim()
+    ? mensagens.filter((msg) => String(msg.content ?? "").toLocaleLowerCase("pt-BR").includes(buscaMensagens.trim().toLocaleLowerCase("pt-BR")))
+    : mensagens;
+
   // Agrupa mensagens por data
   const grupos: { date: string; msgs: any[] }[] = [];
-  for (const msg of mensagens) {
+  for (const msg of mensagensFiltradas) {
     const d = msg.timestamp ? format(new Date(msg.timestamp), "dd/MM/yyyy") : "Hoje";
     const last = grupos[grupos.length - 1];
     if (last?.date === d) last.msgs.push(msg);
@@ -1583,6 +1600,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             </p>
           )}
         </div>
+        <button type="button" title="Buscar mensagens" aria-label="Buscar mensagens na conversa"
+          onClick={() => setMostrarBusca((v) => !v)} className={`p-2 rounded-full ${t.textSub}`}><Search size={18}/></button>
         {!somenteCampanha && (
           <button
             onClick={() => onToggleModo(conversa.id, conversa.modo)}
@@ -1638,19 +1657,28 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         </div>
       )}
 
+      {mostrarBusca && (
+        <div className={`shrink-0 flex items-center gap-2 px-3 py-2 ${t.chatHeader}`}>
+          <Search size={17} className={t.textSub} />
+          <input value={buscaMensagens} onChange={(e) => setBuscaMensagens(e.target.value)} autoFocus
+            aria-label="Buscar nesta conversa" placeholder="Buscar mensagens nesta conversa" className={`flex-1 min-w-0 rounded-md px-2 py-2 text-sm outline-none ${t.chatInputField}`} />
+          <span className={`text-xs ${t.textSub}`}>{mensagensFiltradas.length}</span>
+          <button onClick={() => { setMostrarBusca(false); setBuscaMensagens(""); }} title="Fechar busca" className={`p-2 ${t.textSub}`}><X size={17}/></button>
+        </div>
+      )}
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-[6%] py-3 space-y-0.5">
-        {mensagens.length === 0 && (
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {mensagensFiltradas.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
               className={`px-4 py-2 rounded-lg text-xs ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#e2ffc7] text-[#667781]"}`}
             >
-              Nenhuma mensagem ainda
+              {buscaMensagens ? "Nenhuma mensagem encontrada" : "Nenhuma mensagem ainda"}
             </div>
           </div>
         )}
 
-        {mensagens.map((msg: any, i: number) => {
+        {mensagensFiltradas.map((msg: any, i: number) => {
           const isOut = msg.role === "assistant";
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
@@ -1658,7 +1686,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           return (
             <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"} mb-0.5`}>
               <div
-                className={`relative max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
+                className={`group relative max-w-[88%] sm:max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
                   isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
@@ -1669,11 +1697,22 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                       : "SaborosaMente"
                     : conversa.nome || "Cliente"}
                 </p>
+                {msg.reply_to_preview && (
+                  <div className={`mb-1 rounded-md border-l-[3px] border-[#00a884] px-2 py-1 text-xs opacity-85 ${dark ? "bg-black/20" : "bg-black/5"}`}>{msg.reply_to_preview}</div>
+                )}
                 {msg.content && !msg.media_path && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
+                <div className="flex items-center gap-1 mt-1 opacity-75 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <button type="button" title="Copiar mensagem" aria-label="Copiar mensagem" className="p-1 rounded hover:bg-black/10"
+                    onClick={async () => { try { await navigator.clipboard.writeText(String(msg.content ?? "")); toast.success("Mensagem copiada"); } catch { toast.error("Não foi possível copiar"); } }}><Copy size={14}/></button>
+                  {!somenteCampanha && msg.whatsapp_message_id && (
+                    <button type="button" title="Responder citando" aria-label="Responder citando" className="p-1 rounded hover:bg-black/10"
+                      onClick={() => { setRespondendo({ id: msg.whatsapp_message_id, texto: String(msg.content || "Mídia").slice(0, 150) }); setBuscaMensagens(""); setMostrarBusca(false); }}><Reply size={15}/></button>
+                  )}
+                </div>
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
@@ -1700,7 +1739,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       </div>
 
       {/* Input */}
-      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`}>
+      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`} style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
         {somenteCampanha ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
@@ -1723,6 +1762,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           </div>
         ) : (
           <div className="relative">
+            {respondendo && (
+              <div className={`mb-2 flex items-center gap-2 border-l-[3px] border-[#00a884] rounded-md px-3 py-2 ${t.chatInputField}`}>
+                <Reply size={17} className="text-[#00a884] shrink-0"/>
+                <div className="flex-1 min-w-0"><p className="text-[11px] font-bold text-[#00a884]">Respondendo a uma mensagem</p><p className="text-xs truncate">{respondendo.texto}</p></div>
+                <button type="button" onClick={() => setRespondendo(null)} aria-label="Cancelar resposta"><X size={17}/></button>
+              </div>
+            )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
                 {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
@@ -1762,7 +1808,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("pendentes");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
@@ -2064,7 +2110,7 @@ function AdminAgentePage() {
   const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
 
   return (
-    <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
+    <div className={`flex h-[calc(100dvh-56px)] overflow-hidden ${t.app}`}>
       {/* ── Sidebar esquerda ── */}
       <div
         className={`flex flex-col w-full md:w-[380px] shrink-0 border-r ${t.sidebar} ${t.divider} ${activeId && !showConfig ? "hidden md:flex" : "flex"}`}
@@ -2303,7 +2349,7 @@ function AdminAgentePage() {
 
       {/* Mobile: chat em fullscreen */}
       {activeId && !showConfig && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col">
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col h-[100dvh] overflow-hidden">
           {activeConversa && (
             <ChatView
               conversa={activeConversa}
