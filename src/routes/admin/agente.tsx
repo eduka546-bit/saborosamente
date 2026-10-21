@@ -64,7 +64,8 @@ export const Route = createFileRoute("/admin/agente")({
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 type AnexoSaida = {
-  url: string;
+  url?: string;
+  storagePath?: string;
   tipo: "image" | "video" | "audio" | "document";
   nome: string;
   mime: string;
@@ -83,8 +84,10 @@ async function sendManualMessage(
         text,
         ...(replyToId ? { context_message_id: replyToId } : {}),
         ...(anexo ? {
-          media_url: anexo.url,
+          ...(anexo.url ? { media_url: anexo.url } : {}),
+          ...(anexo.storagePath ? { media_storage_path: anexo.storagePath } : {}),
           media_type: anexo.tipo,
+          media_mime: anexo.mime,
           filename: anexo.nome,
           caption: text,
         } : {}),
@@ -1202,8 +1205,21 @@ function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
 }
 
 function MidiaEnviada({ msg }: { msg: any }) {
-  const url = String(msg?.media_url || "");
-  if (!url) return null;
+  const privatePath = String(msg?.media_storage_path || "");
+  const [privateUrl, setPrivateUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!privatePath) return;
+    let vigente = true;
+    supabase.storage.from("whatsapp-envios-privados").createSignedUrl(privatePath, 600)
+      .then(({ data, error }) => {
+        if (vigente) setPrivateUrl(!error ? data?.signedUrl ?? null : null);
+      });
+    return () => { vigente = false; };
+  }, [privatePath]);
+  const url = privatePath ? privateUrl : String(msg?.media_url || "");
+  if (!url) {
+    return privatePath ? <span className="text-xs opacity-70">Carregando anexo protegido…</span> : null;
+  }
   const tipo = String(msg?.media_type || "").toLowerCase();
   const mime = String(msg?.mime_type || "").toLowerCase();
   if (tipo === "image" || mime.startsWith("image/")) {
@@ -1630,11 +1646,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
         const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
         const { error: uploadError } = await supabase.storage
-          .from("agente-arquivos")
+          .from("whatsapp-envios-privados")
           .upload(path, anexoFile, { contentType: anexoFile.type || "application/octet-stream", upsert: false });
         if (uploadError) throw uploadError;
-        const url = supabase.storage.from("agente-arquivos").getPublicUrl(path).data.publicUrl;
-        anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
+        anexo = {
+          storagePath: path, tipo, nome: anexoFile.name,
+          mime: anexoFile.type || "application/octet-stream",
+        };
       }
 
       const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo, respostaAtual?.id);
@@ -1649,7 +1667,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         deliveryStatus: "enviado",
         ...(respostaAtual ? { reply_to_message_id: respostaAtual.id, reply_to_preview: respostaAtual.texto } : {}),
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
-        ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
+        ...(anexo ? { media_storage_path: anexo.storagePath, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
       const novas = [...mensagensDaConversa, novaMensagem].slice(-30);
       const { error: persistError } = await supabase
@@ -1874,7 +1892,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
-                {msg.media_url && <MidiaEnviada msg={msg} />}
+                {(msg.media_url || msg.media_storage_path) && <MidiaEnviada msg={msg} />}
                 <div className="flex items-center gap-1 mt-1 opacity-75 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                   <button type="button" title="Copiar mensagem" aria-label="Copiar mensagem" className="p-1 rounded hover:bg-black/10"
                     onClick={async () => { try { await navigator.clipboard.writeText(String(msg.content ?? "")); toast.success("Mensagem copiada"); } catch { toast.error("Não foi possível copiar"); } }}><Copy size={14}/></button>
@@ -2563,7 +2581,7 @@ function AdminAgentePage() {
                           ? `📣 ${c.statusCampanha === "enviado" ? "Enviado à Meta" : c.statusCampanha === "entregue" ? "Entregue" : c.statusCampanha === "lido" ? "Lido" : c.statusCampanha}`
                           : pendente
                             ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
-                            : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
+                            : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || ((lastMsg?.media_url || lastMsg?.media_storage_path) ? "📎 Arquivo enviado" : "")}</>}
                       </p>
                       {pref?.nao_lida_manual ? (
                         <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-[#00a884] text-white" title="Marcada como não lida">●</span>
