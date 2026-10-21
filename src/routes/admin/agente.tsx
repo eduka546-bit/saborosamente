@@ -54,6 +54,7 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { ativarPush, statusPush } from "@/lib/push";
+import { chaveMensagemPainel, mesclarMensagensWhatsApp } from "@/lib/whatsapp-chat-history";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -1232,16 +1233,6 @@ type PreferenciaConversa = {
   nao_lida_manual: boolean;
 };
 
-// Identificador estável entre a janela curta do agente e o histórico longo.
-// Para legados sem ID Meta, a combinação inclui o horário e mídia.
-function chaveMensagemPainel(msg: any): string {
-  if (msg?.whatsapp_message_id) return "meta:" + msg.whatsapp_message_id;
-  return JSON.stringify([
-    msg?.role ?? "", msg?.content ?? "", msg?.timestamp ?? "",
-    msg?.media_path ?? "", msg?.media_url ?? "", msg?.campaign_id ?? "",
-  ]);
-}
-
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
@@ -1306,20 +1297,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     .flat()
     .sort((a, b) => a.id - b.id)
     .map((item) => item.mensagem);
-  const mensagensCompletas = [...historicoGuardado];
-  const indicesHistorico = new Map(
-    mensagensCompletas.map((msg, i) => [chaveMensagemPainel(msg), i]),
-  );
-  for (const msg of mensagensDaConversa) {
-    const key = chaveMensagemPainel(msg);
-    const indice = indicesHistorico.get(key);
-    if (indice === undefined) {
-      indicesHistorico.set(key, mensagensCompletas.length);
-      mensagensCompletas.push(msg);
-    } else {
-      mensagensCompletas[indice] = msg; // Versão mais recente da janela curta
-    }
-  }
+  const mensagensCompletas = mesclarMensagensWhatsApp(historicoGuardado, mensagensDaConversa);
 
   useEffect(() => {
     void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
