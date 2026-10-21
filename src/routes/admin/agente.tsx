@@ -1690,6 +1690,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const handleSend = async () => {
     const texto = msgText.trim();
     if ((!texto && !anexoFile) || sending) return;
+    // A Meta não entrega legenda junto com mensagens do tipo audio. Não
+    // gravamos no histórico texto que o destinatário nunca recebeu.
+    if (anexoFile?.type.startsWith("audio/") && texto) {
+      toast.error("Áudio não permite legenda na Meta. Envie o texto separadamente.");
+      return;
+    }
     const respostaAtual = respondendo;
     setSending(true);
     try {
