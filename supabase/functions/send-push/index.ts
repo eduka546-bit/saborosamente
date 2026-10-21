@@ -34,7 +34,10 @@ Deno.serve(async (req) => {
     const authorization = await authorizeAdminOrService(req);
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
-    const { title, body, url, tag } = await req.json().catch(() => ({}));
+    const { title, body, url, tag, conversation_id } = await req.json().catch(() => ({}));
+    const conversaId = typeof conversation_id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversation_id)
+        ? conversation_id : null;
 
     const payload = JSON.stringify({
       title: title || "Saborosamente",
@@ -47,7 +50,7 @@ Deno.serve(async (req) => {
     // Busca todas as inscrições ativas
     const { data: subs, error } = await supabase
       .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth");
+      .select("id, user_id, endpoint, p256dh, auth");
 
     if (error) throw error;
     if (!subs || subs.length === 0) {
@@ -56,11 +59,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Respeita os silenciamentos definidos pelo administrador para esta conversa.
+    // Se a migração ainda não estiver aplicada, continua enviando avisos existentes.
+    const silenciados = new Set<string>();
+    if (conversaId) {
+      const { data: preferencias, error: preferenciasErro } = await supabase
+        .from("whatsapp_conversas_organizacao")
+        .select("user_id")
+        .eq("conversa_id", conversaId)
+        .eq("silenciada", true);
+      if (preferenciasErro && !["42P01", "PGRST205"].includes(preferenciasErro.code)) {
+        console.error("Falha ao verificar silenciamentos:", preferenciasErro.message);
+      }
+      (preferencias ?? []).forEach((p: any) => silenciados.add(p.user_id));
+    }
+    const destinatarios = subs.filter((s: any) => !s.user_id || !silenciados.has(s.user_id));
+
     let enviados = 0;
     const expiradas: string[] = [];
 
     await Promise.all(
-      subs.map(async (s: any) => {
+      destinatarios.map(async (s: any) => {
         const subscription = {
           endpoint: s.endpoint,
           keys: { p256dh: s.p256dh, auth: s.auth },
@@ -86,7 +105,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, enviados, removidas: expiradas.length, total: subs.length }),
+      JSON.stringify({ ok: true, enviados, removidas: expiradas.length, total: subs.length, silenciados: subs.length - destinatarios.length }),
       { headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (e) {
