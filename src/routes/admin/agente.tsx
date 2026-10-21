@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
@@ -35,9 +35,18 @@ import {
   Pencil,
   Copy,
   Reply,
+  Pin,
+  Archive,
+  ArchiveRestore,
+  BellOff,
+  Bell,
+  MoreVertical,
+  CheckCircle2,
+  MailOpen,
   X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -1195,6 +1204,24 @@ const EMOJIS_RAPIDOS = [
   "🚚","📦","🛒","💳","💰","📍","📅","⏰","📲","💬",
 ];
 
+type PreferenciaConversa = {
+  conversa_id: string;
+  fixada: boolean;
+  arquivada: boolean;
+  silenciada: boolean;
+  nao_lida_manual: boolean;
+};
+
+// Identificador estável entre a janela curta do agente e o histórico longo.
+// Para legados sem ID Meta, a combinação inclui o horário e mídia.
+function chaveMensagemPainel(msg: any): string {
+  if (msg?.whatsapp_message_id) return "meta:" + msg.whatsapp_message_id;
+  return JSON.stringify([
+    msg?.role ?? "", msg?.content ?? "", msg?.timestamp ?? "",
+    msg?.media_path ?? "", msg?.media_url ?? "", msg?.campaign_id ?? "",
+  ]);
+}
+
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
@@ -1213,6 +1240,50 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const [salvandoNome, setSalvandoNome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
+  // O histórico permanente fica em tabela separada: preserva todas as novas
+  // mensagens enquanto o agente continua usando só a janela curta.
+  const { data: historicoPaginas, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["whatsapp-historico", conversa.id],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const porPagina = 100;
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagens_historico")
+        .select("id, mensagem")
+        .eq("conversa_id", conversa.id)
+        .order("id", { ascending: false })
+        .range(pageParam * porPagina, (pageParam + 1) * porPagina - 1);
+      // Permite testar o novo layout antes de aplicar a migração no banco.
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { id: number; mensagem: any }[];
+    },
+    getNextPageParam: (ultimaPagina, todasPaginas) => ultimaPagina.length === 100 ? todasPaginas.length : undefined,
+    enabled: Boolean(conversa.id && !conversa.somenteCampanha),
+    staleTime: 10_000,
+  });
+  const historicoGuardado = (historicoPaginas?.pages ?? [])
+    .flat()
+    .sort((a, b) => a.id - b.id)
+    .map((item) => item.mensagem);
+  const mensagensCompletas = [...historicoGuardado];
+  const indicesHistorico = new Map(
+    mensagensCompletas.map((msg, i) => [chaveMensagemPainel(msg), i]),
+  );
+  for (const msg of mensagensDaConversa) {
+    const key = chaveMensagemPainel(msg);
+    const indice = indicesHistorico.get(key);
+    if (indice === undefined) {
+      indicesHistorico.set(key, mensagensCompletas.length);
+      mensagensCompletas.push(msg);
+    } else {
+      mensagensCompletas[indice] = msg; // Versão mais recente da janela curta
+    }
+  }
+
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+  }, [conversa.id, mensagensDaConversa.length, queryClient]);
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
@@ -1283,7 +1354,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   // Quando a IA transfere para uma pessoa, ela já grava um resumo como mensagem
   // de sistema. Reaproveitamos esse texto como briefing fixo para a equipe.
-  const resumoEquipeRaw = [...mensagensDaConversa]
+  const resumoEquipeRaw = [...mensagensCompletas]
     .reverse()
     .find((m: any) => m?.role === "system" && String(m?.content ?? "").startsWith("[Resumo para equipe]"));
   const resumoEquipe = resumoEquipeRaw
@@ -1331,9 +1402,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   );
   const statusPorCampanha = new Map(enviosValidos.map((envio) => [envio.campanha_id, envio.status]));
   const campanhasJaGravadas = new Set(
-    mensagensDaConversa.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
+    mensagensCompletas.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
   );
-  const historicoNormalizado = mensagensDaConversa.map((msg: any) => {
+  const historicoNormalizado = mensagensCompletas.map((msg: any) => {
     if (!msg?.campaign_id) return msg;
     const campanha = campanhasPorId.get(msg.campaign_id);
     return {
@@ -1361,7 +1432,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   // jogava essas mensagens para 1970 e fazia todas as falas do cliente aparecerem
   // acima das nossas respostas. Preservamos a ordem do histórico e só usamos
   // ordenação cronológica quando todas as mensagens já possuem timestamp válido.
-  const historicoTemTimestamps = mensagensDaConversa.every((msg: any) => {
+  const historicoTemTimestamps = mensagensCompletas.every((msg: any) => {
     const ts = msg?.timestamp ? new Date(msg.timestamp).getTime() : NaN;
     return Number.isFinite(ts);
   });
@@ -1668,6 +1739,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       )}
       {/* Mensagens */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {hasNextPage && (
+          <div className="flex justify-center py-2">
+            <button type="button" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold ${t.settingsInput} disabled:opacity-50`}>
+              {isFetchingNextPage ? "Carregando..." : "Carregar mensagens anteriores"}
+            </button>
+          </div>
+        )}
         {mensagensFiltradas.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
