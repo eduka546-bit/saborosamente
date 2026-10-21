@@ -58,7 +58,7 @@ export const Route = createFileRoute("/admin/agente")({
 // ── helpers ───────────────────────────────────────────────────────────────────
 type AnexoSaida = {
   url: string;
-  tipo: "image" | "video" | "document";
+  tipo: "image" | "video" | "audio" | "document";
   nome: string;
   mime: string;
 };
@@ -1133,6 +1133,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
 // Renderiza mídia recebida do WhatsApp usando URL assinada do bucket privado.
 function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [velocidade, setVelocidade] = useState(1);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [erro, setErro] = useState(false);
 
   useEffect(() => {
@@ -1172,7 +1174,16 @@ function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
   }
 
   if (tipo === "audio" || tipo === "voice" || mime.startsWith("audio/")) {
-    return <audio className="w-full min-w-[240px] mt-1" controls preload="metadata" src={url} />;
+    return <div className="mt-1 flex flex-col gap-1">
+      <audio ref={audioRef} className="w-full min-w-[210px] max-w-[300px]" controls preload="metadata" src={url}/>
+      <button type="button" aria-label="Alterar velocidade do áudio"
+        className="self-end rounded-full bg-black/10 px-3 py-1 text-[11px] font-semibold"
+        onClick={() => {
+          const proxima = velocidade === 1 ? 1.5 : velocidade === 1.5 ? 2 : 1;
+          setVelocidade(proxima);
+          if (audioRef.current) audioRef.current.playbackRate = proxima;
+        }}>{velocidade}x</button>
+    </div>;
   }
 
   return (
@@ -1193,6 +1204,9 @@ function MidiaEnviada({ msg }: { msg: any }) {
   }
   if (tipo === "video" || mime.startsWith("video/")) {
     return <video src={url} controls preload="metadata" className="max-w-full max-h-[360px] rounded-xl mt-1" />;
+  }
+  if (tipo === "audio" || mime.startsWith("audio/")) {
+    return <audio src={url} controls preload="metadata" className="min-w-[210px] max-w-full mt-1"/>;
   }
   return <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15"><FileText size={18}/><span className="text-xs font-semibold truncate">{msg.media_name || "Abrir arquivo"}</span></a>;
 }
@@ -1446,9 +1460,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       )
     : [...campanhasOrdenadas, ...historicoNormalizado];
 
+  // Carregar mensagens antigas não deve jogar a rolagem de volta ao final.
+  const ultimaMensagemVisivel = mensagens.at(-1);
+  const chaveUltimaVisivel = ultimaMensagemVisivel ? chaveMensagemPainel(ultimaMensagemVisivel) : "";
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens.length]);
+  }, [conversa.id, chaveUltimaVisivel]);
 
   useEffect(() => {
     setRespondendo(null);
@@ -1499,7 +1516,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     if (!file) return;
     const ehImagem = file.type.startsWith("image/");
     const ehVideo = file.type.startsWith("video/");
-    const permitidos = ehImagem || ehVideo || [
+    const ehAudio = ["audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/amr", "audio/x-m4a"]
+      .some((tipo) => file.type === tipo || file.type.startsWith(tipo + ";"));
+    const permitidos = ehImagem || ehVideo || ehAudio || [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -1507,12 +1526,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "text/plain",
     ].includes(file.type);
-    if (!permitidos) return toast.error("Envie imagem, vídeo, PDF ou documento.");
-    const limite = ehImagem ? 5 : ehVideo ? 16 : 20;
+    if (!permitidos) return toast.error("Envie foto, vídeo, áudio em formato compatível, PDF ou documento.");
+    const limite = ehImagem ? 5 : (ehVideo || ehAudio) ? 16 : 20;
     if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
     setAnexoFile(file);
     if (anexoPreview) URL.revokeObjectURL(anexoPreview);
-    setAnexoPreview(ehImagem || ehVideo ? URL.createObjectURL(file) : null);
+    setAnexoPreview(ehImagem || ehVideo || ehAudio ? URL.createObjectURL(file) : null);
     setEmojiAberto(false);
   };
 
@@ -1535,7 +1554,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           ? "image"
           : anexoFile.type.startsWith("video/")
             ? "video"
-            : "document";
+            : anexoFile.type.startsWith("audio/")
+              ? "audio"
+              : "document";
         const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
         const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
         const { error: uploadError } = await supabase.storage
@@ -1850,7 +1871,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
-                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
+                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : anexoPreview && anexoFile.type.startsWith("audio/") ? <audio controls preload="metadata" src={anexoPreview} className="w-40 max-w-[45vw]"/> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
                 <div className="min-w-0 flex-1"><p className={`truncate text-xs font-semibold ${t.text}`}>{anexoFile.name}</p><p className={`text-[10px] ${t.textSub}`}>{(anexoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
                 <button onClick={limparAnexo} className={`rounded-full p-1.5 ${t.textSub}`} title="Remover anexo"><X size={16}/></button>
               </div>
@@ -1860,7 +1881,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                 <div className="grid grid-cols-8 gap-1">{EMOJIS_RAPIDOS.map((emoji) => <button key={emoji} onClick={() => setMsgText((atual) => atual + emoji)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-black/10">{emoji}</button>)}</div>
               </div>
             )}
-            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
+            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.mp3,.m4a,.ogg,.aac,.amr,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
             <div className="flex items-center gap-2">
               <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
                 <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
