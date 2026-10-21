@@ -1209,6 +1209,7 @@ function MidiaEnviada({ msg }: { msg: any }) {
   const privatePath = String(msg?.media_storage_path || "");
   const [privateUrl, setPrivateUrl] = useState<string | null>(null);
   useEffect(() => {
+    setPrivateUrl(null);
     if (!privatePath) return;
     let vigente = true;
     supabase.storage.from("whatsapp-envios-privados").createSignedUrl(privatePath, 600)
@@ -1585,6 +1586,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   const selecionarAnexo = (file?: File) => {
     if (!file) return;
+    // Alguns iPhones enviam M4A como audio/x-m4a. A extensão permanece
+    // idêntica e apenas normalizamos o Content-Type aceito pela Cloud API.
+    if (file.type === "audio/x-m4a" || (!file.type && /\.m4a$/i.test(file.name))) {
+      file = new globalThis.File([file], file.name, { type: "audio/mp4" });
+    }
     const tipoArquivo = file.type.split(";")[0].toLowerCase().trim();
     const ehImagem = ["image/jpeg", "image/png"].includes(tipoArquivo);
     const ehVideo = ["video/mp4", "video/3gpp"].includes(tipoArquivo);
