@@ -43,6 +43,10 @@ import {
   MoreVertical,
   CheckCircle2,
   MailOpen,
+  Mic,
+  Pause,
+  Play,
+  Square,
   X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -1249,6 +1253,26 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
+  const gravadorRef = useRef<MediaRecorder | null>(null);
+  const microfoneRef = useRef<MediaStream | null>(null);
+  const trechosAudioRef = useRef<Blob[]>([]);
+  const cancelarAoPararRef = useRef(false);
+  const [gravando, setGravando] = useState(false);
+  const [gravacaoPausada, setGravacaoPausada] = useState(false);
+  const [segundosGravacao, setSegundosGravacao] = useState(0);
+
+  useEffect(() => {
+    if (!gravando || gravacaoPausada) return;
+    const relogio = window.setInterval(() => setSegundosGravacao((s) => s + 1), 1000);
+    return () => window.clearInterval(relogio);
+  }, [gravando, gravacaoPausada]);
+  useEffect(() => () => {
+    cancelarAoPararRef.current = true;
+    if (gravadorRef.current?.state && gravadorRef.current.state !== "inactive") {
+      gravadorRef.current.stop();
+    }
+    microfoneRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
   const [editandoNome, setEditandoNome] = useState(false);
   const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
   const [salvandoNome, setSalvandoNome] = useState(false);
@@ -1540,6 +1564,72 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     setAnexoPreview(null);
     setAnexoFile(null);
     if (anexoInputRef.current) anexoInputRef.current.value = "";
+  };
+
+  const iniciarGravacao = async () => {
+    if (gravando || sending) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      toast.error("Este navegador não permite gravar áudio. Você pode anexar um áudio gravado no aparelho.");
+      return;
+    }
+    // A Cloud API aceita OGG/Opus e MP4/AAC. WebM, gerado por muitos
+    // navegadores, não deve ser enviado como áudio sem conversão.
+    const mime = ["audio/ogg;codecs=opus", "audio/mp4", "audio/ogg"]
+      .find((tipo) => MediaRecorder.isTypeSupported(tipo));
+    if (!mime) {
+      toast.error("Gravação direta indisponível neste navegador. Envie um áudio em MP3, M4A ou OGG usando o clipe.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microfoneRef.current = stream;
+      const gravador = new MediaRecorder(stream, { mimeType: mime });
+      trechosAudioRef.current = [];
+      cancelarAoPararRef.current = false;
+      gravadorRef.current = gravador;
+      gravador.ondataavailable = (evento) => {
+        if (evento.data?.size) trechosAudioRef.current.push(evento.data);
+      };
+      gravador.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        microfoneRef.current = null;
+        setGravando(false);
+        setGravacaoPausada(false);
+        if (cancelarAoPararRef.current) return;
+        const tipoAudio = mime.startsWith("audio/mp4") ? "audio/mp4" : "audio/ogg";
+        const extensao = tipoAudio === "audio/mp4" ? "m4a" : "ogg";
+        const arquivo = new File(trechosAudioRef.current, `gravacao-${Date.now()}.${extensao}`, { type: tipoAudio });
+        if (arquivo.size > 0) selecionarAnexo(arquivo);
+        else toast.error("Não foi possível gravar áudio. Tente novamente.");
+      };
+      gravador.start(250);
+      setSegundosGravacao(0);
+      setGravacaoPausada(false);
+      setGravando(true);
+    } catch {
+      microfoneRef.current?.getTracks().forEach((track) => track.stop());
+      microfoneRef.current = null;
+      toast.error("Autorize o microfone nas configurações do navegador para gravar áudio.");
+    }
+  };
+  const pausarRetomarGravacao = () => {
+    const gravador = gravadorRef.current;
+    if (!gravador) return;
+    if (gravador.state === "recording") {
+      gravador.pause();
+      setGravacaoPausada(true);
+    } else if (gravador.state === "paused") {
+      gravador.resume();
+      setGravacaoPausada(false);
+    }
+  };
+  const concluirGravacao = () => {
+    const gravador = gravadorRef.current;
+    if (gravador && gravador.state !== "inactive") gravador.stop();
+  };
+  const cancelarGravacao = () => {
+    cancelarAoPararRef.current = true;
+    concluirGravacao();
   };
 
   const handleSend = async () => {
@@ -1882,16 +1972,35 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
               </div>
             )}
             <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.mp3,.m4a,.ogg,.aac,.amr,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
-            <div className="flex items-center gap-2">
-              <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
-                <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
-                <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 bg-transparent outline-none text-sm" />
-                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
+            {gravando ? (
+              <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${t.chatInputField}`}>
+                <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" aria-label="Gravação ativa"/>
+                <span className="flex-1 text-sm tabular-nums">
+                  {String(Math.floor(segundosGravacao / 60)).padStart(2, "0")}:{String(segundosGravacao % 60).padStart(2, "0")}
+                  {gravacaoPausada ? " · Pausada" : " · Gravando"}
+                </span>
+                <button type="button" onClick={pausarRetomarGravacao} title={gravacaoPausada ? "Retomar" : "Pausar"} className="p-2 rounded-full hover:bg-black/10">
+                  {gravacaoPausada ? <Play size={20}/> : <Pause size={20}/>}
+                </button>
+                <button type="button" onClick={cancelarGravacao} title="Descartar gravação" className="p-2 rounded-full text-red-500 hover:bg-black/10"><X size={19}/></button>
+                <button type="button" onClick={concluirGravacao} title="Concluir para ouvir e enviar" className="p-2 rounded-full bg-[#00a884] text-white"><Square size={19}/></button>
               </div>
-              <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
-                {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              </button>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
+                  <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
+                  <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 min-w-0 bg-transparent outline-none text-sm" />
+                  <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar arquivo ou áudio"><Paperclip size={19}/></button>
+                </div>
+                <button type="button" onClick={iniciarGravacao} aria-label="Gravar mensagem de voz"
+                  title="Gravar áudio (em navegadores compatíveis)" className={`h-11 w-9 shrink-0 grid place-items-center ${t.textSub}`}>
+                  <Mic size={21}/>
+                </button>
+                <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
+                  {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
