@@ -40,6 +40,7 @@ import {
   ArchiveRestore,
   BellOff,
   Bell,
+  BellRing,
   MoreVertical,
   CheckCircle2,
   MailOpen,
@@ -52,6 +53,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { ativarPush, statusPush } from "@/lib/push";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -2021,6 +2023,27 @@ function AdminAgentePage() {
   const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "fixadas" | "arquivadas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
+  const [pushAtivo, setPushAtivo] = useState(false);
+  const [ativandoPush, setAtivandoPush] = useState(false);
+  useEffect(() => {
+    void statusPush().then((status) => setPushAtivo(status === "inscrito"));
+  }, []);
+  const configurarPush = async () => {
+    if (pushAtivo) {
+      toast.success("Notificações deste aparelho já estão ativadas.");
+      return;
+    }
+    setAtivandoPush(true);
+    try {
+      await ativarPush();
+      setPushAtivo(true);
+      toast.success("Notificações ativadas neste aparelho!");
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível ativar as notificações. No iPhone, instale o site na Tela de Início primeiro.");
+    } finally {
+      setAtivandoPush(false);
+    }
+  };
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
   const [salvandoNovaConversa, setSalvandoNovaConversa] = useState(false);
 
@@ -2406,6 +2429,12 @@ function AdminAgentePage() {
               title={config?.ativo ? "Pausar respostas da IA" : "Ativar respostas da IA"}
             >
               {toggleAgenteMutation.isPending ? <Loader2 size={17} className="animate-spin" /> : <Bot size={18} />}
+            </button>
+            <button type="button" onClick={configurarPush} disabled={ativandoPush}
+              className={`h-9 w-9 rounded-full grid place-items-center hover:bg-black/10 ${pushAtivo ? "text-[#00a884]" : t.textSub}`}
+              title={pushAtivo ? "Notificações deste aparelho ativadas" : "Ativar notificações neste aparelho"}
+              aria-label={pushAtivo ? "Notificações ativadas" : "Ativar notificações no celular"}>
+              {ativandoPush ? <Loader2 size={18} className="animate-spin"/> : pushAtivo ? <BellRing size={18}/> : <Bell size={18}/>}
             </button>
             {humanasCount > 0 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badgeHumano}`}>
