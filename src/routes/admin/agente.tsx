@@ -1600,7 +1600,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         if (cancelarAoPararRef.current) return;
         const tipoAudio = mime.startsWith("audio/mp4") ? "audio/mp4" : "audio/ogg";
         const extensao = tipoAudio === "audio/mp4" ? "m4a" : "ogg";
-        const arquivo = new File(trechosAudioRef.current, `gravacao-${Date.now()}.${extensao}`, { type: tipoAudio });
+        const arquivo = new globalThis.File(trechosAudioRef.current, `gravacao-${Date.now()}.${extensao}`, { type: tipoAudio });
         if (arquivo.size > 0) selecionarAnexo(arquivo);
         else toast.error("Não foi possível gravar áudio. Tente novamente.");
       };
