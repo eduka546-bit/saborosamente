@@ -28,6 +28,15 @@ describe("histórico do WhatsApp no painel", () => {
     expect(mesclarMensagensWhatsApp([primeira], [segunda])).toHaveLength(2);
   });
 
+  it("gera identificador curto para mensagens antigas extensas", () => {
+    const chave = chaveMensagemPainel({
+      role: "user", content: "Texto longo".repeat(1500),
+      timestamp: "2026-10-21T10:00:00Z",
+    });
+    expect(chave.startsWith("legado:")).toBe(true);
+    expect(chave.length).toBeLessThan(60);
+  });
+
   it("não altera a lista original ao juntar mensagens", () => {
     const arquivadas = [{ role: "user", content: "Olá", whatsapp_message_id: "wamid.1" }];
     const janela = [{ role: "assistant", content: "Tudo bem?", whatsapp_message_id: "wamid.2" }];
