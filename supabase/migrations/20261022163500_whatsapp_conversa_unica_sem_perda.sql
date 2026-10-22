@@ -118,8 +118,17 @@ BEFORE INSERT OR UPDATE OF telefone ON public.whatsapp_conversas
 FOR EACH ROW EXECUTE FUNCTION public.whatsapp_conversa_normalizar_numero();
 
 -- Impede dois webhooks simultâneos de criarem duas conversas do mesmo número.
-ALTER TABLE public.whatsapp_conversas
-ADD CONSTRAINT whatsapp_conversas_telefone_unico UNIQUE (telefone);
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.whatsapp_conversas'::regclass
+      AND conname = 'whatsapp_conversas_telefone_unico'
+  ) THEN
+    ALTER TABLE public.whatsapp_conversas
+      ADD CONSTRAINT whatsapp_conversas_telefone_unico UNIQUE (telefone);
+  END IF;
+END $;
 
 -- Append protegido por bloqueio de linha e com a mesma janela de contexto
 -- de 30 mensagens que o agente usa. Não muda pedidos, IA nem perfis.
