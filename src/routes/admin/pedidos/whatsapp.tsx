@@ -20,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
-import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp } from "@/lib/whatsapp-order-draft";
+import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
@@ -94,6 +94,7 @@ type WhatsappAdminDraft = {
   avisosInterpretacao: string[];
   items: DraftItem[];
   totalConfirmado: number | null;
+  enderecoOrigem: OrigemEndereco;
 };
 
 const armazenamentoDaAba = (): Storage | null => {
@@ -187,6 +188,7 @@ function WhatsappAdminOrderPage() {
   const [items, setItems] = useState<DraftItem[]>([]);
   // Se o valor do pedido mudou, só liberar o envio após conferir o novo total.
   const [totalConfirmado, setTotalConfirmado] = useState<number | null>(null);
+  const [enderecoOrigem, setEnderecoOrigem] = useState<OrigemEndereco>(null);
   const enderecoDiferente = Boolean(
     selectedCustomer && metodoEntrega === "entrega" &&
     ([
@@ -268,6 +270,7 @@ function WhatsappAdminOrderPage() {
       setAvisosInterpretacao(Array.isArray(salvo.avisosInterpretacao) ? salvo.avisosInterpretacao : []);
       setItems(salvo.items.filter((item) => item && typeof item.productId === "string"));
       setTotalConfirmado(salvo.totalConfirmado ?? null);
+      setEnderecoOrigem(salvo.enderecoOrigem === "pedido" || salvo.enderecoOrigem === "cadastro" ? salvo.enderecoOrigem : null);
       toast.info("Rascunho do WhatsApp recuperado: itens e edições preservados.");
     }
     setDraftReadyKey(draftKey);
@@ -281,7 +284,7 @@ function WhatsappAdminOrderPage() {
       complemento, cep, horario, pagamento, tipoCartao, taxaEntrega,
       observacao, declaredTotal, saldoAnterior, totalAcumulado,
       descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
-      items, totalConfirmado,
+      items, totalConfirmado, enderecoOrigem,
     };
     salvarRascunhoWhatsapp(armazenamentoDaAba(), draftKey, dados);
   }, [
@@ -290,34 +293,31 @@ function WhatsappAdminOrderPage() {
     rua, numero, complemento, cep, horario, pagamento, tipoCartao,
     taxaEntrega, observacao, declaredTotal, saldoAnterior, totalAcumulado,
     descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
-    items, totalConfirmado,
+    items, totalConfirmado, enderecoOrigem,
   ]);
 
   const selecionarConta = (profile: RegisteredCustomer, carregamentoAutomatico = false) => {
     if (!carregamentoAutomatico) dadosEditadosRef.current = true;
-    const pedidoJaPreenchido = items.length > 0 || pasteText.trim().length > 0;
     setSelectedCustomer(profile);
     setSalvarEnderecoCadastro(false);
     setCustomerSearch("");
     setNome(profile.nome || nome);
     setTelefone(profile.telefone || telefone);
-    // Selecionar uma conta NUNCA descarta itens nem sobrescreve o endereço
-    // interpretado no WhatsApp. Um botão permite usar o cadastro, se desejado.
-    if (!pedidoJaPreenchido) {
-      setCidade(profile.cidade || "São Bento do Sul");
-      setBairro(profile.bairro || "");
-      setRua(profile.endereco || "");
-      setNumero(profile.numero || "");
-      setComplemento(profile.complemento || "");
-      setCep(profile.cep || "");
-    } else {
-      setCidade((atual) => atual || profile.cidade || "São Bento do Sul");
-      setBairro((atual) => atual || profile.bairro || "");
-      setRua((atual) => atual || profile.endereco || "");
-      setNumero((atual) => atual || profile.numero || "");
-      setComplemento((atual) => atual || profile.complemento || "");
-      setCep((atual) => atual || profile.cep || "");
-    }
+    // O endereço do WhatsApp/digitado vence o cadastro. Endereço proveniente
+    // de outra conta NÃO é carregado indevidamente ao trocar de cliente.
+    const enderecoNovo = enderecoAoSelecionarCliente(
+      { cidade, bairro, rua, numero, complemento, cep },
+      { cidade: profile.cidade, bairro: profile.bairro, rua: profile.endereco,
+        numero: profile.numero, complemento: profile.complemento, cep: profile.cep },
+      enderecoOrigem,
+    );
+    setCidade(enderecoNovo.cidade);
+    setBairro(enderecoNovo.bairro);
+    setRua(enderecoNovo.rua);
+    setNumero(enderecoNovo.numero);
+    setComplemento(enderecoNovo.complemento);
+    setCep(enderecoNovo.cep);
+    if (enderecoOrigem !== "pedido") setEnderecoOrigem("cadastro");
   };
 
   const usarEnderecoDaConta = () => {
@@ -330,6 +330,7 @@ function WhatsappAdminOrderPage() {
     setComplemento(selectedCustomer.complemento || "");
     setCep(selectedCustomer.cep || "");
     setSalvarEnderecoCadastro(false);
+    setEnderecoOrigem("cadastro");
   };
 
   useEffect(() => {
@@ -387,6 +388,7 @@ function WhatsappAdminOrderPage() {
         setNumero(ficha.numero || ultimo.endereco_numero || "");
         setComplemento(ficha.complemento || ultimo.endereco_complemento || "");
         setCep(ficha.cep || ultimo.endereco_cep || "");
+        setEnderecoOrigem("pedido");
         setMetodoEntrega(ultimo.metodo_entrega === "retirada" ? "retirada" : "entrega");
         setHorario(ultimo.horario_recebimento || "");
         setPagamento(ultimo.metodo_pagamento || "nao_informado");
@@ -551,6 +553,7 @@ function WhatsappAdminOrderPage() {
     else if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
     if (interpretado.metodoEntrega) setMetodoEntrega(interpretado.metodoEntrega);
     if (interpretado.endereco) {
+      setEnderecoOrigem("pedido");
       setRua(interpretado.endereco.rua);
       setNumero(interpretado.endereco.numero);
       setBairro(interpretado.endereco.bairro);
@@ -883,31 +886,31 @@ function WhatsappAdminOrderPage() {
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Rua {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={rua} onChange={(e) => setRua(e.target.value)} />
+                  <Input value={rua} onChange={(e) => { setRua(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">Número</label>
-                  <Input value={numero} onChange={(e) => setNumero(e.target.value)} />
+                  <Input value={numero} onChange={(e) => { setNumero(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Bairro {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
+                  <Input value={bairro} onChange={(e) => { setBairro(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">Cidade {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} />
+                  <Input value={cidade} onChange={(e) => { setCidade(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Complemento</label>
-                  <Input value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+                  <Input value={complemento} onChange={(e) => { setComplemento(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">CEP</label>
-                  <Input value={cep} onChange={(e) => setCep(e.target.value)} />
+                  <Input value={cep} onChange={(e) => { setCep(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               {selectedCustomer && (
