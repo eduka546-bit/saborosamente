@@ -39,6 +39,54 @@ async function resultadoMeta(res: Response, fallback: string): Promise<Resultado
 }
 
 
+/** Lê apenas os descritores de codecs da estrutura MP4 (stsd).
+ * Nunca procurar strings em mdat: vídeo H.264 pode conter "hvc1" nos bytes comprimidos. */
+function extrairCodecsMp4(bytes: Uint8Array): string[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const ascii = (pos: number) => String.fromCharCode(bytes[pos], bytes[pos + 1], bytes[pos + 2], bytes[pos + 3]);
+  const codecs: string[] = [];
+  const containers = new Set(["moov", "trak", "mdia", "minf", "stbl"]);
+
+  function lerCaixas(inicio: number, fim: number, nivel: number) {
+    if (nivel > 8) return;
+    let pos = inicio;
+    while (pos + 8 <= fim) {
+      let tamanho = view.getUint32(pos);
+      const tipo = ascii(pos + 4);
+      let cabecalho = 8;
+      if (tamanho === 1) {
+        if (pos + 16 > fim) return;
+        const estendido = view.getBigUint64(pos + 8);
+        if (estendido > BigInt(Number.MAX_SAFE_INTEGER)) return;
+        tamanho = Number(estendido);
+        cabecalho = 16;
+      } else if (tamanho === 0) {
+        tamanho = fim - pos;
+      }
+      if (tamanho < cabecalho || pos + tamanho > fim) return;
+      const inicioConteudo = pos + cabecalho;
+      const fimConteudo = pos + tamanho;
+      if (tipo === "stsd" && inicioConteudo + 8 <= fimConteudo) {
+        const qtd = Math.min(view.getUint32(inicioConteudo + 4), 100);
+        let amostra = inicioConteudo + 8;
+        for (let i = 0; i < qtd; i++) {
+          if (amostra + 8 > fimConteudo) break;
+          const tamanhoAmostra = view.getUint32(amostra);
+          if (tamanhoAmostra < 8 || amostra + tamanhoAmostra > fimConteudo) break;
+          codecs.push(ascii(amostra + 4));
+          amostra += tamanhoAmostra;
+        }
+      } else if (containers.has(tipo)) {
+        lerCaixas(inicioConteudo, fimConteudo, nivel + 1);
+      }
+      pos += tamanho;
+    }
+  }
+
+  lerCaixas(0, bytes.byteLength, 0);
+  return codecs;
+}
+
 /** Registra mídia do bucket próprio na Meta ANTES de enviar aos destinatários. */
 async function registrarMidiaMeta(url: string, tipo: "image" | "video"): Promise<string> {
   const raiz = SUPABASE_URL.endsWith("/") ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL;
@@ -54,13 +102,14 @@ async function registrarMidiaMeta(url: string, tipo: "image" | "video"): Promise
   if (data.size > (tipo === "video" ? 16 : 5) * 1024 * 1024) throw new Error("A mídia ultrapassa o limite permitido pelo WhatsApp.");
   const bytes = new Uint8Array(await data.arrayBuffer());
   if (tipo === "video") {
-    const mp4 = new TextDecoder("latin1").decode(bytes);
-    if (["hvc1", "hev1", "av01", "vp09"].some((codec) => mp4.includes(codec))) {
-      throw new Error("Vídeo incompatível: o WhatsApp não aceita H.265/HEVC, AV1 ou VP9. Exporte como MP4 H.264 com áudio AAC.");
+    const codecs = extrairCodecsMp4(bytes);
+    if (!codecs.includes("avc1") && !codecs.includes("avc3")) {
+      throw new Error("O vídeo precisa usar H.264 (AVC). Exporte como MP4 H.264 com áudio AAC.");
     }
-    if (["ac-3", "ec-3"].some((codec) => mp4.includes(codec))) {
-      throw new Error("Áudio incompatível. Exporte o vídeo MP4 com áudio AAC.");
+    if (["ac-3", "ec-3", "ac-4", "Opus"].some((codec) => codecs.includes(codec))) {
+      throw new Error("O áudio do vídeo deve ser AAC. Exporte como MP4 H.264 com áudio AAC.");
     }
+    // A Meta fará a validação final do arquivo no endpoint /media.
   }
   const extensao = mime === "video/mp4" ? "mp4" : mime === "image/png" ? "png" : "jpg";
   const form = new FormData();
