@@ -118,7 +118,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
       if (blocoAtual) blocos.push(interpretarBloco(blocoAtual));
       blocoAtual = { titulo: m[2], quantidade: Number(m[1]), subtotal: valor(m[3]), linhas: [] };
     } else if (blocoAtual) {
-      if (/^(?:Entrega|Local de Entrega|Horário de|Forma de Pagamento|Total)\s*[:\/]/i.test(l)) {
+      if (/^(?:Entrega|Local de Entrega|Horário de|Forma de Pagamento|Total)\s*[:\/]/i.test(l) || /^Retirada\b/i.test(l)) {
         blocos.push(interpretarBloco(blocoAtual));
         blocoAtual = null;
       } else {
@@ -146,25 +146,31 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const subtotalDeclarado = refeicoes?.subtotalDeclarado ?? null;
 
   const entrega = linha(/^Entrega(?:\s*\/\s*Retirada)?\s*:/i);
-  const taxaEntrega = temRecibo ? taxaRecibo :
-    /^Entrega(?:\s*\/\s*Retirada)?\s*:\s*Retirada\b/i.test(entrega)
-      ? 0 : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
   const local = linha(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:/i);
   const localTexto = local.replace(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:\s*/i, "").trim()
     || linha(/^Endere[cç]o\s*:/i).replace(/^Endere[cç]o\s*:\s*/i, "").trim();
-  const metodoEntrega = /:\s*retirada\b/i.test(entrega) || /^retirada\b/i.test(localTexto)
+  // A indicação de retirada prevalece sobre um endereço cadastral informado
+  // no mesmo resumo (esse endereço não é o destino da entrega).
+  const retiradaExplicita = linhas.some((l) =>
+    /^Retirada(?:\s+(?:na|pela)\s+Loja|\s+no\s+Local)?\s*[.!]?$/i.test(l)
+    || /^Retirada\s*:\s*(?:na\s+loja|no\s+local|sim)\b/i.test(l));
+  const metodoEntrega = retiradaExplicita || /:\s*retirada\b/i.test(entrega) || /^retirada\b/i.test(localTexto)
     ? "retirada"
     : localTexto || /:\s*(?:R\$\s*)?[\d.,]+/i.test(entrega) || (temRecibo && taxaRecibo !== null) ? "entrega" : null;
+  const taxaEntrega = metodoEntrega === "retirada" ? 0 : temRecibo
+    ? taxaRecibo : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
   let endereco: PedidoInterpretado["endereco"] = null;
   let referencia: string | null = null;
-  if (metodoEntrega === "entrega" && localTexto) {
+  if (localTexto) {
     const partes = localTexto.split(/\s+-\s+/).map((p) => p.trim());
     const ruaNumero = partes[0].match(/^(.*?),\s*([^,]+)$/);
+    const cidadeInformada = partes[2] ?? "";
     endereco = {
       rua: ruaNumero ? ruaNumero[1].trim() : partes[0],
       numero: ruaNumero ? ruaNumero[2].trim() : "",
-      bairro: partes[1] ?? "",
-      cidade: partes[2] ?? "",
+      bairro: (partes[1] ?? "").replace(/^bairro\s+/i, "").trim(),
+      cidade: cidadeInformada.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "sao bento do sul"
+        ? "São Bento do Sul" : cidadeInformada,
     };
     referencia = partes.slice(3).join(" - ") || null;
   }
@@ -188,6 +194,10 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const totalAcumulado = saldoAnterior !== null && igualdades.length > 1
     ? igualdades[igualdades.length - 1] : null;
   const descontoPercentual = valor(totalLinha.match(/-\s*([\d.,]+)\s*%/i)?.[1]);
+  // Resumos também trazem desconto em reais, sem o símbolo de porcentagem.
+  const descontoFixo = descontoPercentual === null
+    ? valor(totalLinha.match(/-\s*(?:R\$\s*)?([\d.,]+)(?!\s*%)/i)?.[1])
+    : null;
   const totalPedido = temRecibo
     ? (totalAPagar ?? centavos(totalRecibo! - cashbackRecibo))
     : saldoAnterior !== null
@@ -197,7 +207,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     (s, item) => s + item.quantidade * (item.precoUnitario ?? 0), 0,
   ) + (metodoEntrega === "retirada" ? 0 : taxaEntrega ?? 0));
   const descontoValor = descontoPercentual !== null
-    ? centavos(bruto * descontoPercentual / 100) : 0;
+    ? centavos(bruto * descontoPercentual / 100) : (descontoFixo ?? 0);
   const avisos = blocos.flatMap((b) => b.avisos);
   if (temRecibo && itens.length) {
     avisos.push("Comprovante sem preços individuais: o subtotal foi dividido entre as unidades. Confira os valores antes de salvar.");
