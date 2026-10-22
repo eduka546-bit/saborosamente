@@ -231,4 +231,52 @@ Total: 114,50 + 99,50 + 5,00 = 219,00`;
     expect(pedido.avisos).toEqual([]);
   });
 
+  it("lê 24 marmitas 400g com retirada na loja e desconto fixo de R$ 26,28", () => {
+    const p = interpretarResumoWhatsapp(`Pedido Cliente Exemplo
+Telefone: 47 90000-0000
+Endereço: Rua Exemplo, 3620 - Bairro Colonial - São bento do Sul
+
+24 - Refeições 400g (G) - 525,60
+_Combo 20un - 24 x 21,90un_
+4xTD(16)
+2xTD(02-03-05-17-18-24-25-26-27)
+1xTD(12-13)
+
+Retirada na Loja
+
+Total: 525,60 - 26,28 = R$ 499,32`);
+    expect(p.nome).toBe("Cliente Exemplo");
+    expect(p.telefone).toBe("47 90000-0000");
+    expect(p.endereco).toEqual({
+      rua: "Rua Exemplo", numero: "3620", bairro: "Colonial", cidade: "São Bento do Sul",
+    });
+    expect(p.metodoEntrega).toBe("retirada");
+    expect(p.taxaEntrega).toBe(0);
+    expect(p.quantidadeDeclarada).toBe(24);
+    expect(p.itens).toEqual([
+      { codigo: "TD16", quantidade: 4 },
+      ...["TD02","TD03","TD05","TD17","TD18","TD24","TD25","TD26","TD27"]
+        .map(codigo => ({ codigo, quantidade: 2 })),
+      { codigo: "TD12", quantidade: 1 },
+      { codigo: "TD13", quantidade: 1 },
+    ]);
+    expect(p.itensDetalhados.every(i => i.peso === "400g" && i.precoUnitario === 21.9)).toBe(true);
+    expect(p.itens.reduce((s, i) => s + i.quantidade, 0)).toBe(24);
+    expect(p.subtotalDeclarado).toBe(525.6);
+    expect(p.descontoPercentual).toBeNull();
+    expect(p.descontoValor).toBe(26.28);
+    expect(p.totalPedido).toBe(499.32);
+    expect(p.avisos).toEqual([]);
+  });
+
+  it("diferencia desconto absoluto em reais de desconto percentual", () => {
+    const base = "1 - Refeição 400g - 100,00\n1xTD16\nEntrega: Retirada\n";
+    const real = interpretarResumoWhatsapp(base + "Total: 100,00 - R$ 5,00 = R$ 95,00");
+    expect(real.descontoPercentual).toBeNull();
+    expect(real.descontoValor).toBe(5);
+    const percentual = interpretarResumoWhatsapp(base + "Total: 100,00 - 5% = R$ 95,00");
+    expect(percentual.descontoPercentual).toBe(5);
+    expect(percentual.descontoValor).toBe(5);
+  });
+
 });
