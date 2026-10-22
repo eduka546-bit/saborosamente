@@ -50,6 +50,7 @@ function AdminCampaignPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">("nenhuma");
   const [enviando, setEnviando] = useState(false);
+  const [midiaTrocandoId, setMidiaTrocandoId] = useState<string | null>(null);
   const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const [campanhaDetalhes, setCampanhaDetalhes] = useState<string | null>(null);
@@ -2455,6 +2456,73 @@ function AdminCampaignPage() {
                         ⏸ Pausar
                       </button>
                     )}
+
+
+                    {/* Permite corrigir mídia incompatível sem perder a fila dos pendentes. */}
+                    {(campanha.status === "pausada" || campanha.status === "erro") &&
+                      (campanha.midia_tipo === "video" || campanha.midia_tipo === "imagem") && (
+                        <label
+                          className={`px-3 py-1 rounded text-xs font-bold border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 cursor-pointer ${midiaTrocandoId ? "opacity-50" : ""}`}
+                        >
+                          <Upload size={12} className="inline mr-1" />
+                          {midiaTrocandoId === campanha.id ? "Validando mídia..." : campanha.midia_tipo === "video" ? "Trocar vídeo" : "Trocar imagem"}
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept={campanha.midia_tipo === "video" ? "video/mp4" : "image/jpeg,image/png"}
+                            disabled={Boolean(midiaTrocandoId)}
+                            onChange={async (event) => {
+                              const arquivo = event.target.files?.[0];
+                              if (!arquivo) return;
+                              setMidiaTrocandoId(campanha.id);
+                              try {
+                                const video = campanha.midia_tipo === "video";
+                                const tipos = video ? ["video/mp4"] : ["image/jpeg", "image/png"];
+                                if (!tipos.includes(arquivo.type)) {
+                                  throw new Error(video ? "O vídeo precisa ser MP4 H.264/AAC." : "Use JPG ou PNG.");
+                                }
+                                if (arquivo.size > (video ? 16 : 5) * 1024 * 1024) {
+                                  throw new Error(video ? "Vídeo maior que 16 MB." : "Imagem maior que 5 MB.");
+                                }
+                                const extensao = video ? "mp4" : arquivo.type === "image/png" ? "png" : "jpg";
+                                const caminho = `campanha-correcao-${campanha.id}-${Date.now()}.${extensao}`;
+                                const { error: uploadErro } = await supabase.storage
+                                  .from("campanhas")
+                                  .upload(caminho, arquivo, { upsert: false, contentType: arquivo.type });
+                                if (uploadErro) throw uploadErro;
+                                const url = supabase.storage.from("campanhas").getPublicUrl(caminho).data.publicUrl;
+                                const { data: teste, error: erroTeste } = await supabase.functions.invoke(
+                                  "whatsapp-campanha-enviar",
+                                  { body: {
+                                    action: "validar_midia",
+                                    midia_tipo: campanha.midia_tipo,
+                                    imagem_url: video ? null : url,
+                                    video_url: video ? url : null,
+                                  } },
+                                );
+                                if (erroTeste) {
+                                  const detalhe = erroTeste.context instanceof Response
+                                    ? await erroTeste.context.json().catch(() => null)
+                                    : null;
+                                  throw new Error(detalhe?.error || erroTeste.message);
+                                }
+                                if (!teste?.media_id) throw new Error(teste?.error || "A Meta não aceitou este arquivo.");
+                                const alteracao = video ? { video_url: url } : { imagem_url: url };
+                                const { error: erroUpdate } = await supabase.from("campanhas_whatsapp")
+                                  .update(alteracao).eq("id", campanha.id);
+                                if (erroUpdate) throw erroUpdate;
+                                await queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
+                                toast.success("Nova mídia aprovada no upload da Meta. Agora pode retomar os pendentes.");
+                              } catch (e: any) {
+                                toast.error("Falha ao trocar mídia: " + (e?.message || "Tente outro arquivo."));
+                              } finally {
+                                event.target.value = "";
+                                setMidiaTrocandoId(null);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
 
                     {/* Botão Retomar — só aparece quando está pausada ou com erro e tem pendentes */}
                     {(campanha.status === "pausada" || campanha.status === "erro") && (
