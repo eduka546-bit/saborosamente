@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, WHATSAPP_DRAFT_TTL_MS } from "./whatsapp-order-draft";
+import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, WHATSAPP_DRAFT_TTL_MS, enderecoAoSelecionarCliente } from "./whatsapp-order-draft";
 
 function memoria() {
   const mapa = new Map<string, string>();
@@ -56,4 +56,14 @@ describe("rascunho do pedido administrativo WhatsApp", () => {
     expect(salvarRascunhoWhatsapp(indisponivel, key, {})).toBe(false);
     expect(() => limparRascunhoWhatsapp(indisponivel, key)).not.toThrow();
   });
+  it("selecionar cliente não sobrescreve endereço digitado no pedido", () => {
+    const atual = { cidade: "Rio Negro", bairro: "Centro", rua: "Rua Pedido", numero: "12", complemento: "", cep: "" };
+    const cadastrado = { cidade: "São Bento do Sul", bairro: "Colonial", rua: "Rua Cadastrada", numero: "300", complemento: "Apto 1", cep: "00000000" };
+    expect(enderecoAoSelecionarCliente(atual, cadastrado, "pedido")).toEqual({
+      ...atual, complemento: "Apto 1", cep: "00000000",
+    });
+    expect(enderecoAoSelecionarCliente(atual, cadastrado, "cadastro")).toEqual(cadastrado);
+    expect(enderecoAoSelecionarCliente(atual, cadastrado, null)).toEqual(cadastrado);
+  });
+
 });
