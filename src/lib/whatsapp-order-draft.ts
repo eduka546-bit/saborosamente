@@ -51,3 +51,27 @@ export function salvarRascunhoWhatsapp<T>(
 export function limparRascunhoWhatsapp(storage: DraftStorage | null, key: string): void {
   try { storage?.removeItem(key); } catch { /* indisponível */ }
 }
+
+/** O endereço digitado/interpretado no pedido tem prioridade sobre o cadastro. */
+export type EnderecoRascunho = {
+  cidade: string; bairro: string; rua: string; numero: string;
+  complemento: string; cep: string;
+};
+export type OrigemEndereco = "pedido" | "cadastro" | null;
+
+export function enderecoAoSelecionarCliente(
+  atual: EnderecoRascunho,
+  cadastrado: Partial<Record<keyof EnderecoRascunho, string | null>>,
+  origem: OrigemEndereco,
+): EnderecoRascunho {
+  const campo = (key: keyof EnderecoRascunho) =>
+    origem === "pedido" ? (atual[key] || cadastrado[key] || "") : (cadastrado[key] || "");
+  return {
+    cidade: campo("cidade") || "São Bento do Sul",
+    bairro: campo("bairro"),
+    rua: campo("rua"),
+    numero: campo("numero"),
+    complemento: campo("complemento"),
+    cep: campo("cep"),
+  };
+}
