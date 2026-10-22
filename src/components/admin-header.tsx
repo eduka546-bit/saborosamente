@@ -155,6 +155,7 @@ function NavItem({ label, icon: Icon, items }: NavGroup) {
 
 export function AdminHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [acessoCustos, setAcessoCustos] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const previousPathname = useRef(pathname);
 
@@ -168,12 +169,46 @@ export function AdminHeader() {
     }
   }, [pathname]);
 
+  useEffect(() => {
+    let ativo = true;
+    const verificarAcesso = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !ativo) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["admin", "custos"] as any);
+      if (!ativo) return;
+      const admin = roles?.some((role: any) => role.role === "admin");
+      setAcessoCustos(!admin && Boolean(roles?.some((role: any) => role.role === "custos")));
+    };
+    void verificarAcesso();
+    return () => { ativo = false; };
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     if (typeof window !== "undefined") {
       window.location.href = "/admin-login";
     }
   };
+
+  if (acessoCustos) {
+    return (
+      <header className="sticky top-0 z-[9999] w-full border-b border-white/10 bg-primary text-white shadow-lg">
+        <div className="mx-auto flex h-16 max-w-[1800px] items-center justify-between px-4">
+          <div className="flex items-center gap-2 font-black">
+            <CircleDollarSign size={22} /> Controle de Custos
+            <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-bold">Simulação</span>
+          </div>
+          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold hover:bg-white/10">
+            <LogOut size={16} /> Sair
+          </button>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-primary text-white shadow-lg sticky top-0 z-[9999] w-full border-b border-white/10">
