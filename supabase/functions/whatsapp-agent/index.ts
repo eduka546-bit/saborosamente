@@ -405,22 +405,44 @@ async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getOrCreateConversa(telefone: string, nome?: string) {
-  const { data, error: selectError } = await supabase
+  const telefoneNormalizado = String(telefone ?? "").replace(/\D/g, "");
+  if (!/^\d{10,15}$/.test(telefoneNormalizado)) {
+    console.error("getOrCreateConversa: telefone inválido");
+    return null;
+  }
+
+  const consultarExistente = async () => supabase
     .from("whatsapp_conversas")
     .select("*")
-    .eq("telefone", telefone)
+    .eq("telefone", telefoneNormalizado)
+    .order("ultima_msg", { ascending: false, nullsFirst: false })
+    .limit(1)
     .maybeSingle();
 
-  if (selectError) console.error("getOrCreateConversa (select) erro:", JSON.stringify(selectError));
+  const { data, error: selectError } = await consultarExistente();
+  if (selectError) {
+    console.error("getOrCreateConversa (select):", selectError.message);
+    throw selectError;
+  }
   if (data) return data;
 
   const { data: nova, error: insertError } = await supabase
     .from("whatsapp_conversas")
-    .insert({ telefone, nome: nome ?? null, mensagens: [], pedido_em_andamento: null })
+    .insert({ telefone: telefoneNormalizado, nome: nome ?? null, mensagens: [], pedido_em_andamento: null })
     .select()
     .single();
 
-  if (insertError) console.error("getOrCreateConversa (insert) erro:", JSON.stringify(insertError));
+  // UNIQUE(telefone) impede duplicações em webhooks simultâneos.
+  // Se outra execução inseriu primeiro, busca a mesma conversa.
+  if (insertError?.code === "23505") {
+    const { data: criadaEmParalelo, error: retryError } = await consultarExistente();
+    if (retryError) throw retryError;
+    if (criadaEmParalelo) return criadaEmParalelo;
+  }
+  if (insertError) {
+    console.error("getOrCreateConversa (insert):", insertError.message);
+    throw insertError;
+  }
   return nova;
 }
 
@@ -435,40 +457,23 @@ function conversaComecouNovamente(conversa: any, historico: any[]): boolean {
   );
 }
 
-async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
+async function appendMensagem(id: string, _mensagens: any[], novaMensagem: any) {
   const mensagemComTimestamp = {
     ...novaMensagem,
     timestamp: novaMensagem?.timestamp ?? new Date().toISOString(),
   };
 
-  // Sempre parte do estado mais recente salvo. Isso evita que uma resposta
-  // manual ou outra mensagem gravada poucos instantes antes seja sobrescrita
-  // por um histórico antigo mantido em memória pelo webhook.
-  const { data: conversaAtual } = await supabase
-    .from("whatsapp_conversas")
-    .select("mensagens,ultima_msg")
-    .eq("id", id)
-    .maybeSingle();
-
-  const base = Array.isArray(conversaAtual?.mensagens) ? conversaAtual.mensagens : mensagens;
-  const atualizado = [...base, mensagemComTimestamp].slice(-30);
-
-  const timestampNova = new Date(mensagemComTimestamp.timestamp).getTime();
-  const timestampAtual = conversaAtual?.ultima_msg
-    ? new Date(conversaAtual.ultima_msg).getTime()
-    : 0;
-  const ultimaMsg = new Date(
-    Math.max(
-      Number.isFinite(timestampAtual) ? timestampAtual : 0,
-      Number.isFinite(timestampNova) ? timestampNova : Date.now(),
-    ),
-  ).toISOString();
-
-  await supabase
-    .from("whatsapp_conversas")
-    .update({ mensagens: atualizado, ultima_msg: ultimaMsg })
-    .eq("id", id);
-  return atualizado;
+  // Append atômico no Postgres com SELECT FOR UPDATE.
+  // Impede que duas mensagens recebidas ao mesmo tempo sobrescrevam o histórico.
+  const { data, error } = await supabase.rpc("whatsapp_append_mensagem", {
+    p_conversa_id: id,
+    p_mensagem: mensagemComTimestamp,
+  });
+  if (error) {
+    console.error("appendMensagem (RPC) erro:", error.message);
+    throw error; // O webhook deve sinalizar falha para que a Meta reenvie.
+  }
+  return Array.isArray(data) ? data : [];
 }
 
 // Registra um evento de observabilidade (escalação, falha de pedido, etc).
