@@ -61,6 +61,20 @@ BEGIN
     ORDER BY ultima_msg DESC NULLS LAST
     LIMIT 1;
 
+    -- Preserva vínculos de eventos e automações com a conversa principal.
+    UPDATE public.agente_eventos SET conversa_id = v_principal
+    WHERE conversa_id IN (
+      SELECT id FROM public.whatsapp_conversas
+      WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = v_telefone
+      AND id <> v_principal
+    );
+    UPDATE public.automacao_execucoes SET conversa_id = v_principal
+    WHERE conversa_id IN (
+      SELECT id FROM public.whatsapp_conversas
+      WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = v_telefone
+      AND id <> v_principal
+    );
+
     -- Os registros removidos da lista continuam inteiros no backup acima.
     DELETE FROM public.whatsapp_conversas
     WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = v_telefone
