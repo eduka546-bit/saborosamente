@@ -34,7 +34,7 @@ BEGIN
   FOR v_msg IN SELECT value FROM jsonb_array_elements(NEW.mensagens) LOOP
     v_chave := CASE
       WHEN coalesce(v_msg->>'whatsapp_message_id','') <> ''
-        THEN 'meta:' || v_msg->>'whatsapp_message_id'
+        THEN 'meta:' || (v_msg->>'whatsapp_message_id')
       ELSE 'legado:' || md5(jsonb_build_array(
         v_msg->>'role', v_msg->>'content', v_msg->>'timestamp',
         v_msg->>'media_path', v_msg->>'media_url',
@@ -59,7 +59,7 @@ FOR EACH ROW EXECUTE FUNCTION public.whatsapp_historico_ao_gravar();
 INSERT INTO public.whatsapp_mensagens_historico(conversa_id,chave,mensagem)
 SELECT c.id,
   CASE WHEN coalesce(m.value->>'whatsapp_message_id','') <> ''
-    THEN 'meta:' || m.value->>'whatsapp_message_id'
+    THEN 'meta:' || (m.value->>'whatsapp_message_id')
     ELSE 'legado:' || md5(jsonb_build_array(
       m.value->>'role',m.value->>'content',m.value->>'timestamp',
       m.value->>'media_path',m.value->>'media_url',
