@@ -26,7 +26,7 @@ type Payload = {
   midia_tipo: string;
   template?: Template | null;
   media_id?: string | null;
-  action?: "validar_midia";
+  action?: "validar_midia" | "cancelar" | "reincluir_falhas" | "excluir";
 };
 type Resultado = { sucesso: boolean; erro?: string; metaMessageId?: string };
 
@@ -174,11 +174,66 @@ async function enviar(to: string, mensagem: string, imagem: string | null, video
   return resultadoMeta(await fetch(url, { method: "POST", headers, body: JSON.stringify(body) }), "Erro ao enviar texto");
 }
 
+
+function respostaJson(dados: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(dados), { status, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+}
+
+/** Ações administrativas não enviam mensagens e exigem autorização de administrador. */
+async function gerenciarCampanha(id: string, acao: "cancelar" | "reincluir_falhas" | "excluir"): Promise<Response> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return respostaJson({ error: "Identificador da campanha inválido." }, 400);
+  const { data: campanha, error } = await supabase.from("campanhas_whatsapp")
+    .select("id,status").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!campanha) return respostaJson({ error: "Campanha não encontrada." }, 404);
+
+  if (acao === "cancelar") {
+    const { data: alterada, error: cancelarErro } = await supabase.from("campanhas_whatsapp")
+      .update({ status: "cancelada", updated_at: new Date().toISOString() })
+      .eq("id", id).in("status", ["rascunho", "enviando", "pausada", "erro"])
+      .select("id").maybeSingle();
+    if (cancelarErro) throw cancelarErro;
+    if (!alterada) return respostaJson({ error: "Esta campanha já está concluída ou cancelada." }, 409);
+    return respostaJson({ success: true, status: "cancelada" });
+  }
+
+  if (acao === "excluir") {
+    const { data: excluida, error: excluirErro } = await supabase.from("campanhas_whatsapp")
+      .delete().eq("id", id).neq("status", "enviando").select("id").maybeSingle();
+    if (excluirErro) throw excluirErro;
+    if (!excluida) return respostaJson({ error: "Cancele ou pause a campanha antes de excluí-la." }, 409);
+    return respostaJson({ success: true, excluida: true });
+  }
+
+  if (!["pausada", "erro", "enviada"].includes(campanha.status)) {
+    return respostaJson({ error: "Pause a campanha antes de reincluir falhas. Campanhas canceladas não podem ser retomadas." }, 409);
+  }
+  const { count, error: contagemErro } = await supabase.from("campanhas_whatsapp_envios")
+    .select("id", { count: "exact", head: true }).eq("campanha_id", id).eq("status", "falhou");
+  if (contagemErro) throw contagemErro;
+  if (!count) return respostaJson({ error: "Esta campanha não possui contatos com falha para reincluir." }, 409);
+  const { data: reaberta, error: reabrirErro } = await supabase.from("campanhas_whatsapp")
+    .update({ status: "pausada", updated_at: new Date().toISOString() })
+    .eq("id", id).in("status", ["pausada", "erro", "enviada"]).select("id").maybeSingle();
+  if (reabrirErro) throw reabrirErro;
+  if (!reaberta) return respostaJson({ error: "A campanha mudou de estado. Atualize a página." }, 409);
+
+  const { data: reabertas, error: falhasErro } = await supabase.from("campanhas_whatsapp_envios")
+    .update({ status: "pendente", erro_mensagem: null, enviado_em: null, meta_message_id: null })
+    .eq("campanha_id", id).eq("status", "falhou").select("id");
+  if (falhasErro) throw falhasErro;
+  const { error: contadorErro } = await supabase.from("campanhas_whatsapp")
+    .update({ contatos_falhados: 0, updated_at: new Date().toISOString() })
+    .eq("id", id).eq("status", "pausada");
+  if (contadorErro) throw contadorErro;
+  return respostaJson({ success: true, status: "pausada", reincluidos: reabertas?.length || 0 });
+}
+
 async function processar(payload: Payload): Promise<void> {
   const { campanha_id, mensagem, imagem_url, video_url, template, media_id } = payload;
   const { data: estado, error: estadoError } = await supabase.from("campanhas_whatsapp").select("status").eq("id", campanha_id).single();
   if (estadoError) throw estadoError;
-  if (estado?.status === "pausada") return;
+  if (estado?.status !== "enviando") return;
 
   const { data: envios, error: enviosError } = await supabase
     .from("campanhas_whatsapp_envios")
@@ -196,7 +251,7 @@ async function processar(payload: Payload): Promise<void> {
 
   for (let i = 0; i < envios.length; i++) {
     const { data: atual } = await supabase.from("campanhas_whatsapp").select("status").eq("id", campanha_id).single();
-    if (atual?.status === "pausada") return;
+    if (atual?.status !== "enviando") return;
     if (i > 0) await sleep(DELAY_MS);
 
     const resultado = await enviar(String(envios[i].telefone), mensagem, imagem_url, video_url, template, media_id);
@@ -241,17 +296,17 @@ async function processar(payload: Payload): Promise<void> {
 async function finalizar(payload: Payload): Promise<void> {
   const { campanha_id } = payload;
   const [{ count: enviados }, { count: falhados }] = await Promise.all([
-    supabase.from("campanhas_whatsapp_envios").select("id", { count: "exact", head: true }).eq("campanha_id", campanha_id).eq("status", "enviado"),
+    supabase.from("campanhas_whatsapp_envios").select("id", { count: "exact", head: true }).eq("campanha_id", campanha_id).in("status", ["enviado", "entregue", "lido"]),
     supabase.from("campanhas_whatsapp_envios").select("id", { count: "exact", head: true }).eq("campanha_id", campanha_id).eq("status", "falhou"),
   ]);
   const { data: estado } = await supabase.from("campanhas_whatsapp").select("status").eq("id", campanha_id).single();
-  if (estado?.status === "pausada") return;
+  if (estado?.status !== "enviando") return;
   await supabase.from("campanhas_whatsapp").update({
     status: "enviada",
     contatos_enviados: enviados ?? 0,
     contatos_falhados: falhados ?? 0,
     updated_at: new Date().toISOString(),
-  }).eq("id", campanha_id);
+  }).eq("id", campanha_id).eq("status", "enviando");
 }
 
 Deno.serve(async (req: Request) => {
@@ -265,6 +320,9 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json() as Payload;
     campanha_id = body.campanha_id;
+    if (body.action === "cancelar" || body.action === "reincluir_falhas" || body.action === "excluir") {
+      return await gerenciarCampanha(campanha_id, body.action);
+    }
     if (body.action === "validar_midia") {
       const tipo = body.midia_tipo === "video" ? "video" : body.midia_tipo === "imagem" ? "image" : null;
       const midiaUrl = tipo === "video" ? body.video_url : body.imagem_url;
@@ -328,7 +386,7 @@ Deno.serve(async (req: Request) => {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
     console.error("Erro na campanha:", message);
     if (campanha_id) {
-      await supabase.from("campanhas_whatsapp").update({ status: "erro", updated_at: new Date().toISOString() }).eq("id", campanha_id).neq("status", "enviada");
+      await supabase.from("campanhas_whatsapp").update({ status: "erro", updated_at: new Date().toISOString() }).eq("id", campanha_id).in("status", ["rascunho", "enviando", "pausada", "erro"]);
     }
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
   }
