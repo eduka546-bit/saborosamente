@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
@@ -62,6 +63,46 @@ type DraftItem = {
   weight: "200g" | "300g" | "400g";
   unitPrice: number;
   observacao: string;
+};
+
+type WhatsappAdminDraft = {
+  pasteText: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  customerSearch: string;
+  selectedCustomer: RegisteredCustomer | null;
+  salvarEnderecoCadastro: boolean;
+  metodoEntrega: "entrega" | "retirada";
+  cidade: string;
+  bairro: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+  cep: string;
+  horario: string;
+  pagamento: string;
+  tipoCartao: string;
+  taxaEntrega: number;
+  observacao: string;
+  declaredTotal: number | null;
+  saldoAnterior: number | null;
+  totalAcumulado: number | null;
+  descontoAplicado: number;
+  cashbackUsado: number;
+  percentualDesconto: number | null;
+  avisosInterpretacao: string[];
+  items: DraftItem[];
+  totalConfirmado: number | null;
+  enderecoOrigem: OrigemEndereco;
+};
+
+const armazenamentoDaAba = (): Storage | null => {
+  try {
+    return typeof window !== "undefined" ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
 };
 
 const compararEndereco = (value: unknown) =>
@@ -111,6 +152,11 @@ const newKey = () =>
 function WhatsappAdminOrderPage() {
   const navigate = useNavigate();
   const { cliente: initialCustomerId, historico: initialHistoryId } = Route.useSearch();
+  const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId);
+  const draftRestauradoRef = useRef(false);
+  const dadosEditadosRef = useRef(false);
+  const pedidoSalvoRef = useRef(false);
+  const [draftReadyKey, setDraftReadyKey] = useState<string | null>(null);
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
 
   const [pasteText, setPasteText] = useState("");
@@ -140,6 +186,9 @@ function WhatsappAdminOrderPage() {
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
+  // Se o valor do pedido mudou, só liberar o envio após conferir o novo total.
+  const [totalConfirmado, setTotalConfirmado] = useState<number | null>(null);
+  const [enderecoOrigem, setEnderecoOrigem] = useState<OrigemEndereco>(null);
   const enderecoDiferente = Boolean(
     selectedCustomer && metodoEntrega === "entrega" &&
     ([
@@ -185,19 +234,108 @@ function WhatsappAdminOrderPage() {
     staleTime: 20_000,
   });
 
-  const selecionarConta = (profile: RegisteredCustomer) => {
+  // Salvar na sessão desta aba protege o pedido contra remounts, refresh e
+  // navegações involuntárias. Cada cliente/histórico tem seu próprio rascunho.
+  useEffect(() => {
+    draftRestauradoRef.current = false;
+    setDraftReadyKey(null);
+    const salvo = lerRascunhoWhatsapp<WhatsappAdminDraft>(armazenamentoDaAba(), draftKey);
+    if (salvo && Array.isArray(salvo.items)) {
+      draftRestauradoRef.current = true;
+      setPasteText(salvo.pasteText || "");
+      setNome(salvo.nome || "");
+      setTelefone(salvo.telefone || "");
+      setEmail(salvo.email || "");
+      setCustomerSearch(salvo.customerSearch || "");
+      setSelectedCustomer(salvo.selectedCustomer || null);
+      setSalvarEnderecoCadastro(Boolean(salvo.salvarEnderecoCadastro));
+      setMetodoEntrega(salvo.metodoEntrega === "retirada" ? "retirada" : "entrega");
+      setCidade(salvo.cidade || "São Bento do Sul");
+      setBairro(salvo.bairro || "");
+      setRua(salvo.rua || "");
+      setNumero(salvo.numero || "");
+      setComplemento(salvo.complemento || "");
+      setCep(salvo.cep || "");
+      setHorario(salvo.horario || "");
+      setPagamento(salvo.pagamento || "nao_informado");
+      setTipoCartao(salvo.tipoCartao || "");
+      setTaxaEntrega(Number(salvo.taxaEntrega || 0));
+      setObservacao(salvo.observacao || "");
+      setDeclaredTotal(salvo.declaredTotal ?? null);
+      setSaldoAnterior(salvo.saldoAnterior ?? null);
+      setTotalAcumulado(salvo.totalAcumulado ?? null);
+      setDescontoAplicado(Number(salvo.descontoAplicado || 0));
+      setCashbackUsado(Number(salvo.cashbackUsado || 0));
+      setPercentualDesconto(salvo.percentualDesconto ?? null);
+      setAvisosInterpretacao(Array.isArray(salvo.avisosInterpretacao) ? salvo.avisosInterpretacao : []);
+      setItems(salvo.items.filter((item) => item && typeof item.productId === "string"));
+      setTotalConfirmado(salvo.totalConfirmado ?? null);
+      setEnderecoOrigem(salvo.enderecoOrigem === "pedido" || salvo.enderecoOrigem === "cadastro" ? salvo.enderecoOrigem : null);
+      toast.info("Rascunho do WhatsApp recuperado: itens e edições preservados.");
+    }
+    setDraftReadyKey(draftKey);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (draftReadyKey !== draftKey || pedidoSalvoRef.current) return;
+    // Não criar rascunhos vazios durante a busca inicial por uma conta:
+    // isso impediria o carregamento automático do cliente numa nova visita.
+    if (!dadosEditadosRef.current && !draftRestauradoRef.current &&
+        !selectedCustomer && !items.length && !pasteText.trim() &&
+        !nome.trim() && !telefone.trim()) return;
+    const dados: WhatsappAdminDraft = {
+      pasteText, nome, telefone, email, customerSearch, selectedCustomer,
+      salvarEnderecoCadastro, metodoEntrega, cidade, bairro, rua, numero,
+      complemento, cep, horario, pagamento, tipoCartao, taxaEntrega,
+      observacao, declaredTotal, saldoAnterior, totalAcumulado,
+      descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
+      items, totalConfirmado, enderecoOrigem,
+    };
+    salvarRascunhoWhatsapp(armazenamentoDaAba(), draftKey, dados);
+  }, [
+    draftKey, draftReadyKey, pasteText, nome, telefone, email, customerSearch,
+    selectedCustomer, salvarEnderecoCadastro, metodoEntrega, cidade, bairro,
+    rua, numero, complemento, cep, horario, pagamento, tipoCartao,
+    taxaEntrega, observacao, declaredTotal, saldoAnterior, totalAcumulado,
+    descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
+    items, totalConfirmado, enderecoOrigem,
+  ]);
+
+  const selecionarConta = (profile: RegisteredCustomer, carregamentoAutomatico = false) => {
+    if (!carregamentoAutomatico) dadosEditadosRef.current = true;
     setSelectedCustomer(profile);
     setSalvarEnderecoCadastro(false);
     setCustomerSearch("");
-    setNome(profile.nome || "");
-    setTelefone(profile.telefone || "");
-    // Não misturar o endereço de uma cliente com o de outra ao mudar a seleção.
-    setCidade(profile.cidade || "");
-    setBairro(profile.bairro || "");
-    setRua(profile.endereco || "");
-    setNumero(profile.numero || "");
-    setComplemento(profile.complemento || "");
-    setCep(profile.cep || "");
+    setNome(profile.nome || nome);
+    setTelefone(profile.telefone || telefone);
+    // O endereço do WhatsApp/digitado vence o cadastro. Endereço proveniente
+    // de outra conta NÃO é carregado indevidamente ao trocar de cliente.
+    const enderecoNovo = enderecoAoSelecionarCliente(
+      { cidade, bairro, rua, numero, complemento, cep },
+      { cidade: profile.cidade, bairro: profile.bairro, rua: profile.endereco,
+        numero: profile.numero, complemento: profile.complemento, cep: profile.cep },
+      enderecoOrigem,
+    );
+    setCidade(enderecoNovo.cidade);
+    setBairro(enderecoNovo.bairro);
+    setRua(enderecoNovo.rua);
+    setNumero(enderecoNovo.numero);
+    setComplemento(enderecoNovo.complemento);
+    setCep(enderecoNovo.cep);
+    if (enderecoOrigem !== "pedido") setEnderecoOrigem("cadastro");
+  };
+
+  const usarEnderecoDaConta = () => {
+    if (!selectedCustomer) return;
+    dadosEditadosRef.current = true;
+    setCidade(selectedCustomer.cidade || "São Bento do Sul");
+    setBairro(selectedCustomer.bairro || "");
+    setRua(selectedCustomer.endereco || "");
+    setNumero(selectedCustomer.numero || "");
+    setComplemento(selectedCustomer.complemento || "");
+    setCep(selectedCustomer.cep || "");
+    setSalvarEnderecoCadastro(false);
+    setEnderecoOrigem("cadastro");
   };
 
   useEffect(() => {
@@ -209,7 +347,9 @@ function WhatsappAdminOrderPage() {
       .eq("id", initialCustomerId)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!cancelled && !error && data) selecionarConta(data as RegisteredCustomer);
+        if (!cancelled && !error && data &&
+            !draftRestauradoRef.current && !dadosEditadosRef.current)
+          selecionarConta(data as RegisteredCustomer, true);
         if (!cancelled && (error || !data)) toast.error("Não foi possível carregar a conta selecionada.");
       });
     return () => { cancelled = true; };
@@ -242,7 +382,7 @@ function WhatsappAdminOrderPage() {
           .eq("pedido_id", ficha.ultimo_pedido_id)
           .order("created_at", { ascending: true });
         if (itensError) throw new Error("Não foi possível carregar os produtos do pedido anterior.");
-        if (cancelled) return;
+        if (cancelled || draftRestauradoRef.current || dadosEditadosRef.current) return;
 
         setNome(ficha.nome || ultimo.nome_cliente || "");
         setTelefone(ficha.telefone_normalizado || ultimo.telefone_cliente || "");
@@ -253,6 +393,7 @@ function WhatsappAdminOrderPage() {
         setNumero(ficha.numero || ultimo.endereco_numero || "");
         setComplemento(ficha.complemento || ultimo.endereco_complemento || "");
         setCep(ficha.cep || ultimo.endereco_cep || "");
+        setEnderecoOrigem("pedido");
         setMetodoEntrega(ultimo.metodo_entrega === "retirada" ? "retirada" : "entrega");
         setHorario(ultimo.horario_recebimento || "");
         setPagamento(ultimo.metodo_pagamento || "nao_informado");
@@ -321,8 +462,10 @@ function WhatsappAdminOrderPage() {
   const total = Math.round((subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) - descontoAplicado - cashbackUsado) * 100) / 100;
   const totalMismatch =
     declaredTotal !== null && Math.abs(Math.round((declaredTotal - total) * 100) / 100) > 0.009;
+  const totalDiferenteConferido = !totalMismatch || totalConfirmado === total;
 
   const addBlankItem = () => {
+    dadosEditadosRef.current = true;
     const first = products[0];
     const weight: DraftItem["weight"] = "300g";
     setItems((current) => [
@@ -339,6 +482,8 @@ function WhatsappAdminOrderPage() {
   };
 
   const parseWhatsappText = () => {
+    dadosEditadosRef.current = true;
+    setTotalConfirmado(null);
     if (!pasteText.trim()) {
       toast.error("Cole o pedido do WhatsApp primeiro.");
       return;
@@ -414,6 +559,7 @@ function WhatsappAdminOrderPage() {
     else if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
     if (interpretado.metodoEntrega) setMetodoEntrega(interpretado.metodoEntrega);
     if (interpretado.endereco) {
+      setEnderecoOrigem("pedido");
       setRua(interpretado.endereco.rua);
       setNumero(interpretado.endereco.numero);
       setBairro(interpretado.endereco.bairro);
@@ -453,9 +599,9 @@ function WhatsappAdminOrderPage() {
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error("Sessão expirada.");
 
-      if (totalMismatch) {
+      if (!totalDiferenteConferido) {
         throw new Error(
-          `O total informado no WhatsApp (${money(declaredTotal ?? 0)}) não bate com o cálculo (${money(total)}).`,
+          `O total informado no WhatsApp (${money(declaredTotal ?? 0)}) não bate com o cálculo (${money(total)}). Confira e autorize o valor atualizado antes de salvar.`,
         );
       }
 
@@ -492,6 +638,8 @@ function WhatsappAdminOrderPage() {
       });
     },
     onSuccess: (data: any) => {
+      pedidoSalvoRef.current = true;
+      limparRascunhoWhatsapp(armazenamentoDaAba(), draftKey);
       toast.success(
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
@@ -524,13 +672,14 @@ function WhatsappAdminOrderPage() {
     nome.trim().length >= 2 &&
     items.length > 0 &&
     items.every((item) => item.productId && item.quantity > 0 && item.unitPrice >= 0) &&
-    !totalMismatch &&
+    totalDiferenteConferido &&
     descontoAplicado >= 0 && cashbackUsado >= 0 &&
     descontoAplicado + cashbackUsado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
-    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen"
+      onChangeCapture={() => { dadosEditadosRef.current = true; }}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <a
@@ -615,6 +764,30 @@ function WhatsappAdminOrderPage() {
                 </p>
               </>
             )}
+            <div className="border-t border-gray-200 pt-4 mt-3">
+              <p className="text-sm font-bold text-gray-800 mb-2">
+                Como será este pedido? Escolha mesmo se o cliente já tem cadastro:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["retirada", "entrega"] as const).map((modo) => (
+                  <button key={modo} type="button" aria-pressed={metodoEntrega === modo}
+                    onClick={() => {
+                      dadosEditadosRef.current = true;
+                      setMetodoEntrega(modo);
+                      if (modo === "retirada") setTaxaEntrega(0);
+                    }}
+                    className={`min-h-11 rounded-lg border px-3 py-2 font-semibold text-sm transition-colors
+                      ${metodoEntrega === modo
+                        ? "border-green-700 bg-green-50 text-green-800 ring-1 ring-green-700"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}>
+                    {modo === "retirada" ? "Retirada na loja" : "Entrega no endereço"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                A escolha não altera os itens ou preços. Na retirada não há taxa de entrega.
+              </p>
+            </div>
           </section>
           <section className="bg-white border rounded-xl p-5">
             <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -664,27 +837,16 @@ function WhatsappAdminOrderPage() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {metodoEntrega === "entrega" && (
               <div>
-                <label className="text-xs font-bold text-gray-500">Entrega/retirada</label>
-                <select
-                  className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm"
-                  value={metodoEntrega}
-                  onChange={(e) => setMetodoEntrega(e.target.value as "entrega" | "retirada")}
-                >
-                  <option value="entrega">Entrega</option>
-                  <option value="retirada">Retirada</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500">Horário</label>
+                <label className="text-xs font-bold text-gray-500">Horário de entrega (opcional)</label>
                 <Input
                   value={horario}
                   onChange={(e) => setHorario(e.target.value)}
                   placeholder="Ex.: após 17h"
                 />
               </div>
-            </div>
+            )}
             <div>
               <label className="text-xs font-bold text-gray-500">Forma de pagamento</label>
               <select
@@ -722,34 +884,39 @@ function WhatsappAdminOrderPage() {
                   Este endereço ficará no histórico comercial para próximos pedidos. A retirada continua sem frete.
                 </p>
               )}
+              {selectedCustomer && (
+                <Button type="button" size="sm" variant="outline" onClick={usarEnderecoDaConta}>
+                  <MapPin size={14} className="mr-1" /> Usar endereço cadastrado
+                </Button>
+              )}
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Rua {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={rua} onChange={(e) => setRua(e.target.value)} />
+                  <Input value={rua} onChange={(e) => { setRua(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">Número</label>
-                  <Input value={numero} onChange={(e) => setNumero(e.target.value)} />
+                  <Input value={numero} onChange={(e) => { setNumero(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Bairro {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
+                  <Input value={bairro} onChange={(e) => { setBairro(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">Cidade {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} />
+                  <Input value={cidade} onChange={(e) => { setCidade(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Complemento</label>
-                  <Input value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+                  <Input value={complemento} onChange={(e) => { setComplemento(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">CEP</label>
-                  <Input value={cep} onChange={(e) => setCep(e.target.value)} />
+                  <Input value={cep} onChange={(e) => { setCep(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
               {selectedCustomer && (
@@ -929,7 +1096,7 @@ function WhatsappAdminOrderPage() {
                       variant="ghost"
                       size="icon"
                       className="text-red-500"
-                      onClick={() => setItems((current) => current.filter((r) => r.key !== item.key))}
+                      onClick={() => { dadosEditadosRef.current = true; setItems((current) => current.filter((r) => r.key !== item.key)); }}
                     >
                       <Trash2 size={17} />
                     </Button>
@@ -1027,9 +1194,14 @@ function WhatsappAdminOrderPage() {
               <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2">
                 <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                 <div>
-                  <strong>Os totais não batem.</strong> Corrija o preço unitário ou a taxa de entrega
-                  antes de salvar. O sistema calculou {money(total)}, mas o resumo do WhatsApp informa{" "}
-                  {money(declaredTotal ?? 0)}.
+                  <strong>O total foi alterado em relação ao WhatsApp.</strong> O formulário calcula {money(total)},
+                  mas o resumo original informa {money(declaredTotal ?? 0)}.
+                  <label className="mt-3 flex items-start gap-2 cursor-pointer font-semibold">
+                    <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-green-700"
+                      checked={totalConfirmado === total}
+                      onChange={(e) => setTotalConfirmado(e.target.checked ? total : null)} />
+                    Conferi a diferença e autorizo salvar o novo total de {money(total)}.
+                  </label>
                 </div>
               </div>
             )}
