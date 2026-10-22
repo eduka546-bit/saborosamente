@@ -61,6 +61,19 @@ function CustosMargensPage() {
     valor_mensal: "",
     valor_ideal: "",
   });
+  const { data: modoSimulacao = false } = useQuery({
+    queryKey: ["acesso-custos-simulacao"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "custos" as any);
+      return Boolean(roles?.length);
+    },
+  });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-financeiro-operacional"],
@@ -204,7 +217,16 @@ function CustosMargensPage() {
                   : n(p.preco_400g || p.preco);
             const lucro = preco - custo;
             const margem = preco > 0 ? (lucro / preco) * 100 : 0;
-            return { tam, custo, custoIngredientes, custoEmbalagem, preco, margem, lucro };
+            return {
+              tam,
+              custo,
+              custoBase: custoIngredientes + custoEmbalagem.total,
+              custoIngredientes,
+              custoEmbalagem,
+              preco,
+              margem,
+              lucro,
+            };
           }),
         };
       });
@@ -242,7 +264,12 @@ function CustosMargensPage() {
         .map((p: any) => p.tamanhos[0])
         .filter(Boolean);
     }
-    const custos = candidatos.map((x) => n(x.custo)).filter((x) => x > 0);
+    const margemSimulada = margemSegurancaGeralEditada !== null && margemSegurancaGeralEditada.trim() !== ""
+      ? Math.max(0, n(margemSegurancaGeralEditada))
+      : null;
+    const custos = candidatos
+      .map((x) => margemSimulada === null ? n(x.custo) : custoComMargemReceita(n(x.custoBase), margemSimulada).total)
+      .filter((x) => x > 0);
     const vendas = candidatos.map((x) => n(x.preco)).filter((x) => x > 0);
     return {
       custo: custos.length ? custos.reduce((a, b) => a + b, 0) / custos.length : 0,
@@ -391,6 +418,7 @@ function CustosMargensPage() {
   const salvarDespesa = async (item: any) => {
     const patch = edicoesDespesas[item.id];
     if (!patch || !Object.keys(patch).length) return;
+    if (modoSimulacao) return toast.info("Alteração usada somente nesta simulação. Ao atualizar, os valores do administrador voltam.");
     setSalvando(item.id);
     const atualValor = Math.max(0, n(patch.valor_mensal ?? item.valor_mensal));
     const idealRaw = patch.valor_ideal ?? item.valor_ideal;
@@ -422,6 +450,7 @@ function CustosMargensPage() {
   };
 
   const adicionarGasto = async () => {
+    if (modoSimulacao) return toast.info("Acesso de custos não cria novos gastos.");
     if (!novoGasto.nome.trim()) return toast.error("Informe o nome do gasto.");
     setSalvando("novo");
     const proximaOrdem = Math.max(0, ...(data?.despesas ?? []).map((x: any) => n(x.ordem))) + 10;
@@ -449,6 +478,7 @@ function CustosMargensPage() {
   const salvarMix = async (item: any) => {
     const patch = edicoesMix[item.chave];
     if (!patch || !Object.keys(patch).length) return;
+    if (modoSimulacao) return toast.info("Alteração usada somente nesta simulação. Ao atualizar, os valores do administrador voltam.");
     const percentual = Math.max(0, Math.min(100, n(valorMix(item, "percentual"))));
     const custoRaw = valorMix(item, "custo_planejado");
     const vendaRaw = valorMix(item, "venda_planejada");
@@ -487,6 +517,7 @@ function CustosMargensPage() {
     valor: number | null,
   ) => {
     editarMix(item.chave, campo, valor == null ? "" : valor.toFixed(2));
+    if (modoSimulacao) return toast.info("Alteração usada somente nesta simulação. Ao atualizar, os valores do administrador voltam.");
     const { error } = await supabase
       .from("financeiro_mix_operacional")
       .update({ [campo]: valor, updated_at: new Date().toISOString() })
@@ -514,6 +545,7 @@ function CustosMargensPage() {
       setMargemSegurancaGeralEditada(null);
       return;
     }
+    if (modoSimulacao) return toast.info("A margem foi alterada apenas para a simulação desta sessão.");
     const valor = Math.max(0, n(margemSegurancaGeralEditada));
     const { error } = await supabase
       .from("cozinha_receitas")
@@ -558,6 +590,11 @@ function CustosMargensPage() {
         }
       `}</style>
       <div className="screen-only space-y-6">
+      {modoSimulacao && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          Modo simulação: você pode editar os valores para analisar cenários, mas nada será salvo. Ao atualizar a página, os dados definidos pelo administrador voltam automaticamente.
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-black text-[#5850ec]">
@@ -950,7 +987,7 @@ function CustosMargensPage() {
               </table>
             </div>
 
-            <div className="mt-4 grid gap-2 rounded-xl border border-dashed p-3 md:grid-cols-[1fr_190px_160px_160px_auto]">
+            {!modoSimulacao && <div className="mt-4 grid gap-2 rounded-xl border border-dashed p-3 md:grid-cols-[1fr_190px_160px_160px_auto]">
               <input className={input} placeholder="Novo gasto" value={novoGasto.nome} onChange={(e) => setNovoGasto({ ...novoGasto, nome: e.target.value })} />
               <input className={input} placeholder="Categoria" value={novoGasto.categoria} onChange={(e) => setNovoGasto({ ...novoGasto, categoria: e.target.value })} />
               <input className={input} type="number" min="0" step="0.01" placeholder="Valor atual" value={novoGasto.valor_mensal} onChange={(e) => setNovoGasto({ ...novoGasto, valor_mensal: e.target.value })} />
@@ -958,7 +995,7 @@ function CustosMargensPage() {
               <button onClick={adicionarGasto} disabled={salvando === "novo"} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#5850ec] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
                 <Plus size={16} /> Adicionar
               </button>
-            </div>
+            </div>}
           </section>
         </>
       ) : (
