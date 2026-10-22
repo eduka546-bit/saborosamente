@@ -446,7 +446,7 @@ async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
   // por um histórico antigo mantido em memória pelo webhook.
   const { data: conversaAtual } = await supabase
     .from("whatsapp_conversas")
-    .select("mensagens,ultima_msg")
+    .select("mensagens,ultima_msg,modo,nome,telefone")
     .eq("id", id)
     .maybeSingle();
 
@@ -464,10 +464,37 @@ async function appendMensagem(id: string, mensagens: any[], novaMensagem: any) {
     ),
   ).toISOString();
 
-  await supabase
+  const { error: salvamentoErro } = await supabase
     .from("whatsapp_conversas")
     .update({ mensagens: atualizado, ultima_msg: ultimaMsg })
     .eq("id", id);
+  if (salvamentoErro) {
+    console.error("Falha ao registrar mensagem WhatsApp:", salvamentoErro.message);
+  }
+  // Notifica somente a equipe que já assumiu atendimento humano.
+  // Conversas com IA continuam silenciosas para evitar avisos excessivos.
+  if (!salvamentoErro && novaMensagem?.role === "user" && conversaAtual?.modo === "humano") {
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+        },
+        body: JSON.stringify({
+          title: "💬 Mensagem aguardando atendimento",
+          body: `${conversaAtual?.nome || conversaAtual?.telefone || "Cliente"} enviou uma mensagem.`,
+          url: `/admin/agente?conversa=${id}`,
+          tag: `whatsapp-${id}`,
+          conversation_id: id,
+        }),
+        signal: AbortSignal.timeout(2500),
+      });
+    } catch (err: any) {
+      console.error("Não foi possível enviar push WhatsApp:", err?.message ?? err);
+    }
+  }
   return atualizado;
 }
 
@@ -2226,7 +2253,17 @@ Deno.serve(async (req: Request) => {
                   : statusMeta === "sent"
                     ? "enviado"
                     : null;
+
           if (!statusBanco || !statusEvent?.id) continue;
+          // Registra recibos também das mensagens manuais do painel. O recibo
+          // é salvo por ID Meta, inclusive se chegar antes de a UI persistir a
+          // mensagem. A função SQL mantém estados monotônicos.
+          const { error: reciboErro } = await supabase.rpc("registrar_recibo_whatsapp", {
+            p_message_id: String(statusEvent.id),
+            p_status: statusBanco,
+            p_telefone: String(statusEvent.recipient_id || ""),
+          });
+          if (reciboErro) console.error("Falha ao salvar recibo:", reciboErro.message);
           const atualizacao: Record<string, string> = { status: statusBanco };
           if (statusBanco === "entregue") atualizacao.entregue_em = new Date().toISOString();
           if (statusBanco === "lido") atualizacao.lida_em = new Date().toISOString();
@@ -2379,6 +2416,8 @@ Deno.serve(async (req: Request) => {
           await appendMensagem(conversaPausada.id, conversaPausada.mensagens ?? [], {
             role: "user",
             content: conteudoPausado,
+            whatsapp_message_id: msg.id,
+            ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
             ...(midiaPausada ? {
               media_path: midiaPausada.path,
               media_type: msg.type,
@@ -2477,6 +2516,8 @@ Deno.serve(async (req: Request) => {
           await appendMensagem(conversa.id, historico, {
             role: "user",
             content: texto || menuId || "",
+            whatsapp_message_id: msg.id,
+            ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
           });
           return new Response("OK", { status: 200 });
         }
@@ -2805,6 +2846,8 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
       historico = await appendMensagem(conversa.id, historico, {
         role: "user",
         content: texto,
+        whatsapp_message_id: msg.id,
+        ...(msg?.context?.id ? { reply_to_message_id: msg.context.id } : {}),
         ...(mediaAnexo ? {
           media_path: mediaAnexo.path,
           media_type: msg.type,

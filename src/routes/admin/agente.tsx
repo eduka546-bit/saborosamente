@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
@@ -33,10 +33,29 @@ import {
   ToggleRight,
   GripVertical,
   Pencil,
+  Copy,
+  Reply,
+  Pin,
+  Archive,
+  ArchiveRestore,
+  BellOff,
+  Bell,
+  BellRing,
+  MoreVertical,
+  CheckCircle2,
+  MailOpen,
+  Star,
+  Mic,
+  Pause,
+  Play,
+  Square,
   X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { ativarPush, statusPush } from "@/lib/push";
+import { chaveMensagemPainel, mesclarMensagensWhatsApp } from "@/lib/whatsapp-chat-history";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -46,8 +65,9 @@ export const Route = createFileRoute("/admin/agente")({
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 type AnexoSaida = {
-  url: string;
-  tipo: "image" | "video" | "document";
+  url?: string;
+  storagePath?: string;
+  tipo: "image" | "video" | "audio" | "document";
   nome: string;
   mime: string;
 };
@@ -56,15 +76,19 @@ async function sendManualMessage(
   to: string,
   text: string,
   anexo?: AnexoSaida | null,
+  replyToId?: string,
 ): Promise<{ ok: boolean; errorMsg?: string; messageId?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("whatsapp-send", {
       body: {
         to,
         text,
+        ...(replyToId ? { context_message_id: replyToId } : {}),
         ...(anexo ? {
-          media_url: anexo.url,
+          ...(anexo.url ? { media_url: anexo.url } : {}),
+          ...(anexo.storagePath ? { media_storage_path: anexo.storagePath } : {}),
           media_type: anexo.tipo,
+          media_mime: anexo.mime,
           filename: anexo.nome,
           caption: text,
         } : {}),
@@ -1120,6 +1144,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
 // Renderiza mídia recebida do WhatsApp usando URL assinada do bucket privado.
 function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [velocidade, setVelocidade] = useState(1);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [erro, setErro] = useState(false);
 
   useEffect(() => {
@@ -1159,7 +1185,16 @@ function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
   }
 
   if (tipo === "audio" || tipo === "voice" || mime.startsWith("audio/")) {
-    return <audio className="w-full min-w-[240px] mt-1" controls preload="metadata" src={url} />;
+    return <div className="mt-1 flex flex-col gap-1">
+      <audio ref={audioRef} className="w-full min-w-[210px] max-w-[300px]" controls preload="metadata" src={url}/>
+      <button type="button" aria-label="Alterar velocidade do áudio"
+        className="self-end rounded-full bg-black/10 px-3 py-1 text-[11px] font-semibold"
+        onClick={() => {
+          const proxima = velocidade === 1 ? 1.5 : velocidade === 1.5 ? 2 : 1;
+          setVelocidade(proxima);
+          if (audioRef.current) audioRef.current.playbackRate = proxima;
+        }}>{velocidade}x</button>
+    </div>;
   }
 
   return (
@@ -1171,8 +1206,22 @@ function MidiaRecebida({ msg, dark }: { msg: any; dark: boolean }) {
 }
 
 function MidiaEnviada({ msg }: { msg: any }) {
-  const url = String(msg?.media_url || "");
-  if (!url) return null;
+  const privatePath = String(msg?.media_storage_path || "");
+  const [privateUrl, setPrivateUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setPrivateUrl(null);
+    if (!privatePath) return;
+    let vigente = true;
+    supabase.storage.from("whatsapp-envios-privados").createSignedUrl(privatePath, 600)
+      .then(({ data, error }) => {
+        if (vigente) setPrivateUrl(!error ? data?.signedUrl ?? null : null);
+      });
+    return () => { vigente = false; };
+  }, [privatePath]);
+  const url = privatePath ? privateUrl : String(msg?.media_url || "");
+  if (!url) {
+    return privatePath ? <span className="text-xs opacity-70">Carregando anexo protegido…</span> : null;
+  }
   const tipo = String(msg?.media_type || "").toLowerCase();
   const mime = String(msg?.mime_type || "").toLowerCase();
   if (tipo === "image" || mime.startsWith("image/")) {
@@ -1180,6 +1229,9 @@ function MidiaEnviada({ msg }: { msg: any }) {
   }
   if (tipo === "video" || mime.startsWith("video/")) {
     return <video src={url} controls preload="metadata" className="max-w-full max-h-[360px] rounded-xl mt-1" />;
+  }
+  if (tipo === "audio" || mime.startsWith("audio/")) {
+    return <audio src={url} controls preload="metadata" className="min-w-[210px] max-w-full mt-1"/>;
   }
   return <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15"><FileText size={18}/><span className="text-xs font-semibold truncate">{msg.media_name || "Abrir arquivo"}</span></a>;
 }
@@ -1191,21 +1243,133 @@ const EMOJIS_RAPIDOS = [
   "🚚","📦","🛒","💳","💰","📍","📅","⏰","📲","💬",
 ];
 
+type PreferenciaConversa = {
+  conversa_id: string;
+  fixada: boolean;
+  arquivada: boolean;
+  silenciada: boolean;
+  nao_lida_manual: boolean;
+};
+
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [respondendo, setRespondendo] = useState<{ id: string; texto: string } | null>(null);
+  const [buscaMensagens, setBuscaMensagens] = useState("");
+  const [mostrarBusca, setMostrarBusca] = useState(false);
   const [sending, setSending] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
+  const gravadorRef = useRef<MediaRecorder | null>(null);
+  const microfoneRef = useRef<MediaStream | null>(null);
+  const trechosAudioRef = useRef<Blob[]>([]);
+  const cancelarAoPararRef = useRef(false);
+  const [gravando, setGravando] = useState(false);
+  const [gravacaoPausada, setGravacaoPausada] = useState(false);
+  const [segundosGravacao, setSegundosGravacao] = useState(0);
+
+  useEffect(() => {
+    if (!gravando || gravacaoPausada) return;
+    const relogio = window.setInterval(() => setSegundosGravacao((s) => s + 1), 1000);
+    return () => window.clearInterval(relogio);
+  }, [gravando, gravacaoPausada]);
+  useEffect(() => () => {
+    cancelarAoPararRef.current = true;
+    if (gravadorRef.current?.state && gravadorRef.current.state !== "inactive") {
+      gravadorRef.current.stop();
+    }
+    microfoneRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
   const [editandoNome, setEditandoNome] = useState(false);
   const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
   const [salvandoNome, setSalvandoNome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
+  // O histórico permanente fica em tabela separada: preserva todas as novas
+  // mensagens enquanto o agente continua usando só a janela curta.
+  const { data: historicoPaginas, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["whatsapp-historico", conversa.id],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const porPagina = 100;
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagens_historico")
+        .select("id, mensagem")
+        .eq("conversa_id", conversa.id)
+        .order("id", { ascending: false })
+        .range(pageParam * porPagina, (pageParam + 1) * porPagina - 1);
+      // Permite testar o novo layout antes de aplicar a migração no banco.
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { id: number; mensagem: any }[];
+    },
+    getNextPageParam: (ultimaPagina, todasPaginas) => ultimaPagina.length === 100 ? todasPaginas.length : undefined,
+    enabled: Boolean(conversa.id && !conversa.somenteCampanha),
+    staleTime: 10_000,
+  });
+  const historicoGuardado = (historicoPaginas?.pages ?? [])
+    .flat()
+    .sort((a, b) => a.id - b.id)
+    .map((item) => item.mensagem);
+  const mensagensCompletas = mesclarMensagensWhatsApp(historicoGuardado, mensagensDaConversa);
+  const idsRecibos = [...new Set(
+    mensagensCompletas.map((msg) => String(msg.whatsapp_message_id ?? "")).filter((id) => id.startsWith("wamid.")),
+  )].slice(-100);
+  const { data: recibos = [] } = useQuery({
+    queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagem_recibos")
+        .select("whatsapp_message_id,status,atualizado_em")
+        .in("whatsapp_message_id", idsRecibos);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { whatsapp_message_id: string; status: string; atualizado_em: string }[];
+    },
+    enabled: idsRecibos.length > 0,
+    refetchInterval: 8000,
+  });
+  const recibosPorId = new Map((recibos as { whatsapp_message_id: string; status: string }[])
+    .map((recibo) => [recibo.whatsapp_message_id, recibo.status]));
+
+  const { data: favoritas = [] } = useQuery({
+    queryKey: ["whatsapp-favoritas", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("whatsapp_mensagens_favoritas").select("chave").eq("conversa_id", conversa.id);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { chave: string }[];
+    },
+  });
+  const favoritosSet = new Set((favoritas as {chave: string}[]).map((item) => item.chave));
+  const [soFavoritas, setSoFavoritas] = useState(false);
+  const alternarFavorito = useMutation({
+    mutationFn: async ({ chave, favorita }: { chave: string; favorita: boolean }) => {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error("Faça login novamente.");
+      let query;
+      if (favorita) {
+        query = (supabase as any).from("whatsapp_mensagens_favoritas").delete()
+          .eq("user_id", user.id).eq("conversa_id", conversa.id).eq("chave", chave);
+      } else {
+        query = (supabase as any).from("whatsapp_mensagens_favoritas")
+          .insert({user_id: user.id, conversa_id: conversa.id, chave});
+      }
+      const { error } = await query;
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({queryKey: ["whatsapp-favoritas", conversa.id]}),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+  }, [conversa.id, mensagensDaConversa.length, queryClient]);
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
@@ -1276,7 +1440,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   // Quando a IA transfere para uma pessoa, ela já grava um resumo como mensagem
   // de sistema. Reaproveitamos esse texto como briefing fixo para a equipe.
-  const resumoEquipeRaw = [...mensagensDaConversa]
+  const resumoEquipeRaw = [...mensagensCompletas]
     .reverse()
     .find((m: any) => m?.role === "system" && String(m?.content ?? "").startsWith("[Resumo para equipe]"));
   const resumoEquipe = resumoEquipeRaw
@@ -1324,9 +1488,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   );
   const statusPorCampanha = new Map(enviosValidos.map((envio) => [envio.campanha_id, envio.status]));
   const campanhasJaGravadas = new Set(
-    mensagensDaConversa.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
+    mensagensCompletas.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
   );
-  const historicoNormalizado = mensagensDaConversa.map((msg: any) => {
+  const historicoNormalizado = mensagensCompletas.map((msg: any) => {
     if (!msg?.campaign_id) return msg;
     const campanha = campanhasPorId.get(msg.campaign_id);
     return {
@@ -1354,7 +1518,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   // jogava essas mensagens para 1970 e fazia todas as falas do cliente aparecerem
   // acima das nossas respostas. Preservamos a ordem do histórico e só usamos
   // ordenação cronológica quando todas as mensagens já possuem timestamp válido.
-  const historicoTemTimestamps = mensagensDaConversa.every((msg: any) => {
+  const historicoTemTimestamps = mensagensCompletas.every((msg: any) => {
     const ts = msg?.timestamp ? new Date(msg.timestamp).getTime() : NaN;
     return Number.isFinite(ts);
   });
@@ -1368,11 +1532,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       )
     : [...campanhasOrdenadas, ...historicoNormalizado];
 
+  // Carregar mensagens antigas não deve jogar a rolagem de volta ao final.
+  const ultimaMensagemVisivel = mensagens.at(-1);
+  const chaveUltimaVisivel = ultimaMensagemVisivel ? chaveMensagemPainel(ultimaMensagemVisivel) : "";
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens.length]);
+  }, [conversa.id, chaveUltimaVisivel]);
 
   useEffect(() => {
+    setRespondendo(null);
+    setBuscaMensagens("");
+    setMostrarBusca(false);
     setNomeEditado(conversa.nome || "");
     setEditandoNome(false);
   }, [conversa.id, conversa.nome]);
@@ -1416,22 +1586,31 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   const selecionarAnexo = (file?: File) => {
     if (!file) return;
-    const ehImagem = file.type.startsWith("image/");
-    const ehVideo = file.type.startsWith("video/");
-    const permitidos = ehImagem || ehVideo || [
+    // Alguns iPhones enviam M4A como audio/x-m4a. A extensão permanece
+    // idêntica e apenas normalizamos o Content-Type aceito pela Cloud API.
+    if (file.type === "audio/x-m4a" || (!file.type && /\.m4a$/i.test(file.name))) {
+      file = new globalThis.File([file], file.name, { type: "audio/mp4" });
+    }
+    const tipoArquivo = file.type.split(";")[0].toLowerCase().trim();
+    const ehImagem = ["image/jpeg", "image/png"].includes(tipoArquivo);
+    const ehVideo = ["video/mp4", "video/3gpp"].includes(tipoArquivo);
+    const ehAudio = ["audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/amr"].includes(tipoArquivo);
+    const ehDocumento = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-excel",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "text/plain",
-    ].includes(file.type);
-    if (!permitidos) return toast.error("Envie imagem, vídeo, PDF ou documento.");
-    const limite = ehImagem ? 5 : ehVideo ? 16 : 20;
+    ].includes(tipoArquivo);
+    if (!ehImagem && !ehVideo && !ehAudio && !ehDocumento) {
+      return toast.error("Formato indisponível na Meta. Use JPG/PNG, MP4, MP3/M4A/OGG, PDF ou documento compatível.");
+    }
+    const limite = ehImagem ? 5 : 16;
     if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
     setAnexoFile(file);
     if (anexoPreview) URL.revokeObjectURL(anexoPreview);
-    setAnexoPreview(ehImagem || ehVideo ? URL.createObjectURL(file) : null);
+    setAnexoPreview(ehImagem || ehVideo || ehAudio ? URL.createObjectURL(file) : null);
     setEmojiAberto(false);
   };
 
@@ -1442,9 +1621,82 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     if (anexoInputRef.current) anexoInputRef.current.value = "";
   };
 
+  const iniciarGravacao = async () => {
+    if (gravando || sending) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      toast.error("Este navegador não permite gravar áudio. Você pode anexar um áudio gravado no aparelho.");
+      return;
+    }
+    // A Cloud API aceita OGG/Opus e MP4/AAC. WebM, gerado por muitos
+    // navegadores, não deve ser enviado como áudio sem conversão.
+    const mime = ["audio/ogg;codecs=opus", "audio/mp4", "audio/ogg"]
+      .find((tipo) => MediaRecorder.isTypeSupported(tipo));
+    if (!mime) {
+      toast.error("Gravação direta indisponível neste navegador. Envie um áudio em MP3, M4A ou OGG usando o clipe.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      microfoneRef.current = stream;
+      const gravador = new MediaRecorder(stream, { mimeType: mime });
+      trechosAudioRef.current = [];
+      cancelarAoPararRef.current = false;
+      gravadorRef.current = gravador;
+      gravador.ondataavailable = (evento) => {
+        if (evento.data?.size) trechosAudioRef.current.push(evento.data);
+      };
+      gravador.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        microfoneRef.current = null;
+        setGravando(false);
+        setGravacaoPausada(false);
+        if (cancelarAoPararRef.current) return;
+        const tipoAudio = mime.startsWith("audio/mp4") ? "audio/mp4" : "audio/ogg";
+        const extensao = tipoAudio === "audio/mp4" ? "m4a" : "ogg";
+        const arquivo = new globalThis.File(trechosAudioRef.current, `gravacao-${Date.now()}.${extensao}`, { type: tipoAudio });
+        if (arquivo.size > 0) selecionarAnexo(arquivo);
+        else toast.error("Não foi possível gravar áudio. Tente novamente.");
+      };
+      gravador.start(250);
+      setSegundosGravacao(0);
+      setGravacaoPausada(false);
+      setGravando(true);
+    } catch {
+      microfoneRef.current?.getTracks().forEach((track) => track.stop());
+      microfoneRef.current = null;
+      toast.error("Autorize o microfone nas configurações do navegador para gravar áudio.");
+    }
+  };
+  const pausarRetomarGravacao = () => {
+    const gravador = gravadorRef.current;
+    if (!gravador) return;
+    if (gravador.state === "recording") {
+      gravador.pause();
+      setGravacaoPausada(true);
+    } else if (gravador.state === "paused") {
+      gravador.resume();
+      setGravacaoPausada(false);
+    }
+  };
+  const concluirGravacao = () => {
+    const gravador = gravadorRef.current;
+    if (gravador && gravador.state !== "inactive") gravador.stop();
+  };
+  const cancelarGravacao = () => {
+    cancelarAoPararRef.current = true;
+    concluirGravacao();
+  };
+
   const handleSend = async () => {
     const texto = msgText.trim();
     if ((!texto && !anexoFile) || sending) return;
+    // A Meta não entrega legenda junto com mensagens do tipo audio. Não
+    // gravamos no histórico texto que o destinatário nunca recebeu.
+    if (anexoFile?.type.startsWith("audio/") && texto) {
+      toast.error("Áudio não permite legenda na Meta. Envie o texto separadamente.");
+      return;
+    }
+    const respostaAtual = respondendo;
     setSending(true);
     try {
       let anexo: AnexoSaida | null = null;
@@ -1453,18 +1705,22 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           ? "image"
           : anexoFile.type.startsWith("video/")
             ? "video"
-            : "document";
+            : anexoFile.type.startsWith("audio/")
+              ? "audio"
+              : "document";
         const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
         const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
         const { error: uploadError } = await supabase.storage
-          .from("agente-arquivos")
+          .from("whatsapp-envios-privados")
           .upload(path, anexoFile, { contentType: anexoFile.type || "application/octet-stream", upsert: false });
         if (uploadError) throw uploadError;
-        const url = supabase.storage.from("agente-arquivos").getPublicUrl(path).data.publicUrl;
-        anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
+        anexo = {
+          storagePath: path, tipo, nome: anexoFile.name,
+          mime: anexoFile.type || "application/octet-stream",
+        };
       }
 
-      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo);
+      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo, respostaAtual?.id);
       if (!ok) throw new Error(errorMsg || "Falha ao enviar");
 
       const agora = new Date().toISOString();
@@ -1474,8 +1730,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         manual: true,
         timestamp: agora,
         deliveryStatus: "enviado",
+        ...(respostaAtual ? { reply_to_message_id: respostaAtual.id, reply_to_preview: respostaAtual.texto } : {}),
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
-        ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
+        ...(anexo ? { media_storage_path: anexo.storagePath, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
       const novas = [...mensagensDaConversa, novaMensagem].slice(-30);
       const { error: persistError } = await supabase
@@ -1486,6 +1743,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
       toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
       setMsgText("");
+      setRespondendo(null);
       limparAnexo();
       setEmojiAberto(false);
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
@@ -1496,9 +1754,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     }
   };
 
+  const mensagensFiltradas = mensagens.filter((msg) => {
+    if (soFavoritas && !favoritosSet.has(chaveMensagemPainel(msg))) return false;
+    return !buscaMensagens.trim()
+      || String(msg.content ?? "").toLocaleLowerCase("pt-BR")
+        .includes(buscaMensagens.trim().toLocaleLowerCase("pt-BR"));
+  });
+
   // Agrupa mensagens por data
   const grupos: { date: string; msgs: any[] }[] = [];
-  for (const msg of mensagens) {
+  for (const msg of mensagensFiltradas) {
     const d = msg.timestamp ? format(new Date(msg.timestamp), "dd/MM/yyyy") : "Hoje";
     const last = grupos[grupos.length - 1];
     if (last?.date === d) last.msgs.push(msg);
@@ -1583,6 +1848,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             </p>
           )}
         </div>
+        <button type="button" title={soFavoritas ? "Mostrar todas as mensagens" : "Mostrar apenas favoritas"}
+          aria-label={soFavoritas ? "Mostrar todas as mensagens" : "Filtrar mensagens favoritas"}
+          onClick={() => setSoFavoritas((v) => !v)}
+          className={`p-2 rounded-full ${soFavoritas ? "text-yellow-400" : t.textSub}`}>
+          <Star size={18} fill={soFavoritas ? "currentColor" : "none"}/>
+        </button>
+        <button type="button" title="Buscar mensagens" aria-label="Buscar mensagens na conversa"
+          onClick={() => setMostrarBusca((v) => !v)} className={`p-2 rounded-full ${t.textSub}`}><Search size={18}/></button>
         {!somenteCampanha && (
           <button
             onClick={() => onToggleModo(conversa.id, conversa.modo)}
@@ -1638,27 +1911,47 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         </div>
       )}
 
+      {mostrarBusca && (
+        <div className={`shrink-0 flex items-center gap-2 px-3 py-2 ${t.chatHeader}`}>
+          <Search size={17} className={t.textSub} />
+          <input value={buscaMensagens} onChange={(e) => setBuscaMensagens(e.target.value)} autoFocus
+            aria-label="Buscar nesta conversa" placeholder="Buscar mensagens nesta conversa" className={`flex-1 min-w-0 rounded-md px-2 py-2 text-sm outline-none ${t.chatInputField}`} />
+          <span className={`text-xs ${t.textSub}`}>{mensagensFiltradas.length}</span>
+          <button onClick={() => { setMostrarBusca(false); setBuscaMensagens(""); }} title="Fechar busca" className={`p-2 ${t.textSub}`}><X size={17}/></button>
+        </div>
+      )}
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-[6%] py-3 space-y-0.5">
-        {mensagens.length === 0 && (
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {hasNextPage && (
+          <div className="flex justify-center py-2">
+            <button type="button" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold ${t.settingsInput} disabled:opacity-50`}>
+              {isFetchingNextPage ? "Carregando..." : "Carregar mensagens anteriores"}
+            </button>
+          </div>
+        )}
+        {mensagensFiltradas.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
               className={`px-4 py-2 rounded-lg text-xs ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#e2ffc7] text-[#667781]"}`}
             >
-              Nenhuma mensagem ainda
+              {buscaMensagens ? "Nenhuma mensagem encontrada" : "Nenhuma mensagem ainda"}
             </div>
           </div>
         )}
 
-        {mensagens.map((msg: any, i: number) => {
+        {mensagensFiltradas.map((msg: any, i: number) => {
           const isOut = msg.role === "assistant";
+          const chaveMsg = chaveMensagemPainel(msg);
+          const estaFavorita = favoritosSet.has(chaveMsg);
+          const statusMensagem = recibosPorId.get(String(msg.whatsapp_message_id || "")) || msg.deliveryStatus;
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
 
           return (
             <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"} mb-0.5`}>
               <div
-                className={`relative max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
+                className={`group relative max-w-[88%] sm:max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
                   isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
@@ -1669,11 +1962,29 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                       : "SaborosaMente"
                     : conversa.nome || "Cliente"}
                 </p>
+                {msg.reply_to_preview && (
+                  <div className={`mb-1 rounded-md border-l-[3px] border-[#00a884] px-2 py-1 text-xs opacity-85 ${dark ? "bg-black/20" : "bg-black/5"}`}>{msg.reply_to_preview}</div>
+                )}
                 {msg.content && !msg.media_path && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
-                {msg.media_url && <MidiaEnviada msg={msg} />}
+                {(msg.media_url || msg.media_storage_path) && <MidiaEnviada msg={msg} />}
+                <div className="flex items-center gap-1 mt-1 opacity-75 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <button type="button" title="Copiar mensagem" aria-label="Copiar mensagem" className="p-1 rounded hover:bg-black/10"
+                    onClick={async () => { try { await navigator.clipboard.writeText(String(msg.content ?? "")); toast.success("Mensagem copiada"); } catch { toast.error("Não foi possível copiar"); } }}><Copy size={14}/></button>
+                  <button type="button" title={estaFavorita ? "Desfavoritar mensagem" : "Favoritar mensagem"}
+                    aria-label={estaFavorita ? "Desfavoritar mensagem" : "Favoritar mensagem"}
+                    disabled={alternarFavorito.isPending}
+                    onClick={() => alternarFavorito.mutate({chave: chaveMsg, favorita: estaFavorita})}
+                    className={`rounded p-1 hover:bg-black/10 ${estaFavorita ? "text-yellow-400" : ""}`}>
+                    <Star size={14} fill={estaFavorita ? "currentColor" : "none"}/>
+                  </button>
+                  {!somenteCampanha && msg.whatsapp_message_id && (
+                    <button type="button" title="Responder citando" aria-label="Responder citando" className="p-1 rounded hover:bg-black/10"
+                      onClick={() => { setRespondendo({ id: msg.whatsapp_message_id, texto: String(msg.content || "Mídia").slice(0, 150) }); setBuscaMensagens(""); setMostrarBusca(false); }}><Reply size={15}/></button>
+                  )}
+                </div>
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
@@ -1682,13 +1993,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                     <CheckCheck
                       size={14}
                       aria-label={
-                        msg.deliveryStatus === "lido"
+                        statusMensagem === "lido"
                           ? "Lida"
-                          : msg.deliveryStatus === "entregue"
+                          : statusMensagem === "entregue"
                             ? "Entregue"
-                            : "Enviada"
+                            : statusMensagem === "falhou" ? "Falha informada pela Meta" : "Enviada"
                       }
-                      className={msg.deliveryStatus === "lido" ? "text-[#53bdeb]" : "opacity-50"}
+                      className={statusMensagem === "lido" ? "text-[#53bdeb]" : statusMensagem === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
@@ -1700,7 +2011,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       </div>
 
       {/* Input */}
-      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`}>
+      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`} style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}>
         {somenteCampanha ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
@@ -1723,9 +2034,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           </div>
         ) : (
           <div className="relative">
+            {respondendo && (
+              <div className={`mb-2 flex items-center gap-2 border-l-[3px] border-[#00a884] rounded-md px-3 py-2 ${t.chatInputField}`}>
+                <Reply size={17} className="text-[#00a884] shrink-0"/>
+                <div className="flex-1 min-w-0"><p className="text-[11px] font-bold text-[#00a884]">Respondendo a uma mensagem</p><p className="text-xs truncate">{respondendo.texto}</p></div>
+                <button type="button" onClick={() => setRespondendo(null)} aria-label="Cancelar resposta"><X size={17}/></button>
+              </div>
+            )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
-                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
+                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : anexoPreview && anexoFile.type.startsWith("audio/") ? <audio controls preload="metadata" src={anexoPreview} className="w-40 max-w-[45vw]"/> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
                 <div className="min-w-0 flex-1"><p className={`truncate text-xs font-semibold ${t.text}`}>{anexoFile.name}</p><p className={`text-[10px] ${t.textSub}`}>{(anexoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
                 <button onClick={limparAnexo} className={`rounded-full p-1.5 ${t.textSub}`} title="Remover anexo"><X size={16}/></button>
               </div>
@@ -1735,17 +2053,36 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                 <div className="grid grid-cols-8 gap-1">{EMOJIS_RAPIDOS.map((emoji) => <button key={emoji} onClick={() => setMsgText((atual) => atual + emoji)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-black/10">{emoji}</button>)}</div>
               </div>
             )}
-            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
-            <div className="flex items-center gap-2">
-              <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
-                <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
-                <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 bg-transparent outline-none text-sm" />
-                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
+            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.mp3,.m4a,.ogg,.aac,.amr,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
+            {gravando ? (
+              <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${t.chatInputField}`}>
+                <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" aria-label="Gravação ativa"/>
+                <span className="flex-1 text-sm tabular-nums">
+                  {String(Math.floor(segundosGravacao / 60)).padStart(2, "0")}:{String(segundosGravacao % 60).padStart(2, "0")}
+                  {gravacaoPausada ? " · Pausada" : " · Gravando"}
+                </span>
+                <button type="button" onClick={pausarRetomarGravacao} title={gravacaoPausada ? "Retomar" : "Pausar"} className="p-2 rounded-full hover:bg-black/10">
+                  {gravacaoPausada ? <Play size={20}/> : <Pause size={20}/>}
+                </button>
+                <button type="button" onClick={cancelarGravacao} title="Descartar gravação" className="p-2 rounded-full text-red-500 hover:bg-black/10"><X size={19}/></button>
+                <button type="button" onClick={concluirGravacao} title="Concluir para ouvir e enviar" className="p-2 rounded-full bg-[#00a884] text-white"><Square size={19}/></button>
               </div>
-              <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
-                {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              </button>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
+                  <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
+                  <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 min-w-0 bg-transparent outline-none text-sm" />
+                  <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar arquivo ou áudio"><Paperclip size={19}/></button>
+                </div>
+                <button type="button" onClick={iniciarGravacao} aria-label="Gravar mensagem de voz"
+                  title="Gravar áudio (em navegadores compatíveis)" className={`h-11 w-9 shrink-0 grid place-items-center ${t.textSub}`}>
+                  <Mic size={21}/>
+                </button>
+                <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
+                  {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1761,10 +2098,32 @@ function AdminAgentePage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const deepLinkAbertoRef = useRef(false);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("pendentes");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "fixadas" | "arquivadas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
+  const [pushAtivo, setPushAtivo] = useState(false);
+  const [ativandoPush, setAtivandoPush] = useState(false);
+  useEffect(() => {
+    void statusPush().then((status) => setPushAtivo(status === "inscrito"));
+  }, []);
+  const configurarPush = async () => {
+    if (pushAtivo) {
+      toast.success("Notificações deste aparelho já estão ativadas.");
+      return;
+    }
+    setAtivandoPush(true);
+    try {
+      await ativarPush();
+      setPushAtivo(true);
+      toast.success("Notificações ativadas neste aparelho!");
+    } catch (err: any) {
+      toast.error(err?.message || "Não foi possível ativar as notificações. No iPhone, instale o site na Tela de Início primeiro.");
+    } finally {
+      setAtivandoPush(false);
+    }
+  };
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
   const [salvandoNovaConversa, setSalvandoNovaConversa] = useState(false);
 
@@ -1793,6 +2152,17 @@ function AdminAgentePage() {
     },
     refetchInterval: 8000,
   });
+
+  // Notificações podem abrir diretamente a conversa correta, inclusive
+  // depois de redirecionar o administrador pela página de login.
+  useEffect(() => {
+    if (deepLinkAbertoRef.current || typeof window === "undefined") return;
+    const conversaId = new URLSearchParams(window.location.search).get("conversa");
+    if (!conversaId || !/^[a-f0-9-]{36}$/i.test(conversaId)) return;
+    if (!(conversas as any[]).some((conversa) => conversa.id === conversaId)) return;
+    deepLinkAbertoRef.current = true;
+    setActiveId(conversaId);
+  }, [conversas]);
 
   // Atualizacao imediata de mensagens e status, com polling como fallback.
   useEffect(() => {
@@ -1874,6 +2244,47 @@ function AdminAgentePage() {
       return data ?? [];
     },
     staleTime: 5 * 60_000,
+  });
+
+  // Preferências privadas por administrador. Arquivar/fixar não modifica
+  // o atendimento e jamais elimina mensagens do WhatsApp.
+  const { data: preferencias = [] } = useQuery({
+    queryKey: ["whatsapp-organizacao"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_conversas_organizacao")
+        .select("conversa_id,fixada,arquivada,silenciada,nao_lida_manual");
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [] as PreferenciaConversa[];
+      if (error) throw error;
+      return (data ?? []) as PreferenciaConversa[];
+    },
+    staleTime: 20_000,
+  });
+  const preferenciasPorId = new Map(
+    (preferencias as PreferenciaConversa[]).map((pref) => [pref.conversa_id, pref]),
+  );
+  const organizarConversa = useMutation({
+    mutationFn: async ({ conversaId, patch }: { conversaId: string; patch: Partial<PreferenciaConversa> }) => {
+      const { data: { user }, error: usuarioErro } = await supabase.auth.getUser();
+      if (usuarioErro || !user) throw new Error("Faça login para organizar as conversas.");
+      const anterior = preferenciasPorId.get(conversaId);
+      const { error } = await (supabase as any).from("whatsapp_conversas_organizacao")
+        .upsert({
+          user_id: user.id,
+          conversa_id: conversaId,
+          fixada: anterior?.fixada ?? false,
+          arquivada: anterior?.arquivada ?? false,
+          silenciada: anterior?.silenciada ?? false,
+          nao_lida_manual: anterior?.nao_lida_manual ?? false,
+          ...patch,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,conversa_id" });
+      if (error?.code === "42P01" || error?.code === "PGRST205") {
+        throw new Error("A organização será habilitada após publicar a atualização do banco.");
+      }
+      if (error) throw error;
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["whatsapp-organizacao"] }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao organizar a conversa"),
   });
 
   const toggleAgenteMutation = useMutation({
@@ -1999,8 +2410,11 @@ function AdminAgentePage() {
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : conversasAtendimento;
   const filtered = itensDaLista.filter((c: any) => {
+    const pref = preferenciasPorId.get(c.id);
+    if (filterModo === "arquivadas" ? !pref?.arquivada : filterModo !== "campanhas" && pref?.arquivada) return false;
     const matchModo =
-      filterModo === "todos" || filterModo === "campanhas" ||
+      filterModo === "todos" || filterModo === "campanhas" || filterModo === "arquivadas" ||
+      (filterModo === "fixadas" && !!pref?.fixada) ||
       (filterModo === "pendentes" ? precisaResponder(c) :
        filterModo === "respondidas" ? foiRespondida(c) :
        filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
@@ -2011,6 +2425,11 @@ function AdminAgentePage() {
       c.telefone?.includes(search);
     const cidade = c.cidade || cidadesPorTelefone.get(String(c.telefone ?? "").replace(/\D/g, "")) || "Sem cidade";
     return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
+  }).sort((a: any, b: any) => {
+    const aFixada = !!preferenciasPorId.get(a.id)?.fixada;
+    const bFixada = !!preferenciasPorId.get(b.id)?.fixada;
+    return Number(bFixada) - Number(aFixada) ||
+      new Date(b.ultima_msg ?? 0).getTime() - new Date(a.ultima_msg ?? 0).getTime();
   });
 
   const iniciarConversa = async () => {
@@ -2064,7 +2483,7 @@ function AdminAgentePage() {
   const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
 
   return (
-    <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
+    <div className={`flex h-[calc(100dvh-56px)] overflow-hidden ${t.app}`}>
       {/* ── Sidebar esquerda ── */}
       <div
         className={`flex flex-col w-full md:w-[380px] shrink-0 border-r ${t.sidebar} ${t.divider} ${activeId && !showConfig ? "hidden md:flex" : "flex"}`}
@@ -2090,6 +2509,12 @@ function AdminAgentePage() {
               title={config?.ativo ? "Pausar respostas da IA" : "Ativar respostas da IA"}
             >
               {toggleAgenteMutation.isPending ? <Loader2 size={17} className="animate-spin" /> : <Bot size={18} />}
+            </button>
+            <button type="button" onClick={configurarPush} disabled={ativandoPush}
+              className={`h-9 w-9 rounded-full grid place-items-center hover:bg-black/10 ${pushAtivo ? "text-[#00a884]" : t.textSub}`}
+              title={pushAtivo ? "Notificações deste aparelho ativadas" : "Ativar notificações neste aparelho"}
+              aria-label={pushAtivo ? "Notificações ativadas" : "Ativar notificações no celular"}>
+              {ativandoPush ? <Loader2 size={18} className="animate-spin"/> : pushAtivo ? <BellRing size={18}/> : <Bell size={18}/>}
             </button>
             {humanasCount > 0 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.badgeHumano}`}>
@@ -2138,7 +2563,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["pendentes", "respondidas", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["todos", "pendentes", "respondidas", "humano", "ia", "fixadas", "arquivadas", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -2162,7 +2587,11 @@ function AdminAgentePage() {
                       ? "Humano"
                       : f === "ia"
                         ? "IA"
-                        : `Campanhas${carregandoCampanhas ? "" : campanhasSemResposta.length ? ` (${campanhasSemResposta.length})` : ""}`}
+                        : f === "fixadas"
+                          ? "Fixadas"
+                          : f === "arquivadas"
+                            ? "Arquivadas"
+                            : `Campanhas${carregandoCampanhas ? "" : campanhasSemResposta.length ? ` (${campanhasSemResposta.length})` : ""}`}
             </button>
           ))}
         </div>
@@ -2192,6 +2621,7 @@ function AdminAgentePage() {
           ) : (
             filtered.map((c: any) => {
               const isActive = activeId === c.id;
+              const pref = preferenciasPorId.get(c.id);
               const isHumano = c.modo === "humano";
               const isCampanha = c.somenteCampanha === true;
               const lastMsg = c.mensagens?.at(-1);
@@ -2205,6 +2635,9 @@ function AdminAgentePage() {
                   onClick={() => {
                     setActiveId(c.id);
                     setShowConfig(false);
+                    if (pref?.nao_lida_manual && !isCampanha) {
+                      organizarConversa.mutate({ conversaId: c.id, patch: { nao_lida_manual: false } });
+                    }
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 min-h-[72px] cursor-pointer transition-all border-b ${t.divider} ${isActive ? t.contactItemActive : t.contactItem}`}
                 >
@@ -2218,6 +2651,8 @@ function AdminAgentePage() {
                       <p className={`font-semibold text-sm truncate ${t.text}`}>
                         {c.nome || c.telefone}
                       </p>
+                      {pref?.fixada && <Pin size={12} className={t.textSub} aria-label="Conversa fixada" />}
+                      {pref?.silenciada && <BellOff size={12} className={t.textSub} aria-label="Conversa silenciada" />}
                       <span
                         className={`text-[11px] shrink-0 ml-2 ${isHumano ? "text-[#f0a202]" : t.textTime}`}
                       >
@@ -2230,15 +2665,43 @@ function AdminAgentePage() {
                           ? `📣 ${c.statusCampanha === "enviado" ? "Enviado à Meta" : c.statusCampanha === "entregue" ? "Entregue" : c.statusCampanha === "lido" ? "Lido" : c.statusCampanha}`
                           : pendente
                             ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
-                            : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
+                            : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || ((lastMsg?.media_url || lastMsg?.media_storage_path) ? "📎 Arquivo enviado" : "")}</>}
                       </p>
-                      {pendente ? (
+                      {pref?.nao_lida_manual ? (
+                        <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-[#00a884] text-white" title="Marcada como não lida">●</span>
+                      ) : pendente ? (
                         <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-red-500 text-white" title="Aguardando sua resposta">{Math.max(1, naoRespondidas)}</span>
                       ) : isHumano ? (
                         <span className={`ml-2 px-1.5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}>VOCÊ</span>
                       ) : null}
                     </div>
                   </div>
+                  {!isCampanha && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" onClick={(event) => event.stopPropagation()}
+                          aria-label={`Opções para ${c.nome || c.telefone}`} title="Opções da conversa"
+                          className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}><MoreVertical size={19}/></button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { fixada: !pref?.fixada } })}>
+                          <Pin className="mr-2 h-4 w-4"/>{pref?.fixada ? "Desafixar conversa" : "Fixar conversa"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { arquivada: !pref?.arquivada } })}>
+                          {pref?.arquivada ? <ArchiveRestore className="mr-2 h-4 w-4"/> : <Archive className="mr-2 h-4 w-4"/>}
+                          {pref?.arquivada ? "Desarquivar" : "Arquivar conversa"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { silenciada: !pref?.silenciada } })}>
+                          {pref?.silenciada ? <Bell className="mr-2 h-4 w-4"/> : <BellOff className="mr-2 h-4 w-4"/>}
+                          {pref?.silenciada ? "Ativar avisos" : "Silenciar avisos"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => organizarConversa.mutate({ conversaId: c.id, patch: { nao_lida_manual: !pref?.nao_lida_manual } })}>
+                          {pref?.nao_lida_manual ? <CheckCircle2 className="mr-2 h-4 w-4"/> : <MailOpen className="mr-2 h-4 w-4"/>}
+                          {pref?.nao_lida_manual ? "Marcar como lida" : "Marcar como não lida"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               );
             })
@@ -2301,9 +2764,23 @@ function AdminAgentePage() {
         )}
       </div>
 
+      {/* Configurações também acessíveis no celular, sem esconder atrás da lista. */}
+      {showConfig && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col h-[100dvh] overflow-hidden">
+          <PainelConfig
+            dark={dark}
+            config={config}
+            setConfig={setConfig}
+            saveConfig={saveConfig}
+            saving={saving}
+            onClose={() => setShowConfig(false)}
+          />
+        </div>
+      )}
+
       {/* Mobile: chat em fullscreen */}
       {activeId && !showConfig && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col">
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col h-[100dvh] overflow-hidden">
           {activeConversa && (
             <ChatView
               conversa={activeConversa}
