@@ -15,10 +15,12 @@ export const Route = createFileRoute("/admin")({
 });
 
 type AuthState = "checking" | "authorized" | "unauthorized" | "error";
+type AdminAccess = "admin" | "custos" | null;
 
 function AdminLayout() {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>("checking");
+  const [access, setAccess] = useState<AdminAccess>(null);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
@@ -30,6 +32,7 @@ function AdminLayout() {
     // dentro de onAuthStateChange (que roda sob o lock interno de Auth).
     const verificarAcesso = async (session: Session | null, currentRevision: number) => {
       if (!session?.user) {
+        if (active && currentRevision === revision) setAccess(null);
         if (active && currentRevision === revision) setAuthState("unauthorized");
         return;
       }
@@ -38,13 +41,12 @@ function AdminLayout() {
       controllers.add(controller);
       const timeout = window.setTimeout(() => controller.abort(), 10_000);
       try {
-        const { data: roleData, error } = await supabase
+        const { data: roles, error } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .abortSignal(controller.signal)
-          .maybeSingle();
+          .in("role", ["admin", "custos"] as any)
+          .abortSignal(controller.signal);
 
         if (!active || currentRevision !== revision) return;
         if (error) {
@@ -52,7 +54,13 @@ function AdminLayout() {
           setAuthState("error");
           return;
         }
-        setAuthState(roleData ? "authorized" : "unauthorized");
+        const access = roles?.some((role: any) => role.role === "admin")
+          ? "admin"
+          : roles?.some((role: any) => role.role === "custos")
+            ? "custos"
+            : null;
+        setAccess(access);
+        setAuthState(access ? "authorized" : "unauthorized");
       } catch (error) {
         if (!active || currentRevision !== revision) return;
         console.warn("[admin] Falha na verificação de acesso:", error);
@@ -68,7 +76,10 @@ function AdminLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const currentRevision = ++revision;
       if (event === "SIGNED_OUT" || !session) {
-        if (active) setAuthState("unauthorized");
+        if (active) {
+          setAccess(null);
+          setAuthState("unauthorized");
+        }
         return;
       }
 
@@ -100,6 +111,12 @@ function AdminLayout() {
       void navigate({ to: "/admin-login" as any, replace: true });
     }
   }, [authState, navigate]);
+
+  useEffect(() => {
+    if (authState === "authorized" && access === "custos" && window.location.pathname !== "/admin/custos") {
+      void navigate({ to: "/admin/custos" as any, replace: true });
+    }
+  }, [access, authState, navigate]);
 
   if (authState === "error") {
     return (
@@ -140,7 +157,7 @@ function AdminLayout() {
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
-      <AdminWhatsappAlerts />
+      {access === "admin" && <AdminWhatsappAlerts />}
     </div>
   );
 }
