@@ -514,15 +514,25 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const descontoIndicacao = referralEligible ? roundMoney(subtotalEfetivo * 0.05) : 0;
 
-    const validacaoAgenda = validarEntregaProgramada({
-      cidade: data.metodoEntrega === "entrega" ? data.cidade : "São Bento do Sul",
-      data: data.dataProgramada,
-      horario: data.faixaHorario,
-      rawConfig: (settings as any)?.parametros_loja?.entrega,
-      totalUnidades,
-    });
-    if (!validacaoAgenda.ok) {
-      throw new Error(validacaoAgenda.erro);
+    // A agenda de entregas NÃO se aplica aos pedidos para retirada.
+    // Para retirar, o pedido é separado em até 15 min e aguarda o cliente
+    // durante o atendimento. Data e faixa são normalizadas no servidor.
+    const dataProgramadaEfetiva = data.metodoEntrega === "retirada"
+      ? new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+      : data.dataProgramada;
+    const faixaHorarioEfetiva = data.metodoEntrega === "retirada"
+      ? "Retirada na loja: separação em até 15 minutos, durante o atendimento"
+      : data.faixaHorario;
+
+    if (data.metodoEntrega === "entrega") {
+      const validacaoAgenda = validarEntregaProgramada({
+        cidade: data.cidade,
+        data: dataProgramadaEfetiva,
+        horario: faixaHorarioEfetiva,
+        rawConfig: (settings as any)?.parametros_loja?.entrega,
+        totalUnidades,
+      });
+      if (!validacaoAgenda.ok) throw new Error(validacaoAgenda.erro);
     }
 
     let taxaEntrega = 0;
@@ -672,7 +682,7 @@ export const createOrder = createServerFn({ method: "POST" })
       telefone_cliente: data.telefone,
       email_cliente: data.email,
       metodo_entrega: data.metodoEntrega,
-      horario_recebimento: data.horarioEntrega,
+      horario_recebimento: `${dataProgramadaEfetiva} • ${faixaHorarioEfetiva}`,
       metodo_pagamento: data.pagamento,
       observacao: [
         data.observacoes,
@@ -740,9 +750,9 @@ export const createOrder = createServerFn({ method: "POST" })
           })
           .join(" + ");
         partes.push(`PERSONALIZADA ${item.custom.tamanhoSigla} (${item.custom.pesoTotal}g)`);
-        const dataPersonalizada = adicionarDiasDataBR(data.dataProgramada, 7);
+        const dataPersonalizada = adicionarDiasDataBR(dataProgramadaEfetiva, 7);
         if (dataPersonalizada) {
-          partes.push(`Personalizada prevista para: ${dataPersonalizada} • ${data.faixaHorario}`);
+          partes.push(`Personalizada prevista para: ${dataPersonalizada} • ${faixaHorarioEfetiva}`);
         }
         if (comp) partes.push(comp);
       }
@@ -844,8 +854,8 @@ export const createOrder = createServerFn({ method: "POST" })
         nome: data.nome,
         valorTotal,
         metodoEntrega: data.metodoEntrega,
-        dataProgramada: data.dataProgramada,
-        faixaHorario: data.faixaHorario,
+        dataProgramada: dataProgramadaEfetiva,
+        faixaHorario: faixaHorarioEfetiva,
       });
     } catch (emailError) {
       console.error("Falha ao disparar e-mail de novo pedido:", emailError);

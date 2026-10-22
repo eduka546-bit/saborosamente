@@ -279,10 +279,19 @@ export function validarEntregaProgramada(args: {
     return { ok: false as const, erro: "Esta cidade não possui entrega na data escolhida." };
   }
 
-  if (!cfg.horarios.includes(args.horario)) {
+  // Cada item da agenda já é uma faixa completa (normalmente de 1 hora).
+  // Compatibilidade: pedidos iniciados na interface antiga podiam enviar
+  // "Entre: faixa inicial e faixa final"; validar ambas sem perder o pedido.
+  const faixasLegadas = String(args.horario).match(/^Entre:\s*(.+?)\s+e\s+(.+)$/i);
+  const primeiraFaixa = faixasLegadas ? faixasLegadas[1] : args.horario;
+  const ultimaFaixa = faixasLegadas ? faixasLegadas[2] : args.horario;
+  const indiceInicial = cfg.horarios.indexOf(primeiraFaixa);
+  const indiceFinal = cfg.horarios.indexOf(ultimaFaixa);
+  if (indiceInicial < 0 || indiceFinal < indiceInicial) {
     return { ok: false as const, erro: "Horário de entrega indisponível para esta cidade." };
   }
-  if (parsed.weekday === 6 && !horarioDentroFuncionamentoSabado(args.horario)) {
+  if (parsed.weekday === 6 &&
+    (!horarioDentroFuncionamentoSabado(primeiraFaixa) || !horarioDentroFuncionamentoSabado(ultimaFaixa))) {
     return { ok: false as const, erro: "Aos sábados, o atendimento é até 13h. Escolha outro horário." };
   }
 
@@ -290,7 +299,7 @@ export function validarEntregaProgramada(args: {
     parsed.yyyy === agora.year && parsed.mm === agora.month && parsed.dd === agora.day;
 
   if (mesmoDia) {
-    const inicio = minutosInicioFaixa(args.horario);
+    const inicio = minutosInicioFaixa(primeiraFaixa);
     const agoraMinutos = agora.hour * 60 + agora.minute;
     if (inicio !== null && inicio <= agoraMinutos) {
       return {
