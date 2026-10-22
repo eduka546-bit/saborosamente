@@ -1477,12 +1477,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
         ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
-      const novas = [...mensagensDaConversa, novaMensagem].slice(-30);
-      const { error: persistError } = await supabase
-        .from("whatsapp_conversas")
-        .update({ mensagens: novas, ultima_msg: agora })
-        .eq("id", conversa.id);
-      if (persistError) throw persistError;
+      // A gravação atômica também é usada pelos webhooks: uma resposta manual
+      // não pode sobrescrever mensagens que chegaram no mesmo instante.
+      const { error: persistError } = await (supabase as any)
+        .rpc("whatsapp_append_mensagem", {
+          p_conversa_id: conversa.id,
+          p_mensagem: novaMensagem,
+        });
+      if (persistError) {
+        throw new Error("A mensagem foi aceita pela Meta, mas não foi salva no histórico. Atualize a conversa e procure o envio antes de tentar novamente.");
+      }
 
       toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
       setMsgText("");
@@ -2035,9 +2039,15 @@ function AdminAgentePage() {
         if (error) throw error;
       }
 
-      const existente = (conversas as any[]).find(
-        (conversa) => String(conversa.telefone ?? "").replace(/\D/g, "") === telefone,
-      );
+      // Busca no banco, não só nas primeiras 100 conversas exibidas. Isso
+      // evita recriar conversas antigas quando se inicia um atendimento.
+      const { data: existente, error: buscaErro } = await supabase
+        .from("whatsapp_conversas")
+        .select("id")
+        .eq("telefone", telefone)
+        .limit(1)
+        .maybeSingle();
+      if (buscaErro) throw buscaErro;
       let conversaId = existente?.id;
       if (!conversaId) {
         const { data, error } = await supabase
@@ -2045,8 +2055,16 @@ function AdminAgentePage() {
           .insert({ telefone, nome: novoContato.nome.trim() || null, mensagens: [], modo: "humano", ultima_msg: new Date().toISOString() })
           .select("id")
           .single();
-        if (error) throw error;
-        conversaId = data.id;
+        if (error?.code === "23505") {
+          const { data: criadaEmParalelo, error: buscaParalela } = await supabase
+            .from("whatsapp_conversas").select("id").eq("telefone", telefone).single();
+          if (buscaParalela) throw buscaParalela;
+          conversaId = criadaEmParalelo?.id;
+        } else if (error) {
+          throw error;
+        } else {
+          conversaId = data.id;
+        }
       }
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-contatos-das-listas"] });
