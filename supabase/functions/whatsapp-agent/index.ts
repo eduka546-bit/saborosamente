@@ -2286,7 +2286,8 @@ Deno.serve(async (req: Request) => {
         return new Response("OK", { status: 200 });
       }
 
-      const msg = messages.find((evento: any) => evento?.type !== "reaction");
+      const mensagensComTexto = messages.filter((evento: any) => evento?.type !== "reaction");
+      const msg = mensagensComTexto[0];
       if (!msg) return new Response("OK", { status: 200 });
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
@@ -2299,10 +2300,10 @@ Deno.serve(async (req: Request) => {
       // na primeira — assim a IA lê tudo junto e nada se perde. Os ids das
       // mensagens extras também são marcados na dedupe abaixo.
       const idsExtras: string[] = [];
-      if (messages.length > 1) {
+      if (mensagensComTexto.length > 1) {
         const textosExtras: string[] = [];
-        for (let i = 1; i < messages.length; i++) {
-          const extra = messages[i];
+        for (let i = 1; i < mensagensComTexto.length; i++) {
+          const extra = mensagensComTexto[i];
           const textoExtra = extra?.text?.body?.trim();
           if (textoExtra) textosExtras.push(textoExtra);
           if (extra?.id) idsExtras.push(extra.id);
@@ -2363,7 +2364,22 @@ Deno.serve(async (req: Request) => {
               recebido_em: msg.timestamp && /^\d{10}$/.test(String(msg.timestamp))
                 ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
             }, { onConflict: "whatsapp_message_id" });
-          if (interacaoErro) console.error("Clique WhatsApp não registrado:", interacaoErro.message);
+          if (interacaoErro) {
+            console.error("Clique WhatsApp não registrado:", interacaoErro.message);
+          } else {
+            // Inclui o clique no painel ANTES dos desvios por menu ou opt-out.
+            // A RPC não duplica a mensagem caso outro ramo tente gravá-la.
+            await appendMensagem(conversaInteracao.id, conversaInteracao.mensagens ?? [], {
+              role: "user", content: String(respostaBotao?.title ?? respostaLista?.title ?? respostaTemplate?.text ?? "Opção selecionada"),
+              whatsapp_message_id: msg.id,
+              tipo_interacao: tipoInteracao,
+              titulo_interacao: String(respostaBotao?.title ?? respostaLista?.title ?? respostaTemplate?.text ?? "Opção selecionada"),
+              identificador_interacao: String(respostaBotao?.id ?? respostaLista?.id ?? respostaTemplate?.payload ?? ""),
+              ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
+              timestamp: msg.timestamp && /^\d{10}$/.test(String(msg.timestamp))
+                ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
+            });
+          }
         }
       }
 
