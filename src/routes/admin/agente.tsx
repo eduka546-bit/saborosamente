@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
@@ -39,6 +39,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 
 export const Route = createFileRoute("/admin/agente")({
   component: AdminAgentePage,
@@ -1196,6 +1197,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [buscaMsg, setBuscaMsg] = useState("");
+  const [mostrarBuscaMsg, setMostrarBuscaMsg] = useState(false);
   const [sending, setSending] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
@@ -1206,6 +1209,79 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const [salvandoNome, setSalvandoNome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
+  // IA usa a janela curta; a interface recupera mensagens anteriores por ID.
+  const { data: paginasHistorico, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["whatsapp-historico", conversa.id],
+    initialPageParam: null as number | null,
+    queryFn: async ({ pageParam }) => {
+      let query = (supabase as any).from("whatsapp_mensagens_historico")
+        .select("id,mensagem").eq("conversa_id", conversa.id)
+        .order("id", { ascending: false }).limit(100);
+      if (pageParam !== null) query = query.lt("id", pageParam);
+      const { data, error } = await query;
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { id: number; mensagem: any }[];
+    },
+    getNextPageParam: (ultima) => ultima.length === 100 ? ultima[ultima.length - 1].id : undefined,
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    staleTime: 15_000,
+  });
+  const { data: interacoes = [] } = useQuery({
+    queryKey: ["whatsapp-interacoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_interacoes")
+        .select("whatsapp_message_id,tipo,titulo,identificador,mensagem_origem_id,recebido_em")
+        .eq("conversa_id", conversa.id).order("recebido_em", { ascending: true }).limit(1000);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as InteracaoWhatsApp[];
+    },
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const { data: reacoes = [] } = useQuery({
+    queryKey: ["whatsapp-reacoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_reacoes")
+        .select("mensagem_destino_id,emoji,remetente").eq("conversa_id", conversa.id);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { mensagem_destino_id: string; emoji: string; remetente: string }[];
+    },
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const arquivadas = (paginasHistorico?.pages ?? []).flat()
+    .sort((a,b) => a.id - b.id).map((item) => item.mensagem);
+  const mensagensCompletas = juntarHistoricoWhatsApp(arquivadas, mensagensDaConversa, interacoes);
+  const idsRecibos = [...new Set(mensagensCompletas
+    .map((msg) => String(msg.whatsapp_message_id ?? "")).filter((id) => id.startsWith("wamid.")))].slice(-100);
+  const { data: recibos = [] } = useQuery({
+    queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_recibos")
+        .select("whatsapp_message_id,status").in("whatsapp_message_id", idsRecibos);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { whatsapp_message_id: string; status: string }[];
+    },
+    enabled: idsRecibos.length > 0 && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const recibosPorId = new Map(
+    (recibos as { whatsapp_message_id: string; status: string }[])
+      .map((r) => [r.whatsapp_message_id, r.status]),
+  );
+  const reacoesPorMensagem = new Map<string,string[]>();
+  for (const reacao of reacoes) {
+    reacoesPorMensagem.set(reacao.mensagem_destino_id, [
+      ...(reacoesPorMensagem.get(reacao.mensagem_destino_id) ?? []), reacao.emoji,
+    ]);
+  }
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+  }, [conversa.id, conversa.ultima_msg, queryClient]);
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
@@ -1276,7 +1352,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   // Quando a IA transfere para uma pessoa, ela já grava um resumo como mensagem
   // de sistema. Reaproveitamos esse texto como briefing fixo para a equipe.
-  const resumoEquipeRaw = [...mensagensDaConversa]
+  const resumoEquipeRaw = [...mensagensCompletas]
     .reverse()
     .find((m: any) => m?.role === "system" && String(m?.content ?? "").startsWith("[Resumo para equipe]"));
   const resumoEquipe = resumoEquipeRaw
@@ -1324,9 +1400,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   );
   const statusPorCampanha = new Map(enviosValidos.map((envio) => [envio.campanha_id, envio.status]));
   const campanhasJaGravadas = new Set(
-    mensagensDaConversa.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
+    mensagensCompletas.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
   );
-  const historicoNormalizado = mensagensDaConversa.map((msg: any) => {
+  const historicoNormalizado = mensagensCompletas.map((msg: any) => {
     if (!msg?.campaign_id) return msg;
     const campanha = campanhasPorId.get(msg.campaign_id);
     return {
@@ -1354,7 +1430,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   // jogava essas mensagens para 1970 e fazia todas as falas do cliente aparecerem
   // acima das nossas respostas. Preservamos a ordem do histórico e só usamos
   // ordenação cronológica quando todas as mensagens já possuem timestamp válido.
-  const historicoTemTimestamps = mensagensDaConversa.every((msg: any) => {
+  const historicoTemTimestamps = mensagensCompletas.every((msg: any) => {
     const ts = msg?.timestamp ? new Date(msg.timestamp).getTime() : NaN;
     return Number.isFinite(ts);
   });
@@ -1368,9 +1444,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       )
     : [...campanhasOrdenadas, ...historicoNormalizado];
 
+  const ultimaMensagem = mensagens.at(-1);
+  const idUltimaMensagem = ultimaMensagem?.whatsapp_message_id || ultimaMensagem?.timestamp || mensagens.length;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens.length]);
+  }, [conversa.id, idUltimaMensagem]);
 
   useEffect(() => {
     setNomeEditado(conversa.nome || "");
