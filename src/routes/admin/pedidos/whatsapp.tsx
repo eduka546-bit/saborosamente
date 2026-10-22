@@ -410,7 +410,8 @@ function WhatsappAdminOrderPage() {
     if (interpretado.telefone) setTelefone(interpretado.telefone);
     if (interpretado.complemento !== null) setComplemento(interpretado.complemento);
     if (interpretado.tipoCartao !== null) setTipoCartao(interpretado.tipoCartao);
-    if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
+    if (interpretado.metodoEntrega === "retirada") setTaxaEntrega(0);
+    else if (interpretado.taxaEntrega !== null) setTaxaEntrega(interpretado.taxaEntrega);
     if (interpretado.metodoEntrega) setMetodoEntrega(interpretado.metodoEntrega);
     if (interpretado.endereco) {
       setRua(interpretado.endereco.rua);
@@ -495,7 +496,7 @@ function WhatsappAdminOrderPage() {
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
       if (/^\d{10,11}$/.test(telefone.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, ""))) {
-        toast.success("Cliente e endereço registrados no histórico comercial do WhatsApp.");
+        toast.success("Cliente registrado no histórico comercial do WhatsApp; endereço preservado quando informado.");
       } else {
         toast.warning("Pedido salvo sem telefone válido: não será possível localizar o cadastro comercial pelo número.");
       }
@@ -712,12 +713,18 @@ function WhatsappAdminOrderPage() {
             )}
           </section>
 
-          {metodoEntrega === "entrega" && (
-            <section className="bg-white border rounded-xl p-5 space-y-4">
-              <h2 className="font-bold text-gray-800">Entrega</h2>
+          <section className="bg-white border rounded-xl p-5 space-y-4">
+              <h2 className="font-bold text-gray-800">
+                {metodoEntrega === "entrega" ? "Entrega" : "Endereço do cliente (opcional)"}
+              </h2>
+              {metodoEntrega === "retirada" && (
+                <p className="text-xs text-gray-600">
+                  Este endereço ficará no histórico comercial para próximos pedidos. A retirada continua sem frete.
+                </p>
+              )}
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-500">Rua *</label>
+                  <label className="text-xs font-bold text-gray-500">Rua {metodoEntrega === "entrega" ? "*" : ""}</label>
                   <Input value={rua} onChange={(e) => setRua(e.target.value)} />
                 </div>
                 <div>
@@ -727,11 +734,11 @@ function WhatsappAdminOrderPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-500">Bairro *</label>
+                  <label className="text-xs font-bold text-gray-500">Bairro {metodoEntrega === "entrega" ? "*" : ""}</label>
                   <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500">Cidade *</label>
+                  <label className="text-xs font-bold text-gray-500">Cidade {metodoEntrega === "entrega" ? "*" : ""}</label>
                   <Input value={cidade} onChange={(e) => setCidade(e.target.value)} />
                 </div>
               </div>
@@ -776,18 +783,19 @@ function WhatsappAdminOrderPage() {
                   )}
                 </div>
               )}
-              <div>
-                <label className="text-xs font-bold text-gray-500">Taxa de entrega</label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={taxaEntrega}
-                  onChange={(e) => setTaxaEntrega(Number(e.target.value))}
-                />
-              </div>
+              {metodoEntrega === "entrega" && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500">Taxa de entrega</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={taxaEntrega}
+                    onChange={(e) => setTaxaEntrega(Number(e.target.value))}
+                  />
+                </div>
+              )}
             </section>
-          )}
         </div>
 
         <div className="space-y-6">
