@@ -148,14 +148,25 @@ function AdminCampaignPage() {
   };
 
   // Query para histórico de campanhas
-  const { data: campanhas = [], isLoading: carregandoCampanhas } = useQuery({
+  const { data: campanhas = [], isLoading: carregandoCampanhas, isError: erroHistoricoCampanhas } = useQuery({
     queryKey: ["campanhas-historico"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("campanhas_whatsapp")
-        .select("*")
-        .order("created_at", { ascending: false });
-      return data || [];
+      // O painel antigo usava contadores persistidos que não acompanhavam
+      // as mudanças de status recebidas depois do encerramento da campanha.
+      // Esta visão agrega os próprios envios, respeitando as políticas RLS.
+      const [{ data: campanhasBanco, error: campanhasErro }, { data: resumos, error: resumosErro }] =
+        await Promise.all([
+          supabase.from("campanhas_whatsapp").select("*").order("created_at", { ascending: false }),
+          (supabase as any).from("campanhas_whatsapp_resumo").select("*"),
+        ]);
+      if (campanhasErro || resumosErro) throw campanhasErro || resumosErro;
+      const porCampanha = new Map<string, any>(
+        ((resumos ?? []) as any[]).map((resumo) => [String(resumo.campanha_id), resumo]),
+      );
+      return (campanhasBanco ?? []).map((campanha) => ({
+        ...campanha,
+        resumo: porCampanha.get(campanha.id) ?? null,
+      }));
     },
     staleTime: 10_000,
     refetchInterval: tabAtivo === "historico" ? 10_000 : false,
@@ -900,6 +911,16 @@ function AdminCampaignPage() {
   // Cliques em URL da Meta são agregados por TEMPLATE e não devem ser
   // somados às interações locais nem apresentados como cliques desta campanha.
   const responderamDetalhes = enviosCampanha.filter((e: any) => Boolean(e.respondeu_em)).length;
+  const destinatariosUnicosDetalhes = new Set(enviosCampanha.map((e: any) =>
+    String(e.telefone ?? "").replace(/\D/g, ""),
+  )).size;
+  const destinatariosComEnvioDetalhes = new Set(enviosCampanha
+    .filter((e: any) => ["enviado", "entregue", "lido"].includes(e.status))
+    .map((e: any) => String(e.telefone ?? "").replace(/\D/g, ""))).size;
+  const registrosRepetidosDetalhes = Math.max(0, enviosCampanha.length - destinatariosUnicosDetalhes);
+  const registrosSemIdMetaDetalhes = enviosCampanha.filter((e: any) =>
+    ["enviado", "entregue", "lido"].includes(e.status) && !e.meta_message_id,
+  ).length;
   const interacoesBotoesDetalhes = enviosCampanha.filter((e: any) => Boolean(e.interagiu_em)).length;
   const cliquesUrlTemplateMeta =
     metricasCampanha?.meta?.uniqueUrlClicks ?? metricasCampanha?.meta?.urlClicks ?? null;
@@ -2296,6 +2317,10 @@ function AdminCampaignPage() {
         <div className="space-y-4">
           {carregandoCampanhas ? (
             <div className="text-center py-12 text-gray-500">Carregando histórico...</div>
+          ) : erroHistoricoCampanhas ? (
+            <div className="border border-red-200 rounded-xl p-6 text-red-800 bg-red-50">
+              Não foi possível consultar as métricas do histórico de campanhas. Atualize a página para tentar novamente.
+            </div>
           ) : campanhas.length === 0 ? (
             <div className="bg-white rounded-xl border p-12 text-center">
               <Clock className="mx-auto text-gray-300 mb-4" size={40} />
@@ -2310,7 +2335,7 @@ function AdminCampaignPage() {
                     <h3 className="font-bold text-gray-800">Envios em Tempo Real</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
-                        {enviadosDetalhes}/{enviosCampanha.length} enviados
+                        {destinatariosComEnvioDetalhes}/{destinatariosUnicosDetalhes} destinatários · {enviadosDetalhes} envios aceitos
                         {enviosCampanha.some((e: any) => e.status === "falhou") && (
                           <span className="ml-2 text-red-600">
                             · {enviosCampanha.filter((e: any) => e.status === "falhou").length} falhas
@@ -2363,6 +2388,20 @@ function AdminCampaignPage() {
                     </div>
                   </div>
 
+                  {registrosRepetidosDetalhes > 0 && (
+                    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      <strong>Atenção:</strong> existem {registrosRepetidosDetalhes} registros adicionais para números
+                      já presentes nesta campanha. O total de envios pode incluir tentativas repetidas,
+                      e não representa a quantidade de pessoas diferentes.
+                    </div>
+                  )}
+                  {registrosSemIdMetaDetalhes > 0 && (
+                    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      Histórico antigo: {registrosSemIdMetaDetalhes} envios não possuem o ID da mensagem
+                      devolvido pela Meta. Não é possível confirmar retroativamente a entrega,
+                      leitura ou cobrança dessas tentativas.
+                    </div>
+                  )}
                   {erroAoBuscarEnvios && (
                     <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
                       Não foi possível atualizar os envios desta campanha. Os números podem estar desatualizados.
@@ -2481,18 +2520,31 @@ function AdminCampaignPage() {
                           timeStyle: "short",
                         })}
                       </span>
-                      <span>📨 {campanha.contatos_total} contatos</span>
-                      <span>✓ {campanha.contatos_enviados} enviados</span>
+                      <span>📨 {campanha.contatos_total} contatos previstos</span>
+                      <span>✓ {campanha.resumo?.destinatarios_com_envio ?? campanha.contatos_enviados} destinatários · {campanha.resumo?.enviados ?? campanha.contatos_enviados} envios aceitos</span>
+                      {campanha.resumo && (
+                        <span>✓✓ {campanha.resumo.entregues} entregues · {campanha.resumo.lidos} lidos</span>
+                      )}
+                      {Number(campanha.resumo?.registros_repetidos ?? 0) > 0 && (
+                        <span className="text-amber-700 font-semibold">
+                          ⚠ {campanha.resumo.registros_repetidos} registros repetidos
+                        </span>
+                      )}
+                      {campanha.status === "enviando" && !campanha.resumo?.registros && (
+                        <span className="text-amber-700">⚠ Sem registros de envio</span>
+                      )}
                       <span
                         className="font-medium text-emerald-700"
-                        title="Estimativa para templates de Marketing enviados ao Brasil. A Meta cobra somente as mensagens entregues."
+                        title="Estimativa baseada somente nas entregas confirmadas. Pode ser inferior à cobrança da Meta quando não há recibos; a fatura oficial é a referência."
                       >
-                        💰 Estimativa:{" "}
-                        {formatarMoeda((campanha.contatos_enviados || 0) * TARIFA_MARKETING_BR)}
+                        💰 Entregas confirmadas:{" "}
+                        {campanha.resumo?.sem_id_meta > 0 || !campanha.template_name
+                          ? "custo indisponível (histórico antigo)"
+                          : formatarMoeda(Number(campanha.resumo?.entregues ?? 0) * TARIFA_MARKETING_BR)}
                       </span>
-                      {campanha.contatos_falhados > 0 && (
+                      {Number(campanha.resumo?.falhas ?? campanha.contatos_falhados) > 0 && (
                         <span className="text-red-600">
-                          ✗ {campanha.contatos_falhados} falhados
+                          ✗ {campanha.resumo?.falhas ?? campanha.contatos_falhados} falhas
                         </span>
                       )}
                     </div>
