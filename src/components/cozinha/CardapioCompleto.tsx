@@ -115,7 +115,9 @@ export function CardapioCompleto({
 }: Props) {
   const qc = useQueryClient();
   const [margensEditadas, setMargensEditadas] = useState<Record<string,string>>({});
+  const [margensIdeaisEditadas, setMargensIdeaisEditadas] = useState<Record<string,string>>({});
   const margemProduto = (produto:any) => Number(margensEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA);
+  const margemIdealProduto = (produto:any) => Number(margensIdeaisEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_ideal_percentual ?? MARGEM_SEGURANCA_RECEITA);
   const salvarMargem = async (produto:any) => {
     const receita = receitaPorProduto.get(produto.id);
     if (!receita) return toast.error("Cadastre a ficha técnica antes de salvar a margem.");
@@ -124,6 +126,15 @@ export function CardapioCompleto({
     if (error) return toast.error(error.message);
     await Promise.all([qc.invalidateQueries({queryKey:["coz-rec"]}),qc.invalidateQueries({queryKey:["admin-financeiro-operacional"]})]);
     setMargensEditadas((a)=>{if(a[produto.id]!==draft)return a;const novo={...a};delete novo[produto.id];return novo;});
+  };
+  const salvarMargemIdeal = async (produto:any) => {
+    const receita = receitaPorProduto.get(produto.id);
+    if (!receita) return toast.error("Cadastre a ficha técnica antes de salvar a margem.");
+    const draft = margensIdeaisEditadas[produto.id];
+    const {error} = await supabase.from("cozinha_receitas").update({margem_custo_ideal_percentual: Math.max(0,margemIdealProduto(produto)),updated_at:new Date().toISOString()}).eq("id",receita.id);
+    if (error) return toast.error(error.message);
+    await Promise.all([qc.invalidateQueries({queryKey:["coz-rec"]}),qc.invalidateQueries({queryKey:["admin-financeiro-operacional"]})]);
+    setMargensIdeaisEditadas((a)=>{if(a[produto.id]!==draft)return a;const novo={...a};delete novo[produto.id];return novo;});
   };
   const [busca, setBusca] = useState("");
   const [filtroSubgrupo, setFiltroSubgrupo] = useState("Todos");
@@ -826,7 +837,7 @@ export function CardapioCompleto({
                     />
                   </td>
                   <td style={fixed(192)} className="border-b border-r bg-inherit px-2 py-2 font-black text-[#087443]">{codigoProduto(produto)}</td>
-                  <td style={fixed(272)} className="border-b border-r bg-inherit px-3 py-2 font-bold">{nomeProduto(produto)}<label className="mt-1 flex items-center gap-1 text-[11px] font-normal">Margem<input aria-label={"Margem de custo de "+nomeProduto(produto)} className="w-14 rounded border border-[#cbd8ce] bg-white p-1" type="number" min="0" step="0.1" value={margensEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA} onChange={(e)=>setMargensEditadas((a)=>({...a,[produto.id]:e.target.value}))} onBlur={()=>salvarMargem(produto)}/>%</label></td>
+                  <td style={fixed(272)} className="border-b border-r bg-inherit px-3 py-2 font-bold">{nomeProduto(produto)}<div className="mt-1.5 grid gap-1 text-[11px] font-normal"><label className="flex items-center gap-1"><span className="w-24 text-[#527164]">Aplicada (real)</span><input aria-label={"Margem aplicada de "+nomeProduto(produto)} className="w-14 rounded border border-[#cbd8ce] bg-white p-1" type="number" min="0" step="0.1" value={margensEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_percentual ?? MARGEM_SEGURANCA_RECEITA} onChange={(e)=>setMargensEditadas((a)=>({...a,[produto.id]:e.target.value}))} onBlur={()=>salvarMargem(produto)}/>%</label><label className="flex items-center gap-1"><span className="w-24 text-[#527164]">Meta (ideal)</span><input aria-label={"Margem ideal de "+nomeProduto(produto)} className="w-14 rounded border border-[#cbd8ce] bg-white p-1" type="number" min="0" step="0.1" value={margensIdeaisEditadas[produto.id] ?? receitaPorProduto.get(produto.id)?.margem_custo_ideal_percentual ?? MARGEM_SEGURANCA_RECEITA} onChange={(e)=>setMargensIdeaisEditadas((a)=>({...a,[produto.id]:e.target.value}))} onBlur={()=>salvarMargemIdeal(produto)}/>%</label></div></td>
                   <td className="border-b border-r px-2 py-2 text-center font-semibold">{tamanhosAtivos.map((x) => x + "g").join(" · ")}</td>
                   <td className="border-b border-r px-2 py-2 text-center">
                     <button type="button" onClick={() => setFotoProduto(produto)} className="inline-flex items-center gap-1 rounded-lg border border-[#b9d4c2] px-2 py-1 font-bold text-[#087443]">
