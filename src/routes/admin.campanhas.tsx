@@ -2524,6 +2524,47 @@ function AdminCampaignPage() {
                         </label>
                       )}
 
+
+                    {/* As falhas de mídia podem ser incluídas na fila novamente,
+                        mas nunca automaticamente: evita tentativas duplicadas. */}
+                    {(campanha.status === "pausada" || campanha.status === "erro") && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const { data: falhas, error: buscarErro } = await supabase
+                              .from("campanhas_whatsapp_envios")
+                              .select("id")
+                              .eq("campanha_id", campanha.id)
+                              .eq("status", "falhou")
+                              .ilike("erro_mensagem", "%Media upload error%");
+                            if (buscarErro) throw buscarErro;
+                            if (!falhas?.length) {
+                              toast.info("Não há falhas de mídia para reincluir.");
+                              return;
+                            }
+                            if (!window.confirm(
+                              `Recolocar ${falhas.length} destinatário(s) com falha de mídia na fila? Isso não envia agora: use Retomar depois de trocar o vídeo.`
+                            )) return;
+                            const { error: atualizarErro } = await supabase
+                              .from("campanhas_whatsapp_envios")
+                              .update({ status: "pendente", erro_mensagem: null })
+                              .in("id", falhas.map((f: any) => f.id));
+                            if (atualizarErro) throw atualizarErro;
+                            await Promise.all([
+                              queryClient.invalidateQueries({ queryKey: ["envios-campanha", campanha.id] }),
+                              queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] }),
+                            ]);
+                            toast.success(`${falhas.length} falha(s) recolocada(s) na fila. Agora pode retomar.`);
+                          } catch (e: any) {
+                            toast.error("Erro ao reincluir falhas: " + (e?.message || "Tente novamente."));
+                          }
+                        }}
+                        className="px-3 py-1 rounded text-xs font-bold border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all"
+                      >
+                        ↻ Reincluir falhas
+                      </button>
+                    )}
+
                     {/* Botão Retomar — só aparece quando está pausada ou com erro e tem pendentes */}
                     {(campanha.status === "pausada" || campanha.status === "erro") && (
                       <button
