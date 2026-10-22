@@ -455,6 +455,7 @@ function WhatsappAdminOrderPage() {
   const total = Math.round((subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) - descontoAplicado - cashbackUsado) * 100) / 100;
   const totalMismatch =
     declaredTotal !== null && Math.abs(Math.round((declaredTotal - total) * 100) / 100) > 0.009;
+  const totalDiferenteConferido = !totalMismatch || totalConfirmado === total;
 
   const addBlankItem = () => {
     const first = products[0];
@@ -473,6 +474,8 @@ function WhatsappAdminOrderPage() {
   };
 
   const parseWhatsappText = () => {
+    dadosEditadosRef.current = true;
+    setTotalConfirmado(null);
     if (!pasteText.trim()) {
       toast.error("Cole o pedido do WhatsApp primeiro.");
       return;
@@ -587,9 +590,9 @@ function WhatsappAdminOrderPage() {
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error("Sessão expirada.");
 
-      if (totalMismatch) {
+      if (!totalDiferenteConferido) {
         throw new Error(
-          `O total informado no WhatsApp (${money(declaredTotal ?? 0)}) não bate com o cálculo (${money(total)}).`,
+          `O total informado no WhatsApp (${money(declaredTotal ?? 0)}) não bate com o cálculo (${money(total)}). Confira e autorize o valor atualizado antes de salvar.`,
         );
       }
 
@@ -626,6 +629,8 @@ function WhatsappAdminOrderPage() {
       });
     },
     onSuccess: (data: any) => {
+      pedidoSalvoRef.current = true;
+      limparRascunhoWhatsapp(armazenamentoDaAba(), draftKey);
       toast.success(
         `Pedido lançado! ${data?.linkedUserId ? "Vinculado à conta do cliente." : "Sem conta vinculada."} Total ${money(Number(data?.valor_total ?? total))}`,
       );
@@ -658,13 +663,14 @@ function WhatsappAdminOrderPage() {
     nome.trim().length >= 2 &&
     items.length > 0 &&
     items.every((item) => item.productId && item.quantity > 0 && item.unitPrice >= 0) &&
-    !totalMismatch &&
+    totalDiferenteConferido &&
     descontoAplicado >= 0 && cashbackUsado >= 0 &&
     descontoAplicado + cashbackUsado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
-    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen"
+      onChangeCapture={() => { dadosEditadosRef.current = true; }}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <a
@@ -749,6 +755,30 @@ function WhatsappAdminOrderPage() {
                 </p>
               </>
             )}
+            <div className="border-t border-gray-200 pt-4 mt-3">
+              <p className="text-sm font-bold text-gray-800 mb-2">
+                Como será este pedido? Escolha mesmo se o cliente já tem cadastro:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {(["retirada", "entrega"] as const).map((modo) => (
+                  <button key={modo} type="button" aria-pressed={metodoEntrega === modo}
+                    onClick={() => {
+                      dadosEditadosRef.current = true;
+                      setMetodoEntrega(modo);
+                      if (modo === "retirada") setTaxaEntrega(0);
+                    }}
+                    className={`min-h-11 rounded-lg border px-3 py-2 font-semibold text-sm transition-colors
+                      ${metodoEntrega === modo
+                        ? "border-green-700 bg-green-50 text-green-800 ring-1 ring-green-700"
+                        : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}>
+                    {modo === "retirada" ? "Retirada na loja" : "Entrega no endereço"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                A escolha não altera os itens ou preços. Na retirada não há taxa de entrega.
+              </p>
+            </div>
           </section>
           <section className="bg-white border rounded-xl p-5">
             <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -798,27 +828,16 @@ function WhatsappAdminOrderPage() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {metodoEntrega === "entrega" && (
               <div>
-                <label className="text-xs font-bold text-gray-500">Entrega/retirada</label>
-                <select
-                  className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm"
-                  value={metodoEntrega}
-                  onChange={(e) => setMetodoEntrega(e.target.value as "entrega" | "retirada")}
-                >
-                  <option value="entrega">Entrega</option>
-                  <option value="retirada">Retirada</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500">Horário</label>
+                <label className="text-xs font-bold text-gray-500">Horário de entrega (opcional)</label>
                 <Input
                   value={horario}
                   onChange={(e) => setHorario(e.target.value)}
                   placeholder="Ex.: após 17h"
                 />
               </div>
-            </div>
+            )}
             <div>
               <label className="text-xs font-bold text-gray-500">Forma de pagamento</label>
               <select
@@ -855,6 +874,11 @@ function WhatsappAdminOrderPage() {
                 <p className="text-xs text-gray-600">
                   Este endereço ficará no histórico comercial para próximos pedidos. A retirada continua sem frete.
                 </p>
+              )}
+              {selectedCustomer && (
+                <Button type="button" size="sm" variant="outline" onClick={usarEnderecoDaConta}>
+                  <MapPin size={14} className="mr-1" /> Usar endereço cadastrado
+                </Button>
               )}
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div>
@@ -1161,9 +1185,14 @@ function WhatsappAdminOrderPage() {
               <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2">
                 <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                 <div>
-                  <strong>Os totais não batem.</strong> Corrija o preço unitário ou a taxa de entrega
-                  antes de salvar. O sistema calculou {money(total)}, mas o resumo do WhatsApp informa{" "}
-                  {money(declaredTotal ?? 0)}.
+                  <strong>O total foi alterado em relação ao WhatsApp.</strong> O formulário calcula {money(total)},
+                  mas o resumo original informa {money(declaredTotal ?? 0)}.
+                  <label className="mt-3 flex items-start gap-2 cursor-pointer font-semibold">
+                    <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-green-700"
+                      checked={totalConfirmado === total}
+                      onChange={(e) => setTotalConfirmado(e.target.checked ? total : null)} />
+                    Conferi a diferença e autorizo salvar o novo total de {money(total)}.
+                  </label>
                 </div>
               </div>
             )}
