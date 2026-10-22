@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
@@ -62,6 +63,45 @@ type DraftItem = {
   weight: "200g" | "300g" | "400g";
   unitPrice: number;
   observacao: string;
+};
+
+type WhatsappAdminDraft = {
+  pasteText: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  customerSearch: string;
+  selectedCustomer: RegisteredCustomer | null;
+  salvarEnderecoCadastro: boolean;
+  metodoEntrega: "entrega" | "retirada";
+  cidade: string;
+  bairro: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+  cep: string;
+  horario: string;
+  pagamento: string;
+  tipoCartao: string;
+  taxaEntrega: number;
+  observacao: string;
+  declaredTotal: number | null;
+  saldoAnterior: number | null;
+  totalAcumulado: number | null;
+  descontoAplicado: number;
+  cashbackUsado: number;
+  percentualDesconto: number | null;
+  avisosInterpretacao: string[];
+  items: DraftItem[];
+  totalConfirmado: number | null;
+};
+
+const armazenamentoDaAba = (): Storage | null => {
+  try {
+    return typeof window !== "undefined" ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
 };
 
 const compararEndereco = (value: unknown) =>
@@ -111,6 +151,11 @@ const newKey = () =>
 function WhatsappAdminOrderPage() {
   const navigate = useNavigate();
   const { cliente: initialCustomerId, historico: initialHistoryId } = Route.useSearch();
+  const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId);
+  const draftRestauradoRef = useRef(false);
+  const dadosEditadosRef = useRef(false);
+  const pedidoSalvoRef = useRef(false);
+  const [draftReadyKey, setDraftReadyKey] = useState<string | null>(null);
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
 
   const [pasteText, setPasteText] = useState("");
@@ -140,6 +185,8 @@ function WhatsappAdminOrderPage() {
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
+  // Se o valor do pedido mudou, só liberar o envio após conferir o novo total.
+  const [totalConfirmado, setTotalConfirmado] = useState<number | null>(null);
   const enderecoDiferente = Boolean(
     selectedCustomer && metodoEntrega === "entrega" &&
     ([
