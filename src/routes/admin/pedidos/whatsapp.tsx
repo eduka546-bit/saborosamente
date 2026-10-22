@@ -278,6 +278,11 @@ function WhatsappAdminOrderPage() {
 
   useEffect(() => {
     if (draftReadyKey !== draftKey || pedidoSalvoRef.current) return;
+    // Não criar rascunhos vazios durante a busca inicial por uma conta:
+    // isso impediria o carregamento automático do cliente numa nova visita.
+    if (!dadosEditadosRef.current && !draftRestauradoRef.current &&
+        !selectedCustomer && !items.length && !pasteText.trim() &&
+        !nome.trim() && !telefone.trim()) return;
     const dados: WhatsappAdminDraft = {
       pasteText, nome, telefone, email, customerSearch, selectedCustomer,
       salvarEnderecoCadastro, metodoEntrega, cidade, bairro, rua, numero,
@@ -460,6 +465,7 @@ function WhatsappAdminOrderPage() {
   const totalDiferenteConferido = !totalMismatch || totalConfirmado === total;
 
   const addBlankItem = () => {
+    dadosEditadosRef.current = true;
     const first = products[0];
     const weight: DraftItem["weight"] = "300g";
     setItems((current) => [
@@ -1090,7 +1096,7 @@ function WhatsappAdminOrderPage() {
                       variant="ghost"
                       size="icon"
                       className="text-red-500"
-                      onClick={() => setItems((current) => current.filter((r) => r.key !== item.key))}
+                      onClick={() => { dadosEditadosRef.current = true; setItems((current) => current.filter((r) => r.key !== item.key)); }}
                     >
                       <Trash2 size={17} />
                     </Button>
