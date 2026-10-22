@@ -53,6 +53,7 @@ function CustosMargensPage() {
   const [volume, setVolume] = useState(3000);
   const [edicoesDespesas, setEdicoesDespesas] = useState<Record<string, any>>({});
   const [edicoesMix, setEdicoesMix] = useState<Record<string, any>>({});
+  const [margemSegurancaGeralEditada, setMargemSegurancaGeralEditada] = useState<string | null>(null);
   const [salvando, setSalvando] = useState<string | null>(null);
   const [novoGasto, setNovoGasto] = useState({
     nome: "",
@@ -70,7 +71,7 @@ function CustosMargensPage() {
           .select("id,nome,tipo_produto,preco,preco_300g,preco_400g,ativo")
           .in("tipo_produto", ["marmita", "sopa", "complemento"])
           .order("nome"),
-        supabase.from("cozinha_receitas").select("id,produto_id,preparacoes,margem_custo_percentual"),
+        supabase.from("cozinha_receitas").select("id,produto_id,preparacoes,margem_custo_percentual,margem_custo_ideal_percentual"),
         supabase
           .from("cozinha_receita_itens")
           .select("receita_id,ingrediente_id,preparacao_id,gramas_personalizada,gramas_200,gramas_300,gramas_400,operacao_producao,fator_producao"),
@@ -210,6 +211,7 @@ function CustosMargensPage() {
 
       return {
         produtos: produtosCalculados,
+        receitas: rec.data ?? [],
         despesas: despesas.data ?? [],
         mix: mix.data ?? [],
       };
@@ -501,6 +503,25 @@ function CustosMargensPage() {
     void persistirCampoMix(item, campo, null);
   };
 
+  const margensAtuais = (data?.receitas ?? []).map((receita: any) => n(receita.margem_custo_percentual));
+  const margemGeralAtual = margensAtuais.length && margensAtuais.every((margem: number) => margem === margensAtuais[0])
+    ? String(margensAtuais[0])
+    : "";
+
+  const salvarMargemSegurancaGeral = async () => {
+    if (margemSegurancaGeralEditada === null) return;
+    const valor = Math.max(0, n(margemSegurancaGeralEditada));
+    const { error } = await supabase
+      .from("cozinha_receitas")
+      .update({ margem_custo_percentual: valor, updated_at: new Date().toISOString() })
+      .in("id", (data?.receitas ?? []).map((receita: any) => receita.id));
+    if (error) return toast.error(error.message);
+    setMargemSegurancaGeralEditada(null);
+    await qc.invalidateQueries({ queryKey: ["admin-financeiro-operacional"] });
+    await qc.invalidateQueries({ queryKey: ["coz-rec"] });
+    toast.success("Margem de segurança aplicada a todas as receitas.");
+  };
+
   if (isLoading) return <div className="p-8 text-gray-500">Calculando financeiro e custos...</div>;
   if (error) return <div className="p-8 text-red-600">Não foi possível carregar o financeiro.</div>;
 
@@ -552,17 +573,37 @@ function CustosMargensPage() {
                   O cenário Atual usa custos reais do cardápio, preços praticados e despesas atuais. O cenário Ideal usa os valores de negociação/planejamento que você cadastrar abaixo.
                 </p>
               </div>
-              <label className="min-w-[230px] text-xs font-bold uppercase text-gray-500">
-                Total de unidades
-                <input
-                  className={input + " mt-1 text-lg font-black"}
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={volume}
-                  onChange={(e) => setVolume(Math.max(0, n(e.target.value)))}
-                />
-              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="min-w-[230px] text-xs font-bold uppercase text-gray-500">
+                  Total de unidades
+                  <input
+                    className={input + " mt-1 text-lg font-black"}
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={volume}
+                    onChange={(e) => setVolume(Math.max(0, n(e.target.value)))}
+                  />
+                </label>
+                <label className="min-w-[230px] text-xs font-bold uppercase text-[#5850ec]">
+                  Margem de segurança geral
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      aria-label="Margem de segurança geral"
+                      className={input + " text-lg font-black text-right text-[#5850ec]"}
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Variável"
+                      value={margemSegurancaGeralEditada ?? margemGeralAtual}
+                      onChange={(e) => setMargemSegurancaGeralEditada(e.target.value)}
+                      onBlur={() => void salvarMargemSegurancaGeral()}
+                    />
+                    <span className="text-lg font-black">%</span>
+                  </div>
+                  <span className="mt-1 block normal-case text-[10px] font-medium text-gray-500">Aplica a todas as receitas e atualiza todo o resumo.</span>
+                </label>
+              </div>
             </div>
 
             <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
