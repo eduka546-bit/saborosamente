@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Store,
   CreditCard,
+  Clock,
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { sortOrderItems } from "@/lib/order-item-order";
@@ -106,7 +107,7 @@ const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
-const HORARIO_AGORA = "Agora (entregue em até 20 minutos)";
+const TEXTO_RETIRADA = "Retirada na loja: separação em até 15 minutos, durante o atendimento";
 
 function estoqueDaLinha(product: any, weight?: string) {
   const raw =
@@ -165,9 +166,7 @@ function Checkout() {
   // ── data e horário de entrega (entrega programada) ─────────────────────────
   const [dataEntrega, setDataEntrega] = useState<string>("");
   const [horarioEntrega, setHorarioEntrega] = useState<string>("");
-  const [tipoHorario, setTipoHorario] = useState<"agora" | "intervalo">("intervalo");
-  const [horarioInicio, setHorarioInicio] = useState<string>("");
-  const [horarioFim, setHorarioFim] = useState<string>("");
+  const [horariosModalOpen, setHorariosModalOpen] = useState(false);
   const [agendaTick, setAgendaTick] = useState(0);
   const [itemSemEstoque, setItemSemEstoque] = useState<any>(null);
 
@@ -372,6 +371,10 @@ function Checkout() {
     },
   });
 
+  const horariosAtendimento = Array.isArray((siteSettings as any)?.horarios_funcionamento)
+    ? (siteSettings as any).horarios_funcionamento as Array<{ dia?: string; aberto?: boolean; abertura?: string; fechamento?: string }>
+    : [];
+
   const acrescimos = (siteSettings as any)?.parametros_loja?.acrescimos;
   const adicionalPronta = Number(acrescimos?.pronta ?? 1);
   const adicionalGarfo = Number(acrescimos?.garfoEFaca ?? 1);
@@ -397,20 +400,10 @@ function Checkout() {
   }, [selectedCity, metodoEntrega]);
 
   useEffect(() => {
-    if (!horarioEntrega) return;
-    if (horarioEntrega === HORARIO_AGORA) {
-      setTipoHorario("agora");
-      return;
-    }
-    const intervalo = horarioEntrega.match(/^Entre:\s*(.+?)\s+e\s+(.+)$/i);
-    if (intervalo) {
-      setTipoHorario("intervalo");
-      setHorarioInicio(intervalo[1]);
-      setHorarioFim(intervalo[2]);
-      if (HORARIOS_ENTREGA.includes(intervalo[1]) && HORARIOS_ENTREGA.includes(intervalo[2])) return;
-    }
-    setHorarioEntrega("");
-  }, [dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
+    if (metodoEntrega !== "entrega" || !horarioEntrega) return;
+    // Cada item já define uma faixa completa de entrega (aproximadamente uma hora).
+    if (!HORARIOS_ENTREGA.includes(horarioEntrega)) setHorarioEntrega("");
+  }, [metodoEntrega, dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
 
   // Há marmita personalizada no carrinho? (para o aviso de prazo)
   const temMarmitaPersonalizada = lines.some((l) => l.custom);
@@ -784,14 +777,16 @@ function Checkout() {
       return;
     }
 
-    // Entrega/retirada programada: exige data e horário escolhidos
-    if (!dataEntrega) {
-      toast.error("Escolha a data de entrega.");
-      return;
-    }
-    if (!horarioEntrega) {
-      toast.error("Escolha o horário de entrega.");
-      return;
+    // Retirada não exige agendamento e nunca usa a agenda de entregas.
+    if (metodoEntrega === "entrega") {
+      if (!dataEntrega) {
+        toast.error("Escolha a data de entrega.");
+        return;
+      }
+      if (!horarioEntrega || !HORARIOS_ENTREGA.includes(horarioEntrega)) {
+        toast.error("Escolha uma faixa de entrega disponível.");
+        return;
+      }
     }
 
     if (selectedPayment === "cartao" && !selectedFlag) {
@@ -825,6 +820,11 @@ function Checkout() {
       // incremento de uso agora são feitos no servidor, dentro de createOrder —
       // de forma confiável e à prova de manipulação pelo cliente.
 
+      const dataPedido = metodoEntrega === "retirada"
+        ? new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+        : dataEntrega;
+      const faixaPedido = metodoEntrega === "retirada" ? TEXTO_RETIRADA : horarioEntrega;
+
       // cria o pedido real no banco
       const order = await createOrderFn({
         data: {
@@ -832,9 +832,9 @@ function Checkout() {
           email: data.email,
           telefone: data.telefone,
           metodoEntrega,
-          horarioEntrega: `${dataEntrega} • ${horarioEntrega}`,
-          dataProgramada: dataEntrega,
-          faixaHorario: horarioEntrega,
+          horarioEntrega: `${dataPedido} • ${faixaPedido}`,
+          dataProgramada: dataPedido,
+          faixaHorario: faixaPedido,
           cidade: metodoEntrega === "entrega" ? data.cidade : undefined,
           bairro: metodoEntrega === "entrega" ? selectedBairro : undefined,
           endereco: metodoEntrega === "entrega" ? data.endereco : undefined,
@@ -1229,8 +1229,22 @@ function Checkout() {
             </div>
 
             {metodoEntrega === "retirada" && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-base text-foreground">
-                Retirada na loja de São Bento do Sul — sem taxa de entrega.
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-base leading-relaxed text-foreground">
+                <div className="flex items-start gap-2">
+                  <Clock size={20} className="mt-0.5 shrink-0 text-[#086e45]" />
+                  <p>
+                    Seu pedido será separado em até <strong>15 minutos</strong> e poderá ser retirado
+                    durante todo o{" "}
+                    <button
+                      type="button"
+                      onClick={() => setHorariosModalOpen(true)}
+                      className="font-bold text-[#075d3a] underline underline-offset-4 hover:text-primary focus-visible:outline focus-visible:outline-2"
+                    >
+                      horário de atendimento
+                    </button>{" "}
+                    da loja. Sem taxa de entrega.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1424,111 +1438,45 @@ function Checkout() {
               </div>
             )}
 
-            {/* ── Data e horário de entrega (entrega programada) ────────────── */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="dataEntrega" className="text-base font-medium">
-                  {metodoEntrega === "entrega" ? "Data de entrega" : "Data de retirada"}
-                </label>
-                <select
-                  id="dataEntrega"
-                  className={fieldClass}
-                  value={dataEntrega}
-                  onChange={(e) => setDataEntrega(e.target.value)}
-                  disabled={pedidoAbaixoMinimoEntrega}
-                >
-                  <option value="">Selecione uma data</option>
-                  {datasEntrega.map((d) => (
-                    <option key={d.valor} value={d.valor}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <span className="text-base font-medium">
-                  {metodoEntrega === "entrega" ? "Horário de entrega" : "Horário de retirada"}
-                </span>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega}
-                    onClick={() => {
-                      setTipoHorario("agora");
-                      setHorarioInicio("");
-                      setHorarioFim("");
-                      setHorarioEntrega(HORARIO_AGORA);
-                    }}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                      tipoHorario === "agora" ? "border-[#086e45] bg-[#e9f3e7] text-[#075d3a]" : "border-input bg-background text-muted-foreground",
-                    )}
+            {/* Escolha de data e faixa exclusivamente para ENTREGA. */}
+            {metodoEntrega === "entrega" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="dataEntrega" className="text-base font-medium">Data de entrega</label>
+                  <select
+                    id="dataEntrega"
+                    className={fieldClass}
+                    value={dataEntrega}
+                    onChange={(e) => { setDataEntrega(e.target.value); setHorarioEntrega(""); }}
+                    disabled={pedidoAbaixoMinimoEntrega}
                   >
-                    Agora
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
-                    onClick={() => {
-                      setTipoHorario("intervalo");
-                      setHorarioEntrega("");
-                    }}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                      tipoHorario === "intervalo" ? "border-[#086e45] bg-[#e9f3e7] text-[#075d3a]" : "border-input bg-background text-muted-foreground",
-                    )}
-                  >
-                    Escolher intervalo
-                  </button>
+                    <option value="">Selecione uma data</option>
+                    {datasEntrega.map((d) => (
+                      <option key={d.valor} value={d.valor}>{d.label}</option>
+                    ))}
+                  </select>
                 </div>
-                {tipoHorario === "agora" ? (
-                  <p className="mt-2 rounded-xl bg-[#edf5e6] px-3 py-2 text-sm font-medium text-[#075d3a]">
-                    Agora (entregue em até 20 minutos)
-                  </p>
-                ) : (
-                  <div className="mt-2 grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 text-sm">
-                    <span className="font-semibold text-[#315440]">Entre:</span>
-                    <select
-                      aria-label="Horário inicial"
-                      className={cn(fieldClass, "mt-0 px-2 py-2 text-sm")}
-                      value={horarioInicio}
-                      disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
-                      onChange={(event) => {
-                        const inicio = event.target.value;
-                        setHorarioInicio(inicio);
-                        if (!horarioFim || HORARIOS_ENTREGA.indexOf(horarioFim) < HORARIOS_ENTREGA.indexOf(inicio)) {
-                          setHorarioFim("");
-                          setHorarioEntrega("");
-                        } else {
-                          setHorarioEntrega(`Entre: ${inicio} e ${horarioFim}`);
-                        }
-                      }}
-                    >
-                      <option value="">Início</option>
-                      {HORARIOS_ENTREGA.map((h) => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                    <span className="font-semibold text-[#315440]">e</span>
-                    <select
-                      aria-label="Horário final"
-                      className={cn(fieldClass, "mt-0 px-2 py-2 text-sm")}
-                      value={horarioFim}
-                      disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || !horarioInicio}
-                      onChange={(event) => {
-                        const fim = event.target.value;
-                        setHorarioFim(fim);
-                        if (horarioInicio && fim) setHorarioEntrega(`Entre: ${horarioInicio} e ${fim}`);
-                      }}
-                    >
-                      <option value="">Fim</option>
-                      {HORARIOS_ENTREGA.filter((h) => !horarioInicio || HORARIOS_ENTREGA.indexOf(h) >= HORARIOS_ENTREGA.indexOf(horarioInicio)).map((h) => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                  </div>
-                )}
-                {dataEntrega && HORARIOS_ENTREGA.length === 0 && tipoHorario === "intervalo" && (
-                  <p className="mt-1.5 text-sm font-medium text-amber-700">Os horários de hoje já encerraram. Escolha outra data.</p>
-                )}
+                <div>
+                  <label htmlFor="horarioEntrega" className="text-base font-medium">Faixa de entrega</label>
+                  <select
+                    id="horarioEntrega"
+                    className={fieldClass}
+                    value={horarioEntrega}
+                    onChange={(e) => setHorarioEntrega(e.target.value)}
+                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
+                  >
+                    <option value="">Selecione uma faixa</option>
+                    {HORARIOS_ENTREGA.map((faixa) => (
+                      <option key={faixa} value={faixa}>{faixa}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-xs text-muted-foreground">O pedido será entregue dentro da faixa escolhida (geralmente de 1 hora).</p>
+                  {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
+                    <p className="mt-1.5 text-sm font-medium text-amber-700">Os horários de hoje já encerraram. Escolha outra data.</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </fieldset>
 
           {/* ── pagamento ──────────────────────────────────────────────────── */}
@@ -2022,6 +1970,35 @@ function Checkout() {
         </aside>
       </div>
     </section>
+    <Dialog open={horariosModalOpen} onOpenChange={setHorariosModalOpen}>
+      <DialogContent className="max-h-[85dvh] max-w-md overflow-y-auto rounded-2xl p-5 sm:p-6">
+        <DialogHeader className="pr-8 text-left">
+          <DialogTitle className="flex items-center gap-2 text-lg text-[#075d3a]">
+            <Clock size={20} /> Horários de atendimento da loja
+          </DialogTitle>
+          <DialogDescription>
+            Os pedidos para retirada ficam separados em até 15 minutos e podem ser retirados durante o funcionamento.
+          </DialogDescription>
+        </DialogHeader>
+        {horariosAtendimento.length ? (
+          <div className="divide-y divide-[#e4ede6] rounded-xl border border-[#dce7df]">
+            {horariosAtendimento.map((dia, index) => (
+              <div key={index} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                <span className="font-medium">{dia.dia || ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"][index] || "Dia"}</span>
+                <span className={dia.aberto ? "font-bold text-[#075d3a]" : "font-medium text-gray-500"}>
+                  {dia.aberto ? `${dia.abertura || "—"} às ${dia.fechamento || "—"}` : "Fechado"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
+            Os horários de atendimento ainda não estão cadastrados nesta configuração.
+            Confirme o funcionamento com a loja antes de se deslocar.
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(itemSemEstoque)} onOpenChange={(open) => !open && setItemSemEstoque(null)}>
       <DialogContent className="max-h-[88vh] max-w-lg overflow-y-auto rounded-3xl border-[#dce7d5] p-5 sm:p-6">
         <DialogHeader className="pr-8 text-left">
