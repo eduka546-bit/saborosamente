@@ -147,3 +147,54 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.whatsapp_registrar_recibo(text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.whatsapp_registrar_recibo(text,text) TO service_role;
+
+-- Idempotência adicional: a mesma reação ou clique pode reaparecer em caminhos
+-- diferentes do webhook. A mesma mensagem do cliente não deve se repetir.
+CREATE OR REPLACE FUNCTION public.whatsapp_append_mensagem(
+  p_conversa_id uuid, p_mensagem jsonb
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+AS $$
+DECLARE v_atual jsonb;
+DECLARE v_completo jsonb;
+DECLARE v_ultimas jsonb;
+DECLARE v_data timestamptz;
+DECLARE v_anterior timestamptz;
+DECLARE v_id text;
+BEGIN
+  IF p_mensagem IS NULL OR jsonb_typeof(p_mensagem) <> 'object' THEN
+    RAISE EXCEPTION 'Mensagem inválida';
+  END IF;
+  SELECT COALESCE(mensagens,'[]'::jsonb),ultima_msg
+    INTO v_atual,v_anterior
+    FROM public.whatsapp_conversas WHERE id=p_conversa_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Conversa não encontrada'; END IF;
+
+  v_id := NULLIF(p_mensagem->>'whatsapp_message_id','');
+  IF v_id IS NOT NULL AND EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_atual) AS e(item)
+    WHERE e.item->>'whatsapp_message_id'=v_id
+  ) THEN
+    RETURN v_atual;
+  END IF;
+
+  v_completo := v_atual || jsonb_build_array(p_mensagem);
+  SELECT COALESCE(jsonb_agg(e.value ORDER BY e.ord),'[]'::jsonb)
+    INTO v_ultimas
+    FROM jsonb_array_elements(v_completo) WITH ORDINALITY AS e(value,ord)
+    WHERE e.ord > GREATEST(jsonb_array_length(v_completo)-30,0);
+  BEGIN
+    v_data := (p_mensagem->>'timestamp')::timestamptz;
+  EXCEPTION WHEN others THEN
+    v_data := NULL;
+  END;
+  v_data := COALESCE(v_data,clock_timestamp());
+
+  UPDATE public.whatsapp_conversas
+  SET mensagens=v_ultimas,
+      ultima_msg=GREATEST(COALESCE(v_anterior,v_data),v_data)
+  WHERE id=p_conversa_id;
+  RETURN v_ultimas;
+END $$;
+REVOKE ALL ON FUNCTION public.whatsapp_append_mensagem(uuid,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.whatsapp_append_mensagem(uuid,jsonb) TO authenticated,service_role;
