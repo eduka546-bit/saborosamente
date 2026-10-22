@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
@@ -39,6 +39,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 
 export const Route = createFileRoute("/admin/agente")({
   component: AdminAgentePage,
@@ -1196,6 +1197,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [buscaMsg, setBuscaMsg] = useState("");
+  const [mostrarBuscaMsg, setMostrarBuscaMsg] = useState(false);
   const [sending, setSending] = useState(false);
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
@@ -1206,6 +1209,79 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const [salvandoNome, setSalvandoNome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mensagensDaConversa: any[] = conversa.mensagens ?? [];
+  // IA usa a janela curta; a interface recupera mensagens anteriores por ID.
+  const { data: paginasHistorico, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["whatsapp-historico", conversa.id],
+    initialPageParam: null as number | null,
+    queryFn: async ({ pageParam }) => {
+      let query = (supabase as any).from("whatsapp_mensagens_historico")
+        .select("id,mensagem").eq("conversa_id", conversa.id)
+        .order("id", { ascending: false }).limit(100);
+      if (pageParam !== null) query = query.lt("id", pageParam);
+      const { data, error } = await query;
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { id: number; mensagem: any }[];
+    },
+    getNextPageParam: (ultima) => ultima.length === 100 ? ultima[ultima.length - 1].id : undefined,
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    staleTime: 15_000,
+  });
+  const { data: interacoes = [] } = useQuery({
+    queryKey: ["whatsapp-interacoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_interacoes")
+        .select("whatsapp_message_id,tipo,titulo,identificador,mensagem_origem_id,recebido_em")
+        .eq("conversa_id", conversa.id).order("recebido_em", { ascending: true }).limit(1000);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as InteracaoWhatsApp[];
+    },
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const { data: reacoes = [] } = useQuery({
+    queryKey: ["whatsapp-reacoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_reacoes")
+        .select("mensagem_destino_id,emoji,remetente").eq("conversa_id", conversa.id);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { mensagem_destino_id: string; emoji: string; remetente: string }[];
+    },
+    enabled: !!conversa.id && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const arquivadas = (paginasHistorico?.pages ?? []).flat()
+    .sort((a,b) => a.id - b.id).map((item) => item.mensagem);
+  const mensagensCompletas = juntarHistoricoWhatsApp(arquivadas, mensagensDaConversa, interacoes);
+  const idsRecibos = [...new Set(mensagensCompletas
+    .map((msg) => String(msg.whatsapp_message_id ?? "")).filter((id) => id.startsWith("wamid.")))].slice(-100);
+  const { data: recibos = [] } = useQuery({
+    queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_recibos")
+        .select("whatsapp_message_id,status").in("whatsapp_message_id", idsRecibos);
+      if (error?.code === "42P01" || error?.code === "PGRST205") return [];
+      if (error) throw error;
+      return (data ?? []) as { whatsapp_message_id: string; status: string }[];
+    },
+    enabled: idsRecibos.length > 0 && !conversa.somenteCampanha,
+    refetchInterval: 8000,
+  });
+  const recibosPorId = new Map(
+    (recibos as { whatsapp_message_id: string; status: string }[])
+      .map((r) => [r.whatsapp_message_id, r.status]),
+  );
+  const reacoesPorMensagem = new Map<string,string[]>();
+  for (const reacao of reacoes) {
+    reacoesPorMensagem.set(reacao.mensagem_destino_id, [
+      ...(reacoesPorMensagem.get(reacao.mensagem_destino_id) ?? []), reacao.emoji,
+    ]);
+  }
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+  }, [conversa.id, conversa.ultima_msg, queryClient]);
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
@@ -1276,7 +1352,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
   // Quando a IA transfere para uma pessoa, ela já grava um resumo como mensagem
   // de sistema. Reaproveitamos esse texto como briefing fixo para a equipe.
-  const resumoEquipeRaw = [...mensagensDaConversa]
+  const resumoEquipeRaw = [...mensagensCompletas]
     .reverse()
     .find((m: any) => m?.role === "system" && String(m?.content ?? "").startsWith("[Resumo para equipe]"));
   const resumoEquipe = resumoEquipeRaw
@@ -1324,9 +1400,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   );
   const statusPorCampanha = new Map(enviosValidos.map((envio) => [envio.campanha_id, envio.status]));
   const campanhasJaGravadas = new Set(
-    mensagensDaConversa.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
+    mensagensCompletas.map((msg: any) => String(msg?.campaign_id ?? "")).filter(Boolean),
   );
-  const historicoNormalizado = mensagensDaConversa.map((msg: any) => {
+  const historicoNormalizado = mensagensCompletas.map((msg: any) => {
     if (!msg?.campaign_id) return msg;
     const campanha = campanhasPorId.get(msg.campaign_id);
     return {
@@ -1354,7 +1430,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   // jogava essas mensagens para 1970 e fazia todas as falas do cliente aparecerem
   // acima das nossas respostas. Preservamos a ordem do histórico e só usamos
   // ordenação cronológica quando todas as mensagens já possuem timestamp válido.
-  const historicoTemTimestamps = mensagensDaConversa.every((msg: any) => {
+  const historicoTemTimestamps = mensagensCompletas.every((msg: any) => {
     const ts = msg?.timestamp ? new Date(msg.timestamp).getTime() : NaN;
     return Number.isFinite(ts);
   });
@@ -1368,9 +1444,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       )
     : [...campanhasOrdenadas, ...historicoNormalizado];
 
+  const ultimaMensagem = mensagens.at(-1);
+  const idUltimaMensagem = ultimaMensagem?.whatsapp_message_id || ultimaMensagem?.timestamp || mensagens.length;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens.length]);
+  }, [conversa.id, idUltimaMensagem]);
 
   useEffect(() => {
     setNomeEditado(conversa.nome || "");
@@ -1499,6 +1577,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       setSending(false);
     }
   };
+
+  const mensagensFiltradas = buscaMsg.trim()
+    ? mensagens.filter((msg) => [msg.content, msg.titulo_interacao]
+        .some((campo) => String(campo ?? "").toLocaleLowerCase("pt-BR")
+          .includes(buscaMsg.trim().toLocaleLowerCase("pt-BR"))))
+    : mensagens;
+  const mensagensVisiveisId = new Set(mensagens.map((msg) => String(msg.whatsapp_message_id ?? "")));
+  const reacoesAntigas = reacoes.filter((r) => !mensagensVisiveisId.has(r.mensagem_destino_id));
 
   // Agrupa mensagens por data
   const grupos: { date: string; msgs: any[] }[] = [];
@@ -1642,19 +1728,38 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         </div>
       )}
 
+      {mostrarBuscaMsg && (
+        <div className={`shrink-0 flex items-center gap-2 px-3 py-2 ${t.chatHeader}`}>
+          <Search size={16}/>
+          <input aria-label="Pesquisar mensagens nesta conversa" placeholder="Pesquisar mensagens nesta conversa"
+            className={`flex-1 min-w-0 rounded px-2 py-2 text-sm outline-none ${t.chatInputField}`}
+            autoFocus value={buscaMsg} onChange={(e) => setBuscaMsg(e.target.value)}/>
+          <span className="text-xs opacity-70">{mensagensFiltradas.length}</span>
+          <button type="button" title="Fechar busca" onClick={() => { setMostrarBuscaMsg(false); setBuscaMsg(""); }}><X size={17}/></button>
+        </div>
+      )}
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-[6%] py-3 space-y-0.5">
-        {mensagens.length === 0 && (
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {hasNextPage && !buscaMsg && (
+          <div className="flex justify-center py-2">
+            <button type="button" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold ${t.settingsInput}`}>
+              {isFetchingNextPage ? "Carregando..." : "Carregar mensagens anteriores"}
+            </button>
+          </div>
+        )}
+        {mensagensFiltradas.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
               className={`px-4 py-2 rounded-lg text-xs ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#e2ffc7] text-[#667781]"}`}
             >
-              Nenhuma mensagem ainda
+              {buscaMsg ? "Nenhuma mensagem encontrada" : "Nenhuma mensagem ainda"}
             </div>
           </div>
         )}
 
-        {mensagens.map((msg: any, i: number) => {
+        {mensagensFiltradas.map((msg: any, i: number) => {
+          const recibo = recibosPorId.get(String(msg.whatsapp_message_id ?? "")) || msg.deliveryStatus;
           const isOut = msg.role === "assistant";
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
@@ -1662,7 +1767,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           return (
             <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"} mb-0.5`}>
               <div
-                className={`relative max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
+                className={`relative max-w-[88%] sm:max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
                   isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
@@ -1673,11 +1778,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                       : "SaborosaMente"
                     : conversa.nome || "Cliente"}
                 </p>
-                {msg.content && !msg.media_path && (
+                {msg.tipo_interacao && (
+                  <div className="mb-1 rounded-md border-l-[3px] border-[#00a884] bg-black/10 px-2 py-1">
+                    <span className="text-[11px] font-bold">Opção escolhida: {msg.tipo_interacao === "lista" ? "lista" : "botão"}</span>
+                    <p className="text-xs">{msg.titulo_interacao}</p>
+                    {msg.identificador_interacao && <span className="text-[10px] opacity-60 break-all">Identificador: {msg.identificador_interacao}</span>}
+                  </div>
+                )}
+                {msg.content && !msg.media_path && !msg.tipo_interacao && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
+                {msg.whatsapp_message_id && reacoesPorMensagem.has(String(msg.whatsapp_message_id)) && (
+                  <div className="flex flex-wrap gap-1 mt-1" aria-label="Reações à mensagem">
+                    {reacoesPorMensagem.get(String(msg.whatsapp_message_id))?.map((emoji,i) => (
+                      <span key={i} className="rounded-full bg-black/10 px-2 py-0.5 text-sm">{emoji}</span>
+                    ))}
+                  </div>
+                )}
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
@@ -1686,13 +1805,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                     <CheckCheck
                       size={14}
                       aria-label={
-                        msg.deliveryStatus === "lido"
+                        recibo === "lido"
                           ? "Lida"
-                          : msg.deliveryStatus === "entregue"
+                          : recibo === "entregue"
                             ? "Entregue"
-                            : "Enviada"
+                            : recibo === "falhou" ? "Falha informada pela Meta" : "Enviada"
                       }
-                      className={msg.deliveryStatus === "lido" ? "text-[#53bdeb]" : "opacity-50"}
+                      className={recibo === "lido" ? "text-[#53bdeb]" : recibo === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
@@ -1700,11 +1819,22 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             </div>
           );
         })}
+        {reacoesAntigas.length > 0 && (
+          <div className="mx-auto my-3 max-w-sm rounded-lg bg-black/10 px-3 py-2 text-center text-xs">
+            {reacoesAntigas.map((r,i) => <span key={i} className="mr-2">{r.emoji}</span>)}
+            Reações recebidas em mensagens anteriores ainda não carregadas.
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`}>
+      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`} style={{paddingBottom:"max(10px,env(safe-area-inset-bottom))"}}>
+        <div className="flex justify-end pb-1">
+          <button type="button" onClick={() => setMostrarBuscaMsg((v) => !v)}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${t.textSub}`}
+            title="Buscar dentro desta conversa"><Search size={14}/> Buscar mensagens</button>
+        </div>
         {somenteCampanha ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
