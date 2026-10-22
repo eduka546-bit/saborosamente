@@ -656,6 +656,12 @@ function AdminCampaignPage() {
         );
       }
 
+      const templateConfig = {
+        name: templateSelecionado.name as string,
+        language: templateSelecionado.language as string,
+        variaveis: [...templateVariaveis],
+        headerFormat: templateSelecionado.headerFormat as string | null,
+      };
       let imagemUrl = null;
       let videoUrl = null;
 
@@ -689,6 +695,31 @@ function AdminCampaignPage() {
         videoUrl = publicUrl;
       }
 
+      // Primeiro cadastra a mídia na Meta. Se o vídeo for incompatível, não cria
+      // nem dispara uma campanha que falharia para todos os destinatários.
+      let mediaId: string | null = null;
+      if (imagemUrl || videoUrl) {
+        const { data: preparacao, error: preparacaoErro } = await supabase.functions.invoke(
+          "whatsapp-campanha-enviar",
+          { body: {
+            action: "validar_midia",
+            imagem_url: imagemUrl,
+            video_url: videoUrl,
+            midia_tipo: tipo_midia,
+          } },
+        );
+        if (preparacaoErro) {
+          const detalhe = preparacaoErro.context instanceof Response
+            ? await preparacaoErro.context.json().catch(() => null)
+            : null;
+          throw new Error(detalhe?.error || preparacaoErro.message || "A Meta recusou a mídia.");
+        }
+        if (!preparacao?.media_id) {
+          throw new Error(preparacao?.error || "A mídia não foi validada pela Meta.");
+        }
+        mediaId = preparacao.media_id;
+      }
+
       const { data: campanha, error: saveError } = await supabase
         .from("campanhas_whatsapp")
         .insert([
@@ -698,7 +729,8 @@ function AdminCampaignPage() {
             imagem_url: imagemUrl,
             video_url: videoUrl,
             midia_tipo: tipo_midia,
-            template_name: usarTemplate && templateSelecionado ? templateSelecionado.name : null,
+            template_name: templateConfig.name,
+            template_config: templateConfig,
             status: "rascunho",
             contatos_total: contatosSelecionados.length,
             contatos_enviados: 0,
@@ -718,6 +750,7 @@ function AdminCampaignPage() {
           imagem_url: imagemUrl,
           video_url: videoUrl,
           midia_tipo: tipo_midia,
+          media_id: mediaId,
           template:
             usarTemplate && templateSelecionado
               ? {
@@ -2440,13 +2473,35 @@ function AdminCampaignPage() {
                               return;
                             }
 
+                            // Campanhas criadas antes da persistência do template
+                            // precisam recuperar a configuração aprovada da Meta.
+                            let modelo = campanha.template_config;
+                            if (!modelo && campanha.template_name) {
+                              const { data: modelos, error: erroModelos } =
+                                await supabase.functions.invoke("whatsapp-templates");
+                              if (erroModelos) throw new Error("Não foi possível conferir o template na Meta.");
+                              const aprovado = (modelos?.templates || []).find(
+                                (item: any) => item.name === campanha.template_name && item.status === "APPROVED",
+                              );
+                              if (!aprovado) throw new Error("O modelo não está mais aprovado na Meta.");
+                              if (aprovado.numVars > 0) {
+                                throw new Error("Esta campanha antiga não salvou os valores das variáveis. Crie outra campanha para evitar mensagens incorretas.");
+                              }
+                              modelo = {
+                                name: aprovado.name,
+                                language: aprovado.language,
+                                variaveis: [],
+                                headerFormat: aprovado.headerFormat,
+                              };
+                            }
+                            if (!modelo) throw new Error("Esta campanha não possui modelo aprovado vinculado.");
                             queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
                             toast.info(
-                              `Retomando envio para ${pendentes.length} contatos pendentes...`,
+                              `Validando mídia e retomando ${pendentes.length} contatos pendentes...`,
                             );
 
                             // Re-invoca a edge function só com os pendentes
-                            const { error } = await supabase.functions.invoke(
+                            const { data: retorno, error } = await supabase.functions.invoke(
                               "whatsapp-campanha-enviar",
                               {
                                 body: {
@@ -2456,14 +2511,20 @@ function AdminCampaignPage() {
                                   imagem_url: campanha.imagem_url ?? null,
                                   video_url: campanha.video_url ?? null,
                                   midia_tipo: campanha.midia_tipo ?? "nenhuma",
-                                  template: campanha.template ?? null,
+                                  template: modelo,
                                 },
                               },
                             );
 
-                            if (error) throw error;
+                            if (error) {
+                              const detalhe = error.context instanceof Response
+                                ? await error.context.json().catch(() => null)
+                                : null;
+                              throw new Error(detalhe?.error || error.message);
+                            }
+                            if (retorno?.error) throw new Error(retorno.error);
                             queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
-                            toast.success("Campanha retomada e finalizada!");
+                            toast.success("Retomada iniciada. Acompanhe a entrega no histórico.");
                           } catch (e: any) {
                             toast.error("Erro ao retomar: " + (e?.message ?? "Tente novamente."));
                           }
