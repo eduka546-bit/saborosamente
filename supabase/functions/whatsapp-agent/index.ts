@@ -2471,8 +2471,8 @@ Deno.serve(async (req: Request) => {
           ultimaAtividade > 0 && Date.now() - ultimaAtividade > HANDOFF_TIMEOUT_MS;
 
         if (handoffExpirou) {
-          await supabase.from("whatsapp_conversas").update({ modo: "bot" }).eq("id", conversa.id);
-          conversa.modo = "bot";
+          await supabase.from("whatsapp_conversas").update({ modo: "ia" }).eq("id", conversa.id);
+          conversa.modo = "ia";
           await registrarEvento("retorno_bot", telefone, conversa.id, {
             motivo: "timeout_handoff",
           });
