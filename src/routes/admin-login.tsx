@@ -46,12 +46,26 @@ function AdminLogin() {
     }
   }, []);
 
-  // Se já tem sessão ativa, vai direto pro painel
+  const destinoPorAcesso = async (userId: string) => {
+    const { data: roles, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .in("role", ["admin", "custos"] as any);
+
+    if (error || !roles?.length) return null;
+    return roles.some((role: any) => role.role === "admin") ? "/admin" : "/admin/custos";
+  };
+
+  // Se já tem sessão ativa, vai diretamente para a área permitida.
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate({ to: "/admin" as any });
+      if (!session?.user) return;
+      void destinoPorAcesso(session.user.id).then((destino) => {
+        if (destino) void navigate({ to: destino as any, replace: true });
+      });
     });
-  }, []);
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,16 +77,10 @@ function AdminLogin() {
 
       const user = data.user;
 
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (roleError || !roleData) {
+      const destino = await destinoPorAcesso(user.id);
+      if (!destino) {
         await supabase.auth.signOut();
-        toast.error("Acesso negado. Esta área é restrita a administradores.");
+        toast.error("Acesso negado. Esta área é restrita.");
         return;
       }
 
@@ -84,7 +92,7 @@ function AdminLogin() {
       }
 
       toast.success("Login realizado!");
-      navigate({ to: "/admin" as any });
+      navigate({ to: destino as any });
     } catch (error: any) {
       toast.error(error.message || "E-mail ou senha incorretos.");
     } finally {
