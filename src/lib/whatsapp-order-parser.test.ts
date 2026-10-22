@@ -270,7 +270,7 @@ Total: 525,60 - 26,28 = R$ 499,32`);
   });
 
   it("diferencia desconto absoluto em reais de desconto percentual", () => {
-    const base = "1 - Refeição 400g - 100,00\\n1xTD16\\nEntrega: Retirada\\n";
+    const base = "1 - Refeição 400g - 100,00\n1xTD16\nEntrega: Retirada\n";
     const real = interpretarResumoWhatsapp(base + "Total: 100,00 - R$ 5,00 = R$ 95,00");
     expect(real.descontoPercentual).toBeNull();
     expect(real.descontoValor).toBe(5);
