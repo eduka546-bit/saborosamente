@@ -316,15 +316,16 @@ function AdminCampaignPage() {
   });
 
   // Query para envios da campanha selecionada (tempo real)
-  const { data: enviosCampanha = [], refetch: refetchEnvios } = useQuery({
+  const { data: enviosCampanha = [], refetch: refetchEnvios, isError: erroAoBuscarEnvios } = useQuery({
     queryKey: ["envios-campanha", campanhaDetalhes],
     queryFn: async () => {
       if (!campanhaDetalhes) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("campanhas_whatsapp_envios")
         .select("*")
         .eq("campanha_id", campanhaDetalhes)
         .order("created_at");
+      if (error) throw error;
       return data || [];
     },
     enabled: !!campanhaDetalhes,
@@ -895,12 +896,15 @@ function AdminCampaignPage() {
   const lidosDetalhes = enviosCampanha.filter((e: any) =>
     Boolean(e.lida_em) || e.status === "lido",
   ).length;
+  // Respostas e botões vêm do webhook por mensagem/campanha individual.
+  // Cliques em URL da Meta são agregados por TEMPLATE e não devem ser
+  // somados às interações locais nem apresentados como cliques desta campanha.
   const responderamDetalhes = enviosCampanha.filter((e: any) => Boolean(e.respondeu_em)).length;
-  const cliquesUrlDetalhes =
+  const interacoesBotoesDetalhes = enviosCampanha.filter((e: any) => Boolean(e.interagiu_em)).length;
+  const cliquesUrlTemplateMeta =
     metricasCampanha?.meta?.uniqueUrlClicks ?? metricasCampanha?.meta?.urlClicks ?? null;
-  const interacoesDetalhes =
-    responderamDetalhes +
-    Number(metricasCampanha?.meta?.uniqueUrlClicks ?? 0);
+  const cliquesRespostaRapidaTemplateMeta =
+    metricasCampanha?.meta?.uniqueQuickReplyClicks ?? metricasCampanha?.meta?.quickReplyClicks ?? null;
 
   return (
     <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen">
@@ -2307,6 +2311,11 @@ function AdminCampaignPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
                         {enviadosDetalhes}/{enviosCampanha.length} enviados
+                        {enviosCampanha.some((e: any) => e.status === "falhou") && (
+                          <span className="ml-2 text-red-600">
+                            · {enviosCampanha.filter((e: any) => e.status === "falhou").length} falhas
+                          </span>
+                        )}
                       </span>
                       <button
                         onClick={() => setCampanhaDetalhes(null)}
@@ -2345,18 +2354,31 @@ function AdminCampaignPage() {
                     </div>
                     <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
                       <div className="flex items-center gap-2 text-pink-700 text-xs font-bold">
-                        <MousePointerClick size={15} /> Cliques / interações
+                        <MousePointerClick size={15} /> Interações em botões
                       </div>
-                      <div className="text-2xl font-black text-pink-900 mt-1">{cliquesUrlDetalhes ?? "—"}</div>
+                      <div className="text-2xl font-black text-pink-900 mt-1">{interacoesBotoesDetalhes}</div>
                       <div className="text-[10px] text-pink-700 mt-0.5">
-                        Interações totais: {interacoesDetalhes}
+                        Respostas rápidas e botões recebidos nesta campanha
                       </div>
                     </div>
                   </div>
 
+                  {erroAoBuscarEnvios && (
+                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                      Não foi possível atualizar os envios desta campanha. Os números podem estar desatualizados.
+                    </div>
+                  )}
+                  {metricasCampanha?.meta && (
+                    <p className="mb-3 text-xs text-gray-600">
+                      Métricas externas da Meta por <strong>template</strong> (não por campanha):
+                      {" "}cliques em links {cliquesUrlTemplateMeta ?? "não disponível"};
+                      {" "}cliques em botões de resposta rápida {cliquesRespostaRapidaTemplateMeta ?? "não disponível"}.
+                      Estes totais podem abranger outros disparos com o mesmo template e ter atraso.
+                    </p>
+                  )}
                   {metricasCampanha?.meta_error && (
                     <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                      Métricas de clique da Meta: {metricasCampanha.meta_error}
+                      Métricas externas da Meta indisponíveis: {metricasCampanha.meta_error}
                     </div>
                   )}
 
