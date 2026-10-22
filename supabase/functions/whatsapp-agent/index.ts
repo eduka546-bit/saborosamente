@@ -2232,6 +2232,13 @@ Deno.serve(async (req: Request) => {
                     ? "enviado"
                     : null;
           if (!statusBanco || !statusEvent?.id) continue;
+          // Recibos independentes do módulo de campanhas: o painel também
+          // acompanha mensagens manuais pelo ID devolvido pela Meta.
+          const { error: reciboErro } = await supabase.rpc("whatsapp_registrar_recibo", {
+            p_message_id: String(statusEvent.id),
+            p_status: statusBanco,
+          });
+          if (reciboErro) console.error("Recibo WhatsApp não registrado:", reciboErro.message);
           const atualizacao: Record<string, string> = { status: statusBanco };
           if (statusBanco === "entregue") atualizacao.entregue_em = new Date().toISOString();
           if (statusBanco === "lido") atualizacao.lida_em = new Date().toISOString();
@@ -2250,7 +2257,37 @@ Deno.serve(async (req: Request) => {
 
       if (!messages?.length) return new Response("OK", { status: 200 });
 
-      const msg = messages[0];
+      // Reações são eventos, não mensagens que a IA deve responder.
+      // Armazena a reação pelo ID da mensagem-alvo, inclusive remoções
+      // (emoji vazio), sem acrescentar bolhas falsas nem chamar o bot.
+      for (const evento of messages) {
+        if (evento?.type !== "reaction" || !evento?.reaction?.message_id) continue;
+        const destinoId = String(evento.reaction.message_id);
+        const emoji = String(evento.reaction.emoji ?? "");
+        if (!destinoId.startsWith("wamid.") || emoji.length > 16) continue;
+        const conversaReacao = await getOrCreateConversa(String(evento.from ?? ""));
+        if (!conversaReacao) continue;
+        const chave = {
+          conversa_id: conversaReacao.id,
+          mensagem_destino_id: destinoId,
+          remetente: String(evento.from ?? "").replace(/\D/g, ""),
+        };
+        const { error: reacaoErro } = emoji
+          ? await supabase.from("whatsapp_reacoes").upsert({
+              ...chave, emoji, atualizado_em: new Date().toISOString(),
+            }, { onConflict: "conversa_id,mensagem_destino_id,remetente" })
+          : await supabase.from("whatsapp_reacoes").delete()
+              .eq("conversa_id", chave.conversa_id)
+              .eq("mensagem_destino_id", chave.mensagem_destino_id)
+              .eq("remetente", chave.remetente);
+        if (reacaoErro) console.error("Reação WhatsApp não registrada:", reacaoErro.message);
+      }
+      if (messages.every((evento: any) => evento?.type === "reaction")) {
+        return new Response("OK", { status: 200 });
+      }
+
+      const msg = messages.find((evento: any) => evento?.type !== "reaction");
+      if (!msg) return new Response("OK", { status: 200 });
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
 
@@ -2302,6 +2339,31 @@ Deno.serve(async (req: Request) => {
           await supabase
             .from("whatsapp_mensagens_processadas")
             .upsert(registrosExtras, { onConflict: "message_id", ignoreDuplicates: true });
+        }
+      }
+
+      // Registra a escolha exata do cliente ANTES dos fluxos de opt-out,
+      // automações e transferência para humano, que podem encerrar o webhook
+      // sem acrescentar uma bolha de usuário ao histórico curto.
+      const respostaBotao = msg.interactive?.button_reply;
+      const respostaLista = msg.interactive?.list_reply;
+      const respostaTemplate = msg.button;
+      const tipoInteracao = respostaBotao ? "botao" : respostaLista ? "lista" : respostaTemplate ? "botao_template" : null;
+      if (tipoInteracao && msg.id) {
+        const conversaInteracao = await getOrCreateConversa(telefone, nomeContato);
+        if (conversaInteracao) {
+          const { error: interacaoErro } = await supabase.from("whatsapp_interacoes")
+            .upsert({
+              whatsapp_message_id: String(msg.id),
+              conversa_id: conversaInteracao.id,
+              tipo: tipoInteracao,
+              titulo: String(respostaBotao?.title ?? respostaLista?.title ?? respostaTemplate?.text ?? "Opção selecionada").slice(0, 500),
+              identificador: String(respostaBotao?.id ?? respostaLista?.id ?? respostaTemplate?.payload ?? "").slice(0, 500),
+              mensagem_origem_id: msg.context?.id ? String(msg.context.id) : null,
+              recebido_em: msg.timestamp && /^\d{10}$/.test(String(msg.timestamp))
+                ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
+            }, { onConflict: "whatsapp_message_id" });
+          if (interacaoErro) console.error("Clique WhatsApp não registrado:", interacaoErro.message);
         }
       }
 
@@ -2383,6 +2445,8 @@ Deno.serve(async (req: Request) => {
           const conteudoPausado = texto || menuId || `[${msg.type || "mensagem"} recebido]`;
           await appendMensagem(conversaPausada.id, conversaPausada.mensagens ?? [], {
             role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
             content: conteudoPausado,
             ...(midiaPausada ? {
               media_path: midiaPausada.path,
@@ -2481,6 +2545,8 @@ Deno.serve(async (req: Request) => {
           // Atendimento humano ativo: só registra a mensagem, não responde.
           await appendMensagem(conversa.id, historico, {
             role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
             content: texto || menuId || "",
           });
           return new Response("OK", { status: 200 });
@@ -2504,7 +2570,9 @@ Deno.serve(async (req: Request) => {
         const respostaCliente = texto || menuId || "";
         // Passa um histórico com a resposta em memória (sem persistir ainda) para
         // que a condição por "mensagem" enxergue a resposta do cliente.
-        const historicoComResposta = [...historico, { role: "user", content: respostaCliente }];
+        const historicoComResposta = [...historico, { role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}), content: respostaCliente }];
         const retomou = await retomarPorResposta(
           telefone,
           respostaCliente,
@@ -2515,6 +2583,8 @@ Deno.serve(async (req: Request) => {
           // Só agora persiste a mensagem do cliente (a retomada assumiu o turno).
           await appendMensagem(conversa.id, historico, {
             role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
             content: respostaCliente,
           });
           return new Response("OK", { status: 200 });
@@ -2536,7 +2606,9 @@ Deno.serve(async (req: Request) => {
         // Se uma automação de keyword disparou, ela já enviou a própria resposta.
         // Encerramos aqui para não gerar resposta duplicada da IA.
         if (autoDisparou) {
-          await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+          await appendMensagem(conversa.id, historico, { role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}), content: texto });
           return new Response("OK", { status: 200 });
         }
       }
@@ -2547,7 +2619,9 @@ Deno.serve(async (req: Request) => {
       if (texto && !menuId) {
         const respondeu = await responderAcompanhamentoPedido(telefone, texto);
         if (respondeu) {
-          await appendMensagem(conversa.id, historico, { role: "user", content: texto });
+          await appendMensagem(conversa.id, historico, { role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}), content: texto });
           await appendMensagem(conversa.id, historico, {
             role: "assistant",
             content: "[Status do pedido enviado automaticamente]",
@@ -2622,6 +2696,8 @@ Deno.serve(async (req: Request) => {
           case "btn_cardapio": {
             await appendMensagem(conversa.id, historico, {
               role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
               content: "Quero ver o cardápio completo",
             });
             const cardapioEnviado = await enviarCardapioPrincipal(telefone);
@@ -2687,6 +2763,8 @@ Deno.serve(async (req: Request) => {
             };
             await appendMensagem(conversa.id, historico, {
               role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
               content: perguntasFallback[menuId] ?? "Tenho uma dúvida",
             });
             break;
@@ -2695,6 +2773,8 @@ Deno.serve(async (req: Request) => {
             // Opção não reconhecida — trata como texto normal
             await appendMensagem(conversa.id, historico, {
               role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
               content: texto || menuId,
             });
             break;
@@ -2809,6 +2889,8 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
       // ── Adiciona mensagem do usuário ─────────────────────────────────────
       historico = await appendMensagem(conversa.id, historico, {
         role: "user",
+            whatsapp_message_id: msg.id,
+            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
         content: texto,
         ...(mediaAnexo ? {
           media_path: mediaAnexo.path,
