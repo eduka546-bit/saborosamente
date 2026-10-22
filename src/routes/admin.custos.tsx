@@ -544,12 +544,17 @@ function CustosMargensPage() {
       <style>{`
         .pdf-only { display: none; }
         @media print {
-          @page { size: A4 landscape; margin: 9mm; }
-          body { background: #fff !important; color: #111827 !important; }
-          .screen-only { display: none !important; }
-          .pdf-only { display: block !important; font-family: Arial, sans-serif; font-size: 8pt; }
-          .pdf-page-break { break-before: page; page-break-before: always; }
-          .pdf-no-break { break-inside: avoid; page-break-inside: avoid; }
+          @page { size: A4 landscape; margin: 7mm; }
+          html, body { width: 100%; background: #fff !important; }
+          .pdf-only { display: none !important; }
+          .screen-only {
+            display: block !important;
+            width: 185% !important;
+            zoom: .54;
+          }
+          .print-hide { display: none !important; }
+          .screen-only > section:not(:first-of-type) { display: none !important; }
+          .screen-only input { color: #111827 !important; -webkit-text-fill-color: #111827 !important; opacity: 1 !important; }
         }
       `}</style>
       <div className="screen-only space-y-6">
@@ -566,7 +571,7 @@ function CustosMargensPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#5850ec] bg-white px-4 py-2 text-sm font-black text-[#5850ec]"
+            className="print-hide inline-flex items-center gap-2 rounded-xl border border-[#5850ec] bg-white px-4 py-2 text-sm font-black text-[#5850ec]"
           >
             <Printer size={16} /> Gerar PDF A4
           </button>
