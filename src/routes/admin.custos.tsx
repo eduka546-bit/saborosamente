@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento } from "@/lib/cozinha-planejamento";
-import { ArrowDownToLine, Plus, RotateCcw, WalletCards } from "lucide-react";
+import { ArrowDownToLine, Plus, Printer, RotateCcw, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/custos")({ component: CustosMargensPage, ssr: false });
@@ -510,6 +510,10 @@ function CustosMargensPage() {
 
   const salvarMargemSegurancaGeral = async () => {
     if (margemSegurancaGeralEditada === null) return;
+    if (margemSegurancaGeralEditada.trim() === "") {
+      setMargemSegurancaGeralEditada(null);
+      return;
+    }
     const valor = Math.max(0, n(margemSegurancaGeralEditada));
     const { error } = await supabase
       .from("cozinha_receitas")
@@ -537,6 +541,18 @@ function CustosMargensPage() {
 
   return (
     <div className="mx-auto max-w-[1760px] space-y-6 px-4 py-8">
+      <style>{`
+        .pdf-only { display: none; }
+        @media print {
+          @page { size: A4 landscape; margin: 9mm; }
+          body { background: #fff !important; color: #111827 !important; }
+          .screen-only { display: none !important; }
+          .pdf-only { display: block !important; font-family: Arial, sans-serif; font-size: 8pt; }
+          .pdf-page-break { break-before: page; page-break-before: always; }
+          .pdf-no-break { break-inside: avoid; page-break-inside: avoid; }
+        }
+      `}</style>
+      <div className="screen-only space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-black text-[#5850ec]">
@@ -546,6 +562,14 @@ function CustosMargensPage() {
             Controle operacional com comparação entre realidade atual e cenário ideal/planejado.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#5850ec] bg-white px-4 py-2 text-sm font-black text-[#5850ec]"
+          >
+            <Printer size={16} /> Gerar PDF A4
+          </button>
         <div className="flex rounded-xl border bg-white p-1">
           <button
             onClick={() => setAba("operacional")}
@@ -559,6 +583,7 @@ function CustosMargensPage() {
           >
             Custos por produto
           </button>
+        </div>
         </div>
       </div>
 
@@ -987,6 +1012,67 @@ function CustosMargensPage() {
           </p>
         </>
       )}
+      </div>
+
+      <section id="operational-pdf" className="pdf-only">
+        <div style={{ borderBottom: "2px solid #5850ec", paddingBottom: 8, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <h1 style={{ margin: 0, color: "#5850ec", fontSize: 20 }}>SaborosaMente - Controle Operacional</h1>
+            <span>Relatório gerado em {new Date().toLocaleString("pt-BR")}</span>
+          </div>
+          <p style={{ margin: "5px 0 0", color: "#4b5563" }}>Simulação mensal para {volume.toLocaleString("pt-BR")} unidades · Margem de segurança: {margemGeralAtual || "variável"}%</p>
+        </div>
+
+        <div className="pdf-no-break" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[{ titulo: "Cenário atual", resumo: atual, ideal: false }, { titulo: "Cenário ideal / planejado", resumo: ideal, ideal: true }].map(({ titulo, resumo, ideal: ehIdeal }) => (
+            <div key={titulo} style={{ border: `1px solid ${ehIdeal ? "#cfcafb" : "#d1d5db"}`, borderRadius: 6, padding: 8, background: ehIdeal ? "#faf9ff" : "#fff" }}>
+              <h2 style={{ margin: "0 0 6px", color: ehIdeal ? "#5850ec" : "#111827", fontSize: 12 }}>{titulo}</h2>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {cardsCenario(resumo, ehIdeal).map(([label, valor, sub]) => (
+                    <tr key={String(label)} style={{ borderTop: "1px solid #e5e7eb" }}>
+                      <td style={{ padding: "4px 2px", fontWeight: 700 }}>{label}<span style={{ color: "#6b7280", fontWeight: 400 }}> · {sub}</span></td>
+                      <td style={{ padding: "4px 2px", textAlign: "right", fontWeight: 800 }}>{valor}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+
+        <div className="pdf-no-break" style={{ marginTop: 12, border: "1px solid #d1d5db", borderRadius: 6, padding: 8 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 12 }}>Indicadores médios por unidade</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6 }}>
+            {[["Venda atual", atual.vendaMedia], ["Venda ideal", ideal.vendaMedia], ["Custo atual", atual.custoMedio], ["Custo ideal", ideal.custoMedio], ["Contribuição atual", atual.contribuicaoMedia], ["Contribuição ideal", ideal.contribuicaoMedia]].map(([label, valor]) => (
+              <div key={String(label)} style={{ borderLeft: "2px solid #5850ec", paddingLeft: 6 }}><div style={{ color: "#6b7280" }}>{label}</div><strong>{brl(Number(valor))}</strong></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="pdf-no-break" style={{ marginTop: 12 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 12 }}>Mix operacional</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 7.5 }}>
+            <thead><tr style={{ background: "#f3f4f6" }}>{["Tipo", "Mix", "Qtd.", "Custo real", "Venda real", "Resultado real", "Custo ideal", "Venda ideal", "Resultado ideal"].map((x) => <th key={x} style={{ border: "1px solid #d1d5db", padding: 4, textAlign: x === "Tipo" ? "left" : "right" }}>{x}</th>)}</tr></thead>
+            <tbody>{faixas.map((f) => <tr key={f.chave}>{[f.nome, pct(f.percentual), f.quantidade.toLocaleString("pt-BR"), brl(f.custoReal), brl(f.vendaReal), brl(f.contribuicaoReal), brl(f.custoIdeal), brl(f.vendaIdeal), brl(f.contribuicaoIdeal)].map((v, i) => <td key={i} style={{ border: "1px solid #d1d5db", padding: 4, textAlign: i === 0 ? "left" : "right" }}>{v}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+
+        <div className="pdf-page-break" style={{ marginTop: 12 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 14, color: "#5850ec" }}>Despesas operacionais</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr style={{ background: "#f3f4f6" }}>{["Gasto", "Categoria", "Atual", "Ideal", "Diferença", "Observação", "Status"].map((x) => <th key={x} style={{ border: "1px solid #d1d5db", padding: 5, textAlign: ["Atual", "Ideal", "Diferença"].includes(x) ? "right" : "left" }}>{x}</th>)}</tr></thead>
+            <tbody>{(data?.despesas ?? []).filter((item: any) => Boolean(valorDespesa(item, "ativo"))).map((item: any) => {
+              const atualDespesa = Math.max(0, n(valorDespesa(item, "valor_mensal")));
+              const idealRaw = valorDespesa(item, "valor_ideal");
+              const idealDespesa = idealRaw == null || String(idealRaw).trim() === "" ? atualDespesa : Math.max(0, n(idealRaw));
+              const diferenca = atualDespesa - idealDespesa;
+              return <tr key={item.id}><td style={{ border: "1px solid #d1d5db", padding: 5, fontWeight: 700 }}>{valorDespesa(item, "nome")}</td><td style={{ border: "1px solid #d1d5db", padding: 5 }}>{valorDespesa(item, "categoria")}</td><td style={{ border: "1px solid #d1d5db", padding: 5, textAlign: "right" }}>{brl(atualDespesa)}</td><td style={{ border: "1px solid #d1d5db", padding: 5, textAlign: "right" }}>{brl(idealDespesa)}</td><td style={{ border: "1px solid #d1d5db", padding: 5, textAlign: "right" }}>{diferenca === 0 ? "-" : brl(diferenca)}</td><td style={{ border: "1px solid #d1d5db", padding: 5 }}>{valorDespesa(item, "observacao") || "-"}</td><td style={{ border: "1px solid #d1d5db", padding: 5 }}>Ativo</td></tr>;
+            })}</tbody>
+            <tfoot><tr style={{ background: "#f8f7ff", fontWeight: 800 }}><td colSpan={2} style={{ border: "1px solid #d1d5db", padding: 5 }}>TOTAL FIXO ATIVO</td><td style={{ border: "1px solid #d1d5db", padding: 5, textAlign: "right" }}>{brl(totalFixoAtual)}</td><td style={{ border: "1px solid #d1d5db", padding: 5, textAlign: "right" }}>{brl(totalFixoIdeal)}</td><td colSpan={3} style={{ border: "1px solid #d1d5db", padding: 5 }}></td></tr></tfoot>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
