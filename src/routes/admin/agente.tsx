@@ -1578,6 +1578,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     }
   };
 
+  const mensagensFiltradas = buscaMsg.trim()
+    ? mensagens.filter((msg) => [msg.content, msg.titulo_interacao]
+        .some((campo) => String(campo ?? "").toLocaleLowerCase("pt-BR")
+          .includes(buscaMsg.trim().toLocaleLowerCase("pt-BR"))))
+    : mensagens;
+  const mensagensVisiveisId = new Set(mensagens.map((msg) => String(msg.whatsapp_message_id ?? "")));
+  const reacoesAntigas = reacoes.filter((r) => !mensagensVisiveisId.has(r.mensagem_destino_id));
+
   // Agrupa mensagens por data
   const grupos: { date: string; msgs: any[] }[] = [];
   for (const msg of mensagens) {
@@ -1720,19 +1728,38 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         </div>
       )}
 
+      {mostrarBuscaMsg && (
+        <div className={`shrink-0 flex items-center gap-2 px-3 py-2 ${t.chatHeader}`}>
+          <Search size={16}/>
+          <input aria-label="Pesquisar mensagens nesta conversa" placeholder="Pesquisar mensagens nesta conversa"
+            className={`flex-1 min-w-0 rounded px-2 py-2 text-sm outline-none ${t.chatInputField}`}
+            autoFocus value={buscaMsg} onChange={(e) => setBuscaMsg(e.target.value)}/>
+          <span className="text-xs opacity-70">{mensagensFiltradas.length}</span>
+          <button type="button" title="Fechar busca" onClick={() => { setMostrarBuscaMsg(false); setBuscaMsg(""); }}><X size={17}/></button>
+        </div>
+      )}
       {/* Mensagens */}
-      <div className="flex-1 overflow-y-auto px-[6%] py-3 space-y-0.5">
-        {mensagens.length === 0 && (
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {hasNextPage && !buscaMsg && (
+          <div className="flex justify-center py-2">
+            <button type="button" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}
+              className={`rounded-full border px-4 py-2 text-xs font-semibold ${t.settingsInput}`}>
+              {isFetchingNextPage ? "Carregando..." : "Carregar mensagens anteriores"}
+            </button>
+          </div>
+        )}
+        {mensagensFiltradas.length === 0 && (
           <div className="flex justify-center mt-10">
             <div
               className={`px-4 py-2 rounded-lg text-xs ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#e2ffc7] text-[#667781]"}`}
             >
-              Nenhuma mensagem ainda
+              {buscaMsg ? "Nenhuma mensagem encontrada" : "Nenhuma mensagem ainda"}
             </div>
           </div>
         )}
 
-        {mensagens.map((msg: any, i: number) => {
+        {mensagensFiltradas.map((msg: any, i: number) => {
+          const recibo = recibosPorId.get(String(msg.whatsapp_message_id ?? "")) || msg.deliveryStatus;
           const isOut = msg.role === "assistant";
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
@@ -1740,7 +1767,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           return (
             <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"} mb-0.5`}>
               <div
-                className={`relative max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
+                className={`relative max-w-[88%] sm:max-w-[65%] rounded-lg px-2.5 py-1.5 shadow-sm text-[13.5px] leading-[1.4] ${bubbleClass} ${
                   isOut ? "rounded-tr-[3px]" : "rounded-tl-[3px]"
                 }`}
               >
@@ -1751,11 +1778,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                       : "SaborosaMente"
                     : conversa.nome || "Cliente"}
                 </p>
-                {msg.content && !msg.media_path && (
+                {msg.tipo_interacao && (
+                  <div className="mb-1 rounded-md border-l-[3px] border-[#00a884] bg-black/10 px-2 py-1">
+                    <span className="text-[11px] font-bold">Opção escolhida: {msg.tipo_interacao === "lista" ? "lista" : "botão"}</span>
+                    <p className="text-xs">{msg.titulo_interacao}</p>
+                    {msg.identificador_interacao && <span className="text-[10px] opacity-60 break-all">Identificador: {msg.identificador_interacao}</span>}
+                  </div>
+                )}
+                {msg.content && !msg.media_path && !msg.tipo_interacao && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
+                {msg.whatsapp_message_id && reacoesPorMensagem.has(String(msg.whatsapp_message_id)) && (
+                  <div className="flex flex-wrap gap-1 mt-1" aria-label="Reações à mensagem">
+                    {reacoesPorMensagem.get(String(msg.whatsapp_message_id))?.map((emoji,i) => (
+                      <span key={i} className="rounded-full bg-black/10 px-2 py-0.5 text-sm">{emoji}</span>
+                    ))}
+                  </div>
+                )}
                 <div className={`flex items-center justify-end gap-1 mt-0.5`}>
                   <span className="text-[10px] opacity-50">
                     {msg.timestamp ? format(new Date(msg.timestamp), "HH:mm") : ""}
@@ -1764,13 +1805,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                     <CheckCheck
                       size={14}
                       aria-label={
-                        msg.deliveryStatus === "lido"
+                        recibo === "lido"
                           ? "Lida"
-                          : msg.deliveryStatus === "entregue"
+                          : recibo === "entregue"
                             ? "Entregue"
-                            : "Enviada"
+                            : recibo === "falhou" ? "Falha informada pela Meta" : "Enviada"
                       }
-                      className={msg.deliveryStatus === "lido" ? "text-[#53bdeb]" : "opacity-50"}
+                      className={recibo === "lido" ? "text-[#53bdeb]" : recibo === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
@@ -1778,11 +1819,22 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             </div>
           );
         })}
+        {reacoesAntigas.length > 0 && (
+          <div className="mx-auto my-3 max-w-sm rounded-lg bg-black/10 px-3 py-2 text-center text-xs">
+            {reacoesAntigas.map((r,i) => <span key={i} className="mr-2">{r.emoji}</span>)}
+            Reações recebidas em mensagens anteriores ainda não carregadas.
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`}>
+      <div className={`px-3 py-2.5 shrink-0 ${t.chatInput}`} style={{paddingBottom:"max(10px,env(safe-area-inset-bottom))"}}>
+        <div className="flex justify-end pb-1">
+          <button type="button" onClick={() => setMostrarBuscaMsg((v) => !v)}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${t.textSub}`}
+            title="Buscar dentro desta conversa"><Search size={14}/> Buscar mensagens</button>
+        </div>
         {somenteCampanha ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
