@@ -51,6 +51,7 @@ function AdminCampaignPage() {
   const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">("nenhuma");
   const [enviando, setEnviando] = useState(false);
   const [midiaTrocandoId, setMidiaTrocandoId] = useState<string | null>(null);
+  const [campanhaAcaoId, setCampanhaAcaoId] = useState<string | null>(null);
   const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
   const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
   const [campanhaDetalhes, setCampanhaDetalhes] = useState<string | null>(null);
@@ -156,7 +157,8 @@ function AdminCampaignPage() {
         .order("created_at", { ascending: false });
       return data || [];
     },
-    staleTime: 30_000,
+    staleTime: 10_000,
+    refetchInterval: tabAtivo === "historico" ? 10_000 : false,
   });
 
   // Query para listas de contatos
@@ -830,6 +832,57 @@ function AdminCampaignPage() {
       });
     } finally {
       setEnviando(false);
+    }
+  };
+
+
+  const administrarCampanha = async (campanha: any, acao: "cancelar" | "reincluir_falhas" | "excluir") => {
+    if (campanhaAcaoId || midiaTrocandoId) return;
+    setCampanhaAcaoId(campanha.id);
+    try {
+      if (acao === "cancelar" && !window.confirm(
+        "Cancelar esta campanha? Os próximos envios serão interrompidos e não será possível retomá-la. " +
+        "Mensagens já enviadas não podem ser desfeitas. O histórico permanecerá disponível."
+      )) return;
+      if (acao === "excluir" && window.prompt(
+        'Excluir "' + campanha.nome + '" apagará o histórico de todos os envios da campanha, ' +
+        "mas não desfará mensagens já recebidas. Digite EXCLUIR para confirmar:"
+      ) !== "EXCLUIR") return;
+      if (acao === "reincluir_falhas") {
+        const { data: falhas, error: buscarErro } = await supabase
+          .from("campanhas_whatsapp_envios")
+          .select("erro_mensagem").eq("campanha_id", campanha.id).eq("status", "falhou");
+        if (buscarErro) throw buscarErro;
+        if (!falhas?.length) { toast.info("Nenhum contato com falha nesta campanha."); return; }
+        const erroPagamento = falhas.some((item: any) => /payment|eligibility|billing/i.test(item.erro_mensagem || ""));
+        const aviso = erroPagamento
+          ? "\n\nATENÇÃO: há erros de pagamento/elegibilidade na Meta. Resolva-os antes de retomar, ou os novos envios podem falhar novamente."
+          : "";
+        if (!window.confirm(
+          `Reincluir ${falhas.length} contato(s) com falha, por QUALQUER motivo?` +
+          "\nEnviados, entregues e lidos não serão reincluídos. Nenhuma mensagem será enviada agora." + aviso
+        )) return;
+      }
+      const { data, error } = await supabase.functions.invoke("whatsapp-campanha-enviar", {
+        body: { campanha_id: campanha.id, action: acao },
+      });
+      if (error) {
+        const detalhe = error.context instanceof Response ? await error.context.json().catch(() => null) : null;
+        throw new Error(detalhe?.error || error.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      if (acao === "excluir" && campanhaDetalhes === campanha.id) setCampanhaDetalhes(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] }),
+        queryClient.invalidateQueries({ queryKey: ["envios-campanha", campanha.id] }),
+      ]);
+      if (acao === "cancelar") toast.success("Campanha cancelada e histórico preservado.");
+      if (acao === "excluir") toast.success("Campanha excluída definitivamente.");
+      if (acao === "reincluir_falhas") toast.success(`${data?.reincluidos ?? 0} contatos reincluídos. Clique em Retomar para enviar.`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerenciar a campanha.");
+    } finally {
+      setCampanhaAcaoId(null);
     }
   };
 
@@ -2393,7 +2446,7 @@ function AdminCampaignPage() {
               {campanhas.map((campanha: any) => (
                 <div
                   key={campanha.id}
-                  className="bg-white rounded-xl border p-4 flex items-center justify-between hover:shadow-md transition-all"
+                  className="bg-white rounded-xl border p-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between hover:shadow-md transition-all"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-gray-900">{campanha.nome}</h3>
@@ -2423,7 +2476,7 @@ function AdminCampaignPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 ml-4">
+                  <div className="flex flex-wrap items-center gap-2 lg:ml-4 lg:justify-end">
                     <button
                       onClick={() =>
                         setCampanhaDetalhes(campanhaDetalhes === campanha.id ? null : campanha.id)
@@ -2442,14 +2495,18 @@ function AdminCampaignPage() {
                     {campanha.status === "enviando" && (
                       <button
                         onClick={async () => {
-                          await supabase
-                            .from("campanhas_whatsapp")
-                            .update({ status: "pausada" })
-                            .eq("id", campanha.id);
-                          queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
-                          toast.success(
-                            "Campanha pausada. Os envios vão parar em até 5 mensagens.",
-                          );
+                          try {
+                            const { data, error } = await supabase
+                              .from("campanhas_whatsapp").update({ status: "pausada" })
+                              .eq("id", campanha.id).eq("status", "enviando")
+                              .select("id").maybeSingle();
+                            if (error) throw error;
+                            if (!data) throw new Error("A campanha já mudou de estado.");
+                            await queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] });
+                            toast.success("Campanha pausada. Um envio já iniciado pode terminar.");
+                          } catch (e: any) {
+                            toast.error(e?.message || "Não foi possível pausar.");
+                          }
                         }}
                         className="px-3 py-1 rounded text-xs font-bold border border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-all"
                       >
@@ -2525,43 +2582,28 @@ function AdminCampaignPage() {
                       )}
 
 
-                    {/* As falhas de mídia podem ser incluídas na fila novamente,
-                        mas nunca automaticamente: evita tentativas duplicadas. */}
-                    {(campanha.status === "pausada" || campanha.status === "erro") && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { data: falhas, error: buscarErro } = await supabase
-                              .from("campanhas_whatsapp_envios")
-                              .select("id")
-                              .eq("campanha_id", campanha.id)
-                              .eq("status", "falhou")
-                              .ilike("erro_mensagem", "%Media upload error%");
-                            if (buscarErro) throw buscarErro;
-                            if (!falhas?.length) {
-                              toast.info("Não há falhas de mídia para reincluir.");
-                              return;
-                            }
-                            if (!window.confirm(
-                              `Recolocar ${falhas.length} destinatário(s) com falha de mídia na fila? Isso não envia agora: use Retomar depois de trocar o vídeo.`
-                            )) return;
-                            const { error: atualizarErro } = await supabase
-                              .from("campanhas_whatsapp_envios")
-                              .update({ status: "pendente", erro_mensagem: null })
-                              .in("id", falhas.map((f: any) => f.id));
-                            if (atualizarErro) throw atualizarErro;
-                            await Promise.all([
-                              queryClient.invalidateQueries({ queryKey: ["envios-campanha", campanha.id] }),
-                              queryClient.invalidateQueries({ queryKey: ["campanhas-historico"] }),
-                            ]);
-                            toast.success(`${falhas.length} falha(s) recolocada(s) na fila. Agora pode retomar.`);
-                          } catch (e: any) {
-                            toast.error("Erro ao reincluir falhas: " + (e?.message || "Tente novamente."));
-                          }
-                        }}
-                        className="px-3 py-1 rounded text-xs font-bold border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 transition-all"
-                      >
+                    {/* Retentar qualquer falha, inclusive erros da Meta, sem alterar mensagens entregues. */}
+                    {(campanha.status === "pausada" || campanha.status === "erro" ||
+                      (campanha.status === "enviada" && campanha.contatos_falhados > 0)) && (
+                      <button type="button" disabled={Boolean(campanhaAcaoId || midiaTrocandoId)}
+                        onClick={() => administrarCampanha(campanha, "reincluir_falhas")}
+                        className="px-3 py-1 rounded text-xs font-bold border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50">
                         ↻ Reincluir falhas
+                      </button>
+                    )}
+                    {["rascunho", "enviando", "pausada", "erro"].includes(campanha.status) && (
+                      <button type="button" disabled={Boolean(campanhaAcaoId || midiaTrocandoId)}
+                        onClick={() => administrarCampanha(campanha, "cancelar")}
+                        className="px-3 py-1 rounded text-xs font-bold border border-gray-300 text-gray-700 bg-gray-50 hover:bg-gray-100 disabled:opacity-50">
+                        <X size={12} className="inline mr-1" /> Cancelar
+                      </button>
+                    )}
+                    {campanha.status !== "enviando" && (
+                      <button type="button" disabled={Boolean(campanhaAcaoId || midiaTrocandoId)}
+                        onClick={() => administrarCampanha(campanha, "excluir")}
+                        className="px-3 py-1 rounded text-xs font-bold border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                        title="Excluir a campanha e todo o histórico definitivamente">
+                        <Trash2 size={12} className="inline mr-1" /> Excluir
                       </button>
                     )}
 
@@ -2652,7 +2694,9 @@ function AdminCampaignPage() {
                             ? "bg-blue-100 text-blue-700"
                             : campanha.status === "pausada"
                               ? "bg-yellow-100 text-yellow-700"
-                              : "bg-red-100 text-red-700"
+                              : campanha.status === "cancelada"
+                                ? "bg-gray-100 text-gray-600"
+                                : "bg-red-100 text-red-700"
                       }`}
                     >
                       {campanha.status === "enviada" && <CheckCircle2 size={14} />}
