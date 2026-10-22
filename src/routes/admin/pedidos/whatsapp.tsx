@@ -232,19 +232,104 @@ function WhatsappAdminOrderPage() {
     staleTime: 20_000,
   });
 
-  const selecionarConta = (profile: RegisteredCustomer) => {
+  // Salvar na sessão desta aba protege o pedido contra remounts, refresh e
+  // navegações involuntárias. Cada cliente/histórico tem seu próprio rascunho.
+  useEffect(() => {
+    draftRestauradoRef.current = false;
+    setDraftReadyKey(null);
+    const salvo = lerRascunhoWhatsapp<WhatsappAdminDraft>(armazenamentoDaAba(), draftKey);
+    if (salvo && Array.isArray(salvo.items)) {
+      draftRestauradoRef.current = true;
+      setPasteText(salvo.pasteText || "");
+      setNome(salvo.nome || "");
+      setTelefone(salvo.telefone || "");
+      setEmail(salvo.email || "");
+      setCustomerSearch(salvo.customerSearch || "");
+      setSelectedCustomer(salvo.selectedCustomer || null);
+      setSalvarEnderecoCadastro(Boolean(salvo.salvarEnderecoCadastro));
+      setMetodoEntrega(salvo.metodoEntrega === "retirada" ? "retirada" : "entrega");
+      setCidade(salvo.cidade || "São Bento do Sul");
+      setBairro(salvo.bairro || "");
+      setRua(salvo.rua || "");
+      setNumero(salvo.numero || "");
+      setComplemento(salvo.complemento || "");
+      setCep(salvo.cep || "");
+      setHorario(salvo.horario || "");
+      setPagamento(salvo.pagamento || "nao_informado");
+      setTipoCartao(salvo.tipoCartao || "");
+      setTaxaEntrega(Number(salvo.taxaEntrega || 0));
+      setObservacao(salvo.observacao || "");
+      setDeclaredTotal(salvo.declaredTotal ?? null);
+      setSaldoAnterior(salvo.saldoAnterior ?? null);
+      setTotalAcumulado(salvo.totalAcumulado ?? null);
+      setDescontoAplicado(Number(salvo.descontoAplicado || 0));
+      setCashbackUsado(Number(salvo.cashbackUsado || 0));
+      setPercentualDesconto(salvo.percentualDesconto ?? null);
+      setAvisosInterpretacao(Array.isArray(salvo.avisosInterpretacao) ? salvo.avisosInterpretacao : []);
+      setItems(salvo.items.filter((item) => item && typeof item.productId === "string"));
+      setTotalConfirmado(salvo.totalConfirmado ?? null);
+      toast.info("Rascunho do WhatsApp recuperado: itens e edições preservados.");
+    }
+    setDraftReadyKey(draftKey);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (draftReadyKey !== draftKey || pedidoSalvoRef.current) return;
+    const dados: WhatsappAdminDraft = {
+      pasteText, nome, telefone, email, customerSearch, selectedCustomer,
+      salvarEnderecoCadastro, metodoEntrega, cidade, bairro, rua, numero,
+      complemento, cep, horario, pagamento, tipoCartao, taxaEntrega,
+      observacao, declaredTotal, saldoAnterior, totalAcumulado,
+      descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
+      items, totalConfirmado,
+    };
+    salvarRascunhoWhatsapp(armazenamentoDaAba(), draftKey, dados);
+  }, [
+    draftKey, draftReadyKey, pasteText, nome, telefone, email, customerSearch,
+    selectedCustomer, salvarEnderecoCadastro, metodoEntrega, cidade, bairro,
+    rua, numero, complemento, cep, horario, pagamento, tipoCartao,
+    taxaEntrega, observacao, declaredTotal, saldoAnterior, totalAcumulado,
+    descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
+    items, totalConfirmado,
+  ]);
+
+  const selecionarConta = (profile: RegisteredCustomer, carregamentoAutomatico = false) => {
+    if (!carregamentoAutomatico) dadosEditadosRef.current = true;
+    const pedidoJaPreenchido = items.length > 0 || pasteText.trim().length > 0;
     setSelectedCustomer(profile);
     setSalvarEnderecoCadastro(false);
     setCustomerSearch("");
-    setNome(profile.nome || "");
-    setTelefone(profile.telefone || "");
-    // Não misturar o endereço de uma cliente com o de outra ao mudar a seleção.
-    setCidade(profile.cidade || "");
-    setBairro(profile.bairro || "");
-    setRua(profile.endereco || "");
-    setNumero(profile.numero || "");
-    setComplemento(profile.complemento || "");
-    setCep(profile.cep || "");
+    setNome(profile.nome || nome);
+    setTelefone(profile.telefone || telefone);
+    // Selecionar uma conta NUNCA descarta itens nem sobrescreve o endereço
+    // interpretado no WhatsApp. Um botão permite usar o cadastro, se desejado.
+    if (!pedidoJaPreenchido) {
+      setCidade(profile.cidade || "São Bento do Sul");
+      setBairro(profile.bairro || "");
+      setRua(profile.endereco || "");
+      setNumero(profile.numero || "");
+      setComplemento(profile.complemento || "");
+      setCep(profile.cep || "");
+    } else {
+      setCidade((atual) => atual || profile.cidade || "São Bento do Sul");
+      setBairro((atual) => atual || profile.bairro || "");
+      setRua((atual) => atual || profile.endereco || "");
+      setNumero((atual) => atual || profile.numero || "");
+      setComplemento((atual) => atual || profile.complemento || "");
+      setCep((atual) => atual || profile.cep || "");
+    }
+  };
+
+  const usarEnderecoDaConta = () => {
+    if (!selectedCustomer) return;
+    dadosEditadosRef.current = true;
+    setCidade(selectedCustomer.cidade || "São Bento do Sul");
+    setBairro(selectedCustomer.bairro || "");
+    setRua(selectedCustomer.endereco || "");
+    setNumero(selectedCustomer.numero || "");
+    setComplemento(selectedCustomer.complemento || "");
+    setCep(selectedCustomer.cep || "");
+    setSalvarEnderecoCadastro(false);
   };
 
   useEffect(() => {
@@ -256,7 +341,9 @@ function WhatsappAdminOrderPage() {
       .eq("id", initialCustomerId)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (!cancelled && !error && data) selecionarConta(data as RegisteredCustomer);
+        if (!cancelled && !error && data &&
+            !draftRestauradoRef.current && !dadosEditadosRef.current)
+          selecionarConta(data as RegisteredCustomer, true);
         if (!cancelled && (error || !data)) toast.error("Não foi possível carregar a conta selecionada.");
       });
     return () => { cancelled = true; };
@@ -289,7 +376,7 @@ function WhatsappAdminOrderPage() {
           .eq("pedido_id", ficha.ultimo_pedido_id)
           .order("created_at", { ascending: true });
         if (itensError) throw new Error("Não foi possível carregar os produtos do pedido anterior.");
-        if (cancelled) return;
+        if (cancelled || draftRestauradoRef.current || dadosEditadosRef.current) return;
 
         setNome(ficha.nome || ultimo.nome_cliente || "");
         setTelefone(ficha.telefone_normalizado || ultimo.telefone_cliente || "");
