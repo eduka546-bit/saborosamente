@@ -26,10 +26,12 @@ describe("rascunho do pedido administrativo WhatsApp", () => {
     expect(lerRascunhoWhatsapp<typeof pedido>(store, key, 1000001)).toEqual(pedido);
   });
 
-  it("separa rascunhos entre novo pedido e clientes ou históricos distintos", () => {
+  it("separa rascunhos entre novo pedido, clientes, históricos e carrinhos recuperados", () => {
     expect(whatsappDraftKey()).not.toBe(whatsappDraftKey("cliente-1"));
     expect(whatsappDraftKey("cliente-1")).not.toBe(whatsappDraftKey("cliente-2"));
     expect(whatsappDraftKey("cliente-1")).not.toBe(whatsappDraftKey(undefined, "historico-1"));
+    expect(whatsappDraftKey(undefined, undefined, "carrinho-1")).not.toBe(whatsappDraftKey(undefined, undefined, "carrinho-2"));
+    expect(whatsappDraftKey(undefined, "historico-1")).not.toBe(whatsappDraftKey(undefined, undefined, "carrinho-1"));
   });
 
   it("expira o rascunho antigo e apaga o registro após salvar", () => {

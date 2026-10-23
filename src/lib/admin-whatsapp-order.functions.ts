@@ -17,6 +17,7 @@ const schema = z.object({
   telefone: z.string().trim().max(30).optional().default(""),
   email: z.string().trim().max(160).optional().default(""),
   linkedUserId: z.string().uuid().nullable().optional(),
+  carrinhoRecuperadoId: z.string().uuid().nullable().optional(),
   atualizarEnderecoCadastro: z.boolean().optional().default(false),
   metodoEntrega: z.enum(["entrega", "retirada"]),
   horarioEntrega: z.string().trim().max(120).optional().default(""),
@@ -252,10 +253,36 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       }
     }
 
+    // O carrinho só é convertido depois que o pedido manual já foi criado.
+    // Se esta atualização falhar, o pedido continua válido e o atendente é
+    // avisado, evitando uma nova tentativa que duplicaria a baixa de estoque.
+    let carrinhoRecuperadoStatus: "nao_solicitado" | "convertido" | "nao_atualizado" = "nao_solicitado";
+    if (data.carrinhoRecuperadoId) {
+      try {
+        const { data: carrinhoAtualizado, error: carrinhoError } = await supabase
+          .from("carrinhos_abandonados")
+          .update({ status: "convertido" })
+          .eq("id", data.carrinhoRecuperadoId)
+          .eq("status", "recuperado")
+          .select("id")
+          .maybeSingle();
+        if (carrinhoError || !carrinhoAtualizado) throw carrinhoError || new Error("Carrinho não está mais recuperado.");
+        carrinhoRecuperadoStatus = "convertido";
+      } catch (cartError) {
+        carrinhoRecuperadoStatus = "nao_atualizado";
+        console.error("Pedido criado, mas o carrinho recuperado não foi convertido", {
+          orderId: String((order as any).id),
+          cartId: data.carrinhoRecuperadoId,
+          error: cartError instanceof Error ? cartError.message : "Erro na atualização",
+        });
+      }
+    }
+
     return {
       ...(order as any),
       linkedUserId,
       enderecoCadastroStatus,
       emailStatus,
+      carrinhoRecuperadoStatus,
     };
   });

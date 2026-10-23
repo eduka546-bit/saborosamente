@@ -11,6 +11,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Eye,
+  FilePenLine,
   ArrowLeft,
   X,
 } from "lucide-react";
@@ -92,10 +93,17 @@ function AdminCarrinhosAbandonadosPage() {
         .update({ status: "recuperado" })
         .eq("id", id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      queryClient.setQueryData<any[]>(["carrinhos-abandonados-admin"], (current) =>
+        current?.map((c) => c.id === id ? { ...c, status: "recuperado" } : c) ?? current,
+      );
+      setSelectedCarrinho((current: any) =>
+        current?.id === id ? { ...current, status: "recuperado" } : current,
+      );
       queryClient.invalidateQueries({ queryKey: ["carrinhos-abandonados-admin"] });
-      toast.success("Marcado como recuperado!");
+      toast.success("Marcado como recuperado. Agora você pode lançar o pedido manualmente.");
     },
   });
 
@@ -365,6 +373,14 @@ function AdminCarrinhosAbandonadosPage() {
                         >
                           <Eye size={15} />
                         </Button>
+                        {c.status === "recuperado" && (
+                          <Button asChild size="sm" className="h-8 bg-[#075d3a] px-3 text-white hover:bg-[#064c30]" title="Lançar pedido manual com este carrinho">
+                            <Link to="/admin/pedidos/whatsapp" search={{ carrinho: c.id } as any}>
+                              <FilePenLine size={14} />
+                              Lançar pedido
+                            </Link>
+                          </Button>
+                        )}
                         {waUrl && (
                           <a href={waUrl} target="_blank" rel="noopener noreferrer">
                             <Button
@@ -520,11 +536,19 @@ function AdminCarrinhosAbandonadosPage() {
                   className="w-full gap-2"
                   onClick={() => {
                     markRecuperadoMutation.mutate(selectedCarrinho.id);
-                    setSelectedCarrinho({ ...selectedCarrinho, status: "recuperado" });
                   }}
                 >
                   <CheckCircle2 size={16} className="text-yellow-500" />
                   Marcar como recuperado (sem WA)
+                </Button>
+              )}
+
+              {selectedCarrinho.status === "recuperado" && (
+                <Button asChild className="w-full gap-2 bg-[#075d3a] text-white hover:bg-[#064c30]">
+                  <Link to="/admin/pedidos/whatsapp" search={{ carrinho: selectedCarrinho.id } as any}>
+                    <FilePenLine size={16} />
+                    Lançar pedido manual
+                  </Link>
                 </Button>
               )}
             </div>

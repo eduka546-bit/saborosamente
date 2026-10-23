@@ -4,8 +4,8 @@ export const WHATSAPP_DRAFT_TTL_MS = 12 * 60 * 60 * 1000;
 
 type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-export function whatsappDraftKey(cliente?: string, historico?: string): string {
-  return [PREFIX, historico ? "historico:" + historico : cliente ? "cliente:" + cliente : "novo"].join(":");
+export function whatsappDraftKey(cliente?: string, historico?: string, carrinho?: string): string {
+  return [PREFIX, carrinho ? "carrinho:" + carrinho : historico ? "historico:" + historico : cliente ? "cliente:" + cliente : "novo"].join(":");
 }
 
 export function lerRascunhoWhatsapp<T>(
