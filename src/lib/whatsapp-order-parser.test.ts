@@ -269,6 +269,47 @@ Total: 525,60 - 26,28 = R$ 499,32`);
     expect(p.avisos).toEqual([]);
   });
 
+  it("Aline Plucinski: reconhece SP como sopa, endereço com nº e apartamento", () => {
+    const p = interpretarResumoWhatsapp(`Pedido Aline Plucinski
+Telefone: 43 9151-2103
+Endereço: Rua Henrique Schwarz, nº378, Centro, São Bento do Sul (Ap. 404)
+
+12 - Refeições 300g (M) - 238,80
+_Combo 10un - 12 x 19,90un_
+2xTD(2-4-7-9-14-17)
+
+2 - Sopas 400g - 36,00
+_2 x 8,90un - 2 x 18,00_
+2xSP(6)
+
+Entrega: 5,00
+
+Horário de Entrega: Hoje - Próx. 18h
+
+Forma de Pagamento: ?
+
+Total: 238,80 + 36 + 5 = R$ 279,80`);
+
+    expect(p.nome).toBe("Aline Plucinski");
+    expect(p.telefone).toBe("43 9151-2103");
+    expect(p.endereco).toEqual({
+      rua: "Rua Henrique Schwarz", numero: "378", bairro: "Centro", cidade: "São Bento do Sul",
+    });
+    expect(p.complemento).toBe("Ap. 404");
+    expect(p.horario).toBe("Hoje - Próx. 18h");
+    expect(p.pagamento).toBeNull();
+    expect(p.taxaEntrega).toBe(5);
+    expect(p.totalPedido).toBe(279.8);
+    expect(p.itens).toEqual([
+      ...["TD02", "TD04", "TD07", "TD09", "TD14", "TD17"].map(codigo => ({ codigo, quantidade: 2 })),
+      { codigo: "SO06", quantidade: 2 },
+    ]);
+    expect(p.itensDetalhados.filter(i => i.codigo === "SO06")).toEqual([
+      { codigo: "SO06", quantidade: 2, peso: "400g", pesoExibicao: "400g", precoUnitario: 18 },
+    ]);
+    expect(p.avisos).toEqual([]);
+  });
+
   it("diferencia desconto absoluto em reais de desconto percentual", () => {
     const base = "1 - Refeição 400g - 100,00\n1xTD16\nEntrega: Retirada\n";
     const real = interpretarResumoWhatsapp(base + "Total: 100,00 - R$ 5,00 = R$ 95,00");
