@@ -1,0 +1,44 @@
+name: Mobile Regression Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "tests/e2e/mobile-audit.spec.ts"
+      - "playwright.mobile.config.ts"
+      - ".github/workflows/mobile-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      E2E_BASE_URL: https://saborosamente.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install project dependencies
+        run: bun install --frozen-lockfile
+      - name: Install isolated browser-test dependencies
+        run: |
+          bun add --dev @playwright/test@1.58.2 @axe-core/playwright@4.11.0
+          bunx playwright install --with-deps chromium webkit
+      - name: Run each mobile journey three times
+        run: bunx playwright test tests/e2e/mobile-audit.spec.ts --config=playwright.mobile.config.ts --repeat-each=3
+        env:
+          CI: "true"
+      - name: Upload mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-audit-evidence
+          path: test-results
+          if-no-files-found: ignore
