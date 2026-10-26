@@ -1318,6 +1318,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const modeloAtual = (modelosDisponiveis as any[]).find((modelo) =>
     `${modelo.name}:${modelo.language}` === modeloSelecionado
   );
+  useEffect(() => {
+    setModeloSelecionado("");
+    setConfirmouAutorizacao(false);
+  }, [conversa.id]);
 
   // Contexto comercial do cliente: ajuda quem assume a conversa sem precisar
   // abrir outra tela para descobrir se é cliente recorrente, quanto já comprou
