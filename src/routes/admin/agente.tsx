@@ -1877,12 +1877,23 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                           ? "Lida"
                           : recibo === "entregue"
                             ? "Entregue"
-                            : recibo === "falhou" ? "Falha informada pela Meta" : "Enviada"
+                            : recibo === "falhou"
+                              ? (reciboDetalhado?.error_code === 131047
+                                ? "Não entregue: fora da janela de 24 horas"
+                                : reciboDetalhado?.error_message || "Não entregue: falha informada pela Meta")
+                              : "Aceita pela Meta; aguardando confirmação"
                       }
                       className={recibo === "lido" ? "text-[#53bdeb]" : recibo === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
+                {isOut && recibo === "falhou" && (
+                  <p role="alert" className="mt-1 text-[11px] font-semibold text-red-500">
+                    {reciboDetalhado?.error_code === 131047
+                      ? "Não entregue · janela de 24h encerrada. Use um modelo aprovado."
+                      : "Mensagem não entregue · a Meta informou uma falha."}
+                  </p>
+                )}
               </div>
             </div>
           );
@@ -1925,6 +1936,40 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           </div>
         ) : (
           <div className="relative">
+            {janela24hEncerrada && (
+              <div className={`mb-2 rounded-lg border px-3 py-2 text-xs ${dark ? "border-[#62512f] bg-[#2b271e] text-[#f8e1a6]" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
+                <p className="font-bold">Janela de 24 horas encerrada</p>
+                <p className="mt-1">A Meta normalmente não entrega textos livres até a cliente responder.
+                  Para retomar o contato, use um modelo aprovado, respeitando consentimento e cobranças.</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <select aria-label="Selecionar modelo aprovado" value={modeloSelecionado}
+                    onChange={(event) => { setModeloSelecionado(event.target.value); setConfirmouAutorizacao(false); }}
+                    className="min-w-0 flex-1 rounded border border-current/20 bg-transparent px-2 py-2 text-xs">
+                    <option value="">{carregandoModelos ? "Carregando modelos..." : "Escolha um modelo aprovado"}</option>
+                    {(modelosDisponiveis as any[]).map((m) =>
+                      <option key={`${m.name}:${m.language}`} value={`${m.name}:${m.language}`} className="text-black">
+                        {m.name} · {m.category === "MARKETING" ? "Marketing" : "Utilidade"}
+                      </option>)}
+                  </select>
+                  <a href="/admin/campanhas" className="underline font-semibold">Gerenciar modelos</a>
+                </div>
+                {modeloAtual && (
+                  <>
+                    <p className="mt-2 rounded-md bg-black/10 p-2 whitespace-pre-wrap">{modeloAtual.body}</p>
+                    <label className="mt-2 flex items-start gap-2">
+                      <input type="checkbox" checked={confirmouAutorizacao}
+                        onChange={(event) => setConfirmouAutorizacao(event.target.checked)} />
+                      <span>Confirmo que o contato autorizou este tipo de mensagem e que o conteúdo corresponde à categoria do modelo.</span>
+                    </label>
+                    <button type="button" onClick={enviarModeloAprovado}
+                      disabled={!confirmouAutorizacao || enviandoModelo}
+                      className="mt-2 rounded-lg bg-[#00a884] px-3 py-2 font-bold text-white disabled:opacity-50">
+                      {enviandoModelo ? "Enviando..." : "Enviar modelo aprovado"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
                 {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
