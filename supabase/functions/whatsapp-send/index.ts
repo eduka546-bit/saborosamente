@@ -2,6 +2,7 @@ import { authorizationError, authorizeAdminOrService } from "../_shared/authoriz
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
+const WHATSAPP_BUSINESS_ACCOUNT_ID = Deno.env.get("WHATSAPP_BUSINESS_ACCOUNT_ID") || "1805105217027535";
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
 
 const corsHeaders = {
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
     const body = await req.json();
-    const { to, text, media_url, media_type, filename, caption, action, sync_type } = body ?? {};
+    const { to, text, media_url, media_type, filename, caption, action, sync_type, template_name, template_language } = body ?? {};
 
     if (action === "coexistence_status") {
       const statusUrl =
@@ -90,7 +91,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!normalizedText && !mediaUrl) {
+    const isTemplate = action === "send_template";
+    if (!isTemplate && !normalizedText && !mediaUrl) {
       return new Response(JSON.stringify({ error: "Informe uma mensagem ou anexo" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -105,7 +107,49 @@ Deno.serve(async (req) => {
     }
 
     let payload: Record<string, unknown>;
-    if (mediaUrl) {
+    if (isTemplate) {
+      const name = String(template_name ?? "").trim();
+      const language = String(template_language ?? "").trim();
+      if (!/^[a-z0-9_]{3,512}$/.test(name) || language !== "pt_BR") {
+        return new Response(JSON.stringify({ error: "Modelo ou idioma inválido." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      // Aceita apenas modelos simples e APROVADOS; templates com variáveis,
+      // cabeçalho em mídia ou parâmetros dinâmicos ficam no módulo Campanhas.
+      const templatesUrl = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates?fields=name,status,language,components,category&limit=100`;
+      const templatesRes = await fetch(templatesUrl, {
+        headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      });
+      const templatesDados = await templatesRes.json().catch(() => ({}));
+      if (!templatesRes.ok) {
+        return new Response(JSON.stringify({ error: "Não foi possível consultar os modelos aprovados da Meta." }), {
+          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const template = (Array.isArray(templatesDados?.data) ? templatesDados.data : [])
+        .find((item: any) => item.name === name && item.language === language && item.status === "APPROVED");
+      const bodyComp = template?.components?.find((component: any) => component.type === "BODY");
+      const headerComp = template?.components?.find((component: any) => component.type === "HEADER");
+      const buttonsComp = template?.components?.find((component: any) => component.type === "BUTTONS");
+      const temVariaveis = /\{\{\d+\}\}/.test(String(bodyComp?.text ?? ""))
+        || /\{\{\d+\}\}/.test(String(headerComp?.text ?? ""))
+        || (buttonsComp?.buttons ?? []).some((button: any) =>
+          /\{\{\d+\}\}/.test(String(button.url ?? "")));
+      if (!template || !bodyComp?.text || temVariaveis ||
+          (headerComp && headerComp.format !== "TEXT") ||
+          !["MARKETING", "UTILITY"].includes(String(template.category ?? ""))) {
+        return new Response(JSON.stringify({ error: "Escolha um modelo simples e aprovado. Modelos com variáveis ou mídia devem ser enviados pelo painel de campanhas." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      payload = {
+        messaging_product: "whatsapp",
+        to: normalizedPhone,
+        type: "template",
+        template: { name, language: { code: language } },
+      };
+    } else if (mediaUrl) {
       if (!/^https:\/\//i.test(mediaUrl)) {
         return new Response(JSON.stringify({ error: "URL do anexo inválida" }), {
           status: 400,

@@ -1197,6 +1197,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [modeloSelecionado, setModeloSelecionado] = useState("");
+  const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
+  const [enviandoModelo, setEnviandoModelo] = useState(false);
   const [buscaMsg, setBuscaMsg] = useState("");
   const [mostrarBuscaMsg, setMostrarBuscaMsg] = useState(false);
   const [sending, setSending] = useState(false);
@@ -1261,17 +1264,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("whatsapp_recibos")
-        .select("whatsapp_message_id,status").in("whatsapp_message_id", idsRecibos);
+        .select("whatsapp_message_id,status,error_code,error_message").in("whatsapp_message_id", idsRecibos);
       if (error?.code === "42P01" || error?.code === "PGRST205") return [];
       if (error) throw error;
-      return (data ?? []) as { whatsapp_message_id: string; status: string }[];
+      return (data ?? []) as { whatsapp_message_id: string; status: string; error_code?: number; error_message?: string }[];
     },
     enabled: idsRecibos.length > 0 && !conversa.somenteCampanha,
     refetchInterval: 8000,
   });
   const recibosPorId = new Map(
-    (recibos as { whatsapp_message_id: string; status: string }[])
-      .map((r) => [r.whatsapp_message_id, r.status]),
+    (recibos as { whatsapp_message_id: string; status: string; error_code?: number; error_message?: string }[])
+      .map((r) => [r.whatsapp_message_id, r]),
   );
   const reacoesPorMensagem = new Map<string,string[]>();
   for (const reacao of reacoes) {
@@ -1286,6 +1289,39 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
   const isHumano = conversa.modo === "humano";
+  const ultimaRespostaCliente = mensagensCompletas
+    .filter((msg) => msg.role === "user" && msg.timestamp)
+    .map((msg) => Date.parse(String(msg.timestamp)))
+    .filter(Number.isFinite)
+    .reduce((ultima, instante) => Math.max(ultima, instante), 0);
+  const janela24hEncerrada = ultimaRespostaCliente === 0 ||
+    Date.now() - ultimaRespostaCliente >= 24 * 60 * 60 * 1000;
+  const { data: modelosDisponiveis = [], isLoading: carregandoModelos } = useQuery({
+    queryKey: ["whatsapp-modelos-simples"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-templates");
+      if (error) throw error;
+      if (data?.error) throw new Error(String(data.error));
+      return ((data?.templates ?? []) as any[]).filter((modelo) =>
+        modelo.status === "APPROVED" && modelo.language === "pt_BR"
+        && ["MARKETING", "UTILITY"].includes(modelo.category)
+        && Number(modelo.numVars) === 0
+        && (!modelo.headerFormat || modelo.headerFormat === "TEXT")
+        && Array.isArray(modelo.buttons)
+        && !modelo.buttons.some((botao: any) => /\{\{\d+\}\}/.test(String(botao.url ?? "")))
+      );
+    },
+    enabled: isHumano && janela24hEncerrada && !somenteCampanha,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const modeloAtual = (modelosDisponiveis as any[]).find((modelo) =>
+    `${modelo.name}:${modelo.language}` === modeloSelecionado
+  );
+  useEffect(() => {
+    setModeloSelecionado("");
+    setConfirmouAutorizacao(false);
+  }, [conversa.id]);
 
   // Contexto comercial do cliente: ajuda quem assume a conversa sem precisar
   // abrir outra tela para descobrir se é cliente recorrente, quanto já comprou
@@ -1520,6 +1556,41 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     if (anexoInputRef.current) anexoInputRef.current.value = "";
   };
 
+  const enviarModeloAprovado = async () => {
+    if (enviandoModelo || !modeloAtual || !confirmouAutorizacao) return;
+    setEnviandoModelo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: {
+          action: "send_template", to: conversa.telefone,
+          template_name: modeloAtual.name, template_language: modeloAtual.language,
+        },
+      });
+      if (error || data?.error || !data?.message_id) {
+        throw new Error(data?.error || error?.message || "A Meta não aceitou o modelo.");
+      }
+      const { error: salvarErro } = await (supabase as any).rpc("whatsapp_append_mensagem", {
+        p_conversa_id: conversa.id,
+        p_mensagem: {
+          role: "assistant", manual: true, content: String(modeloAtual.body || ""),
+          template_name: modeloAtual.name, template_category: modeloAtual.category,
+          whatsapp_message_id: data.message_id,
+          deliveryStatus: "enviado", timestamp: new Date().toISOString(),
+        },
+      });
+      if (salvarErro) throw new Error("A Meta aceitou o modelo, mas não foi possível salvar no histórico. Verifique antes de reenviar.");
+      toast.success("Modelo aceito pela Meta. Aguarde confirmação de entrega.");
+      setModeloSelecionado("");
+      setConfirmouAutorizacao(false);
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao enviar modelo aprovado");
+    } finally {
+      setEnviandoModelo(false);
+    }
+  };
+
   const handleSend = async () => {
     const texto = msgText.trim();
     if ((!texto && !anexoFile) || sending) return;
@@ -1566,7 +1637,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         throw new Error("A mensagem foi aceita pela Meta, mas não foi salva no histórico. Atualize a conversa e procure o envio antes de tentar novamente.");
       }
 
-      toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
+      toast.success("Solicitação aceita pela Meta. Aguarde confirmação de entrega.");
       setMsgText("");
       limparAnexo();
       setEmojiAberto(false);
@@ -1759,7 +1830,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         )}
 
         {mensagensFiltradas.map((msg: any, i: number) => {
-          const recibo = recibosPorId.get(String(msg.whatsapp_message_id ?? "")) || msg.deliveryStatus;
+          const reciboDetalhado = recibosPorId.get(String(msg.whatsapp_message_id ?? ""));
+          const recibo = reciboDetalhado?.status || msg.deliveryStatus;
           const isOut = msg.role === "assistant";
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
@@ -1809,12 +1881,23 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                           ? "Lida"
                           : recibo === "entregue"
                             ? "Entregue"
-                            : recibo === "falhou" ? "Falha informada pela Meta" : "Enviada"
+                            : recibo === "falhou"
+                              ? (reciboDetalhado?.error_code === 131047
+                                ? "Não entregue: fora da janela de 24 horas"
+                                : reciboDetalhado?.error_message || "Não entregue: falha informada pela Meta")
+                              : "Aceita pela Meta; aguardando confirmação"
                       }
                       className={recibo === "lido" ? "text-[#53bdeb]" : recibo === "falhou" ? "text-red-500" : "opacity-50"}
                     />
                   )}
                 </div>
+                {isOut && recibo === "falhou" && (
+                  <p role="alert" className="mt-1 text-[11px] font-semibold text-red-500">
+                    {reciboDetalhado?.error_code === 131047
+                      ? "Não entregue · janela de 24h encerrada. Use um modelo aprovado."
+                      : "Mensagem não entregue · a Meta informou uma falha."}
+                  </p>
+                )}
               </div>
             </div>
           );
@@ -1857,6 +1940,40 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
           </div>
         ) : (
           <div className="relative">
+            {janela24hEncerrada && (
+              <div className={`mb-2 rounded-lg border px-3 py-2 text-xs ${dark ? "border-[#62512f] bg-[#2b271e] text-[#f8e1a6]" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
+                <p className="font-bold">Janela de 24 horas encerrada</p>
+                <p className="mt-1">A Meta normalmente não entrega textos livres até a cliente responder.
+                  Para retomar o contato, use um modelo aprovado, respeitando consentimento e cobranças.</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <select aria-label="Selecionar modelo aprovado" value={modeloSelecionado}
+                    onChange={(event) => { setModeloSelecionado(event.target.value); setConfirmouAutorizacao(false); }}
+                    className="min-w-0 flex-1 rounded border border-current/20 bg-transparent px-2 py-2 text-xs">
+                    <option value="">{carregandoModelos ? "Carregando modelos..." : "Escolha um modelo aprovado"}</option>
+                    {(modelosDisponiveis as any[]).map((m) =>
+                      <option key={`${m.name}:${m.language}`} value={`${m.name}:${m.language}`} className="text-black">
+                        {m.name} · {m.category === "MARKETING" ? "Marketing" : "Utilidade"}
+                      </option>)}
+                  </select>
+                  <a href="/admin/campanhas" className="underline font-semibold">Gerenciar modelos</a>
+                </div>
+                {modeloAtual && (
+                  <>
+                    <p className="mt-2 rounded-md bg-black/10 p-2 whitespace-pre-wrap">{modeloAtual.body}</p>
+                    <label className="mt-2 flex items-start gap-2">
+                      <input type="checkbox" checked={confirmouAutorizacao}
+                        onChange={(event) => setConfirmouAutorizacao(event.target.checked)} />
+                      <span>Confirmo que o contato autorizou este tipo de mensagem e que o conteúdo corresponde à categoria do modelo.</span>
+                    </label>
+                    <button type="button" onClick={enviarModeloAprovado}
+                      disabled={!confirmouAutorizacao || enviandoModelo}
+                      className="mt-2 rounded-lg bg-[#00a884] px-3 py-2 font-bold text-white disabled:opacity-50">
+                      {enviandoModelo ? "Enviando..." : "Enviar modelo aprovado"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
                 {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
