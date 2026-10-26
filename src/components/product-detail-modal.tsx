@@ -566,7 +566,16 @@ export function ProductDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent hideCloseButton className="flex h-[94dvh] max-h-[94dvh] w-[calc(100vw-12px)] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:h-[90vh] md:max-h-[900px] sm:max-w-5xl lg:max-w-7xl">
+      <DialogContent
+        hideCloseButton
+        onEscapeKeyDown={(event) => {
+          // Some mobile/embedded browsers handle Escape at the dialog layer
+          // before the shared history listener. Close explicitly in that case.
+          event.preventDefault();
+          onClose();
+        }}
+        className="flex h-[94dvh] max-h-[94dvh] w-[calc(100vw-12px)] flex-col gap-0 overflow-hidden rounded-2xl p-0 md:h-[90vh] md:max-h-[900px] sm:max-w-5xl lg:max-w-7xl"
+      >
         <button
           type="button"
           onClick={onClose}
