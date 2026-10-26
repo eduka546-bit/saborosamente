@@ -890,28 +890,33 @@ function Checkout() {
         },
       });
 
-      // Carrinho abandonado: ao finalizar um pedido, marca a sessão como convertida
-      // antes de limpar o carrinho para não deixar uma venda concluída aparecendo como perdida.
-      try {
-        const abandonedSessionId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("saborosamente.session_id")
-            : null;
-        if (abandonedSessionId) {
-          await supabase.rpc("update_abandoned_cart_state", {
-            p_session_id: abandonedSessionId,
-            p_status: "convertido",
-          });
-          localStorage.removeItem("saborosamente.abandon_coupon");
-        }
-      } catch (err) {
-        console.warn("[Checkout] não foi possível marcar carrinho como convertido:", err);
-      }
-
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
       }
       clear();
+
+      // A confirmação não pode depender de rotinas auxiliares. Em especial, uma
+      // lentidão ao atualizar o carrinho abandonado não deve deixar o cliente com
+      // o pedido salvo, mas sem tela de sucesso e com o carrinho ainda preenchido.
+      // Essa atualização é feita em segundo plano e é segura de repetir.
+      void (async () => {
+        try {
+          const abandonedSessionId =
+            typeof window !== "undefined"
+              ? localStorage.getItem("saborosamente.session_id")
+              : null;
+          if (!abandonedSessionId) return;
+
+          const { error } = await supabase.rpc("update_abandoned_cart_state", {
+            p_session_id: abandonedSessionId,
+            p_status: "convertido",
+          });
+          if (error) throw error;
+          localStorage.removeItem("saborosamente.abandon_coupon");
+        } catch (err) {
+          console.warn("[Checkout] não foi possível marcar carrinho como convertido:", err);
+        }
+      })();
 
       // Notifica o cliente de que o pedido foi recebido.
       // As instruções de PIX/Mercado Pago são enviadas manualmente via WhatsApp;
