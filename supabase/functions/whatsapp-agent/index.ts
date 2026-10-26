@@ -2238,7 +2238,27 @@ Deno.serve(async (req: Request) => {
             p_message_id: String(statusEvent.id),
             p_status: statusBanco,
           });
-          if (reciboErro) console.error("Recibo WhatsApp não registrado:", reciboErro.message);
+          if (reciboErro) {
+            console.error("Recibo WhatsApp não registrado:", reciboErro.message);
+          } else if (statusBanco === "falhou") {
+            const codigo = Number(statusEvent?.errors?.[0]?.code);
+            const detalhes = String(
+              statusEvent?.errors?.[0]?.error_data?.details ||
+              statusEvent?.errors?.[0]?.title ||
+              statusEvent?.errors?.[0]?.message || "Falha informada pela Meta",
+            ).slice(0, 300);
+            const { error: detailsError } = await supabase.from("whatsapp_recibos")
+              .update({
+                error_code: Number.isInteger(codigo) && codigo > 0 ? codigo : null,
+                error_message: detalhes,
+              })
+              .eq("whatsapp_message_id", String(statusEvent.id));
+            if (detailsError) console.error("Erro ao detalhar recibo Meta:", detailsError.message);
+          } else if (["entregue", "lido"].includes(statusBanco)) {
+            await supabase.from("whatsapp_recibos")
+              .update({ error_code: null, error_message: null })
+              .eq("whatsapp_message_id", String(statusEvent.id));
+          }
           const atualizacao: Record<string, string> = { status: statusBanco };
           if (statusBanco === "entregue") atualizacao.entregue_em = new Date().toISOString();
           if (statusBanco === "lido") atualizacao.lida_em = new Date().toISOString();
