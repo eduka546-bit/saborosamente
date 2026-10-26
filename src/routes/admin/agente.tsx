@@ -1197,6 +1197,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const [msgText, setMsgText] = useState("");
+  const [modeloSelecionado, setModeloSelecionado] = useState("");
+  const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
+  const [enviandoModelo, setEnviandoModelo] = useState(false);
   const [buscaMsg, setBuscaMsg] = useState("");
   const [mostrarBuscaMsg, setMostrarBuscaMsg] = useState(false);
   const [sending, setSending] = useState(false);
@@ -1261,17 +1264,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     queryKey: ["whatsapp-recibos", conversa.id, idsRecibos.join("|")],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("whatsapp_recibos")
-        .select("whatsapp_message_id,status").in("whatsapp_message_id", idsRecibos);
+        .select("whatsapp_message_id,status,error_code,error_message").in("whatsapp_message_id", idsRecibos);
       if (error?.code === "42P01" || error?.code === "PGRST205") return [];
       if (error) throw error;
-      return (data ?? []) as { whatsapp_message_id: string; status: string }[];
+      return (data ?? []) as { whatsapp_message_id: string; status: string; error_code?: number; error_message?: string }[];
     },
     enabled: idsRecibos.length > 0 && !conversa.somenteCampanha,
     refetchInterval: 8000,
   });
   const recibosPorId = new Map(
-    (recibos as { whatsapp_message_id: string; status: string }[])
-      .map((r) => [r.whatsapp_message_id, r.status]),
+    (recibos as { whatsapp_message_id: string; status: string; error_code?: number; error_message?: string }[])
+      .map((r) => [r.whatsapp_message_id, r]),
   );
   const reacoesPorMensagem = new Map<string,string[]>();
   for (const reacao of reacoes) {
@@ -1286,6 +1289,35 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
   const isHumano = conversa.modo === "humano";
+  const ultimaRespostaCliente = mensagensCompletas
+    .filter((msg) => msg.role === "user" && msg.timestamp)
+    .map((msg) => Date.parse(String(msg.timestamp)))
+    .filter(Number.isFinite)
+    .reduce((ultima, instante) => Math.max(ultima, instante), 0);
+  const janela24hEncerrada = ultimaRespostaCliente === 0 ||
+    Date.now() - ultimaRespostaCliente >= 24 * 60 * 60 * 1000;
+  const { data: modelosDisponiveis = [], isLoading: carregandoModelos } = useQuery({
+    queryKey: ["whatsapp-modelos-simples"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("whatsapp-templates");
+      if (error) throw error;
+      if (data?.error) throw new Error(String(data.error));
+      return ((data?.templates ?? []) as any[]).filter((modelo) =>
+        modelo.status === "APPROVED" && modelo.language === "pt_BR"
+        && ["MARKETING", "UTILITY"].includes(modelo.category)
+        && Number(modelo.numVars) === 0
+        && (!modelo.headerFormat || modelo.headerFormat === "TEXT")
+        && Array.isArray(modelo.buttons)
+        && !modelo.buttons.some((botao: any) => /\{\{\d+\}\}/.test(String(botao.url ?? "")))
+      );
+    },
+    enabled: isHumano && janela24hEncerrada && !somenteCampanha,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const modeloAtual = (modelosDisponiveis as any[]).find((modelo) =>
+    `${modelo.name}:${modelo.language}` === modeloSelecionado
+  );
 
   // Contexto comercial do cliente: ajuda quem assume a conversa sem precisar
   // abrir outra tela para descobrir se é cliente recorrente, quanto já comprou
@@ -1520,6 +1552,41 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     if (anexoInputRef.current) anexoInputRef.current.value = "";
   };
 
+  const enviarModeloAprovado = async () => {
+    if (enviandoModelo || !modeloAtual || !confirmouAutorizacao) return;
+    setEnviandoModelo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: {
+          action: "send_template", to: conversa.telefone,
+          template_name: modeloAtual.name, template_language: modeloAtual.language,
+        },
+      });
+      if (error || data?.error || !data?.message_id) {
+        throw new Error(data?.error || error?.message || "A Meta não aceitou o modelo.");
+      }
+      const { error: salvarErro } = await (supabase as any).rpc("whatsapp_append_mensagem", {
+        p_conversa_id: conversa.id,
+        p_mensagem: {
+          role: "assistant", manual: true, content: String(modeloAtual.body || ""),
+          template_name: modeloAtual.name, template_category: modeloAtual.category,
+          whatsapp_message_id: data.message_id,
+          deliveryStatus: "enviado", timestamp: new Date().toISOString(),
+        },
+      });
+      if (salvarErro) throw new Error("A Meta aceitou o modelo, mas não foi possível salvar no histórico. Verifique antes de reenviar.");
+      toast.success("Modelo aceito pela Meta. Aguarde confirmação de entrega.");
+      setModeloSelecionado("");
+      setConfirmouAutorizacao(false);
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-historico", conversa.id] });
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao enviar modelo aprovado");
+    } finally {
+      setEnviandoModelo(false);
+    }
+  };
+
   const handleSend = async () => {
     const texto = msgText.trim();
     if ((!texto && !anexoFile) || sending) return;
@@ -1566,7 +1633,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         throw new Error("A mensagem foi aceita pela Meta, mas não foi salva no histórico. Atualize a conversa e procure o envio antes de tentar novamente.");
       }
 
-      toast.success(anexo ? "Anexo enviado pelo WhatsApp!" : "Mensagem enviada!");
+      toast.success("Solicitação aceita pela Meta. Aguarde confirmação de entrega.");
       setMsgText("");
       limparAnexo();
       setEmojiAberto(false);
@@ -1759,7 +1826,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         )}
 
         {mensagensFiltradas.map((msg: any, i: number) => {
-          const recibo = recibosPorId.get(String(msg.whatsapp_message_id ?? "")) || msg.deliveryStatus;
+          const reciboDetalhado = recibosPorId.get(String(msg.whatsapp_message_id ?? ""));
+          const recibo = reciboDetalhado?.status || msg.deliveryStatus;
           const isOut = msg.role === "assistant";
           const isManual = msg.manual === true;
           const bubbleClass = isOut ? (isManual ? t.bubbleManual : t.bubbleOut) : t.bubbleIn;
