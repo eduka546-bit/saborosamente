@@ -59,8 +59,12 @@ const valor = (texto?: string | null): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 const centavos = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
-const codigo = (prefixo: string, numero: string) =>
-  prefixo.toUpperCase() + String(Number(numero)).padStart(2, "0");
+const codigo = (prefixo: string, numero: string) => {
+  // Nos resumos manuais, "SP" é usado com frequência para sopa. No catálogo
+  // e no estoque, contudo, as sopas usam o prefixo oficial "SO".
+  const prefixoNormalizado = prefixo.toUpperCase() === "SP" ? "SO" : prefixo.toUpperCase();
+  return prefixoNormalizado + String(Number(numero)).padStart(2, "0");
+};
 
 /** Aceita listas compactas (1xTD(1-9-11)) ou uma linha por código. */
 export function lerCodigos(texto: string): ItemInterpretado[] {
@@ -82,8 +86,10 @@ export function lerCodigos(texto: string): ItemInterpretado[] {
   return itens;
 }
 
-const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Combo|Complementos?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
-const precoLinha = /(?:^|\s)(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i;
+const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Sopas?|Combo|Complementos?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
+// O sufixo "un" é opcional: resumos manuais às vezes escrevem
+// "2 x 8,90un - 2 x 18,00".
+const precoLinha = /(?:^|[\s-])(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)(?:\s*(?:\/\s*)?un(?:idades?)?)?(?=\s|$)/i;
 
 export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   // Comprovantes da Pedidos10 exigem tratamento distinto para combo fechado,
@@ -160,19 +166,37 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const taxaEntrega = metodoEntrega === "retirada" ? 0 : temRecibo
     ? taxaRecibo : valor(entrega.match(/:\s*(?:R\$\s*)?([\d.,]+)/i)?.[1]);
   let endereco: PedidoInterpretado["endereco"] = null;
+  let complemento: string | null = null;
   let referencia: string | null = null;
   if (localTexto) {
-    const partes = localTexto.split(/\s+-\s+/).map((p) => p.trim());
-    const ruaNumero = partes[0].match(/^(.*?),\s*([^,]+)$/);
-    const cidadeInformada = partes[2] ?? "";
-    endereco = {
-      rua: ruaNumero ? ruaNumero[1].trim() : partes[0],
-      numero: ruaNumero ? ruaNumero[2].trim() : "",
-      bairro: (partes[1] ?? "").replace(/^bairro\s+/i, "").trim(),
-      cidade: cidadeInformada.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "sao bento do sul"
-        ? "São Bento do Sul" : cidadeInformada,
-    };
-    referencia = partes.slice(3).join(" - ") || null;
+    // Aceita tanto o padrão antigo com hífens quanto o endereço comum vindo
+    // do WhatsApp: "Rua X, nº 123, Centro, São Bento do Sul (Ap. 404)".
+    const enderecoComVirgulas = localTexto.match(
+      /^(.*?),\s*(?:n[º°o.]?\s*)?(\d+[\w/-]*)\s*,\s*(?:bairro\s+)?([^,]+)\s*,\s*(.+?)(?:\s*\(([^)]+)\))?\s*$/i,
+    );
+    if (enderecoComVirgulas) {
+      const cidadeInformada = enderecoComVirgulas[4].trim();
+      endereco = {
+        rua: enderecoComVirgulas[1].trim(),
+        numero: enderecoComVirgulas[2].trim(),
+        bairro: enderecoComVirgulas[3].trim(),
+        cidade: cidadeInformada.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "sao bento do sul"
+          ? "São Bento do Sul" : cidadeInformada,
+      };
+      complemento = enderecoComVirgulas[5]?.trim() || null;
+    } else {
+      const partes = localTexto.split(/\s+-\s+/).map((p) => p.trim());
+      const ruaNumero = partes[0].match(/^(.*?),\s*([^,]+)$/);
+      const cidadeInformada = partes[2] ?? "";
+      endereco = {
+        rua: ruaNumero ? ruaNumero[1].trim() : partes[0],
+        numero: ruaNumero ? ruaNumero[2].trim() : "",
+        bairro: (partes[1] ?? "").replace(/^bairro\s+/i, "").trim(),
+        cidade: cidadeInformada.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "sao bento do sul"
+          ? "São Bento do Sul" : cidadeInformada,
+      };
+      referencia = partes.slice(3).join(" - ") || null;
+    }
   }
   referencia = referencia || linha(/^Refer[eê]ncia\s*:/i).replace(/^Refer[eê]ncia\s*:\s*/i, "").trim() || null;
   const horarioTexto = linha(/^Hor[aá]rio\s+de\s+(?:Entrega|Retirada)\s*:/i)
@@ -222,7 +246,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
     avisos.push("Desconto percentual inválido.");
   }
   return {
-    nome, telefone, complemento: null, tipoCartao: null, observacoesAdicionais: null,
+    nome, telefone, complemento, tipoCartao: null, observacoesAdicionais: null,
     cidadeSigla, peso, precoUnitario, itens, itensDetalhados, blocos, avisos,
     quantidadeDeclarada, subtotalDeclarado, taxaEntrega, metodoEntrega,
     endereco, referencia, horario, pagamento, descontoPercentual, descontoValor,
@@ -238,8 +262,10 @@ function interpretarBloco(raw: {
 }): BlocoPedido {
   const tipo: BlocoPedido["tipo"] = /^Combo\b/i.test(raw.titulo) ? "combo"
     : /^Complementos?\b/i.test(raw.titulo) ? "complemento" : "refeicoes";
+  const ehSopa = /^Sopas?\b/i.test(raw.titulo);
   const pesoExibicao = tipo === "complemento"
-    ? "150g" : (raw.titulo.match(/(200|300|400)\s*g/i)?.[1] ?? "300") + "g";
+    ? "150g" : ehSopa
+      ? "400g" : (raw.titulo.match(/(200|300|400)\s*g/i)?.[1] ?? "300") + "g";
   // Complementos 150g usam o estoque_200g no banco de dados.
   const peso = (tipo === "complemento" ? "200g" : pesoExibicao) as PesoPedido;
   const codigoLinhas = raw.linhas.filter((l) => /^\d+\s*x\s*[A-Z]{2}\s*\(?\s*\d/i.test(l));
@@ -257,12 +283,20 @@ function interpretarBloco(raw: {
   if (!codigos.length) avisos.push(raw.titulo + ": não foram encontrados sabores válidos.");
 
   const faixasPrecos = raw.linhas
-    .map((l) => l.match(precoLinha)).filter((m): m is RegExpMatchArray => m !== null)
+    .flatMap((l) => [...l.matchAll(new RegExp(precoLinha.source, "gi"))])
     .map((m) => ({ quantidade: Number(m[1]), preco: valor(m[2]) ?? 0 }));
 
   const itens: ItemDetalhado[] = [];
   if (faixasPrecos.length) {
-    const filas = faixasPrecos.flatMap((faixa) =>
+    // Alguns resumos manuais carregam uma faixa antiga e a faixa corrigida na
+    // mesma linha (ex.: "2 x 8,90 - 2 x 18,00"). Quando somente uma delas
+    // fecha exatamente o subtotal declarado, ela é a fonte confiável.
+    const faixaQueFechaSubtotal = raw.subtotal !== null
+      ? [...faixasPrecos].reverse().find((faixa) =>
+        faixa.quantidade === quantidadeReal && Math.abs(faixa.quantidade * faixa.preco - raw.subtotal!) < 0.009)
+      : undefined;
+    const faixasAplicadas = faixaQueFechaSubtotal ? [faixaQueFechaSubtotal] : faixasPrecos;
+    const filas = faixasAplicadas.flatMap((faixa) =>
       Array.from({ length: Math.min(200, faixa.quantidade) }, () => faixa.preco));
     let posicao = 0;
     for (const item of codigos) {
