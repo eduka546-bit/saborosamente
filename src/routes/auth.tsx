@@ -137,7 +137,7 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const redirectTo = "https://www.saborosamente.com/auth";
+      const redirectTo = "https://saborosamente.com/auth";
       const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
         redirectTo,
       });
