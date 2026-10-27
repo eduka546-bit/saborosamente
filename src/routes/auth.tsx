@@ -39,7 +39,7 @@ export const Route = createFileRoute("/auth")({
     return {
       redirect: commerceReturnPath(search.redirect),
       confirmed: search.confirmed === "1" || search.confirmed === true,
-      mode: search.mode === "signup" ? "signup" : search.mode === "login" ? "login" : undefined,
+      mode: search.mode === "signup" || search.mode === "login" || search.mode === "reset" ? search.mode : undefined,
     };
   },
   component: AuthPage,
@@ -54,6 +54,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [recoveryLinkStatus, setRecoveryLinkStatus] = useState<"checking" | "ready" | "invalid">("checking");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [nome, setNome] = useState("");
@@ -114,10 +115,28 @@ function AuthPage() {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setPasswordChangeRequired(true);
+        setRecoveryLinkStatus("ready");
       }
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Abre o formulario dedicado mesmo quando o Supabase ja processou o link.
+  useEffect(() => {
+    if (mode !== "reset") return;
+    let active = true;
+    void supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        setRecoveryLinkStatus((current) =>
+          current === "ready" ? current : !error && data.session ? "ready" : "invalid"
+        );
+      })
+      .catch(() => {
+        if (active) setRecoveryLinkStatus((current) => current === "ready" ? current : "invalid");
+      });
+    return () => { active = false; };
+  }, [mode]);
 
   useEffect(() => {
     if (!confirmed) return;
@@ -137,7 +156,7 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const redirectTo = "https://saborosamente.com/auth";
+      const redirectTo = "https://saborosamente.com/auth?mode=reset";
       const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
         redirectTo,
       });
@@ -302,7 +321,7 @@ function AuthPage() {
     <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-3 py-5 sm:px-4 sm:py-12">
       <div className="w-full max-w-md space-y-5 rounded-3xl border border-border bg-card p-4 shadow-soft sm:p-8">
         <div className="text-center">
-          {isLogin ? (
+          {!(mode === "reset" || passwordChangeRequired) && (isLogin ? (
             <p className="text-base text-muted-foreground">
               Não tem uma conta?{" "}
               <button
@@ -321,29 +340,39 @@ function AuthPage() {
             >
               Já tem uma conta? Entre agora
             </button>
-          )}
+          ))}
           <h2 className="text-2xl font-bold tracking-normal">
-            {isLogin ? "Entrar na sua conta" : "Criar nova conta"}
+            {mode === "reset" || passwordChangeRequired ? "Criar nova senha" : isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
           <p className="mt-2 text-base text-muted-foreground">
-            {isLogin
-              ? "Entre com seu e-mail e sua senha"
-              : "Crie sua conta para comprar e acompanhar seus pedidos"}
+            {mode === "reset" || passwordChangeRequired
+              ? "Escolha e confirme uma nova senha para acessar sua conta."
+              : isLogin
+                ? "Entre com seu e-mail e sua senha"
+                : "Crie sua conta para comprar e acompanhar seus pedidos"}
           </p>
-          {isLogin && (
+          {isLogin && mode !== "reset" && !passwordChangeRequired && (
             <div className="mt-4 rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-3 text-left text-sm leading-relaxed text-[#315440] shadow-sm">
               <strong className="block text-[#075d3a]">Já possuía cadastro no site antigo?</strong>
               Seu login é seu e-mail e a senha é seu CPF. Após o primeiro login, você poderá alterar a senha.
             </div>
           )}
-          {!isLogin && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
+          {!isLogin && mode !== "reset" && !passwordChangeRequired && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
             <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
               Nome e WhatsApp preenchidos a partir do seu pré-cadastro. Confira os dados e complete e-mail, CPF e senha.
             </p>
           )}
         </div>
 
-        {passwordChangeRequired ? (
+        {mode === "reset" && recoveryLinkStatus === "checking" ? (
+          <p role="status" className="py-8 text-center text-muted-foreground">Validando seu link de recuperação...</p>
+        ) : mode === "reset" && recoveryLinkStatus === "invalid" ? (
+          <div className="space-y-4 py-4 text-center">
+            <p className="text-base text-destructive">O link de recuperação está inválido ou expirou.</p>
+            <p className="text-sm text-muted-foreground">Solicite um novo link em “Esqueci minha senha” na página de acesso.</p>
+            <a href="/auth" className="inline-block font-semibold text-primary underline underline-offset-4">Voltar ao acesso</a>
+          </div>
+        ) : passwordChangeRequired || mode === "reset" ? (
           <form onSubmit={handlePasswordChange} className="mt-8 space-y-4">
             <div className="rounded-2xl bg-primary/5 p-4 text-base text-foreground">
               Para proteger sua conta, defina uma senha nova que não seja seu CPF.
