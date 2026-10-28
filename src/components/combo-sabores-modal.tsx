@@ -5,7 +5,7 @@ import { useCommerceDialog } from "@/lib/use-commerce-dialog";
  * Ex: Combo de 5un → escolhe 5 sabores (pode repetir).
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus, Minus, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,12 +20,14 @@ interface ComboSaboresModalProps {
   isOpen: boolean;
   onClose: () => void;
   combo: any; // produto do combo pronto
+  initialWeight?: string;
 }
 
-export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalProps) {
+export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200g" }: ComboSaboresModalProps) {
   const dialogRef = useCommerceDialog(isOpen, onClose);
   const { addComboPronto } = useCart();
-  const [selectedWeight, setSelectedWeight] = useState("300g");
+  const isMaisLeves = combo?.subgrupo === "MAIS LEVES" || /^Combo Pratos Mais Leves\s*-/i.test(combo?.nome ?? "");
+  const [selectedWeight, setSelectedWeight] = useState(initialWeight);
   const [sabores, setSabores] = useState<Record<string, number>>({}); // produto_id → qty
 
   // Quantidade total do combo (extraída do nome: "5un", "10un", "20un")
@@ -54,9 +56,26 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     staleTime: 30_000,
   });
 
+  // Combos "Mais Leves" têm composição fechada: 1x de cada (5/10un) ou 2x de cada (20un).
+  // A escolha do cliente é a gramatura, não a substituição dos pratos do ranking.
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedWeight(["200g", "300g", "400g"].includes(initialWeight) ? initialWeight : "200g");
+      setSabores({});
+    }
+  }, [isOpen, combo?.id, initialWeight]);
+
+  const saboresSelecionados = useMemo<Record<string, number>>(() => {
+    if (!isMaisLeves) return sabores;
+    const unidadesPorSabor = totalCombo === 20 ? 2 : 1;
+    return Object.fromEntries(
+      saboresDisponiveis.map((produto: any) => [produto.id, unidadesPorSabor]),
+    );
+  }, [isMaisLeves, totalCombo, saboresDisponiveis, sabores]);
+
   const totalSelecionado = useMemo(
-    () => Object.values(sabores).reduce((s, q) => s + q, 0),
-    [sabores],
+    () => Object.values(saboresSelecionados).reduce((s, q) => s + q, 0),
+    [saboresSelecionados],
   );
 
   const precoCombo = useMemo(() => {
@@ -83,14 +102,23 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
     }, 0);
   }, [saboresDisponiveis, selectedWeight]);
 
-  const comboIndisponivel =
-    saboresDisponiveis.length > 0 &&
-    Number.isFinite(estoqueTotalDisponivel) &&
-    estoqueTotalDisponivel < totalCombo;
+  const comboIndisponivel = isMaisLeves
+    ? (!saboresLoading && (
+        saboresDisponiveis.length !== (totalCombo === 5 ? 5 : 10) ||
+        saboresDisponiveis.some(
+          (prod: any) => estoqueDisponivel(prod) < (totalCombo === 20 ? 2 : 1),
+        )
+      ))
+    : (
+        saboresDisponiveis.length > 0 &&
+        Number.isFinite(estoqueTotalDisponivel) &&
+        estoqueTotalDisponivel < totalCombo
+      );
 
   if (!isOpen || !combo) return null;
 
   function changeQty(produtoId: string, delta: number) {
+    if (isMaisLeves) return;
     setSabores((prev) => {
       const atual = prev[produtoId] ?? 0;
       const novo = Math.max(0, atual + delta);
@@ -113,8 +141,8 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
   }
 
   function handleAddToCart() {
-    if (comboIndisponivel) {
-      toast.error(`Não há ${totalCombo} unidades disponíveis em ${selectedWeight} para montar este combo.`);
+    if (comboIndisponivel || saboresLoading || saboresError) {
+      toast.error(`Não há estoque suficiente dos sabores deste combo em ${selectedWeight}.`);
       return;
     }
     if (totalSelecionado !== totalCombo) {
@@ -122,7 +150,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
       return;
     }
 
-    for (const [produtoId, qty] of Object.entries(sabores)) {
+    for (const [produtoId, qty] of Object.entries(saboresSelecionados)) {
       const produto = saboresDisponiveis.find((p: any) => p.id === produtoId);
       if (!produto || qty > estoqueDisponivel(produto)) {
         toast.error(`Estoque insuficiente para ${produto?.nome ?? "um dos sabores"} em ${selectedWeight}.`);
@@ -134,7 +162,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
       combo.id,
       selectedWeight,
       totalCombo,
-      Object.entries(sabores).map(([productId, quantity]) => ({ productId, quantity })),
+      Object.entries(saboresSelecionados).map(([productId, quantity]) => ({ productId, quantity })),
     );
 
     toast.success(`${combo.nome} adicionado!`, {
@@ -161,7 +189,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
           <div>
             <h2 className="text-lg font-bold">{combo.nome}</h2>
             <p className="text-base text-white/75">
-              Escolha {totalCombo} sabores — {formatBRL(precoCombo)}
+              {isMaisLeves ? "Pratos mais leves selecionados para você" : `Escolha ${totalCombo} sabores`} — {formatBRL(precoCombo)}
             </p>
           </div>
           <button
@@ -201,7 +229,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         <div className="shrink-0 border-b px-4 py-2">
           <div className="flex items-center justify-between text-base">
             <span className="text-gray-500">
-              Selecionados: <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
+              {isMaisLeves ? "Unidades incluídas:" : "Selecionados:"} <strong className="text-[#086e45]">{totalSelecionado}</strong> / {totalCombo}
             </span>
             {totalSelecionado === totalCombo && !comboIndisponivel && (
               <span className="text-[#086e45] font-bold text-sm">✓ Completo!</span>
@@ -209,7 +237,9 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
           </div>
           {comboIndisponivel && (
             <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
-              Esta gramatura está temporariamente indisponível: há {estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de {totalCombo}.
+              {isMaisLeves
+                ? "Esta gramatura está temporariamente indisponível: um ou mais pratos da composição fixa estão sem estoque suficiente."
+                : `Esta gramatura está temporariamente indisponível: há ${estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de ${totalCombo}.`}
             </div>
           )}
         </div>
@@ -230,7 +260,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
             </div>
           ) : (
             saboresDisponiveis.map((prod: any) => {
-              const qty = sabores[prod.id] ?? 0;
+              const qty = saboresSelecionados[prod.id] ?? 0;
               const estoque = estoqueDisponivel(prod);
               const saborEsgotado = Number.isFinite(estoque) && estoque <= 0;
               return (
@@ -257,6 +287,11 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                       </p>
                     ) : null}
                   </div>
+                  {isMaisLeves ? (
+                    <div className="shrink-0 rounded-full bg-[#edf5e6] px-3 py-1.5 text-sm font-bold text-[#086e45]">
+                      {qty} un
+                    </div>
+                  ) : (
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       aria-label={`Diminuir ${prod.nome}`}
@@ -299,6 +334,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
                       <Plus size={14} />
                     </button>
                   </div>
+                  )}
                 </div>
               );
             })
@@ -309,10 +345,10 @@ export function ComboSaboresModal({ isOpen, onClose, combo }: ComboSaboresModalP
         <div className="px-4 py-3 border-t shrink-0">
           <button
             onClick={handleAddToCart}
-            disabled={comboIndisponivel || totalSelecionado !== totalCombo}
+            disabled={saboresLoading || saboresError || comboIndisponivel || totalSelecionado !== totalCombo}
             className={cn(
               "w-full rounded-2xl py-3.5 text-base font-semibold flex items-center justify-center gap-2 transition-all",
-              !comboIndisponivel && totalSelecionado === totalCombo
+              !saboresLoading && !saboresError && !comboIndisponivel && totalSelecionado === totalCombo
                 ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg"
                 : "bg-gray-100 text-gray-600 cursor-not-allowed",
             )}
