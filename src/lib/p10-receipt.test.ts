@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { encontrarProdutoP10, parseP10Receipt } from "./p10-receipt";
+import { encontrarProdutoP10, normalizarAgendamentoP10, parseP10Receipt } from "./p10-receipt";
+import { dataEntregaProgramada, pedidoDaRota } from "./entregadores-resumo";
 
 const catalogo = [
   "TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis",
@@ -96,6 +97,17 @@ F. PAGAMENTO.: CARTAO DE CREDITO (MAQUININHA)`;
     expect(encontrarProdutoP10(result.itens[5], catalogo)).toBeUndefined();
     expect(encontrarProdutoP10(result.itens[6], catalogo)?.nome).toMatch(/^CO01/);
     expect(result.dados.agendado).toBe("30/10 - 15:00 - 18:00");
+    const agendado = normalizarAgendamentoP10(result.dados.agendado, new Date("2026-10-28T16:00:00Z"));
+    expect(agendado).toBe("30/10/2026 - 15:00 - 18:00");
+    const pedido = {
+      id: "p10-exemplo", status: "pendente", metodo_entrega: "entrega",
+      endereco_cidade: result.dados.cidade, horario_recebimento: "Agendado: " + agendado,
+    };
+    expect(dataEntregaProgramada(pedido)).toBe("2026-10-30");
+    expect(pedidoDaRota(pedido, "sexta", "2026-10-30")).toBe(true);
+    expect(pedidoDaRota(pedido, "sexta", "2026-11-06")).toBe(false);
+    expect(normalizarAgendamentoP10("31/12 - 15:00", new Date("2026-12-31T16:00:00Z"))).toBe("31/12/2026 - 15:00");
+    expect(normalizarAgendamentoP10("01/01 - 15:00", new Date("2026-12-31T16:00:00Z"))).toBe("01/01/2027 - 15:00");
     expect(result.dados.cidade).toBe("RIO NEGRINHO");
     expect(result.total).toBe(114.3);
     expect(result.taxa).toBe(10);
