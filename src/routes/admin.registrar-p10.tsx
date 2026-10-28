@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, ClipboardPaste, CheckCircle2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { encontrarProdutoP10, parseP10Receipt, type P10Dados } from "@/lib/p10-receipt";
 
 export const Route = createFileRoute("/admin/registrar-p10")({
   component: RegistrarP10Page,
@@ -56,91 +57,14 @@ function extrairRodape(texto: string): { total: number; taxa: number } {
   return { total, taxa };
 }
 
-function parsearTexto(texto: string): ItemParseado[] {
-  const items: ItemParseado[] = [];
-  const linhas = texto
-    .split(/\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // Estado do item sendo montado (aguardando o código TD/SO/CO nas linhas seguintes)
-  let pendente: { quantidade: number; tamanho: string } | null = null;
-  let nomePendente = "";
-
-  for (const linha of linhas) {
-    // Ignora separadores, cabeçalhos e rodapé
-    if (/^[-=]{4,}/.test(linha)) continue;
-    if (/^(qtd|descri|v\.uni|f\.\s*pag|troco|total\s*pago|total\s*a\s*pagar|servir|deseja|garfo|\+\+)/i.test(linha)) continue;
-    if (/^total\s*(itens|pedido|entrega)|tx\.?\s*entrega/i.test(linha)) continue;
-
-    // ── Linha de produto: começa com número de quantidade
-    // Ex.: "2    TRADICIONAL G (400G)   24,90  49,80"
-    //       "1    SOPA (400G)   18,00  18,00"
-    const linhaProduto = linha.match(/^(\d+)\s+(.+?)\s+\d[\d.,]+\s+\d[\d.,]+\s*$/);
-    if (linhaProduto) {
-      const qtd = parseInt(linhaProduto[1], 10);
-      const desc = linhaProduto[2].trim();
-      // Extrai tamanho da descrição ("400G", "300G", "200G")
-      const tamMatch = desc.match(/\b(200|300|400)\s*[gG]\b/);
-      const tamanho = tamMatch ? `${tamMatch[1]}g` : "300g";
-      pendente = { quantidade: qtd, tamanho };
-      nomePendente = "";
-      continue;
-    }
-
-    // ── Linha de sabor: começa com * e tem código TD/SO/CO
-    // Ex.: "* TD01- Tiras de Alcatra ao Molho"
-    if (pendente && /^\*?\s*(TD|SO|CO)\d+/i.test(linha)) {
-      const semAsterisco = linha.replace(/^\*+\s*/, "").trim();
-      const codMatch = semAsterisco.match(/(TD|SO|CO)(\d+)/i);
-      if (codMatch) {
-        const codigo = `${codMatch[1].toUpperCase()}${codMatch[2]}`;
-        // Extrai tamanho do próprio texto (pode sobrescrever o do header)
-        const tamNoText = semAsterisco.match(/\b(200|300|400)\s*g\b/i);
-        const tamanho = tamNoText ? `${tamNoText[1]}g` : pendente.tamanho;
-        const nome = semAsterisco
-          .replace(/(TD|SO|CO)\d+\s*[-–]?\s*/i, "")
-          .replace(/\b(200|300|400)\s*g\b/i, "")
-          .trim() || `Produto ${codigo}`;
-        nomePendente = nome;
-        items.push({
-          quantidade: pendente.quantidade,
-          codigo,
-          nome,
-          tamanho,
-          encontrado: false,
-        });
-        // Mantém pendente pra continuar capturando mais sabores do mesmo item
-        // (ex.: "Combo 5" pode ter vários TD na mesma entrada)
-      }
-      continue;
-    }
-
-    // ── Continuação do nome (linha sem * e sem código, após um sabor)
-    // Ex.: "Madeira e Arroz com Brocolis"
-    if (pendente && nomePendente && !/^\*/.test(linha) && !/^(SABOR|SERVIR|DESEJA)/i.test(linha) && /(TD|SO|CO)\d+/i.test(linha) === false) {
-      // Atualiza o nome do último item adicionado
-      if (items.length > 0) {
-        items[items.length - 1].nome = (nomePendente + " " + linha).trim();
-        nomePendente = items[items.length - 1].nome;
-      }
-    }
-
-    // Se chegou numa nova linha de produto (número no início), reseta pendente
-    if (/^\d+\s+[A-Z]/i.test(linha) && !/^\d+[,.]/.test(linha)) {
-      pendente = null;
-      nomePendente = "";
-    }
-  }
-
-  return items;
-}
 
 function RegistrarP10Page() {
   const [texto, setTexto] = useState("");
   const [items, setItems] = useState<ItemParseado[]>([]);
   const [processando, setProcessando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [dadosPedido, setDadosPedido] = useState<P10Dados | null>(null);
+  const [quantidadeEsperada, setQuantidadeEsperada] = useState<number | null>(null);
   // Valores do rodapé do cupom (editáveis antes de registrar).
   const [valorTotal, setValorTotal] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState("");
@@ -158,32 +82,37 @@ function RegistrarP10Page() {
   });
 
   function handleParsear() {
-    const parsed = parsearTexto(texto);
-
-    // Tenta casar cada item com um produto do banco pelo código (TDxx no nome)
-    const matched = parsed.map((item) => {
-      // Busca pelo código no nome do produto (ex: "TD13" aparece no nome "TD13 - Escondidinho...")
-      const prod = produtos.find(
-        (p: any) =>
-          p.nome?.toUpperCase().includes(item.codigo) ||
-          p.codigo_integracao === item.codigo,
-      );
+    const recibo = parseP10Receipt(texto);
+    const matched: ItemParseado[] = recibo.itens.map(item => {
+      const prod = encontrarProdutoP10(item, produtos);
       return {
         ...item,
+        codigo: item.codigo || (prod?.nome.match(/\\b(?:TD|SO|CO)\\d+\\b/i)?.[0] ?? ""),
         produtoId: prod?.id,
         encontrado: !!prod,
       };
     });
-
     setItems(matched);
-    // Pré-preenche total e taxa a partir do rodapé do cupom.
-    const { total, taxa } = extrairRodape(texto);
-    if (total > 0) setValorTotal(total.toFixed(2).replace(".", ","));
-    if (taxa > 0) setTaxaEntrega(taxa.toFixed(2).replace(".", ","));
+    setDadosPedido(recibo.dados);
+    setQuantidadeEsperada(recibo.quantidadeEsperada);
+    setValorTotal(recibo.total > 0 ? recibo.total.toFixed(2).replace(".", ",") : "");
+    setTaxaEntrega(recibo.taxa > 0 ? recibo.taxa.toFixed(2).replace(".", ",") : "0,00");
     setConcluido(false);
+    if (!matched.length) toast.error("Nenhuma refeição identificada. Confira o comprovante.");
+    else if (matched.some(item => !item.encontrado))
+      toast.warning("Há produtos não identificados. Corrija o vínculo antes de registrar.");
   }
 
   async function handleProcessar() {
+    if (!items.length || items.some(item => !item.produtoId)) {
+      toast.error("Identifique todos os produtos antes de registrar e baixar o estoque.");
+      return;
+    }
+    if (quantidadeEsperada != null &&
+        items.reduce((s, item) => s + item.quantidade, 0) !== quantidadeEsperada) {
+      toast.error("Quantidade de refeições diferente do combo. Revise o texto.");
+      return;
+    }
     setProcessando(true);
     try {
       const total = valorTotal ? Number(valorTotal.replace(/\./g, "").replace(",", ".")) || 0 : 0;
@@ -193,14 +122,25 @@ function RegistrarP10Page() {
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          nome_cliente: "Pedidos10",
-          metodo_entrega: taxa > 0 ? "entrega" : "retirada",
-          metodo_pagamento: "P10",
+          nome_cliente: dadosPedido?.cliente || "Pedidos10",
+          telefone_cliente: dadosPedido?.telefone || null,
+          metodo_entrega: /retirada/i.test(dadosPedido?.entrega || "") ?
+            "retirada" : (/entrega/i.test(dadosPedido?.entrega || "") || taxa > 0 ? "entrega" : "retirada"),
+          horario_recebimento: dadosPedido?.agendado
+            ? `Agendado: ${dadosPedido.agendado}` : dadosPedido?.entrega || null,
+          endereco_rua: dadosPedido?.rua || null,
+          endereco_numero: dadosPedido?.numero || null,
+          endereco_complemento: dadosPedido?.complemento || null,
+          endereco_bairro: dadosPedido?.bairro || null,
+          endereco_cidade: dadosPedido?.cidade || null,
+          endereco_referencia: dadosPedido?.referencia || null,
+          metodo_pagamento: dadosPedido?.pagamento ? `P10 - ${dadosPedido.pagamento}` : "P10",
           valor_total: total,
           taxa_entrega: taxa,
-          status: "entregue",
+          status: "pendente",
           origem: "pedidos10",
-          observacao: "Lançado manualmente via Registrar Pedido P10",
+          observacao: "Lançado manualmente via Registrar Pedido P10" +
+            (dadosPedido ? ` | Valor pago: R$ ${dadosPedido.totalPago.toFixed(2)} | A receber: R$ ${dadosPedido.totalAPagar.toFixed(2)}` : ""),
         })
         .select()
         .single();
@@ -231,7 +171,8 @@ function RegistrarP10Page() {
         const { error } = await supabase.rpc("decrementar_estoque", {
           p_produto_id: item.produtoId,
           p_qtd: item.quantidade,
-          p_tamanho: item.tamanho,
+          // Complementos de 150g são guardados em estoque_200g no cadastro.
+          p_tamanho: item.tamanho === "150g" ? "200g" : item.tamanho,
         });
         if (error) {
           console.error(`Erro ao decrementar ${item.codigo}:`, error.message);
@@ -262,6 +203,8 @@ function RegistrarP10Page() {
     setValorTotal("");
     setTaxaEntrega("");
     setConcluido(false);
+    setDadosPedido(null);
+    setQuantidadeEsperada(null);
   }
 
   return (
@@ -284,7 +227,7 @@ function RegistrarP10Page() {
         </label>
         <textarea
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onChange={(e) => { setTexto(e.target.value); setItems([]); setConcluido(false); setDadosPedido(null); }}
           placeholder={`Exemplo:\nCombo 10 a 19 Unidades\nSabor: TD13 - Escondidinho de Patinho 200g, 5x TD18-Patinho Moído 400g, TD20-Lasanha de Carne 300g`}
           className="w-full h-32 rounded-xl border border-gray-200 px-4 py-3 text-sm resize-none outline-none focus:ring-2 focus:ring-[#5850ec]/30"
         />
@@ -299,6 +242,22 @@ function RegistrarP10Page() {
           )}
         </div>
       </div>
+
+      {dadosPedido && items.length > 0 && (
+        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700 space-y-1">
+          <p className="font-bold text-[#315440] mb-2">Dados lidos do comprovante</p>
+          <p><b>Cliente:</b> {dadosPedido.cliente || "Não informado"} {dadosPedido.telefone ? `• ${dadosPedido.telefone}` : ""}</p>
+          <p><b>Entrega:</b> {dadosPedido.entrega || "Não informada"}</p>
+          {dadosPedido.agendado && <p><b>Agendado:</b> {dadosPedido.agendado}</p>}
+          {(dadosPedido.rua || dadosPedido.numero) && (
+            <p><b>Endereço:</b> {[dadosPedido.rua, dadosPedido.numero, dadosPedido.complemento, dadosPedido.bairro, dadosPedido.cidade].filter(Boolean).join(", ")}</p>
+          )}
+          {dadosPedido.referencia && <p><b>Referência:</b> {dadosPedido.referencia}</p>}
+          <p><b>Pagamento:</b> {dadosPedido.pagamento || "P10"}
+            {` • Pago: R$ ${dadosPedido.totalPago.toFixed(2).replace(".", ",")} • A receber: R$ ${dadosPedido.totalAPagar.toFixed(2).replace(".", ",")}`}
+          </p>
+        </div>
+      )}
 
       {/* Itens identificados */}
       {items.length > 0 && (
@@ -319,6 +278,20 @@ function RegistrarP10Page() {
                     {item.quantidade}x {item.codigo} — {item.tamanho}
                   </p>
                   <p className="text-[11px] text-gray-500">{item.nome}</p>
+                  {!item.encontrado && (
+                    <select aria-label={`Corrigir produto de ${item.nome}`}
+                      className="mt-2 max-w-full rounded border border-amber-300 bg-white p-1 text-xs"
+                      value={item.produtoId || ""}
+                      onChange={e => {
+                        const product = produtos.find((p: any) => p.id === e.target.value);
+                        setItems(current => current.map((row, i) => i === idx
+                          ? { ...row, produtoId: product?.id, encontrado: !!product }
+                          : row));
+                      }}>
+                      <option value="">Selecione o produto cadastrado</option>
+                      {produtos.map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                    </select>
+                  )}
                 </div>
                 <div className="text-right">
                   {item.encontrado ? (
@@ -332,6 +305,17 @@ function RegistrarP10Page() {
               </div>
             ))}
           </div>
+
+          {quantidadeEsperada != null && (
+            <p className={`text-xs font-semibold ${items.reduce((s, i) => s + i.quantidade, 0) === quantidadeEsperada ? "text-green-700" : "text-red-700"}`}>
+              Combo: {quantidadeEsperada} refeições esperadas • {items.reduce((s, i) => s + i.quantidade, 0)} identificadas
+            </p>
+          )}
+          {items.some(i => !i.encontrado) && (
+            <p role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+              Alguns itens do cupom não têm correspondência exata no catálogo. Selecione o produto correto antes de lançar o pedido.
+            </p>
+          )}
 
           {/* Valores do pedido (puxados do rodapé do cupom, editáveis) */}
           <div className="grid grid-cols-2 gap-3 pt-3 border-t">
@@ -362,7 +346,7 @@ function RegistrarP10Page() {
           {!concluido && (
             <Button
               onClick={handleProcessar}
-              disabled={processando}
+              disabled={processando || items.some(i => !i.encontrado) || (quantidadeEsperada != null && items.reduce((s, i) => s + i.quantidade, 0) !== quantidadeEsperada)}
               className="w-full bg-[#086e45] text-white mt-4"
             >
               {processando ? (
