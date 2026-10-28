@@ -44,7 +44,7 @@ function RegistrarP10Page() {
     queryFn: async () => {
       const { data } = await supabase
         .from("produtos")
-        .select("id, nome, codigo_integracao")
+        .select("id, nome, codigo_integracao, tipo_produto")
         .eq("ativo", true);
       return data ?? [];
     },
@@ -80,6 +80,14 @@ function RegistrarP10Page() {
     if (quantidadeEsperada != null &&
         items.reduce((s, item) => s + item.quantidade, 0) !== quantidadeEsperada) {
       toast.error("Quantidade de refeições diferente do combo. Revise o texto.");
+      return;
+    }
+    const tamanhoInvalido = items.find(item => {
+      const tipo = produtos.find((p: any) => p.id === item.produtoId)?.tipo_produto;
+      return item.tamanho === "150g" && tipo !== "complemento";
+    });
+    if (tamanhoInvalido) {
+      toast.error("Produtos de 150g precisam estar vinculados a complementos cadastrados.");
       return;
     }
     setProcessando(true);
