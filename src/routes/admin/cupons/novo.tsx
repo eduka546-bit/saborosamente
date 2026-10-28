@@ -22,6 +22,7 @@ function AdminCuponsNovoPage() {
     regra: "",
     validade: "",
     ativo: true,
+    oculto: false,
     substitui_desconto_progressivo: false,
     excluir_combo_pronto: false,
   });
@@ -108,6 +109,18 @@ function AdminCuponsNovoPage() {
             type="date"
             value={form.validade}
             onChange={(e) => setForm({ ...form, validade: e.target.value })}
+          />
+        </div>
+        <div className="flex items-start justify-between rounded-xl border bg-gray-50 p-3 gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Ocultar cupom no site</p>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              Não aparece nos cupons disponíveis do checkout. Só funciona quando o cliente digita o código.
+            </p>
+          </div>
+          <Switch
+            checked={form.oculto}
+            onCheckedChange={(v) => setForm({ ...form, oculto: v })}
           />
         </div>
         <div className="flex items-start justify-between rounded-xl border bg-[#f4f8f1] p-3 gap-3">
