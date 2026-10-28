@@ -32,6 +32,7 @@ const EMPTY_FORM = {
   regra: "",
   validade: "",
   ativo: true,
+  oculto: false,
   max_uso: "",
   apenas_primeira_compra: false,
   substitui_desconto_progressivo: false,
@@ -111,6 +112,7 @@ function AdminCuponsPage() {
       regra: c.regra || "",
       validade: c.validade || "",
       ativo: c.ativo,
+      oculto: c.oculto ?? false,
       max_uso: c.max_uso !== null && c.max_uso !== undefined ? String(c.max_uso) : "",
       apenas_primeira_compra: c.apenas_primeira_compra ?? false,
       substitui_desconto_progressivo: c.substitui_desconto_progressivo ?? false,
@@ -261,6 +263,11 @@ function AdminCuponsPage() {
                   >
                     {cupom.ativo ? "Ativo" : "Pausado"}
                   </Badge>
+                  {cupom.oculto && (
+                    <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+                      Oculto no site
+                    </Badge>
+                  )}
                   {cupom.max_uso === 1 && (
                     <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">
                       Uso único
@@ -383,6 +390,18 @@ function AdminCuponsPage() {
                   ilimitado. Cupons gerados automaticamente pelo exit intent são sempre{" "}
                   <strong>uso único</strong>.
                 </p>
+              </div>
+              <div className="flex items-start justify-between p-3 border rounded-xl bg-gray-50 gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Ocultar cupom no site</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Não aparece nos cupons disponíveis do checkout. Só funciona quando o cliente digita o código.
+                  </p>
+                </div>
+                <Switch
+                  checked={!!form.oculto}
+                  onCheckedChange={(v) => setForm({ ...form, oculto: v })}
+                />
               </div>
               <div className="flex items-start justify-between p-3 border rounded-xl bg-gray-50 gap-3">
                 <div>

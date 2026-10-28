@@ -244,11 +244,11 @@ function Checkout() {
   // aplica cupom que vier da URL automaticamente
   useEffect(() => {
     if (search.cupom) {
-      applyCoupon(search.cupom);
+      applyCoupon(search.cupom, true);
     }
   }, []);
 
-  async function applyCoupon(code: string) {
+  async function applyCoupon(code: string, viaLink = false) {
     const c = (code || couponInput).trim().toUpperCase();
     if (!c) return;
     setCouponLoading(true);
@@ -261,6 +261,13 @@ function Checkout() {
       if (error || !data) {
         setCouponError("Cupom inválido ou expirado.");
         setAppliedCoupon(null);
+        return;
+      }
+      // Cupons ocultos só podem ser aplicados quando o cliente digita o código.
+      // Outros cupons continuam aceitando links de campanhas existentes.
+      if (viaLink && data.oculto) {
+        setAppliedCoupon(null);
+        setCouponInput("");
         return;
       }
       if (data.validade && new Date(`${data.validade}T23:59:59`) < new Date()) {
