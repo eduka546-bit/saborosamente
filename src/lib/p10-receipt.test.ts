@@ -94,7 +94,13 @@ F. PAGAMENTO.: CARTAO DE CREDITO (MAQUININHA)`;
     expect(result.itens.map(i => i.tamanho))
       .toEqual(["200g", "200g", "200g", "200g", "200g", "150g", "150g"]);
     expect(result.itens.slice(0, 5).every(i => !!encontrarProdutoP10(i, catalogo))).toBe(true);
-    expect(encontrarProdutoP10(result.itens[5], catalogo)).toBeUndefined();
+    expect(encontrarProdutoP10(result.itens[5], catalogo)?.nome).toMatch(/^CO06/);
+    expect(encontrarProdutoP10({
+      ...result.itens[5], nome: "Outro complemento 150g",
+    }, catalogo)).toBeUndefined();
+    expect(encontrarProdutoP10({
+      ...result.itens[5], codigo: "CO06",
+    }, catalogo)?.nome).toMatch(/^CO06/);
     expect(encontrarProdutoP10(result.itens[6], catalogo)?.nome).toMatch(/^CO01/);
     expect(result.dados.agendado).toBe("30/10 - 15:00 - 18:00");
     const agendado = normalizarAgendamentoP10(result.dados.agendado, new Date("2026-10-28T16:00:00Z"));
