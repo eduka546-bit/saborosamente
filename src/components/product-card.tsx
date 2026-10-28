@@ -623,6 +623,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
         isOpen={comboSaboresOpen}
         onClose={() => setComboSaboresOpen(false)}
         combo={product}
+        initialWeight={selectedWeight}
       />
     </>
   );
