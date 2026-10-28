@@ -249,7 +249,7 @@ export function encontrarProdutoP10(item: P10Item, produtos: P10Produto[]): P10P
   // para Carne de Panela 150g. O produto correto do nosso catálogo é CO06.
   // Restringir a exceção ao nome e tamanho evita converter outros CO07 por engano.
   const codigo = item.codigo === "CO07" &&
-      /\\bcarne de panela\\b/.test(normalizar(item.nome)) &&
+      /\bcarne de panela\b/.test(normalizar(item.nome)) &&
       item.tamanho === "150g"
     ? "CO06"
     : item.codigo || codigoPorApelido(item.nome);
