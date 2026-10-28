@@ -1,0 +1,34 @@
+name: One-time security dependency repair
+on:
+  push:
+    branches:
+      - feature/cupom-oculto-digitacao-manual-20261028
+    paths:
+      - .github/workflows/security-dependencies-one-time.yml
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/cupom-oculto-digitacao-manual-20261028
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Repair vulnerable dependencies
+        run: bun audit fix --latest
+      - name: Build, typecheck and tests
+        run: bun run check
+      - name: Verify security audit
+        run: bun audit --audit-level=high
+      - name: Commit dependency updates to feature branch
+        run: |
+          git add package.json bun.lock
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix: atualizar dependências vulneráveis do projeto"
+            git push origin HEAD:feature/cupom-oculto-digitacao-manual-20261028
+          fi
