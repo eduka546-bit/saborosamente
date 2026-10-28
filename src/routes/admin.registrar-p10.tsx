@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, ClipboardPaste, CheckCircle2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { encontrarProdutoP10, parseP10Receipt, type P10Dados } from "@/lib/p10-receipt";
+import { encontrarProdutoP10, normalizarAgendamentoP10, parseP10Receipt, type P10Dados } from "@/lib/p10-receipt";
 
 export const Route = createFileRoute("/admin/registrar-p10")({
   component: RegistrarP10Page,
@@ -62,7 +62,7 @@ function RegistrarP10Page() {
       };
     });
     setItems(matched);
-    setDadosPedido(recibo.dados);
+    setDadosPedido({ ...recibo.dados, agendado: normalizarAgendamentoP10(recibo.dados.agendado) });
     setQuantidadeEsperada(recibo.quantidadeEsperada);
     setValorTotal(recibo.total > 0 ? recibo.total.toFixed(2).replace(".", ",") : "");
     setTaxaEntrega(recibo.taxa > 0 ? recibo.taxa.toFixed(2).replace(".", ",") : "0,00");
@@ -73,6 +73,10 @@ function RegistrarP10Page() {
   }
 
   async function handleProcessar() {
+    if (/agendad/i.test(dadosPedido?.entrega || "") && !/\b\d{2}\/\d{2}\/\d{4}\b/.test(dadosPedido?.agendado || "")) {
+      toast.error("Data agendada inválida: confira dia, mês e ano antes de registrar.");
+      return;
+    }
     if (!items.length || items.some(item => !item.produtoId)) {
       toast.error("Identifique todos os produtos antes de registrar e baixar o estoque.");
       return;
