@@ -27,37 +27,6 @@ interface ItemParseado {
   encontrado: boolean;
 }
 
-// Extrai valores do rodapé do cupom P10: TOTAL PEDIDO e Tx. Entrega.
-// Aceita "1.234,56" (pt-BR) e "1234.56".
-function parseValorBR(s: string): number {
-  const limpo = s.replace(/[^\d.,]/g, "").trim();
-  if (!limpo) return 0;
-  // Se tem vírgula, assume pt-BR (ponto = milhar, vírgula = decimal).
-  if (limpo.includes(",")) {
-    return Number(limpo.replace(/\./g, "").replace(",", ".")) || 0;
-  }
-  return Number(limpo) || 0;
-}
-
-function extrairRodape(texto: string): { total: number; taxa: number } {
-  let total = 0;
-  let taxa = 0;
-  for (const linha of texto.split(/\n/)) {
-    const l = linha.trim();
-    // "Tx. Entrega:   19,25"  ou  "Taxa de Entrega: 7,25"
-    if (/tx\.?\s*entrega|taxa\s*de?\s*entrega/i.test(l)) {
-      const v = parseValorBR(l);
-      if (v > 0) taxa = v;
-    // "TOTAL PEDIDO:   69,05"  ou  "Total Pedido: 206,25"
-    } else if (/total\s*pedido/i.test(l)) {
-      const v = parseValorBR(l);
-      if (v > 0) total = v;
-    }
-  }
-  return { total, taxa };
-}
-
-
 function RegistrarP10Page() {
   const [texto, setTexto] = useState("");
   const [items, setItems] = useState<ItemParseado[]>([]);
@@ -118,7 +87,7 @@ function RegistrarP10Page() {
       const total = valorTotal ? Number(valorTotal.replace(/\./g, "").replace(",", ".")) || 0 : 0;
       const taxa = taxaEntrega ? Number(taxaEntrega.replace(/\./g, "").replace(",", ".")) || 0 : 0;
 
-      // 1. Cria o pedido (origem pedidos10, pagamento P10, já entregue).
+      // 1. Registra o pedido em Solicitados/Novos para evitar finalizar entregas agendadas antecipadamente.
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
@@ -214,8 +183,8 @@ function RegistrarP10Page() {
         <div>
           <h1 className="text-2xl font-bold text-[#5850ec]">Registrar Pedido P10</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            Cole o texto do pedido do Pedidos10. O sistema cria o pedido (origem P10, pagamento
-            P10), lança no relatório e decrementa o estoque.
+            Cole o texto do pedido do Pedidos10. O sistema registra o pedido (origem P10, pagamento
+            do comprovante), exibe em Solicitados/Novos e baixa o estoque após confirmar.
           </p>
         </div>
       </div>
@@ -278,6 +247,11 @@ function RegistrarP10Page() {
                     {item.quantidade}x {item.codigo} — {item.tamanho}
                   </p>
                   <p className="text-[11px] text-gray-500">{item.nome}</p>
+                  {item.produtoId && (
+                    <p className="text-[11px] text-emerald-700">
+                      Catálogo: {produtos.find((p: any) => p.id === item.produtoId)?.nome || "Produto vinculado"}
+                    </p>
+                  )}
                   {!item.encontrado && (
                     <select aria-label={`Corrigir produto de ${item.nome}`}
                       className="mt-2 max-w-full rounded border border-amber-300 bg-white p-1 text-xs"
@@ -289,7 +263,12 @@ function RegistrarP10Page() {
                           : row));
                       }}>
                       <option value="">Selecione o produto cadastrado</option>
-                      {produtos.map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                      {produtos.filter((p: any) => {
+                        const codigo = String(p.nome || "").match(/\\b(TD|SO|CO)\\d+\\b/i)?.[1]?.toUpperCase();
+                        return item.codigo.startsWith("CO") ? codigo === "CO" :
+                          item.codigo.startsWith("SO") ? codigo === "SO" :
+                          item.codigo.startsWith("TD") ? codigo === "TD" : true;
+                      }).map((p: any) => <option key={p.id} value={p.id}>{p.nome}</option>)}
                     </select>
                   )}
                 </div>
