@@ -13,6 +13,7 @@ export interface P10Dados {
   cliente: string;
   telefone: string;
   entrega: string;
+  agendado: string;
   rua: string;
   numero: string;
   complemento: string;
@@ -65,6 +66,7 @@ export function parseP10Receipt(texto: string): {
     cliente: campo(/^cliente\s*:\s*(.*)$/i),
     telefone: campo(/^fone\s*:\s*(.*)$/i),
     entrega: campo(/^f\.?\s*entrega\s*:\s*(.*)$/i),
+    agendado: campo(/^agendado\s*:\s*(.*)$/i),
     rua: campo(/^endere[cç]o\s*:\s*(.*)$/i),
     numero: campo(/^n[uú]mero\s*:\s*(.*)$/i),
     complemento: campo(/^complem\.?\s*:\s*(.*)$/i),
@@ -83,6 +85,7 @@ export function parseP10Receipt(texto: string): {
   let descricaoGrupo = "";
   let temEscolhas = false;
   let escolha = "";
+  let secao: "nenhuma" | "sabor" | "servir" = "nenhuma";
   let quantidadeEsperada: number | null = null;
 
   function incluir(textoItem: string, quantidade: number, tamanhoPadrao: string) {
@@ -116,9 +119,10 @@ export function parseP10Receipt(texto: string): {
     grupoAberto = false;
     descricaoGrupo = "";
     temEscolhas = false;
+    secao = "nenhuma";
   }
 
-  const ignorar = /^(?:cliente\s*:|fone\s*:|f\.?\s*(?:entrega|pagamento)|endere[cç]o\s*:|n[uú]mero\s*:|complem\.?\s*:|bairro\s*:|refer[eê]ncia\s*:|qtd\s+descri|v\.?\s*uni|total\s*(?:itens|pedido|pago|a\s*pagar)|tx\.?\s*entrega|taxa\s*de?\s*entrega|troco\s*:|[-=]{4,})/i;
+  const ignorar = /^(?:cliente\s*:|fone\s*:|agendado\s*:|f\.?\s*(?:entrega|pagamento)|endere[cç]o\s*:|n[uú]mero\s*:|complem\.?\s*:|bairro\s*:|refer[eê]ncia\s*:|qtd\s+descri|v\.?\s*uni|total\s*(?:itens|pedido|pago|a\s*pagar)|tx\.?\s*entrega|taxa\s*de?\s*entrega|troco\s*:|[-=]{4,})/i;
 
   for (const linha of linhas) {
     if (ignorar.test(linha)) {
@@ -152,7 +156,16 @@ export function parseP10Receipt(texto: string): {
       if (qtd) quantidadeEsperada = Number(qtd[1]) * quantidadeGrupo;
       continue;
     }
-    if (/^(?:escolha|sabor|servir|deseja|garfo)\b/i.test(linha)) continue;
+    if (/^(?:escolha|sabor)\b/i.test(linha)) {
+      finalizarEscolha();
+      secao = "sabor";
+      continue;
+    }
+    if (/^(?:servir|deseja|garfo)\b/i.test(linha)) {
+      finalizarEscolha();
+      secao = "servir";
+      continue;
+    }
     const qtdCombo = linha.match(/(?:-|\b)(\d+)\s*un\b/i);
     if (qtdCombo && /combo/i.test(descricaoGrupo) && quantidadeEsperada === null) {
       quantidadeEsperada = Number(qtdCombo[1]) * quantidadeGrupo;
@@ -162,6 +175,7 @@ export function parseP10Receipt(texto: string): {
     const novaEscolha = linha.match(/^\+\+\s*(.*)$/);
     const escolhaCodificada = linha.match(/^\*\s*((?:TD|SO|CO)\s*\d+.*)$/i);
     if (novaEscolha || escolhaCodificada) {
+      if (secao === "servir") continue;
       finalizarEscolha();
       temEscolhas = true;
       escolha = (novaEscolha?.[1] || escolhaCodificada?.[1] || "").trim();
