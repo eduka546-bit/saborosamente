@@ -51,6 +51,30 @@ const dinheiro = (s: string): number => {
   return Number.isFinite(numero) ? numero : 0;
 };
 
+/**
+ * O P10 costuma imprimir apenas dia/mês. Salva DD/MM/AAAA para o
+ * roteiro dos entregadores não confundir sextas-feiras diferentes.
+ * Quando o ano não existe no cupom, escolhe a próxima ocorrência.
+ */
+export function normalizarAgendamentoP10(agendado: string, referencia = new Date()): string {
+  const m = agendado.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/);
+  if (!m) return agendado;
+  const dia = Number(m[1]), mes = Number(m[2]);
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(referencia);
+  const valor = (tipo: string) => partes.find(p => p.type === tipo)?.value || "";
+  const dataHoje = valor("year") + "-" + valor("month") + "-" + valor("day");
+  let ano = m[3] ? Number(m[3]) : Number(valor("year"));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dataISO = (a: number) => a + "-" + pad(mes) + "-" + pad(dia);
+  if (!m[3] && dataISO(ano) < dataHoje) ano += 1;
+  const validacao = new Date(Date.UTC(ano, mes - 1, dia, 12));
+  if (validacao.getUTCFullYear() !== ano || validacao.getUTCMonth() !== mes - 1 ||
+      validacao.getUTCDate() !== dia) return agendado;
+  return agendado.replace(m[0], pad(dia) + "/" + pad(mes) + "/" + ano);
+}
+
 export function parseP10Receipt(texto: string): {
   itens: P10Item[];
   dados: P10Dados;
