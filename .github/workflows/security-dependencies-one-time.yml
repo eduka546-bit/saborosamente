@@ -19,6 +19,8 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - name: Upgrade Vitest to patched 4.1.12
+        run: bun update vitest@4.1.12
       - name: Repair vulnerable dependencies
         run: bun audit fix --latest
       - name: Build, typecheck and tests
