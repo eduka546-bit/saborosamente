@@ -137,7 +137,8 @@ export function parseP10Receipt(texto: string): {
       quantidadeGrupo = Number(produto[1]);
       descricaoGrupo = produto[2].trim();
       grupoAberto = true;
-      tamanhoGrupo = descricaoGrupo.match(tamanhos)?.[1] + "g" || "300g";
+      const tamanhoNoTitulo = descricaoGrupo.match(tamanhos)?.[1];
+      tamanhoGrupo = tamanhoNoTitulo ? tamanhoNoTitulo + "g" : "300g";
       quantidadeEsperada = null;
       continue;
     }
