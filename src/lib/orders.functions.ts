@@ -283,6 +283,9 @@ export const createOrder = createServerFn({ method: "POST" })
     const authoritativeItems = data.items.map((item) => {
       if (item.custom) {
         if (!personalizadaCfg.ativo) throw new Error("Marmitas personalizadas estão indisponíveis.");
+        if (item.quantity < personalizadaCfg.minUnidades) {
+          throw new Error(`Marmitas personalizadas exigem no mínimo ${personalizadaCfg.minUnidades} unidades por combinação.`);
+        }
 
         const itensComPeso = item.custom.itens.filter((i) => i.gramatura > 0);
         const pesoCalculado = itensComPeso.reduce((sum, i) => sum + i.gramatura, 0);
