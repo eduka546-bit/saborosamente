@@ -19,6 +19,7 @@ import {
 import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapioCozinha";
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
+import { AtualizarEstoqueCozinha } from "@/components/cozinha/AtualizarEstoqueCozinha";
 import { EtiquetasManager } from "./cozinha.etiquetas";
 import { toast } from "sonner";
 import {
@@ -1073,15 +1074,20 @@ function CozinhaPage() {
                   {marmitas.map((x: any) => (
                     <article key={x.id} className="rounded-2xl border bg-white p-4">
                       <h3 className="font-bold">{x.nome}</h3>
-                      <p className="mt-3 text-sm">
-                        {x.estoque_200g || 0} · 200g &nbsp; {x.estoque_300g || 0} · 300g &nbsp;{" "}
-                        {x.estoque_400g || 0} · 400g
+                      <p className="mt-3 flex flex-wrap gap-2 text-sm">
+                        {tamanhosDoProduto(x).map((t) => (
+                          <span key={t.id}>{n(x[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"])} · {t.label}</span>
+                        ))}
                       </p>
                     </article>
                   ))}
                 </div>
               ) : (
                 <div className="grid gap-6">
+                  <AtualizarEstoqueCozinha
+                    produtos={marmitas}
+                    onAtualizado={() => { void invalidar("coz-estoque-marmitas", "coz-prod"); }}
+                  />
                   <div>
                     <h3 className="mb-1 text-lg font-black">Marmitas prontas na cozinha</h3>
                     <p className="mb-3 text-sm text-[#62766b]">Transfira daqui para somar automaticamente no estoque da loja.</p>
@@ -1090,7 +1096,11 @@ function CozinhaPage() {
                         const saldo = estoqueMarmitasPorProduto.get(x.id);
                         return <article key={x.id} className="rounded-2xl border bg-white p-4">
                           <h4 className="font-bold">{x.nome}</h4>
-                          <p className="mt-2 text-sm text-[#62766b]">{saldo?.estoque_200g || 0} · 200 g &nbsp; {saldo?.estoque_300g || 0} · 300 g &nbsp; {saldo?.estoque_400g || 0} · 400 g</p>
+                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#62766b]">
+                            {tamanhosDoProduto(x).map((t) => (
+                              <span key={t.id}>{n(saldo?.[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"])} · {t.label}</span>
+                            ))}
+                          </p>
                           <div className="mt-3"><Botao leve onClick={() => abrir("transferencia", x)}>Transferir para loja</Botao></div>
                         </article>;
                       })}
@@ -1615,16 +1625,26 @@ function EditarProducaoModal({ produto, linhas, fechar, salvar }: any) {
   </Janela>;
 }
 function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
-  const [tamanho, setTamanho] = useState("200");
+  const tamanhos = tamanhosDoProduto(produto);
+  const [tamanho, setTamanho] = useState(tamanhos[0]?.id || "200");
   const [quantidade, setQuantidade] = useState("");
-  const disponivel = n(saldo?.[`estoque_${tamanho}g`]);
-  return <Janela titulo={`Transferir para a loja — ${rotuloProduto(produto)}`} fechar={fechar}>
+  const [salvando, setSalvando] = useState(false);
+  const campo = (tam: string) => tam === "150" ? "estoque_200g" : "estoque_" + tam + "g";
+  const disponivel = n(saldo?.[campo(tamanho)]);
+  return <Janela titulo={"Transferir para a loja — " + rotuloProduto(produto)} fechar={fechar}>
     <div className="grid gap-3 sm:grid-cols-2">
-      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>setTamanho(e.target.value)}>{TAMANHOS_RECEITA.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[`estoque_${t.id}g`])} un</option>)}</select></Campo>
-      <Campo label="Quantidade"><input className={input} type="number" min="1" max={disponivel} value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo>
+      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>{setTamanho(e.target.value);setQuantidade("");}}>{tamanhos.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[campo(t.id)])} un</option>)}</select></Campo>
+      <Campo label="Quantidade"><input className={input} type="number" min="1" max={disponivel} step="1" value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo>
     </div>
-    <p className="mt-2 text-sm text-[#62766b]">Saldo disponível: <b>{disponivel} unidades</b></p>
-    <div className="mt-4 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={()=>{const qtd=n(quantidade); if(qtd<=0)return toast.error("Informe uma quantidade válida."); if(qtd>disponivel)return toast.error("Quantidade maior que o saldo da cozinha."); salvar(tamanho,qtd);}}>Transferir</Botao></div>
+    <p className="mt-2 text-sm text-[#62766b]">Saldo disponível: <b>{disponivel} unidades</b>. A loja receberá a quantidade transferida; a cozinha terá a mesma quantidade descontada.</p>
+    <div className="mt-4 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao disabled={salvando || disponivel <= 0} onClick={async ()=>{
+      const qtd=Number(quantidade);
+      if(!Number.isSafeInteger(qtd) || qtd<=0)return toast.error("Informe uma quantidade inteira válida.");
+      if(qtd>disponivel)return toast.error("Quantidade maior que o saldo da cozinha.");
+      setSalvando(true);
+      try { await salvar(tamanho === "150" ? "200" : tamanho,qtd); }
+      finally { setSalvando(false); }
+    }}>{salvando ? "Transferindo..." : "Transferir"}</Botao></div>
   </Janela>;
 }
 function AjusteEstoqueModal({ item, fechar, salvar }: any) {
