@@ -741,11 +741,15 @@ function Checkout() {
   async function conferirEstoqueAtual() {
     const { data: catalogoRecente } = await atualizarCatalogo();
     const produtos = (catalogoRecente ?? catalogoAtual) as any[];
+    const demandaPorProduto = new Map<string, number>();
     const indisponivel = lines.find((line) => {
       if (line.custom || line.comboPronto) return false;
       const produto = produtos.find((item) => item.id === line.productId);
       const saldo = estoqueDaLinha(produto, line.weight);
-      return saldo !== null && saldo <= 0;
+      const chave = `${line.productId}:${line.weight ?? ""}`;
+      const demanda = (demandaPorProduto.get(chave) ?? 0) + line.quantity;
+      demandaPorProduto.set(chave, demanda);
+      return saldo !== null && demanda > saldo;
     });
     if (!indisponivel) return false;
     setItemSemEstoque({
