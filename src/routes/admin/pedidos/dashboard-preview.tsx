@@ -46,8 +46,9 @@ const itemWeight = (item: any) => {
 };
 const itemCategory = (item: any) => {
   const raw = [item.tipo, item.categoria, itemName(item), item.observacao].filter(Boolean).join(" ").toLowerCase();
+  const productType = String(item.produtos?.tipo_produto || item.tipo_produto || "").toLowerCase();
   if (/personalizad/.test(raw)) return "Personalizados";
-  if (/etopa|etoppq|etoppq|etopp/.test(raw)) return "Etopaqs";
+  if (productType === "sopa" || /\bsopas?\b|\b(?:so|sp)\d{1,3}\b/.test(raw)) return "Sopas";
   return itemWeight(item) || "Outros";
 };
 const orderPayments = (order: any) => {
@@ -126,13 +127,26 @@ export function DashboardPedidosPreview() {
       preco_unitario: Number(i.preco_unitario || 0), observacao: i.observacao,
     })),
   });
+  const openOrderEditor = (order: any) => {
+    const subtotal = (order.itens || []).reduce(
+      (sum: number, item: any) => sum + Number(item.quantidade || 0) * Number(item.preco_unitario || 0),
+      0,
+    );
+    // O desconto já aplicado no valor final (cupom, indicação ou cashback) é
+    // preservado. A faixa progressiva é calculada novamente pelo servidor.
+    const descontoAdicional = Math.max(
+      0,
+      Math.round((subtotal + Number(order.taxa_entrega || 0) - Number(order.valor_total || 0)) * 100) / 100,
+    );
+    setEditing({ ...order, desconto_adicional: descontoAdicional });
+  };
   const orderActions = (order: any) => (
     <div className="flex flex-wrap items-center gap-1">
       <button aria-label="Visualizar pedido" title="Visualizar pedido"
         onClick={() => setSelected(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Eye size={16}/></button>
       <button aria-label="Editar pedido" title="Editar informações"
-        onClick={() => setEditing({ ...order })}
+        onClick={() => openOrderEditor(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Pencil size={16}/></button>
       {isOpenOrder(order.status) && (orderWhatsappUrl(order)
         ? <a title="Enviar mensagem no WhatsApp" aria-label={"WhatsApp para " + (order.nome_cliente || "cliente")}
@@ -183,17 +197,18 @@ export function DashboardPedidosPreview() {
       ));
       const names: Record<string, string> = {};
       const images: Record<string, string> = {};
+      const types: Record<string, string> = {};
       // Produtos consultados em lotes para evitar limite de resposta em períodos extensos.
       for (let i = 0; i < productIds.length; i += 200) {
-        const { data: products, error: productError } = await supabase.from("produtos").select("id,nome,imagem_url").in("id", productIds.slice(i, i + 200));
+        const { data: products, error: productError } = await supabase.from("produtos").select("id,nome,imagem_url,tipo_produto").in("id", productIds.slice(i, i + 200));
         if (productError) throw productError;
-        for (const product of products ?? []) { names[product.id] = product.nome; images[product.id] = product.imagem_url || ""; }
+        for (const product of products ?? []) { names[product.id] = product.nome; images[product.id] = product.imagem_url || ""; types[product.id] = product.tipo_produto || ""; }
       }
       return (data ?? []).map((order: any) => ({
         ...order,
         itens: (order.itens ?? []).map((item: any) => ({
           ...item,
-          produtos: { nome: names[item.produto_id] || item.nome_item || item.nome || "", imagem_url: images[item.produto_id] || "" },
+          produtos: { nome: names[item.produto_id] || item.nome_item || item.nome || "", imagem_url: images[item.produto_id] || "", tipo_produto: types[item.produto_id] || "" },
         })),
       }));
     },
@@ -202,7 +217,7 @@ export function DashboardPedidosPreview() {
   const { data: productsForEdit = [] } = useQuery({
     queryKey: ["admin-products-order-edit"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g,tipo_produto,categorias(nome)").eq("ativo", true).order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -309,7 +324,7 @@ export function DashboardPedidosPreview() {
         endereco_bairro: editing.endereco_bairro || "", endereco_cidade: editing.endereco_cidade || "",
         endereco_referencia: editing.endereco_referencia || "", endereco_complemento: editing.endereco_complemento || "",
         horario_recebimento: editing.horario_recebimento || "", metodo_pagamento: editing.metodo_pagamento || "",
-        taxa_entrega: Number(editing.taxa_entrega) || 0, desconto_aplicado: Number(editing.desconto_aplicado) || 0,
+        taxa_entrega: Number(editing.taxa_entrega) || 0, desconto_adicional: Number(editing.desconto_adicional) || 0,
         observacao: editing.observacao || editing.observacoes || "", itens,
       }});
       await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
@@ -513,7 +528,7 @@ export function DashboardPedidosPreview() {
               <label key={field} className="flex flex-col gap-1 text-xs font-semibold"><span>{label}</span><input className="rounded-lg border p-2 text-sm font-normal" value={String(editing[field]??"")} onChange={e=>setEditing((prev:any)=>({...prev,[field]:e.target.value}))}/></label>)}
               <label className="flex flex-col gap-1 text-xs font-semibold"><span>Como receber</span><select className="rounded-lg border p-2 text-sm font-normal" value={editing.metodo_entrega||"entrega"} onChange={e=>setEditing((prev:any)=>({...prev,metodo_entrega:e.target.value}))}><option value="entrega">Entrega</option><option value="retirada">Retirada</option></select></label>
               <label className="flex flex-col gap-1 text-xs font-semibold"><span>Taxa de entrega</span><input type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm font-normal" value={editing.taxa_entrega??0} onChange={e=>setEditing((prev:any)=>({...prev,taxa_entrega:e.target.value}))}/></label>
-              <label className="flex flex-col gap-1 text-xs font-semibold"><span>Desconto</span><input type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm font-normal" value={editing.desconto_aplicado??0} onChange={e=>setEditing((prev:any)=>({...prev,desconto_aplicado:e.target.value}))}/></label>
+              <label className="flex flex-col gap-1 text-xs font-semibold"><span>Desconto adicional</span><input type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm font-normal" value={editing.desconto_adicional??0} onChange={e=>setEditing((prev:any)=>({...prev,desconto_adicional:e.target.value}))}/><span className="font-normal text-[#708078]">A faixa progressiva é recalculada ao salvar.</span></label>
             </div>
             <section className="rounded-xl border border-[#dfe9df] p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-[#245b38]">Itens do pedido</h3><button type="button" onClick={()=>setEditing((prev:any)=>({...prev,itens:[...(prev.itens||[]),{produto_id:"",nome_item:"",quantidade:1,preco_unitario:0,observacao:""}]}))} className="inline-flex items-center gap-1 rounded-lg bg-[#e8f4ea] px-3 py-2 text-xs font-bold text-[#245b38]"><Plus size={14}/> Adicionar item</button></div>
               <div className="space-y-2">{(editing.itens||[]).map((item:any,index:number)=><div key={item.id||index} className="grid grid-cols-1 gap-2 rounded-xl border bg-[#fbfdfb] p-3 sm:grid-cols-[1fr_80px_110px_36px]">
@@ -528,7 +543,7 @@ export function DashboardPedidosPreview() {
       </div>, document.body)}
       {selected && typeof document !== "undefined" && (() => {
         const totalUnits = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0), 0);
-        const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Etopaqs": 0, "Personalizados": 0 };
+        const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Sopas": 0, "Personalizados": 0 };
         for (const item of selected.itens || []) {
           const category = itemCategory(item);
           if (category in counts) counts[category] += Number(item.quantidade || 0);
@@ -547,7 +562,7 @@ export function DashboardPedidosPreview() {
           "200g": "bg-[#edf7ed] text-[#226342]",
           "300g": "bg-[#fff5df] text-[#8a570e]",
           "400g": "bg-[#fff0f0] text-[#9d3939]",
-          "Etopaqs": "bg-[#f4ebff] text-[#673b90]",
+          "Sopas": "bg-[#f4ebff] text-[#673b90]",
           "Personalizados": "bg-[#e9f6f0] text-[#245c4d]",
         };
         return createPortal(<div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/55 p-2 sm:p-4" onClick={() => setSelected(null)}>
@@ -686,7 +701,7 @@ export function DashboardPedidosPreview() {
             </div>
             <footer className="flex shrink-0 items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
               <button onClick={() => printOrder(selected)} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Printer size={16} className="shrink-0"/> Imprimir</button>
-              <button onClick={() => { setEditing({ ...selected }); setSelected(null); }} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Pencil size={15} className="shrink-0"/> Editar informações</button>
+              <button onClick={() => { openOrderEditor(selected); setSelected(null); }} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Pencil size={15} className="shrink-0"/> Editar informações</button>
               {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#175934] px-2 py-2 text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:px-4 sm:text-sm"><MessageCircle size={16} className="shrink-0"/> WhatsApp</a>}
             </footer>
           </div>
