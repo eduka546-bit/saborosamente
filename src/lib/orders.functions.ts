@@ -994,6 +994,12 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
       throw new Error("Pedidos cancelados não podem ser alterados.");
     }
 
+    const { data: itensAnteriores, error: itensAnterioresError } = await supabase
+      .from("pedido_itens")
+      .select("produto_id,quantidade,observacao")
+      .eq("pedido_id", data.id);
+    if (itensAnterioresError) throw new Error("Não foi possível carregar os itens atuais do pedido.");
+
     const productIds = [...new Set(data.itens.map((item) => item.produto_id).filter(Boolean))] as string[];
     if (productIds.length) {
       const { data: products, error } = await supabase.from("produtos").select("id,nome").in("id", productIds);
@@ -1039,6 +1045,35 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
       observacao: item.observacao || null,
     })));
     if (itemsError) throw new Error(itemsError.message);
+
+    // A edição pode acrescentar, reduzir ou trocar itens. Concilia apenas a
+    // diferença para manter o saldo operacional fiel, sem jamais bloquear o pedido.
+    const extrairPeso = (observacao?: string | null) =>
+      String(observacao ?? "").match(/peso:\s*(200g|300g|400g)/i)?.[1]?.toLowerCase() ?? "300g";
+    const consumos = new Map<string, { productId: string; weight: string; quantity: number }>();
+    const registrarConsumo = (productId: string | null | undefined, quantidade: number, observacao?: string | null) => {
+      if (!productId) return;
+      const weight = extrairPeso(observacao);
+      const key = `${productId}:${weight}`;
+      const atual = consumos.get(key);
+      consumos.set(key, {
+        productId,
+        weight,
+        quantity: (atual?.quantity ?? 0) + quantidade,
+      });
+    };
+    for (const item of data.itens) registrarConsumo(item.produto_id, item.quantidade, item.observacao);
+    for (const item of itensAnteriores ?? []) registrarConsumo(item.produto_id, -Number(item.quantidade ?? 0), item.observacao);
+
+    const stockOps = [...consumos.values()].filter((item) => item.quantity !== 0);
+    if (stockOps.length) {
+      const { error: stockError } = await supabase.rpc("ajustar_estoque_edicao_pedido", {
+        p_stock_ops: stockOps,
+      });
+      if (stockError) {
+        console.error("Pedido atualizado, mas não foi possível conciliar o estoque", stockError);
+      }
+    }
 
     return { id: data.id, valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - data.desconto_aplicado)) : total };
   });
