@@ -395,10 +395,6 @@ function Checkout() {
   const HORARIOS_ENTREGA = horariosDisponiveisParaData(entregaCfg, dataEntrega);
   // agendaTick força novo cálculo a cada 30 s sem alterar a configuração.
   void agendaTick;
-  const minimoEntrega = Number(entregaCfg.minUnidades ?? 0);
-  const faltamParaMinimoEntrega = Math.max(0, minimoEntrega - count);
-  const pedidoAbaixoMinimoEntrega =
-    metodoEntrega === "entrega" && minimoEntrega > 0 && faltamParaMinimoEntrega > 0;
 
   useEffect(() => {
     if (restoringCheckoutDraft.current) return;
@@ -781,13 +777,6 @@ function Checkout() {
       return;
     }
 
-    if (pedidoAbaixoMinimoEntrega) {
-      toast.error(
-        `Para ${selectedCity}, o pedido mínimo é de ${minimoEntrega} unidades. Faltam ${faltamParaMinimoEntrega}.`,
-      );
-      return;
-    }
-
     // Retirada não exige agendamento e nunca usa a agenda de entregas.
     if (metodoEntrega === "entrega") {
       if (!dataEntrega) {
@@ -817,14 +806,6 @@ function Checkout() {
       }
     }
 
-    // Marmita personalizada: mínimo de unidades por combinação.
-    const MIN_PERSONALIZADA = 3;
-    if (lines.some((l) => l.custom && l.quantity < MIN_PERSONALIZADA)) {
-      toast.error(
-        `Cada marmita personalizada precisa de no mínimo ${MIN_PERSONALIZADA} unidades.`,
-      );
-      return;
-    }
 
     try {
       // A validação do cupom (validade, limite de usos, primeira compra) e o
@@ -1438,21 +1419,6 @@ function Checkout() {
               </div>
             )}
 
-            {pedidoAbaixoMinimoEntrega && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-base text-amber-900">
-                <strong>Pedido mínimo para {selectedCity}: {minimoEntrega} unidades.</strong>
-                <p className="mt-1 text-base leading-relaxed">
-                  Faltam {faltamParaMinimoEntrega} {faltamParaMinimoEntrega === 1 ? "unidade" : "unidades"} para liberar a entrega nessa cidade.
-                </p>
-                <Link
-                  to="/"
-                  hash="cardapio"
-                  className="mt-3 inline-flex rounded-full bg-[#087443] px-4 py-2 text-base font-semibold text-white"
-                >
-                  Adicionar mais itens
-                </Link>
-              </div>
-            )}
 
             {/* Escolha de data e faixa exclusivamente para ENTREGA. */}
             {metodoEntrega === "entrega" && (
@@ -1464,7 +1430,6 @@ function Checkout() {
                     className={fieldClass}
                     value={dataEntrega}
                     onChange={(e) => { setDataEntrega(e.target.value); setHorarioEntrega(""); }}
-                    disabled={pedidoAbaixoMinimoEntrega}
                   >
                     <option value="">Selecione uma data</option>
                     {datasEntrega.map((d) => (
@@ -1479,7 +1444,7 @@ function Checkout() {
                     className={fieldClass}
                     value={horarioEntrega}
                     onChange={(e) => setHorarioEntrega(e.target.value)}
-                    disabled={pedidoAbaixoMinimoEntrega || !dataEntrega || HORARIOS_ENTREGA.length === 0}
+                    disabled={!dataEntrega || HORARIOS_ENTREGA.length === 0}
                   >
                     <option value="">Selecione uma faixa</option>
                     {HORARIOS_ENTREGA.map((faixa) => (
@@ -1864,16 +1829,14 @@ function Checkout() {
 
           <button
             type="submit"
-            disabled={isSubmitting || entregaPendenteCalculo || pedidoAbaixoMinimoEntrega}
+            disabled={isSubmitting || entregaPendenteCalculo}
             className="w-full rounded-full bg-primary px-6 py-3 text-base font-semibold text-primary-foreground transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Registrando pedido..."
               : entregaPendenteCalculo
                 ? "Escolha o bairro para calcular a entrega"
-                : pedidoAbaixoMinimoEntrega
-                  ? `Adicione mais ${faltamParaMinimoEntrega} para liberar a entrega`
-                  : session
+                : session
                   ? `Confirmar pedido • ${formatBRL(finalTotal)}`
                   : `Entrar para confirmar • ${formatBRL(finalTotal)}`}
           </button>
