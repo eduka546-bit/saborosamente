@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
-import { updateAdminOrderStatus } from "@/lib/orders.functions";
+import { updateAdminOrder, updateAdminOrderStatus } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +75,7 @@ const sections = [
 export function DashboardPedidosPreview() {
   const client = useQueryClient();
   const statusFn = useServerFn(updateAdminOrderStatus);
+  const updateOrderFn = useServerFn(updateAdminOrder);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"quadro" | "lista">("quadro");
@@ -198,6 +199,15 @@ export function DashboardPedidosPreview() {
     },
     refetchInterval: 30000,
   });
+  const { data: productsForEdit = [] } = useQuery({
+    queryKey: ["admin-products-order-edit"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g").eq("ativo", true).order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
   // Centraliza Realtime, aviso de novos pedidos e impressão automática
   // na mesma tela. A antiga tela não monta mais um segundo monitor.
   useEffect(() => {
@@ -281,19 +291,31 @@ export function DashboardPedidosPreview() {
     try {
       const {data:{session}} = await supabase.auth.getSession();
       if(!session?.access_token) throw new Error("Sessão expirada");
-      const original = (orders as any[]).find(o=>o.id===editing.id);
-      if(!original) throw new Error("Pedido não encontrado");
-      const fields=["nome_cliente","telefone_cliente","endereco_rua","endereco_numero","endereco_bairro","endereco_cidade","horario_recebimento","metodo_pagamento"];
-      const changes:Record<string,any>={};
-      for(const field of fields) if(String(original[field]??"")!==String(editing[field]??"")) changes[field]=editing[field];
-      if(Object.keys(changes).length){
-        const {error}=await supabase.from("pedidos").update(changes).eq("id",editing.id);
-        if(error) throw error;
-      }
+      const itens = (editing.itens ?? []).map((item:any) => ({
+        produto_id: item.produto_id || null,
+        nome_item: item.nome_item || item.produtos?.nome || "",
+        quantidade: Math.max(1, Number(item.quantidade) || 1),
+        preco_unitario: Math.max(0, Number(item.preco_unitario) || 0),
+        observacao: item.observacao || "",
+      })).filter((item:any) => item.produto_id || item.nome_item);
+      if (!itens.length) throw new Error("Inclua pelo menos um item no pedido.");
+      await updateOrderFn({ data: {
+        id: editing.id, accessToken: session.access_token,
+        nome_cliente: editing.nome_cliente || "Cliente final",
+        telefone_cliente: editing.telefone_cliente || "Não informado",
+        email_cliente: editing.email_cliente || "",
+        metodo_entrega: editing.metodo_entrega === "retirada" ? "retirada" : "entrega",
+        endereco_rua: editing.endereco_rua || "", endereco_numero: editing.endereco_numero || "",
+        endereco_bairro: editing.endereco_bairro || "", endereco_cidade: editing.endereco_cidade || "",
+        endereco_referencia: editing.endereco_referencia || "", endereco_complemento: editing.endereco_complemento || "",
+        horario_recebimento: editing.horario_recebimento || "", metodo_pagamento: editing.metodo_pagamento || "",
+        taxa_entrega: Number(editing.taxa_entrega) || 0, desconto_aplicado: Number(editing.desconto_aplicado) || 0,
+        observacao: editing.observacao || editing.observacoes || "", itens,
+      }});
       await client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]});
       await client.invalidateQueries({queryKey:["admin-orders"]});
       setEditing(null);
-      toast.success("Informações atualizadas");
+      toast.success("Pedido atualizado");
     } catch(err:any){toast.error(err?.message||"Erro ao salvar pedido")}
     finally {setBusyId(null)}
   };
@@ -483,12 +505,23 @@ export function DashboardPedidosPreview() {
 
       </div>
       {editing && typeof document !== "undefined" && createPortal(<div className="fixed inset-0 z-[10060] flex items-center justify-center bg-black/50 p-3" onClick={()=>setEditing(null)}>
-        <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-xl">
+        <div role="dialog" aria-modal="true" aria-label="Editar pedido" onClick={e=>e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-4xl flex-col rounded-2xl bg-white shadow-xl">
           <div className="flex items-center justify-between border-b p-4"><h2 className="text-lg font-bold">Editar pedido #{String(editing.id).slice(0,8).toUpperCase()}</h2><button aria-label="Fechar" onClick={()=>setEditing(null)}><X size={20}/></button></div>
-          <div className="grid min-h-0 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2">
-            {([["nome_cliente","Nome do cliente"],["telefone_cliente","Telefone"],["endereco_rua","Rua"],["endereco_numero","Número"],["endereco_bairro","Bairro"],["endereco_cidade","Cidade"],["horario_recebimento","Data e horário"],["metodo_pagamento","Forma de pagamento"]] as const).map(([field,label])=>
+          <div className="min-h-0 space-y-4 overflow-y-auto p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {([["nome_cliente","Nome do cliente"],["telefone_cliente","Telefone"],["email_cliente","E-mail"],["endereco_rua","Rua"],["endereco_numero","Número"],["endereco_bairro","Bairro"],["endereco_cidade","Cidade"],["endereco_referencia","Referência"],["endereco_complemento","Complemento"],["horario_recebimento","Data e horário"],["metodo_pagamento","Forma de pagamento"]] as const).map(([field,label])=>
               <label key={field} className="flex flex-col gap-1 text-xs font-semibold"><span>{label}</span><input className="rounded-lg border p-2 text-sm font-normal" value={String(editing[field]??"")} onChange={e=>setEditing((prev:any)=>({...prev,[field]:e.target.value}))}/></label>)}
-            <p className="text-xs text-gray-500 sm:col-span-2">Itens, valores e baixas de estoque permanecem protegidos contra alterações sem conferência. Edite os dados do atendimento aqui.</p>
+              <label className="flex flex-col gap-1 text-xs font-semibold"><span>Como receber</span><select className="rounded-lg border p-2 text-sm font-normal" value={editing.metodo_entrega||"entrega"} onChange={e=>setEditing((prev:any)=>({...prev,metodo_entrega:e.target.value}))}><option value="entrega">Entrega</option><option value="retirada">Retirada</option></select></label>
+              <label className="flex flex-col gap-1 text-xs font-semibold"><span>Taxa de entrega</span><input type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm font-normal" value={editing.taxa_entrega??0} onChange={e=>setEditing((prev:any)=>({...prev,taxa_entrega:e.target.value}))}/></label>
+              <label className="flex flex-col gap-1 text-xs font-semibold"><span>Desconto</span><input type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm font-normal" value={editing.desconto_aplicado??0} onChange={e=>setEditing((prev:any)=>({...prev,desconto_aplicado:e.target.value}))}/></label>
+            </div>
+            <section className="rounded-xl border border-[#dfe9df] p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-[#245b38]">Itens do pedido</h3><button type="button" onClick={()=>setEditing((prev:any)=>({...prev,itens:[...(prev.itens||[]),{produto_id:"",nome_item:"",quantidade:1,preco_unitario:0,observacao:""}]}))} className="inline-flex items-center gap-1 rounded-lg bg-[#e8f4ea] px-3 py-2 text-xs font-bold text-[#245b38]"><Plus size={14}/> Adicionar item</button></div>
+              <div className="space-y-2">{(editing.itens||[]).map((item:any,index:number)=><div key={item.id||index} className="grid grid-cols-1 gap-2 rounded-xl border bg-[#fbfdfb] p-3 sm:grid-cols-[1fr_80px_110px_36px]">
+                <select className="min-w-0 rounded-lg border p-2 text-sm" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
+                <input aria-label="Quantidade" type="number" min="1" className="rounded-lg border p-2 text-sm" value={item.quantidade??1} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,quantidade:e.target.value}:row)}))}/><input aria-label="Preço unitário" type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm" value={item.preco_unitario??0} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,preco_unitario:e.target.value}:row)}))}/><button type="button" aria-label="Remover item" disabled={(editing.itens||[]).length<=1} onClick={()=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).filter((_:any,i:number)=>i!==index)}))} className="text-red-600 disabled:opacity-30"><X size={18}/></button>
+                {!item.produto_id && <input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Nome do item avulso" value={item.nome_item||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,nome_item:e.target.value}:row)}))}/>}<input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Observação do item, ex.: Peso: 300g" value={item.observacao||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,observacao:e.target.value}:row)}))}/>
+              </div>)}</div></section>
+            <label className="flex flex-col gap-1 text-xs font-semibold"><span>Observações gerais</span><textarea className="rounded-lg border p-2 text-sm font-normal" rows={2} value={editing.observacao??editing.observacoes??""} onChange={e=>setEditing((prev:any)=>({...prev,observacao:e.target.value}))}/></label>
           </div>
           <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
