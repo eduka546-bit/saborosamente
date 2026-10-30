@@ -947,3 +947,98 @@ export const updateAdminOrderStatus = createServerFn({ method: "POST" })
 
     return atualizado;
   });
+
+const adminOrderEditSchema = z.object({
+  id: z.string().uuid(),
+  accessToken: z.string().min(20),
+  nome_cliente: z.string().trim().min(2).max(120),
+  telefone_cliente: z.string().trim().min(8).max(30),
+  email_cliente: z.string().trim().email().max(160).optional().or(z.literal("")),
+  metodo_entrega: z.enum(["entrega", "retirada"]),
+  endereco_rua: z.string().trim().max(160).optional(),
+  endereco_numero: z.string().trim().max(30).optional(),
+  endereco_bairro: z.string().trim().max(120).optional(),
+  endereco_cidade: z.string().trim().max(120).optional(),
+  endereco_referencia: z.string().trim().max(180).optional(),
+  endereco_complemento: z.string().trim().max(100).optional(),
+  horario_recebimento: z.string().trim().max(160).optional(),
+  metodo_pagamento: z.string().trim().max(80).optional(),
+  taxa_entrega: z.number().min(0).max(10000),
+  desconto_aplicado: z.number().min(0).max(100000),
+  observacao: z.string().trim().max(1000).optional(),
+  itens: z.array(z.object({
+    produto_id: z.string().uuid().nullable().optional(),
+    nome_item: z.string().trim().max(180).optional(),
+    quantidade: z.number().int().min(1).max(500),
+    preco_unitario: z.number().min(0).max(100000),
+    observacao: z.string().trim().max(500).optional(),
+  })).min(1).max(100),
+});
+
+/** Edição operacional: ajusta atendimento e itens sem bloquear por estoque. */
+export const updateAdminOrder = createServerFn({ method: "POST" })
+  .validator((data: z.infer<typeof adminOrderEditSchema>) => adminOrderEditSchema.parse(data))
+  .handler(async ({ data }) => {
+    const supabase = createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(data.accessToken);
+    if (authError || !user) throw new Error("Sessão expirada.");
+
+    const { data: roleRow, error: roleError } = await supabase
+      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    if (roleError || !roleRow) throw new Error("Acesso administrativo necessário.");
+
+    const { data: pedido, error: pedidoError } = await supabase
+      .from("pedidos").select("id,status").eq("id", data.id).maybeSingle();
+    if (pedidoError || !pedido) throw new Error("Pedido não encontrado.");
+    if (String(pedido.status).toLowerCase() === "cancelado") {
+      throw new Error("Pedidos cancelados não podem ser alterados.");
+    }
+
+    const productIds = [...new Set(data.itens.map((item) => item.produto_id).filter(Boolean))] as string[];
+    if (productIds.length) {
+      const { data: products, error } = await supabase.from("produtos").select("id,nome").in("id", productIds);
+      if (error || (products ?? []).length !== productIds.length) throw new Error("Um dos produtos escolhidos não existe mais.");
+    }
+
+    const subtotal = roundMoney(data.itens.reduce((sum, item) => sum + item.quantidade * item.preco_unitario, 0));
+    const total = roundMoney(Math.max(0, subtotal + data.taxa_entrega - data.desconto_aplicado));
+    const metodoEntrega = data.metodo_entrega;
+    if (metodoEntrega === "entrega" && (!data.endereco_rua || !data.endereco_numero || !data.endereco_bairro || !data.endereco_cidade)) {
+      throw new Error("Informe rua, número, bairro e cidade para entrega.");
+    }
+
+    const { error: orderError } = await supabase.from("pedidos").update({
+      nome_cliente: data.nome_cliente,
+      telefone_cliente: data.telefone_cliente,
+      email_cliente: data.email_cliente || null,
+      metodo_entrega: metodoEntrega,
+      endereco_rua: metodoEntrega === "entrega" ? data.endereco_rua || null : null,
+      endereco_numero: metodoEntrega === "entrega" ? data.endereco_numero || null : null,
+      endereco_bairro: metodoEntrega === "entrega" ? data.endereco_bairro || null : null,
+      endereco_cidade: metodoEntrega === "entrega" ? data.endereco_cidade || null : null,
+      endereco_referencia: metodoEntrega === "entrega" ? data.endereco_referencia || null : null,
+      endereco_complemento: metodoEntrega === "entrega" ? data.endereco_complemento || null : null,
+      horario_recebimento: data.horario_recebimento || null,
+      metodo_pagamento: data.metodo_pagamento || null,
+      taxa_entrega: metodoEntrega === "retirada" ? 0 : roundMoney(data.taxa_entrega),
+      desconto_aplicado: roundMoney(data.desconto_aplicado),
+      valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - data.desconto_aplicado)) : total,
+      observacao: data.observacao || "",
+      updated_at: new Date().toISOString(),
+    }).eq("id", data.id);
+    if (orderError) throw new Error(orderError.message);
+
+    const { error: deleteError } = await supabase.from("pedido_itens").delete().eq("pedido_id", data.id);
+    if (deleteError) throw new Error(deleteError.message);
+    const { error: itemsError } = await supabase.from("pedido_itens").insert(data.itens.map((item) => ({
+      pedido_id: data.id,
+      produto_id: item.produto_id || null,
+      nome_item: item.nome_item || null,
+      quantidade: item.quantidade,
+      preco_unitario: roundMoney(item.preco_unitario),
+      observacao: item.observacao || null,
+    })));
+    if (itemsError) throw new Error(itemsError.message);
+
+    return { id: data.id, valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - data.desconto_aplicado)) : total };
+  });
