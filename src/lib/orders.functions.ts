@@ -964,7 +964,7 @@ const adminOrderEditSchema = z.object({
   horario_recebimento: z.string().trim().max(160).optional(),
   metodo_pagamento: z.string().trim().max(80).optional(),
   taxa_entrega: z.number().min(0).max(10000),
-  desconto_aplicado: z.number().min(0).max(100000),
+  desconto_adicional: z.number().min(0).max(100000).default(0),
   observacao: z.string().trim().max(1000).optional(),
   itens: z.array(z.object({
     produto_id: z.string().uuid().nullable().optional(),
@@ -1001,13 +1001,56 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
     if (itensAnterioresError) throw new Error("Não foi possível carregar os itens atuais do pedido.");
 
     const productIds = [...new Set(data.itens.map((item) => item.produto_id).filter(Boolean))] as string[];
+    let productMap = new Map<string, any>();
     if (productIds.length) {
-      const { data: products, error } = await supabase.from("produtos").select("id,nome").in("id", productIds);
+      const { data: products, error } = await supabase
+        .from("produtos")
+        .select("id,nome,preco,preco_300g,preco_400g,tipo_produto,categorias(nome)")
+        .in("id", productIds);
       if (error || (products ?? []).length !== productIds.length) throw new Error("Um dos produtos escolhidos não existe mais.");
+      productMap = new Map((products ?? []).map((product: any) => [product.id, product]));
     }
 
-    const subtotal = roundMoney(data.itens.reduce((sum, item) => sum + item.quantidade * item.preco_unitario, 0));
-    const total = roundMoney(Math.max(0, subtotal + data.taxa_entrega - data.desconto_aplicado));
+    const { data: settings, error: settingsError } = await supabase
+      .from("site_settings")
+      .select("parametros_loja")
+      .maybeSingle();
+    if (settingsError) throw new Error("Não foi possível carregar as regras de preço.");
+    const tabelaPrecos = normalizarPrecosMarmita((settings as any)?.parametros_loja?.precos_marmita);
+    const pesoDoItem = (observacao?: string | null) =>
+      String(observacao ?? "").match(/peso:\s*(200g|300g|400g)/i)?.[1]?.toLowerCase() ?? "300g";
+    const categoriaDoProduto = (product: any) => String(
+      Array.isArray(product?.categorias) ? product.categorias[0]?.nome ?? "" : product?.categorias?.nome ?? "",
+    );
+    const totalUnidades = data.itens.reduce((sum, item) => {
+      const product = item.produto_id ? productMap.get(item.produto_id) : null;
+      return sum + item.quantidade * (product ? unidadesDoItem(product.nome, categoriaDoProduto(product)) : 1);
+    }, 0);
+    const itensComPreco = data.itens.map((item) => {
+      const product = item.produto_id ? productMap.get(item.produto_id) : null;
+      const categoria = categoriaDoProduto(product);
+      const tipo = String(product?.tipo_produto ?? "").toLowerCase();
+      const linhaDeCombo = /\bcombo\s*:/i.test(String(item.observacao ?? ""));
+      const recebeProgressivo = Boolean(product) && tipo === "marmita" && !isNoDiscount(categoria) && !linhaDeCombo;
+      if (!recebeProgressivo) return { ...item, precoEfetivo: roundMoney(item.preco_unitario), precoCheio: roundMoney(item.preco_unitario) };
+      const peso = pesoDoItem(item.observacao);
+      const precoCatalogo = peso === "400g" && product.preco_400g
+        ? Number(product.preco_400g)
+        : peso === "300g" && product.preco_300g
+          ? Number(product.preco_300g)
+          : Number(product.preco);
+      const precoCheio = roundMoney(precoCheioMarmita(peso, tabelaPrecos) || precoCatalogo);
+      return {
+        ...item,
+        precoCheio,
+        precoEfetivo: roundMoney(precoMarmitaPorFaixa(peso, totalUnidades, precoCheio, tabelaPrecos)),
+      };
+    });
+    const subtotalCheio = roundMoney(itensComPreco.reduce((sum, item) => sum + item.quantidade * item.precoCheio, 0));
+    const subtotal = roundMoney(itensComPreco.reduce((sum, item) => sum + item.quantidade * item.precoEfetivo, 0));
+    const descontoProgressivo = roundMoney(Math.max(0, subtotalCheio - subtotal));
+    const descontoAdicional = roundMoney(data.desconto_adicional);
+    const total = roundMoney(Math.max(0, subtotal + data.taxa_entrega - descontoAdicional));
     const metodoEntrega = data.metodo_entrega;
     if (metodoEntrega === "entrega" && (!data.endereco_rua || !data.endereco_numero || !data.endereco_bairro || !data.endereco_cidade)) {
       throw new Error("Informe rua, número, bairro e cidade para entrega.");
@@ -1027,8 +1070,8 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
       horario_recebimento: data.horario_recebimento || null,
       metodo_pagamento: data.metodo_pagamento || null,
       taxa_entrega: metodoEntrega === "retirada" ? 0 : roundMoney(data.taxa_entrega),
-      desconto_aplicado: roundMoney(data.desconto_aplicado),
-      valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - data.desconto_aplicado)) : total,
+      desconto_aplicado: roundMoney(descontoProgressivo + descontoAdicional),
+      valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - descontoAdicional)) : total,
       observacao: data.observacao || "",
       updated_at: new Date().toISOString(),
     }).eq("id", data.id);
@@ -1036,12 +1079,12 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
 
     const { error: deleteError } = await supabase.from("pedido_itens").delete().eq("pedido_id", data.id);
     if (deleteError) throw new Error(deleteError.message);
-    const { error: itemsError } = await supabase.from("pedido_itens").insert(data.itens.map((item) => ({
+    const { error: itemsError } = await supabase.from("pedido_itens").insert(itensComPreco.map((item) => ({
       pedido_id: data.id,
       produto_id: item.produto_id || null,
       nome_item: item.nome_item || null,
       quantidade: item.quantidade,
-      preco_unitario: roundMoney(item.preco_unitario),
+      preco_unitario: item.precoEfetivo,
       observacao: item.observacao || null,
     })));
     if (itemsError) throw new Error(itemsError.message);
@@ -1075,5 +1118,11 @@ export const updateAdminOrder = createServerFn({ method: "POST" })
       }
     }
 
-    return { id: data.id, valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - data.desconto_aplicado)) : total };
+    return {
+      id: data.id,
+      valor_total: metodoEntrega === "retirada" ? roundMoney(Math.max(0, subtotal - descontoAdicional)) : total,
+      desconto_progressivo: descontoProgressivo,
+      desconto_adicional: descontoAdicional,
+      total_unidades: totalUnidades,
+    };
   });
