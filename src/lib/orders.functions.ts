@@ -359,19 +359,6 @@ export const createOrder = createServerFn({ method: "POST" })
           const sabor: any = comboFlavorMap.get(productId);
           if (!sabor) throw new Error("Um dos sabores do combo não está disponível.");
 
-          if (sabor.controle_estoque) {
-            const available =
-              item.weight === "400g"
-                ? Number(sabor.estoque_400g ?? 0)
-                : item.weight === "300g"
-                  ? Number(sabor.estoque_300g ?? 0)
-                  : Number(sabor.estoque_200g ?? 0);
-            const necessario = quantity * item.quantity;
-            if (available < necessario) {
-              throw new Error(`Estoque insuficiente para ${sabor.nome} em ${item.weight}.`);
-            }
-          }
-
           return {
             productId,
             nome: sabor.nome,
@@ -403,23 +390,6 @@ export const createOrder = createServerFn({ method: "POST" })
           ? (item.opcoes?.consumo === "pronta" ? adicionalPronta : 0) +
             (item.opcoes?.consumo === "pronta" && item.opcoes?.garfoEFaca ? adicionalGarfo : 0)
           : 0;
-
-      // Validação de estoque antes de gravar o pedido.
-      if (p.controle_estoque && tipo !== "combo") {
-        const available =
-          tipo === "sopa"
-            ? Number(p.estoque_400g ?? 0)
-            : tipo === "complemento" || tipo === "bebida"
-              ? Number(p.estoque_200g ?? 0)
-              : item.weight === "400g"
-                ? Number(p.estoque_400g ?? 0)
-                : item.weight === "200g"
-                  ? Number(p.estoque_200g ?? 0)
-                  : Number(p.estoque_300g ?? 0);
-        if (available < item.quantity) {
-          throw new Error(`Estoque insuficiente para ${p.nome}.`);
-        }
-      }
 
       return {
         item,
@@ -773,7 +743,10 @@ export const createOrder = createServerFn({ method: "POST" })
     const stockMap = new Map<string, { productId: string; quantity: number; weight: string }>();
     for (const row of authoritativeItems as any[]) {
       const item = row.item;
-      const weight = item.weight || "300g";
+      const tipo = String(row.product?.tipo_produto ?? "marmita").toLowerCase();
+      // O banco controla sopa, complemento e bebida nas respectivas colunas,
+      // independentemente da gramatura exibida para o cliente.
+      const weight = tipo === "sopa" ? "400g" : (tipo === "complemento" || tipo === "bebida") ? "200g" : (item.weight || "300g");
 
       const adicionarEstoque = (productId: string, quantity: number) => {
         const key = `${productId}:${weight}`;
@@ -803,20 +776,31 @@ export const createOrder = createServerFn({ method: "POST" })
           }
         : null;
 
-    // Pedido, itens, indicação, uso de cashback, estoque e cupom são confirmados
-    // dentro da MESMA transação no Postgres. Qualquer erro desfaz tudo.
+    // O pedido não pode ser bloqueado por saldo. A baixa acontece depois de a
+    // compra ser registrada e pode deixar o saldo negativo para sinalizar a
+    // necessidade de substituição à equipe.
     const { data: order, error: orderError } = await supabase.rpc("criar_pedido_atomico", {
       p_order: {
         ...insertData,
         origem: "site",
       },
       p_items: itemsToInsert,
-      p_stock_ops: [...stockMap.values()],
+      p_stock_ops: [],
       p_referral: referralPayload,
     });
 
     if (orderError || !order) {
       throw new Error(orderError?.message || "Não foi possível registrar o pedido.");
+    }
+
+    try {
+      const { error: stockError } = await supabase.rpc("baixar_estoque_pedido_sem_bloqueio", {
+        p_order_id: order.id,
+        p_stock_ops: [...stockMap.values()],
+      });
+      if (stockError) console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
+    } catch (stockError) {
+      console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
     }
 
     try {
