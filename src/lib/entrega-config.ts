@@ -317,12 +317,6 @@ export function validarEntregaProgramada(args: {
     }
   }
 
-  if ((cfg.minUnidades ?? 0) > 0 && args.totalUnidades < (cfg.minUnidades ?? 0)) {
-    return {
-      ok: false as const,
-      erro: `Para esta cidade, o pedido mínimo é de ${cfg.minUnidades} unidades.`,
-    };
-  }
 
   return { ok: true as const, config: cfg };
 }
