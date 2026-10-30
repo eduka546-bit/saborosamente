@@ -521,10 +521,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback(
     (productId: string, quantity = 1, weight?: string, opcoes?: CartItemOpcoes) => {
       setLines((prev) => {
-        const stock = stockFor(productId, weight);
-        const alreadyInCart = quantityInCartFor(prev, productId, weight);
-        const available = stock === null ? quantity : Math.max(0, stock - alreadyInCart);
-        const quantityToAdd = Math.max(0, Math.min(quantity, available));
+        // Estoque é conferido no checkout para oferecer a troca de sabor. O
+        // carrinho nunca reduz nem bloqueia a quantidade escolhida pelo cliente.
+        const quantityToAdd = Math.max(0, quantity);
         if (quantityToAdd <= 0) return prev;
 
         const existing = prev.find(
@@ -540,7 +539,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return [...prev, { productId, quantity: quantityToAdd, weight, opcoes }];
       });
     },
-    [quantityInCartFor, stockFor],
+    [],
   );
 
   // Marmita personalizada: cada combinação é uma linha única (id sintético).
@@ -587,12 +586,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return prev.filter((line) => line !== target);
         }
 
-        const stock = stockFor(productId, weight);
-        const otherQuantity = quantityInCartFor(prev, productId, weight, target);
-        const maxForThisLine =
-          stock === null ? quantity : Math.max(0, stock - otherQuantity);
-        const nextQuantity = Math.min(quantity, maxForThisLine);
-        if (nextQuantity <= 0) return prev.filter((line) => line !== target);
+        // Aumentar no carrinho precisa permanecer fluido mesmo quando o saldo
+        // mudou. Caso falte produto, o checkout apresenta a troca de sabor.
+        const nextQuantity = quantity;
 
         return prev.map((line) =>
           line === target ? { ...line, quantity: nextQuantity } : line,
