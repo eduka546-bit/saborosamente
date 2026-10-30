@@ -1633,7 +1633,7 @@ function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
   const disponivel = n(saldo?.[campo(tamanho)]);
   return <Janela titulo={"Transferir para a loja — " + rotuloProduto(produto)} fechar={fechar}>
     <div className="grid gap-3 sm:grid-cols-2">
-      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>{setTamanho(e.target.value);setQuantidade("");}}>{tamanhos.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[campo(t.id)])} un</option>)}</select></Campo>
+      <Campo label="Tamanho"><select className={input} value={tamanho} onChange={(e)=>{setTamanho(e.target.value as Tamanho);setQuantidade("");}}>{tamanhos.map((t)=><option key={t.id} value={t.id}>{t.label} · disponível {n(saldo?.[campo(t.id)])} un</option>)}</select></Campo>
       <Campo label="Quantidade"><input className={input} type="number" min="1" max={disponivel} step="1" value={quantidade} onChange={(e)=>setQuantidade(e.target.value)} /></Campo>
     </div>
     <p className="mt-2 text-sm text-[#62766b]">Saldo disponível: <b>{disponivel} unidades</b>. A loja receberá a quantidade transferida; a cozinha terá a mesma quantidade descontada.</p>
