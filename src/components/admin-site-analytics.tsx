@@ -76,6 +76,8 @@ export function AdminSiteAnalytics() {
           <label htmlFor="periodo-site" className="text-sm font-semibold text-gray-600">Período</label>
           <select id="periodo-site" value={dias} onChange={e => setDias(Number(e.target.value))}
             className="rounded-lg border border-[#d8e2d4] bg-white px-3 py-2 text-sm">
+            <option value={1}>Hoje</option>
+            <option value={3}>3 dias</option>
             <option value={7}>7 dias</option>
             <option value={30}>30 dias</option>
             <option value={90}>90 dias</option>
