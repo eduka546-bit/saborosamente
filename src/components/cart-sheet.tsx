@@ -3,7 +3,6 @@ import { useCart } from "@/lib/cart";
 import { sortOrderItems } from "@/lib/order-item-order";
 import { trackEvent } from "@/lib/analytics";
 import { formatBRL } from "@/lib/products";
-import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -18,20 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DiscountProgressWidget } from "./discount-progress-widget";
 import { CartMarketingOptin } from "@/components/cart-marketing-optin";
-
-function estoqueDaLinha(product: any, weight?: string) {
-  const raw =
-    weight === "200g"
-      ? product?.estoque_200g
-      : weight === "300g"
-        ? product?.estoque_300g
-        : weight === "400g"
-          ? product?.estoque_400g
-          : product?.estoque ?? product?.estoque_200g;
-  if (raw === null || raw === undefined || raw === "") return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? Math.max(0, value) : null;
-}
 
 export function CartSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -75,8 +60,6 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
             <>
               <ul className="space-y-4">
                 {sortOrderItems(lines).map(({ product, productId, quantity, weight, opcoes, custom, subtotal: lineTotal }) => {
-                  const stock = custom ? null : estoqueDaLinha(product, weight);
-                  const reachedStock = stock !== null && quantity >= stock;
                   return (
                   <li
                     key={`${productId}|${weight ?? ""}|${opcoes?.consumo ?? ""}|${opcoes?.garfoEFaca ? "gf" : ""}`}
@@ -109,12 +92,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           <button
                             aria-label={`Aumentar quantidade de ${product.nome}`}
                             onClick={() => setQuantity(productId, quantity + 1, weight, opcoes)}
-                            disabled={reachedStock}
-                            title={reachedStock ? "Quantidade máxima disponível atingida" : undefined}
-                            className={cn(
-                              "size-10 rounded-full flex items-center justify-center transition-colors",
-                              reachedStock ? "cursor-not-allowed opacity-35" : "hover:bg-white",
-                            )}
+                            className="size-10 rounded-full flex items-center justify-center transition-colors hover:bg-white"
                           >
                             <Plus className="size-3" />
                           </button>
