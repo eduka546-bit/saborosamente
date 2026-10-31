@@ -55,7 +55,6 @@ import {
 import { WelcomePopup } from "@/components/welcome-popup";
 import { MonthlyRafflePopup } from "@/components/monthly-raffle-popup";
 import { DeliveryRegionMiniMap, HomeInfoModal } from "@/components/home-info-modal";
-import heroMarmitas from "@/assets/hero-marmitas.jpg";
 
 const normalizeText = (value: unknown) =>
   String(value ?? "")
@@ -649,6 +648,9 @@ function Index() {
   // Diferenciais definidos para a nova vitrine. Eles substituem o bloco antigo
   // que ficava encaixado no rodapé do hero.
   const heroFeatures = defaultHeroFeatures;
+  const heroImage = imgUrl((settings as any)?.hero_image_url);
+  const activePromoBanners = promoBanners.filter((banner) => banner?.image_url);
+  const hasHeroMedia = activePromoBanners.length > 0 || Boolean(heroImage);
 
   const comboReadyImage = imgUrl(
     products.find(
@@ -818,7 +820,7 @@ function Index() {
       <section className="bg-[#fbfaf5] pb-0 pt-4 md:pt-6">
         <div className="mx-auto max-w-7xl px-3 md:px-4">
           <div className="relative overflow-hidden rounded-[2rem] border border-[#e5e1d4] bg-[#f7f5ed] shadow-sm">
-            <div className="grid lg:min-h-[390px] lg:grid-cols-[1.12fr_.88fr]">
+            <div className={hasHeroMedia ? "grid lg:min-h-[390px] lg:grid-cols-[1.12fr_.88fr]" : ""}>
               <div className="flex flex-col justify-center px-6 py-7 md:px-9 md:py-8 lg:px-10 lg:py-8 xl:px-12">
                 <span className="mb-2.5 inline-flex w-fit rounded-full bg-[#e9f1d7] px-3 py-1 text-sm font-semibold tracking-normal text-primary">
                   Sabor e praticidade para sua rotina
@@ -857,13 +859,13 @@ function Index() {
                   })}
                 </div>
               </div>
-              <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[390px]">
-                {promoBanners.filter((banner) => banner?.image_url).length > 0 ? (
-                  <PromoCarousel banners={promoBanners} fill className="absolute inset-0 max-w-none" />
+              {hasHeroMedia && <div className="relative aspect-[7/5] overflow-hidden bg-[#087149] lg:aspect-auto lg:min-h-[390px]">
+                {activePromoBanners.length > 0 ? (
+                  <PromoCarousel banners={activePromoBanners} fill className="absolute inset-0 max-w-none" />
                 ) : (
-                  <img src={imgUrl((settings as any)?.hero_image_url) || heroMarmitas} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
+                  <img src={heroImage} alt="Marmitas e sopas SaborosaMente" className="absolute inset-0 size-full object-cover" fetchPriority="high" />
                 )}
-              </div>
+              </div>}
             </div>
           </div>
         </div>
