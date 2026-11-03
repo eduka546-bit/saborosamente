@@ -25,10 +25,11 @@ type WhatsappItem = {
   observacao?: string | null;
 };
 
-type OrderWhatsapp = {
+export type OrderWhatsapp = {
   id?: string;
   nome_cliente?: string | null;
   telefone_cliente?: string | null;
+  origem?: string | null;
   status?: string;
   metodo_entrega?: string | null;
   horario_recebimento?: string | null;
@@ -50,7 +51,8 @@ type OrderWhatsapp = {
   itens?: WhatsappItem[] | null;
 };
 
-const currency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const LOJA_ENDERECO = "Rua Estevão Buschle, 114 - 25 de Julho - São Bento do Sul - CEP 89290075";
+const currency = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/[\u00a0\u202f]/g, " ");
 const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 function formattedTime(raw: string): string {
@@ -64,36 +66,42 @@ function formattedTime(raw: string): string {
   return "às " + fmt(tokens[0]);
 }
 
+/** Data do pedido é sempre DD/MM/AAAA ou ISO, sem parse ambíguo de fuso/idioma. */
 function scheduledDelivery(order: OrderWhatsapp): { sentence: string; detail: string } {
   const raw = String(order.horario_recebimento || order.horario_entrega || order.horario_agendado || "").trim();
   const dateRaw = String(order.data_entrega || order.data_agendada || "").trim();
-  const full = (dateRaw + " " + raw).match(/\b(\d{4})-(\d{2})-(\d{2})\b/) ||
-    (dateRaw + " " + raw).match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
-  const partial = !full ? (dateRaw + " " + raw).match(/\b(\d{1,2})\/(\d{1,2})\b/) : null;
+  const combined = [dateRaw, raw].filter(Boolean).join(" ");
+  const full = combined.match(/\b(\d{4})-(\d{2})-(\d{2})\b/) ||
+    combined.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  const partial = !full ? combined.match(/\b(\d{1,2})\/(\d{1,2})\b/) : null;
 
   let dayText = "";
   let withWeekday = false;
   if (full) {
     const iso = /^\d{4}-/.test(full[0]);
     const year = Number(iso ? full[1] : full[3]);
-    const month = Number(iso ? full[2] : full[2]);
+    const month = Number(full[2]);
     const day = Number(iso ? full[3] : full[1]);
     const date = new Date(Date.UTC(year, month - 1, day));
-    const valid = date.getUTCFullYear() === year &&
-      date.getUTCMonth() + 1 === month && date.getUTCDate() === day;
-    if (valid) {
-      dayText = weekdays[date.getUTCDay()] + ", " + String(day).padStart(2, "0") +
-        "/" + String(month).padStart(2, "0");
+    if (date.getUTCFullYear() === year && date.getUTCMonth() + 1 === month && date.getUTCDate() === day) {
+      dayText = weekdays[date.getUTCDay()] + " - " + String(day).padStart(2, "0") + "/" + String(month).padStart(2, "0");
       withWeekday = true;
     }
   } else if (partial) {
-    dayText = String(Number(partial[1])).padStart(2, "0") + "/" +
-      String(Number(partial[2])).padStart(2, "0");
+    dayText = String(Number(partial[1])).padStart(2, "0") + "/" + String(Number(partial[2])).padStart(2, "0");
   }
-  // Não inventar dia da semana quando o comprovante só possui dia/mês.
+
   const timeRaw = raw.replace(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}(?:\/\d{4})?\b/g, " ")
     .replace(/^[\s,.:•–—-]+|[\s,.:•–—-]+$/g, "").trim();
-  const time = timeRaw ? formattedTime(timeRaw) : "";
+  const clock = "(\\d{1,2})(?::([0-5]\\d)|h([0-5]\\d)?)?\\s*h?";
+  const range = new RegExp(clock + "\\s*(?:~|às|até|a|[-–—])\\s*" + clock, "i").exec(timeRaw);
+  const time = /retirada na loja|separa[cç][aã]o em at[eé]/i.test(timeRaw)
+    ? "separação em até 15 minutos, durante o atendimento"
+    : range
+      ? "entre " + [range[1], range[2] ?? range[3] ?? "00"].map((x, i) => i ? x : x.padStart(2, "0")).join(":") + "h ~ " +
+      [range[4], range[5] ?? range[6] ?? "00"].map((x, i) => i ? x : x.padStart(2, "0")).join(":") + "h"
+    : timeRaw ? formattedTime(timeRaw) : "";
+
   const detail = [dayText, time].filter(Boolean).join(", ") || "Horário a combinar";
   const sentence = dayText
     ? (withWeekday ? "na " : "no dia ") + detail
@@ -109,7 +117,7 @@ function orderAddress(order: OrderWhatsapp): string {
     order.endereco_complemento,
     order.endereco_bairro,
     order.endereco_cidade,
-    order.endereco_cep ? "CEP " + order.endereco_cep : "",
+    order.endereco_cep ? "CEP " + String(order.endereco_cep).replace(/\D/g, "") : "",
     order.endereco_referencia ? "Ref.: " + order.endereco_referencia : "",
   ].map(v => String(v ?? "").trim()).filter(Boolean).join(" - ") || "Endereço a confirmar";
 }
@@ -121,6 +129,7 @@ function paymentLabel(order: OrderWhatsapp): string {
     pix: "PIX",
     cartao: "Cartão",
     alimentacao: "Cartão alimentação/refeição",
+    refeicao: "Cartão alimentação/refeição",
     mercadopago: "Mercado Pago",
     dinheiro: "Dinheiro",
     nao_informado: "A combinar",
@@ -139,12 +148,14 @@ function orderItemLine(item: WhatsappItem): string {
   return "• " + quantity + "x " + name + suffix;
 }
 
+/** Mensagem oficial de confirmação pronta para colar no WhatsApp, com *negrito* e • itens. */
 export function orderWhatsappMessage(order: OrderWhatsapp): string {
   const id = String(order.id ?? "").slice(0, 8).toUpperCase() || "A CONFIRMAR";
   const firstName = String(order.nome_cliente ?? "").trim().split(/\s+/)[0] || "cliente";
   const pickup = String(order.metodo_entrega ?? "").toLowerCase() === "retirada";
+  const source = String(order.origem ?? "site").toLowerCase();
+  const origin = source === "site" ? " feito em nosso site" : "";
   const schedule = scheduledDelivery(order);
-  const action = pickup ? "retirado" : "entregue";
   const items = sortOrderItems(order.itens ?? []).map(orderItemLine);
   const total = order.valor_total === null || order.valor_total === undefined
     ? "A confirmar" : currency(Number(order.valor_total) || 0);
@@ -152,25 +163,29 @@ export function orderWhatsappMessage(order: OrderWhatsapp): string {
   return [
     "Olá, " + firstName + "! 🙌🏻",
     "",
-    "Aqui é da SaborosaMente 🫶🏼",
+    "Aqui é da *SaborosaMente Refeições, Marmitas e Sopas Congeladas* 🫶",
     "",
-    "Seu pedido: *#" + id + "* está confirmado para ser *" + action + "*" +
+    "Seu pedido: *#" + id + "*" + origin + " está confirmado, e programado para " +
+      (pickup ? "retirada" : "ser entregue") +
       (schedule.sentence ? " " + schedule.sentence : "") +
-      " 🎉, agradecemos a preferência e confiança! Temos certeza de que irá gostar e queremos estar presentes na sua alimentação por muito tempo!! 😁",
+      ", agradecemos a preferência e confiança! 🙏🏻",
+    "Temos certeza de que irá gostar e queremos estar presentes na sua alimentação por bastante tempo!! 💚",
     "",
     (pickup ? "*Retirada:* " : "*Entrega:* ") + schedule.detail,
-    (pickup ? "*Local de Retirada:* Loja SaborosaMente" : "*Local de Entrega:* " + orderAddress(order)),
+    (pickup ? "*Local de Retirada:* " + LOJA_ENDERECO : "*Local de Entrega:* " + orderAddress(order)),
     "*Forma de Pagamento:* " + paymentLabel(order),
     "",
     "*Itens do pedido:*",
+    "",
     ...(items.length ? items : ["Itens a confirmar"]),
     "",
     "*Total:* " + total,
     "",
-    "Qualquer dúvida, estamos à disposição! 🤩",
+    "Qualquer dúvida, estamos à disposição! 🥰",
   ].join("\n");
 }
 
+/** Mantido para integrações antigas; os botões do painel agora copiam, não abrem links. */
 export function orderWhatsappUrl(order: OrderWhatsapp): string | null {
   if (!isOpenOrder(order.status)) return null;
   const phone = phoneForWhatsapp(order.telefone_cliente);
