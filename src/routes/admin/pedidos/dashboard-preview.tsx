@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
+import { formatOrderDateBR } from "@/lib/date-br";
 import { orderWhatsappUrl, isOpenOrder } from "@/lib/order-whatsapp";
 import { imprimirTCP } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
@@ -19,13 +20,7 @@ export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
 });
 
 const money = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const dateOnly = (v: unknown) => {
-  if (!v) return "";
-  const s = String(v);
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4);
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("pt-BR");
-};
+const dateOnly = formatOrderDateBR;
 const deliveryDate = (o: any) => {
   const raw = String(o.horario_recebimento || o.horario_entrega || "").trim();
   const dateMatch = raw.match(/\b\d{4}-\d{2}-\d{2}\b/) || raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
