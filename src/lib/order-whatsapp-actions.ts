@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { orderWhatsappMessage, phoneForWhatsapp } from "@/lib/order-whatsapp";
+import { orderWhatsappMessage, phoneForWhatsapp, type OrderWhatsapp } from "@/lib/order-whatsapp";
 
 /** Copia no gesto do clique, com alternativa para navegadores sem Clipboard API. */
 export async function copyWhatsappText(text: string): Promise<void> {
@@ -29,7 +29,7 @@ export async function copyWhatsappText(text: string): Promise<void> {
   }
 }
 
-export async function copiarMensagemWhatsappPedido(order: { id?: string; [key: string]: unknown }) {
+export async function copiarMensagemWhatsappPedido(order: OrderWhatsapp) {
   try {
     await copyWhatsappText(orderWhatsappMessage(order));
     toast.success("Mensagem WhatsApp copiada! É só colar na conversa do cliente.");
