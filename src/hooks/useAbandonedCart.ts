@@ -11,14 +11,13 @@ interface UseAbandonedCartOptions {
     subtotal?: number;
   }>;
   total: number;
-  /** Chamar quando o exit intent for disparado — passa o cupom gerado e o percentual */
-  onExitIntent: (coupon: string, discountPercent: number) => void;
+  /** Convite de saída para o Grupo de Ofertas, sem gerar cupom. */
+  onExitIntent: () => void;
 }
 
 export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCartOptions) {
   const sessionId = useRef(getAbandonedCartSessionId());
   const dbIdRef = useRef<string | null>(null);
-  const couponRef = useRef<string | null>(null);
   const exitFiredRef = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivitySaveRef = useRef(0);
@@ -26,7 +25,6 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
   const startedAtRef = useRef(Date.now());
   const EXIT_COOLDOWN_KEY = "saborosamente.exit_intent.last_shown";
   const EXIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
-  const MIN_EXIT_VALUE = 40;
   const MIN_BROWSE_MS = 60 * 1000;
   // Não disparar no painel admin. IMPORTANTE: não fazer early return aqui —
   // os hooks abaixo precisam ser chamados sempre na mesma ordem (regras de
@@ -35,6 +33,7 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
   const isAdmin = path.startsWith("/admin");
   const isCheckout = path.startsWith("/checkout");
   const hasCart = lines.length > 0 && !isAdmin;
+  const canShowExitInvite = !isAdmin && !isCheckout;
 
   // ── Salva / atualiza o carrinho no banco ──────────────────────────────────
   const saveToDb = useCallback(
@@ -87,26 +86,9 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
       if (error) throw error;
       dbIdRef.current = null;
       exitFiredRef.current = false;
-      // Limpa o cupom guardado para que próxima sessão gere um novo
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("saborosamente.abandon_coupon");
-      }
     } catch {
       /* falha silenciosa: marcar conversão é best-effort */
     }
-  }, []);
-
-  const issueCoupon = useCallback(async () => {
-    const { data, error } = await supabase.rpc("issue_abandoned_cart_coupon", {
-      p_session_id: sessionId.current,
-    });
-    if (error) throw error;
-    const result = data as { codigo?: string; desconto?: number } | null;
-    if (!result?.codigo) throw new Error("Cupom não foi gerado");
-    if (typeof window !== "undefined") {
-      localStorage.setItem("saborosamente.abandon_coupon", result.codigo);
-    }
-    return { coupon: result.codigo, discountPercent: Number(result.desconto ?? 5) };
   }, []);
 
   // ── Salva após 1,2 s de pausa na edição, em vez de esperar 3 minutos ───
@@ -171,35 +153,35 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
     previousHadItemsRef.current = hasItems;
   }, [lines.length, isAdmin]);
 
-  // ── Exit intent: mouse sai pela borda superior ────────────────────────────
+  // ── Convite do Grupo de Ofertas ao sair pela borda superior ─────────────
+  // Independente do valor do carrinho; não cria nem distribui cupons.
   useEffect(() => {
-    if (!hasCart) return;
+    if (!canShowExitInvite || typeof document === "undefined") return;
 
-    const handleMouseLeave = async (e: MouseEvent) => {
-      if (e.clientY > 5) return;
-      if (exitFiredRef.current || isCheckout) return;
-      if (total < MIN_EXIT_VALUE) return;
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY > 5 || exitFiredRef.current) return;
       if (Date.now() - startedAtRef.current < MIN_BROWSE_MS) return;
+      // Não sobrepor sorteio, checkout ou outros modais abertos.
+      if (document.querySelector('[aria-modal="true"]')) return;
 
-      const lastShown = Number(localStorage.getItem(EXIT_COOLDOWN_KEY) || 0);
-      if (lastShown && Date.now() - lastShown < EXIT_COOLDOWN_MS) return;
+      try {
+        if (localStorage.getItem("saborosamente.grupo_ofertas.registrado.v1") === "1") return;
+        if (sessionStorage.getItem("saborosamente.whatsapp_ofertas_telefone")) return;
+        const lastShown = Number(localStorage.getItem(EXIT_COOLDOWN_KEY) || 0);
+        if (lastShown && Date.now() - lastShown < EXIT_COOLDOWN_MS) return;
+        localStorage.setItem(EXIT_COOLDOWN_KEY, String(Date.now()));
+      } catch {
+        // Mesmo com storage indisponível, evitar reexibição nesta sessão.
+      }
 
       exitFiredRef.current = true;
-      try {
-        await saveToDb("exit_intent");
-        const { coupon, discountPercent } = await issueCoupon();
-        couponRef.current = coupon;
-        localStorage.setItem(EXIT_COOLDOWN_KEY, String(Date.now()));
-        onExitIntent(coupon, discountPercent);
-      } catch (error) {
-        console.warn("[AbandonedCart] erro ao gerar cupom:", error);
-        exitFiredRef.current = false;
-      }
+      if (hasCart) void saveToDb("exit_intent");
+      onExitIntent();
     };
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, [hasCart, saveToDb, issueCoupon, onExitIntent, total, isCheckout]);
+  }, [canShowExitInvite, hasCart, saveToDb, onExitIntent]);
 
   return { markConverted };
 }

@@ -228,3 +228,36 @@ describe("pré-cadastro por WhatsApp no carrinho", () => {
     expect(c.filter(x=>x.whatsappOfertasAutorizado===true)).toHaveLength(1);
   });
 });
+
+describe("cadastro do Grupo de Ofertas pelo exit intent", () => {
+  const contato = {
+    telefone: "47977776666", nome: null, consentimento: true,
+    origem: "grupo_ofertas", cadastrado_em: "2026-11-03T13:20:00Z",
+  };
+  it("entra em Clientes com a origem Grupo de Ofertas, sem virar participante do sorteio", () => {
+    const clientes = montarClientesComerciais([], [], [], [contato]);
+    expect(clientes).toHaveLength(1);
+    expect(clientes[0]).toMatchObject({
+      telefone: contato.telefone, grupoOfertasCadastrado: true,
+      preCadastroWhatsApp: true, whatsappOfertasAutorizado: true, totalPedidos: 0,
+    });
+    expect(clientes[0].sorteioLeadId).toBeUndefined();
+    expect(filtrarClientesComerciais(clientes, { ...filters, segmento: "grupo_ofertas" })).toHaveLength(1);
+  });
+  it("junta com cliente existente sem duplicar e sem mudar seu nome", () => {
+    const clientes = montarClientesComerciais(
+      [{ ...profiles[0], telefone: "+55 (47) 97777-6666" }],
+      [], [], [contato],
+    );
+    expect(clientes).toHaveLength(1);
+    expect(clientes[0]).toMatchObject({
+      nome: "José", grupoOfertasCadastrado: true, whatsappOfertasAutorizado: true,
+    });
+  });
+  it("mantém o histórico e não considera a revogação como autorização", () => {
+    const clientes = montarClientesComerciais([], [], [], [{ ...contato, consentimento: false }]);
+    expect(clientes).toHaveLength(1);
+    expect(clientes[0].grupoOfertasCadastrado).toBe(true);
+    expect(clientes[0].whatsappOfertasAutorizado).toBe(false);
+  });
+});

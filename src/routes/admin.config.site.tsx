@@ -704,36 +704,16 @@ function AdminSiteConfig() {
           </div>
         </TabsContent>
         <TabsContent value="payments" className="mt-6 space-y-6">
-          {/* ── Carrinho Abandonado / Exit Intent ───────────────────────── */}
-          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
-            <div>
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Layout className="text-[#5850ec]" size={20} /> Cupom de Carrinho Abandonado
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Percentual de desconto exibido no modal quando o visitante tenta fechar o site com
-                itens no carrinho.
-              </p>
-            </div>
-            <div className="flex items-center gap-4 max-w-xs">
-              <div className="flex-1 space-y-1">
-                <Label>Desconto do exit intent (%)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={formData.exit_intent_discount ?? 5}
-                  onChange={(e) =>
-                    setFormData({ ...formData, exit_intent_discount: Number(e.target.value) })
-                  }
-                  className="w-32"
-                />
-              </div>
-              <div className="text-sm text-muted-foreground mt-5">
-                Ex: <strong>{formData.exit_intent_discount ?? 5}%</strong> → cupom gerado
-                automaticamente para reter o cliente
-              </div>
-            </div>
+          {/* ── Convite ao Grupo de Ofertas no exit intent ─────────────── */}
+          <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-2">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Layout className="text-[#5850ec]" size={20} /> Convite para o Grupo de Ofertas
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Ao tentar sair do site, o visitante pode deixar seu WhatsApp para receber
+              informações do Grupo de Ofertas. O cadastro aparece em Clientes com essa origem,
+              sem gerar cupom automaticamente.
+            </p>
           </div>
 
           {/* ── Métodos de Pagamento ─────────────────────────────────────── */}

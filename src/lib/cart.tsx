@@ -118,7 +118,6 @@ interface CartContextValue {
   selectedCity: string;
   selectedBairro: string;
   taxas: any[];
-  exitIntentCoupon: string | null;
   setSelectedCity: (city: string) => void;
   setSelectedBairro: (bairro: string) => void;
   add: (productId: string, quantity?: number, weight?: string, opcoes?: CartItemOpcoes) => void;
@@ -193,9 +192,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
-  const [exitIntentCoupon, setExitIntentCoupon] = useState<string | null>(null);
   const [exitModalOpen, setExitModalOpen] = useState(false);
-  const [exitDiscountPercent, setExitDiscountPercent] = useState(5);
 
   // Efeito para carregar o carrinho logo no início
   useEffect(() => {
@@ -641,11 +638,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { markConverted } = useAbandonedCart({
     lines: detailedForHook,
     total: totalForHook,
-    onExitIntent: (coupon, discountPercent) => {
-      setExitIntentCoupon(coupon);
-      setExitDiscountPercent(discountPercent);
-      setExitModalOpen(true);
-    },
+    onExitIntent: () => setExitModalOpen(true),
   });
 
   const value = useMemo<CartContextValue>(() => {
@@ -793,10 +786,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQuantity,
       remove,
       clear,
-      exitIntentCoupon,
       markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, exitIntentCoupon, markConverted]);
+  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, markConverted]);
 
   return (
     <>
@@ -806,14 +798,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       <ExitIntentModal
         isOpen={exitModalOpen}
         onClose={() => setExitModalOpen(false)}
-        coupon={exitIntentCoupon ?? ""}
-        cartTotal={value.total}
-        cartCount={value.count}
-        discountPercent={exitDiscountPercent}
-        onApplyCoupon={(coupon) => {
-          setExitIntentCoupon(coupon);
-          setExitModalOpen(false);
-        }}
       />
     </>
   );
