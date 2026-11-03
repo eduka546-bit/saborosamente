@@ -49,6 +49,8 @@ import { imprimirTCP, qzDisponivel } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 import { updateAdminOrderStatus } from "@/lib/orders.functions";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { phoneForWhatsapp } from "@/lib/order-whatsapp";
+import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido } from "@/lib/order-whatsapp-actions";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: AdminPedidosRouter,
@@ -72,96 +74,6 @@ const formatOrderMoney = (value: unknown) =>
     style: "currency",
     currency: "BRL",
   });
-
-function whatsappPhone(raw: string) {
-  const digits = String(raw ?? "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("55")) return digits;
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  return digits;
-}
-
-function orderItemWeight(observacao: unknown) {
-  const match = String(observacao ?? "").match(/Peso:\s*(200g|300g|400g)/i);
-  return match?.[1] ?? "";
-}
-
-function orderStatusText(status: unknown, metodoEntrega: unknown) {
-  const current = String(status ?? "").toLowerCase();
-  const retirada = String(metodoEntrega ?? "").toLowerCase() === "retirada";
-
-  if (current === "pendente") return "✅ Pedido recebido e confirmado";
-  if (current === "preparando") return "👩‍🍳 Pedido em preparação";
-  if (current === "saiu para entrega") return "🚚 Pedido saiu para entrega";
-  if (current === "pronto para retirada") return "🛍️ Pedido pronto para retirada";
-  if (current === "entregue") return retirada ? "✅ Pedido retirado/finalizado" : "✅ Pedido entregue/finalizado";
-  if (current === "cancelado") return "❌ Pedido cancelado";
-  return current ? `Status: ${current}` : "Pedido registrado";
-}
-
-function buildOrderWhatsappMessage(order: any) {
-  const protocolo = String(order?.id ?? "").slice(0, 8).toUpperCase();
-  const nome = String(order?.nome_cliente ?? "cliente").trim();
-  const itens = Array.isArray(order?.itens) ? order.itens : [];
-
-  const itemLines = itens.map((item: any) => {
-    const productName = item?.produtos?.nome ?? item?.nome_item ?? "Produto";
-    const weight = orderItemWeight(item?.observacao);
-    const qty = Number(item?.quantidade ?? 0);
-    const unit = Number(item?.preco_unitario ?? 0);
-    const lineTotal = qty * unit;
-    return `• ${qty}x ${productName}${weight ? ` (${weight})` : ""} — ${formatOrderMoney(lineTotal)}`;
-  });
-
-  const entrega = String(order?.metodo_entrega ?? "").toLowerCase();
-  const isRetirada = entrega === "retirada";
-
-  const addressParts = [
-    [order?.endereco_rua, order?.endereco_numero].filter(Boolean).join(", "),
-    order?.endereco_bairro,
-    order?.endereco_cidade,
-  ].filter(Boolean);
-
-  const lines = [
-    `Olá, ${nome}! 😊`,
-    "",
-    "Segue o resumo do seu pedido na *SaborosaMente* 🍱",
-    "",
-    `*Pedido #${protocolo}*`,
-    ...itemLines,
-    "",
-    isRetirada ? "🛍️ *Retirada na loja*" : "🚚 *Entrega*",
-    !isRetirada && addressParts.length ? `📍 ${addressParts.join(" - ")}` : null,
-    order?.horario_recebimento ? `🕒 Horário: ${order.horario_recebimento}` : null,
-    order?.metodo_pagamento
-      ? `💳 Pagamento: ${order.metodo_pagamento}${order?.tipo_cartao ? ` — ${order.tipo_cartao}` : ""}`
-      : null,
-    Number(order?.taxa_entrega ?? 0) > 0
-      ? `🚚 Taxa de entrega: ${formatOrderMoney(order.taxa_entrega)}`
-      : null,
-    Number(order?.desconto_aplicado ?? 0) > 0
-      ? `🏷️ Descontos: -${formatOrderMoney(order.desconto_aplicado)}`
-      : null,
-    `💰 *Total: ${formatOrderMoney(order?.valor_total)}*`,
-    "",
-    `*${orderStatusText(order?.status, order?.metodo_entrega)}*`,
-    "",
-    "Qualquer dúvida, é só chamar por aqui. 💚",
-  ].filter((line): line is string => line !== null);
-
-  return lines.join("\n");
-}
-
-function openOrderWhatsapp(order: any) {
-  const phone = whatsappPhone(String(order?.telefone_cliente ?? ""));
-  if (!phone) {
-    toast.error("Este pedido não possui telefone cadastrado.");
-    return;
-  }
-
-  const message = buildOrderWhatsappMessage(order);
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
-}
 
 function OrderDetailsModal({ isOpen, onClose, order }: any) {
   const queryClient = useQueryClient();
@@ -323,7 +235,17 @@ function OrderDetailsModal({ isOpen, onClose, order }: any) {
               <h3 className="flex items-center gap-2 font-bold text-gray-900"><User size={18} className="text-[#315440]" /> Cliente</h3>
               <p className="mt-3 font-semibold text-gray-900">{order.nome_cliente || "Cliente final"}</p>
               <p className="mt-1 flex items-center gap-2 text-sm text-gray-600"><Smartphone size={14} /> {order.telefone_cliente || "Telefone não informado"}</p>
-              <Button variant="outline" className="mt-4 w-full border-[#315440] text-[#315440] hover:bg-[#315440]/5" onClick={() => openOrderWhatsapp(order)}><Smartphone size={16} /> Abrir conversa no WhatsApp</Button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" className="min-w-0 flex-1 border-[#315440] text-[#315440] hover:bg-[#315440]/5"
+                  onClick={() => void copiarMensagemWhatsappPedido(order)}>
+                  <Send size={16} /> Mensagem WhatsApp
+                </Button>
+                <Button variant="outline" className="min-w-0 flex-1 border-[#315440] text-[#315440] hover:bg-[#315440]/5"
+                  disabled={!phoneForWhatsapp(order.telefone_cliente)}
+                  onClick={() => void copiarWhatsappClientePedido(order)}>
+                  <Smartphone size={16} /> WhatsApp cliente
+                </Button>
+              </div>
             </section>
 
             <section className="rounded-2xl border border-gray-200 p-4">
@@ -1181,17 +1103,23 @@ function AdminOrdersPage() {
                         >
                           <Eye size={18} />
                         </Button>
-                        {order.telefone_cliente && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="Enviar WhatsApp"
-                            className="h-9 w-9 rounded-full bg-green-50 hover:bg-green-500 hover:text-white transition-all"
-                            onClick={() => openOrderWhatsapp(order)}
-                          >
-                            <Send size={16} className="text-green-600 hover:text-white" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="ghost" size="icon" title="Mensagem WhatsApp — copiar"
+                          aria-label="Copiar mensagem WhatsApp" 
+                          className="h-9 w-9 rounded-full bg-green-50 hover:bg-green-100 transition-all"
+                          onClick={() => void copiarMensagemWhatsappPedido(order)}
+                        >
+                          <Send size={16} className="text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon" title="WhatsApp cliente — copiar número"
+                          aria-label="Copiar WhatsApp do cliente"
+                          disabled={!phoneForWhatsapp(order.telefone_cliente)}
+                          className="h-9 w-9 rounded-full bg-gray-100 hover:bg-gray-200 transition-all disabled:opacity-40"
+                          onClick={() => void copiarWhatsappClientePedido(order)}
+                        >
+                          <Smartphone size={16} className="text-green-600" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
