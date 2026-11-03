@@ -75,6 +75,18 @@ const formatOrderMoney = (value: unknown) =>
     currency: "BRL",
   });
 
+function orderStatusText(status: unknown, metodoEntrega: unknown) {
+  const current = String(status ?? "").toLowerCase();
+  const retirada = String(metodoEntrega ?? "").toLowerCase() === "retirada";
+  if (current === "pendente") return "✅ Pedido recebido e confirmado";
+  if (current === "preparando") return "👩‍🍳 Pedido em preparação";
+  if (current === "saiu para entrega") return "🚚 Pedido saiu para entrega";
+  if (current === "pronto para retirada") return "🛍️ Pedido pronto para retirada";
+  if (current === "entregue") return retirada ? "✅ Pedido retirado/finalizado" : "✅ Pedido entregue/finalizado";
+  if (current === "cancelado") return "❌ Pedido cancelado";
+  return current ? "Status: " + current : "Pedido registrado";
+}
+
 function OrderDetailsModal({ isOpen, onClose, order }: any) {
   const queryClient = useQueryClient();
   const updateAdminOrderStatusFn = useServerFn(updateAdminOrderStatus);
