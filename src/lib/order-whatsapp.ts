@@ -52,7 +52,7 @@ export type OrderWhatsapp = {
 };
 
 const LOJA_ENDERECO = "Rua Estevão Buschle, 114 - 25 de Julho - São Bento do Sul - CEP 89290075";
-const currency = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const currency = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }).replace(/[\u00a0\u202f]/g, " ");
 const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
 function formattedTime(raw: string): string {
