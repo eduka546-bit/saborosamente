@@ -694,6 +694,10 @@ function WhatsappAdminOrderPage() {
         );
       }
 
+      if (metodoEntrega === "entrega" && !numero.trim()) {
+        toast.warning("Pedido manual sem número: confirme o endereço com o cliente antes da entrega.");
+      }
+
       return await createOrderFn({
         data: {
           accessToken,
@@ -1000,7 +1004,7 @@ function WhatsappAdminOrderPage() {
                   <Input value={rua} onChange={(e) => { setRua(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500">Número</label>
+                  <label className="text-xs font-bold text-gray-500">Número <span className="font-normal">(opcional no lançamento manual)</span></label>
                   <Input value={numero} onChange={(e) => { setNumero(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
               </div>
