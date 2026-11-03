@@ -5,6 +5,7 @@ export type ClienteComercial = {
   sorteioCadastradoEm?: string;
   whatsappOfertasAutorizado?: boolean;
   whatsappOfertasCadastradoEm?: string;
+  grupoOfertasCadastrado?: boolean;
   preCadastroWhatsApp?: boolean;
   historicoWhatsapp?: boolean;
   historicoWhatsappId?: string;
@@ -160,6 +161,7 @@ export function montarClientesComerciais(
     const existing = clients.get(key);
     if (existing) {
       existing.whatsappOfertasAutorizado = Boolean(contact.consentimento);
+      existing.grupoOfertasCadastrado = contact.origem === "grupo_ofertas";
       existing.whatsappOfertasCadastradoEm = contact.cadastrado_em ?? undefined;
       if (!existing.nome && String(contact.nome ?? "").trim()) {
         existing.nome = String(contact.nome).trim();
@@ -180,6 +182,7 @@ export function montarClientesComerciais(
         cadastradoEm: contact.cadastrado_em ?? null,
         preCadastroWhatsApp: true,
         whatsappOfertasAutorizado: Boolean(contact.consentimento),
+        grupoOfertasCadastrado: contact.origem === "grupo_ofertas",
         whatsappOfertasCadastradoEm: contact.cadastrado_em ?? undefined,
         totalPedidos: 0,
         valorGasto: 0,
@@ -265,6 +268,7 @@ export function filtrarClientesComerciais(
       return false;
     const s = filtros.segmento;
     if (s === "pre_cadastro_whatsapp" && !c.preCadastroWhatsApp) return false;
+    if (s === "grupo_ofertas" && !c.grupoOfertasCadastrado) return false;
     if (s === "sem_pedidos" && c.pedidos.length !== 0) return false;
     if (s === "cancelados" && !(c.pedidos.length > 0 && c.totalPedidos === 0)) return false;
     if (s === "primeira" && c.totalPedidos !== 1) return false;

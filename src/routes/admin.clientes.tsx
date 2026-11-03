@@ -122,7 +122,7 @@ function AdminClientesPage() {
         carregarTabela("pedidos"),
         opcional("sorteio", () => carregarTabela("sorteio_leads")),
         opcional("WhatsApp", async () => {
-          const { data, error } = await (supabase as any).rpc("listar_whatsapp_cadastros_admin");
+          const { data, error } = await (supabase as any).rpc("listar_whatsapp_cadastros_com_origem_admin");
           if (error) throw error;
           return Array.isArray(data) ? data : [];
         }),
@@ -331,6 +331,7 @@ function AdminClientesPage() {
                 <option value="todos">Todos</option>
                 <option value="sem_pedidos">Nunca fizeram pedido</option>
                 <option value="pre_cadastro_whatsapp">Pré-cadastros pelo WhatsApp</option>
+                <option value="grupo_ofertas">Grupo de Ofertas</option>
                 <option value="cancelados">Só pedidos cancelados</option>
                 <option value="primeira">Uma compra</option>
                 <option value="recorrentes">Recorrentes (2+ compras)</option>
@@ -430,6 +431,7 @@ function AdminClientesPage() {
                   <EtiquetaPills cliente={client} controlador={etiquetasCliente} />
                   {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                   {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
+                  {client.grupoOfertasCadastrado && <Badge className="ml-1 mt-1 border border-lime-200 bg-lime-50 text-green-900 hover:bg-lime-50">Grupo de Ofertas</Badge>}
                   {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
                   <p className="text-sm text-gray-600 mt-1 break-all">{client.email}</p>
                   <p className="text-sm text-gray-600 mt-1 break-words">
@@ -538,6 +540,7 @@ function AdminClientesPage() {
                         <EtiquetaPills cliente={client} controlador={etiquetasCliente} />
                         {client.sorteioLeadId && <Badge className="mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                   {client.preCadastroWhatsApp && <Badge className="ml-1 mt-1 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro</Badge>}
+                  {client.grupoOfertasCadastrado && <Badge className="ml-1 mt-1 border border-lime-200 bg-lime-50 text-green-900 hover:bg-lime-50">Grupo de Ofertas</Badge>}
                   {client.whatsappOfertasAutorizado === true && <Badge className="ml-1 mt-1 border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Ofertas WA autorizadas</Badge>}
                         <p className="text-sm text-gray-600">{client.email}</p>
                         <p className="text-sm text-gray-600 mt-1">
@@ -667,6 +670,7 @@ function AdminClientesPage() {
                 {selectedClient.sorteioLeadId && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Inscrito no sorteio</Badge>}
                 {selectedClient.preCadastroWhatsApp && <Badge className="border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50">Pré-cadastro por WhatsApp</Badge>}
                 {selectedClient.historicoWhatsapp && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Histórico de pedidos WhatsApp</Badge>}
+                {selectedClient.grupoOfertasCadastrado && <Badge className="border border-lime-200 bg-lime-50 text-green-900 hover:bg-lime-50">Grupo de Ofertas</Badge>}
                 {selectedClient.whatsappOfertasAutorizado === true && <Badge className="border border-green-200 bg-green-50 text-green-800 hover:bg-green-50">Cupons e ofertas autorizados</Badge>}
                 {selectedClient.whatsappOfertasAutorizado === false && <Badge className="border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-50">Ofertas não autorizadas</Badge>}
                 <div className="flex flex-wrap gap-4 text-sm text-gray-500 font-medium">

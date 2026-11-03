@@ -1,147 +1,153 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { X, Tag, ShoppingBag, ArrowRight, Copy, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatBRL } from "@/lib/products";
+import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
+import { X, MessageCircle, ShieldCheck, Phone, HeartHandshake } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
+import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
+import { trackEvent } from "@/lib/analytics";
 
 interface ExitIntentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  coupon: string;
-  cartTotal: number;
-  cartCount: number;
-  discountPercent: number;
-  onApplyCoupon: (coupon: string) => void;
 }
 
-export function ExitIntentModal({
-  isOpen,
-  onClose,
-  coupon,
-  cartTotal,
-  cartCount,
-  discountPercent,
-  onApplyCoupon,
-}: ExitIntentModalProps) {
-  const [copied, setCopied] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const navigate = useNavigate();
+export function ExitIntentModal({ isOpen, onClose }: ExitIntentModalProps) {
+  const [telefone, setTelefone] = useState("");
+  const [aceite, setAceite] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState("");
 
-  // Animação de entrada
   useEffect(() => {
-    if (isOpen) {
-      const t = setTimeout(() => setVisible(true), 30);
-      return () => clearTimeout(t);
-    } else {
-      setVisible(false);
-    }
+    if (!isOpen) return;
+    setErro("");
+    const lead = lerLeadPreCadastro();
+    if (lead?.telefone) setTelefone(lead.telefone);
   }, [isOpen]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(coupon).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !enviando) onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, enviando, onClose]);
 
-  const handleApply = () => {
-    onApplyCoupon(coupon);
-    onClose();
-    // Redireciona para o checkout com o cupom na URL
-    navigate({ to: "/checkout", search: { cupom: coupon } });
-  };
+  async function cadastrar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (enviando) return;
+    setErro("");
+    const digits = telefone.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+    if (!/^\d{10,11}$/.test(digits)) {
+      setErro("Informe um WhatsApp válido com DDD.");
+      return;
+    }
+    if (!aceite) {
+      setErro("Confirme que deseja receber informações sobre o Grupo de Ofertas.");
+      return;
+    }
+    setEnviando(true);
+    try {
+      const { error } = await (supabase as any).rpc("registrar_whatsapp_grupo_ofertas", {
+        p_telefone: digits,
+        p_session_id: getAbandonedCartSessionId(),
+        p_nome: lerLeadPreCadastro()?.nome ?? null,
+        p_aceite: true,
+      });
+      if (error) throw error;
+      setEnviado(true);
+      try {
+        localStorage.setItem("saborosamente.grupo_ofertas.registrado.v1", "1");
+        sessionStorage.setItem("saborosamente.whatsapp_ofertas_telefone", digits);
+      } catch {
+        // O cadastro no banco já foi concluído.
+      }
+      void trackEvent("marketing_optin", {
+        metadata: { origem: "exit_intent_grupo_ofertas", canal: "whatsapp" },
+      });
+    } catch {
+      setErro("Não conseguimos salvar seu WhatsApp agora. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === "undefined") return null;
 
-  return (
-    <div
-      className={cn(
-        "fixed inset-0 z-[9999] flex items-center justify-center px-4 transition-all duration-300",
-        visible ? "opacity-100" : "opacity-0",
-      )}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Card */}
-      <div
-        className={cn(
-          "relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl transition-all duration-300",
-          visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4",
-        )}
-      >
-        {/* Faixa verde no topo */}
-        <div className="bg-[#086e45] px-6 pt-8 pb-6 text-white text-center relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            aria-label="Fechar"
-          >
-            <X size={16} />
-          </button>
-
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/10 mb-4">
-            <ShoppingBag size={32} className="text-white" />
-          </div>
-
-          <h2 className="text-2xl font-bold leading-tight mb-1">Espera! Não vá embora.</h2>
-          <p className="text-sm text-white/80 leading-relaxed">
-            Você tem{" "}
-            <strong className="text-white">
-              {cartCount} {cartCount === 1 ? "item" : "itens"}
-            </strong>{" "}
-            ({formatBRL(cartTotal)}) esperando no seu carrinho.
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5">
+      <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-[3px]"
+        aria-label="Fechar convite do Grupo de Ofertas" onClick={onClose} disabled={enviando} />
+      <section role="dialog" aria-modal="true" aria-labelledby="grupo-ofertas-titulo"
+        className="relative w-full max-w-[440px] max-h-[calc(100dvh-24px)] overflow-y-auto rounded-[24px] bg-[#F8F7EF] shadow-2xl">
+        <button type="button" onClick={onClose} disabled={enviando} aria-label="Fechar"
+          className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25">
+          <X size={19}/>
+        </button>
+        <div className="relative overflow-hidden bg-[#064D2F] px-6 pb-7 pt-8 text-center text-white">
+          <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 size-44 rounded-full border border-white/10"/>
+          <span className="mb-3 inline-flex size-14 items-center justify-center rounded-2xl bg-white/10">
+            <MessageCircle size={28} />
+          </span>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[#CDE7A4]">Grupo de Ofertas SaborosaMente</p>
+          <h2 id="grupo-ofertas-titulo" className="text-[25px] font-extrabold leading-tight">Não vá embora ainda!</h2>
+          <p className="mx-auto mt-3 max-w-[320px] text-sm leading-relaxed text-[#E3F1E7]">
+            Entre em nosso <strong className="text-white">Grupo de Ofertas</strong> e não perca novidades e oportunidades especiais!
           </p>
         </div>
 
-        {/* Corpo */}
-        <div className="bg-white px-6 py-6 space-y-5">
-          {/* Oferta */}
-          <div className="rounded-2xl bg-[#086e45]/5 border border-[#086e45]/10 p-4 text-center space-y-1">
-            <p className="text-sm font-bold tracking-normal text-[#086e45]/60">
-              Oferta exclusiva para você
+        {enviado ? (
+          <div className="space-y-4 px-6 py-8 text-center">
+            <ShieldCheck size={40} className="mx-auto text-[#086e45]" />
+            <h3 className="text-lg font-bold text-[#064D2F]">Cadastro recebido!</h3>
+            <p className="text-sm leading-relaxed text-[#3D5344]">
+              Seu WhatsApp foi registrado. Você poderá receber informações e um convite para o nosso Grupo de Ofertas.
             </p>
-            <p className="text-lg font-bold text-gray-900">
-              {discountPercent}% de desconto na sua compra
-            </p>
-            <p className="text-sm text-gray-500">Use o cupom abaixo antes de finalizar o pedido</p>
-          </div>
-
-          {/* Cupom */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-3 rounded-xl border-2 border-dashed border-[#086e45]/40 bg-[#086e45]/5 px-4 py-3">
-              <Tag size={16} className="text-[#086e45] shrink-0" />
-              <span className="font-bold text-lg tracking-normal text-[#086e45]">{coupon}</span>
-            </div>
-            <button
-              onClick={handleCopy}
-              className={cn(
-                "h-12 w-12 rounded-xl flex items-center justify-center transition-all shrink-0",
-                copied ? "bg-green-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-              )}
-              title="Copiar cupom"
-            >
-              {copied ? <Check size={18} /> : <Copy size={18} />}
+            <button type="button" onClick={onClose}
+              className="w-full rounded-xl bg-[#064D2F] px-4 py-3 font-semibold text-white hover:bg-[#003923]">
+              Continuar navegando
             </button>
           </div>
-
-          {/* CTA principal */}
-          <button
-            onClick={handleApply}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#086e45] px-6 py-4 text-base font-bold text-white hover:bg-[#065a38] transition-colors"
-          >
-            Aplicar desconto e finalizar
-            <ArrowRight size={16} />
-          </button>
-
-          {/* Link secundário */}
-          <button
-            onClick={onClose}
-            className="w-full text-center text-sm text-gray-600 hover:text-gray-600 transition-colors py-1"
-          >
-            Continuar navegando
-          </button>
-        </div>
-      </div>
-    </div>
+        ) : (
+          <form onSubmit={cadastrar} className="space-y-4 px-6 py-6">
+            <p className="text-center text-sm text-[#3D5344]">
+              Deixe seu WhatsApp com DDD para receber informações do grupo.
+            </p>
+            <div>
+              <label htmlFor="exit-grupo-telefone" className="mb-1.5 block text-sm font-semibold text-[#203B2B]">
+                Seu WhatsApp
+              </label>
+              <div className="relative">
+                <Phone size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6A8975]"/>
+                <input id="exit-grupo-telefone" type="tel" inputMode="tel" autoComplete="tel"
+                  required maxLength={18} value={telefone} onChange={(event) => setTelefone(event.target.value)}
+                  placeholder="(47) 99999-9999"
+                  className="h-12 w-full rounded-xl border border-[#C5D8CA] bg-white pl-11 pr-3 text-base outline-none focus:ring-2 focus:ring-[#8BB924]"/>
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-[#405D4B]">
+              <input type="checkbox" checked={aceite} onChange={event => setAceite(event.target.checked)}
+                required className="mt-0.5 size-4 shrink-0 accent-[#064D2F]"/>
+              <span>Quero receber pelo WhatsApp novidades, ofertas e um convite para o Grupo de Ofertas da SaborosaMente. Posso cancelar quando quiser.</span>
+            </label>
+            {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
+            <button type="submit" disabled={enviando || !aceite}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#064D2F] px-5 py-3.5 font-bold text-white hover:bg-[#003923] disabled:opacity-50">
+              <HeartHandshake size={18} />
+              {enviando ? "Salvando..." : "Quero participar do Grupo de Ofertas"}
+            </button>
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-[#65796B]">
+              <ShieldCheck size={14}/> Cadastro gratuito. Sem cupom ou compra obrigatória.
+            </p>
+            <button type="button" onClick={onClose}
+              className="w-full py-1 text-center text-xs font-medium text-[#5A6F60] hover:text-[#064D2F]">
+              Agora não, continuar navegando
+            </button>
+          </form>
+        )}
+      </section>
+    </div>,
+    document.body,
   );
 }
