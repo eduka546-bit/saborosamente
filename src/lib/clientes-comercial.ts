@@ -14,7 +14,11 @@ export type ClienteComercial = {
   telefone?: string;
   email: string;
   cpf?: string;
+  rua?: string;
+  numero?: string;
   bairro?: string;
+  complemento?: string;
+  cep?: string;
   cidade: string | null;
   cadastradoEm: string | null;
   totalPedidos: number;
@@ -62,7 +66,11 @@ export function montarClientesComerciais(
       telefone: p.telefone,
       email: p.email || "Não informado",
       cpf: p.cpf,
+      rua: p.endereco,
+      numero: p.numero,
       bairro: p.bairro,
+      complemento: p.complemento,
+      cep: p.cep,
       cidade: p.cidade || null,
       cadastradoEm: p.created_at || null,
       totalPedidos: 0,
@@ -93,7 +101,12 @@ export function montarClientesComerciais(
         nome: o.nome_cliente,
         telefone: o.telefone_cliente,
         email: o.email_cliente || "Não informado",
-        cidade: o.cidade || null,
+        rua: o.endereco_rua || o.endereco || undefined,
+        numero: o.endereco_numero || undefined,
+        bairro: o.endereco_bairro || undefined,
+        complemento: o.endereco_complemento || undefined,
+        cep: o.endereco_cep || undefined,
+        cidade: o.endereco_cidade || o.cidade || null,
         cadastradoEm: null,
         totalPedidos: 0,
         valorGasto: 0,
@@ -102,7 +115,12 @@ export function montarClientesComerciais(
       });
     const c = clients.get(key)!;
     c.pedidos.push(o);
-    if (!c.cidade && o.cidade) c.cidade = o.cidade;
+    if (!c.cidade && (o.endereco_cidade || o.cidade)) c.cidade = o.endereco_cidade || o.cidade;
+    if (!c.rua && (o.endereco_rua || o.endereco)) c.rua = o.endereco_rua || o.endereco;
+    if (!c.numero && o.endereco_numero) c.numero = o.endereco_numero;
+    if (!c.bairro && o.endereco_bairro) c.bairro = o.endereco_bairro;
+    if (!c.complemento && o.endereco_complemento) c.complemento = o.endereco_complemento;
+    if (!c.cep && o.endereco_cep) c.cep = o.endereco_cep;
     if (normalize(o.status).startsWith("cancel")) continue;
     c.totalPedidos++;
     c.valorGasto += Number(o.valor_total) || 0;
