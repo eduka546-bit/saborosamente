@@ -9,9 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
-import { formatOrderDateBR } from "@/lib/date-br";
-import { phoneForWhatsapp, isOpenOrder } from "@/lib/order-whatsapp";
-import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido } from "@/lib/order-whatsapp-actions";
+import { orderWhatsappUrl, isOpenOrder } from "@/lib/order-whatsapp";
 import { imprimirTCP } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 
@@ -21,7 +19,13 @@ export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
 });
 
 const money = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const dateOnly = formatOrderDateBR;
+const dateOnly = (v: unknown) => {
+  if (!v) return "";
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("pt-BR");
+};
 const deliveryDate = (o: any) => {
   const raw = String(o.horario_recebimento || o.horario_entrega || "").trim();
   const dateMatch = raw.match(/\b\d{4}-\d{2}-\d{2}\b/) || raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
@@ -144,13 +148,12 @@ export function DashboardPedidosPreview() {
       <button aria-label="Editar pedido" title="Editar informações"
         onClick={() => openOrderEditor(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Pencil size={16}/></button>
-      <button title="Mensagem WhatsApp — copiar texto formatado" aria-label="Copiar mensagem WhatsApp"
-        onClick={() => void copiarMensagemWhatsappPedido(order)}
-        className="rounded-lg bg-[#e4f7e8] p-2 text-[#168443] hover:bg-[#c9efcf]"><MessageCircle size={16}/></button>
-      <button title="WhatsApp cliente — copiar número" aria-label="Copiar WhatsApp do cliente"
-        disabled={!phoneForWhatsapp(order.telefone_cliente)}
-        onClick={() => void copiarWhatsappClientePedido(order)}
-        className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc] disabled:cursor-not-allowed disabled:text-gray-300"><Phone size={16}/></button>
+      {isOpenOrder(order.status) && (orderWhatsappUrl(order)
+        ? <a title="Enviar mensagem no WhatsApp" aria-label={"WhatsApp para " + (order.nome_cliente || "cliente")}
+            href={orderWhatsappUrl(order)!} target="_blank" rel="noopener noreferrer"
+            className="rounded-lg bg-[#e4f7e8] p-2 text-[#168443] hover:bg-[#c9efcf]"><MessageCircle size={16}/></a>
+        : <button title="Telefone não cadastrado ou inválido" aria-label="WhatsApp indisponível"
+            disabled className="cursor-not-allowed rounded-lg bg-gray-100 p-2 text-gray-300"><MessageCircle size={16}/></button>)}
       <button aria-label="Imprimir pedido" title="Imprimir comanda POS58" onClick={() => printOrder(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Printer size={16}/></button>
     </div>
@@ -551,7 +554,11 @@ export function DashboardPedidosPreview() {
         const discount = Number(selected.desconto_aplicado || 0);
         const deliveryFee = Number(selected.taxa_entrega || 0);
         const totalValue = Number(selected.valor_total || 0);
-        const otherAdjustments = Math.round((totalValue - itemSubtotal + discount - deliveryFee) * 100) / 100;
+        // Pedidos antigos podem guardar os itens já com a faixa progressiva
+        // aplicada. Recompomos o subtotal cheio para que o desconto apareça
+        // inteiro em uma única linha, sem expor um "ajuste" ao cliente.
+        const descontoJaNosItens = Math.round((totalValue - itemSubtotal + discount - deliveryFee) * 100) / 100;
+        const itemSubtotalExibido = Math.round((itemSubtotal + descontoJaNosItens) * 100) / 100;
         const created = selected.created_at ? new Date(selected.created_at) : null;
         const createdTime = created && !Number.isNaN(created.getTime()) ? created.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
         const unitStyle: Record<string, string> = {
@@ -683,10 +690,9 @@ export function DashboardPedidosPreview() {
                 <section className="min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 sm:p-3">
                   <h3 className="mb-2 text-[11px] font-extrabold text-[#1a3927] sm:text-sm">Resumo financeiro</h3>
                   <div className="space-y-1 text-[10px] text-[#67786d] sm:text-xs">
-                    <p className="flex justify-between gap-1"><span>Itens</span><span className="tabular-nums">{money(itemSubtotal)}</span></p>
+                    <p className="flex justify-between gap-1"><span>Itens</span><span className="tabular-nums">{money(itemSubtotalExibido)}</span></p>
                     <p className="flex justify-between gap-1"><span>Desconto</span><span className="tabular-nums">{money(discount)}</span></p>
                     <p className="flex justify-between gap-1"><span>Entrega</span><span className="tabular-nums">{money(deliveryFee)}</span></p>
-                    {Math.abs(otherAdjustments) > 0.009 && <p className="flex justify-between gap-1"><span>Ajustes</span><span className="tabular-nums">{money(otherAdjustments)}</span></p>}
                   </div>
                   <div className="mt-2 flex items-end justify-between gap-1 border-t border-[#e2ebe2] pt-2 text-[11px] font-extrabold text-[#165438] sm:text-sm"><span>Total</span><span className="text-sm tabular-nums sm:text-xl">{money(totalValue)}</span></div>
                 </section>
@@ -696,22 +702,10 @@ export function DashboardPedidosPreview() {
                 </section>
               </div>
             </div>
-            <footer className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
+            <footer className="flex shrink-0 items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
               <button onClick={() => printOrder(selected)} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Printer size={16} className="shrink-0"/> Imprimir</button>
               <button onClick={() => { openOrderEditor(selected); setSelected(null); }} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Pencil size={15} className="shrink-0"/> Editar informações</button>
-              <div className="flex w-full items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
-                <button type="button" onClick={() => void copiarMensagemWhatsappPedido(selected)}
-                  title="Copiar texto do pedido com negritos e marcadores para colar no WhatsApp"
-                  className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl bg-[#175934] px-2 py-2.5 text-center text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:flex-none sm:gap-1.5 sm:px-4 sm:text-sm">
-                  <MessageCircle size={16} className="shrink-0"/> Mensagem WhatsApp
-                </button>
-                <button type="button" disabled={!phoneForWhatsapp(selected.telefone_cliente)}
-                  onClick={() => void copiarWhatsappClientePedido(selected)}
-                  title="Copiar número do WhatsApp do cliente"
-                  className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#cfdfd1] px-2 py-2.5 text-center text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:gap-1.5 sm:px-4 sm:text-sm">
-                  <Phone size={16} className="shrink-0"/> WhatsApp cliente
-                </button>
-              </div>
+              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#175934] px-2 py-2 text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:px-4 sm:text-sm"><MessageCircle size={16} className="shrink-0"/> WhatsApp</a>}
             </footer>
           </div>
         </div>, document.body);
