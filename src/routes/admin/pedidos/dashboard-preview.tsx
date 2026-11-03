@@ -9,7 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
-import { orderWhatsappUrl, isOpenOrder } from "@/lib/order-whatsapp";
+import { formatOrderDateBR } from "@/lib/date-br";
+import { phoneForWhatsapp, isOpenOrder } from "@/lib/order-whatsapp";
+import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido } from "@/lib/order-whatsapp-actions";
 import { imprimirTCP } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 
@@ -19,13 +21,7 @@ export const Route = createFileRoute("/admin/pedidos/dashboard-preview")({
 });
 
 const money = (v: unknown) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const dateOnly = (v: unknown) => {
-  if (!v) return "";
-  const s = String(v);
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(8, 10) + "/" + s.slice(5, 7) + "/" + s.slice(0, 4);
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("pt-BR");
-};
+const dateOnly = formatOrderDateBR;
 const deliveryDate = (o: any) => {
   const raw = String(o.horario_recebimento || o.horario_entrega || "").trim();
   const dateMatch = raw.match(/\b\d{4}-\d{2}-\d{2}\b/) || raw.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
@@ -148,12 +144,13 @@ export function DashboardPedidosPreview() {
       <button aria-label="Editar pedido" title="Editar informações"
         onClick={() => openOrderEditor(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Pencil size={16}/></button>
-      {isOpenOrder(order.status) && (orderWhatsappUrl(order)
-        ? <a title="Enviar mensagem no WhatsApp" aria-label={"WhatsApp para " + (order.nome_cliente || "cliente")}
-            href={orderWhatsappUrl(order)!} target="_blank" rel="noopener noreferrer"
-            className="rounded-lg bg-[#e4f7e8] p-2 text-[#168443] hover:bg-[#c9efcf]"><MessageCircle size={16}/></a>
-        : <button title="Telefone não cadastrado ou inválido" aria-label="WhatsApp indisponível"
-            disabled className="cursor-not-allowed rounded-lg bg-gray-100 p-2 text-gray-300"><MessageCircle size={16}/></button>)}
+      <button title="Mensagem WhatsApp — copiar texto formatado" aria-label="Copiar mensagem WhatsApp"
+        onClick={() => void copiarMensagemWhatsappPedido(order)}
+        className="rounded-lg bg-[#e4f7e8] p-2 text-[#168443] hover:bg-[#c9efcf]"><MessageCircle size={16}/></button>
+      <button title="WhatsApp cliente — copiar número" aria-label="Copiar WhatsApp do cliente"
+        disabled={!phoneForWhatsapp(order.telefone_cliente)}
+        onClick={() => void copiarWhatsappClientePedido(order)}
+        className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc] disabled:cursor-not-allowed disabled:text-gray-300"><Phone size={16}/></button>
       <button aria-label="Imprimir pedido" title="Imprimir comanda POS58" onClick={() => printOrder(order)}
         className="rounded-lg bg-[#eff5ed] p-2 text-[#2f6941] hover:bg-[#dceadc]"><Printer size={16}/></button>
     </div>
@@ -702,10 +699,22 @@ export function DashboardPedidosPreview() {
                 </section>
               </div>
             </div>
-            <footer className="flex shrink-0 items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
+            <footer className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-[#e5ede5] bg-white px-2.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
               <button onClick={() => printOrder(selected)} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Printer size={16} className="shrink-0"/> Imprimir</button>
               <button onClick={() => { openOrderEditor(selected); setSelected(null); }} className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[#cfdfd1] px-2 py-2 text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] sm:px-4 sm:text-sm"><Pencil size={15} className="shrink-0"/> Editar informações</button>
-              {orderWhatsappUrl(selected) && <a href={orderWhatsappUrl(selected)!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-[#175934] px-2 py-2 text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:px-4 sm:text-sm"><MessageCircle size={16} className="shrink-0"/> WhatsApp</a>}
+              <div className="flex w-full items-center gap-1.5 sm:ml-auto sm:w-auto sm:gap-2">
+                <button type="button" onClick={() => void copiarMensagemWhatsappPedido(selected)}
+                  title="Copiar texto do pedido com negritos e marcadores para colar no WhatsApp"
+                  className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl bg-[#175934] px-2 py-2.5 text-center text-[10px] font-semibold text-white hover:bg-[#0f442a] sm:flex-none sm:gap-1.5 sm:px-4 sm:text-sm">
+                  <MessageCircle size={16} className="shrink-0"/> Mensagem WhatsApp
+                </button>
+                <button type="button" disabled={!phoneForWhatsapp(selected.telefone_cliente)}
+                  onClick={() => void copiarWhatsappClientePedido(selected)}
+                  title="Copiar número do WhatsApp do cliente"
+                  className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#cfdfd1] px-2 py-2.5 text-center text-[10px] font-semibold text-[#245b38] hover:bg-[#f1f7f0] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:gap-1.5 sm:px-4 sm:text-sm">
+                  <Phone size={16} className="shrink-0"/> WhatsApp cliente
+                </button>
+              </div>
             </footer>
           </div>
         </div>, document.body);
