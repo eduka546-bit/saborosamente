@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
 import { authorizeAdminOrService } from "../_shared/authorization.ts";
+import { orderWhatsappMessage } from "./order-whatsapp.ts";
 
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
@@ -182,22 +183,24 @@ function mensagemStatus(
   pedido: any,
   isRecorrente: boolean = false,
   templates: Record<string, string> = {},
+  confirmationMessage: string | null = null,
 ): { texto: string; tipo: "texto" | "pix" } | null {
   const protocolo = pedido.id.slice(0, 8).toUpperCase();
   const nome = pedido.nome_cliente?.split(" ")[0] ?? "cliente";
   const linkRastreamento = `${SITE_URL}/pedido?p=${protocolo}`;
 
-  const template =
-    (typeof templates[status] === "string" && templates[status].trim()) ||
-    DEFAULT_MENSAGENS[status];
+  const customText = typeof templates[status] === "string" ? templates[status].trim() : "";
+  // Confirmações usam os dados completos do pedido. Respeita edições
+  // realmente personalizadas; textos genéricos anteriores migram para o novo padrão.
+  const isLegacyGeneric = /(?:recebido e confirmado com sucesso|Recebemos seu pedido|pedido.*foi confirmado)/i.test(customText);
+  if (confirmationMessage && (status === "novo_pedido" || status === "pendente") &&
+      (!customText || isLegacyGeneric)) {
+    return { texto: confirmationMessage, tipo: "texto" };
+  }
+  const template = customText || DEFAULT_MENSAGENS[status];
   if (!template) return null;
 
   let texto = aplicarTemplate(template, { nome, protocolo, link: linkRastreamento });
-
-  // Bônus para cliente recorrente no primeiro contato do pedido.
-  if (status === "novo_pedido" && isRecorrente) {
-    texto += "\n\n🎁 *Bônus recorrente desbloqueado!* Use código *VOLTA5* para 5% OFF";
-  }
 
   return { texto, tipo: status === "pagamento_confirmado" ? "pix" : "texto" };
 }
@@ -311,7 +314,37 @@ Deno.serve(async (req) => {
     }
     if (etapaConfig?.texto && typeof etapaConfig.texto === "string") templates[statusMensagem] = etapaConfig.texto;
 
-    const mensagemObj = mensagemStatus(statusMensagem, pedido, isRecorrente, templates);
+    let confirmationMessage: string | null = null;
+    if (statusMensagem === "novo_pedido" || statusMensagem === "pendente") {
+      try {
+        const { data: orderItems, error: itemError } = await supabase
+          .from("pedido_itens")
+          .select("quantidade, nome_item, observacao, produto_id")
+          .eq("pedido_id", pedido_id);
+        if (itemError) throw itemError;
+        const ids = [...new Set((orderItems || []).map((item: any) => item.produto_id).filter(Boolean))];
+        const names = new Map<string, string>();
+        if (ids.length) {
+          const { data: products, error: productError } = await supabase
+            .from("produtos").select("id,nome").in("id", ids);
+          if (productError) throw productError;
+          for (const product of products || []) names.set(product.id, product.nome);
+        }
+        confirmationMessage = orderWhatsappMessage({
+          ...pedido,
+          itens: (orderItems || []).map((item: any) => ({
+            ...item,
+            produtos: { nome: names.get(item.produto_id) || item.nome_item || "Produto" },
+          })),
+        });
+      } catch (err) {
+        // Falha de leitura de itens não pode impedir a notificação do pedido:
+        // usa o texto genérico anterior como fallback.
+        console.warn("Confirmação detalhada indisponível; usando texto padrão:", err);
+      }
+    }
+
+    const mensagemObj = mensagemStatus(statusMensagem, pedido, isRecorrente, templates, confirmationMessage);
     if (!mensagemObj) {
       return new Response(JSON.stringify({ ok: false, motivo: "sem mensagem para esse status" }), {
         status: 200,
