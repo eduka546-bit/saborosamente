@@ -1,4 +1,5 @@
 import { montarClientesComerciais, filtrarClientesComerciais } from "@/lib/clientes-comercial";
+import { CashbackPendentesAdmin } from "@/components/admin-cashback-pendentes";
 import { useEtiquetasClientes, chaveEtiquetaCliente, EtiquetaPills, GerenciarEtiquetasClientes, EtiquetasDoClienteEditor } from "@/components/admin-client-tags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -294,6 +295,8 @@ function AdminClientesPage() {
           </button>
         ))}
       </div>
+      <CashbackPendentesAdmin />
+
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-8">
         <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
