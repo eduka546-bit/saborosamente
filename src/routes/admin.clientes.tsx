@@ -65,8 +65,10 @@ function AdminClientesPage() {
   const [filtroCidade, setFiltroCidade] = useState("TODAS");
   const [filtroEtiqueta, setFiltroEtiqueta] = useState("todas");
   const etiquetasCliente = useEtiquetasClientes();
-  const [cidadeEditada, setCidadeEditada] = useState("");
-  const [salvandoCidade, setSalvandoCidade] = useState(false);
+  const [dadosEditados, setDadosEditados] = useState({
+    nome: "", telefone: "", cidade: "", bairro: "", rua: "", numero: "", complemento: "", cep: "",
+  });
+  const [salvandoDados, setSalvandoDados] = useState(false);
   const queryClient = useQueryClient();
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -182,25 +184,53 @@ function AdminClientesPage() {
     setCurrentPage(1);
   };
 
-  const salvarCidade = async () => {
+  const abrirCliente = (cliente: any) => {
+    setSelectedClient(cliente);
+    setDadosEditados({
+      nome: cliente.nome || "",
+      telefone: cliente.telefone || "",
+      cidade: cliente.cidade || "",
+      bairro: cliente.bairro || "",
+      rua: cliente.rua || "",
+      numero: cliente.numero || "",
+      complemento: cliente.complemento || "",
+      cep: cliente.cep || "",
+    });
+  };
+
+  const salvarDadosCliente = async () => {
     if (!selectedClient?.profileId)
       return toast.error("Este cliente ainda não possui perfil cadastrado para editar.");
-    setSalvandoCidade(true);
+    if (dadosEditados.nome.trim().length < 2) return toast.error("Informe o nome do cliente.");
+    if (dadosEditados.telefone.trim().replace(/\D/g, "").length < 10)
+      return toast.error("Informe um telefone válido com DDD.");
+    const temEndereco = [dadosEditados.cidade, dadosEditados.bairro, dadosEditados.rua, dadosEditados.numero, dadosEditados.complemento, dadosEditados.cep]
+      .some((campo) => campo.trim());
+    if (temEndereco && (!dadosEditados.cidade.trim() || !dadosEditados.bairro.trim() || !dadosEditados.rua.trim() || !dadosEditados.numero.trim())) {
+      return toast.error("Para salvar o endereço, informe cidade, bairro, rua e número.");
+    }
+    setSalvandoDados(true);
     try {
-      const { data, error } = await supabase.rpc("atualizar_cidade_cliente_admin", {
+      const { data: atualizado, error: erroDados } = await (supabase as any).rpc("atualizar_dados_cliente_admin", {
         p_cliente_id: selectedClient.profileId,
-        p_cidade: cidadeEditada.trim(),
+        p_nome: dadosEditados.nome.trim(),
+        p_telefone: dadosEditados.telefone.trim(),
+        p_cidade: dadosEditados.cidade.trim(),
+        p_bairro: dadosEditados.bairro.trim(),
+        p_endereco: dadosEditados.rua.trim(),
+        p_numero: dadosEditados.numero.trim(),
+        p_complemento: dadosEditados.complemento.trim(),
+        p_cep: dadosEditados.cep.trim(),
       });
-      if (error) throw error;
-      if (!data) throw new Error("Perfil não encontrado.");
-      setSelectedClient((anterior: any) => ({ ...anterior, cidade: cidadeEditada.trim() || null }));
+      if (erroDados || !atualizado) throw erroDados || new Error("Perfil não encontrado.");
+      setSelectedClient((anterior: any) => ({ ...anterior, ...dadosEditados, cidade: dadosEditados.cidade.trim() || null }));
       await queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
       await queryClient.invalidateQueries({ queryKey: ["campanhas-clientes-por-cidade"] });
-      toast.success("Cidade salva! O filtro de campanhas será atualizado.");
+      toast.success("Dados do cliente salvos!");
     } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar a cidade.");
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível salvar os dados do cliente.");
     } finally {
-      setSalvandoCidade(false);
+      setSalvandoDados(false);
     }
   };
 
@@ -444,8 +474,7 @@ function AdminClientesPage() {
                   className="h-11 w-11 shrink-0"
                   aria-label={`Ver detalhes de ${client.nome || "cliente"}`}
                   onClick={() => {
-                    setSelectedClient(client);
-                    setCidadeEditada(client.cidade || "");
+                    abrirCliente(client);
                   }}
                 >
                   <Eye size={20} />
@@ -580,8 +609,7 @@ function AdminClientesPage() {
                       className="h-11 w-11 rounded-full"
                       aria-label={`Ver detalhes de ${client.nome || "cliente"}`}
                       onClick={() => {
-                        setSelectedClient(client);
-                        setCidadeEditada(client.cidade || "");
+                        abrirCliente(client);
                       }}
                     >
                       <Eye size={16} />
@@ -691,6 +719,12 @@ function AdminClientesPage() {
                       {selectedClient.bairro}
                     </span>
                   )}
+                  {(selectedClient.rua || selectedClient.cidade) && (
+                    <span className="flex items-start gap-1 w-full">
+                      <MapPin size={14} className="mt-0.5 shrink-0 text-[#5850ec]" />
+                      {[selectedClient.rua && [selectedClient.rua, selectedClient.numero].filter(Boolean).join(", "), selectedClient.complemento, selectedClient.bairro, selectedClient.cidade, selectedClient.cep && `CEP ${selectedClient.cep}`].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -778,55 +812,53 @@ function AdminClientesPage() {
               )}
             </div>
 
-            <div className="rounded-xl border p-4 mb-6 space-y-2">
-              <label
-                htmlFor="cidade-cliente-admin"
-                className="flex items-center gap-2 font-bold text-sm text-gray-800"
-              >
-                <MapPin size={16} /> Cidade do cliente
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                <Input
-                  id="cidade-cliente-admin"
-                  value={cidadeEditada}
-                  disabled={!selectedClient.profileId}
-                  onChange={(e) => setCidadeEditada(e.target.value)}
-                  list="cidades-sugeridas-admin"
-                  placeholder="Informe a cidade"
-                  className="flex-1 min-w-[180px]"
-                />
-                <datalist id="cidades-sugeridas-admin">
-                  {Array.from(
-                    new Set([
-                      ...cidadesDisponiveis,
-                      "São Bento do Sul",
-                      "Rio Negrinho",
-                      "Campo Alegre",
-                      "Piên",
-                      "Mafra",
-                      "Corupá",
-                    ]),
-                  ).map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-                <Button
-                  onClick={salvarCidade}
-                  disabled={!selectedClient.profileId || salvandoCidade}
-                >
-                  {salvandoCidade ? "Salvando..." : "Salvar cidade"}
-                </Button>
+            <section className="rounded-xl border p-4 mb-6 space-y-4">
+              <div>
+                <h4 className="flex items-center gap-2 font-bold text-gray-900"><MapPin size={16} /> Dados e endereço</h4>
+                <p className="mt-1 text-sm text-gray-600">Mantenha o cadastro atualizado para facilitar os próximos pedidos.</p>
               </div>
-              {!selectedClient.profileId && (
-                <p className="text-sm text-gray-600">
-                  Cadastro de convidado: a cidade poderá ser corrigida quando houver perfil
-                  vinculado.
-                </p>
+              {selectedClient.profileId ? (
+                <>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-gray-700">Nome
+                      <Input value={dadosEditados.nome} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, nome: e.target.value }))} className="mt-1" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Telefone
+                      <Input value={dadosEditados.telefone} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, telefone: e.target.value }))} className="mt-1" inputMode="tel" />
+                    </label>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-gray-700">Cidade
+                      <Input value={dadosEditados.cidade} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, cidade: e.target.value }))} list="cidades-sugeridas-admin" className="mt-1" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Bairro
+                      <Input value={dadosEditados.bairro} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, bairro: e.target.value }))} className="mt-1" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700 sm:col-span-2">Rua
+                      <Input value={dadosEditados.rua} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, rua: e.target.value }))} className="mt-1" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700">Número
+                      <Input value={dadosEditados.numero} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, numero: e.target.value }))} className="mt-1" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700">CEP
+                      <Input value={dadosEditados.cep} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, cep: e.target.value }))} className="mt-1" inputMode="numeric" />
+                    </label>
+                    <label className="text-sm font-semibold text-gray-700 sm:col-span-2">Complemento
+                      <Input value={dadosEditados.complemento} onChange={(e) => setDadosEditados((anterior) => ({ ...anterior, complemento: e.target.value }))} className="mt-1" />
+                    </label>
+                  </div>
+                  <datalist id="cidades-sugeridas-admin">
+                    {Array.from(new Set([...cidadesDisponiveis, "São Bento do Sul", "Rio Negrinho", "Campo Alegre", "Piên", "Mafra", "Corupá"])).map((c) => <option key={c} value={c} />)}
+                  </datalist>
+                  <p className="text-xs text-gray-500">O número é obrigatório sempre que houver endereço salvo.</p>
+                  <Button onClick={salvarDadosCliente} disabled={salvandoDados}>
+                    {salvandoDados ? "Salvando..." : "Salvar dados do cliente"}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600">Este é um cadastro sem conta no site. O endereço do último pedido aparece acima quando disponível; para alterar um pedido, abra-o em Pedidos.</p>
               )}
-              <p className="text-sm text-gray-600">
-                Altera apenas a cidade, sem modificar o endereço do cliente.
-              </p>
-            </div>
+            </section>
 
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
             <div className="space-y-4">
