@@ -4,7 +4,8 @@ import { createServerClient } from "@/integrations/supabase/server";
 import { sendOrderReceivedEmail } from "@/lib/resend-email";
 
 const itemSchema = z.object({
-  productId: z.string().uuid(),
+  productId: z.string().uuid().optional(),
+  nomeItem: z.string().trim().min(2).max(160).optional(),
   quantity: z.number().int().positive().max(200),
   weight: z.enum(["200g", "300g", "400g"]),
   unitPrice: z.number().min(0).max(10000),
@@ -84,17 +85,19 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       throw new Error("Selecione uma conta cadastrada e entrega para atualizar seu endereço.");
     }
 
-    const ids = [...new Set(data.items.map((item) => item.productId))];
-    const { data: products, error: productsError } = await supabase
-      .from("produtos")
-      .select("id,nome,ativo")
-      .in("id", ids);
+    const ids = [...new Set(data.items.flatMap((item) => item.productId ? [item.productId] : []))];
+    const { data: products, error: productsError } = ids.length
+      ? await supabase.from("produtos").select("id,nome,ativo").in("id", ids)
+      : { data: [], error: null };
 
     if (productsError || (products ?? []).length !== ids.length) {
       throw new Error("Um ou mais produtos do pedido não foram encontrados.");
     }
     if ((products ?? []).some((p: any) => p.ativo === false)) {
       throw new Error("Há produto inativo no pedido.");
+    }
+    if (data.items.some((item) => !item.productId && !item.nomeItem)) {
+      throw new Error("Informe o nome do item manual.");
     }
 
     // Uma conta escolhida explicitamente no admin prevalece. Nunca associa
@@ -163,7 +166,8 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
     }
 
     const pItems = data.items.map((item) => ({
-      produto_id: item.productId,
+      produto_id: item.productId ?? null,
+      nome_item: item.nomeItem ?? null,
       quantidade: item.quantity,
       preco_unitario: Math.round(item.unitPrice * 100) / 100,
       tamanho: item.weight,
