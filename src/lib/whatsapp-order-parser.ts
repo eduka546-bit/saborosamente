@@ -86,7 +86,7 @@ export function lerCodigos(texto: string): ItemInterpretado[] {
   return itens;
 }
 
-const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Sopas?|Combo|Complementos?|Personalizadas?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
+const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Sopas?|Combo|Complementos?|Personalizadas?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)(?:\s*\([^)]*\))?\s*$/i;
 // O sufixo "un" é opcional: resumos manuais às vezes escrevem
 // "2 x 8,90un - 2 x 18,00".
 const precoLinha = /(?:^|[\s-])(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)(?:\s*(?:\/\s*)?un(?:idades?)?)?(?=\s|$)/i;
@@ -124,7 +124,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
       if (blocoAtual) blocos.push(interpretarBloco(blocoAtual));
       blocoAtual = { titulo: m[2], quantidade: Number(m[1]), subtotal: valor(m[3]), linhas: [] };
     } else if (blocoAtual) {
-      if (/^(?:Entrega|Local de Entrega|Horário de|Forma de Pagamento|Total)\s*[:\/]/i.test(l) || /^Retirada\b/i.test(l)) {
+      if (/^(?:Entrega|Taxa de Entrega|Local de Entrega|Horário de|Forma de Pagamento|Total)\s*[:\/]/i.test(l) || /^Retirada\b/i.test(l)) {
         blocos.push(interpretarBloco(blocoAtual));
         blocoAtual = null;
       } else {
@@ -151,7 +151,7 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const quantidadeDeclarada = refeicoes?.quantidadeDeclarada ?? null;
   const subtotalDeclarado = refeicoes?.subtotalDeclarado ?? null;
 
-  const entrega = linha(/^Entrega(?:\s*\/\s*Retirada)?\s*:/i);
+  const entrega = linha(/^(?:Taxa de )?Entrega(?:\s*\/\s*Retirada)?\s*:/i);
   const local = linha(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:/i);
   const localTexto = local.replace(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:\s*/i, "").trim()
     || linha(/^Endere[cç]o\s*:/i).replace(/^Endere[cç]o\s*:\s*/i, "").trim();
