@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { interpretarMensagemEstoqueCozinha } from "./cozinha-estoque-importacao";
 
-const codigos = ["TD22","TD17","TD12","TD19","CO04","TD11","TD20","TD04","TD24","TD08","TD02","TD21","TD03","TD16","TD28","SO07","SO08","SO06"];
+const codigos = ["TD01","TD10","TD22","TD17","TD12","TD19","CO04","TD11","TD20","TD04","TD24","TD08","TD02","TD21","TD03","TD16","TD28","SO07","SO08","SO06"];
 const produtos = codigos.map((codigo) => ({
   id: codigo,
   nome: codigo + " - Produto cadastrado",
@@ -62,6 +62,27 @@ describe("interpretação do estoque de marmitas da cozinha", () => {
   it("bloqueia a atualização quando houver nomes desconhecidos e linhas inválidas", () => {
     const resultado = interpretarMensagemEstoqueCozinha("Produto desconhecido 200g - 4\nPanqueca Carne 200g - x", produtos);
     expect(resultado.erros).toHaveLength(2);
+  });
+
+  it("aceita quantidade antes do produto e abreviações de produção", () => {
+    const resultado = interpretarMensagemEstoqueCozinha([
+      "10 Penne alla creme - 300g",
+      "11 Penne alla creme - 200g",
+      "9 tiras de alcatra - 400g",
+      "8 tiras de alcatra - 300g",
+      "4 tiras de alcatra - 200g",
+      "8 Estr. Frango - 400",
+      "10 Estr. Frango - 300",
+      "4 tiras de carne - 150g",
+    ].join("\n"), produtos);
+    expect(resultado.erros).toEqual([]);
+    expect(resultado.total).toBe(64);
+    expect(resultado.itens).toEqual(expect.arrayContaining([
+      expect.objectContaining({ produto_id: "TD28", tamanho: "300", quantidade: 10 }),
+      expect.objectContaining({ produto_id: "TD01", tamanho: "400", quantidade: 9 }),
+      expect.objectContaining({ produto_id: "TD10", tamanho: "400", quantidade: 8 }),
+      expect.objectContaining({ produto_id: "CO04", tamanho: "150", quantidade: 4 }),
+    ]));
   });
 
   it("não aceita duplicação, gramatura ausente de marmita ou troca de tamanho de sopa", () => {
