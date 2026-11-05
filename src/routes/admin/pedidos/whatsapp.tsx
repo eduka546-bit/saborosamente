@@ -61,6 +61,7 @@ type RegisteredCustomer = {
 type DraftItem = {
   key: string;
   productId: string;
+  nomeItem?: string;
   quantity: number;
   weight: "200g" | "300g" | "400g";
   unitPrice: number;
@@ -139,6 +140,9 @@ const parseMoney = (value: string | undefined | null) => {
 };
 
 const codeOf = (name: string) => (name.match(/^([A-Z]{2}\d{2})\b/i)?.[1] ?? "").toUpperCase();
+const itemManualPorCodigo = (code: string, weight = "300g") =>
+  code === "__SORTIDA" ? `Refeições sortidas (${weight})` :
+  code === "__PERSONALIZADA" ? `Marmitas personalizadas (${weight})` : null;
 
 const priceFor = (product: Product | undefined, weight: DraftItem["weight"]) => {
   if (!product) return 0;
@@ -607,7 +611,7 @@ function WhatsappAdminOrderPage() {
     if (interpretado.cidadeSigla === "SBS") setCidade("São Bento do Sul");
 
     const faltantes = [...new Set(interpretado.itens
-      .filter((item) => !productsByCode.has(item.codigo))
+      .filter((item) => !productsByCode.has(item.codigo) && !itemManualPorCodigo(item.codigo))
       .map((item) => item.codigo))];
     if (faltantes.length > 0) {
       setItems([]);
@@ -629,14 +633,16 @@ function WhatsappAdminOrderPage() {
     }
 
     const novosItens: DraftItem[] = interpretado.itensDetalhados.map((item) => {
-      const product = productsByCode.get(item.codigo)!;
+      const product = productsByCode.get(item.codigo);
+      const nomeItem = itemManualPorCodigo(item.codigo);
       return {
         key: newKey(),
-        productId: product.id,
+        productId: product?.id ?? "",
+        nomeItem: nomeItem ?? undefined,
         quantity: item.quantidade,
         weight: item.peso,
         unitPrice: item.precoUnitario ?? priceFor(product, item.peso),
-        observacao: "",
+        observacao: nomeItem ? "Item manual sem baixa de estoque" : "",
       };
     });
 
@@ -727,6 +733,7 @@ function WhatsappAdminOrderPage() {
             weight: item.weight,
             unitPrice: Number(item.unitPrice),
             observacao: item.observacao,
+            nomeItem: item.nomeItem,
           })),
         },
       });
@@ -770,7 +777,7 @@ function WhatsappAdminOrderPage() {
   const canSubmit =
     nome.trim().length >= 2 &&
     items.length > 0 &&
-    items.every((item) => item.productId && item.quantity > 0 && item.unitPrice >= 0) &&
+    items.every((item) => (item.productId || item.nomeItem) && item.quantity > 0 && item.unitPrice >= 0) &&
     totalDiferenteConferido &&
     descontoAplicado >= 0 && cashbackUsado >= 0 &&
     descontoAplicado + cashbackUsado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
@@ -1107,7 +1114,9 @@ function WhatsappAdminOrderPage() {
                   >
                     <div>
                       <label className="text-xs font-bold text-gray-500">Produto</label>
-                      <select
+                      {item.nomeItem ? (
+                        <Input value={item.nomeItem} readOnly className="bg-amber-50 text-amber-950" />
+                      ) : <select
                         className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm"
                         value={item.productId}
                         onChange={(e) => {
@@ -1131,7 +1140,7 @@ function WhatsappAdminOrderPage() {
                             {p.nome}
                           </option>
                         ))}
-                      </select>
+                      </select>}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-gray-500">Tamanho</label>
@@ -1211,9 +1220,8 @@ function WhatsappAdminOrderPage() {
                     </Button>
 
                     <div className="md:col-span-5 flex justify-between gap-3 text-xs">
-                      <span className={insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
-                        Estoque: {stock}
-                        {insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}
+                      <span className={item.nomeItem ? "text-amber-700 font-semibold" : insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
+                        {item.nomeItem ? "Registro manual — não baixa estoque" : <>Estoque: {stock}{insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}</>}
                       </span>
                       <span className="font-bold text-gray-700">
                         {money(item.quantity * item.unitPrice)}
