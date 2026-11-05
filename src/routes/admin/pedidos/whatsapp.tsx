@@ -728,12 +728,12 @@ function WhatsappAdminOrderPage() {
           cep,
           observacao,
           items: items.map((item) => ({
-            productId: item.productId,
+            ...(item.productId ? { productId: item.productId } : {}),
+            ...(item.nomeItem ? { nomeItem: item.nomeItem } : {}),
             quantity: Number(item.quantity),
             weight: item.weight,
             unitPrice: Number(item.unitPrice),
             observacao: item.observacao,
-            nomeItem: item.nomeItem,
           })),
         },
       });
