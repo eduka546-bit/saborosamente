@@ -86,14 +86,31 @@ function AdminRelatoriosEstoquePage() {
       )
         continue;
 
+      const entradaPorTamanho = l.match(/^(\d+)\s+(.+?)\s*[-–—]\s*(150|200|300|400)\s*g?\s*$/i);
       const sepIdx = l.lastIndexOf(" - ");
       if (sepIdx === -1) continue;
 
-      const identificador = l
-        .slice(0, sepIdx)
+      const identificadorOriginal = (entradaPorTamanho ? entradaPorTamanho[2] : l.slice(0, sepIdx))
         .replace(/^[*•\s]+/, "")
         .trim();
-      const numeroParte = l.slice(sepIdx + 3);
+      const nomeNormalizado = identificadorOriginal
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      const codigosPorApelido: Record<string, string> = {
+        "penne alla creme": "TD28",
+        "tiras de alcatra": "TD01",
+        "tiras alcatra": "TD01",
+        "estr frango": "TD10",
+        "estrogonofe frango": "TD10",
+        "estrogonofe de frango": "TD10",
+        "tiras de carne": "CO04",
+        "tiras carne": "CO04",
+      };
+      const identificador = codigosPorApelido[nomeNormalizado] || identificadorOriginal;
+      const numeroParte = entradaPorTamanho ? entradaPorTamanho[1] : l.slice(sepIdx + 3);
 
       // Extrai números ignorando emojis/sinais
       const numStr = numeroParte.replace(/[^\d/\s]/gu, " ").trim();
@@ -103,6 +120,7 @@ function AdminRelatoriosEstoquePage() {
       const n200 = nums[0] ?? 0;
       const n300 = nums[1] ?? null;
       const n400 = nums[2] ?? null;
+      const tamanhoUnitario = entradaPorTamanho?.[3];
 
       // Busca produto por código ou nome
       const codigoMatch = identificador.match(/^(TD|SO|CO)\d{1,2}/i);
@@ -131,7 +149,17 @@ function AdminRelatoriosEstoquePage() {
         /^CO/i.test(identificador);
 
       let novo200: number, novo300: number, novo400: number;
-      if (modo === "substituir") {
+      if (tamanhoUnitario) {
+        novo200 = p.estoque_200g ?? 0;
+        novo300 = p.estoque_300g ?? 0;
+        novo400 = p.estoque_400g ?? 0;
+        const campo = tamanhoUnitario === "150" ? "200" : tamanhoUnitario;
+        const atual = campo === "200" ? novo200 : campo === "300" ? novo300 : novo400;
+        const valor = modo === "somar" ? atual + n200 : n200;
+        if (campo === "200") novo200 = valor;
+        else if (campo === "300") novo300 = valor;
+        else novo400 = valor;
+      } else if (modo === "substituir") {
         if (n300 === null && ehSopa) {
           // Sopas são vendidas em tamanho único de 400g.
           novo200 = 0;
