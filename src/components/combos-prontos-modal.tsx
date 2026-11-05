@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ChevronRight, Gift, Leaf, Star, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, Gift, X } from "lucide-react";
 import { ComboSaboresModal } from "@/components/combo-sabores-modal";
 import { formatBRL } from "@/lib/products";
 import { imgUrl } from "@/lib/image-proxy";
@@ -20,15 +20,13 @@ const grupos = [
     id: "vendidos" as const,
     titulo: "Mais Vendidos",
     descricao: "Os pratos favoritos dos nossos clientes.",
-    codigoFoto: "TD08",
-    Icone: Star,
+    imagemCapa: "/combo-capa-mais-vendidos.svg",
   },
   {
     id: "leves" as const,
     titulo: "Mais Leves",
     descricao: "Sabores selecionados com menos calorias.",
-    codigoFoto: "TD06",
-    Icone: Leaf,
+    imagemCapa: "/combo-capa-mais-leves.svg",
   },
 ];
 
@@ -48,7 +46,6 @@ export function CombosProntosModal({
   isOpen,
   onClose,
   products,
-  allProducts,
 }: CombosProntosModalProps) {
   const dialogRef = useCommerceDialog(isOpen, onClose);
   const [categoria, setCategoria] = useState<GrupoCombo | null>(null);
@@ -122,47 +119,46 @@ export function CombosProntosModal({
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:gap-5">
-                {categoriasDisponiveis.map((grupo) => {
-                  const foto = allProducts.find((item: any) =>
-                    String(item.nome ?? "").toUpperCase().startsWith(grupo.codigoFoto + " ")
-                    || new RegExp(`^${grupo.codigoFoto}\\b`, "i").test(String(item.nome ?? "")),
-                  );
-                  const imagem = foto?.imagem_url || foto?.imagem || porGrupo[grupo.id][0]?.imagem_url || porGrupo[grupo.id][0]?.imagem;
-                  const Icone = grupo.Icone;
-                  return (
-                    <button
-                      type="button"
-                      key={grupo.id}
-                      onClick={() => setCategoria(grupo.id)}
-                      className="group flex min-w-0 flex-col overflow-hidden rounded-[1.4rem] border border-[#e4e9d8] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#086e45]">
-                      <div className="relative h-28 w-full overflow-hidden bg-[#eff4e7] sm:h-44">
-                        {imagem ? (
-                          <img src={imgUrl(imagem)} alt="" loading="lazy"
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                        ) : (
-                          <div className="h-full w-full bg-gradient-to-br from-[#dcebc6] to-[#faf8e9]" />
-                        )}
-                        <span className="absolute left-2 top-2 grid size-8 place-items-center rounded-full bg-[#e4f092] text-[#064d2f] shadow-sm sm:left-3 sm:top-3 sm:size-10">
-                          <Icone size={20} />
+                {categoriasDisponiveis.map((grupo) => (
+                  <button
+                    type="button"
+                    key={grupo.id}
+                    onClick={() => setCategoria(grupo.id)}
+                    aria-label={`Ver opções do combo ${grupo.titulo}`}
+                    className="group flex min-w-0 flex-col overflow-hidden rounded-[1.4rem] border border-[#e4e9d8] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#086e45]">
+                    {/* Capas no estilo das artes Em Breve, com a tipografia oficial do site. */}
+                    <div className="relative h-36 w-full overflow-hidden bg-[#f8f7ef] sm:h-52">
+                      <img
+                        src={grupo.imagemCapa}
+                        alt=""
+                        aria-hidden="true"
+                        loading="eager"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+                      />
+                      <div className="absolute inset-y-0 left-0 flex w-[77%] flex-col justify-center px-3 py-3 sm:px-5">
+                        <span className="mb-2 inline-flex w-fit items-center rounded-full bg-[#e6efc5] px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-[#064d2f] sm:text-xs">
+                          Combos
                         </span>
+                        <span className="font-display text-[clamp(1.08rem,3.6vw,2.45rem)] font-black leading-[0.98] tracking-tight text-[#064d2f]">
+                          Mais
+                          <span className="block">{grupo.id === "vendidos" ? "Vendidos" : "Leves"}</span>
+                        </span>
+                        <span className="mt-2 h-1 w-12 rounded-full bg-[#8bb924] sm:w-20" aria-hidden="true" />
                       </div>
-                      <div className="flex flex-1 flex-col gap-2 px-3 py-3 sm:px-5 sm:py-4">
-                        <h3 className="text-base font-extrabold leading-tight text-[#064d2f] sm:text-xl">
-                          {grupo.titulo}
-                        </h3>
-                        <p className="min-h-9 text-xs leading-snug text-[#58645e] sm:text-sm">
-                          {grupo.descricao}
-                        </p>
-                        <span className="mt-auto self-start rounded-full bg-[#e4f092] px-2.5 py-1 text-xs font-bold text-[#064d2f] sm:text-sm">
-                          5 • 10 • 20 un
-                        </span>
-                        <span className="mt-1 flex min-h-10 w-full items-center justify-center gap-1 rounded-xl bg-[#086e45] px-2 py-2 text-sm font-bold text-white sm:text-base">
-                          Ver opções <ChevronRight size={17} />
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                    </div>
+                    <div className="flex flex-1 flex-col gap-2 px-3 py-3 sm:px-5 sm:py-4">
+                      <p className="min-h-9 text-xs leading-snug text-[#58645e] sm:text-sm">
+                        {grupo.descricao}
+                      </p>
+                      <span className="mt-auto self-start rounded-full bg-[#e4f092] px-2.5 py-1 text-xs font-bold text-[#064d2f] sm:text-sm">
+                        5 • 10 • 20 un
+                      </span>
+                      <span className="mt-1 flex min-h-10 w-full items-center justify-center gap-1 rounded-xl bg-[#086e45] px-2 py-2 text-sm font-bold text-white sm:text-base">
+                        Ver opções <ChevronRight size={17} />
+                      </span>
+                    </div>
+                  </button>
+                )}
               </div>
             )
           ) : (
