@@ -158,7 +158,7 @@ export function CombosProntosModal({
                       </span>
                     </div>
                   </button>
-                )}
+                ))}
               </div>
             )
           ) : (
