@@ -7,7 +7,8 @@ import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Plus, Minus, ShoppingCart } from "lucide-react";
+import { X, Plus, Minus, ShoppingCart, ArrowLeftRight, AlertTriangle } from "lucide-react";
+import { combinarTrocasMaisLeves, composicaoBaseMaisLeves, estoqueLivreCombo, somarComposicao } from "@/lib/combo-pronto-estoque";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
 import { useCart } from "@/lib/cart";
@@ -25,10 +26,14 @@ interface ComboSaboresModalProps {
 
 export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200g" }: ComboSaboresModalProps) {
   const dialogRef = useCommerceDialog(isOpen, onClose);
-  const { addComboPronto } = useCart();
+  const { addComboPronto, lines } = useCart();
   const isMaisLeves = combo?.subgrupo === "MAIS LEVES" || /^Combo Pratos Mais Leves\s*-/i.test(combo?.nome ?? "");
   const [selectedWeight, setSelectedWeight] = useState(initialWeight);
   const [sabores, setSabores] = useState<Record<string, number>>({}); // produto_id → qty
+  const [trocasExtras, setTrocasExtras] = useState<Record<string, number>>({});
+  const [trocaAberta, setTrocaAberta] = useState(false);
+  const [trocaAdiada, setTrocaAdiada] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
 
   // Quantidade total do combo (extraída do nome: "5un", "10un", "20un")
   const totalCombo = useMemo(() => {
@@ -42,6 +47,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
     data: saboresDisponiveis = [],
     isLoading: saboresLoading,
     isError: saboresError,
+    refetch: atualizarSabores,
   } = useQuery({
     queryKey: ["combo-sabores-public", combo?.id],
     enabled: !!combo?.id && isOpen,
@@ -62,21 +68,11 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
     if (isOpen) {
       setSelectedWeight(["200g", "300g", "400g"].includes(initialWeight) ? initialWeight : "200g");
       setSabores({});
+      setTrocasExtras({});
+      setTrocaAberta(false);
+      setTrocaAdiada(false);
     }
   }, [isOpen, combo?.id, initialWeight]);
-
-  const saboresSelecionados = useMemo<Record<string, number>>(() => {
-    if (!isMaisLeves) return sabores;
-    const unidadesPorSabor = totalCombo === 20 ? 2 : 1;
-    return Object.fromEntries(
-      saboresDisponiveis.map((produto: any) => [produto.id, unidadesPorSabor]),
-    );
-  }, [isMaisLeves, totalCombo, saboresDisponiveis, sabores]);
-
-  const totalSelecionado = useMemo(
-    () => Object.values(saboresSelecionados).reduce((s, q) => s + q, 0),
-    [saboresSelecionados],
-  );
 
   const precoCombo = useMemo(() => {
     if (selectedWeight === "200g") return combo?.preco ?? 0;
@@ -84,36 +80,48 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
     return combo?.preco_300g ?? combo?.preco ?? 0;
   }, [combo, selectedWeight]);
 
-  const estoqueDisponivel = (prod: any) => {
-    if (!prod?.controle_estoque) return Number.POSITIVE_INFINITY;
-    if (selectedWeight === "400g") return Number(prod.estoque_400g ?? 0);
-    if (selectedWeight === "300g") return Number(prod.estoque_300g ?? 0);
-    return Number(prod.estoque_200g ?? 0);
-  };
+  const estoqueDisponivel = (prod: any) =>
+    estoqueLivreCombo(prod, selectedWeight, lines);
+
+  // Mantem todas as unidades originais que ainda existem em estoque.
+  // Se faltar uma unidade, apenas a quantidade faltante podera ser substituida.
+  const baseMaisLeves = useMemo(
+    () => composicaoBaseMaisLeves(saboresDisponiveis, totalCombo, selectedWeight, lines),
+    [saboresDisponiveis, totalCombo, selectedWeight, lines],
+  );
+  const saboresSelecionados = useMemo<Record<string, number>>(() => {
+    if (!isMaisLeves) return sabores;
+    return combinarTrocasMaisLeves(saboresDisponiveis, baseMaisLeves, trocasExtras, selectedWeight, lines);
+  }, [isMaisLeves, sabores, saboresDisponiveis, baseMaisLeves, trocasExtras, selectedWeight, lines]);
+
+  const totalSelecionado = useMemo(
+    () => somarComposicao(saboresSelecionados),
+    [saboresSelecionados],
+  );
+  const faltasOriginais = isMaisLeves ? Math.max(0, totalCombo - somarComposicao(baseMaisLeves)) : 0;
+  const faltamTrocas = isMaisLeves ? Math.max(0, totalCombo - totalSelecionado) : 0;
 
   const estoqueTotalDisponivel = useMemo(() => {
     if (saboresDisponiveis.some((prod: any) => !prod?.controle_estoque)) {
       return Number.POSITIVE_INFINITY;
     }
-    return saboresDisponiveis.reduce((total: number, prod: any) => {
-      if (selectedWeight === "400g") return total + Number(prod.estoque_400g ?? 0);
-      if (selectedWeight === "300g") return total + Number(prod.estoque_300g ?? 0);
-      return total + Number(prod.estoque_200g ?? 0);
-    }, 0);
-  }, [saboresDisponiveis, selectedWeight]);
+    return saboresDisponiveis.reduce(
+      (total: number, prod: any) => total + estoqueLivreCombo(prod, selectedWeight, lines),
+      0,
+    );
+  }, [saboresDisponiveis, selectedWeight, lines]);
 
-  const comboIndisponivel = isMaisLeves
-    ? (!saboresLoading && (
-        saboresDisponiveis.length !== (totalCombo === 5 ? 5 : 10) ||
-        saboresDisponiveis.some(
-          (prod: any) => estoqueDisponivel(prod) < (totalCombo === 20 ? 2 : 1),
-        )
-      ))
-    : (
-        saboresDisponiveis.length > 0 &&
-        Number.isFinite(estoqueTotalDisponivel) &&
-        estoqueTotalDisponivel < totalCombo
-      );
+  const comboIndisponivel = !saboresLoading && (
+    saboresDisponiveis.length === 0 ||
+    (Number.isFinite(estoqueTotalDisponivel) && estoqueTotalDisponivel < totalCombo)
+  );
+
+  // Quando falta um item nos Mais Leves, abre automaticamente a escolha de
+  // substitutos, sem deixar o pedido prosseguir incompleto.
+  useEffect(() => {
+    if (!isOpen || !isMaisLeves || saboresLoading || saboresError) return;
+    if (faltamTrocas > 0 && !trocaAdiada) setTrocaAberta(true);
+  }, [isOpen, isMaisLeves, saboresLoading, saboresError, faltamTrocas, trocaAdiada, selectedWeight]);
 
   if (!isOpen || !combo) return null;
 
@@ -140,7 +148,26 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
     });
   }
 
-  function handleAddToCart() {
+  function changeTroca(produtoId: string, delta: number) {
+    setTrocasExtras((atual) => {
+      const produto = saboresDisponiveis.find((item: any) => item.id === produtoId);
+      if (!produto) return atual;
+      const extrasAtuais = atual[produtoId] ?? 0;
+      const proximo = Math.max(0, extrasAtuais + delta);
+      const livre = estoqueDisponivel(produto);
+      if (proximo + (baseMaisLeves[produtoId] ?? 0) > livre) return atual;
+      if (delta > 0 && faltamTrocas === 0) return atual;
+      return { ...atual, [produtoId]: proximo };
+    });
+  }
+
+  async function handleAddToCart() {
+    if (isMaisLeves && faltamTrocas > 0) {
+      setTrocaAdiada(false);
+      setTrocaAberta(true);
+      return;
+    }
+    if (trocaAberta || adicionando) return;
     if (comboIndisponivel || saboresLoading || saboresError) {
       toast.error(`Não há estoque suficiente dos sabores deste combo em ${selectedWeight}.`);
       return;
@@ -150,27 +177,44 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
       return;
     }
 
-    for (const [produtoId, qty] of Object.entries(saboresSelecionados)) {
-      const produto = saboresDisponiveis.find((p: any) => p.id === produtoId);
-      if (!produto || qty > estoqueDisponivel(produto)) {
-        toast.error(`Estoque insuficiente para ${produto?.nome ?? "um dos sabores"} em ${selectedWeight}.`);
-        return;
+    setAdicionando(true);
+    try {
+      // Revalidar o estoque ao adicionar, inclusive o que ja esta no carrinho.
+      const { data: atualizados, error } = await atualizarSabores();
+      if (error || !atualizados) throw new Error("Não foi possível conferir o estoque. Tente novamente.");
+      for (const [produtoId, qty] of Object.entries(saboresSelecionados)) {
+        const produto = (atualizados as any[]).find((p: any) => p.id === produtoId);
+        if (!produto || qty > estoqueLivreCombo(produto, selectedWeight, lines)) {
+          if (isMaisLeves) {
+            setTrocaAdiada(false);
+            setTrocaAberta(true);
+          }
+          toast.error("O estoque de um dos pratos mudou. Confira as opções disponíveis para troca.");
+          return;
+        }
       }
+
+      addComboPronto(
+        combo.id,
+        selectedWeight,
+        totalCombo,
+        Object.entries(saboresSelecionados)
+          .filter(([, quantity]) => quantity > 0)
+          .map(([productId, quantity]) => ({ productId, quantity })),
+      );
+
+      toast.success(`${combo.nome} adicionado!`, {
+        description: `${totalCombo} marmitas (${selectedWeight})`,
+      });
+      onClose();
+      setSabores({});
+      setTrocasExtras({});
+      setTrocaAberta(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível verificar o estoque.");
+    } finally {
+      setAdicionando(false);
     }
-
-    addComboPronto(
-      combo.id,
-      selectedWeight,
-      totalCombo,
-      Object.entries(saboresSelecionados).map(([productId, quantity]) => ({ productId, quantity })),
-    );
-
-    toast.success(`${combo.nome} adicionado!`, {
-      description: `${totalCombo} marmitas (${selectedWeight})`,
-    });
-
-    onClose();
-    setSabores({});
   }
 
   const weights = [
@@ -209,6 +253,9 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
               onClick={() => {
                 setSelectedWeight(w.value);
                 setSabores({});
+                setTrocasExtras({});
+                setTrocaAberta(false);
+                setTrocaAdiada(false);
               }}
               className={cn(
                 "flex-1 rounded-xl border-2 py-2.5 text-center text-base font-semibold transition-all",
@@ -235,11 +282,22 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
               <span className="text-[#086e45] font-bold text-sm">✓ Completo!</span>
             )}
           </div>
-          {comboIndisponivel && (
-            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
-              {isMaisLeves
-                ? "Esta gramatura está temporariamente indisponível: um ou mais pratos da composição fixa estão sem estoque suficiente."
-                : `Esta gramatura está temporariamente indisponível: há ${estoqueTotalDisponivel} unidades somando os sabores disponíveis e o combo precisa de ${totalCombo}.`}
+          {isMaisLeves && faltasOriginais > 0 && !saboresLoading && !saboresError && (
+            <button
+              type="button"
+              onClick={() => { setTrocaAdiada(false); setTrocaAberta(true); }}
+              className="mt-2 flex w-full items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm font-semibold text-amber-900"
+            >
+              <ArrowLeftRight size={18} className="shrink-0" />
+              <span>{faltamTrocas > 0
+                ? `É necessário substituir ${faltamTrocas} unidade(s) sem estoque. Toque para escolher.`
+                : "Substituições escolhidas. Toque para revisar as trocas."}</span>
+            </button>
+          )}
+          {comboIndisponivel && !saboresLoading && (
+            <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
+              Estoque insuficiente para completar {totalCombo} unidades em {selectedWeight} com os sabores deste combo.
+              Selecione outra gramatura.
             </div>
           )}
         </div>
@@ -288,8 +346,13 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
                     ) : null}
                   </div>
                   {isMaisLeves ? (
-                    <div className="shrink-0 rounded-full bg-[#edf5e6] px-3 py-1.5 text-sm font-bold text-[#086e45]">
-                      {qty} un
+                    <div className="shrink-0 text-right">
+                      <div className="rounded-full bg-[#edf5e6] px-3 py-1.5 text-sm font-bold text-[#086e45]">
+                        {qty} un
+                      </div>
+                      {(trocasExtras[prod.id] ?? 0) > 0 && (
+                        <span className="text-[11px] font-medium text-[#086e45]">Substituição</span>
+                      )}
                     </div>
                   ) : (
                   <div className="flex items-center gap-1 shrink-0">
@@ -341,22 +404,102 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
           )}
         </div>
 
-        {/* CTA */}
-        <div className="px-4 py-3 border-t shrink-0">
+        {/* Acao fixa: sem permitir carrinho incompleto. */}
+        <div className="px-4 py-3 border-t shrink-0 bg-white">
           <button
             onClick={handleAddToCart}
-            disabled={saboresLoading || saboresError || comboIndisponivel || totalSelecionado !== totalCombo}
+            disabled={saboresLoading || saboresError || adicionando || (!isMaisLeves && (comboIndisponivel || totalSelecionado !== totalCombo)) || (isMaisLeves && (comboIndisponivel || (faltamTrocas === 0 && trocaAberta)))}
             className={cn(
               "w-full rounded-2xl py-3.5 text-base font-semibold flex items-center justify-center gap-2 transition-all",
-              !saboresLoading && !saboresError && !comboIndisponivel && totalSelecionado === totalCombo
+              !saboresLoading && !saboresError && !adicionando && !comboIndisponivel && (
+                isMaisLeves ? (faltamTrocas > 0 || (!trocaAberta && totalSelecionado === totalCombo)) : totalSelecionado === totalCombo
+              )
                 ? "bg-[#086e45] text-white hover:bg-[#065a38] shadow-lg"
                 : "bg-gray-100 text-gray-600 cursor-not-allowed",
             )}
           >
-            <ShoppingCart size={16} />
-            Adicionar ao carrinho — {formatBRL(precoCombo)}
+            {isMaisLeves && faltamTrocas > 0 ? (
+              <><ArrowLeftRight size={17} /> Trocar {faltamTrocas} unidade(s) para continuar</>
+            ) : (
+              <><ShoppingCart size={16} /> {adicionando ? "Conferindo estoque..." : `Adicionar ao carrinho — ${formatBRL(precoCombo)}`}</>
+            )}
           </button>
         </div>
+
+        {isMaisLeves && trocaAberta && !saboresLoading && !saboresError && (
+          <div className="absolute inset-0 z-30 flex flex-col bg-white" role="dialog" aria-modal="true" aria-label="Trocar pratos sem estoque">
+            <div className="shrink-0 bg-[#086e45] px-4 py-4 text-white">
+              <div className="flex items-center gap-2 text-lg font-bold">
+                <ArrowLeftRight size={21} /> Substitua os pratos sem estoque
+              </div>
+              <p className="mt-1 text-sm text-white/85">
+                Escolha substitutos somente entre os sabores deste combo ({selectedWeight}).
+                O valor e a quantidade total não mudam.
+              </p>
+            </div>
+            <div className="shrink-0 border-b bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertTriangle size={18} className="shrink-0" />
+                {faltamTrocas > 0
+                  ? `Faltam ${faltamTrocas} unidade(s) para completar as ${totalCombo} do combo.`
+                  : `Pronto! As ${totalCombo} unidades estão completas.`}
+              </div>
+              <p className="mt-1 text-xs leading-relaxed">
+                Mantivemos automaticamente as unidades da composição original que ainda estão disponíveis.
+                Escolha abaixo apenas as que faltam.
+              </p>
+            </div>
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
+              {saboresDisponiveis.map((prod: any) => {
+                const reservado = baseMaisLeves[prod.id] ?? 0;
+                const extra = trocasExtras[prod.id] ?? 0;
+                const livre = estoqueDisponivel(prod);
+                const podeSomar = faltamTrocas > 0 && reservado + extra < livre;
+                return (
+                  <div key={prod.id} className="flex items-center gap-2 rounded-xl border border-gray-200 p-2.5">
+                    {prod.imagem_url && (
+                      <img src={imgUrl(prod.imagem_url)} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold text-gray-900">{prod.nome}</p>
+                      <p className="text-xs text-gray-600">
+                        {reservado} da composição original · {extra} substituição(ões)
+                      </p>
+                      {Number.isFinite(livre) && livre <= reservado + extra && (
+                        <p className="text-xs font-semibold text-red-600">Sem mais estoque em {selectedWeight}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button type="button" aria-label={`Retirar substituição de ${prod.nome}`}
+                        disabled={extra <= 0} onClick={() => changeTroca(prod.id, -1)}
+                        className="grid h-9 w-9 place-items-center rounded-full border border-gray-200 text-[#086e45] disabled:opacity-30">
+                        <Minus size={16} />
+                      </button>
+                      <span className="w-5 text-center text-sm font-bold text-[#086e45]">{extra}</span>
+                      <button type="button" aria-label={`Adicionar substituição de ${prod.nome}`}
+                        disabled={!podeSomar} onClick={() => changeTroca(prod.id, 1)}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-[#086e45] text-white disabled:bg-gray-100 disabled:text-gray-400">
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="shrink-0 space-y-2 border-t bg-white px-4 py-3">
+              <button type="button"
+                disabled={faltamTrocas !== 0 || comboIndisponivel}
+                onClick={() => { setTrocaAberta(false); setTrocaAdiada(false); }}
+                className="w-full rounded-xl bg-[#086e45] px-4 py-3 font-semibold text-white disabled:bg-gray-100 disabled:text-gray-500">
+                {faltamTrocas === 0 ? "Confirmar substituições" : `Escolha mais ${faltamTrocas} unidade(s)`}
+              </button>
+              <button type="button" onClick={() => { setTrocaAberta(false); setTrocaAdiada(true); }}
+                className="w-full rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                Voltar e escolher outra gramatura
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
