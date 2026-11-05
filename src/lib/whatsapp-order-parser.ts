@@ -86,7 +86,7 @@ export function lerCodigos(texto: string): ItemInterpretado[] {
   return itens;
 }
 
-const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Sopas?|Combo|Complementos?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
+const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|Sopas?|Combo|Complementos?|Personalizadas?)\b.*?)\s+[-–]\s*(?:R\$\s*)?([\d.,]+)\s*$/i;
 // O sufixo "un" é opcional: resumos manuais às vezes escrevem
 // "2 x 8,90un - 2 x 18,00".
 const precoLinha = /(?:^|[\s-])(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)(?:\s*(?:\/\s*)?un(?:idades?)?)?(?=\s|$)/i;
@@ -263,6 +263,8 @@ function interpretarBloco(raw: {
   const tipo: BlocoPedido["tipo"] = /^Combo\b/i.test(raw.titulo) ? "combo"
     : /^Complementos?\b/i.test(raw.titulo) ? "complemento" : "refeicoes";
   const ehSopa = /^Sopas?\b/i.test(raw.titulo);
+  const ehPersonalizada = /^Personalizadas?\b/i.test(raw.titulo);
+  const semSaborParaBaixa = ehPersonalizada || raw.linhas.some((linha) => /\bsortidas?\b/i.test(linha));
   const pesoExibicao = tipo === "complemento"
     ? "150g" : ehSopa
       ? "400g" : (raw.titulo.match(/(200|300|400)\s*g/i)?.[1] ?? "300") + "g";
@@ -280,14 +282,26 @@ function interpretarBloco(raw: {
   if (codigos.length && quantidadeReal !== esperado) {
     avisos.push(raw.titulo + ": declara " + esperado + " unidades, mas os códigos representam " + quantidadeReal + ".");
   }
-  if (!codigos.length) avisos.push(raw.titulo + ": não foram encontrados sabores válidos.");
+  if (!codigos.length && !semSaborParaBaixa) avisos.push(raw.titulo + ": não foram encontrados sabores válidos.");
 
   const faixasPrecos = raw.linhas
     .flatMap((l) => [...l.matchAll(new RegExp(precoLinha.source, "gi"))])
     .map((m) => ({ quantidade: Number(m[1]), preco: valor(m[2]) ?? 0 }));
 
   const itens: ItemDetalhado[] = [];
-  if (faixasPrecos.length) {
+  if (!codigos.length && semSaborParaBaixa) {
+    // Itens sortidos e personalizados não informam sabores. Eles são lançados
+    // somente como registro comercial, sem produto vinculado ou baixa de estoque.
+    const preco = raw.subtotal !== null && raw.quantidade > 0
+      ? centavos(raw.subtotal / raw.quantidade) : null;
+    itens.push({
+      codigo: ehPersonalizada ? "__PERSONALIZADA" : "__SORTIDA",
+      quantidade: raw.quantidade,
+      precoUnitario: preco,
+      peso,
+      pesoExibicao,
+    });
+  } else if (faixasPrecos.length) {
     // Alguns resumos manuais carregam uma faixa antiga e a faixa corrigida na
     // mesma linha (ex.: "2 x 8,90 - 2 x 18,00"). Quando somente uma delas
     // fecha exatamente o subtotal declarado, ela é a fonte confiável.
