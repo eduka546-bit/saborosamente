@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Fundo ilustrado verde e creme para combo Mais Vendidos">
+<defs>
+  <linearGradient id="creme" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffaf0"/><stop offset="1" stop-color="#eaeedb"/></linearGradient>
+  <linearGradient id="folha" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08784b"/><stop offset="1" stop-color="#003923"/></linearGradient>
+  <radialGradient id="luz" cx=".15" cy=".18" r=".78"><stop stop-color="#ffffff" stop-opacity=".78"/><stop offset="1" stop-color="#f8f7ef" stop-opacity="0"/></radialGradient>
+  <pattern id="curvas" patternUnits="userSpaceOnUse" width="92" height="92"><path d="M0 46Q46 0 92 46M0 74Q46 28 92 74" fill="none" stroke="#799f68" stroke-opacity=".12" stroke-width="2"/></pattern>
+</defs>
+<rect width="1200" height="800" fill="url(#creme)"/><rect width="1200" height="800" fill="url(#luz)"/><rect width="1200" height="800" fill="url(#curvas)"/>
+<path d="M1200 0H913C786 114 839 224 775 355S579 642 400 800H1200Z" fill="url(#folha)"/>
+<path d="M1200 0H1130C1045 94 1062 222 964 343C886 436 838 463 822 482" fill="none" stroke="#8bb924" stroke-width="13" opacity=".76"/>
+<path d="M1200 684c-113-24-258 4-380 116h380z" fill="#8bb924" opacity=".88"/>
+<circle cx="1003" cy="364" r="188" fill="#fff" opacity=".055"/><circle cx="1003" cy="364" r="137" fill="none" stroke="#ffffff" stroke-opacity=".17" stroke-width="3"/>
+<circle cx="987" cy="365" r="91" fill="#e4ed9a"/><circle cx="987" cy="365" r="78" fill="none" stroke="#0b6040" stroke-width="4"/>
+<path d="m987 309 17 35 39 6-28 27 7 39-35-18-35 18 7-39-29-27 40-6z" fill="#086e45"/>
+<path d="M99 60q43 6 53 39-43 8-53-39ZM158 39q-2 48-39 58 0-48 39-58ZM65 95q39-4 56 23-42 17-56-23Z" fill="#8bb924" opacity=".65"/>
+<path d="M98 54c27 41 34 69 35 111" stroke="#075a39" stroke-width="4" stroke-linecap="round" fill="none" opacity=".4"/>
+<path d="M78 742c150 0 254 0 377-45" stroke="#8bb924" stroke-width="5" stroke-linecap="round" fill="none" opacity=".5"/>
+</svg>
