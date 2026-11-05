@@ -321,3 +321,29 @@ Total: 238,80 + 36 + 5 = R$ 279,80`);
   });
 
 });
+
+describe("resumo sem sabores para baixa", () => {
+  it("aceita refeições sortidas e personalizadas como itens manuais", () => {
+    const resultado = interpretarResumoWhatsapp(`Pedido Belli:
+Telefone: 47 9292-9612
+Endereço: R. Benemérito Hermes Sprott, 702 - Vila Nova - Mafra
+
+20 - Refeições 400g (G) - 438,00
+Combo 10 Refeições - 20x R$ 21,90
+20x (Sortidas)
+
+24 - Personalizadas (M) - 549,60 (22,90un)
+
+Taxa de Entrega: R$ 10,00
+
+Forma de Pagamento: Cartão
+
+Total: R$ 438 + 549 + 10 = R$ 997,00`);
+    expect(resultado.itensDetalhados).toEqual([
+      expect.objectContaining({ codigo: "__SORTIDA", quantidade: 20, peso: "400g", precoUnitario: 21.9 }),
+      expect.objectContaining({ codigo: "__PERSONALIZADA", quantidade: 24, peso: "300g", precoUnitario: 22.9 }),
+    ]);
+    expect(resultado.totalPedido).toBe(997);
+    expect(resultado.taxaEntrega).toBe(10);
+  });
+});
