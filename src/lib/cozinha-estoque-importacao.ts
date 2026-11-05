@@ -44,6 +44,13 @@ const apelidos: Record<string, string> = {
   "nhoque": "TD03",
   "tiras de bife": "TD16",
   "tiras bife": "TD16",
+  "tiras de carne": "CO04",
+  "tiras carne": "CO04",
+  "tiras de alcatra": "TD01",
+  "tiras alcatra": "TD01",
+  "estr frango": "TD10",
+  "estrogonofe frango": "TD10",
+  "estrogonofe de frango": "TD10",
   "penne alla creme": "TD28",
   "creme abobora": "SO07",
   "creme de abobora": "SO07",
@@ -71,17 +78,17 @@ export function interpretarMensagemEstoqueCozinha(
     const linha = original.replace(/^\s*[*•#]+\s*/, "").replace(/\*+$/g, "").trim();
     if (!linha || /^(estoque cozinha|estoque da cozinha|marmitas|sopas|complementos)\s*:?\s*$/i.test(normalizar(linha))) return;
 
-    const detalhe = linha.match(/^(.+?)\s+(150|200|300|400)\s*g\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
-    const simples = detalhe ? null : linha.match(/^(.+?)\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
-    const correspondencia = detalhe || simples;
-    if (!correspondencia) {
+    const detalheNomePrimeiro = linha.match(/^(.+?)\s+(150|200|300|400)\s*g\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
+    const quantidadePrimeiro = detalheNomePrimeiro ? null : linha.match(/^(\d+)\s+(.+?)\s*[-–—]\s*(150|200|300|400)\s*g?\s*$/i);
+    const simples = detalheNomePrimeiro || quantidadePrimeiro ? null : linha.match(/^(.+?)\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
+    if (!detalheNomePrimeiro && !quantidadePrimeiro && !simples) {
       erros.push("Linha " + (indice + 1) + ": formato inválido — " + original.trim());
       return;
     }
-    const nomeDigitado = correspondencia[1].trim();
+    const nomeDigitado = (quantidadePrimeiro?.[2] || detalheNomePrimeiro?.[1] || simples?.[1] || "").trim();
     const termo = normalizar(nomeDigitado);
-    const tamanhoInformado = detalhe?.[2] as LinhaEstoqueCozinha["tamanho"] | undefined;
-    const quantidade = Number(detalhe?.[3] || simples?.[2]);
+    const tamanhoInformado = (quantidadePrimeiro?.[3] || detalheNomePrimeiro?.[2]) as LinhaEstoqueCozinha["tamanho"] | undefined;
+    const quantidade = Number(quantidadePrimeiro?.[1] || detalheNomePrimeiro?.[3] || simples?.[2]);
     if (!Number.isSafeInteger(quantidade) || quantidade < 0 || quantidade > 100000) {
       erros.push("Linha " + (indice + 1) + ": quantidade inválida");
       return;
