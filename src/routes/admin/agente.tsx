@@ -2013,7 +2013,7 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("pendentes");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("todos");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
@@ -2034,15 +2034,25 @@ function AdminAgentePage() {
   const { data: conversas = [], isLoading } = useQuery({
     queryKey: ["whatsapp-conversas"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("whatsapp_conversas")
-        .select("*")
-        .order("ultima_msg", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
+      // A lista de atendimento não pode depender só das primeiras 100 linhas:
+      // disparos de campanha podem ocupar os primeiros lugares e esconder chats reais.
+      const tamanhoPagina = 500;
+      const todasConversas: any[] = [];
+      for (let inicio = 0; ; inicio += tamanhoPagina) {
+        const { data, error } = await supabase
+          .from("whatsapp_conversas")
+          .select("*")
+          .order("ultima_msg", { ascending: false, nullsFirst: false })
+          .order("id", { ascending: false })
+          .range(inicio, inicio + tamanhoPagina - 1);
+        if (error) throw error;
+        todasConversas.push(...(data ?? []));
+        if (!data || data.length < tamanhoPagina) break;
+      }
+      return todasConversas;
     },
-    refetchInterval: 8000,
+    // Realtime atualiza imediatamente; polling menos frequente evita egress alto.
+    refetchInterval: 30_000,
   });
 
   // Atualizacao imediata de mensagens e status, com polling como fallback.
@@ -2249,6 +2259,8 @@ function AdminAgentePage() {
     }));
 
   const itensDaLista = filterModo === "campanhas" ? campanhasSemResposta : conversasAtendimento;
+  const termoBusca = search.trim().toLocaleLowerCase("pt-BR");
+  const digitosBusca = search.replace(/\D/g, "");
   const filtered = itensDaLista.filter((c: any) => {
     const matchModo =
       filterModo === "todos" || filterModo === "campanhas" ||
@@ -2256,11 +2268,15 @@ function AdminAgentePage() {
        filterModo === "respondidas" ? foiRespondida(c) :
        filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
        c.modo === filterModo);
+    const telefoneLimpo = String(c.telefone ?? "").replace(/\D/g, "");
+    const nomeContato = nomesPorTelefone.get(telefoneLimpo) ?? "";
     const matchSearch =
-      !search ||
-      c.nome?.toLowerCase().includes(search.toLowerCase()) ||
-      c.telefone?.includes(search);
-    const cidade = c.cidade || cidadesPorTelefone.get(String(c.telefone ?? "").replace(/\D/g, "")) || "Sem cidade";
+      !termoBusca ||
+      String(c.nome ?? "").toLocaleLowerCase("pt-BR").includes(termoBusca) ||
+      nomeContato.toLocaleLowerCase("pt-BR").includes(termoBusca) ||
+      String(c.telefone ?? "").toLocaleLowerCase("pt-BR").includes(termoBusca) ||
+      (digitosBusca.length >= 3 && telefoneLimpo.includes(digitosBusca));
+    const cidade = c.cidade || cidadesPorTelefone.get(telefoneLimpo) || "Sem cidade";
     return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
   });
 
@@ -2403,7 +2419,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["pendentes", "respondidas", "todos", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["todos", "pendentes", "respondidas", "humano", "ia", "campanhas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -2422,7 +2438,7 @@ function AdminAgentePage() {
                 : f === "respondidas"
                   ? `Respondidas ${respondidasCount ? `(${respondidasCount})` : ""}`
                   : f === "todos"
-                    ? "Todas"
+                    ? `Todas (${conversasAtendimento.length})`
                     : f === "humano"
                       ? "Humano"
                       : f === "ia"
