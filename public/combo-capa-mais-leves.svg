@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Fundo ilustrado creme e verde lima para combo Mais Leves">
+<defs>
+  <linearGradient id="creme" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fdfcf2"/><stop offset="1" stop-color="#e9f2d6"/></linearGradient>
+  <linearGradient id="lima" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b2d34a"/><stop offset=".65" stop-color="#8bb924"/><stop offset="1" stop-color="#699735"/></linearGradient>
+  <pattern id="linhas" patternUnits="userSpaceOnUse" width="92" height="92"><path d="M0 46Q46 3 92 46M0 75Q46 32 92 75" fill="none" stroke="#4e8b39" stroke-opacity=".11" stroke-width="2"/></pattern>
+</defs>
+<rect width="1200" height="800" fill="url(#creme)"/><rect width="1200" height="800" fill="url(#linhas)"/>
+<path d="M1200 0H880C776 123 847 226 771 382C701 529 568 712 428 800H1200Z" fill="url(#lima)"/>
+<path d="M1200 0H1127C1036 114 1057 218 950 369" fill="none" stroke="#eaf3bc" stroke-width="13" opacity=".75"/>
+<path d="M1200 647c-135-28-268 44-356 153h356Z" fill="#c9e687" opacity=".88"/>
+<circle cx="995" cy="366" r="179" fill="#ffffff" opacity=".13"/><circle cx="995" cy="366" r="137" fill="none" stroke="#ffffff" stroke-width="3" opacity=".35"/>
+<circle cx="995" cy="365" r="94" fill="#f9f7e7"/><circle cx="995" cy="365" r="81" fill="none" stroke="#064d2f" stroke-width="4"/>
+<path d="M948 389c-18-65 41-105 104-96 18 65-24 114-104 96Z" fill="#064d2f"/>
+<path d="M948 389c26-32 58-57 101-84" stroke="#e6f2be" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M1022 329q5 25 2 48M982 355q30 1 45-10" stroke="#e6f2be" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M105 65q40 2 50 37-43 12-50-37ZM159 40q0 46-40 55 3-43 40-55ZM65 104q43-3 56 26-42 13-56-26Z" fill="#9cc552" opacity=".72"/>
+<path d="M98 62c24 35 35 70 36 112" stroke="#557d32" stroke-width="4" stroke-linecap="round" fill="none" opacity=".46"/>
+<path d="M88 743c146 2 240-6 367-44" stroke="#8bb924" stroke-width="5" stroke-linecap="round" fill="none" opacity=".58"/>
+</svg>
