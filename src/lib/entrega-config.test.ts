@@ -4,6 +4,7 @@ import {
   gerarDatasEntrega,
   horariosDisponiveisParaData,
   regraEntregaCidade,
+  entregaSemanalFechadaHoje,
   validarEntregaProgramada,
 } from "./entrega-config";
 
@@ -60,10 +61,14 @@ describe("agenda e elegibilidade de cada cidade em três passadas", () => {
     });
   });
 
-  it("bloqueia a rota regional após 11h de sexta", () => {
-    vi.setSystemTime(new Date("2026-10-16T14:00:00.000Z"));
+  it("fecha a rota regional somente após 11h30 de sexta", () => {
+    vi.setSystemTime(new Date("2026-10-16T14:30:00.000Z"));
+    expect(entregaSemanalFechadaHoje("Mafra")).toBe(false);
+    expect(gerarDatasEntrega(configEntregaParaCidade(null, "Mafra")).some((d) => d.valor === "16/10/2026")).toBe(true);
+    vi.setSystemTime(new Date("2026-10-16T14:31:00.000Z"));
     const cfg = configEntregaParaCidade(null, "Mafra");
     expect(gerarDatasEntrega(cfg).some((d) => d.valor === "16/10/2026")).toBe(false);
+    expect(entregaSemanalFechadaHoje("Mafra")).toBe(true);
     expect(validarEntregaProgramada({ cidade: "Mafra", data: "16/10/2026", horario: "13:30h ~ 14:30h", totalUnidades: 5 }).ok).toBe(false);
   });
 
