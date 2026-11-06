@@ -21,6 +21,7 @@ import {
   configEntregaParaCidade,
   gerarDatasEntrega,
   horariosDisponiveisParaData,
+  entregaSemanalFechadaHoje,
 } from "@/lib/entrega-config";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -393,6 +394,7 @@ function Checkout() {
   );
   const datasEntrega = gerarDatasEntrega(entregaCfg);
   const HORARIOS_ENTREGA = horariosDisponiveisParaData(entregaCfg, dataEntrega);
+  const rotaSemanalFechada = metodoEntrega === "entrega" && entregaSemanalFechadaHoje(selectedCity);
   // agendaTick força novo cálculo a cada 30 s sem alterar a configuração.
   void agendaTick;
   const minimoEntrega = Number(entregaCfg.minUnidades ?? 0);
@@ -1459,6 +1461,11 @@ function Checkout() {
                       <option key={d.valor} value={d.valor}>{d.label}</option>
                     ))}
                   </select>
+                  {rotaSemanalFechada && (
+                    <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium leading-relaxed text-red-700">
+                      Os pedidos de hoje já estão fechados porque nosso motorista já saiu para as entregas semanais. A próxima data disponível é na semana que vem.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="horarioEntrega" className="text-base font-medium">Faixa de entrega</label>
