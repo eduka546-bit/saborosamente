@@ -69,8 +69,8 @@ export function regraEntregaCidade(cidade?: string): RegraEntregaCidade {
     return {
       diasPermitidos: [2],
       minUnidades: 5,
-      cutoffMesmoDia: { hora: 11, minuto: 0 },
-      descricao: "Entregas às terças-feiras. Pedidos para a terça devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
+      cutoffMesmoDia: { hora: 11, minuto: 30 },
+      descricao: "Entregas às terças-feiras. Pedidos para a terça devem ser feitos até 11h30. Pedido mínimo: 5 unidades.",
     };
   }
 
@@ -79,8 +79,8 @@ export function regraEntregaCidade(cidade?: string): RegraEntregaCidade {
       diasPermitidos: [5],
       horarios: HORARIOS_TARDE,
       minUnidades: 5,
-      cutoffMesmoDia: { hora: 11, minuto: 0 },
-      descricao: "Entregas às sextas-feiras à tarde. Pedidos para a sexta devem ser feitos até 11h. Pedido mínimo: 5 unidades.",
+      cutoffMesmoDia: { hora: 11, minuto: 30 },
+      descricao: "Entregas às sextas-feiras à tarde. Pedidos para a sexta devem ser feitos até 11h30. Pedido mínimo: 5 unidades.",
     };
   }
 
@@ -130,6 +130,19 @@ function agoraSaoPaulo() {
 
 function dateKey(year: number, month: number, day: number) {
   return year * 10000 + month * 100 + day;
+}
+
+function passouHorarioLimite(agora: ReturnType<typeof agoraSaoPaulo>, limite: { hora: number; minuto: number }) {
+  return agora.hour > limite.hora || (agora.hour === limite.hora && agora.minute > limite.minuto);
+}
+
+/** Indica que a rota semanal da cidade já saiu hoje. */
+export function entregaSemanalFechadaHoje(cidade?: string) {
+  const regra = regraEntregaCidade(cidade);
+  if (!regra.cutoffMesmoDia || !regra.diasPermitidos?.length) return false;
+  const agora = agoraSaoPaulo();
+  const hoje = new Date(Date.UTC(agora.year, agora.month - 1, agora.day));
+  return regra.diasPermitidos.includes(hoje.getUTCDay()) && passouHorarioLimite(agora, regra.cutoffMesmoDia);
 }
 
 function parseDataBR(valor: string) {
@@ -240,9 +253,7 @@ export function gerarDatasEntrega(
       dia.getUTCDate() === agora.day;
 
     if (mesmoDia && cfg.cutoffMesmoDia) {
-      const passou =
-        agora.hour > cfg.cutoffMesmoDia.hora ||
-        (agora.hour === cfg.cutoffMesmoDia.hora && agora.minute >= cfg.cutoffMesmoDia.minuto);
+      const passou = passouHorarioLimite(agora, cfg.cutoffMesmoDia);
       if (passou) continue;
     }
 
@@ -309,9 +320,7 @@ export function validarEntregaProgramada(args: {
     }
   }
   if (mesmoDia && cfg.cutoffMesmoDia) {
-    const passou =
-      agora.hour > cfg.cutoffMesmoDia.hora ||
-      (agora.hour === cfg.cutoffMesmoDia.hora && agora.minute >= cfg.cutoffMesmoDia.minuto);
+    const passou = passouHorarioLimite(agora, cfg.cutoffMesmoDia);
     if (passou) {
       return { ok: false as const, erro: "O horário limite para pedidos de hoje já passou." };
     }
