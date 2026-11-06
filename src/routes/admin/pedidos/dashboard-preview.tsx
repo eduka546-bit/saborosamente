@@ -6,9 +6,10 @@ import { updateAdminOrder, updateAdminOrderStatus } from "@/lib/orders.functions
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard } from "lucide-react";
+import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard, ChevronDown } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
+import { extrairMontagemPersonalizadaPedido } from "@/lib/marmita-personalizada-pedido";
 import { formatOrderDateBR } from "@/lib/date-br";
 import { phoneForWhatsapp, isOpenOrder } from "@/lib/order-whatsapp";
 import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido } from "@/lib/order-whatsapp-actions";
@@ -61,6 +62,53 @@ const orderPayments = (order: any) => {
   return order.metodo_pagamento ? [{ name: String(order.metodo_pagamento), amount: Number(order.valor_total || 0), status: String(order.status_pagamento || "") }] : [];
 };
 const itemNote = (item: any) => String(item.observacao || "").replace(/(?:Peso:\s*)?(?:150|200|300|400)\s*g/gi, "").replace(/[|—-]?\s*Congelada/gi, "").replace(/^[\s|—–,;-]+|[\s|—–,;-]+$/g, "").trim();
+/**
+ * A composição é um retrato do que o cliente selecionou ao fazer o pedido.
+ * Expandir é somente leitura: não altera ingredientes, estoque nem pedido.
+ */
+function DetalhesMontagemPersonalizada({ item }: { item: any }) {
+  const montagem = extrairMontagemPersonalizadaPedido(item);
+  if (!montagem) return null;
+
+  const quantidade = Number(item.quantidade) || 0;
+  return (
+    <details className="group col-span-full min-w-0 rounded-xl border border-[#cfe3d3] bg-[#f7fbf7]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold text-[#1c603a] hover:bg-[#edf6ee] sm:text-xs [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 items-center gap-1.5"><ChefHat size={15} className="shrink-0"/> Ver preparo da personalizada</span>
+        <span className="flex shrink-0 items-center gap-1.5">
+          {montagem.tamanho} · {montagem.pesoTotal}g
+          <ChevronDown size={15} className="transition-transform group-open:rotate-180"/>
+        </span>
+      </summary>
+      <div className="border-t border-[#dceadd] px-3 py-3">
+        <p className="text-xs font-extrabold text-[#234b32]">Montagem por marmita</p>
+        <p className="mt-1 text-[11px] text-[#526d58]">
+          {quantidade} {quantidade === 1 ? "unidade" : "unidades"} com esta mesma composição.
+        </p>
+        <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {montagem.ingredientes.map((ingrediente, index) => (
+            <div key={index} className="flex items-start gap-2 rounded-lg border border-[#e1ede2] bg-white px-2.5 py-2">
+              <span className="min-w-[50px] shrink-0 rounded-md bg-[#e5f4e7] px-1.5 py-1 text-center text-[11px] font-extrabold text-[#245d3a]">
+                {ingrediente.gramatura === null ? "—" : `${ingrediente.gramatura.toLocaleString("pt-BR")}g`}
+              </span>
+              <div className="min-w-0">
+                <p className="break-words text-xs font-semibold text-[#23432d]">{ingrediente.nome}</p>
+                {ingrediente.modoPreparo && <p className="text-[11px] text-[#667967]">Preparo: {ingrediente.modoPreparo}</p>}
+                {ingrediente.gramatura === null && <p className="text-[10px] text-[#758677]">Sem gramatura informada</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+        {montagem.previsao && (
+          <p className="mt-2 rounded-lg bg-[#fff7e8] px-2.5 py-2 text-[11px] font-medium text-[#80642e]">
+            Previsão registrada no pedido: {montagem.previsao}
+          </p>
+        )}
+      </div>
+    </details>
+  );
+}
+
 const sections = [
   { id: "novo", title: "Solicitados / Novos", icon: Clock3, accent: "#d58a18", bg: "#fff7e7", statuses: ["pendente", "rascunho"] },
   { id: "preparando", title: "Em preparação", icon: ChefHat, accent: "#347e4e", bg: "#eff8f1", statuses: ["preparando"] },
@@ -532,6 +580,7 @@ export function DashboardPedidosPreview() {
                 <select className="min-w-0 rounded-lg border p-2 text-sm" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
                 <input aria-label="Quantidade" type="number" min="1" className="rounded-lg border p-2 text-sm" value={item.quantidade??1} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,quantidade:e.target.value}:row)}))}/><input aria-label="Preço unitário" type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm" value={item.preco_unitario??0} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,preco_unitario:e.target.value}:row)}))}/><button type="button" aria-label="Remover item" disabled={(editing.itens||[]).length<=1} onClick={()=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).filter((_:any,i:number)=>i!==index)}))} className="text-red-600 disabled:opacity-30"><X size={18}/></button>
                 {!item.produto_id && <input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Nome do item avulso" value={item.nome_item||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,nome_item:e.target.value}:row)}))}/>}<input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Observação do item, ex.: Peso: 300g" value={item.observacao||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,observacao:e.target.value}:row)}))}/>
+                <DetalhesMontagemPersonalizada item={item}/>
               </div>)}</div></section>
             <label className="flex flex-col gap-1 text-xs font-semibold"><span>Observações gerais</span><textarea className="rounded-lg border p-2 text-sm font-normal" rows={2} value={editing.observacao??editing.observacoes??""} onChange={e=>setEditing((prev:any)=>({...prev,observacao:e.target.value}))}/></label>
           </div>
@@ -669,6 +718,7 @@ export function DashboardPedidosPreview() {
                       <strong className="whitespace-nowrap text-[11px] tabular-nums text-[#16392a] sm:text-sm">{money(Number(item.quantidade || 0) * Number(item.preco_unitario || 0))}</strong>
                       <p className="hidden text-[10px] text-[#809187] sm:block">{money(item.preco_unitario)} / un.</p>
                     </div>
+                    <DetalhesMontagemPersonalizada item={item}/>
                   </div>)}
                   {!(selected.itens || []).length && <p className="p-5 text-center text-sm text-gray-500">Nenhum item registrado.</p>}
                 </div>
