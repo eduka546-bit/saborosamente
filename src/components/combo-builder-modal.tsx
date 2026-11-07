@@ -333,7 +333,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
           <div className="flex min-w-0 flex-row items-center gap-1.5 sm:gap-3 lg:gap-5">
             <div className="min-w-0 basis-[37%] shrink-0 sm:basis-[35%] lg:basis-[34%]">
               <h2 className="text-[15px] font-bold leading-tight sm:text-xl">{combo.nome}</h2>
-              <p className="mt-1 text-[10px] leading-snug text-white/85 sm:text-sm lg:text-base">
+              <p className="mt-1 text-xs leading-snug text-white/85 sm:text-sm lg:text-base">
                 Escolha suas marmitas — quanto mais, maior o desconto!
               </p>
             </div>
@@ -349,15 +349,15 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                         ? "border-[#efd986] bg-[#fff3c4] text-[#075636]"
                         : "border-white/80 bg-white text-[#526457]",
                     )}>
-                      <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[9px] font-extrabold sm:gap-1 sm:text-xs">
+                      <span className="flex items-center justify-center gap-0.5 whitespace-nowrap text-[11px] font-extrabold sm:gap-1 sm:text-xs">
                         <Tag size={12} className="hidden shrink-0 min-[430px]:block" /> {rule.badge}
                       </span>
-                      <span className="mt-1 whitespace-nowrap text-[9px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
+                      <span className="mt-1 whitespace-nowrap text-[11px] font-medium sm:text-xs">{rule.min}+ ITENS</span>
                     </div>
                   );
                 })}
               </div>
-              <p aria-live="polite" className="mt-1 text-center text-[10px] font-medium leading-tight text-white/85 sm:text-xs">
+              <p aria-live="polite" className="mt-1 text-center text-xs font-medium leading-tight text-white/85">
                 {nextRule
                   ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para <strong className="font-bold text-white">{nextRule.badge}</strong></>
                   : <strong className="text-white">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
@@ -555,11 +555,11 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                           return (
                             <div key={w} className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-[#dce8df] bg-[#fdfefd] px-1 py-1.5 text-center sm:px-2 lg:flex-row lg:justify-between lg:gap-1 lg:py-2">
                               {/* Três gramaturas em paralelo no mobile, sem rolagem horizontal. */}
-                              <div className="flex min-w-0 items-center justify-center gap-1 leading-tight lg:gap-1.5">
-                                <span className="shrink-0 text-[10px] font-bold text-gray-600 sm:text-xs">{w}</span>
+                              <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 leading-tight lg:flex-row lg:gap-1.5">
+                                <span className="shrink-0 text-xs font-bold text-gray-600">{w}</span>
                                 <div className="flex min-w-0 flex-col items-center justify-center leading-tight">
-                                  {hasDiscount && <span className="whitespace-nowrap text-[9px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
-                                  <span className="whitespace-nowrap text-[10px] font-bold text-[#086e45] sm:text-xs">
+                                  {hasDiscount && <span className="whitespace-nowrap text-[11px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
+                                  <span className="whitespace-nowrap text-xs font-bold text-[#086e45]">
                                     {formatBRL(hasDiscount ? tierPrice : price)}
                                   </span>
                                 </div>
@@ -571,7 +571,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                                     qty > 0 ? "border-[#086e45] text-[#086e45]" : "border-gray-200 text-gray-300")}>
                                   <Minus size={12} />
                                 </button>
-                                <span className={cn("min-w-[12px] text-center text-[11px] font-semibold tabular-nums sm:text-xs", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
+                                <span className={cn("min-w-[12px] text-center text-xs font-semibold tabular-nums", qty > 0 ? "text-[#086e45]" : "text-gray-400")}>{qty}</span>
                                 <button type="button" aria-label={cannotAdd ? "Sem estoque para " + w + "; toque no prato para solicitar aviso" : "Aumentar " + product.nome + ", " + w}
                                   title={cannotAdd ? "Esgotado — toque na foto ou nome do prato e selecione este tamanho para solicitar aviso" : undefined}
                                   onClick={() => changeQty(product, w, 1)} disabled={cannotAdd}
@@ -643,7 +643,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
               onClick={handleAddToCart}
               disabled={items.length === 0}
               className={cn(
-                "col-start-2 row-start-2 flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold leading-tight transition-colors sm:text-xs md:mt-3 md:min-h-12 md:gap-2 md:rounded-2xl md:py-3.5 md:text-base",
+                "col-start-2 row-start-2 flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-xs font-semibold leading-tight transition-colors md:mt-3 md:min-h-12 md:gap-2 md:rounded-2xl md:py-3.5 md:text-base",
                 items.length > 0
                   ? "bg-[#086e45] text-white hover:bg-[#065a38] md:shadow-lg"
                   : "cursor-not-allowed bg-gray-100 text-gray-600",
