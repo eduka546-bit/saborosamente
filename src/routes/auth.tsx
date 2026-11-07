@@ -321,18 +321,7 @@ function AuthPage() {
     <div className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-background px-3 py-5 sm:px-4 sm:py-12">
       <div className="w-full max-w-md space-y-5 rounded-3xl border border-border bg-card p-4 shadow-soft sm:p-8">
         <div className="text-center">
-          {!(mode === "reset" || passwordChangeRequired) && (isLogin ? (
-            <p className="text-base text-muted-foreground">
-              Não tem uma conta?{" "}
-              <button
-                type="button"
-                onClick={() => { setIsLogin(false); setPassword(""); }}
-                className="font-bold text-primary underline underline-offset-4"
-              >
-                Cadastre-se clicando aqui
-              </button>
-            </p>
-          ) : (
+          {!(mode === "reset" || passwordChangeRequired) && !isLogin && (
             <button
               type="button"
               onClick={() => { setIsLogin(true); setPassword(""); }}
@@ -340,7 +329,7 @@ function AuthPage() {
             >
               Já tem uma conta? Entre agora
             </button>
-          ))}
+          )}
           <h2 className="text-2xl font-bold tracking-normal">
             {mode === "reset" || passwordChangeRequired ? "Criar nova senha" : isLogin ? "Entrar na sua conta" : "Criar nova conta"}
           </h2>
@@ -521,6 +510,18 @@ function AuthPage() {
             {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
         </form>
+        {isLogin && (
+          <p className="pt-1 text-center text-base text-muted-foreground">
+            Não tem uma conta?{" "}
+            <button
+              type="button"
+              onClick={() => { setIsLogin(false); setPassword(""); }}
+              className="font-bold text-primary underline underline-offset-4"
+            >
+              Cadastre-se clicando aqui
+            </button>
+          </p>
+        )}
         )}
 
       </div>
