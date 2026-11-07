@@ -396,6 +396,7 @@ function AuthPage() {
             </Button>
           </form>
         ) : (
+        <>
         <form onSubmit={handleAuth} className="mt-4 space-y-3 sm:space-y-4">
           {!isLogin && (
             <>
@@ -522,6 +523,7 @@ function AuthPage() {
             </button>
           </p>
         )}
+        </>
         )}
 
       </div>
