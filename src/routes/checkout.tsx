@@ -167,6 +167,7 @@ function Checkout() {
   // ── data e horário de entrega (entrega programada) ─────────────────────────
   const [dataEntrega, setDataEntrega] = useState<string>("");
   const [horarioEntrega, setHorarioEntrega] = useState<string>("");
+  const [tipoRetirada, setTipoRetirada] = useState<"agora" | "agendada">("agora");
   const [horariosModalOpen, setHorariosModalOpen] = useState(false);
   const [agendaTick, setAgendaTick] = useState(0);
   const [itemSemEstoque, setItemSemEstoque] = useState<any>(null);
@@ -409,10 +410,11 @@ function Checkout() {
   }, [selectedCity, metodoEntrega]);
 
   useEffect(() => {
-    if (metodoEntrega !== "entrega" || !horarioEntrega) return;
-    // Cada item já define uma faixa completa de entrega (aproximadamente uma hora).
+    const usaAgendamento = metodoEntrega === "entrega" || tipoRetirada === "agendada";
+    if (!usaAgendamento || !horarioEntrega) return;
+    // Cada item já define uma faixa completa de aproximadamente uma hora.
     if (!HORARIOS_ENTREGA.includes(horarioEntrega)) setHorarioEntrega("");
-  }, [metodoEntrega, dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
+  }, [metodoEntrega, tipoRetirada, dataEntrega, horarioEntrega, agendaTick, entregaCfg.horarios.join("|")]);
 
   // Há marmita personalizada no carrinho? (para o aviso de prazo)
   const temMarmitaPersonalizada = lines.some((l) => l.custom);
@@ -788,14 +790,14 @@ function Checkout() {
       return;
     }
 
-    // Retirada não exige agendamento e nunca usa a agenda de entregas.
-    if (metodoEntrega === "entrega") {
+    const retiradaAgendada = metodoEntrega === "retirada" && tipoRetirada === "agendada";
+    if (metodoEntrega === "entrega" || retiradaAgendada) {
       if (!dataEntrega) {
-        toast.error("Escolha a data de entrega.");
+        toast.error(metodoEntrega === "entrega" ? "Escolha a data de entrega." : "Escolha a data para retirada.");
         return;
       }
       if (!horarioEntrega || !HORARIOS_ENTREGA.includes(horarioEntrega)) {
-        toast.error("Escolha uma faixa de entrega disponível.");
+        toast.error(metodoEntrega === "entrega" ? "Escolha uma faixa de entrega disponível." : "Escolha um horário de retirada disponível.");
         return;
       }
     }
@@ -828,10 +830,17 @@ function Checkout() {
       // incremento de uso agora são feitos no servidor, dentro de createOrder —
       // de forma confiável e à prova de manipulação pelo cliente.
 
-      const dataPedido = metodoEntrega === "retirada"
-        ? new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
-        : dataEntrega;
-      const faixaPedido = metodoEntrega === "retirada" ? TEXTO_RETIRADA : horarioEntrega;
+      const retiradaAgendada = metodoEntrega === "retirada" && tipoRetirada === "agendada";
+      const dataPedido = retiradaAgendada
+        ? dataEntrega
+        : metodoEntrega === "retirada"
+          ? new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
+          : dataEntrega;
+      const faixaPedido = retiradaAgendada
+        ? `Retirada agendada: ${horarioEntrega}`
+        : metodoEntrega === "retirada"
+          ? TEXTO_RETIRADA
+          : horarioEntrega;
 
       // cria o pedido real no banco
       const order = await createOrderFn({
@@ -1242,23 +1251,100 @@ function Checkout() {
             </div>
 
             {metodoEntrega === "retirada" && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-base leading-relaxed text-foreground">
-                <div className="flex items-start gap-2">
-                  <Clock size={20} className="mt-0.5 shrink-0 text-[#086e45]" />
-                  <p>
-                    Seu pedido será separado em até <strong>15 minutos</strong> e poderá ser retirado
-                    durante todo o{" "}
-                    <button
-                      type="button"
-                      onClick={() => setHorariosModalOpen(true)}
-                      className="font-bold text-[#075d3a] underline underline-offset-4 hover:text-primary focus-visible:outline focus-visible:outline-2"
-                    >
-                      horário de atendimento
-                    </button>{" "}
-                    da loja. Sem taxa de entrega.
-                  </p>
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipoRetirada("agora");
+                      setDataEntrega("");
+                      setHorarioEntrega("");
+                    }}
+                    className={cn(
+                      "rounded-2xl border p-4 text-left transition-colors",
+                      tipoRetirada === "agora"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:border-primary",
+                    )}
+                  >
+                    <span className="block text-base font-semibold">Retirar agora</span>
+                    <span className={cn("mt-1 block text-sm", tipoRetirada === "agora" ? "text-primary-foreground/85" : "text-muted-foreground")}>
+                      Pedido separado em até 15 minutos.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoRetirada("agendada")}
+                    className={cn(
+                      "rounded-2xl border p-4 text-left transition-colors",
+                      tipoRetirada === "agendada"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background hover:border-primary",
+                    )}
+                  >
+                    <span className="block text-base font-semibold">Escolher horário</span>
+                    <span className={cn("mt-1 block text-sm", tipoRetirada === "agendada" ? "text-primary-foreground/85" : "text-muted-foreground")}>
+                      Agende a data e o horário de retirada.
+                    </span>
+                  </button>
                 </div>
-              </div>
+
+                {tipoRetirada === "agora" ? (
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-base leading-relaxed text-foreground">
+                    <div className="flex items-start gap-2">
+                      <Clock size={20} className="mt-0.5 shrink-0 text-[#086e45]" />
+                      <p>
+                        Seu pedido será separado em até <strong>15 minutos</strong> e poderá ser retirado
+                        durante todo o{" "}
+                        <button
+                          type="button"
+                          onClick={() => setHorariosModalOpen(true)}
+                          className="font-bold text-[#075d3a] underline underline-offset-4 hover:text-primary focus-visible:outline focus-visible:outline-2"
+                        >
+                          horário de atendimento
+                        </button>{" "}
+                        da loja. Sem taxa de entrega.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="dataRetirada" className="text-base font-medium">Data para retirada</label>
+                      <select
+                        id="dataRetirada"
+                        className={fieldClass}
+                        value={dataEntrega}
+                        onChange={(e) => { setDataEntrega(e.target.value); setHorarioEntrega(""); }}
+                      >
+                        <option value="">Selecione uma data</option>
+                        {datasEntrega.map((d) => (
+                          <option key={d.valor} value={d.valor}>{d.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="horarioRetirada" className="text-base font-medium">Horário para retirada</label>
+                      <select
+                        id="horarioRetirada"
+                        className={fieldClass}
+                        value={horarioEntrega}
+                        onChange={(e) => setHorarioEntrega(e.target.value)}
+                        disabled={!dataEntrega || HORARIOS_ENTREGA.length === 0}
+                      >
+                        <option value="">Selecione um horário</option>
+                        {HORARIOS_ENTREGA.map((faixa) => (
+                          <option key={faixa} value={faixa}>{faixa}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1.5 text-xs text-muted-foreground">Seu pedido ficará separado para o horário escolhido.</p>
+                      {dataEntrega && HORARIOS_ENTREGA.length === 0 && (
+                        <p className="mt-1.5 text-sm font-medium text-amber-700">Os horários desta data já encerraram. Escolha outra data.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {metodoEntrega === "entrega" && (
