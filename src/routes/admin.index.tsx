@@ -495,7 +495,7 @@ function AdminDashboard() {
                 { label: "Novo Produto", icon: Plus, href: "/admin/produtos" },
                 { label: "PDV / Caixa", icon: ShoppingBag, href: "/admin/pdv" },
                 { label: "Bebidas (PDV)", icon: Package, href: "/admin/bebidas" },
-                { label: "Registrar Pedido P10", icon: Package, href: "/admin/registrar-p10" },
+                { label: "Lançar Pedido", icon: Package, href: "/admin/pedidos/whatsapp" },
                 { label: "Ver Pedidos", icon: ShoppingBag, href: "/admin/pedidos" },
                 {
                   label: "Carrinhos Abandonados",
