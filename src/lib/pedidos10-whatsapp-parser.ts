@@ -1,4 +1,5 @@
 import type { PedidoInterpretado, ItemDetalhado, ItemInterpretado, PesoPedido } from "./whatsapp-order-parser";
+import { normalizarAgendamentoP10 } from "./p10-receipt";
 
 /** Leitor específico de recibos do Pedidos10 colados na tela WhatsApp.
  * Não conta a linha do combo como outro produto: só os sabores reais são itens.
@@ -40,7 +41,8 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
   const bairro = bairroPart?.trim() ?? "";
   const cidade = cidadeParts.join(" / ").trim() || cidadeLinha;
   const referencia = lineValue(lines, /^Refer[eê]ncia\s*:\s*/i) || null;
-  const horario = lineValue(lines, /^AGENDADO\s*:\s*/i) || null;
+  const horarioRaw = lineValue(lines, /^AGENDADO\s*:\s*/i) || null;
+  const horario = horarioRaw ? normalizarAgendamentoP10(horarioRaw) : null;
   const metodoEntrega: PedidoInterpretado["metodoEntrega"] =
     /retirada/i.test(lineValue(lines, /^F\.\s*ENTREGA\s*:\s*/i)) ? "retirada" : "entrega";
   const subtotal = amount(lines, /^Total\s+Itens\s*:\s*/i);
@@ -56,7 +58,12 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
     ...(lines.slice(pagamentoLinha + 1, pagamentoLinha + 3).filter((l) => /^\s*\(/.test(l))),
   ].join(" ");
   const pagamentoNormalizado = normalizeText(pagamentoRaw);
-  const pagamento: PedidoInterpretado["pagamento"] = pagamentoNormalizado.includes("pix") ? "pix"
+  const integralmentePago = totalPedido !== null && totalPago > 0 &&
+    totalAPagar !== null && totalAPagar <= 0 && Math.abs(totalPago - totalPedido) < 0.01;
+  const parcialmentePago = totalPago > 0 && !integralmentePago;
+  const pagamento: PedidoInterpretado["pagamento"] = integralmentePago ? "online_pago"
+    : parcialmentePago ? "pagamento_parcial"
+    : pagamentoNormalizado.includes("pix") ? "pix"
     : pagamentoNormalizado.includes("alimentacao") || pagamentoNormalizado.includes("refeicao") ? "alimentacao"
     : pagamentoNormalizado.includes("dinheiro") ? "dinheiro"
     : pagamentoNormalizado.includes("mercado pago") ? "mercadopago"
@@ -87,7 +94,8 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
       text += " " + lines[j];
     }
     const weightMatch = text.match(/\b(200|300|400)\s*g\b/i);
-    const peso = (weightMatch ? weightMatch[1] + "g" : code.startsWith("SO") ? "400g" : "300g") as PesoPedido;
+    // Complementos de 150g usam o estoque_200g, sem mudar o tamanho exibido.
+    const peso = (code.startsWith("CO") ? "200g" : weightMatch ? weightMatch[1] + "g" : code.startsWith("SO") ? "400g" : "300g") as PesoPedido;
     entries.push({ codigo: code, quantidade, peso });
   }
   const avisos: string[] = [];
@@ -107,13 +115,13 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
         const last = itensDetalhados.at(-1);
         if (last && last.codigo === entry.codigo && last.peso === entry.peso &&
             last.precoUnitario === centsUnit / 100) last.quantidade++;
-        else itensDetalhados.push({ ...entry, quantidade: 1, precoUnitario: centsUnit / 100, pesoExibicao: entry.peso });
+        else itensDetalhados.push({ ...entry, quantidade: 1, precoUnitario: centsUnit / 100, pesoExibicao: entry.codigo.startsWith("CO") ? "150g" : entry.peso });
       }
     }
     avisos.push("Pedidos10: o combo informa somente o valor total. Valores por sabor distribuídos para conferir o pedido; não representam preços individuais originais.");
   } else {
     for (const entry of entries)
-      itensDetalhados.push({ ...entry, pesoExibicao: entry.peso, precoUnitario: null });
+      itensDetalhados.push({ ...entry, pesoExibicao: entry.codigo.startsWith("CO") ? "150g" : entry.peso, precoUnitario: null });
   }
   if (quantidadeTotal === 0) avisos.push("Pedidos10: não foi possível encontrar os códigos dos sabores.");
   if (totalPedido !== null && precoReferencia !== null && taxa !== null &&
@@ -150,6 +158,9 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
     horario,
     pagamento,
     tipoCartao,
+    valorPago: totalPago,
+    valorAPagar: totalAPagar,
+    pagamentoOriginal: pagamentoRaw || null,
     descontoPercentual: null,
     descontoValor: 0,
     cashbackUsado: 0,

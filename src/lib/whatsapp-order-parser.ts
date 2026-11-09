@@ -41,7 +41,10 @@ export type PedidoInterpretado = {
   endereco: { rua: string; numero: string; bairro: string; cidade: string } | null;
   referencia: string | null;
   horario: string | null;
-  pagamento: "pix" | "alimentacao" | "mercadopago" | "dinheiro" | "cartao" | "link" | null;
+  pagamento: "pix" | "alimentacao" | "mercadopago" | "dinheiro" | "cartao" | "link" | "online_pago" | "pagamento_parcial" | null;
+  valorPago?: number | null;
+  valorAPagar?: number | null;
+  pagamentoOriginal?: string | null;
   descontoPercentual: number | null;
   descontoValor: number;
   cashbackUsado: number;

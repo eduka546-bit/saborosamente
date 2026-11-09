@@ -99,6 +99,9 @@ type WhatsappAdminDraft = {
   tipoCartao: string;
   taxaEntrega: number;
   observacao: string;
+  referencia?: string;
+  origemPedido?: "manual" | "whatsapp" | "pedidos10";
+  comprovanteP10?: { valorPago: number; valorAPagar: number; forma: string } | null;
   declaredTotal: number | null;
   saldoAnterior: number | null;
   totalAcumulado: number | null;
@@ -195,6 +198,9 @@ function WhatsappAdminOrderPage() {
   const [tipoCartao, setTipoCartao] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [observacao, setObservacao] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [origemPedido, setOrigemPedido] = useState<"manual" | "whatsapp" | "pedidos10">("manual");
+  const [comprovanteP10, setComprovanteP10] = useState<{ valorPago: number; valorAPagar: number; forma: string } | null>(null);
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
   const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
   const [totalAcumulado, setTotalAcumulado] = useState<number | null>(null);
@@ -279,6 +285,9 @@ function WhatsappAdminOrderPage() {
       setTipoCartao(salvo.tipoCartao || "");
       setTaxaEntrega(Number(salvo.taxaEntrega || 0));
       setObservacao(salvo.observacao || "");
+      setReferencia(salvo.referencia || "");
+      setOrigemPedido(salvo.origemPedido || (salvo.pasteText?.includes("TOTAL PEDIDO:") ? "pedidos10" : salvo.pasteText?.trim() ? "whatsapp" : "manual"));
+      setComprovanteP10(salvo.comprovanteP10 ?? null);
       setDeclaredTotal(salvo.declaredTotal ?? null);
       setSaldoAnterior(salvo.saldoAnterior ?? null);
       setTotalAcumulado(salvo.totalAcumulado ?? null);
@@ -305,7 +314,7 @@ function WhatsappAdminOrderPage() {
       pasteText, nome, telefone, email, customerSearch, selectedCustomer,
       salvarEnderecoCadastro, metodoEntrega, cidade, bairro, rua, numero,
       complemento, cep, horario, pagamento, tipoCartao, taxaEntrega,
-      observacao, declaredTotal, saldoAnterior, totalAcumulado,
+      observacao, referencia, origemPedido, comprovanteP10, declaredTotal, saldoAnterior, totalAcumulado,
       descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
       items, totalConfirmado, enderecoOrigem,
     };
@@ -314,7 +323,7 @@ function WhatsappAdminOrderPage() {
     draftKey, draftReadyKey, pasteText, nome, telefone, email, customerSearch,
     selectedCustomer, salvarEnderecoCadastro, metodoEntrega, cidade, bairro,
     rua, numero, complemento, cep, horario, pagamento, tipoCartao,
-    taxaEntrega, observacao, declaredTotal, saldoAnterior, totalAcumulado,
+    taxaEntrega, observacao, referencia, origemPedido, comprovanteP10, declaredTotal, saldoAnterior, totalAcumulado,
     descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
     items, totalConfirmado, enderecoOrigem,
   ]);
@@ -498,6 +507,9 @@ function WhatsappAdminOrderPage() {
         setDeclaredTotal(null);
         setAvisosInterpretacao([]);
         setObservacao("");
+        setReferencia("");
+        setOrigemPedido("whatsapp");
+        setComprovanteP10(null);
 
         const repetir: DraftItem[] = (linhas ?? [])
           .filter((row: any) => row.produto_id && Number(row.quantidade) > 0)
@@ -587,6 +599,13 @@ function WhatsappAdminOrderPage() {
     }
 
     const interpretado = interpretarResumoWhatsapp(pasteText);
+    const ehP10 = interpretado.valorPago !== undefined;
+    setOrigemPedido(ehP10 ? "pedidos10" : "whatsapp");
+    setComprovanteP10(ehP10 ? {
+      valorPago: interpretado.valorPago ?? 0,
+      valorAPagar: interpretado.valorAPagar ?? 0,
+      forma: interpretado.pagamentoOriginal ?? "",
+    } : null);
     if (interpretado.nome) {
       const limparNome = (v: string) => v.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       // Ao colar pedido de outra pessoa, nunca preservar vínculo anterior.
@@ -661,14 +680,15 @@ function WhatsappAdminOrderPage() {
       setCidade(interpretado.endereco.cidade);
     }
     if (interpretado.horario) setHorario(interpretado.horario);
+    setReferencia(interpretado.referencia ?? "");
     setPagamento(interpretado.pagamento ?? "nao_informado");
-    if (interpretado.referencia || interpretado.observacoesAdicionais) {
+    if (interpretado.observacoesAdicionais) {
       setObservacao((previous) => {
         const atual = previous.replace(/(?:^|\n)Referência de entrega:[^\n]*/g, "")
           .replace(/(?:^|\n)Instruções do comprovante:[^\n]*/g, "").trim();
         return [
           atual,
-          interpretado.referencia ? "Referência de entrega: " + interpretado.referencia : "",
+
           interpretado.observacoesAdicionais ? "Instruções do comprovante: " + interpretado.observacoesAdicionais : "",
         ].filter(Boolean).join("\n");
       });
@@ -678,7 +698,7 @@ function WhatsappAdminOrderPage() {
     setPercentualDesconto(interpretado.descontoPercentual);
     setAvisosInterpretacao(interpretado.avisos);
     if (interpretado.avisos.length) {
-      toast.warning("O resumo possui diferenças. Confira os valores antes de salvar.");
+      toast.info("Confira os avisos e os valores do comprovante antes de salvar.");
     }
     setDeclaredTotal(interpretado.totalPedido);
     setSaldoAnterior(interpretado.saldoAnterior);
@@ -710,6 +730,8 @@ function WhatsappAdminOrderPage() {
           nome,
           telefone,
           email,
+          origem: origemPedido,
+          referencia,
           linkedUserId: selectedCustomer?.id ?? null,
           carrinhoRecuperadoId: recoveredCart?.id ?? null,
           atualizarEnderecoCadastro: Boolean(selectedCustomer && metodoEntrega === "entrega" && enderecoDiferente && salvarEnderecoCadastro),
@@ -726,7 +748,9 @@ function WhatsappAdminOrderPage() {
           numero,
           complemento,
           cep,
-          observacao,
+          observacao: [observacao, origemPedido === "pedidos10" && comprovanteP10
+            ? `Pedidos10: ${comprovanteP10.forma || "Forma não informada"} | Pago: R$ ${comprovanteP10.valorPago.toFixed(2)} | A receber: R$ ${comprovanteP10.valorAPagar.toFixed(2)}`
+            : ""].filter(Boolean).join("\n").slice(0, 500),
           items: items.map((item) => ({
             ...(item.productId ? { productId: item.productId } : {}),
             ...(item.nomeItem ? { nomeItem: item.nomeItem } : {}),
@@ -795,10 +819,10 @@ function WhatsappAdminOrderPage() {
             <ArrowLeft size={16} /> Voltar para pedidos
           </a>
           <h1 className="text-2xl font-bold text-[#5850ec] flex items-center gap-2">
-            <Smartphone size={24} /> Lançar pedido do WhatsApp
+            <Smartphone size={24} /> Lançar Pedido
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Cole o resumo recebido no WhatsApp ou preencha manualmente.
+            Cole o pedido do WhatsApp ou Pedidos10, ou preencha manualmente.
           </p>
         </div>
         <Button
@@ -908,14 +932,16 @@ function WhatsappAdminOrderPage() {
           <section className="bg-white border rounded-xl p-5">
             <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
               <WandSparkles size={18} className="text-[#5850ec]" />
-              Colar resumo do WhatsApp
+              Importar pedido (WhatsApp ou Pedidos10)
             </h2>
+            <p className="text-xs text-gray-500 mb-2">A origem é identificada automaticamente ao interpretar.</p>
             <textarea
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               placeholder={"Pedido Cliente - SBS:\n\n12 - Refeições 300g...\n5xTD(02)\n..."}
               className="w-full min-h-[240px] rounded-lg border border-gray-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#5850ec]/30"
             />
+            <p className="mt-2 text-xs font-semibold text-green-700">Origem: {origemPedido === "pedidos10" ? "Pedidos10" : origemPedido === "whatsapp" ? "WhatsApp" : "Manual"}</p>
             <Button
               variant="outline"
               className="mt-3 w-full"
@@ -971,6 +997,8 @@ function WhatsappAdminOrderPage() {
                 onChange={(e) => setPagamento(e.target.value)}
               >
                 <option value="nao_informado">Não informado / A combinar</option>
+                <option value="online_pago">Pagamento realizado (comprovante P10)</option>
+                <option value="pagamento_parcial">Pagamento parcial (conferir saldo)</option>
                 <option value="cartao">Cartão</option>
                 <option value="pix">PIX</option>
                 <option value="alimentacao">Alimentação/Refeição</option>
@@ -1034,6 +1062,10 @@ function WhatsappAdminOrderPage() {
                   <label className="text-xs font-bold text-gray-500">CEP</label>
                   <Input value={cep} onChange={(e) => { setCep(e.target.value); setEnderecoOrigem("pedido"); }} />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500">Referência de entrega</label>
+                <Input value={referencia} onChange={(e) => setReferencia(e.target.value)} />
               </div>
               {selectedCustomer && (
                 <div className={`rounded-xl border p-3 text-sm ${enderecoDiferente ? "border-amber-300 bg-amber-50 text-amber-950" : "border-green-200 bg-green-50 text-green-900"}`}>
@@ -1282,7 +1314,7 @@ function WhatsappAdminOrderPage() {
               )}
               {declaredTotal !== null && (
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Total informado no WhatsApp</span>
+                  <span>Total informado no comprovante</span>
                   <span>{money(declaredTotal)}</span>
                 </div>
               )}
@@ -1291,6 +1323,12 @@ function WhatsappAdminOrderPage() {
                   <p className="font-bold mb-1">Conferir o resumo original</p>
                   {avisosInterpretacao.map((aviso, i) => <p key={i}>{aviso}</p>)}
                   <p className="mt-1">Edite os preços/quantidades para corrigir diferenças antes de salvar.</p>
+                </div>
+              )}
+              {origemPedido === "pedidos10" && comprovanteP10 && (
+                <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-900">
+                  <strong>Pagamento do P10:</strong> recebido {money(comprovanteP10.valorPago)} · a receber {money(comprovanteP10.valorAPagar)}
+                  {comprovanteP10.forma && <div className="text-xs mt-1">Comprovante: {comprovanteP10.forma}</div>}
                 </div>
               )}
               {saldoAnterior !== null && (
@@ -1311,7 +1349,7 @@ function WhatsappAdminOrderPage() {
               <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2">
                 <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                 <div>
-                  <strong>O total foi alterado em relação ao WhatsApp.</strong> O formulário calcula {money(total)},
+                  <strong>O total calculado difere do comprovante.</strong> O formulário calcula {money(total)},
                   mas o resumo original informa {money(declaredTotal ?? 0)}.
                   <label className="mt-3 flex items-start gap-2 cursor-pointer font-semibold">
                     <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-green-700"

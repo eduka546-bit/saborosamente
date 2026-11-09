@@ -155,7 +155,8 @@ export function parseP10Receipt(texto: string): {
     }
 
     // Linha de produto do cupom: "1 COMBO PRATOS MAIS 80,00 80,00".
-    const produto = linha.match(/^(\d+)\s+(.+?)\s+\d[\d.,]*\s+\d[\d.,]*$/);
+    const linhaProduto = linha.replace(/(UNIDADES)(?=\d[\d.,]*\s+\d[\d.,]*$)/i, "$1 ");
+    const produto = linhaProduto.match(/^(\d+)\s+(.+?)\s+\d[\d.,]*\s+\d[\d.,]*$/);
     if (produto) {
       finalizarGrupo();
       quantidadeGrupo = Number(produto[1]);
@@ -198,7 +199,7 @@ export function parseP10Receipt(texto: string): {
 
     // As opções do combo podem ocupar várias linhas e começam por "++".
     const novaEscolha = linha.match(/^\+\+\s*(.*)$/);
-    const escolhaCodificada = linha.match(/^\*\s*((?:TD|SO|CO)\s*\d+.*)$/i);
+    const escolhaCodificada = linha.match(/^\*\s*((?:\d+\s*x\s*)?(?:TD|SO|CO)\s*\d+.*)$/i);
     if (novaEscolha || escolhaCodificada) {
       if (secao === "servir") continue;
       finalizarEscolha();

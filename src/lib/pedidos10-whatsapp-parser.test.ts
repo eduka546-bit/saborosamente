@@ -59,7 +59,7 @@ describe("Comprovantes P10 colados no WhatsApp", () => {
     });
     expect(p.complemento).toBe("SALA 105 - PROMOTORIA - MPSC");
     expect(p.referencia).toBe("1º ANDAR");
-    expect(p.horario).toBe("16/10 - 15:00 - 18:00");
+    expect(p.horario).toMatch(/^16\/10\/20\d{2} - 15:00 - 18:00$/);
     expect(p.pagamento).toBe("cartao");
     expect(p.tipoCartao).toContain("Débito");
     expect(p.tipoCartao).toContain("ELO");
@@ -91,5 +91,44 @@ describe("Comprovantes P10 colados no WhatsApp", () => {
     const p = interpretarResumoWhatsapp("Pedido João - SBS:\n1xTD02\n1xTD09\nEntrega: 5,00\nTotal: R$ 40,00");
     expect(p.nome).toBe("João");
     expect(p.itens).toEqual([{codigo:"TD02",quantidade:1},{codigo:"TD09",quantidade:1}]);
+  });
+  it("interpreta combo P10 de 18 unidades, tamanhos mistos e pagamento online integral", () => {
+    const receipt = [
+      "Cliente: Cliente de Teste", "Fone: (47)99999-0000",
+      "F. ENTREGA: ENTREGA AGENDADA0", "AGENDADO: 13/11 - 15:00 - 18:00",
+      "Endereco: RUA DE TESTE", "Numero: 100", "Bairro: CENTRO / CAMPO ALEGRE", "Referencia: LOCAL DE TESTE",
+      "Qtd  Descricao             V.Uni V.Total",
+      "1    COMBO 10 A 19 UNIDADES374,20 374,20", "SABOR",
+      "* 2x TD01- Tiras de Alcatra ao Molho Madeira e Arroz com Brocolis 300g",
+      "* 2x TD02- Almondegas ao Molho Sugo com Arroz e Batata Rustica 300g",
+      "* 2x TD03- Nhoque de Batata ao Molho Bolonhesa 300g",
+      "* 2x TD04- Vaca Atolada (Carne de Panela com Aipim) 300g",
+      "* 2x TD05- Arroz Carreteiro com Carne de Patinho Desfiada, Bacon e Calabresa 300g",
+      "* 2x TD06- Frango Grelhado ao Molho Sugo com Arroz e Brocolis 300g",
+      "* 2x TD11- Estrogonofe de Carne com Arroz e Brocolis 200g",
+      "* 2x TD13- Escondidinho de Patinho com Batata Inglesa e Queijo 400g",
+      "* 2x TD15- Feijoada com Arroz e Couve Mineira 300g",
+      "SERVIR", "++ Consumir depois (congelado)",
+      "Total Itens: 374,20", "Tx. Entrega: 10,00", "TOTAL PEDIDO: 384,20",
+      "TOTAL PAGO: 384,20", "TOTAL A PAGAR: 0,00", "F. PAGAMENTO.: PAGAMENTO ONLINE",
+    ].join("\n");
+    const p = interpretarResumoWhatsapp(receipt);
+    expect(p.itens).toEqual(["TD01","TD02","TD03","TD04","TD05","TD06","TD11","TD13","TD15"].map(codigo => ({ codigo, quantidade: 2 })));
+    expect(p.itensDetalhados.reduce((n, x) => n + x.quantidade, 0)).toBe(18);
+    const peso = Object.fromEntries(p.itensDetalhados.map(x => [x.codigo,x.peso]));
+    expect(peso.TD11).toBe("200g");
+    expect(peso.TD13).toBe("400g");
+    expect(peso.TD01).toBe("300g");
+    expect(p.endereco?.cidade).toBe("CAMPO ALEGRE");
+    expect(p.referencia).toBe("LOCAL DE TESTE");
+    expect(p.horario).toMatch(/^13\/11\/20\d{2} - 15:00 - 18:00$/);
+    expect(p.pagamento).toBe("online_pago");
+    expect(p.valorPago).toBe(384.2);
+    expect(p.valorAPagar).toBe(0);
+    expect(p.subtotalDeclarado).toBe(374.2);
+    expect(p.totalPedido).toBe(384.2);
+    const soma = p.itensDetalhados.reduce((n,x) => n + (x.precoUnitario ?? 0) * x.quantidade, 0);
+    expect(Math.round(soma * 100)).toBe(37420);
+    expect(p.avisos.some(x => x.includes("divergentes"))).toBe(false);
   });
 });

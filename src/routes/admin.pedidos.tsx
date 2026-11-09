@@ -811,14 +811,14 @@ function AdminOrdersPage() {
             </span>
             <span className="text-xl font-black text-yellow-500">{stats.pendingCount}</span>
           </div>
-          {/* Atalho rápido para lançar pedido recebido pelo WhatsApp */}
+          {/* Entrada única para pedidos P10, WhatsApp e manuais */}
           <a
             href="/admin/pedidos/whatsapp"
             className="bg-green-50 px-4 py-3 rounded-xl border border-green-200 flex items-center gap-2 text-xs font-bold text-green-700 hover:bg-green-100 transition-all"
-            title="Lançar pedido do WhatsApp"
+            title="Lançar Pedido — WhatsApp, Pedidos10 ou manual"
           >
             <Smartphone size={15} />
-            WhatsApp
+            Lançar Pedido
           </a>
 
           {/* Resumo manual para os entregadores de Corupá/regionais */}
@@ -839,15 +839,6 @@ function AdminOrdersPage() {
           >
             <Gift size={15} />
             Leads e sorteio
-          </a>
-          {/* Atalho rápido para registrar pedido P10 */}
-          <a
-            href="/admin/registrar-p10"
-            className="bg-white px-4 py-3 rounded-xl border flex items-center gap-2 text-xs font-bold text-gray-600 hover:border-[#5850ec] hover:text-[#5850ec] transition-all"
-            title="Registrar Pedido P10"
-          >
-            <Package size={15} />
-            P10
           </a>
           {/* Toggle de impressão automática */}
           <button

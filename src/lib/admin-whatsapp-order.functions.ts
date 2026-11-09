@@ -16,6 +16,8 @@ const schema = z.object({
   accessToken: z.string().min(20),
   nome: z.string().trim().min(2).max(120),
   telefone: z.string().trim().max(30).optional().default(""),
+  origem: z.enum(["manual", "whatsapp", "pedidos10"]).optional().default("manual"),
+  referencia: z.string().trim().max(200).optional().default(""),
   email: z.string().trim().max(160).optional().default(""),
   linkedUserId: z.string().uuid().nullable().optional(),
   carrinhoRecuperadoId: z.string().uuid().nullable().optional(),
@@ -178,6 +180,8 @@ export const createWhatsappAdminOrder = createServerFn({ method: "POST" })
       p_order: {
         user_id: linkedUserId,
         nome_cliente: data.nome,
+        origem: data.origem,
+        endereco_referencia: data.referencia || null,
         telefone_cliente: data.telefone || null,
         email_cliente: emailCliente || null,
         metodo_entrega: data.metodoEntrega,
