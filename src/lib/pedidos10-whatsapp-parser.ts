@@ -224,7 +224,7 @@ export function completarSaboresSemCodigoP10(
     itens: [...quantidades].map(([codigo, quantidade]) => ({ codigo, quantidade })),
     itensDetalhados: detalhados,
     quantidadeDeclarada: qtdRecibo,
-    avisos: [...pedido.avisos, "Pedidos10: sabores sem código reconhecidos por nome; confira os vínculos antes de salvar."],
+    avisos: [...pedido.avisos.filter(aviso => !aviso.includes("não foi possível encontrar os códigos")), "Pedidos10: sabores sem código reconhecidos por nome; confira os vínculos antes de salvar."],
   };
 }
 
