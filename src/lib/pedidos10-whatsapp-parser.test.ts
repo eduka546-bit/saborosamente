@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { interpretarResumoWhatsapp } from "./whatsapp-order-parser";
+import { completarSaboresSemCodigoP10 } from "./pedidos10-whatsapp-parser";
 
 const comprovante = [
 "Cliente:   Cliente Exemplo",
@@ -131,4 +132,45 @@ describe("Comprovantes P10 colados no WhatsApp", () => {
     expect(Math.round(soma * 100)).toBe(37420);
     expect(p.avisos.some(x => x.includes("divergentes"))).toBe(false);
   });
+  it("mantém interpretação de combos P10 com nomes sem códigos TD", () => {
+    const cupom = [
+      "Cliente: Cliente de Teste",
+      "F. ENTREGA: ENTREGA AGENDADA0", "AGENDADO: 13/11 - 15:00 - 18:00",
+      "Qtd  Descricao V.Uni V.Total", "1 COMBO PRATOS MAIS 40,00 40,00",
+      "VENDIDOS - 2UN", "TAMANHO", "* 2 Refeicoes 200g P", "ESCOLHA",
+      "++ Alcatra ao Molho Madeira com Arroz e Brocolis",
+      "++ Parmegiana de Frango com Arroz e Batata Rustica",
+      "SERVIR", "++ Consumir depois (congelado)",
+      "Total Itens: 40,00", "Tx. Entrega: 10,00", "TOTAL PEDIDO: 50,00",
+      "TOTAL PAGO: 0,00", "TOTAL A PAGAR: 50,00", "F. PAGAMENTO.: DINHEIRO",
+    ].join("\n");
+    const original = interpretarResumoWhatsapp(cupom);
+    expect(original.itens).toHaveLength(0);
+    const catalogo = [
+      { id:"1", nome:"TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis" },
+      { id:"2", nome:"TD08 - Parmegiana de Frango com Arroz e Batata Rústica" },
+    ];
+    const p = completarSaboresSemCodigoP10(cupom, original, catalogo);
+    expect(p.itens).toEqual([
+      { codigo:"TD01", quantidade:1 }, { codigo:"TD08", quantidade:1 },
+    ]);
+    expect(p.itensDetalhados.map(x => x.peso)).toEqual(["200g","200g"]);
+    expect(p.itensDetalhados.reduce((n,x) => n + (x.precoUnitario ?? 0) * x.quantidade, 0)).toBe(40);
+    expect(p.avisos.some(x => x.includes("não foi possível encontrar os códigos"))).toBe(false);
+  });
+
+  it("corrige CO07 Carne de Panela para CO06 150g sem alterar os demais códigos", () => {
+    const cupom = [
+      "Cliente: Cliente de Teste", "F. ENTREGA: RETIRADA",
+      "Qtd  Descricao V.Uni V.Total", "1 COMBO 5 A 9 UNIDADES 40,00 40,00",
+      "SABOR", "* CO07- CARNE DE PANELA 150G",
+      "SERVIR", "Total Itens: 40,00", "TOTAL PEDIDO: 40,00",
+      "TOTAL PAGO: 0,00", "TOTAL A PAGAR: 40,00",
+    ].join("\n");
+    const p = interpretarResumoWhatsapp(cupom);
+    expect(p.itens).toEqual([{codigo:"CO06",quantidade:1}]);
+    expect(p.itensDetalhados[0]?.peso).toBe("200g");
+    expect(p.itensDetalhados[0]?.pesoExibicao).toBe("150g");
+  });
+
 });
