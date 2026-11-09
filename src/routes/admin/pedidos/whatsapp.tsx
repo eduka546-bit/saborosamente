@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
+import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
@@ -598,8 +599,17 @@ function WhatsappAdminOrderPage() {
       return;
     }
 
-    const interpretado = interpretarResumoWhatsapp(pasteText);
+    let interpretado = interpretarResumoWhatsapp(pasteText);
     const ehP10 = interpretado.valorPago !== undefined;
+    if (ehP10) {
+      try {
+        interpretado = completarSaboresSemCodigoP10(pasteText, interpretado, products);
+      } catch (error) {
+        setItems([]);
+        toast.error(error instanceof Error ? error.message : "Não foi possível identificar os sabores do P10.");
+        return;
+      }
+    }
     setOrigemPedido(ehP10 ? "pedidos10" : "whatsapp");
     setComprovanteP10(ehP10 ? {
       valorPago: interpretado.valorPago ?? 0,
