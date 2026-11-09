@@ -1,5 +1,5 @@
 import type { PedidoInterpretado, ItemDetalhado, ItemInterpretado, PesoPedido } from "./whatsapp-order-parser";
-import { normalizarAgendamentoP10 } from "./p10-receipt";
+import { encontrarProdutoP10, normalizarAgendamentoP10, parseP10Receipt, type P10Produto } from "./p10-receipt";
 
 /** Leitor específico de recibos do Pedidos10 colados na tela WhatsApp.
  * Não conta a linha do combo como outro produto: só os sabores reais são itens.
@@ -86,13 +86,15 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
     if (!match) continue;
     const quantidade = match[1] ? Number(match[1]) : 1;
     if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 200) continue;
-    const code = match[2].toUpperCase() + String(Number(match[3])).padStart(2, "0");
+    let code = match[2].toUpperCase() + String(Number(match[3])).padStart(2, "0");
     let text = match[4];
     // Sai ao encontrar outra escolha, instrução ou fim da lista.
     for (let j = i + 1; j < lines.length; j++) {
       if (/^\*|^SERVIR\b|^\+{1,2}\s|^-{5,}$|^Total\s+Itens:/i.test(lines[j])) break;
       text += " " + lines[j];
     }
+    // Erro recorrente do P10: CO07 Carne de Panela 150g corresponde a CO06.
+    if (code === "CO07" && /carne de panela/i.test(normalizeText(text)) && /\b150\s*g\b/i.test(text)) code = "CO06";
     const weightMatch = text.match(/\b(200|300|400)\s*g\b/i);
     // Complementos de 150g usam o estoque_200g, sem mudar o tamanho exibido.
     const peso = (code.startsWith("CO") ? "200g" : weightMatch ? weightMatch[1] + "g" : code.startsWith("SO") ? "400g" : "300g") as PesoPedido;
@@ -168,6 +170,61 @@ export function interpretarComprovanteP10(texto: string): PedidoInterpretado | n
     saldoAnterior: null,
     totalAcumulado: null,
     observacoesAdicionais: congelado ? congelado.replace(/^\+{2}\s*/, "") : null,
+  };
+}
+
+
+/**
+ * Alguns cupons P10 antigos informam sabores via "++ nome" sem código TD.
+ * Reaproveita a identificação por nome do leitor histórico, sem perder
+ * pagamento, endereço, data nem subtotal do leitor unificado.
+ */
+export function completarSaboresSemCodigoP10(
+  texto: string,
+  pedido: PedidoInterpretado,
+  produtos: P10Produto[],
+): PedidoInterpretado {
+  const recibo = parseP10Receipt(texto);
+  const qtdAtual = pedido.itens.reduce((n, i) => n + i.quantidade, 0);
+  const qtdRecibo = recibo.itens.reduce((n, i) => n + i.quantidade, 0);
+  if (qtdRecibo <= qtdAtual) return pedido;
+  if (qtdRecibo > 200 || recibo.itens.length > 100) throw new Error("Comprovante P10 com quantidade excessiva; confira os itens.");
+
+  const resolvidos = recibo.itens.map(item => {
+    const produto = encontrarProdutoP10(item, produtos);
+    if (!produto) throw new Error("P10: não consegui identificar o sabor " + item.nome + ". Confira o código ou cadastre o produto.");
+    const encontrado = produto.nome.match(/\b(TD|SO|CO)\s*0*(\d+)\b/i);
+    const codigo = encontrado ? encontrado[1].toUpperCase() + encontrado[2].padStart(2, "0") : item.codigo;
+    if (!codigo) throw new Error("P10: produto sem código no catálogo: " + produto.nome);
+    const tamanho = (codigo.startsWith("CO") ? "200g"
+      : codigo.startsWith("SO") ? "400g" : /^(200|300|400)g$/.test(item.tamanho) ? item.tamanho : "300g") as PesoPedido;
+    return { codigo, quantidade: item.quantidade, peso: tamanho };
+  });
+
+  const totalRef = pedido.subtotalDeclarado ??
+    (pedido.totalPedido !== null ? pedido.totalPedido - (pedido.taxaEntrega ?? 0) : null);
+  const totalCentavos = totalRef === null ? null : Math.max(0, Math.round(totalRef * 100));
+  const base = totalCentavos === null ? 0 : Math.floor(totalCentavos / qtdRecibo);
+  let extra = totalCentavos === null ? 0 : totalCentavos - base * qtdRecibo;
+  const detalhados: ItemDetalhado[] = [];
+  const quantidades = new Map<string, number>();
+  for (const item of resolvidos) {
+    quantidades.set(item.codigo, (quantidades.get(item.codigo) ?? 0) + item.quantidade);
+    for (let i = 0; i < item.quantidade; i++) {
+      const precoUnitario = totalCentavos === null ? null : (base + (extra-- > 0 ? 1 : 0)) / 100;
+      detalhados.push({
+        codigo: item.codigo, quantidade: 1, peso: item.peso, precoUnitario,
+        pesoExibicao: item.codigo.startsWith("CO") ? "150g" : item.peso,
+      });
+    }
+  }
+
+  return {
+    ...pedido,
+    itens: [...quantidades].map(([codigo, quantidade]) => ({ codigo, quantidade })),
+    itensDetalhados: detalhados,
+    quantidadeDeclarada: qtdRecibo,
+    avisos: [...pedido.avisos, "Pedidos10: sabores sem código reconhecidos por nome; confira os vínculos antes de salvar."],
   };
 }
 
