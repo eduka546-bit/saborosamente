@@ -119,4 +119,18 @@ F. PAGAMENTO.: CARTAO DE CREDITO (MAQUININHA)`;
     expect(result.taxa).toBe(10);
     expect(result.dados.totalAPagar).toBe(114.3);
   });
+  it("lê 2x TD e título COMBO com preços colados no formato P10", () => {
+    const parsed = parseP10Receipt(`Cliente: Exemplo
+Qtd  Descricao V.Uni V.Total
+1    COMBO 10 A 19 UNIDADES374,20 374,20
+SABOR
+* 2x TD01- Tiras de Alcatra 300g
+* 2x TD13- Escondidinho 400g
+SERVIR
+++ Consumir depois (congelado)
+TOTAL PEDIDO: 384,20`);
+    expect(parsed.itens.map(x => [x.codigo,x.quantidade,x.tamanho])).toEqual([
+      ["TD01",2,"300g"],["TD13",2,"400g"],
+    ]);
+  });
 });
