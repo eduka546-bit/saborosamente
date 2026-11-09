@@ -99,6 +99,9 @@ type WhatsappAdminDraft = {
   tipoCartao: string;
   taxaEntrega: number;
   observacao: string;
+  referencia?: string;
+  origemPedido?: "manual" | "whatsapp" | "pedidos10";
+  comprovanteP10?: { valorPago: number; valorAPagar: number; forma: string } | null;
   declaredTotal: number | null;
   saldoAnterior: number | null;
   totalAcumulado: number | null;
@@ -195,6 +198,9 @@ function WhatsappAdminOrderPage() {
   const [tipoCartao, setTipoCartao] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [observacao, setObservacao] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [origemPedido, setOrigemPedido] = useState<"manual" | "whatsapp" | "pedidos10">("manual");
+  const [comprovanteP10, setComprovanteP10] = useState<{ valorPago: number; valorAPagar: number; forma: string } | null>(null);
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
   const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
   const [totalAcumulado, setTotalAcumulado] = useState<number | null>(null);
@@ -279,6 +285,9 @@ function WhatsappAdminOrderPage() {
       setTipoCartao(salvo.tipoCartao || "");
       setTaxaEntrega(Number(salvo.taxaEntrega || 0));
       setObservacao(salvo.observacao || "");
+      setReferencia(salvo.referencia || "");
+      setOrigemPedido(salvo.origemPedido || (salvo.pasteText?.includes("TOTAL PEDIDO:") ? "pedidos10" : salvo.pasteText?.trim() ? "whatsapp" : "manual"));
+      setComprovanteP10(salvo.comprovanteP10 ?? null);
       setDeclaredTotal(salvo.declaredTotal ?? null);
       setSaldoAnterior(salvo.saldoAnterior ?? null);
       setTotalAcumulado(salvo.totalAcumulado ?? null);
@@ -305,7 +314,7 @@ function WhatsappAdminOrderPage() {
       pasteText, nome, telefone, email, customerSearch, selectedCustomer,
       salvarEnderecoCadastro, metodoEntrega, cidade, bairro, rua, numero,
       complemento, cep, horario, pagamento, tipoCartao, taxaEntrega,
-      observacao, declaredTotal, saldoAnterior, totalAcumulado,
+      observacao, referencia, origemPedido, comprovanteP10, declaredTotal, saldoAnterior, totalAcumulado,
       descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
       items, totalConfirmado, enderecoOrigem,
     };
@@ -314,7 +323,7 @@ function WhatsappAdminOrderPage() {
     draftKey, draftReadyKey, pasteText, nome, telefone, email, customerSearch,
     selectedCustomer, salvarEnderecoCadastro, metodoEntrega, cidade, bairro,
     rua, numero, complemento, cep, horario, pagamento, tipoCartao,
-    taxaEntrega, observacao, declaredTotal, saldoAnterior, totalAcumulado,
+    taxaEntrega, observacao, referencia, origemPedido, comprovanteP10, declaredTotal, saldoAnterior, totalAcumulado,
     descontoAplicado, cashbackUsado, percentualDesconto, avisosInterpretacao,
     items, totalConfirmado, enderecoOrigem,
   ]);
@@ -498,6 +507,9 @@ function WhatsappAdminOrderPage() {
         setDeclaredTotal(null);
         setAvisosInterpretacao([]);
         setObservacao("");
+        setReferencia("");
+        setOrigemPedido("whatsapp");
+        setComprovanteP10(null);
 
         const repetir: DraftItem[] = (linhas ?? [])
           .filter((row: any) => row.produto_id && Number(row.quantidade) > 0)
@@ -587,6 +599,13 @@ function WhatsappAdminOrderPage() {
     }
 
     const interpretado = interpretarResumoWhatsapp(pasteText);
+    const ehP10 = interpretado.valorPago !== undefined;
+    setOrigemPedido(ehP10 ? "pedidos10" : "whatsapp");
+    setComprovanteP10(ehP10 ? {
+      valorPago: interpretado.valorPago ?? 0,
+      valorAPagar: interpretado.valorAPagar ?? 0,
+      forma: interpretado.pagamentoOriginal ?? "",
+    } : null);
     if (interpretado.nome) {
       const limparNome = (v: string) => v.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       // Ao colar pedido de outra pessoa, nunca preservar vínculo anterior.
@@ -661,14 +680,15 @@ function WhatsappAdminOrderPage() {
       setCidade(interpretado.endereco.cidade);
     }
     if (interpretado.horario) setHorario(interpretado.horario);
+    setReferencia(interpretado.referencia ?? "");
     setPagamento(interpretado.pagamento ?? "nao_informado");
-    if (interpretado.referencia || interpretado.observacoesAdicionais) {
+    if (interpretado.observacoesAdicionais) {
       setObservacao((previous) => {
         const atual = previous.replace(/(?:^|\n)Referência de entrega:[^\n]*/g, "")
           .replace(/(?:^|\n)Instruções do comprovante:[^\n]*/g, "").trim();
         return [
           atual,
-          interpretado.referencia ? "Referência de entrega: " + interpretado.referencia : "",
+
           interpretado.observacoesAdicionais ? "Instruções do comprovante: " + interpretado.observacoesAdicionais : "",
         ].filter(Boolean).join("\n");
       });
@@ -678,7 +698,7 @@ function WhatsappAdminOrderPage() {
     setPercentualDesconto(interpretado.descontoPercentual);
     setAvisosInterpretacao(interpretado.avisos);
     if (interpretado.avisos.length) {
-      toast.warning("O resumo possui diferenças. Confira os valores antes de salvar.");
+      toast.info("Confira os avisos e os valores do comprovante antes de salvar.");
     }
     setDeclaredTotal(interpretado.totalPedido);
     setSaldoAnterior(interpretado.saldoAnterior);
@@ -710,6 +730,8 @@ function WhatsappAdminOrderPage() {
           nome,
           telefone,
           email,
+          origem: origemPedido,
+          referencia,
           linkedUserId: selectedCustomer?.id ?? null,
           carrinhoRecuperadoId: recoveredCart?.id ?? null,
           atualizarEnderecoCadastro: Boolean(selectedCustomer && metodoEntrega === "entrega" && enderecoDiferente && salvarEnderecoCadastro),
@@ -726,7 +748,9 @@ function WhatsappAdminOrderPage() {
           numero,
           complemento,
           cep,
-          observacao,
+          observacao: [observacao, origemPedido === "pedidos10" && comprovanteP10
+            ? `Pedidos10: ${comprovanteP10.forma || "Forma não informada"} | Pago: R$ ${comprovanteP10.valorPago.toFixed(2)} | A receber: R$ ${comprovanteP10.valorAPagar.toFixed(2)}`
+            : ""].filter(Boolean).join("\n").slice(0, 500),
           items: items.map((item) => ({
             ...(item.productId ? { productId: item.productId } : {}),
             ...(item.nomeItem ? { nomeItem: item.nomeItem } : {}),
