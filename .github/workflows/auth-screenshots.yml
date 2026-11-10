@@ -1,0 +1,37 @@
+name: Capturas do acesso e recuperação
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [capturas-login-20261110]
+    paths:
+      - "tests/e2e/auth-screenshots.spec.ts"
+      - ".github/workflows/auth-screenshots.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  browser-captures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: https://saborosamente.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: |
+          bun add --dev @playwright/test@1.58.2
+          bunx playwright install --with-deps chromium
+      - name: Capturar imagens reais
+        run: bunx playwright test tests/e2e/auth-screenshots.spec.ts --workers=1 --reporter=list
+      - name: Publicar prints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-login-saborosamente
+          path: test-results/*.png
+          if-no-files-found: warn
