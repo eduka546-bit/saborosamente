@@ -51,13 +51,13 @@ describe("Mensagem de confirmação SaborosaMente — WhatsApp", () => {
   it("retirada mostra o endereço da loja, e não inventa um horário por ler '15 minutos' como 15 horas", () => {
     const msg = orderWhatsappMessage({
       id: "12345678", nome_cliente: "Maria da Silva", status: "preparando", origem: "site",
-      metodo_entrega: "retirada", horario_recebimento: "02/11/2026 • Retirada na loja: separação em até 15 minutos, durante o atendimento",
+      metodo_entrega: "retirada", horario_recebimento: "02/11/2026 • Retirada na loja: separação em até 20 minutos",
       endereco_rua: "Rua que não é da loja", endereco_numero: "999",
       valor_total: 45.2, itens: [{ nome_item: "TD05 - Arroz carreteiro", quantidade: 1 }],
     });
     expect(msg).toContain("Olá, Maria!");
     expect(msg).toContain("programado para retirada na Segunda-feira - 02/11");
-    expect(msg).toContain("*Retirada:* Segunda-feira - 02/11, separação em até 15 minutos, durante o atendimento");
+    expect(msg).toContain("*Retirada:* Segunda-feira - 02/11, separação em até 20 minutos");
     expect(msg).toContain("*Local de Retirada:* Rua Estevão Buschle, 114 - 25 de Julho - São Bento do Sul - CEP 89290075");
     expect(msg).not.toContain("Rua que não é da loja");
     expect(msg).not.toContain("às 15h");
