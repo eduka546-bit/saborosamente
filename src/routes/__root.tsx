@@ -161,8 +161,12 @@ function RootComponent() {
   const [isAccessPath, setIsAccessPath] = useState(false);
   const [isLoginPage, setIsLoginPage] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Não sobrepor botões e formulários das etapas críticas de compra/acesso.
   const hideFloatingPurchaseWidget =
-    pathname.startsWith("/checkout") || pathname.startsWith("/pedido");
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/pedido") ||
+    pathname === "/auth" ||
+    pathname === "/login";
 
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
