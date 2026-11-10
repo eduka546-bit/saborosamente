@@ -3,9 +3,9 @@ import { test, expect } from "@playwright/test";
 const BASE_URL = process.env.E2E_BASE_URL || "https://saborosamente.com";
 
 async function capture(page: import("@playwright/test").Page, name: string) {
-  const card = page.locator("main .w-full.max-w-md").first();
-  await expect(card).toBeVisible({ timeout: 20000 });
-  await card.screenshot({ path: `test-results/${name}.png`, animations: "disabled" });
+  await expect(page.locator("main .w-full.max-w-md").first()).toBeVisible({ timeout: 20000 });
+  await page.waitForTimeout(1400);
+  await page.screenshot({ path: `test-results/${name}.png`, animations: "disabled", fullPage: true });
 }
 
 test("capturas reais: login, aviso de conta antiga e recuperação em desktop", async ({ page }) => {
