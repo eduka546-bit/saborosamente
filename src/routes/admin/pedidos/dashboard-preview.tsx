@@ -411,10 +411,9 @@ export function DashboardPedidosPreview() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a href="/admin/pedidos/whatsapp" className="inline-flex items-center gap-1.5 rounded-lg bg-[#28633c] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1c4c31]">
-              <Plus size={15}/> Novo pedido WhatsApp
+              <Plus size={15}/> Lançar Pedido
             </a>
             <a href="/admin/pdv" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">PDV</a>
-            <a href="/admin/registrar-p10" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">P10</a>
             <a href="/admin/pedidos/entregadores" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">Entregadores</a>
             <a href="/admin/pedidos/leads" className="rounded-lg border border-[#d4e2d3] bg-white px-3 py-2 text-xs font-semibold text-[#245a38] hover:bg-[#f0f7ef]">Leads</a>
           </div>
