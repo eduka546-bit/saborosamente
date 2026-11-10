@@ -72,6 +72,24 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("auth: orientação de recuperação de cadastro antigo em login e cadastro", async ({ page }) => {
+  await page.goto(`${BASE_URL}/auth`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Entrar na sua conta" })).toBeVisible();
+  await page.getByLabel("E-mail").fill("cadastro-antigo@exemplo.invalid");
+  await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Enviar link para redefinir senha" })).toBeVisible();
+  await expect(page.getByText(/Abra seu e-mail/)).toBeVisible();
+  await page.getByRole("button", { name: "Cadastre-se clicando aqui" }).click();
+  await expect(page.getByRole("heading", { name: "Criar nova conta" })).toBeVisible();
+  await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible();
+});
+
+test("auth: link de recuperação inválido orienta novo pedido", async ({ page }) => {
+  await page.goto(`${BASE_URL}/auth?mode=reset`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("O link de recuperação está inválido ou expirou.")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("link", { name: "Voltar ao acesso" })).toBeVisible();
+});
+
 test("desktop: produto -> opções -> checkout -> frete -> login", async ({ page }) => {
   const problems = observe(page);
 
