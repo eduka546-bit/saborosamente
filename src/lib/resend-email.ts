@@ -166,6 +166,12 @@ async function sendResendEmail(input: SendResendEmailInput) {
   };
   if (replyTo) body.reply_to = replyTo;
 
+  // A confirmação do pedido nunca pode ficar aguardando indefinidamente um
+  // provedor externo de e-mail. Mantemos a tentativa, mas liberamos a resposta
+  // do checkout rapidamente quando o provedor não responde.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4_000);
+
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -175,6 +181,7 @@ async function sendResendEmail(input: SendResendEmailInput) {
         "Idempotency-Key": input.idempotencyKey.slice(0, 256),
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -197,6 +204,8 @@ async function sendResendEmail(input: SendResendEmailInput) {
       error,
     });
     return { ok: false as const, skipped: false as const };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
