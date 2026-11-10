@@ -77,8 +77,9 @@ test("auth: orientação de recuperação de cadastro antigo em login e cadastro
   await expect(page.getByRole("heading", { name: "Entrar na sua conta" })).toBeVisible();
   await page.getByLabel("E-mail").fill("cadastro-antigo@exemplo.invalid");
   await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Enviar link para redefinir senha" })).toBeVisible();
-  await expect(page.getByText(/Abra seu e-mail/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Redefinir senha", exact: true })).toBeVisible();
+  await expect(page.locator('button[aria-label^="Abrir carrinho. Desconto de"]')).toHaveCount(0);
+  await expect(page.getByText("Abra o e-mail recebido.")).toBeVisible();
   await page.getByRole("button", { name: "Cadastre-se clicando aqui" }).click();
   await expect(page.getByRole("heading", { name: "Criar nova conta" })).toBeVisible();
   await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible();
