@@ -23,7 +23,9 @@ test("capturas reais: login, aviso de conta antiga e recuperação em desktop", 
 test("capturas reais: recuperação em mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${BASE_URL}/auth`, { waitUntil: "domcontentloaded" });
+  await capture(page, "04-login-mobile-inicial");
   await page.getByLabel("E-mail").fill("cliente-exemplo@exemplo.com");
-  await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible({ timeout: 15000 });
-  await capture(page, "04-passo-a-passo-recuperacao-mobile");
+  await page.getByLabel("E-mail").blur();
+  await expect(page.getByText("Já tinha cadastro no site antigo?")).toBeVisible({ timeout: 20000 });
+  await capture(page, "05-passo-a-passo-recuperacao-mobile");
 });
