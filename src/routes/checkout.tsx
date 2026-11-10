@@ -108,7 +108,7 @@ const fieldClass =
   "mt-1.5 w-full rounded-2xl border border-input bg-background px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring";
 
 const CHECKOUT_DRAFT_KEY = "saborosamente.checkout.draft.v1";
-const TEXTO_RETIRADA = "Retirada na loja: separação em até 15 minutos, durante o atendimento";
+const TEXTO_RETIRADA = "Retirada na loja: separação em até 20 minutos";
 
 function estoqueDaLinha(product: any, weight?: string) {
   const raw =
@@ -1269,7 +1269,7 @@ function Checkout() {
                   >
                     <span className="block text-base font-semibold">Retirar agora</span>
                     <span className={cn("mt-1 block text-sm", tipoRetirada === "agora" ? "text-primary-foreground/85" : "text-muted-foreground")}>
-                      Pedido separado em até 15 minutos.
+                      Pedido separado em até 20 minutos.
                     </span>
                   </button>
                   <button
@@ -1294,16 +1294,14 @@ function Checkout() {
                     <div className="flex items-start gap-2">
                       <Clock size={20} className="mt-0.5 shrink-0 text-[#086e45]" />
                       <p>
-                        Seu pedido será separado em até <strong>15 minutos</strong> e poderá ser retirado
-                        durante todo o{" "}
+                        Seu pedido será separado em até <strong>20 minutos</strong> e estará pronto para retirada.
                         <button
                           type="button"
                           onClick={() => setHorariosModalOpen(true)}
-                          className="font-bold text-[#075d3a] underline underline-offset-4 hover:text-primary focus-visible:outline focus-visible:outline-2"
+                          className="mt-2 block font-bold text-[#075d3a] underline underline-offset-4 hover:text-primary focus-visible:outline focus-visible:outline-2"
                         >
-                          horário de atendimento
-                        </button>{" "}
-                        da loja. Sem taxa de entrega.
+                          Horário de funcionamento
+                        </button>
                       </p>
                     </div>
                   </div>
@@ -2074,7 +2072,7 @@ function Checkout() {
             <Clock size={20} /> Horários de atendimento da loja
           </DialogTitle>
           <DialogDescription>
-            Os pedidos para retirada ficam separados em até 15 minutos e podem ser retirados durante o funcionamento.
+            Pedidos para retirada ficam prontos em até 20 minutos.
           </DialogDescription>
         </DialogHeader>
         {horariosAtendimento.length ? (
