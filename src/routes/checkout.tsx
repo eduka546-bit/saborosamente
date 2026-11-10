@@ -770,10 +770,19 @@ function Checkout() {
     if (conferirEstoqueAtual()) return;
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.
-    if (!session) {
-      saveCheckoutDraft(data);
-      navigate({ to: "/auth", search: { redirect: "/checkout" } as any });
-      return;
+    // A sessão pode ter acabado de ser gravada pelo login. Confirma uma vez
+    // antes de mandar a cliente de volta ao acesso e criar um ciclo de telas.
+    let sessaoDoPedido = session;
+    if (!sessaoDoPedido) {
+      const { data: authData } = await supabase.auth.getSession();
+      sessaoDoPedido = authData.session;
+      if (sessaoDoPedido) {
+        setSession(sessaoDoPedido);
+      } else {
+        saveCheckoutDraft(data);
+        navigate({ to: "/auth", search: { redirect: "/checkout", mode: "login" } as any });
+        return;
+      }
     }
 
     if (metodoEntrega === "entrega") {
@@ -870,8 +879,8 @@ function Checkout() {
           cupom: appliedCoupon?.codigo,
           troco: data.troco,
           tipoCartao: selectedFlag || undefined,
-          userId: session?.user?.id,
-          accessToken: session.access_token,
+          userId: sessaoDoPedido.user.id,
+          accessToken: sessaoDoPedido.access_token,
           cashbackUsado: cashbackDesconto,
           items: sortOrderItems(lines).map((l) => ({
             productId: l.custom ? null : (l.comboPronto?.comboId ?? l.product.id),
@@ -947,7 +956,7 @@ function Checkout() {
           headers: {
             "Content-Type": "application/json",
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${sessaoDoPedido.access_token}`,
           },
           body: JSON.stringify({
             pedido_id: order.id,
