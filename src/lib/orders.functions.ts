@@ -791,57 +791,60 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error(orderError?.message || "Não foi possível registrar o pedido.");
     }
 
-    try {
-      const { error: stockError } = await supabase.rpc("baixar_estoque_pedido_sem_bloqueio", {
-        p_order_id: order.id,
-        p_stock_ops: [...stockMap.values()],
-      });
-      if (stockError) console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
-    } catch (stockError) {
-      console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
-    }
+    // A confirmação ao cliente depende apenas da transação que gravou o pedido.
+    // Estoque e avisos operacionais são executados depois, sem atrasar nem impedir a compra.
+    void (async () => {
+      try {
+        const { error: stockError } = await supabase.rpc("baixar_estoque_pedido_sem_bloqueio", {
+          p_order_id: order.id,
+          p_stock_ops: [...stockMap.values()],
+        });
+        if (stockError) console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
+      } catch (stockError) {
+        console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
+      }
 
-    try {
-      const supabaseUrl = process.env.SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
-      const serviceKey =
-        process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-      const protocolo = String(order.id).slice(0, 8).toUpperCase();
-      const valor = Number(valorTotal).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
-      await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${serviceKey}`,
-          apikey: serviceKey ?? "",
-        },
-        body: JSON.stringify({
-          title: "🛒 Novo pedido!",
-          body: `${data.nome || "Cliente"} — ${valor} · #${protocolo}`,
-          url: "/admin/pedidos",
-          tag: `pedido-${order.id}`,
-        }),
-      });
-    } catch (pushError) {
-      console.error("Falha ao disparar push de novo pedido:", pushError);
-    }
+      try {
+        const supabaseUrl = process.env.SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL;
+        const serviceKey =
+          process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+        const protocolo = String(order.id).slice(0, 8).toUpperCase();
+        const valor = Number(valorTotal).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+        await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${serviceKey}`,
+            apikey: serviceKey ?? "",
+          },
+          body: JSON.stringify({
+            title: "🛒 Novo pedido!",
+            body: `${data.nome || "Cliente"} — ${valor} · #${protocolo}`,
+            url: "/admin/pedidos",
+            tag: `pedido-${order.id}`,
+          }),
+        });
+      } catch (pushError) {
+        console.error("Falha ao disparar push de novo pedido:", pushError);
+      }
 
-    // E-mail transacional via Resend é best-effort: nunca bloqueia a criação do pedido.
-    try {
-      await sendOrderReceivedEmail({
-        orderId: String(order.id),
-        email: data.email,
-        nome: data.nome,
-        valorTotal,
-        metodoEntrega: data.metodoEntrega,
-        dataProgramada: dataProgramadaEfetiva,
-        faixaHorario: faixaHorarioEfetiva,
-      });
-    } catch (emailError) {
-      console.error("Falha ao disparar e-mail de novo pedido:", emailError);
-    }
+      try {
+        await sendOrderReceivedEmail({
+          orderId: String(order.id),
+          email: data.email,
+          nome: data.nome,
+          valorTotal,
+          metodoEntrega: data.metodoEntrega,
+          dataProgramada: dataProgramadaEfetiva,
+          faixaHorario: faixaHorarioEfetiva,
+        });
+      } catch (emailError) {
+        console.error("Falha ao disparar e-mail de novo pedido:", emailError);
+      }
+    })();
 
     return {
       ...order,
