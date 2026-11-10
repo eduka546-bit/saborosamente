@@ -742,9 +742,12 @@ function Checkout() {
       .slice(0, 8);
   }, [catalogoAtual, itemSemEstoque]);
 
-  async function conferirEstoqueAtual() {
-    const { data: catalogoRecente } = await atualizarCatalogo();
-    const produtos = (catalogoRecente ?? catalogoAtual) as any[];
+  function conferirEstoqueAtual() {
+    // A atualização remota serve para manter a tela atual, mas não pode segurar
+    // a finalização. A checagem usa o catálogo já carregado e abre a troca apenas
+    // se ele já indicar falta de saldo.
+    void atualizarCatalogo().catch(() => undefined);
+    const produtos = catalogoAtual as any[];
     const demandaPorProduto = new Map<string, number>();
     const indisponivel = lines.find((line) => {
       if (line.custom || line.comboPronto) return false;
@@ -764,7 +767,7 @@ function Checkout() {
   }
 
   const onSubmit = async (data: CheckoutForm) => {
-    if (await conferirEstoqueAtual()) return;
+    if (conferirEstoqueAtual()) return;
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.
     if (!session) {
