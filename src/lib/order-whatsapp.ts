@@ -96,7 +96,7 @@ function scheduledDelivery(order: OrderWhatsapp): { sentence: string; detail: st
   const clock = "(\\d{1,2})(?::([0-5]\\d)|h([0-5]\\d)?)?\\s*h?";
   const range = new RegExp(clock + "\\s*(?:~|às|até|a|[-–—])\\s*" + clock, "i").exec(timeRaw);
   const time = /retirada na loja|separa[cç][aã]o em at[eé]/i.test(timeRaw)
-    ? "separação em até 15 minutos, durante o atendimento"
+    ? "separação em até 20 minutos"
     : range
       ? "entre " + [range[1], range[2] ?? range[3] ?? "00"].map((x, i) => i ? x : x.padStart(2, "0")).join(":") + "h ~ " +
       [range[4], range[5] ?? range[6] ?? "00"].map((x, i) => i ? x : x.padStart(2, "0")).join(":") + "h"
