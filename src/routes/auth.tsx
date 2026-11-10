@@ -474,27 +474,28 @@ function AuthPage() {
           </div>
 
           {emailValido && (
-            <div className="rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-4 text-left text-sm leading-relaxed text-[#315440]">
-              <strong className="block text-base text-[#075d3a]">Já tinha cadastro no site antigo?</strong>
-              <p className="mt-1">Não precisa criar outra conta. Recupere o acesso em 3 passos:</p>
-              <ol className="mt-2 list-inside list-decimal space-y-1">
-                <li>Clique em <strong>Enviar link para redefinir senha</strong>.</li>
-                <li>Abra seu e-mail (confira também a caixa de spam) e clique no link recebido.</li>
-                <li>Crie uma nova senha e entre normalmente no site.</li>
+            <div className="rounded-xl border border-[#b9d6b8] bg-[#f1f8ed] px-3 py-2.5 text-left text-sm leading-snug text-[#315440]">
+              <strong className="block text-sm font-semibold text-[#075d3a]">
+                Já tinha cadastro no site antigo?
+              </strong>
+              <p className="mt-0.5">Não crie outra conta.</p>
+              <ol className="mt-1 list-inside list-decimal space-y-0.5">
+                <li>Clique em <strong>Redefinir senha</strong>.</li>
+                <li>Abra o e-mail recebido.</li>
+                <li>Crie a nova senha e entre no site.</li>
               </ol>
               <Button
                 type="button"
                 variant="outline"
-                className="mt-3 w-full rounded-full border-primary/40 bg-white font-semibold text-[#075d3a] hover:bg-[#e7f2e3]"
+                className="mt-2 h-9 w-full rounded-full border-primary/40 bg-white text-sm font-semibold text-[#075d3a] hover:bg-[#e7f2e3]"
                 disabled={loading}
                 onClick={handleForgotPassword}
               >
-                {loading ? "Enviando..." : recoveryEmailSent ? "Reenviar link de recuperação" : "Enviar link para redefinir senha"}
+                {loading ? "Enviando..." : recoveryEmailSent ? "Reenviar link" : "Redefinir senha"}
               </Button>
               {recoveryEmailSent && (
-                <p role="status" className="mt-3 rounded-lg bg-white px-3 py-2 font-medium">
-                  Solicitação realizada. Se existir uma conta com este e-mail, você receberá o link.
-                  Verifique a caixa de entrada e o spam. Depois, volte ao site com sua nova senha.
+                <p role="status" className="mt-2 rounded-lg bg-white px-2 py-1.5 text-xs sm:text-sm">
+                  Se existir uma conta com este e-mail, o link será enviado. Confira também o spam.
                 </p>
               )}
             </div>
