@@ -61,6 +61,7 @@ function AuthPage() {
   const [telefone, setTelefone] = useState("");
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
+  const [contaExistenteDetectada, setContaExistenteDetectada] = useState(false);
 
   // Cadastro de visitante no sorteio: apresenta a criação de conta com
   // os campos que ele já preencheu, sem considerar o lead uma conta ativa.
@@ -260,11 +261,10 @@ function AuthPage() {
         const cpfCheck = await checkCpfFn({ data: { cpf: cpfNormalizado } });
         if (cpfCheck?.exists) {
           setIsLogin(true);
+          setContaExistenteDetectada(true);
           setPassword("");
           setConfirmNewPassword("");
-          toast.error(
-            "Este CPF já possui uma conta. Entre na conta existente ou use “Esqueci minha senha”.",
-          );
+          toast.info("Encontramos seu cadastro. Entre com seu e-mail e use seu CPF como senha.");
           return;
         }
 
@@ -324,7 +324,7 @@ function AuthPage() {
           {!(mode === "reset" || passwordChangeRequired) && !isLogin && (
             <button
               type="button"
-              onClick={() => { setIsLogin(true); setPassword(""); }}
+              onClick={() => { setIsLogin(true); setContaExistenteDetectada(false); setPassword(""); }}
               className="text-base font-medium text-primary hover:underline"
             >
               Já tem uma conta? Entre agora
@@ -342,8 +342,12 @@ function AuthPage() {
           </p>
           {isLogin && mode !== "reset" && !passwordChangeRequired && (
             <div className="mt-4 rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-3 text-left text-sm leading-relaxed text-[#315440] shadow-sm">
-              <strong className="block text-[#075d3a]">Já possuía cadastro no site antigo?</strong>
-              Seu login é seu e-mail e a senha é seu CPF. Após o primeiro login, você poderá alterar a senha.
+              <strong className="block text-[#075d3a]">
+                {contaExistenteDetectada ? "Encontramos sua conta" : "Já possuía cadastro no site antigo?"}
+              </strong>
+              {contaExistenteDetectada
+                ? "Use o e-mail do seu cadastro e seu CPF como senha. Depois do primeiro acesso, você poderá criar uma nova senha."
+                : "Seu login é seu e-mail e a senha é seu CPF. Após o primeiro login, você poderá alterar a senha."}
             </div>
           )}
           {!isLogin && mode !== "reset" && !passwordChangeRequired && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
@@ -516,7 +520,7 @@ function AuthPage() {
             Não tem uma conta?{" "}
             <button
               type="button"
-              onClick={() => { setIsLogin(false); setPassword(""); }}
+              onClick={() => { setIsLogin(false); setContaExistenteDetectada(false); setPassword(""); }}
               className="font-bold text-primary underline underline-offset-4"
             >
               Cadastre-se clicando aqui
