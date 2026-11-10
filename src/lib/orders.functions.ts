@@ -489,7 +489,7 @@ export const createOrder = createServerFn({ method: "POST" })
       ? new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
       : data.dataProgramada;
     const faixaHorarioEfetiva = data.metodoEntrega === "retirada"
-      ? "Retirada na loja: separação em até 15 minutos, durante o atendimento"
+      ? "Retirada na loja: separação em até 20 minutos"
       : data.faixaHorario;
 
     if (data.metodoEntrega === "entrega") {
