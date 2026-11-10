@@ -62,6 +62,7 @@ function AuthPage() {
   const [cpf, setCpf] = useState("");
   const [loading, setLoading] = useState(false);
   const [contaExistenteDetectada, setContaExistenteDetectada] = useState(false);
+  const [recoveryEmailSent, setRecoveryEmailSent] = useState(false);
 
   // Cadastro de visitante no sorteio: apresenta a criação de conta com
   // os campos que ele já preencheu, sem considerar o lead uma conta ativa.
@@ -102,7 +103,8 @@ function AuthPage() {
     return () => { canceled = true; window.clearTimeout(timer); };
   }, [email]);
 
-  const senhaValida = (value: string) => value.length > 0;
+  const senhaValida = (value: string) => value.length >= 8;
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const irAposLogin = () => {
     if (typeof window === "undefined") return;
@@ -162,9 +164,9 @@ function AuthPage() {
         redirectTo,
       });
       if (error) throw error;
-      toast.success(
-        "Se houver uma conta com este e-mail, você receberá um link para criar uma nova senha.",
-      );
+      setIsLogin(true);
+      setRecoveryEmailSent(true);
+      toast.success("Pedido recebido! Confira seu e-mail e a caixa de spam.");
     } catch (error: any) {
       toast.error(error.message || "Não foi possível enviar o link de recuperação.");
     } finally {
@@ -175,11 +177,15 @@ function AuthPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!senhaValida(newPassword)) {
-      toast.error("Informe a nova senha.");
+      toast.error("A nova senha precisa ter pelo menos 8 caracteres.");
       return;
     }
     if (newPassword !== confirmNewPassword) {
       toast.error("As senhas não conferem.");
+      return;
+    }
+    if (/^\d{11}$/.test(newPassword)) {
+      toast.error("Por segurança, não use seu CPF como senha.");
       return;
     }
     setLoading(true);
@@ -234,7 +240,7 @@ function AuthPage() {
           return;
         }
         if (!senhaValida(password)) {
-          toast.error("Informe uma senha.");
+          toast.error("Crie uma senha com pelo menos 8 caracteres.");
           return;
         }
 
@@ -264,7 +270,7 @@ function AuthPage() {
           setContaExistenteDetectada(true);
           setPassword("");
           setConfirmNewPassword("");
-          toast.info("Encontramos seu cadastro. Entre com seu e-mail e use seu CPF como senha.");
+          toast.info("Este CPF já tem cadastro. Utilize seu e-mail e recupere a senha para acessar sua conta.");
           return;
         }
 
@@ -287,6 +293,16 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // O Supabase pode responder a um cadastro duplicado com uma identidade
+        // vazia, para não expor publicamente a existência do e-mail.
+        // Não interpretar essa resposta como uma nova conta criada.
+        if (signupData.user?.identities?.length === 0) {
+          setIsLogin(true);
+          setContaExistenteDetectada(false);
+          setPassword("");
+          toast.info("Se já tinha uma conta, use a opção de recuperar senha.");
+          return;
+        }
         if (typeof window !== "undefined") {
           localStorage.removeItem("saborosamente.referral");
         }
@@ -295,7 +311,7 @@ function AuthPage() {
           setIsLogin(true);
           setPassword("");
           setConfirmNewPassword("");
-          toast.success("Cadastro realizado! Confira seu e-mail para confirmar sua conta.");
+          toast.info("Confira seu e-mail. Se for um cadastro novo, confirme a conta pelo link recebido. Se já tinha cadastro, use a recuperação de senha.");
           return;
         }
 
@@ -305,7 +321,13 @@ function AuthPage() {
       irAposLogin();
     } catch (error: any) {
       const message = String(error?.message || "");
-      if (/database error saving new user/i.test(message)) {
+      if (isLogin && /invalid login credentials|email not confirmed|invalid_grant/i.test(message)) {
+        toast.error("Não foi possível entrar. Confira os dados ou recupere sua senha pelo botão abaixo.");
+      } else if (!isLogin && /already registered|user already exists|user_already_exists/i.test(message)) {
+        setIsLogin(true);
+        setPassword("");
+        toast.info("Esse e-mail pode já estar em uso. Solicite a recuperação da senha.");
+      } else if (/database error saving new user/i.test(message)) {
         toast.error(
           "Não foi possível concluir o cadastro. Verifique se CPF ou e-mail já possuem uma conta.",
         );
@@ -324,7 +346,7 @@ function AuthPage() {
           {!(mode === "reset" || passwordChangeRequired) && !isLogin && (
             <button
               type="button"
-              onClick={() => { setIsLogin(true); setContaExistenteDetectada(false); setPassword(""); }}
+              onClick={() => { setIsLogin(true); setContaExistenteDetectada(false); setRecoveryEmailSent(false); setPassword(""); }}
               className="text-base font-medium text-primary hover:underline"
             >
               Já tem uma conta? Entre agora
@@ -340,15 +362,11 @@ function AuthPage() {
                 ? "Entre com seu e-mail e sua senha"
                 : "Crie sua conta para comprar e acompanhar seus pedidos"}
           </p>
-          {isLogin && mode !== "reset" && !passwordChangeRequired && (
-            <div className="mt-4 rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-3 text-left text-sm leading-relaxed text-[#315440] shadow-sm">
-              <strong className="block text-[#075d3a]">
-                {contaExistenteDetectada ? "Encontramos sua conta" : "Já possuía cadastro no site antigo?"}
-              </strong>
-              {contaExistenteDetectada
-                ? "Use o e-mail do seu cadastro e seu CPF como senha. Depois do primeiro acesso, você poderá criar uma nova senha."
-                : "Seu login é seu e-mail e a senha é seu CPF. Após o primeiro login, você poderá alterar a senha."}
-            </div>
+          {isLogin && mode !== "reset" && !passwordChangeRequired && contaExistenteDetectada && (
+            <p className="mt-4 rounded-xl border border-primary/30 bg-primary/5 px-3 py-3 text-left text-sm text-foreground">
+              Identificamos um CPF já cadastrado. Você não precisa criar outra conta:
+              digite o e-mail utilizado anteriormente e siga o passo a passo de recuperação abaixo.
+            </p>
           )}
           {!isLogin && mode !== "reset" && !passwordChangeRequired && (nome.trim() || telefone.trim()) && lerLeadPreCadastro() && (
             <p className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-800">
@@ -448,12 +466,39 @@ function AuthPage() {
                 placeholder="seu@email.com"
                 className="h-11 text-base md:text-base pl-10"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setRecoveryEmailSent(false); }}
                 autoComplete="email"
                 required
               />
             </div>
           </div>
+
+          {emailValido && (
+            <div className="rounded-2xl border border-[#b9d6b8] bg-[#f1f8ed] px-4 py-4 text-left text-sm leading-relaxed text-[#315440]">
+              <strong className="block text-base text-[#075d3a]">Já tinha cadastro no site antigo?</strong>
+              <p className="mt-1">Não precisa criar outra conta. Recupere o acesso em 3 passos:</p>
+              <ol className="mt-2 list-inside list-decimal space-y-1">
+                <li>Clique em <strong>Enviar link para redefinir senha</strong>.</li>
+                <li>Abra seu e-mail (confira também a caixa de spam) e clique no link recebido.</li>
+                <li>Crie uma nova senha e entre normalmente no site.</li>
+              </ol>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full rounded-full border-primary/40 bg-white font-semibold text-[#075d3a] hover:bg-[#e7f2e3]"
+                disabled={loading}
+                onClick={handleForgotPassword}
+              >
+                {loading ? "Enviando..." : recoveryEmailSent ? "Reenviar link de recuperação" : "Enviar link para redefinir senha"}
+              </Button>
+              {recoveryEmailSent && (
+                <p role="status" className="mt-3 rounded-lg bg-white px-3 py-2 font-medium">
+                  Solicitação realizada. Se existir uma conta com este e-mail, você receberá o link.
+                  Verifique a caixa de entrada e o spam. Depois, volte ao site com sua nova senha.
+                </p>
+              )}
+            </div>
+          )}
 
           {!isLogin && (
             <div className="space-y-2">
