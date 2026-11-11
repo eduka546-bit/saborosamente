@@ -37,7 +37,10 @@ export function AtualizarEstoqueCozinha({ produtos, onAtualizado }: Props) {
       setAberto(false);
       onAtualizado();
     } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Falha ao atualizar estoque da cozinha.");
+      // Erros do PostgREST podem ser objetos simples, não instâncias de Error.
+      const mensagem = erro && typeof erro === "object" && "message" in erro &&
+        typeof erro.message === "string" ? erro.message : "Falha ao atualizar estoque da cozinha.";
+      toast.error(mensagem);
     } finally {
       setSalvando(false);
     }
