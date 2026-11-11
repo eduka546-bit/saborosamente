@@ -51,8 +51,9 @@ export function AtualizarEstoqueCozinha({ produtos, onAtualizado }: Props) {
             <ClipboardPaste size={19} /> Atualizar estoque da cozinha
           </h3>
           <p className="mt-1 text-sm text-[#62766b]">
-            Cole uma lista como no admin da loja (TD02 - 4/2/6) ou informe cada tamanho
-            (Nhoque 300g - 5). Confira a prévia antes de salvar. A loja e os ingredientes não serão alterados.
+            Aceita a lista completa com MARMITAS (200g / 300g / 400g), SOPAS e COMPLEMENTOS,
+            incluindo nomes completos, códigos e quantidades zeradas. Confira a prévia antes de salvar.
+            A loja e os ingredientes não serão alterados.
           </p>
         </div>
         <button type="button" onClick={() => setAberto(!aberto)}
@@ -80,7 +81,7 @@ export function AtualizarEstoqueCozinha({ produtos, onAtualizado }: Props) {
             <span className="mb-2 block text-sm font-bold">Mensagem do estoque</span>
             <textarea rows={9} value={texto}
               onChange={(e) => { setTexto(e.target.value); setConfirmado(false); }}
-              placeholder={"*Estoque Cozinha:*\nTD02 - 4/2/6\nNhoque 300g - 5\nTiras de Bife 150g - 10\nCreme Abóbora - 10"}
+              placeholder={"*MARMITAS* _(200g / 300g / 400g)_\n• TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis - 3 / 0 / 0\n\n*SOPAS*\n• SO06 - Canja de Galinha com Arroz - 12\n\n*COMPLEMENTOS*\n• CO04 - Tiras de Carne de Patinho 150g - 3"}
               className="w-full rounded-xl border border-[#cbd8ce] bg-white p-3 font-mono text-sm outline-none focus:border-[#087443]" />
           </label>
           {texto.trim() && (
