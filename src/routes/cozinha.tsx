@@ -13,7 +13,7 @@ import { ListaCompras } from "@/components/cozinha/ListaCompras";
 import { auditarRendimentosTeoricos } from "@/lib/cozinha-auditoria";
 import { VisaoSemanalCozinha } from "@/components/cozinha/VisaoSemanalCozinha";
 import { periodoComDuracao, type PeriodoProducao } from "@/lib/cozinha-periodo";
-import { consultarEstoquePronto } from "@/lib/cozinha-estoque-producao";
+import { consultarEstoquePronto, indexarEstoqueMarmitasCozinha } from "@/lib/cozinha-estoque-producao";
 import {
   aplicarIngredientesManuais, EditarQuantidadeIngrediente,
   NovaAdicaoIngrediente, useIngredientesManuais,
@@ -267,7 +267,7 @@ function CozinhaPage() {
     "*",
     "ingrediente",
   );
-  const { data: estoqueMarmitas = [] } = useTableQuery(
+  const { data: estoqueMarmitas = [], isError: erroEstoqueMarmitas, isFetching: atualizandoEstoqueMarmitas } = useTableQuery(
     "coz-estoque-marmitas",
     "cozinha_estoque_marmitas",
     "*",
@@ -557,7 +557,7 @@ function CozinhaPage() {
     });
   }, [producoesVisiveis]);
   const estoqueMarmitasPorProduto = useMemo(
-    () => porId(estoqueMarmitas as any[]),
+    () => indexarEstoqueMarmitasCozinha(estoqueMarmitas as { produto_id: string; estoque_200g: number; estoque_300g: number; estoque_400g: number }[]),
     [estoqueMarmitas],
   );
   const invalidar = (...keys: string[]) =>
@@ -1059,7 +1059,8 @@ function CozinhaPage() {
                 titulo="Estoque geral"
                 texto="Saldo de refeições, sopas, complementos e ingredientes da cozinha."
               />
-              <div className="mb-5 inline-flex rounded-xl bg-[#e7eee8] p-1">
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-xl bg-[#e7eee8] p-1">
                 <button
                   onClick={() => setEstoqueAba("loja")}
                   className={`rounded-lg px-4 py-2 text-sm font-bold ${estoqueAba === "loja" ? "bg-white text-[#087443]" : "text-[#62766b]"}`}
@@ -1072,7 +1073,19 @@ function CozinhaPage() {
                 >
                   Cozinha
                 </button>
+                </div>
+                <button type="button" onClick={() => { void invalidar("coz-estoque-marmitas", "coz-prod"); }}
+                  disabled={atualizandoEstoqueMarmitas}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[#cbd8ce] bg-white px-3 py-2 text-xs font-bold text-[#087443] disabled:opacity-60">
+                  <RefreshCw size={14} aria-hidden="true" className={atualizandoEstoqueMarmitas ? "animate-spin" : ""} />
+                  {atualizandoEstoqueMarmitas ? "Atualizando..." : "Atualizar saldos"}
+                </button>
               </div>
+              {erroEstoqueMarmitas && (
+                <p role="alert" className="mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900">
+                  Não foi possível consultar o estoque da cozinha. Clique em Atualizar saldos para tentar novamente.
+                </p>
+              )}
               {estoqueAba === "loja" ? (
                 <ListaEstoquePronto produtos={marmitas} local="loja" />
               ) : (
