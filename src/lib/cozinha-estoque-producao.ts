@@ -28,3 +28,12 @@ export function consultarEstoquePronto(
     total: quantidadeLoja + quantidadeCozinha,
   };
 }
+
+
+// O estoque da cozinha usa produto_id (não tem coluna id).
+// Indexar pelo identificador correto evita exibir saldo zero após importações.
+export function indexarEstoqueMarmitasCozinha<T extends { produto_id: string }>(
+  registros: T[],
+): Map<string, T> {
+  return new Map(registros.map((registro) => [registro.produto_id, registro]));
+}
