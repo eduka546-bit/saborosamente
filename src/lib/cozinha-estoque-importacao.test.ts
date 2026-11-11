@@ -85,6 +85,29 @@ describe("interpretação do estoque de marmitas da cozinha", () => {
     ]));
   });
 
+  it("aceita lista compacta como no admin e linhas individuais para sopas e complementos", () => {
+    const resultado = interpretarMensagemEstoqueCozinha(
+      "*Estoque Cozinha:*\nTD02 - 4/2/6\nSO06 - 9\nCO04 - 7",
+      produtos,
+    );
+    expect(resultado.erros).toEqual([]);
+    expect(resultado.itens).toHaveLength(5);
+    expect(resultado.total).toBe(28);
+    expect(resultado.itens).toEqual(expect.arrayContaining([
+      expect.objectContaining({ produto_id: "TD02", tamanho: "200", quantidade: 4 }),
+      expect.objectContaining({ produto_id: "TD02", tamanho: "300", quantidade: 2 }),
+      expect.objectContaining({ produto_id: "TD02", tamanho: "400", quantidade: 6 }),
+      expect.objectContaining({ produto_id: "SO06", tamanho: "400", quantidade: 9 }),
+      expect.objectContaining({ produto_id: "CO04", tamanho: "150", quantidade: 7 }),
+    ]));
+  });
+
+  it("não permite repetir um tamanho já citado na lista compacta", () => {
+    const resultado = interpretarMensagemEstoqueCozinha("TD02 - 1/2/3\nTD02 300g - 4", produtos);
+    expect(resultado.erros).toHaveLength(1);
+    expect(resultado.erros[0]).toContain("repetido");
+  });
+
   it("não aceita duplicação, gramatura ausente de marmita ou troca de tamanho de sopa", () => {
     expect(interpretrar("Nhoque 300g - 3\nNhoque 300g - 5")).toHaveLength(1);
     expect(interpretrar("Nhoque - 3")).toHaveLength(1);

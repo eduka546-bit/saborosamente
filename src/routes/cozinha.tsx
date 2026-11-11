@@ -201,11 +201,12 @@ function CozinhaPage() {
     ),
     [filtroProducao, setFiltroProducao] = useState<"todos" | "planejada" | "em_preparo" | "concluida">("todos"),
     [buscaProducao, setBuscaProducao] = useState(""),
-    [modal, setModal] = useState<null | "producao" | "editar-producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-estoque">(
+    [modal, setModal] = useState<null | "producao" | "editar-producao" | "ficha-producao" | "ficha-dia" | "ficha-montagem" | "ingrediente" | "preparacao" | "receita" | "transferencia" | "ajuste-marmitas" | "ajuste-estoque">(
       null,
     );
   const [edit, setEdit] = useState<any>(null),
-    [estoqueAba, setEstoqueAba] = useState<"loja" | "cozinha">("loja");
+    [estoqueAba, setEstoqueAba] = useState<"loja" | "cozinha">("loja"),
+    [produtoTransferenciaRapida, setProdutoTransferenciaRapida] = useState("");
   useEffect(() => {
     (async () => {
       const {
@@ -1086,13 +1087,36 @@ function CozinhaPage() {
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  <AtualizarEstoqueCozinha
-                    produtos={marmitas}
-                    onAtualizado={() => { void invalidar("coz-estoque-marmitas", "coz-prod"); }}
-                  />
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <div className="mb-5 rounded-2xl border border-[#b9d6c2] bg-white p-4 sm:p-5">
+                      <h3 className="flex items-center gap-2 font-black text-[#173a2d]"><Store size={19} /> Transferir para a loja</h3>
+                      <p className="mt-1 text-sm text-[#62766b]">
+                        Selecione um produto com saldo na cozinha. As unidades sairão da cozinha e entrarão na loja.
+                      </p>
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <select className={input + " min-w-0 flex-1"} aria-label="Produto para transferência"
+                          value={produtoTransferenciaRapida} onChange={(e) => setProdutoTransferenciaRapida(e.target.value)}>
+                          <option value="">Selecionar produto</option>
+                          {marmitas.filter((x: any) => tamanhosDoProduto(x).some((t) => {
+                            const saldo = estoqueMarmitasPorProduto.get(x.id);
+                            return n(saldo?.[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"]) > 0;
+                          })).map((x: any) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                        </select>
+                        <Botao disabled={!produtoTransferenciaRapida}
+                          onClick={() => {
+                            const escolhido = marmitas.find((x: any) => x.id === produtoTransferenciaRapida);
+                            if (escolhido) abrir("transferencia", escolhido);
+                          }}>Transferir</Botao>
+                      </div>
+                    </div>
+                    <AtualizarEstoqueCozinha
+                      produtos={marmitas}
+                      onAtualizado={() => { void invalidar("coz-estoque-marmitas", "coz-prod"); }}
+                    />
+                  </div>
                   <div>
-                    <h3 className="mb-1 text-lg font-black">Marmitas prontas na cozinha</h3>
-                    <p className="mb-3 text-sm text-[#62766b]">Transfira daqui para somar automaticamente no estoque da loja.</p>
+                    <h3 className="mb-1 text-lg font-black">Estoque pronto na cozinha</h3>
+                    <p className="mb-3 text-sm text-[#62766b]">Transfira ou atualize as quantidades por produto e tamanho.</p>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {marmitas.map((x: any) => {
                         const saldo = estoqueMarmitasPorProduto.get(x.id);
@@ -1103,7 +1127,10 @@ function CozinhaPage() {
                               <span key={t.id}>{n(saldo?.[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"])} · {t.label}</span>
                             ))}
                           </p>
-                          <div className="mt-3"><Botao leve onClick={() => abrir("transferencia", x)}>Transferir para loja</Botao></div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Botao leve onClick={() => abrir("transferencia", x)}>Transferir para loja</Botao>
+                            <Botao leve onClick={() => abrir("ajuste-marmitas", x)}>Atualizar estoque</Botao>
+                          </div>
                         </article>;
                       })}
                     </div>
@@ -1300,9 +1327,32 @@ function CozinhaPage() {
               p_quantidade: quantidade,
             } as any);
             if (error) return toast.error(error.message);
-            invalidar("coz-estoque-marmitas", "coz-prod");
+            await invalidar("coz-estoque-marmitas", "coz-prod", "coz-transferencias");
+            setProdutoTransferenciaRapida("");
             setModal(null);
             toast.success("Transferência concluída. Estoque da loja atualizado.");
+          }}
+        />
+      )}
+      {modal === "ajuste-marmitas" && (
+        <AjusteEstoqueMarmitasModal
+          produto={edit}
+          saldo={estoqueMarmitasPorProduto.get(edit?.id)}
+          fechar={() => setModal(null)}
+          salvar={async (tamanho: string, quantidade: number, observacao: string) => {
+            const { error } = await supabase.rpc("ajustar_estoque_marmitas_cozinha", {
+              p_produto_id: edit.id,
+              p_tamanho: tamanho,
+              p_quantidade: quantidade,
+              p_observacao: observacao || null,
+            } as any);
+            if (error) {
+              toast.error(error.message);
+              return;
+            }
+            await invalidar("coz-estoque-marmitas");
+            setModal(null);
+            toast.success("Estoque da cozinha atualizado. A loja não foi alterada.");
           }}
         />
       )}
@@ -1647,6 +1697,50 @@ function TransferenciaEstoqueModal({ produto, saldo, fechar, salvar }: any) {
       try { await salvar(tamanho === "150" ? "200" : tamanho,qtd); }
       finally { setSalvando(false); }
     }}>{salvando ? "Transferindo..." : "Transferir"}</Botao></div>
+  </Janela>;
+}
+function AjusteEstoqueMarmitasModal({ produto, saldo, fechar, salvar }: any) {
+  const tamanhos = tamanhosDoProduto(produto);
+  const [tamanho, setTamanho] = useState(tamanhos[0]?.id || "200");
+  const campo = (tam: string) => tam === "150" ? "estoque_200g" : "estoque_" + tam + "g";
+  const [quantidade, setQuantidade] = useState(String(n(saldo?.[campo(tamanho)])));
+  const [observacao, setObservacao] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  return <Janela titulo={"Atualizar estoque da cozinha — " + rotuloProduto(produto)} fechar={fechar}>
+    <p className="mb-4 text-sm text-[#62766b]">
+      Informe o saldo real de unidades prontas na cozinha. Este ajuste não altera o estoque da loja e fica registrado no histórico.
+    </p>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Campo label="Tamanho">
+        <select className={input} value={tamanho} onChange={(e) => {
+          const proximo = e.target.value;
+          setTamanho(proximo);
+          setQuantidade(String(n(saldo?.[campo(proximo)])));
+        }}>
+          {tamanhos.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+      </Campo>
+      <Campo label="Quantidade atual na cozinha">
+        <input className={input} type="number" min="0" max="100000" step="1"
+          value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+      </Campo>
+    </div>
+    <p className="mt-2 text-xs text-[#62766b]">Saldo registrado: {n(saldo?.[campo(tamanho)])} unidades.</p>
+    <div className="mt-3"><Campo label="Motivo do ajuste (opcional)">
+      <input className={input} maxLength={500} value={observacao}
+        onChange={(e) => setObservacao(e.target.value)} placeholder="Ex.: conferência física" />
+    </Campo></div>
+    <div className="mt-4 flex justify-end gap-2">
+      <Botao leve onClick={fechar}>Cancelar</Botao>
+      <Botao disabled={salvando} onClick={async () => {
+        const qtd = Number(quantidade);
+        if (!quantidade.trim() || !Number.isSafeInteger(qtd) || qtd < 0 || qtd > 100000)
+          return toast.error("Informe uma quantidade inteira entre 0 e 100.000.");
+        setSalvando(true);
+        try { await salvar(tamanho, qtd, observacao.trim()); }
+        finally { setSalvando(false); }
+      }}>{salvando ? "Salvando..." : "Salvar estoque"}</Botao>
+    </div>
   </Janela>;
 }
 function AjusteEstoqueModal({ item, fechar, salvar }: any) {

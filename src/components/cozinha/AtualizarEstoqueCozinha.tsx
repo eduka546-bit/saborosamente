@@ -48,11 +48,11 @@ export function AtualizarEstoqueCozinha({ produtos, onAtualizado }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-black text-[#173a2d]">
-            <ClipboardPaste size={19} /> Atualizar estoque por mensagem
+            <ClipboardPaste size={19} /> Atualizar estoque da cozinha
           </h3>
           <p className="mt-1 text-sm text-[#62766b]">
-            Cole a relação de produtos com quantidades. Confira a prévia antes de salvar.
-            Isso altera apenas as marmitas, sopas e complementos da cozinha — nunca o estoque da loja ou os ingredientes.
+            Cole uma lista como no admin da loja (TD02 - 4/2/6) ou informe cada tamanho
+            (Nhoque 300g - 5). Confira a prévia antes de salvar. A loja e os ingredientes não serão alterados.
           </p>
         </div>
         <button type="button" onClick={() => setAberto(!aberto)}
@@ -80,7 +80,7 @@ export function AtualizarEstoqueCozinha({ produtos, onAtualizado }: Props) {
             <span className="mb-2 block text-sm font-bold">Mensagem do estoque</span>
             <textarea rows={9} value={texto}
               onChange={(e) => { setTexto(e.target.value); setConfirmado(false); }}
-              placeholder={"*Estoque Cozinha:*\n\nPanqueca de Carne 200g - 6\nTiras de Bife 150g - 10\nCreme Abóbora - 10"}
+              placeholder={"*Estoque Cozinha:*\nTD02 - 4/2/6\nNhoque 300g - 5\nTiras de Bife 150g - 10\nCreme Abóbora - 10"}
               className="w-full rounded-xl border border-[#cbd8ce] bg-white p-3 font-mono text-sm outline-none focus:border-[#087443]" />
           </label>
           {texto.trim() && (

@@ -74,7 +74,17 @@ export function interpretarMensagemEstoqueCozinha(
     ["marmita", "sopa", "complemento"].includes(p.tipo_produto || "marmita"),
   );
 
-  mensagem.split(/\r?\n/).forEach((original, indice) => {
+  // Formato compacto do admin: "TD02 - 4/2/6" representa 200/300/400g.
+  const linhas = mensagem.split(/\r?\n/).flatMap((original, indice) => {
+    const limpa = original.replace(/^\s*[*•#]+\s*/, "").replace(/\*+$/g, "").trim();
+    const compacto = limpa.match(/^(.+?)\s*[-–—:]\s*(\d+)\s*\/\s*(\d+)\s*\/\s*(\d+)\s*$/);
+    if (!compacto) return [{ original, numero: indice + 1 }];
+    return (["200", "300", "400"] as const).map((tamanho, i) => ({
+      original: `${compacto[1]} ${tamanho}g - ${compacto[i + 2]}`,
+      numero: indice + 1,
+    }));
+  });
+  linhas.forEach(({ original, numero }) => {
     const linha = original.replace(/^\s*[*•#]+\s*/, "").replace(/\*+$/g, "").trim();
     if (!linha || /^(estoque cozinha|estoque da cozinha|marmitas|sopas|complementos)\s*:?\s*$/i.test(normalizar(linha))) return;
 
@@ -82,7 +92,7 @@ export function interpretarMensagemEstoqueCozinha(
     const quantidadePrimeiro = detalheNomePrimeiro ? null : linha.match(/^(\d+)\s+(.+?)\s*[-–—]\s*(150|200|300|400)\s*g?\s*$/i);
     const simples = detalheNomePrimeiro || quantidadePrimeiro ? null : linha.match(/^(.+?)\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
     if (!detalheNomePrimeiro && !quantidadePrimeiro && !simples) {
-      erros.push("Linha " + (indice + 1) + ": formato inválido — " + original.trim());
+      erros.push("Linha " + (numero) + ": formato inválido — " + original.trim());
       return;
     }
     const nomeDigitado = (quantidadePrimeiro?.[2] || detalheNomePrimeiro?.[1] || simples?.[1] || "").trim();
@@ -90,7 +100,7 @@ export function interpretarMensagemEstoqueCozinha(
     const tamanhoInformado = (quantidadePrimeiro?.[3] || detalheNomePrimeiro?.[2]) as LinhaEstoqueCozinha["tamanho"] | undefined;
     const quantidade = Number(quantidadePrimeiro?.[1] || detalheNomePrimeiro?.[3] || simples?.[2]);
     if (!Number.isSafeInteger(quantidade) || quantidade < 0 || quantidade > 100000) {
-      erros.push("Linha " + (indice + 1) + ": quantidade inválida");
+      erros.push("Linha " + (numero) + ": quantidade inválida");
       return;
     }
 
@@ -110,7 +120,7 @@ export function interpretarMensagemEstoqueCozinha(
       );
     }
     if (encontrados.length !== 1) {
-      erros.push("Linha " + (indice + 1) + ": " + (encontrados.length ? "nome ambíguo" : "produto não encontrado") + " — " + nomeDigitado);
+      erros.push("Linha " + (numero) + ": " + (encontrados.length ? "nome ambíguo" : "produto não encontrado") + " — " + nomeDigitado);
       return;
     }
     const produto = encontrados[0];
@@ -120,12 +130,12 @@ export function interpretarMensagemEstoqueCozinha(
       (tipo === "sopa" && tamanho !== "400") ||
       (tipo === "complemento" && tamanho !== "150") ||
       (tipo === "marmita" && tamanho === "150")) {
-      erros.push("Linha " + (indice + 1) + ": tamanho inválido ou ausente para " + produto.nome);
+      erros.push("Linha " + (numero) + ": tamanho inválido ou ausente para " + produto.nome);
       return;
     }
     const chave = produto.id + ":" + tamanho;
     if (vistos.has(chave)) {
-      erros.push("Linha " + (indice + 1) + ": produto/tamanho repetido — " + produto.nome + " " + tamanho + "g");
+      erros.push("Linha " + (numero) + ": produto/tamanho repetido — " + produto.nome + " " + tamanho + "g");
       return;
     }
     vistos.add(chave);
