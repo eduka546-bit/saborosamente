@@ -22,6 +22,7 @@ import { AuditoriaCardapioCozinha } from "@/components/cozinha/AuditoriaCardapio
 import { GestaoOperacional } from "@/components/cozinha/GestaoOperacional";
 import { CardapioCompleto } from "@/components/cozinha/CardapioCompleto";
 import { AtualizarEstoqueCozinha } from "@/components/cozinha/AtualizarEstoqueCozinha";
+import { ListaEstoquePronto } from "@/components/cozinha/ListaEstoquePronto";
 import { EtiquetasManager } from "./cozinha.etiquetas";
 import { toast } from "sonner";
 import {
@@ -1073,18 +1074,7 @@ function CozinhaPage() {
                 </button>
               </div>
               {estoqueAba === "loja" ? (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {marmitas.map((x: any) => (
-                    <article key={x.id} className="rounded-2xl border bg-white p-4">
-                      <h3 className="font-bold">{x.nome}</h3>
-                      <p className="mt-3 flex flex-wrap gap-2 text-sm">
-                        {tamanhosDoProduto(x).map((t) => (
-                          <span key={t.id}>{n(x[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"])} · {t.label}</span>
-                        ))}
-                      </p>
-                    </article>
-                  ))}
-                </div>
+                <ListaEstoquePronto produtos={marmitas} local="loja" />
               ) : (
                 <div className="grid gap-6">
                   <div className="grid gap-3 lg:grid-cols-2">
@@ -1117,31 +1107,37 @@ function CozinhaPage() {
                   <div>
                     <h3 className="mb-1 text-lg font-black">Estoque pronto na cozinha</h3>
                     <p className="mb-3 text-sm text-[#62766b]">Transfira ou atualize as quantidades por produto e tamanho.</p>
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {marmitas.map((x: any) => {
-                        const saldo = estoqueMarmitasPorProduto.get(x.id);
-                        return <article key={x.id} className="rounded-2xl border bg-white p-4">
-                          <h4 className="font-bold">{x.nome}</h4>
-                          <p className="mt-2 flex flex-wrap gap-2 text-sm text-[#62766b]">
-                            {tamanhosDoProduto(x).map((t) => (
-                              <span key={t.id}>{n(saldo?.[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"])} · {t.label}</span>
-                            ))}
-                          </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Botao leve onClick={() => abrir("transferencia", x)}>Transferir para loja</Botao>
-                            <Botao leve onClick={() => abrir("ajuste-marmitas", x)}>Atualizar estoque</Botao>
-                          </div>
-                        </article>;
-                      })}
-                    </div>
+                    <ListaEstoquePronto
+                      produtos={marmitas}
+                      local="cozinha"
+                      saldosCozinha={estoqueMarmitasPorProduto}
+                      onTransferir={(produto) => abrir("transferencia", produto)}
+                      onAtualizar={(produto) => abrir("ajuste-marmitas", produto)}
+                    />
                   </div>
                   <div>
                     <h3 className="mb-1 text-lg font-black">Ingredientes da cozinha</h3>
                     {(estoque as any[]).filter((x) => n(x.quantidade_atual) <= n(x.quantidade_minima)).length > 0 && <p className="mb-3 rounded-xl bg-[#fff4d9] px-3 py-2 text-sm font-bold text-[#8b5a00]">{(estoque as any[]).filter((x) => n(x.quantidade_atual) <= n(x.quantidade_minima)).length} ingrediente(s) no estoque mínimo ou abaixo.</p>}
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {(estoque as any[]).map((x) => (
-                        <article key={x.id} className="rounded-2xl border bg-white p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="font-bold">{x.ingrediente}</h4><p className={`mt-2 font-black ${n(x.quantidade_atual) <= n(x.quantidade_minima) ? "text-[#b45309]" : "text-[#087443]"}`}>{x.quantidade_atual} {x.unidade}</p><p className="text-xs text-[#62766b]">Mínimo: {x.quantidade_minima} {x.unidade}</p></div><Botao leve onClick={() => abrir("ajuste-estoque", x)}>Ajustar</Botao></div></article>
-                      ))}
+                    <div className="overflow-hidden rounded-2xl border border-[#d9e3da] bg-white">
+                      <div className="divide-y divide-[#e8eee7]">
+                        {(estoque as any[]).map((x) => {
+                          const baixo = n(x.quantidade_atual) <= n(x.quantidade_minima);
+                          return (
+                            <div key={x.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="break-words text-sm font-semibold text-[#173a2d]">{x.ingrediente}</h4>
+                                <p className="text-[11px] text-[#62766b]">Mínimo: {x.quantidade_minima} {x.unidade}</p>
+                              </div>
+                              <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-black tabular-nums ${baixo ? "bg-amber-50 text-[#a56808]" : "bg-[#e2f3e6] text-[#075636]"}`}>{x.quantidade_atual} {x.unidade}</span>
+                              <button type="button" onClick={() => abrir("ajuste-estoque", x)}
+                                className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-[#bcd8c5] px-2.5 py-1.5 text-xs font-bold text-[#087443]"
+                                aria-label={`Ajustar estoque de ${x.ingrediente}`}>
+                                <Pencil size={13} aria-hidden="true" /> Ajustar
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
