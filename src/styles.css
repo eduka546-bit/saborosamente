@@ -282,6 +282,8 @@
   html {
     scroll-behavior: smooth;
     scroll-padding-top: 7.5rem;
+    /* Evita o deslocamento lateral do documento; listas com rolagem própria continuam funcionando. */
+    overflow-x: clip;
   }
 
   * {
@@ -296,6 +298,8 @@
     line-height: 1.55;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   h1 {
