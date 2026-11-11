@@ -1714,7 +1714,7 @@ function AjusteEstoqueMarmitasModal({ produto, saldo, fechar, salvar }: any) {
       <Campo label="Tamanho">
         <select className={input} value={tamanho} onChange={(e) => {
           const proximo = e.target.value;
-          setTamanho(proximo);
+          setTamanho(proximo as Tamanho);
           setQuantidade(String(n(saldo?.[campo(proximo)])));
         }}>
           {tamanhos.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
