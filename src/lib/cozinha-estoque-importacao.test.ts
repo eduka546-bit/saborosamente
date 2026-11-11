@@ -102,6 +102,32 @@ describe("interpretação do estoque de marmitas da cozinha", () => {
     ]));
   });
 
+
+  it("aceita integralmente o relatório enviado: nomes completos, títulos, zeros e todas as gramaturas", () => {
+    const catalogoCompleto = [
+      ...Array.from({ length: 28 }, (_, i) => String(i + 1).padStart(2, "0")).map((n) => ({
+        id: "TD" + n, nome: "TD" + n + " - Produto cadastrado", tipo_produto: "marmita",
+      })),
+      ...Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((n) => ({
+        id: "SO" + n, nome: "SO" + n + " - Produto cadastrado", tipo_produto: "sopa",
+      })),
+      ...Array.from({ length: 6 }, (_, i) => String(i + 1).padStart(2, "0")).map((n) => ({
+        id: "CO" + n, nome: "CO" + n + " - Produto cadastrado", tipo_produto: "complemento",
+      })),
+    ];
+    const texto = "*MARMITAS* _(200g / 300g / 400g)_\n• TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis - 3 / 0 / 0\n• TD02 - Almôndegas ao Molho Sugo com Arroz e Batata Rústica - 2 / 0 / 5\n• TD03 - Nhoque de Batata ao Molho Bolonhesa com Carne Moída de Patinho - 5 / 0 / 0\n• TD04 - Vaca Atolada (Carne de Panela com Aipim) - 0 / 0 / 0\n• TD05 - Arroz Carreteiro com Carne de Patinho Desfiada, Bacon e Calabresa - 0 / 0 / 0\n• TD06 - Frango Grelhado ao Molho Sugo com Arroz e Brócolis - 0 / 0 / 0\n• TD07 - Sobrecoxa Ensopada com Purê de Aipim - 0 / 0 / 0\n• TD08 - Parmegiana de Frango com Arroz e Batata Rústica - 0 / 0 / 0\n• TD09 - Parmegiana de Carne com Arroz e Batata Rústica - 2 / 0 / 0\n• TD10 - Estrogonofe de Frango com Arroz Branco e Legumes - 3 / 0 / 0\n• TD11 - Estrogonofe de Carne com Arroz Branco e Legumes - 0 / 0 / 3\n• TD12 - Escondidinho de Frango com Batata Inglesa e Queijo - 0 / 0 / 0\n• TD13 - Escondidinho de Patinho com Batata Inglesa e Queijo - 0 / 0 / 0\n• TD14 - Filé de Tilápia Assada com Tomate e Purê de Batata Doce ao Molho Pesto - 5 / 10 / 12\n• TD15 - Feijoada com Arroz e Couve Mineira - 0 / 0 / 0\n• TD16 - Tiras de Bife ao Molho com Arroz Branco e Feijão Preto - 0 / 0 / 0\n• TD17 - Frango Empanado Americano com Arroz e Feijão - 4 / 7 / 0\n• TD18 - Patinho Moído à Bolonhesa com Arroz e Feijão Preto - 0 / 0 / 0\n• TD19 - Lasanha de Frango - 7 / 0 / 0\n• TD20 - Lasanha de Carne Moída de Patinho à Bolonhesa - 4 / 21 / 19\n• TD21 - Panqueca de Frango com Queijo - 17 / 0 / 0\n• TD22 - Panqueca de Carne com Queijo a Bolonhesa - 3 / 0 / 0\n• TD23 - Macarrão Penne na Manteiga com Frango Grelhado ao Creme - 0 / 0 / 0\n• TD24 - Espaguete à Carbonara com Ovos Mexidos e Bacon - 0 / 0 / 0\n• TD25 - Espaguete com Almôndegas com Queijo à Bolonhesa - 2 / 10 / 3\n• TD26 - Macarrão Talharim com Carne Moída de Patinho à Bolonhesa - 9 / 11 / 13\n• TD27 - Macarrão Penne ao Molho 4 Queijos com Bacon e Calabresa - 0 / 0 / 0\n• TD28 - Macarrão Penne alla Creme com Tiras de Alcatra - 6 / 0 / 9\n\n*SOPAS*\n• SO01 - Sopa de Frango com Legumes - 0\n• SO02 - Sopa de Carne com Legumes - 0\n• SO03 - Sopa de Legumes - 0\n• SO04 - Sopa de Feijão com Macarrão (Minestra) - 0\n• SO05 - Sopa de Bucho - 0\n• SO06 - Canja de Galinha com Arroz - 12\n• SO07 - Creme de Abóbora Cabotia com Carne Desfiada - 9\n• SO08 - Creme de Mandioquinha  com Frango e Bacon - 8\n• SO09 - Creme de Batata Inglesa com Carne Desfiada - 0\n• SO10 - Caldo de Aipim com Carne Moída - 0\n• SO11 - Caldo Verde Português - 0\n• SO12 - Caldo de Peixe (Tilápia) - 0\n\n*COMPLEMENTOS*\n• CO01 - Frango Desfiado 150g - 0\n• CO02 - Frango Americano 150g - 0\n• CO03 - Frango Ensopado 150g - 0\n• CO04 - Tiras de Carne de Patinho 150g - 3\n• CO05 - Carne Moída de Patinho à Bolonhesa 150g - 0\n• CO06 - Carne de Panela 150g - 0";
+    const resultado = interpretarMensagemEstoqueCozinha(texto, catalogoCompleto);
+    expect(resultado.erros).toEqual([]);
+    expect(resultado.itens).toHaveLength(102); // 28 marmitas x 3 + 12 sopas + 6 complementos
+    expect(resultado.total).toBe(227);
+    expect(resultado.itens.filter((item) => item.quantidade === 0).length).toBeGreaterThan(50);
+    expect(resultado.itens.filter((item) => item.produto_id === "TD14").map((item) => item.quantidade)).toEqual([5, 10, 12]);
+    expect(resultado.itens.filter((item) => item.produto_id === "TD20").map((item) => item.quantidade)).toEqual([4, 21, 19]);
+    expect(resultado.itens.find((item) => item.produto_id === "SO06")).toMatchObject({ tamanho: "400", quantidade: 12 });
+    expect(resultado.itens.find((item) => item.produto_id === "CO04")).toMatchObject({ tamanho: "150", quantidade: 3 });
+    expect(resultado.itens.filter((item) => item.produto_id === "TD04").map((item) => item.quantidade)).toEqual([0, 0, 0]);
+  });
+
   it("não permite repetir um tamanho já citado na lista compacta", () => {
     const resultado = interpretarMensagemEstoqueCozinha("TD02 - 1/2/3\nTD02 300g - 4", produtos);
     expect(resultado.erros).toHaveLength(1);
