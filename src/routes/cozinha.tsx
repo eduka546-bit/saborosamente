@@ -1102,7 +1102,8 @@ function CozinhaPage() {
                           <option value="">Selecionar produto</option>
                           {marmitas.filter((x: any) => tamanhosDoProduto(x).some((t) => {
                             const saldo = estoqueMarmitasPorProduto.get(x.id);
-                            return n(saldo?.[t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g"]) > 0;
+                            const chave = (t.id === "150" ? "estoque_200g" : "estoque_" + t.id + "g") as "estoque_200g" | "estoque_300g" | "estoque_400g";
+                            return n(saldo?.[chave]) > 0;
                           })).map((x: any) => <option key={x.id} value={x.id}>{x.nome}</option>)}
                         </select>
                         <Botao disabled={!produtoTransferenciaRapida}
