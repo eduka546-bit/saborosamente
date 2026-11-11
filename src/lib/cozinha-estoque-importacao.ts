@@ -86,7 +86,13 @@ export function interpretarMensagemEstoqueCozinha(
   });
   linhas.forEach(({ original, numero }) => {
     const linha = original.replace(/^\s*[*•#]+\s*/, "").replace(/\*+$/g, "").trim();
-    if (!linha || /^(estoque cozinha|estoque da cozinha|marmitas|sopas|complementos)\s*:?\s*$/i.test(normalizar(linha))) return;
+    // Cabeçalhos do relatório completo: "*MARMITAS* _(200g / 300g / 400g)_",
+    // "*SOPAS*" e "*COMPLEMENTOS*". Não tratá-los como produtos.
+    const cabecalho = normalizar(linha);
+    if (!linha ||
+      /^(estoque cozinha|estoque da cozinha)$/.test(cabecalho) ||
+      /^marmitas(?: 200g 300g 400g)?$/.test(cabecalho) ||
+      /^(sopas|complementos)$/.test(cabecalho)) return;
 
     const detalheNomePrimeiro = linha.match(/^(.+?)\s+(150|200|300|400)\s*g\s*[-–—:]\s*(\d+)\s*(?:un(?:idades)?)?\s*$/i);
     const quantidadePrimeiro = detalheNomePrimeiro ? null : linha.match(/^(\d+)\s+(.+?)\s*[-–—]\s*(150|200|300|400)\s*g?\s*$/i);
