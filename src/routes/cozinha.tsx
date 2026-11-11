@@ -1,3 +1,5 @@
+import { sincronizarMontagem, sincronizarIngredientes } from "@/lib/cozinha-sincronizacao";
+import { FichaSincronizacaoPreview } from "@/components/FichaSincronizacaoPreview";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { alocarQuantidadePorPesos, escalarVolumesModoPreparo, fatorCapacidade, fatorLoteMassaPanqueca, ingredientesCozinhaCorrespondem, nomeComponenteMontagem, nomesCozinhaCorrespondem, quantidadeBrutaPorRendimento, quantidadeNoLote, quantidadeRestante, sugerirMarmitas, acumularQuantidadeComQB } from "@/lib/cozinha-planejamento";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -470,11 +472,11 @@ function CozinhaPage() {
         });
 
         preparacoesVinculadas.forEach((preparacao: any) => {
-          const montagemDaPreparacao = montagemReceita.find((montagem: any) =>
+          const montagensDaPreparacao = montagemReceita.filter((montagem: any) =>
             nomesCozinhaCorrespondem(preparacao.nome, montagem.nome),
           );
-          if (!montagemDaPreparacao) return;
-          const prontoTotal = n(montagemDaPreparacao[campo]) * multiplicador;
+          if (!montagensDaPreparacao.length) return;
+          const prontoTotal = montagensDaPreparacao.reduce((s:number,m:any)=>s+n(m[campo]),0) * multiplicador;
           if (!(prontoTotal > 0)) return;
           const fatorMassa = normalizarNomeIngrediente(preparacao.nome).includes("massa panqueca")
             ? fatorLoteMassaPanqueca({ [String(p.gramatura || "400")]: multiplicador })
@@ -1402,7 +1404,7 @@ function CozinhaPage() {
                 ].filter(([id]) => id),
               ).values(),
             );
-            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, margem_custo_percentual: Math.max(0,margemPercentual), ingredientes: [], modo_preparo: null, preparacoes: preparacoesFicha, updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
+            const { data, error } = await supabase.from("cozinha_receitas").upsert({ produto_id: edit.id, margem_custo_percentual: Math.max(0,margemPercentual), ingredientes: [], modo_preparo: rec.get(edit.id)?.modo_preparo || null, preparacoes: preparacoesFicha.filter((p:any)=>linhas.some((l:any)=>l.preparacao_id===p.id)), updated_by: user?.id, updated_at: new Date().toISOString() }, { onConflict: "produto_id" }).select().single();
             if (error || !data) return toast.error(error?.message || "Erro ao salvar.");
             await qc.invalidateQueries({queryKey:["admin-financeiro-operacional"]});
             const { error: apagarIngredientes } = await supabase.from("cozinha_receita_itens").delete().eq("receita_id", data.id);
@@ -2818,8 +2820,24 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   const tamanhosFicha = tamanhosDoProduto(produto);
   const colunasFicha = "grid-cols-[var(--colunas-tabela)]";
   const colunasMontagem = "grid-cols-[var(--colunas-tabela)]";
-  const [linhas, setLinhas] = useState<ReceitaLinha[]>(linhasIniciais.map((x: any) => ({ ...receitaVazia(), ...x, ingrediente_id: x.ingrediente_id || null, preparacao_id: x.preparacao_id || null })));
-  const [montagem, setMontagem] = useState<MontagemLinha[]>(montagemInicial.map((x: any) => ({ id:x.id, nome:x.nome || "", gramas_150:n(x.gramas_150), gramas_200:n(x.gramas_200), gramas_300:n(x.gramas_300), gramas_400:n(x.gramas_400), observacao:x.observacao || "", observacao_200:x.observacao_200 || "", observacao_300:x.observacao_300 || "", observacao_400:x.observacao_400 || "" })));
+  const catalogoSync = { preparacoes, ingredientes, bases: itensPreparacao };
+  const [inicialSync] = useState(() => {
+    const originais = linhasIniciais.map((x:any) => ({...receitaVazia(), ...x}));
+    return montagemInicial.length ? sincronizarMontagem(originais, montagemInicial, catalogoSync) : sincronizarIngredientes([], originais, [], catalogoSync);
+  });
+  const [linhas, setLinhasState] = useState<ReceitaLinha[]>(inicialSync.linhas as ReceitaLinha[]);
+  const [montagem, setMontagemState] = useState<MontagemLinha[]>(inicialSync.montagem as MontagemLinha[]);
+  const [pendenciasSync, setPendenciasSync] = useState<string[]>(inicialSync.pendencias);
+  const aplicarSync = (resultado: ReturnType<typeof sincronizarMontagem>) => {
+    setLinhasState(resultado.linhas as ReceitaLinha[]);
+    setMontagemState(resultado.montagem as MontagemLinha[]);
+    setPendenciasSync(resultado.pendencias);
+  };
+  const setLinhas = (valor: ReceitaLinha[] | ((atuais: ReceitaLinha[]) => ReceitaLinha[])) => {
+    const novas = typeof valor === 'function' ? valor(linhas) : valor;
+    aplicarSync(sincronizarIngredientes(linhas, novas, montagem, catalogoSync));
+  };
+  const setMontagem = (novas: MontagemLinha[]) => aplicarSync(sincronizarMontagem(linhas, novas, catalogoSync));
   const [percentuaisMontagemEditando, setPercentuaisMontagemEditando] = useState<Record<string,string>>({});
   const [selecionado, setSelecionado] = useState("");
   const [buscaComponente, setBuscaComponente] = useState("");
@@ -2977,6 +2995,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
   return <Janela titulo={`Ficha técnica — ${produto.nome}`} fechar={fechar}>
     <div className="mb-6 grid gap-4 rounded-2xl bg-[#edf5e6] p-4 md:grid-cols-[180px_1fr]"><div className="h-32 overflow-hidden rounded-xl bg-white">{produto.imagem_url || produto.imagens?.[0] ? <img src={produto.imagem_url || produto.imagens?.[0]} alt="" className="size-full object-cover" />:<div className="grid size-full place-items-center text-[#087443]"><ChefHat /></div>}</div><div><p className="text-xs font-bold uppercase tracking-wide text-[#087443]">Monte a ficha técnica</p><h4 className="mt-1 text-xl font-black">{produto.nome}</h4><p className="mt-2 text-sm text-[#527164]">Ingredientes são a base de custo e produção. Em Montagem, registre somente o que entra pronto na embalagem.</p></div></div>
     <div className="mb-6 grid grid-cols-2 rounded-xl bg-[#e7eee8] p-1 sm:grid-cols-4">{[["ingredientes","1. Ingredientes"],["montagem","2. Montagem"],["preparacoes","3. Preparações"],["custos","4. Custos"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAbaFicha(id as typeof abaFicha)} className={`rounded-lg px-2 py-2.5 text-sm font-bold ${abaFicha===id?"bg-white text-[#087443] shadow-sm":"text-[#62766b]"}`}>{label}</button>)}</div>
+    {(abaFicha === "ingredientes" || abaFicha === "montagem") && <FichaSincronizacaoPreview anteriores={linhasIniciais} linhas={linhas} catalogo={catalogoSync} tamanhos={tamanhosFicha} pendencias={pendenciasSync}/>}
     {abaFicha==="ingredientes" && <section>
       <p className="text-xs font-bold uppercase tracking-wide text-[#087443]">1. Ingredientes da receita</p>
       <p className="mb-3 mt-1 text-sm text-[#62766b]">Selecione um ingrediente já cadastrado sempre que possível. Daqui você também pode editar custo, perda/ganho, unidade, nutrição e restrições; a alteração é global e vale para todas as fichas que usam o mesmo ingrediente.</p>
@@ -3055,7 +3074,7 @@ function ReceitaModal({ produto, receita, linhasIniciais, montagemInicial, ingre
       </div>
       {!linhasCustoMontagem.length?<Vazio texto="Adicione ingredientes ou preparações para ver os custos."/>:<TabelaCustos linhas={linhasCustoMontagem} ingredientes={ingredientes} nome={nome} custoLinha={custoLinha} custoPrep={custoPrep} tamanhos={tamanhosFicha}/>}
     </section>}
-    <div className="mt-5"><Botao onClick={()=>salvar(linhas,montagem,n(margemPercentual))}>Salvar ficha técnica</Botao></div>
+    <div className="mt-5"><Botao disabled={pendenciasSync.length > 0} onClick={()=>{const final=sincronizarMontagem(linhas,montagem,catalogoSync);if(final.pendencias.length)return toast.error(final.pendencias.join(" "));salvar(final.linhas,final.montagem,n(margemPercentual));}}>Salvar ficha técnica</Botao></div>
     {ingredienteEditorAberto && <IngredienteModal
       item={ingredienteEdicao}
       nomeInicial={nomeNovoIngrediente}
