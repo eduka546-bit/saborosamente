@@ -353,6 +353,8 @@ export function montarClientesComerciais(
     const nome = normalize(carrinho.nome), tel = phone(carrinho.telefone), email = normalize(carrinho.email);
     for (const cliente of unificados) {
       if ((nome && normalize(cliente.nome) === nome) || (tel && phone(cliente.telefone) === tel) || (email && email !== "nao informado" && normalize(cliente.email) === email)) {
+        // Pedido posterior do mesmo cliente converteu aquele carrinho; ele não é abandono ativo.
+        if (date(cliente.ultimoPedido) >= date(quando)) continue;
         cliente.carrinhoAbandonadoRecente = true;
         if (!cliente.carrinhoAbandonadoEm || date(quando) > date(cliente.carrinhoAbandonadoEm)) cliente.carrinhoAbandonadoEm = quando;
       }
