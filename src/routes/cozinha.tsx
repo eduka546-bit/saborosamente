@@ -1548,20 +1548,9 @@ function Campo({ label, children }: any) {
     </label>
   );
 }
-function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
-  const [produto, setProduto] = useState(""),
-    [data, setData] = useState(dataInicial || hoje()),
-    [q, setQ] = useState<any>({}),
-    [obs, setObs] = useState(""),
-    [salvando, setSalvando] = useState(false);
-  const produtoSelecionado = marmitas.find((x: any) => x.id === produto);
-  const tamanhosDisponiveis = tamanhosDoProduto(produtoSelecionado);
-  // A consulta é refeita ao escolher cada produto e ao retornar à aba.
-  // Estoque pronto = loja + cozinha; não confundir com produções planejadas.
-  const {
-    data: saldos, isLoading: carregandoEstoque, isFetching: atualizandoEstoque,
-    isError: erroEstoque, refetch: atualizarEstoque,
-  } = useQuery({
+// Estoque pronto compartilhado entre inclusão e edição do planejamento.
+function useEstoqueProntoProducao(produto: string) {
+  return useQuery({
     queryKey: ["coz-estoque-pronto-form-producao", produto],
     enabled: Boolean(produto),
     staleTime: 0,
@@ -1580,6 +1569,17 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
       return { loja: loja.data, cozinha: cozinha.data };
     },
   });
+}
+function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
+  const [produto, setProduto] = useState(""),
+    [data, setData] = useState(dataInicial || hoje()),
+    [q, setQ] = useState<any>({}),
+    [obs, setObs] = useState(""),
+    [salvando, setSalvando] = useState(false);
+  const produtoSelecionado = marmitas.find((x: any) => x.id === produto);
+  const tamanhosDisponiveis = tamanhosDoProduto(produtoSelecionado);
+  const { data: saldos, isLoading: carregandoEstoque, isFetching: atualizandoEstoque,
+    isError: erroEstoque, refetch: atualizarEstoque } = useEstoqueProntoProducao(produto);
   return (
     <Janela titulo="Adicionar à produção" fechar={fechar}>
       <div className="grid gap-4">
@@ -1687,10 +1687,29 @@ function ProducaoModal({ marmitas, dataInicial, fechar, salvar }: any) {
 }
 function EditarProducaoModal({ produto, linhas, fechar, salvar }: any) {
   const tamanhos = tamanhosDoProduto(produto);
+  const { data: saldos, isLoading, isFetching, isError, refetch } = useEstoqueProntoProducao(produto.id);
   const [q, setQ] = useState<Record<string, number>>(() => Object.fromEntries(tamanhos.map((t) => [t.id, (linhas as any[]).filter((x: any) => x.gramatura === t.id).reduce((s: number, x: any) => s + n(x.quantidade_planejada), 0)])));
   return <Janela titulo={`Editar quantidades — ${rotuloProduto(produto)}`} fechar={fechar}>
     <p className="mb-4 text-sm text-[#62766b]">Informe quantas unidades serão produzidas em cada tamanho. Use zero para retirar um tamanho do planejamento.</p>
-    <div className="grid gap-3 sm:grid-cols-3">{tamanhos.map((t) => <Campo key={t.id} label={t.label}><input className={input} min="0" type="number" value={q[t.id] ?? 0} onChange={(e) => setQ((atual) => ({ ...atual, [t.id]: Math.max(0, n(e.target.value)) }))} /></Campo>)}</div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#527164]" aria-live="polite">
+      <span>Estoque atual de marmitas prontas · Loja + Cozinha</span>
+      <button type="button" disabled={isFetching} onClick={() => { void refetch(); }} className="flex items-center gap-1 rounded-lg border border-[#bdd5c3] px-2.5 py-1.5 font-semibold text-[#087443] disabled:opacity-50">
+        <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Atualizar estoque
+      </button>
+      {isLoading && <p className="w-full">Consultando estoque…</p>}
+      {isError && <p role="alert" className="w-full text-red-700">Não foi possível consultar o estoque. Tente atualizar antes de decidir a quantidade.</p>}
+    </div>
+    <div className="grid gap-3 sm:grid-cols-3">{tamanhos.map((t) => {
+      const saldo = saldos && !isError ? consultarEstoquePronto(saldos.loja, saldos.cozinha, t.id) : null;
+      return <div key={t.id} className="rounded-xl border border-[#dbe7dd] bg-white p-3">
+        <Campo label={t.label}><input className={input} min="0" step="1" inputMode="numeric" type="number" aria-label={`Quantidade a produzir de ${t.label}`} value={q[t.id] ?? 0} onChange={(e) => setQ((atual) => ({ ...atual, [t.id]: Math.max(0, n(e.target.value)) }))} /></Campo>
+        {saldo && <p className="mt-2 text-xs leading-relaxed text-[#527164]">
+          Em estoque: <b className="text-[#075636]">{saldo.total.toLocaleString("pt-BR")} un</b>
+          <span className="block">Loja {saldo.loja.toLocaleString("pt-BR")} · Cozinha {saldo.cozinha.toLocaleString("pt-BR")}</span>
+        </p>}
+        {saldos && !isError && !saldo && <p className="mt-2 text-xs text-amber-800">Sem controle de estoque específico para este tamanho.</p>}
+      </div>;
+    })}</div>
     <div className="mt-5 flex justify-end gap-2"><Botao leve onClick={fechar}>Cancelar</Botao><Botao onClick={() => salvar(q)}>Salvar quantidades</Botao></div>
   </Janela>;
 }
