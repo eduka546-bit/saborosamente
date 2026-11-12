@@ -18,7 +18,7 @@ type Saldo = {
 
 type Props = {
   produtos: Produto[];
-  local: "loja" | "cozinha";
+  local: "loja" | "cozinha" | "geral";
   saldosCozinha?: Map<string, Saldo>;
   onTransferir?: (produto: Produto) => void;
   onAtualizar?: (produto: Produto) => void;
@@ -50,10 +50,12 @@ export function ListaEstoquePronto({
   const [somenteComEstoque, setSomenteComEstoque] = useState(false);
   const produtosVisiveis = useMemo(() => produtos.filter((produto) => {
     if (!textoBusca(produto.nome).includes(textoBusca(busca.trim()))) return false;
-    const saldo = local === "cozinha" ? saldosCozinha?.get(produto.id) : produto;
-    return !somenteComEstoque || tamanhoProduto(produto).some(
-      (tamanho) => quantidadeProduto(saldo, tamanho) > 0,
-    );
+    const saldoLoja = produto;
+    const saldoCozinha = saldosCozinha?.get(produto.id);
+    return !somenteComEstoque || tamanhoProduto(produto).some((tamanho) => {
+      if (local === "geral") return quantidadeProduto(saldoLoja, tamanho) + quantidadeProduto(saldoCozinha, tamanho) > 0;
+      return quantidadeProduto(local === "cozinha" ? saldoCozinha : saldoLoja, tamanho) > 0;
+    });
   }), [produtos, local, saldosCozinha, busca, somenteComEstoque]);
 
   return (
@@ -98,7 +100,9 @@ export function ListaEstoquePronto({
               </div>
               <div className="divide-y divide-[#edf0e9]">
                 {lista.map((produto) => {
-                  const saldo = local === "cozinha" ? saldosCozinha?.get(produto.id) : produto;
+                  const saldoLoja = produto;
+                  const saldoCozinha = saldosCozinha?.get(produto.id);
+                  const saldo = local === "cozinha" ? saldoCozinha : saldoLoja;
                   const codigo = produto.nome.match(/^(TD|SO|CO)\d{2}\b/i)?.[0];
                   const nome = codigo ? produto.nome.slice(codigo.length).replace(/^\s*[-–—]\s*/, "") : produto.nome;
                   const tamanhos = tamanhoProduto(produto);
@@ -112,20 +116,40 @@ export function ListaEstoquePronto({
                         <span className="min-w-0 break-words pt-0.5 font-semibold text-[#173a2d]">{nome}</span>
                       </div>
                       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 sm:mt-0 sm:shrink-0 sm:justify-end">
-                        <div className="flex flex-wrap items-center gap-1.5" aria-label={`Quantidades de ${produto.nome}`}>
-                          {tamanhos.map((tamanho) => {
-                            const quantidade = quantidadeProduto(saldo, tamanho);
-                            return (
-                              <span key={tamanho}
-                                aria-label={`${tamanho} gramas: ${quantidade} unidades`}
-                                className={`inline-flex min-w-[59px] items-center justify-center gap-1 rounded-md px-2 py-1 text-xs ${quantidade > 0 ? "bg-[#e2f3e6] text-[#075636]" : "bg-[#f1f1ef] text-[#7f8881]"}`}
-                              >
-                                <span className="text-[10px]">{tamanho}g</span>
-                                <b className="tabular-nums">{quantidade}</b>
-                              </span>
-                            );
-                          })}
-                        </div>
+                        {local === "geral" ? (
+                          <div className="grid w-full gap-1.5 sm:w-auto sm:min-w-[310px]" aria-label={`Saldos geral, loja e cozinha de ${produto.nome}`}>
+                            {[
+                              { nome: "Loja", classe: "bg-[#e2f3e6] text-[#075636]", saldo: saldoLoja },
+                              { nome: "Cozinha", classe: "bg-[#e8efff] text-[#24568e]", saldo: saldoCozinha },
+                              { nome: "Geral", classe: "bg-[#fff1d9] text-[#8a5a10]", saldo: undefined },
+                            ].map(({ nome: origem, classe, saldo: saldoOrigem }) => (
+                              <div key={origem} className={`flex flex-wrap items-center gap-1.5 rounded-lg px-2 py-1.5 ${classe}`}>
+                                <span className="w-[54px] text-[10px] font-black uppercase">{origem}</span>
+                                {tamanhos.map((tamanho) => {
+                                  const quantidade = origem === "Geral"
+                                    ? quantidadeProduto(saldoLoja, tamanho) + quantidadeProduto(saldoCozinha, tamanho)
+                                    : quantidadeProduto(saldoOrigem, tamanho);
+                                  return <span key={tamanho} className="inline-flex min-w-[54px] items-center justify-center gap-1 rounded-md bg-white/65 px-1.5 py-0.5 text-xs"><small className="text-[9px]">{tamanho}g</small><b className="tabular-nums">{quantidade}</b></span>;
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-1.5" aria-label={`Quantidades de ${produto.nome}`}>
+                            {tamanhos.map((tamanho) => {
+                              const quantidade = quantidadeProduto(saldo, tamanho);
+                              return (
+                                <span key={tamanho}
+                                  aria-label={`${tamanho} gramas: ${quantidade} unidades`}
+                                  className={`inline-flex min-w-[59px] items-center justify-center gap-1 rounded-md px-2 py-1 text-xs ${quantidade > 0 ? "bg-[#e2f3e6] text-[#075636]" : "bg-[#f1f1ef] text-[#7f8881]"}`}
+                                >
+                                  <span className="text-[10px]">{tamanho}g</span>
+                                  <b className="tabular-nums">{quantidade}</b>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         {local === "cozinha" && (
                           <div className="flex items-center gap-1.5 sm:ml-2">
                             <button
@@ -162,7 +186,7 @@ export function ListaEstoquePronto({
           </p>
         )}
       </div>
-      <p className="mt-2 text-xs text-[#708778]">Os números representam unidades prontas por gramatura.</p>
+      <p className="mt-2 text-xs text-[#708778]">Os números representam unidades prontas por gramatura{local === "geral" ? ". No Geral: Loja + Cozinha = saldo total." : "."}</p>
     </div>
   );
 }
