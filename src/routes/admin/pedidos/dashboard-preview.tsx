@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
@@ -118,6 +118,7 @@ const sections = [
 ];
 
 export function DashboardPedidosPreview() {
+  const pedidoDireto = useLocation({ select: (location) => String((location.search as Record<string, unknown>).pedido || "") });
   const client = useQueryClient();
   const statusFn = useServerFn(updateAdminOrderStatus);
   const updateOrderFn = useServerFn(updateAdminOrder);
@@ -259,6 +260,12 @@ export function DashboardPedidosPreview() {
     },
     refetchInterval: 30000,
   });
+  useEffect(() => {
+    if (!pedidoDireto || selected?.id === pedidoDireto) return;
+    const pedido = orders.find((item: any) => item.id === pedidoDireto);
+    if (pedido) setSelected(pedido);
+  }, [pedidoDireto, orders, selected?.id]);
+
   const { data: productsForEdit = [] } = useQuery({
     queryKey: ["admin-products-order-edit"],
     queryFn: async () => {
