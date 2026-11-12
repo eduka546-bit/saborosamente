@@ -38,6 +38,16 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string,string> = { em_andamento: "Em andamento", abandonado: "Abandonado", recuperado: "Recuperado", convertido: "Convertido", esvaziado: "Esvaziado" };
 
+const itemQuantidade = (item: any) => Math.max(1, Number(item.quantity ?? item.quantidade ?? 1) || 1);
+const itemTamanho = (item: any) => String(item.weight ?? item.tamanho ?? item.gramatura ?? item.peso ?? "").trim();
+const itemSubtotal = (item: any) => Number(item.subtotal ?? item.total ?? 0) || 0;
+const itemPrecoUnitario = (item: any) => {
+  const quantidade = itemQuantidade(item);
+  const subtotal = itemSubtotal(item);
+  return subtotal > 0 ? subtotal / quantidade : Number(item.preco ?? item.preco_unitario ?? 0) || 0;
+};
+const moeda = (valor: unknown) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 function ItemsPreview({ itens }: { itens: any[] }) {
   return (
     <div className="space-y-1 text-xs text-gray-600">
@@ -138,7 +148,7 @@ function AdminCarrinhosAbandonadosPage() {
     const phone = carrinho.telefone?.replace(/\D/g, "");
     if (!phone) return null;
     const itens = (carrinho.itens as any[])
-      .map((i: any) => `• ${i.nome ?? i.productId} ×${i.quantity}`)
+      .map((i: any) => `• ${itemQuantidade(i)}× ${i.nome ?? i.productId}${itemTamanho(i) ? ` — ${itemTamanho(i)}` : ""}`)
       .join("\n");
     const coupon = carrinho.cupom_oferta
       ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para garantir seu desconto!`
@@ -422,7 +432,7 @@ function AdminCarrinhosAbandonadosPage() {
             className="flex h-[100dvh] min-h-0 w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300"
           >
             <div className="z-30 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2 pt-[max(8px,env(safe-area-inset-top))] sm:px-6">
-              <h2 id="carrinho-detalhes-titulo" className="min-w-0 text-lg font-bold text-[#5850ec] sm:text-xl">Detalhes do Carrinho</h2>
+              <div className="min-w-0"><h2 id="carrinho-detalhes-titulo" className="text-lg font-bold text-[#5850ec] sm:text-xl">Carrinho #{String(selectedCarrinho.id).slice(0, 8).toUpperCase()}</h2><p className="text-xs text-gray-500">Visualização do pedido não finalizado</p></div>
               <button
                 type="button"
                 aria-label="Fechar detalhes do carrinho"
@@ -465,7 +475,7 @@ function AdminCarrinhosAbandonadosPage() {
 
               {/* Itens */}
               <div>
-                <p className="text-xs font-bold uppercase text-gray-400 mb-3">Itens no carrinho</p>
+                <p className="text-xs font-bold uppercase text-gray-400 mb-3">Itens do pedido</p>
                 <div className="space-y-2">
                   {(selectedCarrinho.itens as any[]).map((item: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 bg-white rounded-xl border p-3">
@@ -480,12 +490,12 @@ function AdminCarrinhosAbandonadosPage() {
                         <p className="text-sm font-semibold text-gray-900 truncate">
                           {item.nome ?? item.productId}
                         </p>
-                        <p className="text-xs text-gray-400">
-                          {item.quantity}× — R$ {Number(item.preco ?? 0).toFixed(2)}
+                        <p className="mt-1 text-xs text-gray-500">
+                          {itemQuantidade(item)} {itemQuantidade(item) === 1 ? "unidade" : "unidades"}{itemTamanho(item) ? ` · ${itemTamanho(item)}` : ""} · {moeda(itemPrecoUnitario(item))} cada
                         </p>
                       </div>
-                      <p className="text-sm font-bold text-green-600">
-                        R$ {Number(item.subtotal ?? 0).toFixed(2)}
+                      <p className="text-sm font-bold text-green-700">
+                        {moeda(itemSubtotal(item))}
                       </p>
                     </div>
                   ))}
@@ -496,7 +506,7 @@ function AdminCarrinhosAbandonadosPage() {
               <div className="border-t pt-4 flex items-center justify-between">
                 <p className="font-bold text-gray-700">Total</p>
                 <p className="text-xl font-black text-[#5850ec]">
-                  R$ {Number(selectedCarrinho.valor_total).toFixed(2).replace(".", ",")}
+                  {moeda(selectedCarrinho.valor_total)}
                 </p>
               </div>
 
