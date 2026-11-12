@@ -7,6 +7,9 @@ export type ClienteComercial = {
   whatsappOfertasCadastradoEm?: string;
   grupoOfertasCadastrado?: boolean;
   preCadastroWhatsApp?: boolean;
+  preCadastroCarrinho?: boolean;
+  carrinhoAbandonadoRecente?: boolean;
+  carrinhoAbandonadoEm?: string;
   historicoWhatsapp?: boolean;
   historicoWhatsappId?: string;
   chave: string;
@@ -46,6 +49,7 @@ export function montarClientesComerciais(
   leads: any[] = [],
   whatsappContacts: any[] = [],
   historicoWhatsapp: any[] = [],
+  carrinhosAbandonados: any[] = [],
 ): ClienteComercial[] {
   const clients = new Map<string, ClienteComercial>();
   const phones = new Map<string, Set<string>>(),
@@ -209,6 +213,52 @@ export function montarClientesComerciais(
       });
     }
   }
+  // Um carrinho identificado também é uma ficha de cliente comercial, mesmo se
+  // a pessoa não concluiu a criação de uma conta de acesso. A marcação vale
+  // somente enquanto houver carrinho abandonado nos últimos sete dias.
+  const limiteCarrinho = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  for (const carrinho of carrinhosAbandonados) {
+    if (normalize(carrinho.status) !== "abandonado") continue;
+    const quando = carrinho.updated_at || carrinho.created_at;
+    if (!date(quando) || date(quando) < limiteCarrinho) continue;
+    const tel = phone(carrinho.telefone);
+    const email = normalize(carrinho.email);
+    const candidates = new Set([
+      ...(phones.get(tel) || []),
+      ...(emails.get(email) || []),
+    ]);
+    const profileKey = carrinho.user_id ? `perfil:${carrinho.user_id}` : null;
+    const key = profileKey && clients.has(profileKey)
+      ? profileKey
+      : candidates.size === 1 ? [...candidates][0]
+        : `carrinho:${carrinho.id}`;
+    const existing = clients.get(key);
+    if (existing) {
+      existing.preCadastroCarrinho = !existing.profileId;
+      existing.carrinhoAbandonadoRecente = true;
+      if (!existing.carrinhoAbandonadoEm || date(quando) > date(existing.carrinhoAbandonadoEm)) existing.carrinhoAbandonadoEm = quando;
+      if (!existing.nome) existing.nome = carrinho.nome || undefined;
+      if (!existing.telefone && tel) existing.telefone = tel;
+      if ((!existing.email || existing.email === "Não informado") && carrinho.email) existing.email = carrinho.email;
+      if (!existing.cadastradoEm) existing.cadastradoEm = carrinho.created_at ?? null;
+    } else {
+      clients.set(key, {
+        chave: key,
+        nome: carrinho.nome || undefined,
+        telefone: tel || undefined,
+        email: carrinho.email || "Não informado",
+        cidade: null,
+        cadastradoEm: carrinho.created_at ?? null,
+        preCadastroCarrinho: true,
+        carrinhoAbandonadoRecente: true,
+        carrinhoAbandonadoEm: quando,
+        totalPedidos: 0,
+        valorGasto: 0,
+        ultimoPedido: null,
+        pedidos: [],
+      });
+    }
+  }
   // Fichas persistentes de pedidos manuais, inclusive quando ainda não existe
   // cadastro com login. Nunca geram consentimento de marketing.
   for (const ficha of historicoWhatsapp) {
@@ -278,7 +328,7 @@ export function filtrarClientesComerciais(
       return false;
     if (
       filtros.cadastro !== "todos" &&
-      (!(c.profileId || c.sorteioLeadId || c.preCadastroWhatsApp) ||
+      (!(c.profileId || c.sorteioLeadId || c.preCadastroWhatsApp || c.preCadastroCarrinho) ||
         !date(c.cadastradoEm) ||
         agora - date(c.cadastradoEm) > Number(filtros.cadastro) * day ||
         date(c.cadastradoEm) > agora)
