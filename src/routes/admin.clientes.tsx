@@ -97,7 +97,7 @@ function AdminClientesPage() {
     refetchInterval: 60_000,
     queryFn: async () => {
       // Paginar também no banco: o limite de uma consulta não deve ocultar clientes.
-      async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads" | "clientes_cadastros") {
+      async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads" | "clientes_cadastros" | "carrinhos_abandonados") {
         const rows: any[] = [];
         for (let start = 0; ; start += 500) {
           const { data, error } = await supabase
@@ -120,7 +120,7 @@ function AdminClientesPage() {
           return [];
         }
       };
-      const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, cadastrosCarrinho] = await Promise.all([
+      const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, cadastrosCarrinho, carrinhosAbandonados] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
         opcional("sorteio", () => carregarTabela("sorteio_leads")),
@@ -136,8 +136,9 @@ function AdminClientesPage() {
           return data ?? [];
         }),
         opcional("cadastros de carrinho", () => carregarTabela("clientes_cadastros")),
+        opcional("carrinhos abandonados", () => carregarTabela("carrinhos_abandonados")),
       ]);
-      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, cadastrosCarrinho);
+      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, cadastrosCarrinho, carrinhosAbandonados);
     },
   });
 
@@ -394,7 +395,8 @@ function AdminClientesPage() {
                 value={ordem}
                 onChange={(e) => setOrdem(e.target.value)}
               >
-                <option value="recentes">Últimos cadastrados</option>
+                <option value="recentes">Mais novos</option>
+                <option value="ativos">Mais ativos</option>
                 <option value="nome">Nome (A–Z)</option>
                 <option value="ultima">Compra mais recente</option>
                 <option value="inativos">Há mais tempo sem comprar</option>
