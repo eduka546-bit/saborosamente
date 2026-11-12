@@ -97,7 +97,7 @@ function AdminClientesPage() {
     refetchInterval: 60_000,
     queryFn: async () => {
       // Paginar também no banco: o limite de uma consulta não deve ocultar clientes.
-      async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads") {
+      async function carregarTabela(tabela: "profiles" | "pedidos" | "sorteio_leads" | "carrinhos_abandonados") {
         const rows: any[] = [];
         for (let start = 0; ; start += 500) {
           const { data, error } = await supabase
@@ -120,7 +120,7 @@ function AdminClientesPage() {
           return [];
         }
       };
-      const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp] = await Promise.all([
+      const [profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, carrinhosAbandonados] = await Promise.all([
         carregarTabela("profiles"),
         carregarTabela("pedidos"),
         opcional("sorteio", () => carregarTabela("sorteio_leads")),
@@ -135,8 +135,9 @@ function AdminClientesPage() {
           if (error) throw error;
           return data ?? [];
         }),
+        opcional("carrinhos abandonados", () => carregarTabela("carrinhos_abandonados")),
       ]);
-      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp);
+      return montarClientesComerciais(profiles, orders, raffleLeads, contatosWhatsApp, historicoWhatsapp, carrinhosAbandonados);
     },
   });
 
