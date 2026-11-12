@@ -206,7 +206,7 @@ function CozinhaPage() {
       null,
     );
   const [edit, setEdit] = useState<any>(null),
-    [estoqueAba, setEstoqueAba] = useState<"loja" | "cozinha">("loja"),
+    [estoqueAba, setEstoqueAba] = useState<"loja" | "cozinha" | "geral">("loja"),
     [produtoTransferenciaRapida, setProdutoTransferenciaRapida] = useState("");
   useEffect(() => {
     (async () => {
@@ -1073,6 +1073,12 @@ function CozinhaPage() {
                 >
                   Cozinha
                 </button>
+                <button
+                  onClick={() => setEstoqueAba("geral")}
+                  className={`rounded-lg px-4 py-2 text-sm font-bold ${estoqueAba === "geral" ? "bg-white text-[#087443]" : "text-[#62766b]"}`}
+                >
+                  Geral
+                </button>
                 </div>
                 <button type="button" onClick={() => { void invalidar("coz-estoque-marmitas", "coz-prod"); }}
                   disabled={atualizandoEstoqueMarmitas}
@@ -1088,6 +1094,8 @@ function CozinhaPage() {
               )}
               {estoqueAba === "loja" ? (
                 <ListaEstoquePronto produtos={marmitas} local="loja" />
+              ) : estoqueAba === "geral" ? (
+                <ListaEstoquePronto produtos={marmitas} local="geral" saldosCozinha={estoqueMarmitasPorProduto} />
               ) : (
                 <div className="grid gap-6">
                   <div className="grid gap-3 lg:grid-cols-2">
