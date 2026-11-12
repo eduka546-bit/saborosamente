@@ -823,6 +823,13 @@ function AdminClientesPage() {
                 <h4 className="flex items-center gap-2 font-bold text-gray-900"><MapPin size={16} /> Dados e endereço</h4>
                 <p className="mt-1 text-sm text-gray-600">Mantenha o cadastro atualizado para facilitar os próximos pedidos.</p>
               </div>
+              {(() => {
+                const ultimo = [...(selectedClient.pedidos || [])].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                const retirada = String(ultimo?.metodo_entrega || "").toLowerCase() === "retirada";
+                if (retirada && !selectedClient.rua) return <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">O último pedido foi para <strong>retirada na loja</strong>; por isso nenhum endereço foi solicitado.</p>;
+                if (!selectedClient.rua) return <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Ainda não há endereço cadastrado para este cliente.</p>;
+                return null;
+              })()}
               {selectedClient.profileId ? (
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -869,9 +876,12 @@ function AdminClientesPage() {
             <h4 className="text-lg font-bold text-gray-900 mb-4">Histórico de Pedidos</h4>
             <div className="space-y-4">
               {selectedClient.pedidos.map((pedido: any) => (
-                <div
+                <button
                   key={pedido.id}
-                  className="border rounded-xl p-4 hover:border-[#5850ec]/30 transition-colors"
+                  type="button"
+                  onClick={() => { window.location.assign(`/admin/pedidos?pedido=${encodeURIComponent(pedido.id)}`); }}
+                  className="w-full border rounded-xl p-4 text-left hover:border-[#5850ec]/50 hover:bg-[#5850ec]/[0.02] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5850ec]"
+                  aria-label={`Abrir pedido ${pedido.id.slice(0, 8)}`}
                 >
                   <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
                     <div>
@@ -892,7 +902,7 @@ function AdminClientesPage() {
                       })}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
