@@ -780,6 +780,14 @@ function Checkout() {
         setSession(sessaoDoPedido);
       } else {
         saveCheckoutDraft(data);
+        void trackEvent("checkout_auth_required", {
+          valor: finalTotal,
+          metadata: {
+            itens: lines.length,
+            unidades: lines.reduce((s, l) => s + Number(l.quantity || 0), 0),
+            retorno: "/checkout",
+          },
+        });
         navigate({ to: "/auth", search: { redirect: "/checkout", mode: "login" } as any });
         return;
       }
@@ -853,6 +861,18 @@ function Checkout() {
         : metodoEntrega === "retirada"
           ? TEXTO_RETIRADA
           : horarioEntrega;
+
+      // Marca a tentativa separadamente da compra concluída. Assim o painel
+      // passa a mostrar se a pessoa parou no acesso, na confirmação ou em um erro.
+      void trackEvent("checkout_submit", {
+        valor: finalTotal,
+        metadata: {
+          itens: lines.length,
+          unidades: lines.reduce((s, l) => s + Number(l.quantity || 0), 0),
+          entrega: metodoEntrega,
+          pagamento: data.pagamento,
+        },
+      });
 
       // cria o pedido real no banco
       const order = await createOrderFn({
@@ -976,6 +996,15 @@ function Checkout() {
     } catch (error: any) {
       if (recoverFromStaleServerFunction(error)) return;
       console.error("[checkout] falha ao registrar pedido", error);
+      void trackEvent("checkout_submit_error", {
+        valor: finalTotal,
+        metadata: {
+          // Limita o texto e não envia os dados pessoais preenchidos no checkout.
+          motivo: String(error?.message ?? "erro_desconhecido").slice(0, 160),
+          entrega: metodoEntrega,
+          pagamento: data.pagamento,
+        },
+      });
       toast.error("Não foi possível registrar o pedido: " + (error?.message ?? "Tente novamente."));
     }
   };
