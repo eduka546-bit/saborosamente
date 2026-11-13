@@ -117,9 +117,27 @@ function AdminCarrinhosAbandonadosPage() {
     },
   });
 
+  // Cada sessão pode salvar mais de um snapshot. Exibimos somente o mais recente
+  // para que um mesmo carrinho não apareça várias vezes nem infle os indicadores.
+  const carrinhosUnicos = useMemo(() => {
+    const porSessao = new Map<string, any>();
+    for (const carrinho of data) {
+      const chave = String(carrinho.session_id || carrinho.id);
+      const atual = porSessao.get(chave);
+      const instante = new Date(carrinho.updated_at ?? carrinho.created_at ?? 0).getTime();
+      const instanteAtual = atual
+        ? new Date(atual.updated_at ?? atual.created_at ?? 0).getTime()
+        : Number.NEGATIVE_INFINITY;
+      if (!atual || instante > instanteAtual) porSessao.set(chave, carrinho);
+    }
+    return [...porSessao.values()].sort(
+      (a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime(),
+    );
+  }, [data]);
+
   const filtered = useMemo(
     () =>
-      data.filter((c: any) => {
+      carrinhosUnicos.filter((c: any) => {
         const matchStatus = filterStatus === "todos" || c.status === filterStatus;
         const matchSearch =
           !search ||
@@ -128,21 +146,21 @@ function AdminCarrinhosAbandonadosPage() {
           c.email?.toLowerCase().includes(search.toLowerCase());
         return matchStatus && matchSearch;
       }),
-    [data, search, filterStatus],
+    [carrinhosUnicos, search, filterStatus],
   );
 
   // Estatísticas
   const stats = useMemo(() => {
-    const total = data.length;
-    const emAndamento = data.filter((c: any) => c.status === "em_andamento").length;
-    const abandonados = data.filter((c: any) => c.status === "abandonado").length;
-    const convertidos = data.filter((c: any) => c.status === "convertido").length;
-    const valorPerdido = data
+    const total = carrinhosUnicos.length;
+    const emAndamento = carrinhosUnicos.filter((c: any) => c.status === "em_andamento").length;
+    const abandonados = carrinhosUnicos.filter((c: any) => c.status === "abandonado").length;
+    const convertidos = carrinhosUnicos.filter((c: any) => c.status === "convertido").length;
+    const valorPerdido = carrinhosUnicos
       .filter((c: any) => c.status === "abandonado")
       .reduce((s: number, c: any) => s + (c.valor_total ?? 0), 0);
     const taxaConversao = total > 0 ? ((convertidos / total) * 100).toFixed(1) : "0";
     return { total, emAndamento, abandonados, convertidos, valorPerdido, taxaConversao };
-  }, [data]);
+  }, [carrinhosUnicos]);
 
   const buildWhatsAppUrl = (carrinho: any) => {
     const phone = carrinho.telefone?.replace(/\D/g, "");
