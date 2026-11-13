@@ -89,6 +89,7 @@ function AdminCarrinhosAbandonadosPage() {
       const { data, error } = await supabase
         .from("carrinhos_abandonados")
         .select("*")
+        .order("updated_at", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return Array.isArray(data) ? data : [];
@@ -320,20 +321,20 @@ function AdminCarrinhosAbandonadosPage() {
             <span className="text-base">↔</span> Deslize a tabela para os lados para ver todas as colunas
           </p>
           <div
-            className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]"
+            className="max-h-[62dvh] w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto overscroll-contain touch-pan-x touch-pan-y [-webkit-overflow-scrolling:touch]"
             role="region"
             aria-label="Carrinhos abandonados: deslize horizontalmente para consultar todas as colunas"
             tabIndex={0}
           >
             <table className="w-max min-w-[1040px] text-left text-sm lg:w-full">
-            <thead className="bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
+            <thead className="sticky top-0 z-10 bg-gray-50 border-b text-xs font-bold uppercase tracking-wider text-gray-400">
               <tr>
                 <th className="px-6 py-4">Cliente</th>
                 <th className="px-6 py-4">Itens</th>
                 <th className="px-6 py-4">Valor</th>
                 <th className="px-6 py-4">Cupom</th>
                 <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Há quanto tempo</th>
+                <th className="px-6 py-4">Última atividade</th>
                 <th className="px-6 py-4 text-center">Ações</th>
               </tr>
             </thead>
@@ -385,7 +386,7 @@ function AdminCarrinhosAbandonadosPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400 text-xs">
-                      {formatDistanceToNow(new Date(c.created_at), {
+                      {formatDistanceToNow(new Date(c.updated_at ?? c.created_at), {
                         locale: ptBR,
                         addSuffix: true,
                       })}
@@ -485,7 +486,7 @@ function AdminCarrinhosAbandonadosPage() {
                   </span>
                 </p>
                 <p className="text-xs text-gray-400 pt-1">
-                  {format(new Date(selectedCarrinho.created_at), "dd/MM/yyyy 'às' HH:mm", {
+                  Última atividade: {format(new Date(selectedCarrinho.updated_at ?? selectedCarrinho.created_at), "dd/MM/yyyy 'às' HH:mm", {
                     locale: ptBR,
                   })}
                 </p>
