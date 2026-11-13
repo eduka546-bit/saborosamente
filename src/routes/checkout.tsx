@@ -44,7 +44,7 @@ import { checkoutSchema, type CheckoutForm } from "@/lib/checkout-validation";
 import { trackEvent } from "@/lib/analytics";
 import { calcularRegraCupom } from "@/lib/coupon-rules";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
-import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
+import { getAbandonedCartSessionId, resetAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
@@ -942,7 +942,12 @@ function Checkout() {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
       }
+      // Guarda a sessão da compra antes de limpar. A próxima compra usará uma
+      // sessão nova, evitando transformar o histórico do mesmo navegador em
+      // carrinhos duplicados.
+      const abandonedSessionId = getAbandonedCartSessionId();
       clear();
+      resetAbandonedCartSessionId();
 
       // A confirmação não pode depender de rotinas auxiliares. Em especial, uma
       // lentidão ao atualizar o carrinho abandonado não deve deixar o cliente com
@@ -950,10 +955,6 @@ function Checkout() {
       // Essa atualização é feita em segundo plano e é segura de repetir.
       void (async () => {
         try {
-          const abandonedSessionId =
-            typeof window !== "undefined"
-              ? localStorage.getItem("saborosamente.session_id")
-              : null;
           if (!abandonedSessionId) return;
 
           const { error } = await supabase.rpc("update_abandoned_cart_state", {
