@@ -3,15 +3,22 @@ import { trackGoogleAnalyticsEvent } from "@/lib/google-analytics";
 import { createPageViewDeduper } from "@/lib/page-view-dedupe";
 
 const SESSION_KEY = "saborosamente.analytics.session";
+// O carrinho já possuía uma sessão própria. Mantemos esta chave para migrar
+// sessões existentes, mas os dois recursos passam a usar o mesmo identificador.
+// Sem isso não era possível saber, no funil, se um carrinho chegou ao checkout.
+const LEGACY_CART_SESSION_KEY = "saborosamente.session_id";
 const shouldRecordPageView = createPageViewDeduper();
 
 export function getAnalyticsSessionId() {
   if (typeof window === "undefined") return "server";
-  let id = window.localStorage.getItem(SESSION_KEY);
+  let id = window.localStorage.getItem(SESSION_KEY) ?? window.localStorage.getItem(LEGACY_CART_SESSION_KEY);
   if (!id) {
     id = `sess_${crypto.randomUUID().replaceAll("-", "")}`;
-    window.localStorage.setItem(SESSION_KEY, id);
   }
+  // Grava nas duas chaves durante a transição: carrinhos já existentes continuam
+  // reconhecidos e os próximos eventos ficam ligados ao mesmo percurso.
+  window.localStorage.setItem(SESSION_KEY, id);
+  window.localStorage.setItem(LEGACY_CART_SESSION_KEY, id);
   return id;
 }
 
