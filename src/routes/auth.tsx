@@ -14,6 +14,7 @@ import { lerLeadPreCadastro } from "@/lib/lead-pre-cadastro";
 import { lerTelefonePreCadastroWhatsApp } from "@/lib/whatsapp-pre-cadastro";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
 import { vincularLeadPreCadastroAutenticado } from "@/lib/lead-account-link";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -204,6 +205,9 @@ function AuthPage() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    void trackEvent(isLogin ? "auth_login_submit" : "auth_signup_submit", {
+      metadata: { retorno: redirect || "/" },
+    });
 
     try {
       if (isLogin) {
@@ -232,6 +236,7 @@ function AuthPage() {
         // Se for a mesma pessoa que se inscreveu no pop-up, o backend
         // confirma telefone + sessão antes de associar o lead.
         await vincularLeadPreCadastroAutenticado();
+        void trackEvent("auth_login_success", { metadata: { retorno: redirect || "/" } });
         toast.success("Bem-vindo de volta!");
       } else {
         const cpfNormalizado = cpf.replace(/\D/g, "");
@@ -316,11 +321,22 @@ function AuthPage() {
         }
 
         await vincularLeadPreCadastroAutenticado();
+        void trackEvent("auth_signup_success", { metadata: { retorno: redirect || "/" } });
         toast.success("Cadastro realizado com sucesso!");
       }
       irAposLogin();
     } catch (error: any) {
       const message = String(error?.message || "");
+      void trackEvent("auth_error", {
+        metadata: {
+          etapa: isLogin ? "login" : "cadastro",
+          motivo: /invalid login credentials|email not confirmed|invalid_grant/i.test(message)
+            ? "credenciais_ou_confirmacao"
+            : /already registered|user already exists|user_already_exists/i.test(message)
+              ? "conta_existente"
+              : "erro_autenticacao",
+        },
+      });
       if (isLogin && /invalid login credentials|email not confirmed|invalid_grant/i.test(message)) {
         toast.error("Não foi possível entrar. Confira os dados ou recupere sua senha pelo botão abaixo.");
       } else if (!isLogin && /already registered|user already exists|user_already_exists/i.test(message)) {
