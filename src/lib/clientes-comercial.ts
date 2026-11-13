@@ -126,6 +126,10 @@ export function montarClientesComerciais(
     if (!c.bairro && o.endereco_bairro) c.bairro = o.endereco_bairro;
     if (!c.complemento && o.endereco_complemento) c.complemento = o.endereco_complemento;
     if (!c.cep && o.endereco_cep) c.cep = o.endereco_cep;
+    // Mantém os índices vivos enquanto as fontes são lidas. Sem isto, um
+    // pedido convidado seguido de sorteio/carrinho criava uma segunda ficha.
+    alias(phones, phone(o.telefone_cliente), key);
+    alias(emails, normalize(o.email_cliente), key);
     if (normalize(o.status).startsWith("cancel")) continue;
     c.totalPedidos++;
     c.valorGasto += Number(o.valor_total) || 0;
@@ -167,6 +171,7 @@ export function montarClientesComerciais(
         pedidos: [],
       });
     }
+    alias(phones, tel, key);
   }
   // Capturas somente por WhatsApp entram na mesma ficha comercial quando já
   // existe o telefone, sem criar conta no Auth nem sobrescrever nome do cliente.
@@ -213,6 +218,7 @@ export function montarClientesComerciais(
         pedidos: [],
       });
     }
+    alias(phones, tel, key);
   }
   // Carrinhos identificados recebem uma ficha comercial persistente no banco,
   // mesmo quando a pessoa não conclui uma conta de acesso.
@@ -252,6 +258,8 @@ export function montarClientesComerciais(
         pedidos: [],
       });
     }
+    alias(phones, tel, key);
+    alias(emails, email, key);
   }
   // Fichas persistentes de pedidos manuais, inclusive quando ainda não existe
   // cadastro com login. Nunca geram consentimento de marketing.
@@ -288,6 +296,8 @@ export function montarClientesComerciais(
         pedidos: [],
       });
     }
+    alias(phones, tel, key);
+    alias(emails, normalize(ficha.email), key);
   }
   const candidatos = [...clients.values()];
   const pai = candidatos.map((_, indice) => indice);
