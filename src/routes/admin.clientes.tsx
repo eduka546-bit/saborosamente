@@ -33,6 +33,18 @@ export const Route = createFileRoute("/admin/clientes")({
   ssr: false,
 });
 
+const formatarCadastro = (valor?: string | null) =>
+  valor
+    ? new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(valor))
+    : null;
+
 function CashbackCliente({ userId }: { userId: string }) {
   const { data } = useQuery({
     queryKey: ["cashback-cliente", userId],
@@ -491,7 +503,7 @@ function AdminClientesPage() {
                   <dt className="text-gray-600">Cadastro</dt>
                   <dd className="font-medium mt-1">
                     {client.cadastradoEm
-                      ? new Date(client.cadastradoEm).toLocaleDateString("pt-BR")
+                      ? formatarCadastro(client.cadastradoEm)
                       : client.profileId
                         ? "Não informado"
                         : "Convidado"}
@@ -586,7 +598,7 @@ function AdminClientesPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
                     {client.cadastradoEm
-                      ? new Date(client.cadastradoEm).toLocaleDateString("pt-BR")
+                      ? formatarCadastro(client.cadastradoEm)
                       : client.profileId
                         ? "Não informado"
                         : "Convidado"}
