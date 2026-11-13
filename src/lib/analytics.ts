@@ -22,6 +22,13 @@ export function getAnalyticsSessionId() {
   return id;
 }
 
+/** Inicia uma nova jornada após a compra para não reaproveitar o mesmo carrinho. */
+export function resetAnalyticsSessionId() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(SESSION_KEY);
+  window.localStorage.removeItem(LEGACY_CART_SESSION_KEY);
+}
+
 export async function trackEvent(
   evento: string,
   options: {
