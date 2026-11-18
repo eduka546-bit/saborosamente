@@ -45,6 +45,7 @@ import { ptBR } from "date-fns/locale";
 import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
+import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
 export const Route = createFileRoute("/admin/agente")({
@@ -1190,6 +1191,9 @@ function MidiaEnviada({ msg }: { msg: any }) {
   if (tipo === "video" || mime.startsWith("video/")) {
     return <video src={url} controls preload="metadata" className="max-w-full max-h-[360px] rounded-xl mt-1" />;
   }
+  if (tipo === "audio" || mime.startsWith("audio/")) {
+    return <audio src={url} controls preload="metadata" className="max-w-full mt-1" />;
+  }
   return <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15"><FileText size={18}/><span className="text-xs font-semibold truncate">{msg.media_name || "Abrir arquivo"}</span></a>;
 }
 
@@ -1216,6 +1220,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; preview: string } | null>(null);
+  const [transcrevendoPath, setTranscrevendoPath] = useState<string | null>(null);
   const [reagirEm, setReagirEm] = useState<string | null>(null);
   const [enviandoReacao, setEnviandoReacao] = useState(false);
   const [gravando, setGravando] = useState(false);
@@ -1259,6 +1264,37 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
     enabled: !!conversa.id && !conversa.somenteCampanha,
     refetchInterval: 8000,
   });
+  const { data: transcricoes = [] } = useQuery({
+    queryKey: ["wa-transcricoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_transcricoes")
+        .select("media_path,transcricao").eq("conversa_id", conversa.id);
+      if (error) throw error;
+      return (data ?? []) as { media_path: string; transcricao: string }[];
+    },
+    enabled: !conversa.somenteCampanha && !!conversa.id,
+    staleTime: 60000,
+  });
+  const transcricoesPorPath = new Map(transcricoes.map((r) => [r.media_path, r.transcricao]));
+  const transcreverAudioRecebido = async (path: string) => {
+    if (transcrevendoPath) return;
+    setTranscrevendoPath(path);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-transcrever", {
+        body: { conversa_id: conversa.id, media_path: path },
+      });
+      if (error || data?.error || !data?.transcricao) {
+        throw new Error(data?.error || error?.message || "Não foi possível transcrever.");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["wa-transcricoes", conversa.id] });
+      toast.success("Áudio transcrito e salvo na ficha de atendimento.");
+    } catch (error: any) {
+      toast.error(error.message || "Falha na transcrição.");
+    } finally {
+      setTranscrevendoPath(null);
+    }
+  };
+
   const { data: reacoes = [] } = useQuery({
     queryKey: ["whatsapp-reacoes", conversa.id],
     queryFn: async () => {
@@ -1943,6 +1979,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
+                {msg.media_path && ["audio","voice"].includes(String(msg.media_type ?? "").toLowerCase()) && (
+                  <div className="mt-1 text-xs">
+                    {transcricoesPorPath.get(String(msg.media_path)) ? (
+                      <div className="whitespace-pre-wrap break-words rounded-md border-l-2 border-[#00a884] bg-black/10 px-2 py-1.5">
+                        <strong>Transcrição:</strong> {transcricoesPorPath.get(String(msg.media_path))}
+                      </div>
+                    ) : msg.content && !String(msg.content).startsWith("[") ? (
+                      <div className="rounded-md bg-black/10 p-2 text-xs">
+                        <strong>Texto do áudio:</strong> {msg.content}
+                      </div>
+                    ) : (
+                      <button type="button" disabled={Boolean(transcrevendoPath)}
+                        onClick={() => void transcreverAudioRecebido(String(msg.media_path))}
+                        className="rounded bg-black/10 px-2 py-1 text-[#00a884] disabled:opacity-50">
+                        {transcrevendoPath === msg.media_path ? "Transcrevendo..." : "Transcrever áudio"}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
                 {isHumano && !janela24hEncerrada && !somenteCampanha && String(msg.whatsapp_message_id || "").startsWith("wamid.") && (
                   <div className="flex flex-wrap items-center justify-end gap-2 mt-1">
@@ -2526,6 +2581,8 @@ function AdminAgentePage() {
             >
               <Plus size={19} />
             </button>
+            <WhatsAppReports conversas={conversasAtendimento} estados={business.estados}
+              etiquetas={business.etiquetas} dark={dark}/>
             <BotaoNotificacoes alertas={alertas} dark={dark} />
             <button
               onClick={() => setDark(!dark)}
