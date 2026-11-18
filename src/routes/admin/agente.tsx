@@ -43,6 +43,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
+import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
 export const Route = createFileRoute("/admin/agente")({
@@ -1545,6 +1546,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
     const ehImagem = file.type.startsWith("image/");
     const ehVideo = file.type.startsWith("video/");
     const ehAudio = file.type.startsWith("audio/");
+    if (ehAudio && !AUDIO_TIPOS_META.includes(file.type.split(";")[0])) {
+      toast.error("Formato não suportado pela Meta. Use MP3, M4A ou OGG/Opus.");
+      return;
+    }
     const permitidos = ehImagem || ehVideo || ehAudio || [
       "application/pdf",
       "application/msword",
@@ -2015,7 +2020,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
             )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
-                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
+                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : anexoPreview && anexoFile.type.startsWith("audio/") ? <audio controls src={anexoPreview} className="max-w-[180px] sm:max-w-[250px]" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
                 <div className="min-w-0 flex-1"><p className={`truncate text-xs font-semibold ${t.text}`}>{anexoFile.name}</p><p className={`text-[10px] ${t.textSub}`}>{(anexoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
                 <button onClick={limparAnexo} className={`rounded-full p-1.5 ${t.textSub}`} title="Remover anexo"><X size={16}/></button>
               </div>
@@ -2025,12 +2030,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
                 <div className="grid grid-cols-8 gap-1">{EMOJIS_RAPIDOS.map((emoji) => <button key={emoji} onClick={() => setMsgText((atual) => atual + emoji)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-black/10">{emoji}</button>)}</div>
               </div>
             )}
-            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
+            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.mp3,.m4a,.ogg,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
             <div className="flex items-center gap-2">
               <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
                 <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
                 <WhatsAppComposer value={msgText} onChange={setMsgText} onSend={handleSend} disabled={sending} dark={dark} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} />
-                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
+                <WhatsAppVoiceRecorder onRecorded={selecionarAnexo} disabled={sending} dark={dark}/>
+                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, áudio, PDF ou arquivo"><Paperclip size={19}/></button>
               </div>
               <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
                 {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
