@@ -2546,6 +2546,9 @@ function AdminAgentePage() {
               const pendente = !isCampanha && precisaResponder(c);
               const naoRespondidas = pendente ? [...(c.mensagens || [])].reverse().findIndex((m: any) => m?.role === "assistant") : 0;
               const avatarColor = "bg-[#6a7175]";
+              const estado = business.mapa.get(c.id) ?? estadoPadrao(c.id);
+              const aindaNaoLida = !isCampanha && naoLida(c);
+              const etiquetasConversa = business.etiquetas.filter((e) => estado.etiquetas.includes(e.id));
 
               return (
                 <div
@@ -2564,6 +2567,7 @@ function AdminAgentePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className={`font-semibold text-sm truncate ${t.text}`}>
+                        {estado.fixada && <Pin size={12} className="mr-1 inline text-[#00a884]" />}
                         {c.nome || c.telefone}
                       </p>
                       <span
@@ -2580,11 +2584,39 @@ function AdminAgentePage() {
                             ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
                             : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
                       </p>
-                      {pendente ? (
+                      {aindaNaoLida ? (
+                        <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-[#00a884] text-white" title="Não lida">●</span>
+                      ) : pendente ? (
                         <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-red-500 text-white" title="Aguardando sua resposta">{Math.max(1, naoRespondidas)}</span>
                       ) : isHumano ? (
                         <span className={`ml-2 px-1.5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}>VOCÊ</span>
                       ) : null}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {etiquetasConversa.slice(0, 2).map((e) => (
+                        <span key={e.id} className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white"
+                          style={{ backgroundColor: e.cor }}>{e.nome}</span>
+                      ))}
+                      {!isCampanha && (
+                        <div className="ml-auto flex items-center gap-0.5">
+                          <button type="button" title={estado.fixada ? "Desafixar" : "Fixar conversa"}
+                            onClick={(event) => { event.stopPropagation(); business.atualizar.mutate({ id: c.id, mudancas: { fixada: !estado.fixada } }); }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><Pin size={13}/></button>
+                          <button type="button" title={aindaNaoLida ? "Marcar lida" : "Marcar não lida"}
+                            onClick={(event) => { event.stopPropagation(); business.atualizar.mutate({ id: c.id, mudancas: {
+                              marcada_nao_lida: !aindaNaoLida,
+                              ...(aindaNaoLida ? { ultima_leitura: new Date().toISOString() } : {}),
+                            } }); }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><CheckCheck size={13}/></button>
+                          <button type="button" title={estado.arquivada ? "Desarquivar" : "Arquivar"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              business.atualizar.mutate({ id: c.id, mudancas: { arquivada: !estado.arquivada } });
+                              if (activeId === c.id) setActiveId(null);
+                            }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><Archive size={13}/></button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
