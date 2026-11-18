@@ -2247,6 +2247,19 @@ function AdminAgentePage() {
   const humanasCount = conversasAtendimento.filter((c) => c.modo === "humano" && temMensagemDoCliente(c)).length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
   const respondidasCount = (conversas as any[]).filter(foiRespondida).length;
+  const naoLida = (c: any) => {
+    const estado = business.mapa.get(c.id);
+    if (estado?.marcada_nao_lida) return true;
+    const msgs = Array.isArray(c.mensagens) ? c.mensagens : [];
+    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
+    if (ultima?.role !== "user") return false;
+    if (!estado?.ultima_leitura) return true;
+    return new Date(c.ultima_msg || 0).getTime() > new Date(estado.ultima_leitura).getTime();
+  };
+  const naoLidasCount = conversasAtendimento.filter((c) =>
+    !business.mapa.get(c.id)?.arquivada && naoLida(c)).length;
+  const arquivadasCount = conversasAtendimento.filter((c) => business.mapa.get(c.id)?.arquivada).length;
+  const alertas = useWhatsAppAlerts(conversasAtendimento, business.estados);
 
   const telefonesComConversa = new Set(
     conversasAtendimento.map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
@@ -2288,12 +2301,14 @@ function AdminAgentePage() {
   const termoBusca = search.trim().toLocaleLowerCase("pt-BR");
   const digitosBusca = search.replace(/\D/g, "");
   const filtered = itensDaLista.filter((c: any) => {
-    const matchModo =
-      filterModo === "todos" || filterModo === "campanhas" ||
-      (filterModo === "pendentes" ? precisaResponder(c) :
+    const estado = business.mapa.get(c.id);
+    const matchModo = (filterModo === "arquivadas" ? !!estado?.arquivada : !estado?.arquivada) &&
+      (filterModo === "todos" || filterModo === "campanhas" || filterModo === "arquivadas" ||
+      (filterModo === "nao_lidas" ? naoLida(c) :
+       filterModo === "pendentes" ? precisaResponder(c) :
        filterModo === "respondidas" ? foiRespondida(c) :
        filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
-       c.modo === filterModo);
+       c.modo === filterModo));
     const telefoneLimpo = String(c.telefone ?? "").replace(/\D/g, "");
     const nomeContato = nomesPorTelefone.get(telefoneLimpo) ?? "";
     const matchSearch =
@@ -2303,7 +2318,13 @@ function AdminAgentePage() {
       String(c.telefone ?? "").toLocaleLowerCase("pt-BR").includes(termoBusca) ||
       (digitosBusca.length >= 3 && telefoneLimpo.includes(digitosBusca));
     const cidade = c.cidade || cidadesPorTelefone.get(telefoneLimpo) || "Sem cidade";
-    return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
+    return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro)
+      && (!etiquetaFiltro || !!estado?.etiquetas?.includes(etiquetaFiltro));
+  }).sort((a: any, b: any) => {
+    const aPin = business.mapa.get(a.id)?.fixada ? 1 : 0;
+    const bPin = business.mapa.get(b.id)?.fixada ? 1 : 0;
+    if (aPin !== bPin) return bPin - aPin;
+    return new Date(b.ultima_msg || 0).getTime() - new Date(a.ultima_msg || 0).getTime();
   });
 
   const iniciarConversa = async () => {
@@ -2369,6 +2390,12 @@ function AdminAgentePage() {
   };
 
   const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
+  useEffect(() => {
+    if (!activeId || activeId.startsWith("campanha-")) return;
+    business.atualizar.mutate({ id: activeId, mudancas: {
+      marcada_nao_lida: false, ultima_leitura: new Date().toISOString(),
+    } });
+  }, [activeId]);
 
   return (
     <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
@@ -2410,6 +2437,7 @@ function AdminAgentePage() {
             >
               <Plus size={19} />
             </button>
+            <BotaoNotificacoes alertas={alertas} dark={dark} />
             <button
               onClick={() => setDark(!dark)}
               className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}
@@ -2445,7 +2473,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["todos", "pendentes", "respondidas", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["todos", "nao_lidas", "pendentes", "respondidas", "humano", "ia", "campanhas", "arquivadas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -2459,7 +2487,11 @@ function AdminAgentePage() {
                     : "bg-white border-[#e9edef] text-[#667781] hover:bg-[#f5f6f6]"
               }`}
             >
-              {f === "pendentes"
+              {f === "nao_lidas"
+                ? "Não lidas (" + naoLidasCount + ")"
+                : f === "arquivadas"
+                  ? "Arquivadas (" + arquivadasCount + ")"
+                  : f === "pendentes"
                 ? `Não respondidas ${pendentesCount ? `(${pendentesCount})` : ""}`
                 : f === "respondidas"
                   ? `Respondidas ${respondidasCount ? `(${respondidasCount})` : ""}`
@@ -2485,6 +2517,15 @@ function AdminAgentePage() {
               <option key={lista.id} value={lista.nome}>{lista.nome}</option>
             ))}
             <option value="Sem cidade">Sem cidade</option>
+          </select>
+        </div>
+
+        <div className="px-3 pb-2 shrink-0">
+          <select value={etiquetaFiltro} onChange={(e) => setEtiquetaFiltro(e.target.value)}
+            aria-label="Filtrar por etiqueta"
+            className={`w-full h-8 rounded-lg border px-3 text-[12px] outline-none ${t.sidebarSearchInput} ${t.divider}`}>
+            <option value="">Todas as etiquetas</option>
+            {business.etiquetas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
           </select>
         </div>
 
@@ -2567,6 +2608,7 @@ function AdminAgentePage() {
         ) : activeConversa ? (
           <ChatView
             conversa={activeConversa}
+             business={business}
              iaAtiva={config?.ativo === true}
             dark={dark}
             onBack={() => setActiveId(null)}
@@ -2614,6 +2656,7 @@ function AdminAgentePage() {
           {activeConversa && (
             <ChatView
               conversa={activeConversa}
+             business={business}
              iaAtiva={config?.ativo === true}
               dark={dark}
               onBack={() => setActiveId(null)}
