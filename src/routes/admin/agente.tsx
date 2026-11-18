@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
+import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 
 export const Route = createFileRoute("/admin/agente")({
   component: AdminAgentePage,
@@ -1990,7 +1991,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             <div className="flex items-center gap-2">
               <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
                 <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
-                <input value={msgText} onChange={(e) => setMsgText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} className="flex-1 bg-transparent outline-none text-sm" />
+                <WhatsAppComposer value={msgText} onChange={setMsgText} onSend={handleSend} disabled={sending} dark={dark} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} />
                 <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
               </div>
               <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
