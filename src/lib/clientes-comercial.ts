@@ -306,19 +306,38 @@ export function montarClientesComerciais(
     const ra = raiz(a), rb = raiz(b);
     if (ra !== rb) pai[rb] = ra;
   };
-  const chaves = new Map<string, number>();
+  // Nome sozinho não comprova identidade. Telefones/e-mails compartilhados por
+  // duas contas antigas também são ambíguos: não juntar seus pedidos ou fichas.
+  const chaves = new Map<string, number[]>();
   candidatos.forEach((cliente, indice) => {
     const valores = [
-      String(cliente.nome || "").trim() ? `nome:${normalize(cliente.nome)}` : "",
       /^\d{10,11}$/.test(phone(cliente.telefone)) ? `tel:${phone(cliente.telefone)}` : "",
       cliente.email && normalize(cliente.email) !== "nao informado" ? `email:${normalize(cliente.email)}` : "",
     ].filter(Boolean);
     for (const valor of valores) {
-      const existente = chaves.get(valor);
-      if (existente === undefined) chaves.set(valor, indice);
-      else unir(indice, existente);
+      const indices = chaves.get(valor) || [];
+      indices.push(indice);
+      chaves.set(valor, indices);
     }
   });
+  const perfisPorRaiz = new Map<number, Set<string>>();
+  candidatos.forEach((cliente, indice) => {
+    perfisPorRaiz.set(indice, new Set(cliente.profileId ? [cliente.profileId] : []));
+  });
+  const perfisPossiveis = candidatos.map(() => new Set<string>());
+  for (const indices of chaves.values()) {
+    const perfis = indices.flatMap(indice => [...(perfisPorRaiz.get(indice) || [])]);
+    for (const indice of indices) for (const perfil of perfis) perfisPossiveis[indice].add(perfil);
+  }
+  for (const indices of chaves.values()) {
+    const raizes = [...new Set(indices.filter(indice => perfisPossiveis[indice].size <= 1).map(raiz))];
+    if (raizes.length < 2) continue;
+    const perfis = new Set(raizes.flatMap(indice => [...(perfisPorRaiz.get(indice) || [])]));
+    if (perfis.size > 1) continue;
+    const primeira = raizes[0];
+    for (const indice of raizes.slice(1)) unir(primeira, indice);
+    perfisPorRaiz.set(raiz(primeira), perfis);
+  }
   const grupos = new Map<number, ClienteComercial[]>();
   candidatos.forEach((cliente, indice) => {
     const grupo = raiz(indice);
@@ -353,7 +372,9 @@ export function montarClientesComerciais(
     principal.pedidos = [...porPedido.values()];
     principal.totalPedidos = principal.pedidos.filter((pedido) => !normalize(pedido.status).startsWith("cancel")).length;
     principal.valorGasto = principal.pedidos.filter((pedido) => !normalize(pedido.status).startsWith("cancel")).reduce((total, pedido) => total + (Number(pedido.valor_total) || 0), 0);
-    principal.ultimoPedido = principal.pedidos.reduce<string | null>((ultimo, pedido) => date(pedido.created_at) > date(ultimo) ? pedido.created_at : ultimo, null);
+    principal.ultimoPedido = principal.pedidos
+      .filter(pedido => !normalize(pedido.status).startsWith("cancel"))
+      .reduce<string | null>((ultimo, pedido) => date(pedido.created_at) > date(ultimo) ? pedido.created_at : ultimo, null);
     return principal;
   });
   const limiteCarrinho = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -370,8 +391,13 @@ export function montarClientesComerciais(
       }
     }
   }
-  // Sem nome e sem cadastro/pedido não representa um cliente e não deve aparecer na base comercial.
-  return unificados.filter((cliente) => Boolean(String(cliente.nome || "").trim()) || Boolean(cliente.profileId) || cliente.totalPedidos > 0);
+  // Um carrinho anônimo não é um cliente; contatos explicitamente capturados
+  // pelo WhatsApp, sorteio ou histórico são fichas válidas mesmo sem nome.
+  return unificados.filter((cliente) =>
+    Boolean(String(cliente.nome || "").trim()) ||
+    Boolean(cliente.profileId || cliente.sorteioLeadId || cliente.preCadastroWhatsApp || cliente.historicoWhatsapp) ||
+    cliente.pedidos.length > 0,
+  );
 }
 export type FiltrosClientes = {
   busca: string;

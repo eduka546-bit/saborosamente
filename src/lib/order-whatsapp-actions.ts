@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { mensagemPersonalizadasCozinha } from "@/lib/marmita-personalizada-pedido";
 import { orderWhatsappMessage, phoneForWhatsapp, type OrderWhatsapp } from "@/lib/order-whatsapp";
 
 /** Copia no gesto do clique, com alternativa para navegadores sem Clipboard API. */
@@ -49,5 +50,14 @@ export async function copiarWhatsappClientePedido(order: { telefone_cliente?: st
     toast.success("WhatsApp do cliente copiado: +" + phone);
   } catch {
     toast.error("Não foi possível copiar o número do cliente.");
+  }
+}
+
+export async function copiarPersonalizadasCozinha(order: Parameters<typeof mensagemPersonalizadasCozinha>[0]) {
+  try {
+    await copyWhatsappText(mensagemPersonalizadasCozinha(order));
+    toast.success("Personalizadas copiadas! Cole a comanda na conversa da cozinha.");
+  } catch {
+    toast.error("Não foi possível copiar as personalizadas.");
   }
 }

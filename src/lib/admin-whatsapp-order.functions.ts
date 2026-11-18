@@ -9,7 +9,7 @@ const itemSchema = z.object({
   quantity: z.number().int().positive().max(200),
   weight: z.enum(["200g", "300g", "400g"]),
   unitPrice: z.number().min(0).max(10000),
-  observacao: z.string().trim().max(200).optional(),
+  observacao: z.string().trim().max(10000).optional(),
 });
 
 const schema = z.object({

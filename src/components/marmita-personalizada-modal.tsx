@@ -15,7 +15,7 @@ import { createPortal } from "react-dom";
 import { X, Plus, Minus, ShoppingCart, Scale, Check, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/products";
-import { useCart, type CartCustomItem } from "@/lib/cart";
+import { useCart, type CartCustomItem, type CartCustomMarmita } from "@/lib/cart";
 import { toast } from "sonner";
 import {
   type MarmitaGrupo,
@@ -29,6 +29,9 @@ interface MarmitaPersonalizadaModalProps {
   onClose: () => void;
   grupos: MarmitaGrupo[];
   config: MarmitaPersonalizadaConfig;
+  /** Admin adiciona ao pedido em edição, sem tocar no carrinho da loja. */
+  onAdd?: (custom: CartCustomMarmita, quantity: number) => void;
+  initialQuantity?: number;
 }
 
 // Item em construção (antes de virar CartCustomItem).
@@ -48,11 +51,13 @@ export function MarmitaPersonalizadaModal({
   onClose,
   grupos,
   config,
+  onAdd,
+  initialQuantity,
 }: MarmitaPersonalizadaModalProps) {
   const dialogRef = useCommerceDialog(isOpen, onClose);
   const { addCustom } = useCart();
   const [selecoes, setSelecoes] = useState<Record<string, Selecao>>({});
-  const [quantidade, setQuantidade] = useState(config.minUnidades);
+  const [quantidade, setQuantidade] = useState(Math.max(config.minUnidades, initialQuantity ?? config.minUnidades));
 
   const selecionados = useMemo(() => Object.values(selecoes), [selecoes]);
 
@@ -161,7 +166,7 @@ export function MarmitaPersonalizadaModal({
       });
     }
 
-    addCustom(
+    (onAdd ?? addCustom)(
       {
         label: `Marmita Personalizada (${tamanho.sigla})`,
         tamanhoSigla: tamanho.sigla,
@@ -407,7 +412,7 @@ export function MarmitaPersonalizadaModal({
                   <button
                     type="button"
                     aria-label="Aumentar quantidade de marmitas personalizadas"
-                    onClick={() => setQuantidade((q) => q + 1)}
+                    onClick={() => setQuantidade((q) => onAdd ? Math.min(200, q + 1) : q + 1)}
                     className="h-10 w-10 rounded-full bg-[#086e45] text-white flex items-center justify-center hover:bg-[#065a38] transition-colors"
                   >
                     <Plus size={12} />
@@ -431,7 +436,7 @@ export function MarmitaPersonalizadaModal({
                 )}
               >
                 <ShoppingCart size={16} />
-                Adicionar ao carrinho
+                {onAdd ? "Adicionar ao pedido" : "Adicionar ao carrinho"}
               </button>
             </div>
           </div>

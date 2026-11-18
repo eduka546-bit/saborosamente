@@ -974,7 +974,7 @@ const adminOrderEditSchema = z.object({
     nome_item: z.string().trim().max(180).optional(),
     quantidade: z.number().int().min(1).max(500),
     preco_unitario: z.number().min(0).max(100000),
-    observacao: z.string().trim().max(500).optional(),
+    observacao: z.string().trim().max(10000).optional(),
   })).min(1).max(100),
 });
 

@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MarmitaPersonalizadaModal } from "@/components/marmita-personalizada-modal";
+import { normalizarMarmitaConfig, type MarmitaGrupo } from "@/lib/marmita-personalizada-config";
+import { type CartCustomMarmita } from "@/lib/cart";
+import { extrairMontagemPersonalizadaPedido, formatarMontagemPersonalizadaPedido, ehPersonalizadaPedido } from "@/lib/marmita-personalizada-pedido";
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
@@ -210,6 +214,46 @@ function WhatsappAdminOrderPage() {
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
+  const [personalizadaOpen, setPersonalizadaOpen] = useState(false);
+  const [personalizadaKey, setPersonalizadaKey] = useState<string | null>(null);
+  const { data: personalizadaData, isLoading: personalizadaLoading, isError: personalizadaError, refetch: recarregarPersonalizadas } = useQuery({
+    queryKey: ["whatsapp-admin-personalizadas"],
+    queryFn: async () => {
+      const [settings, grupos, ingredientes] = await Promise.all([
+        supabase.from("site_settings").select("parametros_loja").maybeSingle(),
+        supabase.from("marmita_grupos").select("*").eq("ativo", true).order("ordem"),
+        supabase.from("marmita_ingredientes").select("*").eq("ativo", true).order("ordem"),
+      ]);
+      if (settings.error || grupos.error || ingredientes.error) throw new Error("Não foi possível carregar as personalizadas.");
+      return {
+        config: normalizarMarmitaConfig((settings.data?.parametros_loja as any)?.marmita_personalizada),
+        grupos: (grupos.data ?? []).map(g => ({
+          ...g, ingredientes: (ingredientes.data ?? []).filter(i => i.grupo_id === g.id),
+        })) as MarmitaGrupo[],
+      };
+    },
+    staleTime: 30_000,
+  });
+  const abrirPersonalizada = (key: string | null = null) => {
+    setPersonalizadaKey(key);
+    setPersonalizadaOpen(true);
+  };
+  const adicionarPersonalizada = (custom: CartCustomMarmita, quantity: number) => {
+    dadosEditadosRef.current = true;
+    const linha: DraftItem = {
+      key: personalizadaKey ?? newKey(),
+      productId: "",
+      nomeItem: custom.label,
+      quantity,
+      // Campo legado do RPC, ignorado para itens sem produto de catálogo.
+      weight: "300g",
+      unitPrice: Math.round(custom.precoUnitario * 100) / 100,
+      observacao: formatarMontagemPersonalizadaPedido(custom),
+    };
+    setItems(current => personalizadaKey
+      ? current.map(item => item.key === personalizadaKey ? linha : item)
+      : [...current, linha]);
+  };
   // Se o valor do pedido mudou, só liberar o envio após conferir o novo total.
   const [totalConfirmado, setTotalConfirmado] = useState<number | null>(null);
   const [enderecoOrigem, setEnderecoOrigem] = useState<OrigemEndereco>(null);
@@ -1125,18 +1169,25 @@ function WhatsappAdminOrderPage() {
 
         <div className="space-y-6">
           <section className="bg-white border rounded-xl p-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="font-bold text-gray-800">Itens do pedido</h2>
                 <p className="text-xs text-gray-500">
                   O estoque é baixado ao salvar. Lançamentos do admin podem gerar saldo negativo, para ajuste posterior.
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={addBlankItem} disabled={!products.length}>
-                <Plus size={15} className="mr-1" /> Adicionar item
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={addBlankItem} disabled={!products.length}>
+                  <Plus size={15} className="mr-1" /> Adicionar item
+                </Button>
+                <Button type="button" size="sm" className="bg-[#086e45] hover:bg-[#065a38]" onClick={() => abrirPersonalizada()} disabled={!personalizadaData?.grupos.some(g => g.ingredientes.length)}>
+                  <Plus size={15} className="mr-1" /> Adicionar personalizada
+                </Button>
+              </div>
             </div>
 
+            {personalizadaLoading && <p className="mb-3 text-xs text-gray-500">Carregando opções de personalizadas...</p>}
+            {personalizadaError && <button type="button" className="mb-3 text-xs font-semibold text-red-700 underline" onClick={() => void recarregarPersonalizadas()}>Não foi possível carregar as personalizadas. Tentar novamente.</button>}
             <div className="space-y-3">
               {items.length === 0 && (
                 <div className="border border-dashed rounded-lg p-10 text-center text-sm text-gray-400">
@@ -1145,6 +1196,8 @@ function WhatsappAdminOrderPage() {
               )}
 
               {items.map((item) => {
+                const montagem = extrairMontagemPersonalizadaPedido({ nome_item: item.nomeItem, observacao: item.observacao });
+                const personalizada = ehPersonalizadaPedido({ nome_item: item.nomeItem, observacao: item.observacao });
                 const product = products.find((p) => p.id === item.productId);
                 const stock = stockFor(product, item.weight);
                 const insufficient = item.quantity > stock;
@@ -1186,7 +1239,7 @@ function WhatsappAdminOrderPage() {
                     </div>
                     <div>
                       <label className="text-xs font-bold text-gray-500">Tamanho</label>
-                      <select
+                      {montagem ? <Input readOnly value={`${montagem.tamanho} · ${montagem.pesoTotal}g`} /> : <select
                         className="w-full h-10 rounded-md border border-gray-200 px-2 text-sm"
                         value={item.weight}
                         onChange={(e) => {
@@ -1215,7 +1268,7 @@ function WhatsappAdminOrderPage() {
                             <option value="400g">400g</option>
                           </>
                         )}
-                      </select>
+                      </select>}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-gray-500">Qtd.</label>
@@ -1261,6 +1314,14 @@ function WhatsappAdminOrderPage() {
                       <Trash2 size={17} />
                     </Button>
 
+                    {montagem && <div className="md:col-span-5 rounded-lg bg-green-50 p-3 text-xs text-green-900">
+                      <strong>Montagem por unidade:</strong>
+                      <p className="mt-1">{montagem.ingredientes.map(i => `${i.gramatura === null ? "" : `${i.gramatura}g `}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`).join(" + ")}</p>
+                    </div>}
+                    {personalizada && !montagem && <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+                      <span>Montagem não registrada.</span>
+                      <Button type="button" size="sm" variant="outline" disabled={!personalizadaData?.grupos.some(g => g.ingredientes.length)} onClick={() => abrirPersonalizada(item.key)}>Montar personalizada</Button>
+                    </div>}
                     <div className="md:col-span-5 flex justify-between gap-3 text-xs">
                       <span className={item.nomeItem ? "text-amber-700 font-semibold" : insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
                         {item.nomeItem ? "Registro manual — não baixa estoque" : <>Estoque: {stock}{insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}</>}
@@ -1373,6 +1434,16 @@ function WhatsappAdminOrderPage() {
           </section>
         </div>
       </div>
+      {personalizadaOpen && personalizadaData && (
+        <MarmitaPersonalizadaModal
+          isOpen
+          grupos={personalizadaData.grupos}
+          config={personalizadaData.config}
+          initialQuantity={items.find(i => i.key === personalizadaKey)?.quantity}
+          onAdd={adicionarPersonalizada}
+          onClose={() => setPersonalizadaOpen(false)}
+        />
+      )}
     </div>
   );
 }
