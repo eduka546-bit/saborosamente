@@ -301,7 +301,7 @@ export function useWhatsAppAlerts(conversas: any[], estados: AtendimentoEstado[]
     const changed: any[] = [];
     for (const c of conversas) {
       const last = Array.isArray(c.mensagens) ? c.mensagens.at(-1) : null;
-      const codigo = String(c.ultima_msg || "") + "|" + String(last?.whatsapp_message_id || last?.timestamp || "");
+      const codigo = String(last?.whatsapp_message_id || last?.timestamp || JSON.stringify([last?.role, last?.content, last?.media_path, last?.media_url]));
       mapa.set(c.id, codigo);
       if (anteriores.current && anteriores.current.get(c.id) !== codigo && last?.role === "user") changed.push(c);
     }
