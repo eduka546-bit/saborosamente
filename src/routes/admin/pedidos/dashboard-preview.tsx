@@ -9,10 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, CalendarDays, PackageCheck, ChefHat, Truck, CircleCheck, CircleX, Clock3, Eye, Printer, ShoppingBag, RefreshCw, X, Pencil, MessageCircle, List, LayoutDashboard, Bell, Plus, MapPin, Phone, CreditCard, ChevronDown } from "lucide-react";
 import { printReceipt } from "@/components/thermal-receipt";
 import { sortOrderItems } from "@/lib/order-item-order";
-import { extrairMontagemPersonalizadaPedido } from "@/lib/marmita-personalizada-pedido";
+import { extrairMontagemPersonalizadaPedido, ehPersonalizadaPedido } from "@/lib/marmita-personalizada-pedido";
 import { formatOrderDateBR } from "@/lib/date-br";
 import { phoneForWhatsapp, isOpenOrder } from "@/lib/order-whatsapp";
-import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido } from "@/lib/order-whatsapp-actions";
+import { copiarMensagemWhatsappPedido, copiarWhatsappClientePedido, copiarPersonalizadasCozinha } from "@/lib/order-whatsapp-actions";
 import { imprimirTCP } from "@/lib/qz-print";
 import { ativarPush, desativarPush, statusPush } from "@/lib/push";
 
@@ -37,6 +37,8 @@ const deliveryTime = (o: any) => {
 };
 const itemName = (item: any) => item.produtos?.nome || item.nome_item || item.nome || "Produto não identificado";
 const itemWeight = (item: any) => {
+  const montagem = extrairMontagemPersonalizadaPedido(item);
+  if (montagem) return `${montagem.pesoTotal}g`;
   const raw = [item.tamanho, item.peso, item.gramatura, item.variacao, item.observacao, itemName(item)].filter(Boolean).join(" ");
   const match = raw.match(/\b(150|200|300|400)\s*g\b/i);
   return match ? match[1] + "g" : "";
@@ -702,7 +704,15 @@ export function DashboardPedidosPreview() {
               <section className="min-w-0">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <h3 className="flex items-center gap-2 text-sm font-extrabold text-[#1a3927]"><PackageCheck size={18} className="text-[#195b3b]"/> Itens do pedido</h3>
-                  <span className="shrink-0 rounded-full bg-[#f1f4f2] px-2.5 py-1 text-[11px] font-semibold text-[#496357]">{totalUnits} unidades</span>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {(selected.itens || []).some(ehPersonalizadaPedido) && (
+                      <button type="button" onClick={() => void copiarPersonalizadasCozinha(selected)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-[#175934] px-3 py-2 text-[11px] font-bold text-white hover:bg-[#0f442a] sm:text-xs">
+                        <ChefHat size={15} className="shrink-0"/> Copiar personalizadas
+                      </button>
+                    )}
+                    <span className="shrink-0 rounded-full bg-[#f1f4f2] px-2.5 py-1 text-[11px] font-semibold text-[#496357]">{totalUnits} unidades</span>
+                  </div>
                 </div>
                 <div className="max-h-[290px] overflow-y-auto overscroll-contain rounded-2xl border border-[#e1eae1] [scrollbar-color:#8cab91_#edf3ec] [scrollbar-width:thin] sm:max-h-[360px]" tabIndex={0} aria-label="Lista de itens do pedido, rolável">
                   <div className="hidden grid-cols-[32px_52px_minmax(0,1fr)_65px_82px] items-center gap-2 bg-[#f7f9f7] px-3 py-2 text-[10px] font-bold text-[#6c7d71] sm:grid">

@@ -16,6 +16,18 @@ export type MontagemPersonalizadaPedido = {
   ingredientes: IngredientePersonalizadoPedido[];
 };
 
+/** Mesmo formato de observação utilizado pelo checkout, preservado no pedido. */
+export function formatarMontagemPersonalizadaPedido(custom: {
+  tamanhoSigla: string;
+  pesoTotal: number;
+  itens: { nome: string; gramatura: number; modoPreparo?: string }[];
+}): string {
+  return [
+    `PERSONALIZADA ${custom.tamanhoSigla} (${custom.pesoTotal}g)`,
+    custom.itens.map(i => `${i.gramatura > 0 ? `${i.gramatura}g ` : ""}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`).join(" + "),
+  ].join(" | ");
+}
+
 export function extrairMontagemPersonalizadaPedido(item: {
   nome_item?: string | null;
   observacao?: string | null;
@@ -27,12 +39,12 @@ export function extrairMontagemPersonalizadaPedido(item: {
     .filter(Boolean);
 
   const indice = partes.findIndex((parte) =>
-    /^PERSONALIZADA\s+(GG|P|M|G)\s*\(\s*\d+\s*g\s*\)/i.test(parte),
+    /^PERSONALIZADA\s+[^()|]+?\s*\(\s*\d+\s*g\s*\)/i.test(parte),
   );
   if (indice < 0) return null;
 
   const cabecalho = partes[indice].match(
-    /^PERSONALIZADA\s+(GG|P|M|G)\s*\(\s*(\d+)\s*g\s*\)/i,
+    /^PERSONALIZADA\s+([^()|]+?)\s*\(\s*(\d+)\s*g\s*\)/i,
   );
   if (!cabecalho) return null;
 
@@ -69,9 +81,48 @@ export function extrairMontagemPersonalizadaPedido(item: {
 
   if (!ingredientes.length) return null;
   return {
-    tamanho: cabecalho[1].toUpperCase(),
+    tamanho: cabecalho[1].trim().toUpperCase(),
     pesoTotal: Number(cabecalho[2]),
     previsao,
     ingredientes,
   };
+}
+
+type ItemCozinha = Parameters<typeof extrairMontagemPersonalizadaPedido>[0] & {
+  quantidade?: number | null;
+};
+
+export function ehPersonalizadaPedido(item: ItemCozinha): boolean {
+  return /personalizad/i.test(item.nome_item ?? item.produtos?.nome ?? "") ||
+    /(?:^|\|)\s*PERSONALIZADA\s+[^()|]+?\s*\(\s*\d+\s*g\s*\)/i.test(item.observacao ?? "");
+}
+
+/** Comanda por combinação (gramas por unidade), sem preços nem produtos comuns. */
+export function mensagemPersonalizadasCozinha(order: {
+  id?: string;
+  nome_cliente?: string | null;
+  itens?: ItemCozinha[] | null;
+}): string {
+  const personalizadas = (order.itens ?? []).filter(ehPersonalizadaPedido);
+  if (!personalizadas.length) return "";
+  const total = personalizadas.reduce((sum, i) => sum + (Number(i.quantidade) || 0), 0);
+  const cabecalho = [
+    "*PERSONALIZADAS — COZINHA*",
+    order.id ? `Pedido #${order.id.slice(0, 8).toUpperCase()}` : "",
+    order.nome_cliente ? `Cliente: ${order.nome_cliente}` : "",
+    `Total: ${total} un.`,
+  ].filter(Boolean).join("\n");
+  const linhas = personalizadas.map((item, index) => {
+    const montagem = extrairMontagemPersonalizadaPedido(item);
+    const qtd = Number(item.quantidade) || 0;
+    if (!montagem) return `*${index + 1}. ${qtd}x ${item.nome_item || item.produtos?.nome || "Personalizada"}*\n⚠️ Montagem não registrada — conferir antes de preparar.`;
+    return [
+      `*${index + 1}. ${qtd}x Personalizada ${montagem.tamanho} (${montagem.pesoTotal}g por un.)*`,
+      montagem.previsao ? `Previsão: ${montagem.previsao}` : "",
+      "Ingredientes por unidade:",
+      ...montagem.ingredientes.filter(i => !/^Excedente proteína \d+g/i.test(i.nome)).map(i =>
+        `• ${i.gramatura === null ? "" : `${i.gramatura.toLocaleString("pt-BR")}g de `}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}${i.gramatura === null ? " — sem gramatura" : ""}`),
+    ].filter(Boolean).join("\n");
+  });
+  return [cabecalho, ...linhas].join("\n\n");
 }
