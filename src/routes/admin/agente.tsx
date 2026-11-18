@@ -31,6 +31,7 @@ import {
   Plus,
   Pin,
   Archive,
+  Reply,
   ToggleLeft,
   ToggleRight,
   GripVertical,
@@ -1215,6 +1216,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; preview: string } | null>(null);
+  const [reagirEm, setReagirEm] = useState<string | null>(null);
+  const [enviandoReacao, setEnviandoReacao] = useState(false);
   const [gravando, setGravando] = useState(false);
   const gravadorRef = useRef<MediaRecorder | null>(null);
   const gravacaoChunks = useRef<Blob[]>([]);
@@ -1606,6 +1609,35 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       toast.error(e.message || "Falha ao enviar modelo aprovado");
     } finally {
       setEnviandoModelo(false);
+    }
+  };
+
+  const enviarReacao = async (mensagemId: string, emoji: string) => {
+    if (enviandoReacao || somenteCampanha) return;
+    if (janela24hEncerrada) {
+      toast.error("Não é possível reagir fora da janela de atendimento de 24 horas.");
+      return;
+    }
+    setEnviandoReacao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: { action: "reaction", to: conversa.telefone, reaction_to_message_id: mensagemId, reaction_emoji: emoji },
+      });
+      if (error || data?.error || !data?.message_id) {
+        throw new Error(data?.error || error?.message || "A Meta não confirmou a reação.");
+      }
+      const { error: salvarErro } = await (supabase as any).from("whatsapp_reacoes").upsert({
+        conversa_id: conversa.id, mensagem_destino_id: mensagemId, remetente: "empresa",
+        emoji, atualizado_em: new Date().toISOString(),
+      }, { onConflict: "conversa_id,mensagem_destino_id,remetente" });
+      if (salvarErro) throw new Error("Reação enviada na Meta, mas não salva no painel. Atualize antes de repetir.");
+      setReagirEm(null);
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-reacoes", conversa.id] });
+      toast.success("Reação enviada.");
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível reagir à mensagem.");
+    } finally {
+      setEnviandoReacao(false);
     }
   };
 
