@@ -29,6 +29,8 @@ import {
   Paperclip,
   Smile,
   Plus,
+  Pin,
+  Archive,
   ToggleLeft,
   ToggleRight,
   GripVertical,
@@ -41,6 +43,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
+import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
 export const Route = createFileRoute("/admin/agente")({
   component: AdminAgentePage,
@@ -1194,9 +1197,10 @@ const EMOJIS_RAPIDOS = [
 ];
 
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
-function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
+function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
+  const estado = business.mapa.get(conversa.id) ?? estadoPadrao(conversa.id);
   const [msgText, setMsgText] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
@@ -1333,7 +1337,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       if (!telefoneBusca) return [];
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id,status,valor_total,total,created_at,nome_cliente,cliente_nome")
+        .select("id,status,valor_total,total,created_at,nome_cliente,cliente_nome,endereco,endereco_cidade,endereco_bairro,endereco_rua,endereco_numero")
         .or(`cliente_telefone.ilike.%${telefoneBusca}%,telefone_cliente.ilike.%${telefoneBusca}%`)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -1769,6 +1773,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         )}
       </div>
 
+      {!somenteCampanha && (
+        <div className="shrink-0 px-4 pt-2 flex justify-end">
+          <WhatsAppBusinessDetails key={conversa.id} conversa={conversa} estado={estado}
+            etiquetas={business.etiquetas} equipe={business.equipe} dark={dark}
+            onPatch={(mudancas) => business.atualizar.mutate({ id: conversa.id, mudancas })}
+            salvarEtiqueta={(dados) => business.salvarEtiqueta.mutate(dados)}
+            apagarEtiqueta={(id) => business.apagarEtiqueta.mutate(id)}
+            resumoCliente={{
+              pedidos: pedidosValidos.length, total: totalGastoCliente,
+              ultimo: ultimoPedidoCliente?.created_at,
+              endereco: ultimoPedidoCliente
+                ? [ultimoPedidoCliente.endereco_rua || ultimoPedidoCliente.endereco,
+                    ultimoPedidoCliente.endereco_numero, ultimoPedidoCliente.endereco_bairro,
+                    ultimoPedidoCliente.endereco_cidade].filter(Boolean).join(", ")
+                : "",
+            }}
+          />
+        </div>
+      )}
       {!somenteCampanha && (isHumano || pedidoEmAndamento || carrinhoAtivo || resumoEquipe) && (
         <div className={`mx-4 mt-2 rounded-lg border px-3 py-2 ${dark ? "border-[#25343c] bg-[#111b21]/90" : "border-[#dfe3e5] bg-white/95"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -2014,13 +2037,15 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("todos");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "nao_lidas" | "arquivadas">("todos");
+  const [etiquetaFiltro, setEtiquetaFiltro] = useState("");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
   const [salvandoNovaConversa, setSalvandoNovaConversa] = useState(false);
 
   const t = dark ? DARK : LIGHT;
+  const business = useWhatsAppBusiness();
 
   useQuery({
     queryKey: ["agente-config"],
