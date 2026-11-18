@@ -55,15 +55,9 @@ export function useWhatsAppBusiness() {
   const { data: equipe = [] } = useQuery({
     queryKey: ["wa-business-atendentes"],
     queryFn: async () => {
-      const { data: roles, error: roleError } = await supabase.from("user_roles")
-        .select("user_id").eq("role", "admin").limit(100);
-      if (roleError) throw roleError;
-      const ids = [...new Set((roles ?? []).map((r) => r.user_id))];
-      if (!ids.length) return [];
-      const { data: perfis, error } = await supabase.from("profiles")
-        .select("id,nome").in("id", ids);
+      const { data, error } = await (supabase as any).rpc("whatsapp_listar_atendentes");
       if (error) throw error;
-      return (perfis ?? []).map((p) => ({ id: p.id, nome: p.nome || "Administrador" })) as Atendente[];
+      return (data ?? []) as Atendente[];
     },
     staleTime: 5 * 60_000,
   });
