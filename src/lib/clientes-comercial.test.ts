@@ -261,3 +261,41 @@ describe("cadastro do Grupo de Ofertas pelo exit intent", () => {
     expect(clientes[0].whatsappOfertasAutorizado).toBe(false);
   });
 });
+
+
+describe("deduplicação comercial segura", () => {
+  it("não une homônimos com contatos distintos", () => {
+    const c = montarClientesComerciais([
+      { id: "a", nome: "Maria Silva", telefone: "47999990001" },
+      { id: "b", nome: "Maria Silva", telefone: "47999990002" },
+    ], []);
+    expect(c).toHaveLength(2);
+  });
+  it("mantém pedido com telefone compartilhado fora de contas ambíguas", () => {
+    const telefone = "47999990003";
+    const c = montarClientesComerciais([
+      { id: "a", nome: "Maria", telefone },
+      { id: "b", nome: "Luiza", telefone },
+    ], [{ ...order, id: "convidado", user_id: null, telefone_cliente: telefone }]);
+    expect(c).toHaveLength(3);
+    expect(c.find(x => x.totalPedidos === 1)?.profileId).toBeUndefined();
+  });
+  it("não inclui cancelamentos na data da última compra válida", () => {
+    const c = montarClientesComerciais([profiles[0]], [
+      order,
+      { ...order, id: "cancelado", status: "cancelado", created_at: "2026-11-01" },
+    ]);
+    expect(c[0].ultimoPedido).toBe(order.created_at);
+    expect(c[0].totalPedidos).toBe(1);
+    expect(c[0].pedidos).toHaveLength(2);
+  });
+});
+
+it("não escolhe uma conta quando telefone e e-mail apontam para clientes diferentes", () => {
+  const c = montarClientesComerciais([
+    { id: "a", nome: "Maria", telefone: "47999990001", email: "maria@example.com" },
+    { id: "b", nome: "Luiza", telefone: "47999990002", email: "luiza@example.com" },
+  ], [{ ...order, id: "convidado", user_id: null, telefone_cliente: "47999990001", email_cliente: "luiza@example.com" }]);
+  expect(c).toHaveLength(3);
+  expect(c.find(x => x.totalPedidos === 1)?.profileId).toBeUndefined();
+});
