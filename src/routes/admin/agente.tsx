@@ -1209,6 +1209,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const estado = business.mapa.get(conversa.id) ?? estadoPadrao(conversa.id);
+  const { data: usuarioLogado } = useQuery({
+    queryKey: ["wa-business-usuario-logado"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    },
+    staleTime: 5 * 60_000,
+  });
+  const responsavelOutro = !!estado.responsavel_id && estado.responsavel_id !== usuarioLogado?.id;
+  const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
   const [msgText, setMsgText] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
@@ -1614,7 +1625,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   };
 
   const enviarModeloAprovado = async () => {
-    if (enviandoModelo || !modeloAtual || !confirmouAutorizacao) return;
+    if (enviandoModelo || responsavelOutro || !modeloAtual || !confirmouAutorizacao) return;
     setEnviandoModelo(true);
     try {
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
@@ -1649,7 +1660,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   };
 
   const enviarReacao = async (mensagemId: string, emoji: string) => {
-    if (enviandoReacao || somenteCampanha) return;
+    if (enviandoReacao || somenteCampanha || responsavelOutro) return;
     if (janela24hEncerrada) {
       toast.error("Não é possível reagir fora da janela de atendimento de 24 horas.");
       return;
@@ -1679,6 +1690,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
 
   const handleSend = async () => {
     const texto = msgText.trim();
+    if (responsavelOutro) {
+      toast.error("Conversa atribuída a " + nomeResponsavel + ". Transfira o atendimento antes de responder.");
+      return;
+    }
     if ((!texto && !anexoFile) || sending) return;
     setSending(true);
     try {
@@ -2082,6 +2097,18 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           >
             <MessageCircle size={16} />
             <span>Campanha enviada. Este contato ainda não respondeu.</span>
+          </div>
+        ) : responsavelOutro ? (
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#f8e1a6]" : "bg-amber-50 text-amber-900"}`}>
+            <User size={16}/>
+            <span className="flex-1">Atendimento atribuído a {nomeResponsavel}.</span>
+            <button type="button" className="font-bold text-[#00a884] text-xs"
+              onClick={() => {
+                if (!usuarioLogado?.id || !window.confirm("Transferir este atendimento para você?")) return;
+                business.atualizar.mutate({ id: conversa.id, mudancas: { responsavel_id: usuarioLogado.id } });
+              }}>
+              Assumir
+            </button>
           </div>
         ) : !isHumano ? (
           <div
