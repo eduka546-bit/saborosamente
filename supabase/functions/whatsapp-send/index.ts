@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (!authorization.ok) return authorizationError(authorization, corsHeaders);
 
     const body = await req.json();
-    const { to, text, media_url, media_type, filename, caption, action, sync_type, template_name, template_language } = body ?? {};
+    const { to, text, media_url, media_type, filename, caption, action, sync_type, template_name, template_language, reply_to_message_id, reaction_to_message_id, reaction_emoji } = body ?? {};
 
     if (action === "coexistence_status") {
       const statusUrl =
@@ -92,7 +92,16 @@ Deno.serve(async (req) => {
     }
 
     const isTemplate = action === "send_template";
-    if (!isTemplate && !normalizedText && !mediaUrl) {
+    const isReaction = action === "reaction";
+    const replyToId = String(reply_to_message_id ?? "").trim();
+    const reactionToId = String(reaction_to_message_id ?? "").trim();
+    const isValidMessageId = (id: string) => /^wamid\.[a-zA-Z0-9._-]{6,505}$/.test(id);
+    if (replyToId && !isValidMessageId(replyToId)) {
+      return new Response(JSON.stringify({ error: "Referência de mensagem inválida." }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    if (!isTemplate && !isReaction && !normalizedText && !mediaUrl) {
       return new Response(JSON.stringify({ error: "Informe uma mensagem ou anexo" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -107,7 +116,18 @@ Deno.serve(async (req) => {
     }
 
     let payload: Record<string, unknown>;
-    if (isTemplate) {
+    if (isReaction) {
+      const emoji = String(reaction_emoji ?? "").trim();
+      if (!isValidMessageId(reactionToId) || !["👍", "❤️", "😂", "😮", "😢", "🙏", "👏", "🔥", "😍", "👎", ""].includes(emoji)) {
+        return new Response(JSON.stringify({ error: "Mensagem ou reação inválida." }), {
+          status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      payload = {
+        messaging_product: "whatsapp", to: normalizedPhone,
+        type: "reaction", reaction: { message_id: reactionToId, emoji },
+      };
+    } else if (isTemplate) {
       const name = String(template_name ?? "").trim();
       const language = String(template_language ?? "").trim();
       if (!/^[a-z0-9_]{3,512}$/.test(name) || language !== "pt_BR") {
@@ -157,7 +177,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const tipo = mediaType === "image" ? "image" : mediaType === "video" ? "video" : "document";
+      const tipo = mediaType === "image" ? "image" : mediaType === "video" ? "video" : mediaType === "audio" ? "audio" : "document";
       const media: Record<string, unknown> = { link: mediaUrl };
       const legenda = String(caption ?? normalizedText ?? "").trim();
       if ((tipo === "image" || tipo === "video") && legenda) media.caption = legenda.slice(0, 1024);
@@ -179,6 +199,10 @@ Deno.serve(async (req) => {
         type: "text",
         text: { body: normalizedText },
       };
+    }
+
+    if (replyToId && !isTemplate && !isReaction) {
+      payload.context = { message_id: replyToId };
     }
 
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;

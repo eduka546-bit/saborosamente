@@ -29,6 +29,9 @@ import {
   Paperclip,
   Smile,
   Plus,
+  Pin,
+  Archive,
+  Reply,
   ToggleLeft,
   ToggleRight,
   GripVertical,
@@ -41,6 +44,9 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-chat-history";
 import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
+import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
+import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
+import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
 export const Route = createFileRoute("/admin/agente")({
   component: AdminAgentePage,
@@ -49,7 +55,7 @@ export const Route = createFileRoute("/admin/agente")({
 // ── helpers ───────────────────────────────────────────────────────────────────
 type AnexoSaida = {
   url: string;
-  tipo: "image" | "video" | "document";
+  tipo: "image" | "video" | "document" | "audio";
   nome: string;
   mime: string;
 };
@@ -58,12 +64,14 @@ async function sendManualMessage(
   to: string,
   text: string,
   anexo?: AnexoSaida | null,
+  replyToId?: string | null,
 ): Promise<{ ok: boolean; errorMsg?: string; messageId?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("whatsapp-send", {
       body: {
         to,
         text,
+        ...(replyToId ? { reply_to_message_id: replyToId } : {}),
         ...(anexo ? {
           media_url: anexo.url,
           media_type: anexo.tipo,
@@ -1183,6 +1191,9 @@ function MidiaEnviada({ msg }: { msg: any }) {
   if (tipo === "video" || mime.startsWith("video/")) {
     return <video src={url} controls preload="metadata" className="max-w-full max-h-[360px] rounded-xl mt-1" />;
   }
+  if (tipo === "audio" || mime.startsWith("audio/")) {
+    return <audio src={url} controls preload="metadata" className="max-w-full mt-1" />;
+  }
   return <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 mt-1 rounded-lg px-3 py-2 bg-black/10 hover:bg-black/15"><FileText size={18}/><span className="text-xs font-semibold truncate">{msg.media_name || "Abrir arquivo"}</span></a>;
 }
 
@@ -1194,9 +1205,21 @@ const EMOJIS_RAPIDOS = [
 ];
 
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
-function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
+function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
+  const estado = business.mapa.get(conversa.id) ?? estadoPadrao(conversa.id);
+  const { data: usuarioLogado } = useQuery({
+    queryKey: ["wa-business-usuario-logado"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    },
+    staleTime: 5 * 60_000,
+  });
+  const responsavelOutro = !!estado.responsavel_id && estado.responsavel_id !== usuarioLogado?.id;
+  const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
   const [msgText, setMsgText] = useState("");
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
@@ -1207,6 +1230,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; preview: string } | null>(null);
+  const [transcrevendoPath, setTranscrevendoPath] = useState<string | null>(null);
+  const [reagirEm, setReagirEm] = useState<string | null>(null);
+  const [enviandoReacao, setEnviandoReacao] = useState(false);
+  const [gravando, setGravando] = useState(false);
+  const gravadorRef = useRef<MediaRecorder | null>(null);
+  const gravacaoChunks = useRef<Blob[]>([]);
+  const streamGravacaoRef = useRef<MediaStream | null>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [editandoNome, setEditandoNome] = useState(false);
   const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
@@ -1244,6 +1275,37 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     enabled: !!conversa.id && !conversa.somenteCampanha,
     refetchInterval: 8000,
   });
+  const { data: transcricoes = [] } = useQuery({
+    queryKey: ["wa-transcricoes", conversa.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("whatsapp_transcricoes")
+        .select("media_path,transcricao").eq("conversa_id", conversa.id);
+      if (error) throw error;
+      return (data ?? []) as { media_path: string; transcricao: string }[];
+    },
+    enabled: !conversa.somenteCampanha && !!conversa.id,
+    staleTime: 60000,
+  });
+  const transcricoesPorPath = new Map(transcricoes.map((r) => [r.media_path, r.transcricao]));
+  const transcreverAudioRecebido = async (path: string) => {
+    if (transcrevendoPath) return;
+    setTranscrevendoPath(path);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-transcrever", {
+        body: { conversa_id: conversa.id, media_path: path },
+      });
+      if (error || data?.error || !data?.transcricao) {
+        throw new Error(data?.error || error?.message || "Não foi possível transcrever.");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["wa-transcricoes", conversa.id] });
+      toast.success("Áudio transcrito e salvo na ficha de atendimento.");
+    } catch (error: any) {
+      toast.error(error.message || "Falha na transcrição.");
+    } finally {
+      setTranscrevendoPath(null);
+    }
+  };
+
   const { data: reacoes = [] } = useQuery({
     queryKey: ["whatsapp-reacoes", conversa.id],
     queryFn: async () => {
@@ -1333,7 +1395,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       if (!telefoneBusca) return [];
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id,status,valor_total,total,created_at,nome_cliente,cliente_nome")
+        .select("id,status,valor_total,total,created_at,nome_cliente,cliente_nome,endereco,endereco_cidade,endereco_bairro,endereco_rua,endereco_numero")
         .or(`cliente_telefone.ilike.%${telefoneBusca}%,telefone_cliente.ilike.%${telefoneBusca}%`)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -1533,7 +1595,12 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     if (!file) return;
     const ehImagem = file.type.startsWith("image/");
     const ehVideo = file.type.startsWith("video/");
-    const permitidos = ehImagem || ehVideo || [
+    const ehAudio = file.type.startsWith("audio/");
+    if (ehAudio && !AUDIO_TIPOS_META.includes(file.type.split(";")[0])) {
+      toast.error("Formato não suportado pela Meta. Use MP3, M4A ou OGG/Opus.");
+      return;
+    }
+    const permitidos = ehImagem || ehVideo || ehAudio || [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -1542,11 +1609,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
       "text/plain",
     ].includes(file.type);
     if (!permitidos) return toast.error("Envie imagem, vídeo, PDF ou documento.");
-    const limite = ehImagem ? 5 : ehVideo ? 16 : 20;
+    const limite = ehImagem ? 5 : ehVideo || ehAudio ? 16 : 20;
     if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
     setAnexoFile(file);
     if (anexoPreview) URL.revokeObjectURL(anexoPreview);
-    setAnexoPreview(ehImagem || ehVideo ? URL.createObjectURL(file) : null);
+    setAnexoPreview(ehImagem || ehVideo || ehAudio ? URL.createObjectURL(file) : null);
     setEmojiAberto(false);
   };
 
@@ -1558,7 +1625,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
   };
 
   const enviarModeloAprovado = async () => {
-    if (enviandoModelo || !modeloAtual || !confirmouAutorizacao) return;
+    if (enviandoModelo || responsavelOutro || !modeloAtual || !confirmouAutorizacao) return;
     setEnviandoModelo(true);
     try {
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
@@ -1592,18 +1659,56 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
     }
   };
 
+  const enviarReacao = async (mensagemId: string, emoji: string) => {
+    if (enviandoReacao || somenteCampanha || responsavelOutro) return;
+    if (janela24hEncerrada) {
+      toast.error("Não é possível reagir fora da janela de atendimento de 24 horas.");
+      return;
+    }
+    setEnviandoReacao(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: { action: "reaction", to: conversa.telefone, reaction_to_message_id: mensagemId, reaction_emoji: emoji },
+      });
+      if (error || data?.error || !data?.message_id) {
+        throw new Error(data?.error || error?.message || "A Meta não confirmou a reação.");
+      }
+      const { error: salvarErro } = await (supabase as any).from("whatsapp_reacoes").upsert({
+        conversa_id: conversa.id, mensagem_destino_id: mensagemId, remetente: "empresa",
+        emoji, atualizado_em: new Date().toISOString(),
+      }, { onConflict: "conversa_id,mensagem_destino_id,remetente" });
+      if (salvarErro) throw new Error("Reação enviada na Meta, mas não salva no painel. Atualize antes de repetir.");
+      setReagirEm(null);
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-reacoes", conversa.id] });
+      toast.success("Reação enviada.");
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível reagir à mensagem.");
+    } finally {
+      setEnviandoReacao(false);
+    }
+  };
+
   const handleSend = async () => {
     const texto = msgText.trim();
+    if (responsavelOutro) {
+      toast.error("Conversa atribuída a " + nomeResponsavel + ". Transfira o atendimento antes de responder.");
+      return;
+    }
     if ((!texto && !anexoFile) || sending) return;
     setSending(true);
     try {
       let anexo: AnexoSaida | null = null;
+      if (anexoFile?.type.startsWith("audio/") && texto) {
+        throw new Error("Envie o áudio e o texto separadamente: a Meta não aceita legenda em áudio.");
+      }
       if (anexoFile) {
         const tipo: AnexoSaida["tipo"] = anexoFile.type.startsWith("image/")
           ? "image"
           : anexoFile.type.startsWith("video/")
             ? "video"
-            : "document";
+            : anexoFile.type.startsWith("audio/")
+              ? "audio"
+              : "document";
         const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
         const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
         const { error: uploadError } = await supabase.storage
@@ -1614,7 +1719,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
       }
 
-      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo);
+      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo, replyTo?.id);
       if (!ok) throw new Error(errorMsg || "Falha ao enviar");
 
       const agora = new Date().toISOString();
@@ -1625,6 +1730,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         timestamp: agora,
         deliveryStatus: "enviado",
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
+        ...(replyTo ? { reply_to_message_id: replyTo.id, reply_to_preview: replyTo.preview } : {}),
         ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
       // A gravação atômica também é usada pelos webhooks: uma resposta manual
@@ -1640,6 +1746,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
 
       toast.success("Solicitação aceita pela Meta. Aguarde confirmação de entrega.");
       setMsgText("");
+      setReplyTo(null);
       limparAnexo();
       setEmojiAberto(false);
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
@@ -1769,6 +1876,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
         )}
       </div>
 
+      {!somenteCampanha && (
+        <div className="shrink-0 px-4 pt-2 flex justify-end">
+          <WhatsAppBusinessDetails key={conversa.id} conversa={conversa} estado={estado}
+            etiquetas={business.etiquetas} equipe={business.equipe} dark={dark}
+            onPatch={(mudancas) => business.atualizar.mutate({ id: conversa.id, mudancas })}
+            salvarEtiqueta={(dados) => business.salvarEtiqueta.mutate(dados)}
+            apagarEtiqueta={(id) => business.apagarEtiqueta.mutate(id)}
+            resumoCliente={{
+              pedidos: pedidosValidos.length, total: totalGastoCliente,
+              ultimo: ultimoPedidoCliente?.created_at,
+              endereco: ultimoPedidoCliente
+                ? [ultimoPedidoCliente.endereco_rua || ultimoPedidoCliente.endereco,
+                    ultimoPedidoCliente.endereco_numero, ultimoPedidoCliente.endereco_bairro,
+                    ultimoPedidoCliente.endereco_cidade].filter(Boolean).join(", ")
+                : "",
+            }}
+          />
+        </div>
+      )}
       {!somenteCampanha && (isHumano || pedidoEmAndamento || carrinhoAtivo || resumoEquipe) && (
         <div className={`mx-4 mt-2 rounded-lg border px-3 py-2 ${dark ? "border-[#25343c] bg-[#111b21]/90" : "border-[#dfe3e5] bg-white/95"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -1858,11 +1984,57 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                     {msg.identificador_interacao && <span className="text-[10px] opacity-60 break-all">Identificador: {msg.identificador_interacao}</span>}
                   </div>
                 )}
+                {msg.reply_to_message_id && (
+                  <div className="mb-1 rounded-md border-l-[3px] border-[#00a884] bg-black/10 px-2 py-1 text-[11px]">
+                    <p className="font-bold opacity-70">↩ Em resposta a</p>
+                    <p className="line-clamp-2 break-words opacity-80">{msg.reply_to_preview || "Mensagem anterior"}</p>
+                  </div>
+                )}
                 {msg.content && !msg.media_path && !msg.tipo_interacao && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
+                {msg.media_path && ["audio","voice"].includes(String(msg.media_type ?? "").toLowerCase()) && (
+                  <div className="mt-1 text-xs">
+                    {transcricoesPorPath.get(String(msg.media_path)) ? (
+                      <div className="whitespace-pre-wrap break-words rounded-md border-l-2 border-[#00a884] bg-black/10 px-2 py-1.5">
+                        <strong>Transcrição:</strong> {transcricoesPorPath.get(String(msg.media_path))}
+                      </div>
+                    ) : msg.content && !String(msg.content).startsWith("[") ? (
+                      <div className="rounded-md bg-black/10 p-2 text-xs">
+                        <strong>Texto do áudio:</strong> {msg.content}
+                      </div>
+                    ) : (
+                      <button type="button" disabled={Boolean(transcrevendoPath)}
+                        onClick={() => void transcreverAudioRecebido(String(msg.media_path))}
+                        className="rounded bg-black/10 px-2 py-1 text-[#00a884] disabled:opacity-50">
+                        {transcrevendoPath === msg.media_path ? "Transcrevendo..." : "Transcrever áudio"}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
+                {isHumano && !janela24hEncerrada && !somenteCampanha && String(msg.whatsapp_message_id || "").startsWith("wamid.") && (
+                  <div className="flex flex-wrap items-center justify-end gap-2 mt-1">
+                    <button type="button" title="Responder mensagem específica"
+                      onClick={() => setReplyTo({ id: msg.whatsapp_message_id, preview: String(msg.content || msg.titulo_interacao || (msg.media_path ? "Mídia recebida" : "Anexo")).slice(0, 180) })}
+                      className="rounded bg-black/10 px-1.5 py-0.5 text-[10px] opacity-70 hover:opacity-100">
+                      <Reply size={13} className="inline"/> Responder
+                    </button>
+                    <button type="button" title="Reagir à mensagem"
+                      onClick={() => setReagirEm(reagirEm === msg.whatsapp_message_id ? null : msg.whatsapp_message_id)}
+                      className="rounded bg-black/10 px-1.5 py-0.5 text-[10px] opacity-70 hover:opacity-100">😊 Reagir</button>
+                  </div>
+                )}
+                {reagirEm === msg.whatsapp_message_id && (
+                  <div className="mt-1 flex flex-wrap gap-1 rounded-lg bg-black/10 p-1">
+                    {["👍","❤️","😂","😮","😢","🙏"].map((emoji) => (
+                      <button type="button" disabled={enviandoReacao} key={emoji}
+                        onClick={() => void enviarReacao(String(msg.whatsapp_message_id), emoji)}
+                        title={"Reagir com " + emoji} className="rounded px-1 py-0.5 text-lg hover:bg-black/10 disabled:opacity-50">{emoji}</button>
+                    ))}
+                  </div>
+                )}
                 {msg.whatsapp_message_id && reacoesPorMensagem.has(String(msg.whatsapp_message_id)) && (
                   <div className="flex flex-wrap gap-1 mt-1" aria-label="Reações à mensagem">
                     {reacoesPorMensagem.get(String(msg.whatsapp_message_id))?.map((emoji,i) => (
@@ -1926,6 +2098,18 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
             <MessageCircle size={16} />
             <span>Campanha enviada. Este contato ainda não respondeu.</span>
           </div>
+        ) : responsavelOutro ? (
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#f8e1a6]" : "bg-amber-50 text-amber-900"}`}>
+            <User size={16}/>
+            <span className="flex-1">Atendimento atribuído a {nomeResponsavel}.</span>
+            <button type="button" className="font-bold text-[#00a884] text-xs"
+              onClick={() => {
+                if (!usuarioLogado?.id || !window.confirm("Transferir este atendimento para você?")) return;
+                business.atualizar.mutate({ id: conversa.id, mudancas: { responsavel_id: usuarioLogado.id } });
+              }}>
+              Assumir
+            </button>
+          </div>
         ) : !isHumano ? (
           <div
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm ${dark ? "bg-[#182229] text-[#8696a0]" : "bg-[#f0f2f5] text-[#667781]"}`}
@@ -1975,9 +2159,18 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                 )}
               </div>
             )}
+            {replyTo && (
+              <div className={`mb-2 flex items-center gap-3 rounded-lg border-l-4 border-[#00a884] px-3 py-2 text-xs ${dark ? "bg-[#182229] text-white" : "bg-white text-[#111b21]"}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-[#00a884]">Respondendo a uma mensagem</p>
+                  <p className="truncate opacity-70">{replyTo.preview}</p>
+                </div>
+                <button type="button" title="Cancelar resposta" onClick={() => setReplyTo(null)}><X size={17}/></button>
+              </div>
+            )}
             {anexoFile && (
               <div className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2 ${dark ? "border-[#3b4a54] bg-[#182229]" : "border-[#dfe3e5] bg-white"}`}>
-                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
+                {anexoPreview && anexoFile.type.startsWith("image/") ? <img src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" alt="Prévia" /> : anexoPreview && anexoFile.type.startsWith("video/") ? <video src={anexoPreview} className="h-14 w-14 rounded-lg object-cover" /> : anexoPreview && anexoFile.type.startsWith("audio/") ? <audio controls src={anexoPreview} className="max-w-[180px] sm:max-w-[250px]" /> : <div className="grid h-12 w-12 place-items-center rounded-lg bg-black/10"><FileText size={22}/></div>}
                 <div className="min-w-0 flex-1"><p className={`truncate text-xs font-semibold ${t.text}`}>{anexoFile.name}</p><p className={`text-[10px] ${t.textSub}`}>{(anexoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
                 <button onClick={limparAnexo} className={`rounded-full p-1.5 ${t.textSub}`} title="Remover anexo"><X size={16}/></button>
               </div>
@@ -1987,12 +2180,13 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva }: any) {
                 <div className="grid grid-cols-8 gap-1">{EMOJIS_RAPIDOS.map((emoji) => <button key={emoji} onClick={() => setMsgText((atual) => atual + emoji)} className="grid h-8 w-8 place-items-center rounded-lg text-lg hover:bg-black/10">{emoji}</button>)}</div>
               </div>
             )}
-            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
+            <input ref={anexoInputRef} type="file" className="hidden" accept="image/*,video/*,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.mp3,.m4a,.ogg,.pdf,.doc,.docx,.xls,.xlsx,.txt,application/pdf" onChange={(e) => selecionarAnexo(e.target.files?.[0])} />
             <div className="flex items-center gap-2">
               <div className={`flex-1 min-h-[42px] flex items-center gap-2 rounded-lg px-3 ${t.chatInputField}`}>
                 <button onClick={() => setEmojiAberto((v) => !v)} className={`rounded-full p-1 ${t.textSub}`} title="Emojis"><Smile size={19}/></button>
                 <WhatsAppComposer value={msgText} onChange={setMsgText} onSend={handleSend} disabled={sending} dark={dark} placeholder={anexoFile ? "Adicionar legenda..." : "Digite uma mensagem"} />
-                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, PDF ou arquivo"><Paperclip size={19}/></button>
+                <WhatsAppVoiceRecorder onRecorded={selecionarAnexo} disabled={sending} dark={dark}/>
+                <button onClick={() => anexoInputRef.current?.click()} className={`rounded-full p-1 ${t.textSub}`} title="Enviar foto, vídeo, áudio, PDF ou arquivo"><Paperclip size={19}/></button>
               </div>
               <button onClick={handleSend} disabled={(!msgText.trim() && !anexoFile) || sending} className="h-11 w-11 rounded-full bg-[#00a884] flex items-center justify-center text-white hover:bg-[#008f72] transition-all disabled:opacity-50 shrink-0">
                 {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -2014,13 +2208,15 @@ function AdminAgentePage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
-  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas">("todos");
+  const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "nao_lidas" | "arquivadas">("todos");
+  const [etiquetaFiltro, setEtiquetaFiltro] = useState("");
   const [cidadeFiltro, setCidadeFiltro] = useState("todas");
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoContato, setNovoContato] = useState({ nome: "", telefone: "", listaId: "" });
   const [salvandoNovaConversa, setSalvandoNovaConversa] = useState(false);
 
   const t = dark ? DARK : LIGHT;
+  const business = useWhatsAppBusiness();
 
   useQuery({
     queryKey: ["agente-config"],
@@ -2222,6 +2418,19 @@ function AdminAgentePage() {
   const humanasCount = conversasAtendimento.filter((c) => c.modo === "humano" && temMensagemDoCliente(c)).length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
   const respondidasCount = (conversas as any[]).filter(foiRespondida).length;
+  const naoLida = (c: any) => {
+    const estado = business.mapa.get(c.id);
+    if (estado?.marcada_nao_lida) return true;
+    const msgs = Array.isArray(c.mensagens) ? c.mensagens : [];
+    const ultima = [...msgs].reverse().find((m: any) => m?.role !== "system");
+    if (ultima?.role !== "user") return false;
+    if (!estado?.ultima_leitura) return true;
+    return new Date(c.ultima_msg || 0).getTime() > new Date(estado.ultima_leitura).getTime();
+  };
+  const naoLidasCount = conversasAtendimento.filter((c) =>
+    !business.mapa.get(c.id)?.arquivada && naoLida(c)).length;
+  const arquivadasCount = conversasAtendimento.filter((c) => business.mapa.get(c.id)?.arquivada).length;
+  const alertas = useWhatsAppAlerts(conversasAtendimento, business.estados);
 
   const telefonesComConversa = new Set(
     conversasAtendimento.map((conversa) => String(conversa.telefone ?? "").replace(/\D/g, "")),
@@ -2263,12 +2472,14 @@ function AdminAgentePage() {
   const termoBusca = search.trim().toLocaleLowerCase("pt-BR");
   const digitosBusca = search.replace(/\D/g, "");
   const filtered = itensDaLista.filter((c: any) => {
-    const matchModo =
-      filterModo === "todos" || filterModo === "campanhas" ||
-      (filterModo === "pendentes" ? precisaResponder(c) :
+    const estado = business.mapa.get(c.id);
+    const matchModo = (filterModo === "arquivadas" ? !!estado?.arquivada : !estado?.arquivada) &&
+      (filterModo === "todos" || filterModo === "campanhas" || filterModo === "arquivadas" ||
+      (filterModo === "nao_lidas" ? naoLida(c) :
+       filterModo === "pendentes" ? precisaResponder(c) :
        filterModo === "respondidas" ? foiRespondida(c) :
        filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
-       c.modo === filterModo);
+       c.modo === filterModo));
     const telefoneLimpo = String(c.telefone ?? "").replace(/\D/g, "");
     const nomeContato = nomesPorTelefone.get(telefoneLimpo) ?? "";
     const matchSearch =
@@ -2278,7 +2489,13 @@ function AdminAgentePage() {
       String(c.telefone ?? "").toLocaleLowerCase("pt-BR").includes(termoBusca) ||
       (digitosBusca.length >= 3 && telefoneLimpo.includes(digitosBusca));
     const cidade = c.cidade || cidadesPorTelefone.get(telefoneLimpo) || "Sem cidade";
-    return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro);
+    return matchModo && matchSearch && (cidadeFiltro === "todas" || cidade === cidadeFiltro)
+      && (!etiquetaFiltro || !!estado?.etiquetas?.includes(etiquetaFiltro));
+  }).sort((a: any, b: any) => {
+    const aPin = business.mapa.get(a.id)?.fixada ? 1 : 0;
+    const bPin = business.mapa.get(b.id)?.fixada ? 1 : 0;
+    if (aPin !== bPin) return bPin - aPin;
+    return new Date(b.ultima_msg || 0).getTime() - new Date(a.ultima_msg || 0).getTime();
   });
 
   const iniciarConversa = async () => {
@@ -2344,6 +2561,12 @@ function AdminAgentePage() {
   };
 
   const activeConversa = [...(conversas as any[]), ...campanhasSemResposta].find((c) => c.id === activeId);
+  useEffect(() => {
+    if (!activeId || activeId.startsWith("campanha-")) return;
+    business.atualizar.mutate({ id: activeId, mudancas: {
+      marcada_nao_lida: false, ultima_leitura: new Date().toISOString(),
+    } });
+  }, [activeId]);
 
   return (
     <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
@@ -2385,6 +2608,9 @@ function AdminAgentePage() {
             >
               <Plus size={19} />
             </button>
+            <WhatsAppReports conversas={conversasAtendimento} estados={business.estados}
+              etiquetas={business.etiquetas} dark={dark}/>
+            <BotaoNotificacoes alertas={alertas} dark={dark} />
             <button
               onClick={() => setDark(!dark)}
               className={`p-2 rounded-full hover:bg-black/10 ${t.textSub}`}
@@ -2420,7 +2646,7 @@ function AdminAgentePage() {
 
         {/* Filtros */}
         <div className="flex gap-1.5 px-3 py-1.5 shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["todos", "pendentes", "respondidas", "humano", "ia", "campanhas"] as const).map((f) => (
+          {(["todos", "nao_lidas", "pendentes", "respondidas", "humano", "ia", "campanhas", "arquivadas"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilterModo(f)}
@@ -2434,7 +2660,11 @@ function AdminAgentePage() {
                     : "bg-white border-[#e9edef] text-[#667781] hover:bg-[#f5f6f6]"
               }`}
             >
-              {f === "pendentes"
+              {f === "nao_lidas"
+                ? "Não lidas (" + naoLidasCount + ")"
+                : f === "arquivadas"
+                  ? "Arquivadas (" + arquivadasCount + ")"
+                  : f === "pendentes"
                 ? `Não respondidas ${pendentesCount ? `(${pendentesCount})` : ""}`
                 : f === "respondidas"
                   ? `Respondidas ${respondidasCount ? `(${respondidasCount})` : ""}`
@@ -2463,6 +2693,15 @@ function AdminAgentePage() {
           </select>
         </div>
 
+        <div className="px-3 pb-2 shrink-0">
+          <select value={etiquetaFiltro} onChange={(e) => setEtiquetaFiltro(e.target.value)}
+            aria-label="Filtrar por etiqueta"
+            className={`w-full h-8 rounded-lg border px-3 text-[12px] outline-none ${t.sidebarSearchInput} ${t.divider}`}>
+            <option value="">Todas as etiquetas</option>
+            {business.etiquetas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+        </div>
+
         {/* Lista de conversas */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
@@ -2480,6 +2719,9 @@ function AdminAgentePage() {
               const pendente = !isCampanha && precisaResponder(c);
               const naoRespondidas = pendente ? [...(c.mensagens || [])].reverse().findIndex((m: any) => m?.role === "assistant") : 0;
               const avatarColor = "bg-[#6a7175]";
+              const estado = business.mapa.get(c.id) ?? estadoPadrao(c.id);
+              const aindaNaoLida = !isCampanha && naoLida(c);
+              const etiquetasConversa = business.etiquetas.filter((e) => estado.etiquetas.includes(e.id));
 
               return (
                 <div
@@ -2498,6 +2740,7 @@ function AdminAgentePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className={`font-semibold text-sm truncate ${t.text}`}>
+                        {estado.fixada && <Pin size={12} className="mr-1 inline text-[#00a884]" />}
                         {c.nome || c.telefone}
                       </p>
                       <span
@@ -2514,11 +2757,39 @@ function AdminAgentePage() {
                             ? <>💬 <b>Cliente respondeu:</b> {lastMsg?.content?.slice(0, 34) || (lastMsg?.media_path ? "anexo recebido" : "nova mensagem")}</>
                             : <>{lastMsg?.role === "assistant" ? (lastMsg?.manual ? "👤 " : "🤖 ") : ""}{lastMsg?.content?.slice(0, 45) || (lastMsg?.media_url ? "📎 Arquivo enviado" : "")}</>}
                       </p>
-                      {pendente ? (
+                      {aindaNaoLida ? (
+                        <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-[#00a884] text-white" title="Não lida">●</span>
+                      ) : pendente ? (
                         <span className="ml-2 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 bg-red-500 text-white" title="Aguardando sua resposta">{Math.max(1, naoRespondidas)}</span>
                       ) : isHumano ? (
                         <span className={`ml-2 px-1.5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0 ${t.badgeHumano}`}>VOCÊ</span>
                       ) : null}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      {etiquetasConversa.slice(0, 2).map((e) => (
+                        <span key={e.id} className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white"
+                          style={{ backgroundColor: e.cor }}>{e.nome}</span>
+                      ))}
+                      {!isCampanha && (
+                        <div className="ml-auto flex items-center gap-0.5">
+                          <button type="button" title={estado.fixada ? "Desafixar" : "Fixar conversa"}
+                            onClick={(event) => { event.stopPropagation(); business.atualizar.mutate({ id: c.id, mudancas: { fixada: !estado.fixada } }); }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><Pin size={13}/></button>
+                          <button type="button" title={aindaNaoLida ? "Marcar lida" : "Marcar não lida"}
+                            onClick={(event) => { event.stopPropagation(); business.atualizar.mutate({ id: c.id, mudancas: {
+                              marcada_nao_lida: !aindaNaoLida,
+                              ...(aindaNaoLida ? { ultima_leitura: new Date().toISOString() } : {}),
+                            } }); }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><CheckCheck size={13}/></button>
+                          <button type="button" title={estado.arquivada ? "Desarquivar" : "Arquivar"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              business.atualizar.mutate({ id: c.id, mudancas: { arquivada: !estado.arquivada } });
+                              if (activeId === c.id) setActiveId(null);
+                            }}
+                            className="rounded p-1 opacity-70 hover:bg-[#00a884]/15"><Archive size={13}/></button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2542,6 +2813,7 @@ function AdminAgentePage() {
         ) : activeConversa ? (
           <ChatView
             conversa={activeConversa}
+             business={business}
              iaAtiva={config?.ativo === true}
             dark={dark}
             onBack={() => setActiveId(null)}
@@ -2589,6 +2861,7 @@ function AdminAgentePage() {
           {activeConversa && (
             <ChatView
               conversa={activeConversa}
+             business={business}
              iaAtiva={config?.ativo === true}
               dark={dark}
               onBack={() => setActiveId(null)}
