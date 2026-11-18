@@ -52,7 +52,7 @@ export const Route = createFileRoute("/admin/agente")({
 // ── helpers ───────────────────────────────────────────────────────────────────
 type AnexoSaida = {
   url: string;
-  tipo: "image" | "video" | "document";
+  tipo: "image" | "video" | "document" | "audio";
   nome: string;
   mime: string;
 };
@@ -61,12 +61,14 @@ async function sendManualMessage(
   to: string,
   text: string,
   anexo?: AnexoSaida | null,
+  replyToId?: string | null,
 ): Promise<{ ok: boolean; errorMsg?: string; messageId?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke("whatsapp-send", {
       body: {
         to,
         text,
+        ...(replyToId ? { reply_to_message_id: replyToId } : {}),
         ...(anexo ? {
           media_url: anexo.url,
           media_type: anexo.tipo,
@@ -1211,6 +1213,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const [emojiAberto, setEmojiAberto] = useState(false);
   const [anexoFile, setAnexoFile] = useState<File | null>(null);
   const [anexoPreview, setAnexoPreview] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; preview: string } | null>(null);
+  const [gravando, setGravando] = useState(false);
+  const gravadorRef = useRef<MediaRecorder | null>(null);
+  const gravacaoChunks = useRef<Blob[]>([]);
+  const streamGravacaoRef = useRef<MediaStream | null>(null);
   const anexoInputRef = useRef<HTMLInputElement>(null);
   const [editandoNome, setEditandoNome] = useState(false);
   const [nomeEditado, setNomeEditado] = useState(conversa.nome || "");
@@ -1537,7 +1544,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
     if (!file) return;
     const ehImagem = file.type.startsWith("image/");
     const ehVideo = file.type.startsWith("video/");
-    const permitidos = ehImagem || ehVideo || [
+    const ehAudio = file.type.startsWith("audio/");
+    const permitidos = ehImagem || ehVideo || ehAudio || [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -1546,11 +1554,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       "text/plain",
     ].includes(file.type);
     if (!permitidos) return toast.error("Envie imagem, vídeo, PDF ou documento.");
-    const limite = ehImagem ? 5 : ehVideo ? 16 : 20;
+    const limite = ehImagem ? 5 : ehVideo || ehAudio ? 16 : 20;
     if (file.size > limite * 1024 * 1024) return toast.error(`Arquivo muito grande. Limite: ${limite} MB.`);
     setAnexoFile(file);
     if (anexoPreview) URL.revokeObjectURL(anexoPreview);
-    setAnexoPreview(ehImagem || ehVideo ? URL.createObjectURL(file) : null);
+    setAnexoPreview(ehImagem || ehVideo || ehAudio ? URL.createObjectURL(file) : null);
     setEmojiAberto(false);
   };
 
@@ -1602,12 +1610,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
     setSending(true);
     try {
       let anexo: AnexoSaida | null = null;
+      if (anexoFile?.type.startsWith("audio/") && texto) {
+        throw new Error("Envie o áudio e o texto separadamente: a Meta não aceita legenda em áudio.");
+      }
       if (anexoFile) {
         const tipo: AnexoSaida["tipo"] = anexoFile.type.startsWith("image/")
           ? "image"
           : anexoFile.type.startsWith("video/")
             ? "video"
-            : "document";
+            : anexoFile.type.startsWith("audio/")
+              ? "audio"
+              : "document";
         const nomeSeguro = anexoFile.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
         const path = `whatsapp-saida/${telefoneNormalizado}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
         const { error: uploadError } = await supabase.storage
@@ -1618,7 +1631,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
         anexo = { url, tipo, nome: anexoFile.name, mime: anexoFile.type || "application/octet-stream" };
       }
 
-      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo);
+      const { ok, errorMsg, messageId } = await sendManualMessage(conversa.telefone, texto, anexo, replyTo?.id);
       if (!ok) throw new Error(errorMsg || "Falha ao enviar");
 
       const agora = new Date().toISOString();
@@ -1629,6 +1642,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
         timestamp: agora,
         deliveryStatus: "enviado",
         ...(messageId ? { whatsapp_message_id: messageId } : {}),
+        ...(replyTo ? { reply_to_message_id: replyTo.id, reply_to_preview: replyTo.preview } : {}),
         ...(anexo ? { media_url: anexo.url, media_type: anexo.tipo, mime_type: anexo.mime, media_name: anexo.nome } : {}),
       };
       // A gravação atômica também é usada pelos webhooks: uma resposta manual
@@ -1644,6 +1658,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
 
       toast.success("Solicitação aceita pela Meta. Aguarde confirmação de entrega.");
       setMsgText("");
+      setReplyTo(null);
       limparAnexo();
       setEmojiAberto(false);
       await queryClient.invalidateQueries({ queryKey: ["whatsapp-conversas"] });
