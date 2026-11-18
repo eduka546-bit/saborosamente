@@ -1933,11 +1933,38 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
                     {msg.identificador_interacao && <span className="text-[10px] opacity-60 break-all">Identificador: {msg.identificador_interacao}</span>}
                   </div>
                 )}
+                {msg.reply_to_message_id && (
+                  <div className="mb-1 rounded-md border-l-[3px] border-[#00a884] bg-black/10 px-2 py-1 text-[11px]">
+                    <p className="font-bold opacity-70">↩ Em resposta a</p>
+                    <p className="line-clamp-2 break-words opacity-80">{msg.reply_to_preview || "Mensagem anterior"}</p>
+                  </div>
+                )}
                 {msg.content && !msg.media_path && !msg.tipo_interacao && (
                   <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 )}
                 {msg.media_path && <MidiaRecebida msg={msg} dark={dark} />}
                 {msg.media_url && <MidiaEnviada msg={msg} />}
+                {isHumano && !janela24hEncerrada && !somenteCampanha && String(msg.whatsapp_message_id || "").startsWith("wamid.") && (
+                  <div className="flex flex-wrap items-center justify-end gap-2 mt-1">
+                    <button type="button" title="Responder mensagem específica"
+                      onClick={() => setReplyTo({ id: msg.whatsapp_message_id, preview: String(msg.content || msg.titulo_interacao || (msg.media_path ? "Mídia recebida" : "Anexo")).slice(0, 180) })}
+                      className="rounded bg-black/10 px-1.5 py-0.5 text-[10px] opacity-70 hover:opacity-100">
+                      <Reply size={13} className="inline"/> Responder
+                    </button>
+                    <button type="button" title="Reagir à mensagem"
+                      onClick={() => setReagirEm(reagirEm === msg.whatsapp_message_id ? null : msg.whatsapp_message_id)}
+                      className="rounded bg-black/10 px-1.5 py-0.5 text-[10px] opacity-70 hover:opacity-100">😊 Reagir</button>
+                  </div>
+                )}
+                {reagirEm === msg.whatsapp_message_id && (
+                  <div className="mt-1 flex flex-wrap gap-1 rounded-lg bg-black/10 p-1">
+                    {["👍","❤️","😂","😮","😢","🙏"].map((emoji) => (
+                      <button type="button" disabled={enviandoReacao} key={emoji}
+                        onClick={() => void enviarReacao(String(msg.whatsapp_message_id), emoji)}
+                        title={"Reagir com " + emoji} className="rounded px-1 py-0.5 text-lg hover:bg-black/10 disabled:opacity-50">{emoji}</button>
+                    ))}
+                  </div>
+                )}
                 {msg.whatsapp_message_id && reacoesPorMensagem.has(String(msg.whatsapp_message_id)) && (
                   <div className="flex flex-wrap gap-1 mt-1" aria-label="Reações à mensagem">
                     {reacoesPorMensagem.get(String(msg.whatsapp_message_id))?.map((emoji,i) => (
@@ -2048,6 +2075,15 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
                     </button>
                   </>
                 )}
+              </div>
+            )}
+            {replyTo && (
+              <div className={`mb-2 flex items-center gap-3 rounded-lg border-l-4 border-[#00a884] px-3 py-2 text-xs ${dark ? "bg-[#182229] text-white" : "bg-white text-[#111b21]"}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-[#00a884]">Respondendo a uma mensagem</p>
+                  <p className="truncate opacity-70">{replyTo.preview}</p>
+                </div>
+                <button type="button" title="Cancelar resposta" onClick={() => setReplyTo(null)}><X size={17}/></button>
               </div>
             )}
             {anexoFile && (
