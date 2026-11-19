@@ -26,9 +26,6 @@ const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
-// Após esse tempo sem atividade em atendimento humano, o bot reassume a conversa
-// (evita deixar o cliente no vácuo se ninguém da equipe respondeu).
-const HANDOFF_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
 const OPENAI_TIMEOUT_MS = 25_000;
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
@@ -2564,29 +2561,14 @@ Deno.serve(async (req: Request) => {
 
       // ── Modo humano: só salva, não responde ──────────────────────────────
       if (conversa?.modo === "humano") {
-        // Retorno automático ao bot: se o atendimento humano ficou inativo por
-        // muito tempo, o bot reassume para não deixar o cliente sem resposta.
-        const ultimaAtividade = conversa?.ultima_msg ? new Date(conversa.ultima_msg).getTime() : 0;
-        const handoffExpirou =
-          ultimaAtividade > 0 && Date.now() - ultimaAtividade > HANDOFF_TIMEOUT_MS;
-
-        if (handoffExpirou) {
-          await supabase.from("whatsapp_conversas").update({ modo: "ia" }).eq("id", conversa.id);
-          conversa.modo = "ia";
-          await registrarEvento("retorno_bot", telefone, conversa.id, {
-            motivo: "timeout_handoff",
-          });
-          // Segue o fluxo normal abaixo (o bot volta a responder).
-        } else {
-          // Atendimento humano ativo: só registra a mensagem, não responde.
-          await appendMensagem(conversa.id, historico, {
-            role: "user",
-            whatsapp_message_id: msg.id,
-            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
-            content: texto || menuId || "",
-          });
-          return new Response("OK", { status: 200 });
-        }
+        // Só a equipe pode devolver uma conversa à IA.
+        await appendMensagem(conversa.id, historico, {
+          role: "user",
+          whatsapp_message_id: msg.id,
+          ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
+          content: texto || menuId || "",
+        });
+        return new Response("OK", { status: 200 });
       }
 
       // ── MODO TREINO: processa mensagens do treinador como instruções ──────

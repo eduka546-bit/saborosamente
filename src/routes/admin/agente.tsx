@@ -49,6 +49,7 @@ import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
 import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
+import { WhatsAppIAAssistant } from "@/components/admin/WhatsAppIAAssistant";
 import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
@@ -554,11 +555,11 @@ function AbaModulos({ dark }: { dark: boolean }) {
 }
 
 // ── Painel de Configurações ───────────────────────────────────────────────────
-function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: any) {
+function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, onToggleIA, togglingIA }: any) {
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook">("instrucoes");
+  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook" | "simulador">("simulador");
   const [uploading, setUploading] = useState(false);
   const [novoArquivo, setNovoArquivo] = useState({ nome: "", descricao: "", tipo: "imagem" });
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
@@ -706,6 +707,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
 
   const tabs = [
     { id: "instrucoes", label: "Instruções" },
+    { id: "simulador", label: "Testar IA" },
     { id: "modulos", label: "🧩 Módulos" },
     { id: "arquivos", label: "📎 Arquivos" },
     { id: "webhook", label: "Técnico" },
@@ -737,6 +739,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {tab === "simulador" && <WhatsAppIAAssistant dark={dark}/>}
         {/* ── Instruções ── */}
         {tab === "instrucoes" && config && (
           <>
@@ -750,7 +753,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose }: 
               </div>
               <Switch
                 checked={config.ativo}
-                onCheckedChange={(v) => setConfig({ ...config, ativo: v })}
+                disabled={togglingIA}
+                onCheckedChange={onToggleIA}
                 className="data-[state=checked]:bg-[#00a884]"
               />
             </div>
@@ -1225,6 +1229,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const responsavelOutro = !!estado.responsavel_id && estado.responsavel_id !== usuarioLogado?.id;
   const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
   const [msgText, setMsgText] = useState("");
+  const [assistenteAberto, setAssistenteAberto] = useState(false);
   const [salesDialog, setSalesDialog] = useState<{ mode: "catalog" | "order"; item?: CatalogOrderItem } | null>(null);
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
@@ -1356,7 +1361,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const telefoneNormalizado = String(conversa.telefone ?? "").replace(/\D/g, "");
   const telefoneBusca = telefoneNormalizado.startsWith("55") ? telefoneNormalizado.slice(2) : telefoneNormalizado;
   const somenteCampanha = conversa.somenteCampanha === true;
-  const isHumano = conversa.modo === "humano";
+  const isHumano = !iaAtiva || conversa.modo === "humano";
   const ultimaRespostaCliente = mensagensCompletas
     .filter((msg) => msg.role === "user" && msg.timestamp)
     .map((msg) => Date.parse(String(msg.timestamp)))
@@ -2153,6 +2158,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           </div>
         ) : (
           <div className="relative">
+            {!janela24hEncerrada && (
+              <div className="mb-2">
+                <button type="button" onClick={() => setAssistenteAberto(v => !v)} className="flex items-center gap-1 text-xs font-semibold text-[#00a884]">
+                  <Bot size={15}/> {assistenteAberto ? "Fechar assistente" : "Sugerir resposta com IA"}
+                </button>
+                {assistenteAberto && <div className="mt-2"><WhatsAppIAAssistant key={conversa.id} dark={dark}
+                  initialQuestion={String([...mensagensCompletas].reverse().find(m => m.role === "user")?.content ?? "")}
+                  onApply={texto => { setMsgText(atual => atual.trim() ? atual + "\n\n" + texto : texto); setAssistenteAberto(false); }}/></div>}
+              </div>
+            )}
             {janela24hEncerrada && (
               <div className={`mb-2 rounded-lg border px-3 py-2 text-xs ${dark ? "border-[#62512f] bg-[#2b271e] text-[#f8e1a6]" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
                 <p className="font-bold">Janela de 24 horas encerrada</p>
@@ -2249,7 +2264,8 @@ function AdminAgentePage() {
   useQuery({
     queryKey: ["agente-config"],
     queryFn: async () => {
-      const { data } = await supabase.from("agente_config").select("*").maybeSingle();
+      const { data, error } = await supabase.from("agente_config").select("*").single();
+      if (error) throw error;
       if (data) setConfig(data);
       return data;
     },
@@ -2365,12 +2381,12 @@ function AdminAgentePage() {
   const toggleAgenteMutation = useMutation({
     mutationFn: async (ativo: boolean) => {
       if (!config?.id) throw new Error("Configuração da IA não encontrada.");
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("agente_config")
         .update({ ativo, updated_at: new Date().toISOString() })
-        .eq("id", config.id);
+        .eq("id", config.id).select("ativo").single();
       if (error) throw error;
-      return ativo;
+      return data.ativo === true;
     },
     onSuccess: (ativo) => {
       setConfig((atual: any) => ({ ...atual, ativo }));
@@ -2379,6 +2395,11 @@ function AdminAgentePage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const alterarAtivacaoIA = (ativo: boolean) => {
+    if (ativo && !window.confirm("Ativar respostas automáticas? Faça isso somente após validar o simulador. Conversas em modo humano continuarão com a equipe.")) return;
+    toggleAgenteMutation.mutate(ativo);
+  };
 
   const toggleModoMutation = useMutation({
     mutationFn: async ({ id, modoAtual }: { id: string; modoAtual: string }) => {
@@ -2404,12 +2425,11 @@ function AdminAgentePage() {
       .update({
         nome_agente: config.nome_agente,
         system_prompt: config.system_prompt,
-        ativo: config.ativo,
         modo_treino: config.modo_treino ?? false,
         treinador_telefone: config.treinador_telefone ?? null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", config.id);
+      .eq("id", config.id).select("id").single();
     setSaving(false);
     if (error) toast.error(error.message);
     else {
@@ -2617,7 +2637,7 @@ function AdminAgentePage() {
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => toggleAgenteMutation.mutate(!config?.ativo)}
+              onClick={() => alterarAtivacaoIA(!config?.ativo)}
               disabled={!config || toggleAgenteMutation.isPending}
               className={`h-9 w-9 rounded-full grid place-items-center transition-all disabled:opacity-50 hover:bg-black/10 ${config?.ativo ? "text-[#00a884]" : "text-[#f0a202]"}`}
               title={config?.ativo ? "Pausar respostas da IA" : "Ativar respostas da IA"}
@@ -2741,7 +2761,7 @@ function AdminAgentePage() {
           ) : (
             filtered.map((c: any) => {
               const isActive = activeId === c.id;
-              const isHumano = c.modo === "humano";
+              const isHumano = !config?.ativo || c.modo === "humano";
               const isCampanha = c.somenteCampanha === true;
               const lastMsg = c.mensagens?.at(-1);
               const pendente = !isCampanha && precisaResponder(c);
@@ -2837,6 +2857,8 @@ function AdminAgentePage() {
             saveConfig={saveConfig}
             saving={saving}
             onClose={() => setShowConfig(false)}
+            onToggleIA={alterarAtivacaoIA}
+            togglingIA={toggleAgenteMutation.isPending}
           />
         ) : activeConversa ? (
           <ChatView
