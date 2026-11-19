@@ -44,6 +44,19 @@ describe("rascunho do pedido administrativo WhatsApp", () => {
     expect(lerRascunhoWhatsapp(store, key, 1000001)).toBeNull();
   });
 
+  it("isola o rascunho de cada conversa do WhatsApp e dos pedidos manuais", () => {
+    const a = whatsappDraftKey(undefined, undefined, undefined, "conversa-a");
+    const b = whatsappDraftKey(undefined, undefined, undefined, "conversa-b");
+    const store = memoria();
+    salvarRascunhoWhatsapp(store, a, { nome: "Cliente A", items: ["produto-a"] });
+    salvarRascunhoWhatsapp(store, b, { nome: "Cliente B", items: ["produto-b"] });
+    expect(lerRascunhoWhatsapp(store, a)).toEqual({ nome: "Cliente A", items: ["produto-a"] });
+    expect(lerRascunhoWhatsapp(store, b)).toEqual({ nome: "Cliente B", items: ["produto-b"] });
+    expect(lerRascunhoWhatsapp(store, whatsappDraftKey())).toBeNull();
+    limparRascunhoWhatsapp(store, a);
+    expect(lerRascunhoWhatsapp(store, b)).not.toBeNull();
+  });
+
   it("não derruba a tela quando o armazenamento está bloqueado ou corrompido", () => {
     const store = memoria();
     const key = whatsappDraftKey();

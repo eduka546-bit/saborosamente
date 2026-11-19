@@ -28,6 +28,7 @@ import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
+import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
   component: WhatsappAdminOrderPage,
@@ -175,9 +176,18 @@ const newKey = () =>
     : `${Date.now()}-${Math.random()}`;
 
 function WhatsappAdminOrderPage() {
-  const navigate = useNavigate();
   const { cliente: initialCustomerId, historico: initialHistoryId, carrinho: initialCartId } = Route.useSearch();
-  const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId, initialCartId);
+  return <WhatsappAdminOrderForm initialCustomerId={initialCustomerId} initialHistoryId={initialHistoryId} initialCartId={initialCartId} />;
+}
+
+export type OrderConversation = { id: string; nome: string; telefone: string };
+
+export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, initialCartId, conversation, catalogItem, onSaved, onSavingChange }: {
+  initialCustomerId?: string; initialHistoryId?: string; initialCartId?: string;
+  conversation?: OrderConversation; catalogItem?: CatalogOrderItem; onSaved?: () => void; onSavingChange?: (value: boolean) => void;
+}) {
+  const navigate = useNavigate();
+  const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId, initialCartId, conversation?.id);
   const draftRestauradoRef = useRef(false);
   const dadosEditadosRef = useRef(false);
   const pedidoSalvoRef = useRef(false);
@@ -185,10 +195,10 @@ function WhatsappAdminOrderPage() {
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
 
   const [pasteText, setPasteText] = useState("");
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
+  const [nome, setNome] = useState(conversation?.nome || "");
+  const [telefone, setTelefone] = useState(conversation?.telefone || "");
   const [email, setEmail] = useState("");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState(conversation?.telefone.replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "") || "");
   const [selectedCustomer, setSelectedCustomer] = useState<RegisteredCustomer | null>(null);
   const [salvarEnderecoCadastro, setSalvarEnderecoCadastro] = useState(false);
   const [metodoEntrega, setMetodoEntrega] = useState<"entrega" | "retirada">("entrega");
@@ -204,7 +214,7 @@ function WhatsappAdminOrderPage() {
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [observacao, setObservacao] = useState("");
   const [referencia, setReferencia] = useState("");
-  const [origemPedido, setOrigemPedido] = useState<"manual" | "whatsapp" | "pedidos10">("manual");
+  const [origemPedido, setOrigemPedido] = useState<"manual" | "whatsapp" | "pedidos10">(conversation ? "whatsapp" : "manual");
   const [comprovanteP10, setComprovanteP10] = useState<{ valorPago: number; valorAPagar: number; forma: string } | null>(null);
   const [declaredTotal, setDeclaredTotal] = useState<number | null>(null);
   const [saldoAnterior, setSaldoAnterior] = useState<number | null>(null);
@@ -344,6 +354,14 @@ function WhatsappAdminOrderPage() {
       setTotalConfirmado(salvo.totalConfirmado ?? null);
       setEnderecoOrigem(salvo.enderecoOrigem === "pedido" || salvo.enderecoOrigem === "cadastro" ? salvo.enderecoOrigem : null);
       toast.info("Rascunho do WhatsApp recuperado: itens e edições preservados.");
+    }
+    if (catalogItem) {
+      // O item só é acrescentado por uma ação explícita no catálogo. O mesmo
+      // rascunho contém as demais edições do pedido, sem sobrescrevê-las.
+      dadosEditadosRef.current = true;
+      const anteriores = Array.isArray(salvo?.items) ? salvo.items.filter(item => item && typeof item.productId === "string") : [];
+      setItems([...anteriores, { ...catalogItem, key: newKey(), observacao: "" }]);
+      setTotalConfirmado(null);
     }
     setDraftReadyKey(draftKey);
   }, [draftKey]);
@@ -844,13 +862,16 @@ function WhatsappAdminOrderPage() {
       } else if (recoveredCart && data?.carrinhoRecuperadoStatus === "nao_atualizado") {
         toast.warning("Pedido lançado, mas confirme o status do carrinho recuperado na lista.");
       }
-      navigate({ to: "/admin/pedidos" as any });
+      if (onSaved) onSaved();
+      else navigate({ to: "/admin/pedidos" as any });
     },
     onError: (error: any) => {
       recoverFromStaleServerFunction(error);
       toast.error(error?.message ?? "Não foi possível lançar o pedido.");
     },
   });
+
+  useEffect(() => { onSavingChange?.(createMutation.isPending); }, [createMutation.isPending, onSavingChange]);
 
   const canSubmit =
     nome.trim().length >= 2 &&
@@ -862,16 +883,16 @@ function WhatsappAdminOrderPage() {
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
-    <div className="p-4 md:p-6 max-w-[1400px] mx-auto min-h-screen"
+    <div className={`p-4 md:p-6 max-w-[1400px] mx-auto ${conversation ? "" : "min-h-screen"}`}
       onChangeCapture={() => { dadosEditadosRef.current = true; }}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <a
+          {!conversation && <a
             href="/admin/pedidos"
             className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#5850ec] mb-2"
           >
             <ArrowLeft size={16} /> Voltar para pedidos
-          </a>
+          </a>}
           <h1 className="text-2xl font-bold text-[#5850ec] flex items-center gap-2">
             <Smartphone size={24} /> Lançar Pedido
           </h1>
