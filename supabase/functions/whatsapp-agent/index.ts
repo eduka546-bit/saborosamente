@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { identificarAcaoMarketing, executarCardapioEMenu } from "../../../src/lib/whatsapp-marketing-replies.ts";
+import { identificarAcaoMarketing, executarCardapioEMenu, normalizarCTA } from "../../../src/lib/whatsapp-marketing-replies.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
@@ -2404,7 +2404,10 @@ Deno.serve(async (req: Request) => {
       }
 
       // Captura ID da opção selecionada (lista interativa ou botão)
-      const acaoMarketing = identificarAcaoMarketing(msg);
+      // Regras administrativas com opt-in, apenas para botões reais de template.
+      const regras = msg.button?.text ? await supabase.from("whatsapp_acoes_botoes")
+        .select("chave,acao,ativo").eq("chave", normalizarCTA(msg.button.text)).eq("ativo", true) : null;
+      const acaoMarketing = identificarAcaoMarketing(msg, regras?.data ?? []);
       const menuId =
         acaoMarketing ??
         msg.interactive?.list_reply?.id ??

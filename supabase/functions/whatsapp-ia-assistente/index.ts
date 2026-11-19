@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { montarFatosIA, perguntaSemIdentificadores, INSTRUCOES_ASSISTENTE_IA } from "../../../src/lib/whatsapp-ia-facts.ts";
+import { formatarTreinamentos } from "../../../src/lib/whatsapp-ia-training.ts";
+import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
+import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
+import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -27,23 +31,35 @@ Deno.serve(async (req) => {
       return json({ error: "Escreva uma pergunta de até 1.500 caracteres." }, 400);
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) return json({ error: "Chave da OpenAI não configurada." }, 503);
-    const [produtos, taxas, loja, grupos, ingredientes] = await Promise.all([
-      db.from("produtos").select("id,nome,descricao,ingredientes,tipo_produto,peso,categoria,preco,preco_300g,preco_400g,controle_estoque,estoque_200g,estoque_300g,estoque_400g,ativo,visivel_online,categorias(nome)").eq("ativo", true).eq("visivel_online", true).order("nome"),
+    const montarPedido = body?.modo === "pedido";
+    const [produtos, taxas, loja, grupos, ingredientes, treinos] = await Promise.all([
+      db.from("produtos").select("id,nome,descricao,ingredientes,tipo_produto,peso,categoria,preco,preco_300g,preco_400g,controle_estoque,estoque_200g,estoque_300g,estoque_400g,ativo,visivel_online,categorias(nome),tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g").eq("ativo", true).eq("visivel_online", true).order("nome"),
       db.from("delivery_rates").select("cidade,bairro,valor").eq("ativo", true).order("cidade").order("bairro"),
       db.from("site_settings").select("parametros_loja,endereco,horarios_funcionamento,payment_methods,meal_flags,card_flags,cashback_ativo,cashback_percentual,cashback_validade_dias,cashback_minimo_uso,cashback_limite_desconto_pct").single(),
       db.from("marmita_grupos").select("id,nome,ativo").eq("ativo", true),
       db.from("marmita_ingredientes").select("grupo_id,nome,modos_preparo,ativo").eq("ativo", true),
+      db.from("agente_treinamentos").select("pergunta,resposta,status").eq("status", "aprovado").order("created_at", { ascending: false }).limit(20),
     ]);
     if ([produtos, taxas, loja, grupos, ingredientes].some(r => r.error) || !loja.data)
       return json({ error: "Não consegui consultar os dados atuais da loja. Tente novamente." }, 503);
     const fatos = montarFatosIA(produtos.data ?? [], taxas.data ?? [], loja.data, grupos.data ?? [], ingredientes.data ?? []);
+    const precos = loja.data.parametros_loja?.precos_marmita;
+    const catalogoPedido = (produtos.data ?? []).map((p: any) => ({
+      productId: p.id, nome: p.nome, variantes: catalogVariants(p, normalizarPrecosMarmita(precos))
+        .filter(v => v.orderable).map(v => ({ weight: v.weight, tamanho: v.label, estoque: v.stock,
+          kcal: p["tabela_nutricional_"+v.weight]?.kcal ?? null, proteina: p["tabela_nutricional_"+v.weight]?.prot ?? null })),
+    })).filter(p => p.variantes.length);
+    const prompt = montarPedido
+      ? "Você prepara apenas rascunhos de pedido para revisão humana. Retorne JSON com itens (array de {productId, weight, quantity}) e pendencias (array de textos). Utilize somente IDs e tamanhos disponíveis no catálogo. Não adivinhe sabores, quantidade ou tamanho que não estejam explícitos: sinalize pendência. Se o cliente pedir uma sugestão de sabores, sugira somente produtos disponíveis e respeite a quantidade e tamanho informados. Para sugestões mais leves use apenas calorias cadastradas na gramatura pedida; se faltarem dados sinalize pendência. Não faça promessas nutricionais ou médicas, não considere preços ditos pelo cliente, não trate combos prontos/personalizadas como produtos avulsos. Não execute ações. Se não for pedido, retorne itens vazios. Catálogo JSON: " + JSON.stringify(catalogoPedido)
+      : INSTRUCOES_ASSISTENTE_IA + formatarTreinamentos(treinos.data ?? []) + "\nFATOS ATUAIS (JSON):\n" + JSON.stringify(fatos);
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
-        model: "gpt-4o-mini", temperature: 0.2, max_tokens: 450,
+        model: "gpt-4o-mini", temperature: 0.2, max_tokens: montarPedido ? 1500 : 450,
+        ...(montarPedido ? { response_format: { type: "json_object" } } : {}),
         messages: [
-          { role: "system", content: INSTRUCOES_ASSISTENTE_IA + "\nFATOS ATUAIS (JSON):\n" + JSON.stringify(fatos) },
+          { role: "system", content: prompt },
           { role: "user", content: perguntaSemIdentificadores(body.pergunta) },
         ],
       }),
@@ -57,6 +73,10 @@ Deno.serve(async (req) => {
     const result = await resp.json();
     const resposta = result.choices?.[0]?.message?.content?.trim();
     if (!resposta) return json({ error: "A IA não retornou uma resposta. Tente novamente." }, 503);
+    if (montarPedido) {
+      const raw = JSON.parse(resposta);
+      return json({ pedido: validarSugestaoPedido(raw, produtos.data ?? [], precos), consultadoEm: fatos.atualizadoEm });
+    }
     return json({ resposta, consultadoEm: fatos.atualizadoEm, produtos: fatos.catalogo.length, cidades: fatos.cidades.length });
   } catch {
     return json({ error: "Não foi possível gerar a sugestão. Verifique a conexão e tente novamente." }, 503);

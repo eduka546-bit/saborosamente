@@ -1,4 +1,4 @@
-const normalizarCTA = (value: unknown) => String(value ?? "")
+export const normalizarCTA = (value: unknown) => String(value ?? "")
   .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
   .replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -17,13 +17,26 @@ const ACOES: Record<string, string> = {
 
 // Ações exclusivamente identificadas em botões reais de templates/CTA.
 // Não interpreta texto livre ou "sim" ambíguo como pedido de cardápio.
-export function identificarAcaoMarketing(msg: any): string | null {
+export const ACOES_CONFIGURAVEIS = [
+  ["menu_cardapio", "Enviar cardápio e menu"],
+  ["menu_pedido", "Iniciar pedido com a equipe"],
+  ["menu_atendente", "Falar com atendente (cashback, repetir pedido, etc.)"],
+  ["menu_site", "Enviar link do site"],
+  ["duvida_como_funciona", "Como funciona"],
+  ["duvida_entrega", "Entrega e mínimo"],
+  ["duvida_pagamento", "Formas de pagamento"],
+  ["duvida_descontos", "Descontos"],
+] as const;
+export type RegraBotao = { chave: string; acao: string; ativo: boolean };
+export function identificarAcaoMarketing(msg: any, regras: RegraBotao[] = []): string | null {
   const botao = msg?.button ?? msg?.interactive?.button_reply;
   if (!botao) return null;
   const rotulo = normalizarCTA(botao.text ?? botao.title);
   const id = normalizarCTA(botao.payload ?? botao.id);
   // O rótulo recebido pelo cliente é prioritário; payloads podem ser IDs opacos.
   if (/^(nao|parar|sair|cancelar|stop)( |$)/.test(rotulo)) return null;
+  const custom = regras.find(r => r.ativo === true && r.chave === rotulo && ACOES_CONFIGURAVEIS.some(([acao]) => acao === r.acao));
+  if (custom) return custom.acao;
   return Object.hasOwn(ACOES, rotulo) ? ACOES[rotulo] : Object.hasOwn(ACOES, id) ? ACOES[id] : null;
 }
 
