@@ -2463,7 +2463,7 @@ function AdminAgentePage() {
     return msgs.length > 0 && msgs.every((m: any) => Boolean(m?.campaign_id) || m?.role === "system");
   };
   const conversasAtendimento = (conversas as any[]).filter((c) => !conversaSomenteMarketing(c));
-  const humanasCount = conversasAtendimento.filter((c) => c.modo === "humano" && temMensagemDoCliente(c)).length;
+  const humanasCount = conversasAtendimento.filter((c) => (!config?.ativo || c.modo === "humano") && temMensagemDoCliente(c)).length;
   const pendentesCount = (conversas as any[]).filter(precisaResponder).length;
   const respondidasCount = (conversas as any[]).filter(foiRespondida).length;
   const naoLida = (c: any) => {
@@ -2526,7 +2526,7 @@ function AdminAgentePage() {
       (filterModo === "nao_lidas" ? naoLida(c) :
        filterModo === "pendentes" ? precisaResponder(c) :
        filterModo === "respondidas" ? foiRespondida(c) :
-       filterModo === "humano" ? c.modo === "humano" && temMensagemDoCliente(c) :
+       filterModo === "humano" ? (!config?.ativo || c.modo === "humano") && temMensagemDoCliente(c) :
        c.modo === filterModo));
     const telefoneLimpo = String(c.telefone ?? "").replace(/\D/g, "");
     const nomeContato = nomesPorTelefone.get(telefoneLimpo) ?? "";
@@ -2889,7 +2889,7 @@ function AdminAgentePage() {
                 { label: "Falta responder", val: pendentesCount },
                 {
                   label: "Com IA",
-                  val: (conversas as any[]).filter((c: any) => c.modo === "ia").length,
+                  val: config?.ativo ? (conversas as any[]).filter((c: any) => c.modo === "ia").length : 0,
                 },
               ].map((s) => (
                 <div key={s.label}>
@@ -2906,6 +2906,14 @@ function AdminAgentePage() {
         )}
       </div>
 
+      {/* Mobile: simulador/configurações em fullscreen */}
+      {showConfig && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col">
+          <PainelConfig dark={dark} config={config} setConfig={setConfig} saveConfig={saveConfig}
+            saving={saving} onClose={() => setShowConfig(false)} onToggleIA={alterarAtivacaoIA}
+            togglingIA={toggleAgenteMutation.isPending}/>
+        </div>
+      )}
       {/* Mobile: chat em fullscreen */}
       {activeId && !showConfig && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col">
