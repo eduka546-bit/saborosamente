@@ -27,6 +27,8 @@ import {
   ChevronLeft,
   CheckCheck,
   Paperclip,
+  ShoppingCart,
+  Store,
   Smile,
   Plus,
   Pin,
@@ -46,6 +48,8 @@ import { juntarHistoricoWhatsApp, type InteracaoWhatsApp } from "@/lib/whatsapp-
 import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
 import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
+import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
+import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
 export const Route = createFileRoute("/admin/agente")({
@@ -1221,6 +1225,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const responsavelOutro = !!estado.responsavel_id && estado.responsavel_id !== usuarioLogado?.id;
   const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
   const [msgText, setMsgText] = useState("");
+  const [salesDialog, setSalesDialog] = useState<{ mode: "catalog" | "order"; item?: CatalogOrderItem } | null>(null);
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
   const [enviandoModelo, setEnviandoModelo] = useState(false);
@@ -1624,6 +1629,17 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
     if (anexoInputRef.current) anexoInputRef.current.value = "";
   };
 
+  const prepararProduto = (text: string, photo?: File) => {
+    if (!isHumano || janela24hEncerrada || responsavelOutro || sending) return false;
+    if (anexoFile || msgText.trim()) {
+      toast.info("Envie ou limpe a mensagem em edição antes de preparar um produto.");
+      return false;
+    }
+    if (photo) selecionarAnexo(photo);
+    setMsgText(text);
+    return true;
+  };
+
   const enviarModeloAprovado = async () => {
     if (enviandoModelo || responsavelOutro || !modeloAtual || !confirmouAutorizacao) return;
     setEnviandoModelo(true);
@@ -1877,7 +1893,9 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       </div>
 
       {!somenteCampanha && (
-        <div className="shrink-0 px-4 pt-2 flex justify-end">
+        <div className="shrink-0 px-4 pt-2 flex flex-wrap items-center gap-2 justify-end">
+          <button onClick={() => setSalesDialog({mode: "catalog"})} className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${t.text} hover:bg-black/10`}><Store size={15}/> Catálogo</button>
+          <button onClick={() => setSalesDialog({mode: "order"})} disabled={responsavelOutro} className="flex gap-1 items-center rounded-lg bg-[#008069] text-white px-2 py-1.5 text-xs font-semibold disabled:opacity-50"><ShoppingCart size={15}/> Lançar pedido</button>
           <WhatsAppBusinessDetails key={conversa.id} conversa={conversa} estado={estado}
             etiquetas={business.etiquetas} equipe={business.equipe} dark={dark}
             onPatch={(mudancas) => business.atualizar.mutate({ id: conversa.id, mudancas })}
@@ -1895,6 +1913,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           />
         </div>
       )}
+      {salesDialog && <WhatsAppOrderDialog mode={salesDialog.mode} conversation={{ id: conversa.id, nome: conversa.nome || "", telefone: String(conversa.telefone || "") }} catalogItem={salesDialog.item} canShare={isHumano && !janela24hEncerrada && !responsavelOutro && !sending} onClose={() => setSalesDialog(null)} onShare={prepararProduto} onOrder={(item) => {
+        if (responsavelOutro) { toast.error("Transfira o atendimento antes de lançar o pedido."); return; }
+        setSalesDialog({mode: "order", item});
+      }} onSaved={() => {
+        setSalesDialog(null);
+        void queryClient.invalidateQueries({ queryKey: ["whatsapp-contexto-cliente", telefoneBusca] });
+        void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+        void queryClient.invalidateQueries({ queryKey: ["whatsapp-public-catalog"] });
+        void queryClient.invalidateQueries({ queryKey: ["whatsapp-admin-products"] });
+      }}/>}
       {!somenteCampanha && (isHumano || pedidoEmAndamento || carrinhoAtivo || resumoEquipe) && (
         <div className={`mx-4 mt-2 rounded-lg border px-3 py-2 ${dark ? "border-[#25343c] bg-[#111b21]/90" : "border-[#dfe3e5] bg-white/95"}`}>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -2812,6 +2840,7 @@ function AdminAgentePage() {
           />
         ) : activeConversa ? (
           <ChatView
+            key={activeConversa.id}
             conversa={activeConversa}
              business={business}
              iaAtiva={config?.ativo === true}
@@ -2860,6 +2889,7 @@ function AdminAgentePage() {
         <div className="md:hidden fixed inset-0 z-50 flex flex-col">
           {activeConversa && (
             <ChatView
+              key={activeConversa.id}
               conversa={activeConversa}
              business={business}
              iaAtiva={config?.ativo === true}
