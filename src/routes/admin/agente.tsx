@@ -50,6 +50,7 @@ import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/What
 import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
 import { WhatsAppIAAssistant } from "@/components/admin/WhatsAppIAAssistant";
+import { WhatsAppCampaignActions, WhatsAppTrainingCenter } from "@/components/admin/WhatsAppIASettings";
 import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
 
@@ -559,7 +560,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook" | "simulador">("simulador");
+  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook" | "simulador" | "treinamento" | "botoes">("simulador");
   const [uploading, setUploading] = useState(false);
   const [novoArquivo, setNovoArquivo] = useState({ nome: "", descricao: "", tipo: "imagem" });
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
@@ -708,6 +709,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
   const tabs = [
     { id: "instrucoes", label: "Instruções" },
     { id: "simulador", label: "Testar IA" },
+    { id: "treinamento", label: "Treinamento" },
+    { id: "botoes", label: "Botões de campanha" },
     { id: "modulos", label: "🧩 Módulos" },
     { id: "arquivos", label: "📎 Arquivos" },
     { id: "webhook", label: "Técnico" },
@@ -724,12 +727,12 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
       </div>
 
       {/* Tabs */}
-      <div className={`flex border-b ${t.divider} shrink-0`}>
+      <div className={`flex flex-wrap border-b ${t.divider} shrink-0`}>
         {tabs.map((tb) => (
           <button
             key={tb.id}
             onClick={() => setTab(tb.id)}
-            className={`flex-1 py-3 text-xs font-semibold transition-all ${
+            className={`flex-1 min-w-[85px] px-2 py-3 text-xs font-semibold transition-all ${
               tab === tb.id ? "border-b-2 border-[#00a884] text-[#00a884]" : t.textSub
             }`}
           >
@@ -740,6 +743,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {tab === "simulador" && <WhatsAppIAAssistant dark={dark}/>}
+        {tab === "treinamento" && <WhatsAppTrainingCenter/>}
+        {tab === "botoes" && <WhatsAppCampaignActions/>}
         {/* ── Instruções ── */}
         {tab === "instrucoes" && config && (
           <>
@@ -1230,7 +1235,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
   const [msgText, setMsgText] = useState("");
   const [assistenteAberto, setAssistenteAberto] = useState(false);
-  const [salesDialog, setSalesDialog] = useState<{ mode: "catalog" | "order"; item?: CatalogOrderItem } | null>(null);
+  const [salesDialog, setSalesDialog] = useState<{ mode: "catalog" | "order"; item?: CatalogOrderItem; items?: CatalogOrderItem[] } | null>(null);
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
   const [enviandoModelo, setEnviandoModelo] = useState(false);
@@ -1918,7 +1923,7 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           />
         </div>
       )}
-      {salesDialog && <WhatsAppOrderDialog mode={salesDialog.mode} conversation={{ id: conversa.id, nome: conversa.nome || "", telefone: String(conversa.telefone || "") }} catalogItem={salesDialog.item} canShare={isHumano && !janela24hEncerrada && !responsavelOutro && !sending} onClose={() => setSalesDialog(null)} onShare={prepararProduto} onOrder={(item) => {
+      {salesDialog && <WhatsAppOrderDialog mode={salesDialog.mode} conversation={{ id: conversa.id, nome: conversa.nome || "", telefone: String(conversa.telefone || "") }} catalogItem={salesDialog.item} catalogItems={salesDialog.items} canShare={isHumano && !janela24hEncerrada && !responsavelOutro && !sending} onClose={() => setSalesDialog(null)} onShare={prepararProduto} onOrder={(item) => {
         if (responsavelOutro) { toast.error("Transfira o atendimento antes de lançar o pedido."); return; }
         setSalesDialog({mode: "order", item});
       }} onSaved={() => {
@@ -2165,7 +2170,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
                 </button>
                 {assistenteAberto && <div className="mt-2"><WhatsAppIAAssistant key={conversa.id} dark={dark}
                   initialQuestion={String([...mensagensCompletas].reverse().find(m => m.role === "user")?.content ?? "")}
-                  onApply={texto => { setMsgText(atual => atual.trim() ? atual + "\n\n" + texto : texto); setAssistenteAberto(false); }}/></div>}
+                  onApply={texto => { setMsgText(atual => atual.trim() ? atual + "\n\n" + texto : texto); setAssistenteAberto(false); }}
+                  onOrder={items => { if(responsavelOutro||!isHumano){toast.error("Assuma o atendimento antes de montar o pedido.");return;} setSalesDialog({mode:"order",items});setAssistenteAberto(false); }}/></div>}
               </div>
             )}
             {janela24hEncerrada && (

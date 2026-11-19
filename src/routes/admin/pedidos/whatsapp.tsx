@@ -182,9 +182,9 @@ function WhatsappAdminOrderPage() {
 
 export type OrderConversation = { id: string; nome: string; telefone: string };
 
-export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, initialCartId, conversation, catalogItem, onSaved, onSavingChange }: {
+export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, initialCartId, conversation, catalogItem, catalogItems, onSaved, onSavingChange }: {
   initialCustomerId?: string; initialHistoryId?: string; initialCartId?: string;
-  conversation?: OrderConversation; catalogItem?: CatalogOrderItem; onSaved?: () => void; onSavingChange?: (value: boolean) => void;
+  conversation?: OrderConversation; catalogItem?: CatalogOrderItem; catalogItems?: CatalogOrderItem[]; onSaved?: () => void; onSavingChange?: (value: boolean) => void;
 }) {
   const navigate = useNavigate();
   const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId, initialCartId, conversation?.id);
@@ -355,12 +355,13 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       setEnderecoOrigem(salvo.enderecoOrigem === "pedido" || salvo.enderecoOrigem === "cadastro" ? salvo.enderecoOrigem : null);
       toast.info("Rascunho do WhatsApp recuperado: itens e edições preservados.");
     }
-    if (catalogItem) {
+    const novosCatalogo = catalogItems ?? (catalogItem ? [catalogItem] : []);
+    if (novosCatalogo.length) {
       // O item só é acrescentado por uma ação explícita no catálogo. O mesmo
       // rascunho contém as demais edições do pedido, sem sobrescrevê-las.
       dadosEditadosRef.current = true;
       const anteriores = Array.isArray(salvo?.items) ? salvo.items.filter(item => item && typeof item.productId === "string") : [];
-      setItems([...anteriores, { ...catalogItem, key: newKey(), observacao: "" }]);
+      setItems([...anteriores, ...novosCatalogo.map(item=>({ ...item, key: newKey(), observacao: "" }))]);
       setTotalConfirmado(null);
     }
     setDraftReadyKey(draftKey);
