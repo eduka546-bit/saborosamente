@@ -187,19 +187,25 @@ export function completarSaboresSemCodigoP10(
   const recibo = parseP10Receipt(texto);
   const qtdAtual = pedido.itens.reduce((n, i) => n + i.quantidade, 0);
   const qtdRecibo = recibo.itens.reduce((n, i) => n + i.quantidade, 0);
-  if (qtdRecibo <= qtdAtual) return pedido;
+  if (recibo.divergenciasQuantidade.length) throw new Error("P10: " + recibo.divergenciasQuantidade.join(" "));
+  // O leitor principal já interpretou os códigos explícitos. Reprocessar
+  // também quando há nomes sem código ou pratos avulsos, mesmo em cupons mistos.
+  if (qtdRecibo <= qtdAtual && !recibo.itens.some(item => !item.codigo)) return pedido;
+  if (qtdRecibo < qtdAtual) throw new Error("P10: não foi possível reconciliar todos os sabores do comprovante. Confira antes de salvar.");
   if (qtdRecibo > 200 || recibo.itens.length > 100) throw new Error("Comprovante P10 com quantidade excessiva; confira os itens.");
 
-  const resolvidos = recibo.itens.map(item => {
+  const naoIdentificados: string[] = [];
+  const resolvidos = recibo.itens.flatMap(item => {
     const produto = encontrarProdutoP10(item, produtos);
-    if (!produto) throw new Error("P10: não consegui identificar o sabor " + item.nome + ". Confira o código ou cadastre o produto.");
-    const encontrado = produto.nome.match(/\b(TD|SO|CO)\s*0*(\d+)\b/i);
+    if (!produto) { naoIdentificados.push(item.nome || item.codigo); return []; }
+    const encontrado = (produto.nome + " " + (produto.codigo_integracao ?? "")).match(/\b(TD|SO|CO)\s*0*(\d+)\b/i);
     const codigo = encontrado ? encontrado[1].toUpperCase() + encontrado[2].padStart(2, "0") : item.codigo;
     if (!codigo) throw new Error("P10: produto sem código no catálogo: " + produto.nome);
     const tamanho = (codigo.startsWith("CO") ? "200g"
       : codigo.startsWith("SO") ? "400g" : /^(200|300|400)g$/.test(item.tamanho) ? item.tamanho : "300g") as PesoPedido;
-    return { codigo, quantidade: item.quantidade, peso: tamanho };
+    return [{ codigo, quantidade: item.quantidade, peso: tamanho }];
   });
+  if (naoIdentificados.length) throw new Error("P10: sabores não identificados com segurança: " + naoIdentificados.join("; ") + ". Confira os nomes/códigos antes de lançar.");
 
   const totalRef = pedido.subtotalDeclarado ??
     (pedido.totalPedido !== null ? pedido.totalPedido - (pedido.taxaEntrega ?? 0) : null);
@@ -212,7 +218,10 @@ export function completarSaboresSemCodigoP10(
     quantidades.set(item.codigo, (quantidades.get(item.codigo) ?? 0) + item.quantidade);
     for (let i = 0; i < item.quantidade; i++) {
       const precoUnitario = totalCentavos === null ? null : (base + (extra-- > 0 ? 1 : 0)) / 100;
-      detalhados.push({
+      const anterior = detalhados.at(-1);
+      if (anterior && anterior.codigo === item.codigo && anterior.peso === item.peso && anterior.precoUnitario === precoUnitario) {
+        anterior.quantidade++;
+      } else detalhados.push({
         codigo: item.codigo, quantidade: 1, peso: item.peso, precoUnitario,
         pesoExibicao: item.codigo.startsWith("CO") ? "150g" : item.peso,
       });
@@ -224,7 +233,7 @@ export function completarSaboresSemCodigoP10(
     itens: [...quantidades].map(([codigo, quantidade]) => ({ codigo, quantidade })),
     itensDetalhados: detalhados,
     quantidadeDeclarada: qtdRecibo,
-    avisos: [...pedido.avisos.filter(aviso => !aviso.includes("não foi possível encontrar os códigos")), "Pedidos10: sabores sem código reconhecidos por nome; confira os vínculos antes de salvar."],
+    avisos: [...pedido.avisos.filter(aviso => !aviso.includes("não foi possível encontrar os códigos") && !aviso.includes("verifique a quantidade informada no combo")), ...(entrieCountInvalid(texto.split(/\r?\n/).map(l => l.trim()), qtdRecibo) ? ["Pedidos10: verifique a quantidade informada no combo e os sabores identificados."] : []), "Pedidos10: sabores sem código reconhecidos por nome; confira os vínculos antes de salvar."],
   };
 }
 
