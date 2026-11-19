@@ -174,3 +174,90 @@ describe("Comprovantes P10 colados no WhatsApp", () => {
   });
 
 });
+
+
+describe("reconhecimento inteligente de sabores P10", () => {
+  const catalogo = [
+  "CO01 - Frango Desfiado 150g",
+  "CO02 - Frango Americano 150g",
+  "CO03 - Frango Ensopado 150g",
+  "CO04 - Tiras de Carne de Patinho 150g",
+  "CO05 - Carne Moída de Patinho à Bolonhesa 150g",
+  "CO06 - Carne de Panela 150g",
+  "SO01 - Sopa de Frango com Legumes",
+  "SO02 - Sopa de Carne com Legumes",
+  "SO03 - Sopa de Legumes",
+  "SO04 - Sopa de Feijão com Macarrão (Minestra)",
+  "SO05 - Sopa de Bucho",
+  "SO06 - Canja de Galinha com Arroz",
+  "SO07 - Creme de Abóbora Cabotia com Carne Desfiada",
+  "SO08 - Creme de Mandioquinha com Frango e Bacon",
+  "SO09 - Creme de Batata Inglesa com Carne Desfiada",
+  "SO10 - Caldo de Aipim com Carne Moída",
+  "SO11 - Caldo Verde Português",
+  "SO12 - Caldo de Peixe (Tilápia)",
+  "TD01 - Tiras de Alcatra ao Molho Madeira e Arroz com Brócolis",
+  "TD02 - Almôndegas ao Molho Sugo com Arroz e Batata Rústica",
+  "TD03 - Nhoque de Batata ao Molho Bolonhesa com Carne Moída de Patinho",
+  "TD04 - Vaca Atolada (Carne de Panela com Aipim)",
+  "TD05 - Arroz Carreteiro com Carne de Patinho Desfiada, Bacon e Calabresa",
+  "TD06 - Frango Grelhado ao Molho Sugo com Arroz e Brócolis",
+  "TD07 - Sobrecoxa Ensopada com Purê de Aipim",
+  "TD08 - Parmegiana de Frango com Arroz e Batata Rústica",
+  "TD09 - Parmegiana de Carne com Arroz e Batata Rústica",
+  "TD10 - Estrogonofe de Frango com Arroz Branco e Legumes",
+  "TD11 - Estrogonofe de Carne com Arroz Branco e Legumes",
+  "TD12 - Escondidinho de Frango com Batata Inglesa e Queijo",
+  "TD13 - Escondidinho de Patinho com Batata Inglesa e Queijo",
+  "TD14 - Filé de Tilápia Assada com Tomate e Purê de Batata Doce ao Molho Pesto",
+  "TD15 - Feijoada com Arroz e Couve Mineira",
+  "TD16 - Tiras de Bife ao Molho com Arroz Branco e Feijão Preto",
+  "TD17 - Frango Empanado Americano com Arroz e Feijão",
+  "TD18 - Patinho Moído à Bolonhesa com Arroz e Feijão Preto",
+  "TD19 - Lasanha de Frango",
+  "TD20 - Lasanha de Carne Moída de Patinho à Bolonhesa",
+  "TD21 - Panqueca de Frango com Queijo",
+  "TD22 - Panqueca de Carne com Queijo a Bolonhesa",
+  "TD23 - Macarrão Penne na Manteiga com Frango Grelhado ao Creme",
+  "TD24 - Espaguete à Carbonara com Ovos Mexidos e Bacon",
+  "TD25 - Espaguete com Almôndegas com Queijo à Bolonhesa",
+  "TD26 - Macarrão Talharim com Carne Moída de Patinho à Bolonhesa",
+  "TD27 - Macarrão Penne ao Molho 4 Queijos com Bacon e Calabresa",
+  "TD28 - Macarrão Penne alla Creme com Tiras de Alcatra"
+].map((nome, id) => ({ id: String(id), nome }));
+  const cupom = "Cliente: Cliente de Teste\nFone: (47)99999-0000\nF. ENTREGA: ENTREGA EM CASA (60m)(12:38)\nEndereco: AVENIDA EXEMPLO\nNumero: 397\nComplem.: CONSTRUCAO\nBairro: CENTRO / SaO BENTO DO SUL\nReferencia: AO LADO DA LOJA\nQtd  Descricao             V.Uni V.Total\n1    COMBO PRATOS MAIS     225,00 225,00\n     VENDIDOS - 10UN\n     TAMANHO\n     * 10 Refeicoes 400g G\n     ESCOLHA\n     ++ Alcatra ao Molho Madeira com\n     Arroz e Brocolis\n     ++ 2x File de Tilapia e Tomate\n     Seco com Pure de Batata Doce ao\n     Molho Pesto\n     ++ Parmegiana de Frango com Arroz\n     e Batata Rustica\n     ++ 2x Escondidinho de Carne Moida\n     de Patinho com Batata Inglesa\n     ++ 2x Estrogonofe de Frango com\n     Arroz e Brocolis\n     ++ 2x Talharim com Carne\n     Moida de Patinho a Bolonhesa\nTotal Itens: 225,00\nTx. Entrega: 12,00\nTOTAL PEDIDO: 237,00\nTOTAL PAGO: 237,00\nTOTAL A PAGAR: 0,00\nF. PAGAMENTO.: PAGAMENTO ONLINE";
+  it("identifica os seis sabores históricos e as dez refeições de 400g do combo de 225 reais", () => {
+    const p = completarSaboresSemCodigoP10(cupom, interpretarResumoWhatsapp(cupom), catalogo);
+    expect(p.itens).toEqual([
+      {codigo:"TD01",quantidade:1},{codigo:"TD14",quantidade:2},
+      {codigo:"TD08",quantidade:1},{codigo:"TD13",quantidade:2},
+      {codigo:"TD10",quantidade:2},{codigo:"TD26",quantidade:2},
+    ]);
+    expect(p.itensDetalhados).toHaveLength(6);
+    expect(p.itensDetalhados.every(i => i.peso === "400g" && i.precoUnitario === 22.5)).toBe(true);
+    expect(p.quantidadeDeclarada).toBe(10);
+    expect(p.totalPedido).toBe(237);
+    expect(p.taxaEntrega).toBe(12);
+    expect(p.pagamento).toBe("online_pago");
+    expect(p.valorPago).toBe(237);
+  });
+  it("não aceita combo com quantidades incompletas", () => {
+    const incompleto = cupom.replace("2x Talharim", "1x Talharim");
+    expect(() => completarSaboresSemCodigoP10(incompleto, interpretarResumoWhatsapp(incompleto), catalogo)).toThrow(/declara 10 refeições, mas contém 9/);
+  });
+  it("não adivinha o sabor quando falta a proteína", () => {
+    const ambiguo = cupom.replace("Estrogonofe de Frango", "Estrogonofe");
+    expect(() => completarSaboresSemCodigoP10(ambiguo, interpretarResumoWhatsapp(ambiguo), catalogo)).toThrow(/sabores não identificados com segurança/);
+  });
+  it("reconhece variantes do nome mantendo carne e frango separados", () => {
+    const variante = cupom.replace("Estrogonofe de Frango", "Strogonoff de Carne");
+    const p = completarSaboresSemCodigoP10(variante, interpretarResumoWhatsapp(variante), catalogo);
+    expect(p.itens.find(i => i.codigo === "TD11")?.quantidade).toBe(2);
+    expect(p.itens.some(i => i.codigo === "TD10")).toBe(false);
+  });
+  it("reconhece grafia aproximada com forte evidência de identidade", () => {
+    const variante = cupom.replace("Escondidinho de Carne Moida\n     de Patinho com Batata Inglesa", "Escondidnho de Patinho com Batata Inglesa e Queijo");
+    const p = completarSaboresSemCodigoP10(variante, interpretarResumoWhatsapp(variante), catalogo);
+    expect(p.itens.find(i => i.codigo === "TD13")?.quantidade).toBe(2);
+  });
+});

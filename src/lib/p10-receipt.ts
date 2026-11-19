@@ -81,6 +81,7 @@ export function parseP10Receipt(texto: string): {
   total: number;
   taxa: number;
   quantidadeEsperada: number | null;
+  divergenciasQuantidade: string[];
 } {
   const linhas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const campo = (regex: RegExp) =>
@@ -111,11 +112,13 @@ export function parseP10Receipt(texto: string): {
   let escolha = "";
   let secao: "nenhuma" | "sabor" | "servir" = "nenhuma";
   let quantidadeEsperada: number | null = null;
+  let inicioGrupo = 0;
+  const divergenciasQuantidade: string[] = [];
 
   function incluir(textoItem: string, quantidade: number, tamanhoPadrao: string) {
     const nome = textoItem.trim().replace(/^[+*\s]+/, "");
     if (!nome) return;
-    const matchQtd = nome.match(/^(\d+)\s*x\s+/i);
+    const matchQtd = nome.match(/^(\d+)\s*[x×]\s*(?=\S)/i);
     const qtd = matchQtd ? Number(matchQtd[1]) * quantidade : quantidade;
     const semQtd = matchQtd ? nome.slice(matchQtd[0].length) : nome;
     const codigo = codigoCanonico(semQtd);
@@ -140,6 +143,10 @@ export function parseP10Receipt(texto: string): {
         !/\b(combo|tradicional\s*[gmp]|sopa\s*\(?(?:400|300)\s*g)/i.test(descricaoGrupo)) {
       incluir(descricaoGrupo, quantidadeGrupo, tamanhoGrupo);
     }
+    if (grupoAberto && quantidadeEsperada !== null) {
+      const lidos = itens.slice(inicioGrupo).reduce((sum, item) => sum + item.quantidade, 0);
+      if (lidos !== quantidadeEsperada) divergenciasQuantidade.push(`Combo declara ${quantidadeEsperada} refeições, mas contém ${lidos} sabores. Confira o comprovante.`);
+    }
     grupoAberto = false;
     descricaoGrupo = "";
     temEscolhas = false;
@@ -159,12 +166,14 @@ export function parseP10Receipt(texto: string): {
     const produto = linhaProduto.match(/^(\d+)\s+(.+?)\s+\d[\d.,]*\s+\d[\d.,]*$/);
     if (produto) {
       finalizarGrupo();
+      inicioGrupo = itens.length;
       quantidadeGrupo = Number(produto[1]);
       descricaoGrupo = produto[2].trim();
       grupoAberto = true;
       const tamanhoNoTitulo = descricaoGrupo.match(tamanhos)?.[1];
       tamanhoGrupo = tamanhoNoTitulo ? tamanhoNoTitulo + "g" : "300g";
-      quantidadeEsperada = null;
+      const qtdTitulo = /combo/i.test(descricaoGrupo) && descricaoGrupo.match(/(?:-|\b)(\d+)\s*un(?:idades?)?\b/i);
+      quantidadeEsperada = qtdTitulo && !/\d+\s+a\s+\d+\s+un/i.test(descricaoGrupo) ? Number(qtdTitulo[1]) * quantidadeGrupo : null;
       continue;
     }
 
@@ -192,14 +201,14 @@ export function parseP10Receipt(texto: string): {
       secao = "servir";
       continue;
     }
-    const qtdCombo = linha.match(/(?:-|\b)(\d+)\s*un\b/i);
-    if (qtdCombo && /combo/i.test(descricaoGrupo) && quantidadeEsperada === null) {
+    const qtdCombo = linha.match(/(?:-|\b)(\d+)\s*un(?:idades?)?\b/i);
+    if (qtdCombo && !/\d+\s+a\s+\d+\s+un/i.test(linha) && /combo/i.test(descricaoGrupo) && quantidadeEsperada === null) {
       quantidadeEsperada = Number(qtdCombo[1]) * quantidadeGrupo;
     }
 
     // As opções do combo podem ocupar várias linhas e começam por "++".
     const novaEscolha = linha.match(/^\+\+\s*(.*)$/);
-    const escolhaCodificada = linha.match(/^\*\s*((?:\d+\s*x\s*)?(?:TD|SO|CO)\s*\d+.*)$/i);
+    const escolhaCodificada = linha.match(/^\*\s*((?:\d+\s*[x×]\s*)?(?:TD|SO|CO)\s*\d+.*)$/i);
     if (novaEscolha || escolhaCodificada) {
       if (secao === "servir") continue;
       finalizarEscolha();
@@ -224,27 +233,56 @@ export function parseP10Receipt(texto: string): {
     total: dinheiro(campo(/^total\s*pedido\s*:\s*(.*)$/i)),
     taxa: dinheiro(campo(/^(?:tx\.?\s*entrega|taxa\s*de?\s*entrega)\s*:\s*(.*)$/i)),
     quantidadeEsperada,
+    divergenciasQuantidade,
   };
 }
 
 // Abreviações e nomes comerciais que não são idênticos ao nome técnico do catálogo.
 // A correspondência por código só funciona se o produto existir e estiver ativo.
+// Nomes históricos do P10 podem manter acompanhamentos antigos. Identificamos
+// o prato e a proteína juntos, jamais apenas "arroz", "frango" ou "carne".
 function codigoPorApelido(s: string): string {
-  const n = normalizar(s);
-  if (/alcatra.*madeira/.test(n)) return "TD01";
-  if (/tilapia.*(?:pesto|batata doce|tomate seco)/.test(n)) return "TD14";
-  if (/lasanha.*carne/.test(n)) return "TD20";
-  if (/talharim.*(?:bolonhesa|carne moida|patinho)/.test(n)) return "TD26";
-  if (/parmegiana.*frango/.test(n)) return "TD08";
+  const n = normalizar(s).replace(/\b(?:strogonoff|strogonofe|estrogonoff)\b/g, "estrogonofe")
+    .replace(/\b(?:parmesiana|parmegiana|parmigiana)\b/g, "parmegiana");
+  const frango = /\b(?:frango|galinha)\b/.test(n);
+  const bovino = /\b(?:carne|patinho|bovina|bovino)\b/.test(n);
+  const familia = (nome: string, f: string, b: string) =>
+    new RegExp("\\b" + nome + "\\b").test(n) && frango !== bovino ? (frango ? f : b) : "";
+  const porFamilia = familia("estrogonofe", "TD10", "TD11") ||
+    familia("escondidinho", "TD12", "TD13") ||
+    familia("parmegiana", "TD08", "TD09") ||
+    familia("lasanha", "TD19", "TD20") ||
+    familia("panqueca", "TD21", "TD22");
+  if (porFamilia) return porFamilia;
+  if (/\balcatra\b.*\bmadeira\b/.test(n)) return "TD01";
+  if (/\btilapia\b.*\b(?:pesto|batata doce|tomate seco)\b/.test(n) && !/\b(?:sopa|caldo)\b/.test(n)) return "TD14";
+  if (/\btalharim\b.*\b(?:bolonhesa|carne moida|patinho)\b/.test(n) && !frango) return "TD26";
   return "";
 }
 
 const comuns = new Set(["de", "do", "da", "dos", "das", "ao", "a", "o", "e", "com", "na", "no", "em", "um", "uma"]);
+const acompanhamento = new Set(["arroz", "branco", "brocolis", "legumes", "batata", "rustica", "inglesa", "pure", "queijo", "molho", "tomate"]);
+const discriminantes = new Set(["frango", "carne", "patinho", "alcatra", "tilapia", "bife", "bacon", "calabresa", "sugo", "madeira", "pesto", "carbonara", "bolonhesa", "penne", "talharim", "espaguete", "nhoque", "lasanha", "panqueca", "estrogonofe", "escondidinho", "parmegiana"]);
 function tokens(s: string): Set<string> {
-  return new Set(normalizar(s.replace(/^\s*(?:TD|SO|CO)\d+\s*[-–]?/i, ""))
+  return new Set(normalizar(s.replace(/^\s*(?:TD|SO|CO)\d+\s*[-–]?/i, "").replace(tamanhos, ""))
+    .replace(/\b(?:strogonoff|strogonofe|estrogonoff)\b/g, "estrogonofe")
+    .replace(/\b(?:parmesiana|parmigiana)\b/g, "parmegiana")
     .split(" ").filter(t => t.length > 2 && !comuns.has(t)));
 }
-
+// Aceita uma letra trocada/inserida/ausente, mas nunca aproxima palavras
+// curtas nem substitui um ingrediente distintivo por outro.
+function erroDeDigitacao(a: string, b: string): boolean {
+  if (Math.min(a.length, b.length) < 5 || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, erros = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++erros > 1) return false;
+    if (a.length >= b.length) i++;
+    if (b.length >= a.length) j++;
+  }
+  return erros + (a.length - i) + (b.length - j) <= 1;
+}
+const pesoToken = (t: string) => discriminantes.has(t) ? 3 : acompanhamento.has(t) ? 0.6 : 1.5;
 export function encontrarProdutoP10(item: P10Item, produtos: P10Produto[]): P10Produto | undefined {
   // Erro conhecido do Pedidos10: comprovantes antigos trazem CO07
   // para Carne de Panela 150g. O produto correto do nosso catálogo é CO06.
@@ -264,16 +302,27 @@ export function encontrarProdutoP10(item: P10Item, produtos: P10Produto[]): P10P
   }
 
   const procurar = tokens(item.nome);
+  if (procurar.has("frango") && ["carne", "patinho", "bovina", "bovino"].some(t => procurar.has(t)) &&
+      ["estrogonofe", "escondidinho", "parmegiana", "lasanha", "panqueca"].some(t => procurar.has(t))) return undefined;
   if (procurar.size < 2) return undefined;
-  const candidatos = produtos.map(produto => {
+  const candidatos = produtos.filter(produto => !!codigoCanonico(produto.codigo_integracao || produto.nome)).map(produto => {
     const cadastrado = tokens(produto.nome);
-    const comuns = [...procurar].filter(t => cadastrado.has(t)).length;
-    const cobertura = comuns / procurar.size;
-    const dice = (2 * comuns) / (procurar.size + cadastrado.size || 1);
-    return { produto, pontuacao: 0.65 * cobertura + 0.35 * dice };
+    const correspondencias = [...procurar].map(t => {
+      if (cadastrado.has(t)) return { t, grau: 1 };
+      const aproximado = [...cadastrado].some(c => !discriminantes.has(t) && erroDeDigitacao(t, c));
+      return { t, grau: aproximado ? 0.8 : 0 };
+    });
+    // Evita trocar uma proteína ou massa mencionada expressamente por outra.
+    const contradicao = correspondencias.some(({ t, grau }) =>
+      discriminantes.has(t) && grau === 0 && !((t === "carne" && cadastrado.has("patinho")) || (t === "patinho" && cadastrado.has("carne"))));
+    const aparente = correspondencias.filter(({t, grau}) => grau > 0 && !acompanhamento.has(t)).length;
+    const pesoConsulta = [...procurar].reduce((s,t) => s + pesoToken(t),0);
+    const cobertura = correspondencias.reduce((n,{t,grau}) => n + pesoToken(t) * grau,0) / pesoConsulta;
+    const dice = (2 * correspondencias.reduce((n,{grau}) => n + grau,0)) / (procurar.size + cadastrado.size || 1);
+    return { produto, pontuacao: contradicao || aparente < 2 ? 0 : 0.8 * cobertura + 0.2 * dice };
   }).sort((a, b) => b.pontuacao - a.pontuacao);
   const melhor = candidatos[0], segundo = candidatos[1];
-  if (!melhor || melhor.pontuacao < 0.77 ||
+  if (!melhor || melhor.pontuacao < 0.74 ||
       (segundo && melhor.pontuacao - segundo.pontuacao < 0.1)) return undefined;
   return melhor.produto;
 }
