@@ -1,4 +1,4 @@
-import { isMarmita, isNoDiscount, precoCheioMarmita, type TabelaPrecosMarmita } from "./combo-rules";
+import { isMarmita, isNoDiscount, precoCheioMarmita, type TabelaPrecosMarmita } from "./combo-rules.ts";
 
 export type CatalogProduct = {
   id: string; nome: string; tipo_produto?: string | null; peso?: string | null;

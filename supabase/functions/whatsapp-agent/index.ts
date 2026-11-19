@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { identificarAcaoMarketing, executarCardapioEMenu } from "../../../src/lib/whatsapp-marketing-replies.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
@@ -26,9 +27,6 @@ const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const JANELA_DE_CONVERSA_MS = 12 * 60 * 60 * 1000;
-// Após esse tempo sem atividade em atendimento humano, o bot reassume a conversa
-// (evita deixar o cliente no vácuo se ninguém da equipe respondeu).
-const HANDOFF_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const MEDIA_DELIVERY_BUFFER_MS = 5000;
 const OPENAI_TIMEOUT_MS = 25_000;
 const WHATSAPP_API_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v25.0";
@@ -71,7 +69,7 @@ async function postWhatsApp(payload: Record<string, unknown>, contexto: string):
 }
 
 async function sendWhatsAppMessage(to: string, text: string) {
-  await postWhatsApp(
+  return await postWhatsApp(
     {
       messaging_product: "whatsapp",
       to,
@@ -226,18 +224,19 @@ async function sendMenuInterativo(to: string, saudacao?: string) {
   );
 
   if (!menuEnviado) {
-    await sendWhatsAppMessage(
+    return await sendWhatsAppMessage(
       to,
       `${saudacao ? `${saudacao} Bem-vindo(a)! Como posso te ajudar hoje?\n\n` : ""}MENU 🍱\n\n*Pedidos*\n🍽️ Cardápio\n🏷️ Descontos\n🛒 Fazer um pedido\n\n*Dúvidas*\n📋 Como Funciona\n🚚 Entrega e pedido mínimo\n💳 Formas de pagamento\n\n*Mais*\n🌐 Acessar o site\n👤 Falar com atendente\n\nÉ só me dizer o que você precisa.`,
     );
   }
+  return true;
 }
 
 // Reenvia o menu após um pequeno atraso, para o cliente ter tempo de ler a
 // resposta antes do menu aparecer (evita as duas mensagens grudadas).
 async function sendMenuComDelay(to: string) {
   await new Promise((resolve) => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
-  await sendMenuInterativo(to);
+  return await sendMenuInterativo(to);
 }
 
 function solicitouMenuPrincipal(texto: string): boolean {
@@ -378,12 +377,13 @@ async function enviarCardapioPrincipal(telefone: string): Promise<boolean> {
     .select("nome, descricao, tipo, url")
     .eq("ativo", true)
     .or("nome.ilike.%card%,descricao.ilike.%card%")
+    .order("ordem")
     .limit(10);
 
   const arquivo = arquivos?.find((item: any) => {
     const texto = `${item.nome ?? ""} ${item.descricao ?? ""}`.toLowerCase();
     return (
-      item.tipo?.toLowerCase() === "pdf" || texto.includes("cardápio") || texto.includes("cardapio")
+      item.tipo?.toLowerCase() === "pdf" && (texto.includes("cardápio") || texto.includes("cardapio"))
     );
   });
 
@@ -2404,7 +2404,9 @@ Deno.serve(async (req: Request) => {
       }
 
       // Captura ID da opção selecionada (lista interativa ou botão)
+      const acaoMarketing = identificarAcaoMarketing(msg);
       const menuId =
+        acaoMarketing ??
         msg.interactive?.list_reply?.id ??
         msg.interactive?.button_reply?.id ??
         identificarOpcaoMenu(msg.text?.body ?? "");
@@ -2562,31 +2564,35 @@ Deno.serve(async (req: Request) => {
       const primeiraMsg = conversaComecouNovamente(conversa, historico);
       const nomeConhecido = nomeContato ?? conversa?.nome ?? null;
 
-      // ── Modo humano: só salva, não responde ──────────────────────────────
-      if (conversa?.modo === "humano") {
-        // Retorno automático ao bot: se o atendimento humano ficou inativo por
-        // muito tempo, o bot reassume para não deixar o cliente sem resposta.
-        const ultimaAtividade = conversa?.ultima_msg ? new Date(conversa.ultima_msg).getTime() : 0;
-        const handoffExpirou =
-          ultimaAtividade > 0 && Date.now() - ultimaAtividade > HANDOFF_TIMEOUT_MS;
+      // Resposta explícita a uma campanha: cardápio PRIMEIRO, menu DEPOIS.
+      // Não chama OpenAI, não passa pelas automações genéricas/saudação e não
+      // altera o responsável ou modo da conversa. A chave global já foi checada.
+      if (acaoMarketing === "menu_cardapio" && conversa?.id) {
+        const link = `🍽️ Confira nosso cardápio atualizado, com pratos e preços, no site:\nhttps://${SITE_URL}`;
+        const resultado = await executarCardapioEMenu({
+          enviarPdf: () => enviarCardapioPrincipal(telefone),
+          enviarLink: () => sendWhatsAppMessage(telefone, link),
+          enviarMenu: () => sendMenuComDelay(telefone),
+        });
+        await appendMensagem(conversa.id, historico, {
+          role: resultado.cardapio === "falha" ? "system" : "assistant",
+          content: resultado.cardapio === "pdf" ? "[Cardápio PDF enviado — botão da campanha]"
+            : resultado.cardapio === "link" ? link : "[Não foi possível enviar o cardápio solicitado; equipe, verifique.]",
+        });
+        if (resultado.menuEnviado) await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
+        return new Response("OK", { status: 200 });
+      }
 
-        if (handoffExpirou) {
-          await supabase.from("whatsapp_conversas").update({ modo: "ia" }).eq("id", conversa.id);
-          conversa.modo = "ia";
-          await registrarEvento("retorno_bot", telefone, conversa.id, {
-            motivo: "timeout_handoff",
-          });
-          // Segue o fluxo normal abaixo (o bot volta a responder).
-        } else {
-          // Atendimento humano ativo: só registra a mensagem, não responde.
-          await appendMensagem(conversa.id, historico, {
-            role: "user",
-            whatsapp_message_id: msg.id,
-            ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
-            content: texto || menuId || "",
-          });
-          return new Response("OK", { status: 200 });
-        }
+      // ── Modo humano: só salva, exceto cardápio solicitado pelo botão acima ─
+      if (conversa?.modo === "humano") {
+        // Só a equipe pode devolver uma conversa à IA.
+        await appendMensagem(conversa.id, historico, {
+          role: "user",
+          whatsapp_message_id: msg.id,
+          ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
+          content: texto || menuId || "",
+        });
+        return new Response("OK", { status: 200 });
       }
 
       // ── MODO TREINO: processa mensagens do treinador como instruções ──────
@@ -2602,7 +2608,7 @@ Deno.serve(async (req: Request) => {
       // ── Retoma automação pausada aguardando resposta do cliente ───────────
       // Se um nó de menu ficou esperando a resposta, a mensagem atual retoma o
       // fluxo (e não deve ser processada pela IA nem reiniciar outra automação).
-      {
+      if (!acaoMarketing) {
         const respostaCliente = texto || menuId || "";
         // Passa um histórico com a resposta em memória (sem persistir ainda) para
         // que a condição por "mensagem" enxergue a resposta do cliente.
@@ -2674,7 +2680,7 @@ Deno.serve(async (req: Request) => {
       // Só reenviamos o menu automaticamente quando NÃO houver um clique de menu
       // pendente — caso contrário o clique do cliente seria perdido e o switch
       // abaixo não seria executado.
-      if ((primeiraMsg || pediuMenu) && !menuId) {
+      if ((primeiraMsg || pediuMenu) && !menuId && !respostaTemplate) {
         if (primeiraMsg) {
           await verificarEExecutarAutomacoes(telefone, texto, conversa, historico, "primeira_msg", {
             primeiraMsg: true,
