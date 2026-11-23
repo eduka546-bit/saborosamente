@@ -94,6 +94,12 @@ describe("IA comercial: cálculos verificáveis antes do modelo",()=>{
    expect(r).toContain("não podemos garantir ausência");
    expect(r).not.toContain("ambiente onde outros ingredientes");
  });
+ it("cancelar pedido pago sempre chama equipe sem mandar PARAR",()=>{
+   const r=responder("Quero cancelar um pedido já pago.");
+   expect(r).toContain("ATENDENTE");
+   expect(r).not.toContain("PARAR");
+   expect(r).not.toContain("estorno confirmado");
+ });
  it("não fecha pedido e não inventa preço sem informação",()=>{
   const r=responder("Pode garantir o total com frete de um pedido sem eu informar o bairro?");
   expect(r).not.toContain("R$");
