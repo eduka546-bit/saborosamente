@@ -41,6 +41,26 @@ export function respostaComercialDeterministica(pergunta:string, fatos:FatosCome
   if (/(?:parar|cancelar|deixar|nao quero).{0,35}(?:publicidade|mensagens de marketing|ofertas|promocoes|propaganda)/.test(texto)) {
     return "Claro! Para cancelar o recebimento de campanhas e ofertas no WhatsApp, responda *PARAR* nesta conversa. Assim registramos sua preferência. 💚";
   }
+  // PARAR é apenas cancelamento de publicidade. Nunca orientar a usá-lo para falar com a equipe.
+  if (/\b(falar com atendente|falar com alguem|falar com uma pessoa|atendimento humano|alguem da loja|preciso de atendente|quero atendente)\b/.test(texto)) {
+    return "Claro! 💚 Você pode ser atendido pela nossa equipe nesta mesma conversa. Escreva *ATENDENTE* no WhatsApp para solicitar o atendimento humano; não precisa sair do chat.";
+  }
+  if (/\b(entrar|participar|me adicionar|receber acesso|quero acesso)\b.{0,30}\bgrupo de ofertas\b/.test(texto)) {
+    return "Que bom que você quer participar! 💚 Nosso grupo de ofertas reúne promoções e novidades. Peça o link de convite à equipe por esta conversa; a participação é opcional. A palavra PARAR serve para cancelar publicidade, não para entrar no grupo.";
+  }
+  if (/(?:ofertas|promocoes|publicidade).{0,25}(?:todo dia|diariamente)|(?:todo dia|diariamente).{0,25}(?:ofertas|promocoes)/.test(texto)) {
+    return "Temos ofertas e novidades pelo WhatsApp e pelo grupo de ofertas! 💚 A frequência varia conforme as campanhas; não prometemos mensagens diárias. A equipe pode explicar como participar, sempre respeitando sua autorização.";
+  }
+  if (/(\b(alergia|alergico|contaminacao cruzada)\b|tracos de gluten|tracos de lactose|totalmente seguro para)/.test(texto)) {
+    return "Para sua segurança, não podemos garantir ausência de traços de alérgenos ou contaminação cruzada sem verificação da equipe. 💚 Nossa equipe pode conferir os ingredientes e os cuidados de preparo; em caso de alergia, consulte também seu profissional de saúde.";
+  }
+  if (/\b(sem lactose|sem gluten)\b/.test(texto) && /(tem|voces tem|quais|opcoes)/.test(texto)) {
+    return "Podemos conferir opções pelos ingredientes do cardápio, mas isso não garante ausência de traços de alérgenos. 💚 Informe o prato de interesse para nossa equipe confirmar.";
+  }
+  if (/(?:mais leve|mais leves|menos calorias)/.test(texto) && !tamanho) {
+    return "Para recomendar os pratos mais leves com precisão, preciso usar os valores nutricionais da gramatura escolhida. 💚 Você prefere *200g, 300g ou 400g*?";
+  }
+
   if (/(?:cardapio|catalogo)/.test(texto) && /(?:nao recebi|nao chegou|atualizado no site|ver no site)/.test(texto)) {
     return "Você pode acessar nosso cardápio atualizado aqui: https://saborosamente.com 💚\nSe solicitou o PDF e ele não chegou, avise nossa equipe por esta conversa para reenviar.";
   }
