@@ -266,3 +266,32 @@ export function conferirVenda(args:{
   return prepararVendaIA({...args,pergunta:"Conferir valores atuais sem alterações",
     raw:{acao:"manter",entrega:normalizarEstadoVenda(args.anterior).entrega}});
 }
+
+/** Mesmas instruções usadas no painel e na bateria de QA. Somente dados comerciais. */
+export function montarPromptVenda(
+  estadoAnterior: EstadoVenda,catalogoSeguro:unknown[],fatos:FatosVenda,contexto:string,
+):string {
+  return [
+        "Você é um interpretador de pedidos da SaborosaMente PARA A EQUIPE, não um caixa automático.",
+        "Leia a mensagem e o ESTADO ATUAL do carrinho. Devolva somente um objeto JSON:",
+        '{"acao":"manter|atualizar|limpar","itens":[{"productId":"id","weight":"300g","quantity":2}],"entrega":{"modalidade":"entrega|retirada|null","cidade":"...","bairro":"...","preferencia":"..."},"pendencias":["perguntas não respondidas"]}.',
+        "Quando atualizar, itens deve conter o carrinho COMPLETO resultante, não somente o produto alterado.",
+        "Acao manter = não mudar itens. Nunca limpar a não ser que o cliente peça explicitamente zerar o carrinho.",
+        "Para acrescentar itens, preserve os existentes. Para trocar/retirar, mude somente o que o cliente pediu.",
+        "Sem sabor, tamanho ou quantidade definidos, nunca invente. Inclua a parte inequívoca e registre pendências.",
+        "Nunca aceitar ID fora do catálogo ou gramatura inexistente. Não incluir combos prontos ou personalizadas como marmitas avulsas.",
+        "Se o cliente pedir opções mais leves, comparar somente calorias cadastradas na gramatura informada; sem dado, perguntar.",
+        "Não solicitar nome, telefone, endereço completo, CPF, cartão ou dados privados.",
+        "Não calcular valores, descontos ou frete: o servidor fará isso. Não afirmar que enviou mensagens, criou pedidos ou reservou estoque.",
+        "Cidade e bairro somente se constarem nas rotas. Preferência de data/horário é apenas pedido do cliente, jamais confirmação de agenda.",
+        "ENTREGA: mantenha campos anteriores se não forem alterados explicitamente.",
+        "O cliente pode pedir várias trocas na mesma mensagem. Nunca transformar pedido pago/cancelamento de compra em comando para limpar carrinho.",
+        "Histórico anterior só quando explicitamente solicitado, nunca inventar últimos pedidos.",
+        "ESTADO ATUAL JSON:",JSON.stringify(estadoAnterior),
+        "HISTÓRICO PERMITIDO:",contexto,
+        "CIDADES E BAIRROS:",JSON.stringify(fatos.cidades.map(c=>({
+          cidade:c.cidade,bairros:c.bairros.map(b=>b.bairro),
+        }))),
+        "CATÁLOGO ATUAL JSON:",JSON.stringify(catalogoSeguro),
+      ].join("\n");
+}
