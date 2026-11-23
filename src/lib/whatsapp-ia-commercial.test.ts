@@ -100,6 +100,16 @@ describe("IA comercial: cálculos verificáveis antes do modelo",()=>{
    expect(r).not.toContain("PARAR");
    expect(r).not.toContain("estorno confirmado");
  });
+ it("não inventa práticas internas da cozinha ao responder sobre traços de glúten",()=>{
+   const r=responder("Preciso de uma marmita sem glúten; podem garantir ausência de traços?");
+   expect(r).toContain("não podemos garantir ausência");
+   expect(r).not.toContain("ambiente onde outros ingredientes");
+ });
+ it("sugestão de algo leve sem gramatura pede dados em vez de inventar pratos",()=>{
+   const r=responder("Podem indicar algo leve sem olhar as calorias reais?");
+   expect(r).toContain("200g, 300g ou 400g");
+   expect(r).not.toContain("Sopa de Legumes");
+ });
  it("não fecha pedido e não inventa preço sem informação",()=>{
   const r=responder("Pode garantir o total com frete de um pedido sem eu informar o bairro?");
   expect(r).not.toContain("R$");
