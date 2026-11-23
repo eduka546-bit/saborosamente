@@ -25,6 +25,6 @@ describe("auditoria final do WhatsApp: todos os 100 casos visíveis", () => {
   it("preserva a revisão humana e as observações para os 100 casos", () => {
     expect(componente).toContain(".update({revisao:parecer})");
     expect(componente).toContain(".update({observacoes: observacoes.slice(0,1000)})");
-    expect(componente).toContain("runId:String(x.run_id)");
+    expect(componente).toContain("runId: String(x.run_id)");
   });
 });
