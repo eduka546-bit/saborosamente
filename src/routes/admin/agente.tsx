@@ -1938,11 +1938,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           onApply={isHumano && !janela24hEncerrada && !responsavelOutro
             ? texto => { setMsgText(atual=>atual.trim() ? atual+"\n\n"+texto : texto);setAssistenteAberto(false); }
             : undefined}
-          onOrder={items => {
-            if(responsavelOutro || !isHumano){toast.error("Assuma o atendimento antes de montar o pedido.");return;}
+          onOrder={isHumano && !responsavelOutro ? items => {
             setSalesDialog({mode:"order",items});
             setAssistenteAberto(false);
-          }}/>
+          } : undefined}/>
       </div>}
       {salesDialog && <WhatsAppOrderDialog mode={salesDialog.mode} conversation={{ id: conversa.id, nome: conversa.nome || "", telefone: String(conversa.telefone || "") }} catalogItem={salesDialog.item} catalogItems={salesDialog.items} canShare={isHumano && !janela24hEncerrada && !responsavelOutro && !sending} onClose={() => setSalesDialog(null)} onShare={prepararProduto} onOrder={(item) => {
         if (responsavelOutro) { toast.error("Transfira o atendimento antes de lançar o pedido."); return; }
