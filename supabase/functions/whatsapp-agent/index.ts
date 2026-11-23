@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { identificarAcaoMarketing, executarCardapioEMenu, normalizarCTA } from "../../../src/lib/whatsapp-marketing-replies.ts";
-import { pedidosVisiveisAoContato, normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
+import { pedidosVisiveisAoContato, normalizarTelefoneBrasileiro, telefonesDoMesmoContato } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { regraEntregaCidade, DIAS_SEMANA } from "../../../src/lib/entrega-config.ts";
 
@@ -909,10 +909,7 @@ async function montarContextoCliente(profile: any): Promise<string> {
 // Confere se dois telefones representam o mesmo número, ignorando formatação
 // e diferenças de DDI/9º dígito (compara pelos últimos 10/11 dígitos).
 function telefonesBatem(a: string, b: string): boolean {
-  const da = a.replace(/\D/g, "");
-  const db = b.replace(/\D/g, "");
-  if (!da || !db) return false;
-  return da === db || da.slice(-11) === db.slice(-11) || da.slice(-10) === db.slice(-10);
+  return telefonesDoMesmoContato(a, b);
 }
 
 async function buscarClientePorTelefone(
