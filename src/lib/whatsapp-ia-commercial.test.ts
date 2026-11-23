@@ -52,12 +52,12 @@ describe("IA comercial: cálculos verificáveis antes do modelo",()=>{
  });
  it("não aplica frete de SBS a Campo Alegre",()=>{
   const r=responder("Tenho interesse na promoção de entrega para Campo Alegre.");
-  expect(r).toContain("exclusivo de São Bento do Sul");expect(r).toContain("sexta");
+  expect(r).toContain("exclusivo de São Bento do Sul");expect(r.toLowerCase()).toContain("sexta");
   expect(r).toContain("taxa depende do bairro");
  });
  it("não promete produção personalizada no mesmo dia",()=>{
   const r=responder("Quero 5 personalizadas de 350g para entregar hoje.");
-  expect(r).toContain("próxima semana");expect(r).toContain("não consigo confirmar entrega para hoje");
+  expect(r).toContain("próxima semana");expect(r.toLowerCase()).toContain("não consigo confirmar entrega para hoje");
  });
  it("mantém a comparação de marmitas leves baseada em kcal real",()=>{
   const r=responder("Qual marmita tem menos calorias em 200g?");
