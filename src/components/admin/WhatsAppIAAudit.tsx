@@ -71,7 +71,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       // Leitura sob RLS: só usuários administradores podem acessar esta auditoria.
       const db = supabase as any;
       const {data:lotes,error:e1} = await db.from("whatsapp_ia_audit_runs")
-        .select("id,rodada,estado").eq("rodada",3).order("criado_em",{ascending:false}).limit(20);
+        .select("id,rodada,estado").eq("rodada",4).order("criado_em",{ascending:false}).limit(20);
       if(e1)throw e1;
       const ids=(lotes??[]).filter((x:any)=>x.estado==="concluido").map((x:any)=>x.id);
       if(ids.length!==10)throw new Error("A revisão técnica final ainda não está completa.");
