@@ -35,6 +35,48 @@ function exportarResultados(resultados: Resultado[]) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+
+const RODADA_FINAL_AUDITORIA = 4;
+
+/** Carrega a rodada final completa; não retorna uma lista parcial como se fosse a revisão final. */
+async function buscarAuditoriaFinal(): Promise<Resultado[]> {
+  const db = supabase as any;
+  const { data: lotes, error: erroLotes } = await db.from("whatsapp_ia_audit_runs")
+    .select("id,rodada,estado").eq("rodada", RODADA_FINAL_AUDITORIA)
+    .eq("estado", "concluido").order("criado_em", { ascending: false }).limit(20);
+  if (erroLotes) throw erroLotes;
+  const ids: string[] = (lotes ?? []).map((x: any) => String(x.id));
+  if (ids.length !== 10) throw new Error("Não encontrei os 10 lotes completos da auditoria final.");
+
+  const { data: rows, error: erroRespostas } = await db.from("whatsapp_ia_audit_results")
+    .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao,observacoes,fonte")
+    .in("run_id", ids).order("cenario_id", { ascending: true }).range(0, 199);
+  if (erroRespostas) throw erroRespostas;
+  const nova: Resultado[] = (rows ?? []).map((x: any) => {
+    const c = CENARIOS_AUDITORIA.find(q => q.id === x.cenario_id);
+    const alertas = Array.isArray(x.alertas) ? x.alertas.map(String) : [];
+    return {
+      id: Number(x.cenario_id),
+      categoria: String(x.categoria),
+      pergunta: String(x.pergunta),
+      objetivo: c?.objetivo ?? "Revisar com dados reais do site",
+      resposta: String(x.resposta ?? ""),
+      alertas,
+      classificacao: x.status === "erro" ? "erro" : alertas.length ? "sinalizada" : "revisao",
+      parecer: ["correta", "incorreta"].includes(x.revisao) ? x.revisao : "pendente",
+      runId: String(x.run_id),
+      observacoes: String(x.observacoes ?? ""),
+      fonte: x.fonte === "regra_verificada" ? "regra_verificada" : "modelo",
+    };
+  });
+  nova.sort((a, b) => a.id - b.id);
+  if (nova.length !== 100 || new Set(nova.map(r => r.id)).size !== 100 ||
+      nova[0]?.id !== 1 || nova[99]?.id !== 100) {
+    throw new Error("A resposta do servidor veio incompleta (" + nova.length + " de 100).");
+  }
+  return nova;
+}
+
 export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [resultados, setResultados] = useState<Resultado[]>([]);
   const [carregado, setCarregado] = useState(false);
@@ -43,18 +85,39 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 });
   const [mensagem, setMensagem] = useState("");
   const [filtro, setFiltro] = useState("todos");
+  const [busca, setBusca] = useState("");
+  const [origemRelatorio, setOrigemRelatorio] = useState<"local" | "servidor" | "novo">("local");
   const [somenteSinalizados, setSomenteSinalizados] = useState(false);
   const cancelado = useRef(false);
   const categorias = [...new Set(CENARIOS_AUDITORIA.map(c => c.categoria))];
   useEffect(() => {
+    let ativo = true;
     try {
       const salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      if (Array.isArray(salvo) && salvo.length <= 100 && salvo.every(item => Number.isInteger(item?.id) && typeof item?.pergunta === "string")) {
+      if (Array.isArray(salvo) && salvo.length <= 100 &&
+          salvo.every(item => Number.isInteger(item?.id) && typeof item?.pergunta === "string")) {
         setResultados(salvo);
+        if (salvo.length) {
+          setOrigemRelatorio("local");
+          setProgresso({ atual: salvo.length, total: salvo.length });
+        }
       }
     } catch { /* armazenamento indisponível */ }
     setCarregado(true);
-    return () => { cancelado.current = true; };
+    setCarregandoRevisao(true);
+    setMensagem("Carregando automaticamente as 100 respostas finais do servidor...");
+    void buscarAuditoriaFinal().then(nova => {
+      if (!ativo) return;
+      setResultados(nova);
+      setOrigemRelatorio("servidor");
+      setProgresso({ atual: nova.length, total: 100 });
+      setMensagem("As 100 respostas finais estão carregadas. Confira da pergunta 001 à 100.");
+    }).catch(e => {
+      if (!ativo) return;
+      setMensagem("Não foi possível carregar automaticamente as 100 respostas: " +
+        (e instanceof Error ? e.message : "erro de conexão") + ". Use o botão de atualizar.");
+    }).finally(() => { if (ativo) setCarregandoRevisao(false); });
+    return () => { ativo = false; cancelado.current = true; };
   }, []);
   useEffect(() => {
     if (!carregado) return;
@@ -64,49 +127,35 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
 
   const carregarRevisaoTecnica = async () => {
     if (executando || carregandoRevisao) return;
-    if (resultados.some(r => r.parecer !== "pendente") &&
-        !window.confirm("Carregar a primeira revisão técnica vai substituir os resultados locais. Continue?")) return;
-    setCarregandoRevisao(true); setMensagem("");
+    if (origemRelatorio !== "servidor" && resultados.some(r => r.parecer !== "pendente") &&
+        !window.confirm("Carregar as 100 respostas do servidor vai substituir resultados locais. Continuar?")) return;
+    setCarregandoRevisao(true);
+    setMensagem("Buscando as 100 respostas finais...");
     try {
-      // Leitura sob RLS: só usuários administradores podem acessar esta auditoria.
-      const db = supabase as any;
-      const {data:lotes,error:e1} = await db.from("whatsapp_ia_audit_runs")
-        .select("id,rodada,estado").eq("rodada",4).order("criado_em",{ascending:false}).limit(20);
-      if(e1)throw e1;
-      const ids=(lotes??[]).filter((x:any)=>x.estado==="concluido").map((x:any)=>x.id);
-      if(ids.length!==10)throw new Error("A revisão técnica final ainda não está completa.");
-      const {data:rows,error:e2}=await db.from("whatsapp_ia_audit_results")
-        .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao,observacoes,fonte")
-        .in("run_id",ids).order("cenario_id",{ascending:true}).limit(110);
-      if(e2)throw e2;
-      const nova:Resultado[]=(rows??[]).map((x:any)=>{
-        const c=CENARIOS_AUDITORIA.find(q=>q.id===x.cenario_id);
-        const alertas=Array.isArray(x.alertas)?x.alertas.map(String):[];
-        return {
-          id:Number(x.cenario_id),categoria:String(x.categoria),
-          pergunta:String(x.pergunta),objetivo:c?.objetivo??"Revisar com dados reais do site",
-          resposta:String(x.resposta??""),alertas,
-          classificacao:x.status==="erro"?"erro":alertas.length?"sinalizada":"revisao",
-          parecer:["correta","incorreta"].includes(x.revisao)?x.revisao:"pendente",
-          runId:String(x.run_id),
-          observacoes:String(x.observacoes??""),fonte:x.fonte==="regra_verificada"?"regra_verificada":"modelo",
-        };
-      });
-      nova.sort((a,b)=>a.id-b.id);
-      if(nova.length!==100)throw new Error("Esperava 100 respostas finais, mas recebi "+nova.length+".");
-      setResultados(nova);setProgresso({atual:nova.length,total:100});
-      setMensagem("Revisão técnica carregada. Confira as respostas finais da IA e marque o que ainda precisar ajustar.");
-    } catch(e){setMensagem("Não foi possível carregar a revisão técnica: "+(e instanceof Error?e.message:"erro desconhecido"));}
-    finally{setCarregandoRevisao(false);}
+      const nova = await buscarAuditoriaFinal();
+      setResultados(nova);
+      setOrigemRelatorio("servidor");
+      setFiltro("todos");
+      setBusca("");
+      setSomenteSinalizados(false);
+      setProgresso({ atual: 100, total: 100 });
+      setMensagem("As 100 respostas finais estão carregadas. Confira da pergunta 001 à 100.");
+    } catch (e) {
+      setMensagem("Não foi possível carregar a auditoria completa: " +
+        (e instanceof Error ? e.message : "erro desconhecido"));
+    } finally {
+      setCarregandoRevisao(false);
+    }
   };
 
   const executar = async (quantidade: number) => {
-    if (executando) return;
+    if (executando || carregandoRevisao) return;
     if (quantidade === 100 && !window.confirm(
       "Executar 100 simulações com a OpenAI? Cada teste consome tokens e pode levar vários minutos. Nenhuma mensagem será enviada a clientes. Confirma?"
     )) return;
     cancelado.current = false;
     setResultados([]);
+    setOrigemRelatorio("novo");
     setExecutando(true);
     setProgresso({ atual: 0, total: quantidade });
     setMensagem("Executando respostas reais no simulador, sem envio pelo WhatsApp.");
@@ -174,8 +223,12 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     if (error) setMensagem("Não consegui salvar uma observação. Tente novamente.");
   };
 
+  const buscaNormalizada = busca.trim().toLocaleLowerCase("pt-BR");
   const filtrados = resultados.filter(r =>
-    (filtro === "todos" || r.categoria === filtro) && (!somenteSinalizados || r.classificacao !== "revisao"));
+    (filtro === "todos" || r.categoria === filtro) &&
+    (!somenteSinalizados || r.classificacao !== "revisao") &&
+    (!buscaNormalizada || [String(r.id), r.pergunta, r.categoria, r.resposta]
+      .some(texto => texto.toLocaleLowerCase("pt-BR").includes(buscaNormalizada))));
   const sinalizados = resultados.filter(r => r.classificacao === "sinalizada").length;
   const erros = resultados.filter(r => r.classificacao === "erro").length;
   const aprovados = resultados.filter(r => r.parecer === "correta").length;
@@ -190,7 +243,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       não alteram estoque nem ativam atendimento automático.
     </p>
     <p className="text-xs opacity-80">
-      A primeira revisão já foi executada pela equipe técnica. Você pode carregar as respostas finais para sua segunda verificação. As marcações feitas sobre essa revisão também são salvas no servidor; testes novos continuam locais. O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
+      A revisão final de 100 respostas é carregada automaticamente. As marcações e observações dessa revisão são salvas no servidor. Os testes manuais novos ficam neste navegador. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
       preço, disponibilidade ou entrega estão corretos. Marque cada resposta como correta ou incorreta
       após conferir as informações reais.
     </p>
@@ -198,13 +251,13 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       <button type="button" disabled={executando || carregandoRevisao} onClick={() => void carregarRevisaoTecnica()}
         className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {carregandoRevisao && <Loader2 size={15} className="animate-spin"/>}
-        Carregar revisão feita pela equipe técnica
+        {carregandoRevisao ? "Carregando as 100 respostas..." : "Recarregar 100 respostas finais"}
       </button>
-      <button type="button" disabled={executando} onClick={() => void executar(10)}
+      <button type="button" disabled={executando || carregandoRevisao} onClick={() => void executar(10)}
         className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {executando ? <Loader2 size={15} className="animate-spin"/> : <Play size={15}/>} Testar 10 casos
       </button>
-      <button type="button" disabled={executando} onClick={() => void executar(100)}
+      <button type="button" disabled={executando || carregandoRevisao} onClick={() => void executar(100)}
         className="rounded-lg border border-[#00a884] px-3 py-2 text-xs font-semibold text-[#00a884] disabled:opacity-50">
         Executar 100 com IA
       </button>
@@ -217,7 +270,10 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
         <Download size={14}/> Exportar relatório
       </button>
       <button type="button" disabled={executando || !resultados.length}
-        onClick={() => { if (window.confirm("Limpar o relatório salvo neste navegador?")) { setResultados([]); setMensagem(""); setProgresso({atual:0,total:0}); } }}
+        onClick={() => { if (window.confirm("Limpar a visualização local? A revisão já salva no servidor será preservada.")) {
+          setResultados([]); setOrigemRelatorio("local"); setMensagem("Visualização local limpa. Clique em Recarregar 100 respostas finais.");
+          setProgresso({atual:0,total:0}); setFiltro("todos"); setBusca(""); setSomenteSinalizados(false);
+        } }}
         className="inline-flex items-center gap-1 rounded-lg border border-current/20 px-3 py-2 text-xs disabled:opacity-40">
         <Trash2 size={14}/> Limpar
       </button>
@@ -249,16 +305,28 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
         <option className="text-gray-900" value="todos">Todos os temas</option>
         {categorias.map(c => <option className="text-gray-900" key={c} value={c}>{c}</option>)}
       </select>
+      <input type="search" aria-label="Buscar entre as 100 perguntas" value={busca}
+        onChange={e => setBusca(e.target.value)} placeholder="Buscar pergunta ou número (ex.: 95)"
+        className="min-w-0 flex-1 rounded-lg border border-current/20 bg-transparent px-2 py-2 text-xs"/>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={somenteSinalizados} onChange={e => setSomenteSinalizados(e.target.checked)}/>
         Só alertas e erros
       </label>
     </div>
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-current/15 px-3 py-2 text-xs">
+      <span className="font-semibold">Mostrando {filtrados.length} de {resultados.length} respostas
+        {origemRelatorio === "servidor" && resultados.length === 100 ? " — revisão final completa (001 a 100)" :
+          origemRelatorio === "novo" ? " — execução local" : resultados.length ? " — resultados locais; carregue a revisão final" : ""}
+      </span>
+      {(filtro !== "todos" || somenteSinalizados || busca.trim()) && <button type="button"
+        onClick={() => { setFiltro("todos"); setSomenteSinalizados(false); setBusca(""); }}
+        className="font-semibold text-[#00a884] underline">Mostrar todas</button>}
+    </div>
     {!resultados.length
       ? <p className="rounded-lg border border-dashed border-current/20 p-3 text-xs opacity-80">
-          Pronto para testar. Comece por 10 casos ou execute a bateria completa de 100 cenários.
+          {carregandoRevisao ? "Carregando as 100 respostas..." : "Clique em Recarregar 100 respostas finais para conferir a auditoria completa."}
         </p>
-      : <div className="max-h-[560px] space-y-2 overflow-y-auto pr-1">
+      : <div className="space-y-2">
         {filtrados.map(r => <details key={r.id} className="rounded-lg border border-current/15 p-3">
           <summary className="cursor-pointer text-xs font-semibold">
             #{String(r.id).padStart(3, "0")} · {r.categoria} · {r.classificacao === "erro" ? "Erro" : r.classificacao === "sinalizada" ? "Atenção" : "Revisar"}
