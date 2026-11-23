@@ -75,7 +75,7 @@ describe("memória de compras do WhatsApp",()=>{
     expect(repeticaoSemAlteracoes("Quero 5 marmitas de 400g")).toBe(false);
   });
   it("impede troca de duas unidades que altere o total ou troque quantidades erradas",()=>{
-    const anterior=[{productId:"p1",weight:"300g" as const,quantity:5},{productId:"p2",weight:"400g" as const,quantity:5}];
+    const anterior=[{productId:"p1",nome:"Frango Grelhado",weight:"300g" as const,quantity:5},{productId:"p2",nome:"Tilápia Assada",weight:"400g" as const,quantity:5}];
     const correto=[{productId:"p1",weight:"300g",quantity:3},{productId:"p2",weight:"400g",quantity:5},{productId:"p3",weight:"300g",quantity:2}];
     expect(verificarTrocasDaRecompra("Repete o último, mas troca 2 marmitas por algo mais leve",anterior,correto)).toEqual([]);
     const somou=[...correto,{productId:"p3",weight:"300g",quantity:2}];
