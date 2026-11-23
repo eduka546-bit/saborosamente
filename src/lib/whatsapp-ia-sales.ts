@@ -40,31 +40,48 @@ export function normalizarEstadoVenda(raw:unknown):EstadoVenda {
   }};
 }
 
-/** Impede que o modelo remova itens antigos sem pedido explícito de troca/remoção. */
+/** Impede que o modelo remova itens antigos sem pedido explícito ou retire unidades além do solicitado. */
 export function validarTransicaoVenda(
   anterior:EstadoVenda, proximo:EstadoVenda, mensagem:string,
 ):string[] {
   const antes=normalizarEstadoVenda(anterior),depois=normalizarEstadoVenda(proximo);
   const texto=normal(mensagem);
-  const autorizaRetirada=/(troca|trocar|retira|retirar|remove|remover|tira|tirar|substitu|sem |diminu|reduz|menos |zerar|esvaziar|limpar|cancelar)/.test(texto);
-  const mensagens:string[]=[];
-  if(!autorizaRetirada) {
-    const qtd=new Map(depois.itens.map(i=>[i.productId+":"+i.weight,i.quantity]));
-    for(const item of antes.itens) {
-      const atual=qtd.get(item.productId+":"+item.weight)??0;
-      if(atual<item.quantity){
-        mensagens.push("A atualização retirou ou reduziu "+item.quantity+" unidade(s) anteriores de "+
-          item.productId+" / "+item.weight+" sem pedido explícito. O carrinho anterior deve ser preservado.");
-      }
-    }
+  const autorizaRetirada=/(troca|troque|trocar|tira|tire|tirar|retira|retire|retirar|remove|remova|remover|substitu|no lugar|sem |diminu|reduz|menos |zerar|esvaziar|limpar|cancelar|muda|mude|altera|passa|uma das|duas das)/.test(texto);
+  const pendencias:string[]=[];
+  const qtd=new Map<string,number>();
+  const anteriorQtd=new Map<string,number>();
+  for(const i of depois.itens){
+    const k=i.productId+":"+i.weight;
+    qtd.set(k,(qtd.get(k)??0)+i.quantity);
   }
+  for(const i of antes.itens){
+    const k=i.productId+":"+i.weight;
+    anteriorQtd.set(k,(anteriorQtd.get(k)??0)+i.quantity);
+  }
+  const removidas=[...anteriorQtd.entries()].reduce(
+    (n,[k,v])=>n+Math.max(0,v-(qtd.get(k)??0)),0);
+  const adicionadas=[...qtd.entries()].reduce(
+    (n,[k,v])=>n+Math.max(0,v-(anteriorQtd.get(k)??0)),0);
+  if(removidas && !autorizaRetirada)
+    pendencias.push("A IA retirou "+removidas+" unidade(s) do carrinho sem pedido explícito. Carrinho anterior preservado.");
+  const trechoQuantidade=texto.match(
+    /\b(?:troca|troque|trocar|tira|tire|tirar|retira|retire|retirar|remove|remova|remover|substitu\w*|muda|mude|altera|passa)\b.{0,45}?\b(1|2|3|uma|um|duas|dois|tres)\b/
+  )||texto.match(/\b(uma|duas|dois|tres) das?\b/);
+  const numero:Record<string,number>={um:1,uma:1,duas:2,dois:2,tres:3};
+  const qtdPediu=trechoQuantidade?numero[trechoQuantidade[1]]??Number(trechoQuantidade[1]):null;
+  if(removidas && qtdPediu && removidas!==qtdPediu)
+    pendencias.push("O cliente solicitou alterar "+qtdPediu+" unidade(s), mas a IA retirou "+removidas+". Revise a troca.");
+  const pedeSubstituicao=/(troca|troque|trocar|substitu|no lugar)/.test(texto) ||
+    /(uma das|duas das|muda|mude|altera|passa).{0,70}\b(200|300|400)\s*g\b/.test(texto);
+  if(pedeSubstituicao && qtdPediu && removidas===qtdPediu && adicionadas!==qtdPediu)
+    pendencias.push("A substituição pediu "+qtdPediu+" unidade(s), mas adicionou "+adicionadas+". Confirme tamanhos e sabores.");
   if(depois.itens.reduce((n,i)=>n+i.quantity,0)>200)
-    mensagens.push("Carrinho acima de 200 unidades. Monte o pedido manualmente.");
+    pendencias.push("Carrinho acima de 200 unidades. Monte o pedido manualmente.");
   if(antes.recebimento.metodo && depois.recebimento.metodo &&
      antes.recebimento.metodo!==depois.recebimento.metodo &&
      !/(entrega|entregar|retirada|retirar|buscar|receber)/.test(texto))
-    mensagens.push("A IA alterou entrega/retirada sem solicitação. Confira o recebimento.");
-  return mensagens;
+    pendencias.push("A IA alterou entrega/retirada sem solicitação. Confira o recebimento.");
+  return pendencias;
 }
 
 /** Nunca retira a pendência de um modelo nem confirma entrega quando falta bairro/data. */
