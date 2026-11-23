@@ -265,7 +265,12 @@ export function prepararVendaIA(args:{
         const adicionar=quantidadeDeAcrescimo(args.pergunta);
         const retirar=quantidadeDeRemocao(args.pergunta);
         const trocar=quantidadeDeTroca(args.pergunta);
-        if(diminuiu && !textoExpressaRemover(args.pergunta) && anteriorValidado.itens.length){
+        const mensagem=normal(args.pergunta);
+        const somenteLogistica=/\b(entrega|entregar|retirada|retirar|bairro|frete|endereco|horario|agendar)\b/.test(mensagem) &&
+          !/\b(marmita|refeicao|unidade|item|produto|sabor|prato)\b/.test(mensagem);
+        if(diminuiu && somenteLogistica) {
+          pendencias.push("Alteração de entrega ou retirada não autoriza remover produtos. Mantive os itens.");
+        } else if(diminuiu && !textoExpressaRemover(args.pergunta) && anteriorValidado.itens.length){
           pendencias.push("A IA tentou retirar itens sem solicitação explícita. Mantive o carrinho anterior.");
         } else if(adicionar!==null && diferencas.adicionadas!==adicionar) {
           pendencias.push("O cliente pediu acrescentar "+adicionar+" unidade(s), mas a proposta acrescentou "+diferencas.adicionadas+". Mantive o carrinho anterior.");
@@ -288,7 +293,10 @@ export function prepararVendaIA(args:{
       pendencias.push("O cliente pediu "+solicitadas+" unidades, mas a proposta tem "+
         sugeridas+". Confirme os sabores e a quantidade faltante.");
   }
-  const validacaoEntrega=validarEntregaVenda(raw.entrega,anterior.entrega,args.fatos);
+  const textoLogistica=normal(args.pergunta);
+  const autorizaMudarEntrega=/\b(entrega|entregar|retirada|retirar|buscar|receber|bairro|cidade|frete|endereco|horario|agendar|agendado)\b/.test(textoLogistica) ||
+    args.fatos.cidades.some(c=>textoLogistica.includes(normal(c.cidade)));
+  const validacaoEntrega=validarEntregaVenda(autorizaMudarEntrega?raw.entrega:{},anterior.entrega,args.fatos);
   pendencias.push(...validacaoEntrega.pendencias);
   if (pedido.itens.some(i=>i.estoque===null))
     pendencias.push("Há estoque não controlado. Confirme a disponibilidade com a equipe antes de salvar o pedido.");
