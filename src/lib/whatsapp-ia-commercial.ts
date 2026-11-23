@@ -54,13 +54,13 @@ export function respostaComercialDeterministica(pergunta:string, fatos:FatosCome
   if (/(?:ofertas|promocoes|publicidade).{0,25}(?:todo dia|diariamente)|(?:todo dia|diariamente).{0,25}(?:ofertas|promocoes)/.test(texto)) {
     return "Temos ofertas e novidades pelo WhatsApp e pelo grupo de ofertas! 💚 A frequência varia conforme as campanhas; não prometemos mensagens diárias. A equipe pode explicar como participar, sempre respeitando sua autorização.";
   }
-  if (/(\b(alergia|alergico|contaminacao cruzada)\b|tracos de gluten|tracos de lactose|totalmente seguro para)/.test(texto)) {
+  if (/(\b(alergia|alergico|contaminacao cruzada)\b|tracos de gluten|tracos de lactose|totalmente seguro para|ausencia de tracos|garantir.{0,25}(?:tracos|sem gluten|sem lactose)|(?:tracos|alergenos).{0,20}garant)/.test(texto)) {
     return "Para sua segurança, não podemos garantir ausência de traços de alérgenos ou contaminação cruzada sem verificação da equipe. 💚 Nossa equipe pode conferir os ingredientes e os cuidados de preparo; em caso de alergia, consulte também seu profissional de saúde.";
   }
   if (/\b(sem lactose|sem gluten)\b/.test(texto) && /(tem|voces tem|quais|opcoes)/.test(texto)) {
     return "Podemos conferir opções pelos ingredientes do cardápio, mas isso não garante ausência de traços de alérgenos. 💚 Informe o prato de interesse para nossa equipe confirmar.";
   }
-  if (/(?:mais leve|mais leves|menos calorias)/.test(texto) && !tamanho) {
+  if (/(?:algo leve|prato leve|opcao leve|refeicao leve|mais leve|mais leves|menos calorias)/.test(texto) && !tamanho) {
     return "Para recomendar os pratos mais leves com precisão, preciso usar os valores nutricionais da gramatura escolhida. 💚 Você prefere *200g, 300g ou 400g*?";
   }
 
