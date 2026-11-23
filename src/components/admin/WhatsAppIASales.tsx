@@ -40,10 +40,8 @@ export function WhatsAppIASales({dark,conversationId,onApply,onOrder}:{
   const [carregando,setCarregando]=useState(false);
   const [erro,setErro]=useState("");
   const [informacao,setInformacao]=useState("");
-  useEffect(()=>{
-    setEstado(lerEstado(conversationId));
-    setResultado(null);setProposta(null);setHistorico([]);setErro("");setInformacao("");setMensagem("");
-  },[conversationId]);
+  // O componente deve receber key={conversationId || "simulador"} do pai.
+  // Não copiar o estado de uma conversa para outra durante uma troca de cliente.
   useEffect(()=>{salvarEstado(conversationId,estado);},[estado,conversationId]);
 
   async function consultar(modo:"venda"|"venda_revisar",texto?:string,novoEstado?:EstadoVenda) {
