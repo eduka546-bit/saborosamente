@@ -197,6 +197,56 @@ describe("fluxo de venda em múltiplas mensagens, sem operações reais",()=>{
     expect(r.entrega.bairro.length).toBe(80);
     expect(r.entrega.preferencia.length).toBe(120);
   });
+  it("não permite confirmar pedido de 10 unidades se a IA só identificou cinco",()=>{
+    const r=simular("Quero 10 marmitas de 300g, cinco de frango e cinco sortidas",
+      "atualizar",[compra(5)],{itens:[],entrega:anterior().entrega});
+    expect(r.estado.itens[0].quantity).toBe(5);
+    expect(r.pendencias.some(p=>p.includes("cliente pediu 10 unidades"))).toBe(true);
+    expect(r.podeAbrirRascunho).toBe(false);
+  });
+  it("usa a taxa cadastrada do bairro para total estimado, mas não garante entrega",()=>{
+    const r=simular("Quero entrega em Rio Negrinho Centro","manter",[],anterior(5),{
+      modalidade:"entrega",cidade:"Rio Negrinho",bairro:"Centro",
+    });
+    expect(r.pedido.subtotal).toBe(102.5);
+    expect(r.fretePrevisto).toBe(10);
+    expect(r.totalPrevisto).toBe(112.5);
+    expect(r.resumo).toContain("Total estimado");
+    expect(r.resumo).toContain("checkout");
+    expect(r.resumo).not.toContain("entrega confirmada");
+  });
+  it("frete promocional R$ 5,00 só vale em São Bento do Sul com 5 marmitas elegíveis",()=>{
+    const sim=simular("Entrega em São Bento do Sul Centro","manter",[],anterior(5),{
+      modalidade:"entrega",cidade:"São Bento do Sul",bairro:"Centro",
+    });
+    expect(sim.fretePrevisto).toBe(5);
+    expect(sim.totalPrevisto).toBe(107.5);
+    const abaixo=simular("Entrega em São Bento do Sul Centro","manter",[],anterior(4),{
+      modalidade:"entrega",cidade:"São Bento do Sul",bairro:"Centro",
+    });
+    expect(abaixo.fretePrevisto).toBe(9);
+  });
+  it("retirada sempre tem frete zero e valor estimado igual ao subtotal",()=>{
+    const r=simular("Quero retirada","manter",[],anterior(5),{modalidade:"retirada"});
+    expect(r.fretePrevisto).toBe(0);
+    expect(r.totalPrevisto).toBe(102.5);
+    expect(r.resumo).toContain("Retirada na loja");
+  });
+  it("não calcula frete sem bairro e não promete total final",()=>{
+    const r=simular("Entrega em Rio Negrinho","manter",[],anterior(5),{
+      modalidade:"entrega",cidade:"Rio Negrinho",
+    });
+    expect(r.fretePrevisto).toBeNull();
+    expect(r.totalPrevisto).toBeNull();
+    expect(r.resumo).toContain("Frete: a confirmar");
+  });
+  it("economia por faixa já está incluída no subtotal, não aplica desconto duplicado",()=>{
+    const r=simular("Quero 10 marmitas de frango de 300g","atualizar",[compra(10)],
+      {itens:[],entrega:anterior().entrega});
+    expect(r.pedido.subtotal).toBe(199);
+    expect(r.economiaFaixa).toBe(10);
+    expect(r.resumo).toContain("já incluída no subtotal");
+  });
   it("a pergunta de próximo passo exige método de entrega quando ausente",()=>{
     const p=validarSugestaoPedido({itens:[compra(5)]},produtos,{});
     const r=resumoVendaWhatsApp(p,{modalidade:null,cidade:"",bairro:"",preferencia:""},[],null);
