@@ -134,7 +134,7 @@ export function resumirVenda(
     "\n\nEsta é uma prévia para revisão da equipe, não é um pedido confirmado. Valores e estoque podem mudar.";
   const perguntaSeguinte=unico[0]||"Os itens estão corretos? Podemos conferir entrega/retirada e pagamento antes de finalizar.";
   return {pedido,itensTotal,resumo,pendencias:unico,proximaFaixa,perguntaSeguinte,
-    aplicavelNoFormulario:pedido.itens.length>0 && pendencias.length===0};
+    aplicavelNoFormulario:pedido.itens.length>0 && pedido.pendencias.length===0 && !pedido.itens.some(i=>i.estoque===null)};
 }
 export function sugestoesDeVenda(
   pedido:SugestaoPedido, produtos:any[], precos:unknown, preferidos:string[]=[],
