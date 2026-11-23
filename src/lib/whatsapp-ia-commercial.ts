@@ -41,6 +41,9 @@ export function respostaComercialDeterministica(pergunta:string, fatos:FatosCome
   if (/(?:parar|cancelar|deixar|nao quero).{0,35}(?:publicidade|mensagens de marketing|ofertas|promocoes|propaganda)/.test(texto)) {
     return "Claro! Para cancelar o recebimento de campanhas e ofertas no WhatsApp, responda *PARAR* nesta conversa. Assim registramos sua preferência. 💚";
   }
+  if (/(?:cancelar|estornar|reembolso|cobranca duplicada|cobrado duas vezes)/.test(texto) && /(pedido|pagamento|pago|cobranca|duas vezes)/.test(texto)) {
+    return "Sinto muito pelo transtorno. 💚 Pedidos pagos, cobranças e reembolsos precisam ser conferidos por uma pessoa da nossa equipe. Escreva *ATENDENTE* nesta conversa; ninguém deve confirmar cancelamento ou estorno antes da verificação.";
+  }
   // PARAR é apenas cancelamento de publicidade. Nunca orientar a usá-lo para falar com a equipe.
   if (/\b(falar com atendente|falar com alguem|falar com uma pessoa|atendimento humano|alguem da loja|preciso de atendente|quero atendente)\b/.test(texto)) {
     return "Claro! 💚 Você pode ser atendido pela nossa equipe nesta mesma conversa. Escreva *ATENDENTE* no WhatsApp para solicitar o atendimento humano; não precisa sair do chat.";
