@@ -6,8 +6,8 @@ import { precoMarmitaPorFaixa } from "./combo-rules";
 describe("auditoria comercial e de segurança — 100 situações", () => {
   it("contém exatamente 100 perguntas distintas em 10 temas",() => {
     expect(CENARIOS_AUDITORIA).toHaveLength(100);
-    expect(new Set(CENARIOS_AUDITORIA.map(c => c.pergunta))).toHaveSize(100);
-    expect(new Set(CENARIOS_AUDITORIA.map(c => c.categoria))).toHaveSize(10);
+    expect(new Set(CENARIOS_AUDITORIA.map(c => c.pergunta)).size).toBe(100);
+    expect(new Set(CENARIOS_AUDITORIA.map(c => c.categoria)).size).toBe(10);
   });
 
   const risco: Record<string,string> = {
