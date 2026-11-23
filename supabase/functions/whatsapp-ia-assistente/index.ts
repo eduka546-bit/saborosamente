@@ -8,7 +8,7 @@ import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-co
 import { normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import {
   criarMemoriaCliente, pedidosRelacionadosAoTelefone, querRepetirUltimoPedido,
-  repeticaoSemAlteracoes, contextoDePreferenciasParaIA,
+  repeticaoSemAlteracoes, contextoDePreferenciasParaIA, verificarTrocasDaRecompra,
   type MemoriaCliente,
 } from "../../../src/lib/whatsapp-ia-customer-memory.ts";
 
@@ -155,6 +155,11 @@ Deno.serve(async (req) => {
     if (montarPedido) {
       const raw = JSON.parse(resposta);
       const pedido=validarSugestaoPedido(raw,produtos.data ?? [],precos);
+      if(pediuRepetir && memoria?.ultimoPedido?.itens.length) {
+        pedido.pendencias.push(...verificarTrocasDaRecompra(
+          body.pergunta,memoria.ultimoPedido.itens,pedido.itens,
+        ));
+      }
       if (pediuRepetir && (!memoria?.ultimoPedido?.itens.length || memoria.ultimoPedido.naoReconhecidos)) {
         pedido.pendencias.push("Pedido anterior incompleto ou não identificado. A equipe deve conferir os itens antes de aplicar o rascunho.");
       }
