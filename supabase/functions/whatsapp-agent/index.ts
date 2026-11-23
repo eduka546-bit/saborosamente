@@ -3,6 +3,8 @@ import { identificarAcaoMarketing, executarCardapioEMenu, normalizarCTA } from "
 import { pedidosVisiveisAoContato, normalizarTelefoneBrasileiro, telefonesDoMesmoContato } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { regraEntregaCidade, DIAS_SEMANA } from "../../../src/lib/entrega-config.ts";
+import { montarFatosIA } from "../../../src/lib/whatsapp-ia-facts.ts";
+import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
@@ -624,6 +626,26 @@ async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }
   if (!produtos.length) linhas.push("Nenhum produto público disponível. Não inventar sabores ou preços.");
   linhas.push("Se o estoque está esgotado ou a confirmar, nunca garantir a unidade. Feriados e dias disponíveis devem ser confirmados com a equipe.");
   return { texto: linhas.join("\n"), produtos };
+}
+
+// Mesmo cálculo verificável do simulador: usa apenas cardápio e dados públicos.
+// Quando a consulta falha, devolve null e o fluxo normal continua; nunca inventa valores.
+async function responderComercialComDadosAtuais(pergunta: string): Promise<string | null> {
+  const t = pergunta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (!/(preco|valor|quanto cust|quanto fica|desconto|faixa|frete|taxa|entrega|entregam|debito|acrescimo|peixe|tilapia|personalizad|calorias|proteina|marketing|ofertas|publicidade|cardapio)/.test(t)) return null;
+  try {
+    const [produtos, taxas, loja] = await Promise.all([
+      supabase.from("produtos").select("id,nome,descricao,ingredientes,tipo_produto,peso,categoria,preco,preco_300g,preco_400g,controle_estoque,estoque_200g,estoque_300g,estoque_400g,ativo,visivel_online,categorias(nome),tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g").eq("ativo",true).eq("visivel_online",true).order("nome"),
+      supabase.from("delivery_rates").select("cidade,bairro,valor").eq("ativo",true).order("cidade").order("bairro"),
+      supabase.from("site_settings").select("parametros_loja,endereco,horarios_funcionamento,payment_methods,meal_flags,card_flags,cashback_ativo,cashback_percentual,cashback_validade_dias,cashback_minimo_uso,cashback_limite_desconto_pct").single(),
+    ]);
+    if(produtos.error||taxas.error||loja.error||!loja.data) return null;
+    const fatos = montarFatosIA(produtos.data??[],taxas.data??[],loja.data);
+    return respostaComercialDeterministica(pergunta,fatos);
+  } catch (e) {
+    console.warn("Consulta comercial segura indisponível:", e instanceof Error ? e.message : "erro");
+    return null;
+  }
 }
 
 async function getEntregasContexto(): Promise<string> {
@@ -2866,6 +2888,10 @@ PREÇOS POR FAIXA (sempre observar ao informar valores):
 - Para calcular uma estimativa, pergunte o tamanho e a quantidade total. Sopas e complementos contam no total de itens, mas mantêm preço próprio. Combos prontos têm preços próprios e não recebem descontos adicionais.
 - Nunca apresente um total com taxa de entrega, cupons, adicionais, cashback ou prazo garantido sem os dados reais do checkout.
 - Se o cliente pedir um valor que não consta na tabela ou pedir um desconto especial, ofereça confirmação com a equipe.
+- O débito e crédito, assim como cartões alimentação/refeição, NÃO têm taxa ou acréscimo. Não confundir adicionais de preparo/talheres com taxas do cartão.
+- O frete promocional R$5 é EXCLUSIVO de SÃO BENTO DO SUL com 5+ marmitas elegíveis. Em Campo Alegre e outras cidades, a taxa depende do bairro.
+- Quando a pessoa pedir marmitas personalizadas, siga a produção e entrega na semana seguinte, nunca prometa entrega no mesmo dia.
+- Para recomendações de calorias ou proteínas, só use dados nutricionais de pratos disponíveis; não recomende combo pronto no lugar da marmita pedida.
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
@@ -2915,6 +2941,20 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           whatsapp_media_id: msg.type === "image" ? msg.image?.id : (msg.audio?.id ?? msg.voice?.id),
         } : {}),
       });
+
+      // Respostas objetivas de preço, estoque, frete e produção devem vir
+      // dos cálculos do site, não de uma inferência generativa.
+      if (typeof texto === "string" && texto.length <= 1500) {
+        const respostaVerificada = await responderComercialComDadosAtuais(texto);
+        if (respostaVerificada) {
+          const enviada = await sendWhatsAppMessage(telefone, respostaVerificada);
+          if (enviada) {
+            await appendMensagem(conversa.id, historico, {role:"assistant",content:respostaVerificada});
+            await registrarEvento("resposta_comercial_verificada",telefone,conversa.id,{origem:"tabela_do_site"});
+          }
+          return new Response("OK", {status:200});
+        }
+      }
 
       // ── Chama OpenAI ─────────────────────────────────────────────────────
       const resultado = await chamarOpenAI(systemPrompt, historico, pedidoEmAndamento);
