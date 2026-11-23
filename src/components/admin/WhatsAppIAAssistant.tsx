@@ -7,6 +7,7 @@ import { catalogMoney, type CatalogOrderItem } from "@/lib/whatsapp-catalog";
 import type { SugestaoPedido } from "@/lib/whatsapp-ia-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MemoriaCliente } from "@/lib/whatsapp-ia-customer-memory";
+import { WhatsAppIASales } from "./WhatsAppIASales";
 
 const exemplos = [
   "Quanto custam 10 marmitas de 300g?",
@@ -113,7 +114,9 @@ export function WhatsAppIAAssistant({ dark, initialQuestion = "", onApply, onOrd
       </>}
     </div>}
 
-    {!onApply && <div className="flex flex-wrap gap-1">{exemplos.map(ex => <button key={ex} disabled={loading} type="button" onClick={() => { setPergunta(ex); setResposta(""); setErro(""); setInfo("");setPedido(null);setCorrigindo(false);setFeedback(""); }} className="rounded-full border border-current/20 px-2 py-1 text-xs hover:bg-[#00a884]/10">{ex}</button>)}</div>}
+    <WhatsAppIASales key={conversationId || "simulador"} dark={dark} conversationId={conversationId}
+      onApply={onApply} onOrder={onOrder}/>
+        {!onApply && <div className="flex flex-wrap gap-1">{exemplos.map(ex => <button key={ex} disabled={loading} type="button" onClick={() => { setPergunta(ex); setResposta(""); setErro(""); setInfo("");setPedido(null);setCorrigindo(false);setFeedback(""); }} className="rounded-full border border-current/20 px-2 py-1 text-xs hover:bg-[#00a884]/10">{ex}</button>)}</div>}
     <textarea aria-label="Pergunta para a IA" value={pergunta} onChange={e => { setPergunta(e.target.value); setResposta(""); setInfo(""); setErro("");setPedido(null);setCorrigindo(false);setFeedback(""); }} maxLength={1500} disabled={loading||salvando}
       rows={3} placeholder="Ex.: Quanto custa a marmita de 400g?" className="w-full resize-y rounded-lg border border-current/20 bg-transparent p-2"/>
     <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>generate()} disabled={loading || !pergunta.trim()} className="flex items-center gap-2 rounded-lg bg-[#00a884] px-3 py-2 font-semibold text-white disabled:opacity-50">
