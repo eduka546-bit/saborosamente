@@ -247,6 +247,45 @@ describe("fluxo de venda em múltiplas mensagens, sem operações reais",()=>{
     expect(r.economiaFaixa).toBe(10);
     expect(r.resumo).toContain("já incluída no subtotal");
   });
+  it("rejeita três lasanhas quando a IA tenta acrescentar seis em um carrinho existente",()=>{
+    const r=simular("Acrescente três lasanhas ao que já escolhi","atualizar",
+      [compra(5),compra(3,"p2"),compra(3,"p4","400g")]);
+    expect(r.estado.itens).toEqual(anterior(5).itens);
+    expect(r.pendencias.some(p=>p.includes("acrescentar 3"))).toBe(true);
+    expect(r.podeAbrirRascunho).toBe(false);
+  });
+  it("não aceita retirar três quando a pessoa pediu duas",()=>{
+    const r=simular("Retire as duas últimas unidades","atualizar",[compra(2)],anterior(5));
+    expect(r.estado.itens).toEqual(anterior(5).itens);
+    expect(r.pendencias.some(p=>p.includes("remoção solicitada"))).toBe(true);
+  });
+  it("interpreta Retire as duas como remoção explícita válida",()=>{
+    const r=simular("Retire as duas últimas unidades","atualizar",[compra(3)],anterior(5));
+    expect(r.estado.itens[0].quantity).toBe(3);
+    expect(r.pendencias).toEqual([]);
+  });
+  it("reconhece Zere o carrinho sem limpar pedidos pagos",()=>{
+    expect(simular("Zere o carrinho de simulação","limpar",[]).estado.itens).toHaveLength(0);
+    expect(simular("Quero cancelar pedido pago","limpar",[]).estado.itens).toEqual(anterior(5).itens);
+  });
+  it("quando existem várias receitas de frango, não aprova sabor genérico",()=>{
+    const variados=[...produtos,{...produtos[0],id:"outro-frango",nome:"Parmegiana de Frango"}];
+    const r=prepararVendaIA({pergunta:"Quero cinco marmitas de frango de 300g",anterior:{itens:[],entrega:anterior().entrega},
+      raw:{acao:"atualizar",itens:[compra(5)],pendencias:[]},
+      produtos:variados,precos:{},fatos});
+    expect(r.pendencias.some(p=>p.includes("várias opções de frango"))).toBe(true);
+    expect(r.podeAbrirRascunho).toBe(false);
+  });
+  it("elimina alerta vago gerado pela IA e sugere pergunta operacional",()=>{
+    const r=simular("Quero cinco de frango de 300g","atualizar",[compra(5)],{
+      itens:[],entrega:anterior().entrega,
+    });
+    expect(r.proximaPergunta).not.toContain("perguntas não respondidas");
+    const raw=prepararVendaIA({raw:{acao:"manter",pendencias:["perguntas não respondidas"]},
+      anterior:anterior(5),pergunta:"Quanto custa?",produtos,precos:{},fatos});
+    expect(raw.pendencias).toEqual([]);
+    expect(raw.proximaPergunta).toMatch(/entrega ou retirada/);
+  });
   it("a pergunta de próximo passo exige método de entrega quando ausente",()=>{
     const p=validarSugestaoPedido({itens:[compra(5)]},produtos,{});
     const r=resumoVendaWhatsApp(p,{modalidade:null,cidade:"",bairro:"",preferencia:""},[],null);
