@@ -59,7 +59,7 @@ describe("auditoria de 100 cenários sintéticos de venda",()=>{
       expect(r.resumo).toContain("simulação");
     }else if(c.id<=30){
       const qty=i+1;
-      const r=simular(c.pergunta,"atualizar",[compra(qty)],anterior(5));
+      const r=simular(c.pergunta,"atualizar",[compra(qty)],{itens:[],entrega:anterior().entrega});
       expect(r.pedido.itens[0].unitPrice).toBe(precoMarmitaPorFaixa("300g",qty,20.9,tabela));
       expect(r.pedido.subtotal).toBeCloseTo(qty*r.pedido.itens[0].unitPrice);
     }else if(c.id<=40){
