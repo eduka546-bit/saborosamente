@@ -13,6 +13,8 @@ type Resultado = {
   alertas: string[];
   parecer: "pendente" | "correta" | "incorreta";
   runId?: string;
+  fonte?: "regra_verificada" | "modelo";
+  observacoes?: string;
 };
 const money = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
 const STORAGE_KEY = "saborosamente:wa-auditoria-100:v1";
@@ -69,12 +71,12 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       // Leitura sob RLS: só usuários administradores podem acessar esta auditoria.
       const db = supabase as any;
       const {data:lotes,error:e1} = await db.from("whatsapp_ia_audit_runs")
-        .select("id,rodada,estado").eq("rodada",2).order("criado_em",{ascending:false}).limit(20);
+        .select("id,rodada,estado").eq("rodada",3).order("criado_em",{ascending:false}).limit(20);
       if(e1)throw e1;
       const ids=(lotes??[]).filter((x:any)=>x.estado==="concluido").map((x:any)=>x.id);
-      if(!ids.length)throw new Error("A segunda rodada de testes ainda não está disponível.");
+      if(ids.length!==10)throw new Error("A revisão técnica final ainda não está completa.");
       const {data:rows,error:e2}=await db.from("whatsapp_ia_audit_results")
-        .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao")
+        .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao,observacoes,fonte")
         .in("run_id",ids).order("cenario_id",{ascending:true}).limit(110);
       if(e2)throw e2;
       const nova:Resultado[]=(rows??[]).map((x:any)=>{
@@ -87,9 +89,11 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
           classificacao:x.status==="erro"?"erro":alertas.length?"sinalizada":"revisao",
           parecer:["correta","incorreta"].includes(x.revisao)?x.revisao:"pendente",
           runId:String(x.run_id),
+          observacoes:String(x.observacoes??""),fonte:x.fonte==="regra_verificada"?"regra_verificada":"modelo",
         };
       });
       nova.sort((a,b)=>a.id-b.id);
+      if(nova.length!==100)throw new Error("Esperava 100 respostas finais, mas recebi "+nova.length+".");
       setResultados(nova);setProgresso({atual:nova.length,total:100});
       setMensagem("Revisão técnica carregada. Confira as respostas finais da IA e marque o que ainda precisar ajustar.");
     } catch(e){setMensagem("Não foi possível carregar a revisão técnica: "+(e instanceof Error?e.message:"erro desconhecido"));}
@@ -253,6 +257,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
             <span className="mt-1 block font-normal opacity-80">{r.pergunta}</span>
           </summary>
           <p className="mt-2 text-[11px] opacity-70">Objetivo: {r.objetivo}</p>
+          {r.fonte && <p className="mt-1 text-[11px] opacity-70">Fonte: {r.fonte==="regra_verificada"?"Dados calculados do site":"Resposta gerada pela OpenAI"}</p>}
           <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-[#00a884]/10 p-2 text-xs">{r.resposta || "(sem resposta)"}</p>
           {r.alertas.map((a, i) => <p key={i} className="mt-1 flex items-center gap-1 text-xs text-orange-500"><AlertTriangle size={13}/>{a}</p>)}
           <div className="mt-3 flex gap-2">
