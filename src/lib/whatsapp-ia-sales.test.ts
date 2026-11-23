@@ -36,7 +36,7 @@ describe("bateria de 100 simulações determinísticas de venda (sem disparos e 
   });
   // 10: retirada explícita, sem interferir com outros itens.
   it.each(["troca","trocar","retirar","remove","tirar","substituir","menos","reduzir","sem arroz","limpar"])("aceita retirada explicitamente pedida: %s",cmd=>{
-    const erros=validarTransicaoVenda(estado([item(3),item(2,"b")]),estado([item(3)]),cmd+" uma unidade");
+    const erros=validarTransicaoVenda(estado([item(3),item(2,"b")]),estado([item(3),item(2,"c")]),cmd+" duas unidades de b por c");
     expect(erros).toEqual([]);
   });
   // 10: estoque zerado ou insuficiente sempre vira pendência.
