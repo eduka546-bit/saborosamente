@@ -5,6 +5,12 @@ import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
 import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
+import { normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
+import {
+  criarMemoriaCliente, pedidosRelacionadosAoTelefone, querRepetirUltimoPedido,
+  repeticaoSemAlteracoes, contextoDePreferenciasParaIA,
+  type MemoriaCliente,
+} from "../../../src/lib/whatsapp-ia-customer-memory.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -28,11 +34,23 @@ Deno.serve(async (req) => {
       .eq("user_id", auth.user.id).eq("role", "admin").maybeSingle();
     if (roleError || !role) return json({ error: "Acesso administrativo necessário." }, 403);
     const body = await req.json().catch(() => null);
-    if (typeof body?.pergunta !== "string" || !body.pergunta.trim() || body.pergunta.length > 1500)
+    const modoContexto = body?.modo === "contexto";
+    if (!modoContexto && (typeof body?.pergunta !== "string" || !body.pergunta.trim() || body.pergunta.length > 1500))
       return json({ error: "Escreva uma pergunta de até 1.500 caracteres." }, 400);
-    const key = Deno.env.get("OPENAI_API_KEY");
-    if (!key) return json({ error: "Chave da OpenAI não configurada." }, 503);
     const montarPedido = body?.modo === "pedido";
+    // Nunca aceitar telefone fornecido pelo navegador: a conversa determina o
+    // contato e a autorização sempre exige uma sessão administrativa válida.
+    let telefoneConversa: string | null = null;
+    if (body?.conversationId !== undefined || modoContexto) {
+      const id = String(body?.conversationId ?? "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+        return json({ error: "Conversa inválida para consulta do histórico." }, 400);
+      const {data:conversa,error:convErr} = await db.from("whatsapp_conversas")
+        .select("telefone").eq("id",id).maybeSingle();
+      telefoneConversa = convErr ? null : normalizarTelefoneBrasileiro(conversa?.telefone);
+      if (!telefoneConversa) return json({ error: "Não foi possível verificar o número desta conversa." }, 404);
+    }
+    const key = Deno.env.get("OPENAI_API_KEY");
     const [produtos, taxas, loja, grupos, ingredientes, treinos] = await Promise.all([
       db.from("produtos").select("id,nome,descricao,ingredientes,tipo_produto,peso,categoria,preco,preco_300g,preco_400g,controle_estoque,estoque_200g,estoque_300g,estoque_400g,ativo,visivel_online,categorias(nome),tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g").eq("ativo", true).eq("visivel_online", true).order("nome"),
       db.from("delivery_rates").select("cidade,bairro,valor").eq("ativo", true).order("cidade").order("bairro"),
@@ -44,6 +62,53 @@ Deno.serve(async (req) => {
     if ([produtos, taxas, loja, grupos, ingredientes].some(r => r.error) || !loja.data)
       return json({ error: "Não consegui consultar os dados atuais da loja. Tente novamente." }, 503);
     const fatos = montarFatosIA(produtos.data ?? [], taxas.data ?? [], loja.data, grupos.data ?? [], ingredientes.data ?? []);
+    // Memória por compra real: nenhum dado pessoal é enviado à OpenAI e
+    // nenhum histórico de terceiros é recuperado apenas por um telefone digitado.
+    let memoria: MemoriaCliente | null = null;
+    if (telefoneConversa) {
+      const ultimos4 = telefoneConversa.slice(-4);
+      const {data:buscaPedidos,error:erroPedidos}=await db.from("pedidos")
+        .select("id,created_at,status,telefone_cliente,cliente_telefone,endereco_cidade")
+        .or("telefone_cliente.ilike.%" + ultimos4 + "%,cliente_telefone.ilike.%" + ultimos4 + "%")
+        .order("created_at",{ascending:false}).limit(120);
+      if (erroPedidos) return json({error:"Não foi possível consultar o histórico desta conversa."},503);
+      const relacionados = pedidosRelacionadosAoTelefone(buscaPedidos ?? [],telefoneConversa).slice(0,30);
+      let linhas: any[] = [];
+      if(relacionados.length) {
+        const {data:itensHistoricos,error:erroItens}=await db.from("pedido_itens")
+          .select("pedido_id,produto_id,quantidade,observacao")
+          .in("pedido_id", relacionados.map(p=>p.id)).limit(2000);
+        if (erroItens) return json({error:"Não foi possível consultar os itens dos pedidos anteriores."},503);
+        linhas = itensHistoricos ?? [];
+      }
+      memoria = criarMemoriaCliente(
+        telefoneConversa,relacionados,linhas,produtos.data ?? [],loja.data.parametros_loja?.precos_marmita,
+      );
+    }
+    if (modoContexto) {
+      if (!memoria) return json({error:"Escolha uma conversa para consultar a memória."},400);
+      return json({memoria, consultadoEm:fatos.atualizadoEm});
+    }
+    const pediuRepetir = montarPedido && typeof body.pergunta==="string" && querRepetirUltimoPedido(body.pergunta);
+    const mesmoPedido = pediuRepetir && repeticaoSemAlteracoes(body.pergunta);
+    if (mesmoPedido) {
+      const anterior=memoria?.ultimoPedido;
+      if(!anterior?.itens.length) return json({
+        pedido:{itens:[],pendencias:["Não encontrei um pedido entregue anterior com sabores e tamanhos identificáveis nesta conversa. Monte manualmente ou confirme os dados com o cliente."],subtotal:0},
+        memoria,consultadoEm:fatos.atualizadoEm,
+      });
+      const bruto = {
+        itens:anterior.itens.map(({productId,quantity,weight})=>({productId,quantity,weight})),
+        pendencias:anterior.naoReconhecidos
+          ? ["O pedido anterior possui "+anterior.naoReconhecidos+" item(ns) sem gramatura/produto reconhecido. Confira e inclua manualmente antes de finalizar."] : [],
+      };
+      return json({
+        pedido:validarSugestaoPedido(bruto,produtos.data ?? [],loja.data.parametros_loja?.precos_marmita),
+        memoria,consultadoEm:fatos.atualizadoEm,origem:"repeticao_verificada",
+      });
+    }
+    if (!key) return json({error:"Chave da OpenAI não configurada."},503);
+
     if (!montarPedido) {
       const calculada = respostaComercialDeterministica(body.pergunta, fatos);
       if (calculada) return json({
@@ -60,9 +125,12 @@ Deno.serve(async (req) => {
         .filter(v => v.orderable).map(v => ({ weight: v.weight, tamanho: v.label, estoque: v.stock,
           kcal: p["tabela_nutricional_"+v.weight]?.kcal ?? null, proteina: p["tabela_nutricional_"+v.weight]?.prot ?? null })),
     })).filter(p => p.variantes.length);
+    const contextoMemoria = memoria ? contextoDePreferenciasParaIA(memoria) : "Sem histórico de compras confirmado para esta conversa.";
     const prompt = montarPedido
-      ? "Você prepara apenas rascunhos de pedido para revisão humana. Retorne JSON com itens (array de {productId, weight, quantity}) e pendencias (array de textos). Utilize somente IDs e tamanhos disponíveis no catálogo. Não adivinhe sabores, quantidade ou tamanho que não estejam explícitos: sinalize pendência. Se o cliente pedir uma sugestão de sabores, sugira somente produtos disponíveis e respeite a quantidade e tamanho informados. Para sugestões mais leves use apenas calorias cadastradas na gramatura pedida; se faltarem dados sinalize pendência. Não faça promessas nutricionais ou médicas, não considere preços ditos pelo cliente, não trate combos prontos/personalizadas como produtos avulsos. Não execute ações. Se não for pedido, retorne itens vazios. Catálogo JSON: " + JSON.stringify(catalogoPedido)
-      : INSTRUCOES_ASSISTENTE_IA + formatarTreinamentos(treinos.data ?? []) + "\nFATOS ATUAIS (JSON):\n" + JSON.stringify(fatos);
+      ? "Você prepara apenas rascunhos de pedido para revisão humana. Retorne JSON com itens (array de {productId, weight, quantity}) e pendencias (array de textos). Utilize somente IDs e tamanhos disponíveis no catálogo. Não adivinhe sabores, quantidade ou tamanho que não estejam explícitos: sinalize pendência. Se o cliente pedir uma sugestão de sabores, sugira somente produtos disponíveis e respeite a quantidade e tamanho informados. Para sugestões mais leves use apenas calorias cadastradas na gramatura pedida; se faltarem dados sinalize pendência. Não faça promessas nutricionais ou médicas, não considere preços ditos pelo cliente, não trate combos prontos/personalizadas como produtos avulsos. Não execute ações. Se não for pedido, retorne itens vazios. Se o cliente pedir para repetir ou ajustar seu último pedido, use os itens exatos do HISTÓRICO VERIFICADO; só proponha alterações explicitamente solicitadas e marque pendências se não estiver claro quais itens trocar. Não trate histórico como pedido confirmado, reserva ou pagamento. Se o histórico está ausente, nunca invente o último pedido. Não presuma endereço, alergia, condições médicas ou identidade. HISTÓRICO VERIFICADO (interno da equipe, não compartilhar dados de terceiros): " + contextoMemoria + " Catálogo JSON: " + JSON.stringify(catalogoPedido)
+      : INSTRUCOES_ASSISTENTE_IA + formatarTreinamentos(treinos.data ?? []) +
+        "\nCONTEXTO DE COMPRAS (apenas da conversa; nunca divulgar sem solicitação e conferência pela equipe): " + contextoMemoria +
+        "\nFATOS ATUAIS (JSON):\n" + JSON.stringify(fatos);
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(25000),
@@ -86,7 +154,15 @@ Deno.serve(async (req) => {
     if (!resposta) return json({ error: "A IA não retornou uma resposta. Tente novamente." }, 503);
     if (montarPedido) {
       const raw = JSON.parse(resposta);
-      return json({ pedido: validarSugestaoPedido(raw, produtos.data ?? [], precos), consultadoEm: fatos.atualizadoEm });
+      const pedido=validarSugestaoPedido(raw,produtos.data ?? [],precos);
+      if (pediuRepetir && (!memoria?.ultimoPedido?.itens.length || memoria.ultimoPedido.naoReconhecidos)) {
+        pedido.pendencias.push("Pedido anterior incompleto ou não identificado. A equipe deve conferir os itens antes de aplicar o rascunho.");
+      }
+      return json({pedido,consultadoEm:fatos.atualizadoEm, memoria:memoria?{
+        pedidosEntregues:memoria.pedidosEntregues,ultimoPedido:memoria.ultimoPedido?{
+          data:memoria.ultimoPedido.data,naoReconhecidos:memoria.ultimoPedido.naoReconhecidos,
+        }:null,
+      }:null});
     }
     return json({ resposta, consultadoEm: fatos.atualizadoEm, produtos: fatos.catalogo.length, cidades: fatos.cidades.length });
   } catch {
