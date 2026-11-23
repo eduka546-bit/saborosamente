@@ -2581,6 +2581,39 @@ Deno.serve(async (req: Request) => {
         return new Response("OK", { status: 200 });
       }
 
+      // Pedidos explícitos de atendimento humano e reclamações críticas não
+      // passam por sugestão do modelo: devem de fato assumir modo humano.
+      const textoParaEquipe = normalizarCTA(String(texto ?? ""));
+      const solicitarHumano =
+        /^(atendente|humano|falar com atendente|falar com a equipe|falar com alguem|quero atendente)$/.test(textoParaEquipe) ||
+        /\b(falar com atendente|falar com alguem|falar com uma pessoa|atendimento humano|alguem da loja|preciso de atendente|quero atendente)\b/.test(textoParaEquipe);
+      const reclamaCritica =
+        /\b(corpo estranho|cobraram duas vezes|cobrado duas vezes|cobranca duplicada|marmita veio aberta|entrega atrasada|pedido nao foi produzido|nao foi produzida|reclamacao formal)\b/.test(textoParaEquipe) ||
+        /\b(cancelar|estornar|reembolso)\b.{0,40}\bpedido\b/.test(textoParaEquipe);
+      if (conversa?.id && conversa.modo !== "humano" && (solicitarHumano || reclamaCritica)) {
+        await appendMensagem(conversa.id, historico, {
+          role: "user", whatsapp_message_id: msg.id,
+          ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
+          content: texto || menuId || "",
+        });
+        const {error:handoffErro} = await supabase.from("whatsapp_conversas")
+          .update({modo:"humano"}).eq("id",conversa.id).select("id").single();
+        if(handoffErro) {
+          console.error("Falha ao transferir para equipe:",handoffErro.message);
+          await sendWhatsAppMessage(telefone,"Não consegui transferir o atendimento agora. Tente novamente em instantes, por favor. 💚");
+          return new Response("OK",{status:200});
+        }
+        await registrarEvento("escalacao_humano",telefone,conversa.id,{
+          origem:reclamaCritica?"reclamacao_critica":"pedido_explicito_de_atendente",
+        });
+        const textoConfirmacao = reclamaCritica
+          ? "Sinto muito pelo que aconteceu. 💚 Nosso atendimento humano vai assumir esta conversa para verificar a situação com cuidado."
+          : "Claro! 💚 Nossa equipe vai assumir o atendimento por aqui. Você não precisa sair desta conversa.";
+        await sendWhatsAppMessage(telefone,textoConfirmacao);
+        await appendMensagem(conversa.id,historico,{role:"assistant",content:textoConfirmacao});
+        return new Response("OK",{status:200});
+      }
+
       // ── Modo humano: só salva, exceto cardápio solicitado pelo botão acima ─
       if (conversa?.modo === "humano") {
         // Só a equipe pode devolver uma conversa à IA.
@@ -2892,6 +2925,8 @@ PREÇOS POR FAIXA (sempre observar ao informar valores):
 - O frete promocional R$5 é EXCLUSIVO de SÃO BENTO DO SUL com 5+ marmitas elegíveis. Em Campo Alegre e outras cidades, a taxa depende do bairro.
 - Quando a pessoa pedir marmitas personalizadas, siga a produção e entrega na semana seguinte, nunca prometa entrega no mesmo dia.
 - Para recomendações de calorias ou proteínas, só use dados nutricionais de pratos disponíveis; não recomende combo pronto no lugar da marmita pedida.
+- A palavra PARAR serve APENAS para opt-out de publicidade. NUNCA oriente responder PARAR para falar com atendente, para entrar no grupo de ofertas ou para solicitar pedido. Nessas situações, use transferir_para_humano ou peça que escreva ATENDENTE.
+- Nunca afirme que existe um link do grupo de ofertas, promoção diária ou outra condição se não estiver nos dados atuais.
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
