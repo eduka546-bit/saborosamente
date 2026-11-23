@@ -58,7 +58,8 @@ describe("Mensagem de confirmação SaborosaMente — WhatsApp", () => {
     expect(msg).toContain("Olá, Maria!");
     expect(msg).toContain("programado para retirada na Segunda-feira - 02/11");
     expect(msg).toContain("*Retirada:* Segunda-feira - 02/11, separação em até 20 minutos");
-    expect(msg).toContain("*Local de Retirada:* Rua Estevão Buschle, 114 - 25 de Julho - São Bento do Sul - CEP 89290075");
+    expect(msg).toContain("*Local de Retirada:* Rua Augusto Wunderwald, nº7 - Sala 1 - Progresso / São Bento do Sul");
+    expect(msg).not.toContain("Rua Estevão Buschle");
     expect(msg).not.toContain("Rua que não é da loja");
     expect(msg).not.toContain("às 15h");
     expect(msg).toContain("*Forma de Pagamento:* A combinar");
