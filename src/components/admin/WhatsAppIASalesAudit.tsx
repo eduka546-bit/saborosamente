@@ -10,7 +10,7 @@ type Resposta = {
 async function carregarRespostas():Promise<Resposta[]> {
   const api=supabase as any;
   const {data:lotes,error:e1}=await api.from("whatsapp_ia_audit_runs")
-    .select("id,primeiro_id,estado").eq("rodada",5).eq("estado","concluido")
+    .select("id,primeiro_id,estado").eq("rodada",6).eq("estado","concluido")
     .order("primeiro_id",{ascending:true}).limit(20);
   if(e1)throw e1;
   if((lotes??[]).length!==10)throw new Error("A rodada de 100 simulações ainda não foi concluída. Atualize a página.");
