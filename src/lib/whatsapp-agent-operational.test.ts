@@ -30,6 +30,17 @@ describe("regras operacionais do agente ativo no WhatsApp", () => {
     expect(agente).toContain("(arquivosPermitidos ?? []).find(");
     expect(agente).toContain('url.startsWith("https://")');
   });
+  it("PARAR registra descadastro global e o atendimento humano não usa esse comando", () => {
+    expect(agente).toContain('from("whatsapp_marketing_optout").upsert');
+    expect(agente).toContain('origem:"pedido_explicito_de_atendente"');
+    expect(agente).toContain('modo:"humano"');
+  });
+  it("campanhas bloqueiam envios de opt-out registrados", () => {
+    const campanha = readFileSync(new URL("../../supabase/functions/whatsapp-campanha-enviar/index.ts", import.meta.url), "utf8");
+    expect(campanha).toContain('from("whatsapp_marketing_optout")');
+    expect(campanha).toContain('status:"bloqueado"');
+    expect(campanha).toContain('if (optOut)');
+  });
   it("orienta o atendimento humano em alergia ou comprovante sem verificação", () => {
     expect(agente).toContain("contaminação cruzada");
     expect(agente).toContain("Comprovantes enviados por foto não comprovam recebimento bancário");
