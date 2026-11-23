@@ -74,6 +74,26 @@ describe("IA comercial: cálculos verificáveis antes do modelo",()=>{
  it("pede cidade quando prazo depende da rota",()=>{
   expect(responder("Se eu pedir depois do horário limite, recebo hoje?")).toContain("Qual é a sua cidade");
  });
+ it("pedido explícito de humano nunca sugere PARAR",()=>{
+   const r=responder("Preciso falar agora com alguém da loja.");
+   expect(r).toContain("ATENDENTE");
+   expect(r).not.toContain("responda PARAR");
+ });
+ it("entrar em grupo não confunde com descadastro",()=>{
+   const r=responder("Quero entrar no grupo de ofertas.");
+   expect(r).toContain("link de convite");
+   expect(r).not.toContain("responda PARAR");
+ });
+ it("não promete ofertas diárias",()=>{
+   const r=responder("Vocês podem me mandar ofertas todo dia?");
+   expect(r).toContain("frequência varia");
+   expect(r).not.toContain("PARAR");
+ });
+ it("não afirma práticas internas de contaminação cruzada",()=>{
+   const r=responder("Sou alérgico a leite, é totalmente seguro?");
+   expect(r).toContain("não podemos garantir ausência");
+   expect(r).not.toContain("ambiente onde outros ingredientes");
+ });
  it("não fecha pedido e não inventa preço sem informação",()=>{
   const r=responder("Pode garantir o total com frete de um pedido sem eu informar o bairro?");
   expect(r).not.toContain("R$");
