@@ -63,7 +63,7 @@ describe("bateria de 100 simulações determinísticas de venda (sem disparos e 
   it.each([1,2,3,4,6,7,8,9,16,19])("faixa seguinte em %i unidades é transparente",q=>{
     const x=resumir(estado([item(q)]));
     const aviso=textoProximaFaixa(x,{});
-    expect(aviso).toContain("Subtotal aumentará");
+    expect(aviso).toContain("subtotal aumentará");
     expect(aviso).toContain("por unidade");
     expect(x.proximaFaixa?.faltam).toBe([5,10,20].find(t=>t>q)!-q);
   });
