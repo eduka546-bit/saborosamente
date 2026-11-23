@@ -71,6 +71,12 @@ export function validarTransicaoVenda(
   const qtdPediu=trechoQuantidade?numero[trechoQuantidade[1]]??Number(trechoQuantidade[1]):null;
   if(removidas && qtdPediu && removidas!==qtdPediu)
     pendencias.push("O cliente solicitou alterar "+qtdPediu+" unidade(s), mas a IA retirou "+removidas+". Revise a troca.");
+  const adicao=texto.match(
+    /\b(?:acrescente|acrescenta|acrescentar|adiciona|adicione|adicionar|inclua|inclui|incluir|coloque|coloca|somar|soma|mais)\b.{0,35}?\b(1|2|3|4|5|uma|um|duas|dois|tres)\b/
+  );
+  const unidadesAdicao=adicao?numero[adicao[1]]??Number(adicao[1]):null;
+  if(unidadesAdicao && !autorizaRetirada && adicionadas!==unidadesAdicao)
+    pendencias.push("O cliente solicitou adicionar "+unidadesAdicao+" unidade(s), mas a IA acrescentou "+adicionadas+". Revise as quantidades.");
   const pedeSubstituicao=/(troca|troque|trocar|substitu|no lugar)/.test(texto) ||
     /(uma das|duas das|muda|mude|altera|passa).{0,70}\b(200|300|400)\s*g\b/.test(texto);
   if(pedeSubstituicao && qtdPediu && removidas===qtdPediu && adicionadas!==qtdPediu)
