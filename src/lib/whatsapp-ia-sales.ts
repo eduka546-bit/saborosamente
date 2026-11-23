@@ -98,6 +98,9 @@ export function resumirVenda(
   const estado=normalizarEstadoVenda(estadoBruto);
   const pedido=validarSugestaoPedido(rawPedido,produtos,precos);
   const pendencias=[...pedido.pendencias];
+  for(const i of pedido.itens) {
+    if(i.estoque===null) pendencias.push(i.nome+" ("+i.weight+"): disponibilidade não confirmada; equipe precisa verificar antes de confirmar.");
+  }
   const itensTotal=pedido.itens.reduce((n,it)=>n+it.quantity,0);
   if (!pedido.itens.length) pendencias.push("Informe sabores, tamanhos e quantidades disponíveis.");
   if (estado.recebimento.metodo===null) pendencias.push("Confirme se prefere entrega ou retirada na loja.");
@@ -131,7 +134,7 @@ export function resumirVenda(
     "\n\nEsta é uma prévia para revisão da equipe, não é um pedido confirmado. Valores e estoque podem mudar.";
   const perguntaSeguinte=unico[0]||"Os itens estão corretos? Podemos conferir entrega/retirada e pagamento antes de finalizar.";
   return {pedido,itensTotal,resumo,pendencias:unico,proximaFaixa,perguntaSeguinte,
-    aplicavelNoFormulario:pedido.itens.length>0 && pedido.pendencias.length===0};
+    aplicavelNoFormulario:pedido.itens.length>0 && pendencias.length===0};
 }
 export function sugestoesDeVenda(
   pedido:SugestaoPedido, produtos:any[], precos:unknown, preferidos:string[]=[],
