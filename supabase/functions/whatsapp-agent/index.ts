@@ -2428,7 +2428,8 @@ Deno.serve(async (req: Request) => {
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
-      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut)) {
+      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut) ||
+          /^(?:quero|nao quero|gostaria|preciso|por favor).{0,75}(?:parar de receber|nao receber|cancelar).{0,45}(?:publicidade|marketing|promocoes|ofertas|mensagens)/.test(textoOptOut)) {
         const telefoneCompleto = String(telefone ?? "").replace(/\D/g, "");
         const telefoneLocal = telefoneCompleto.startsWith("55")
           ? telefoneCompleto.slice(2)
@@ -2452,10 +2453,23 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        await sendWhatsAppMessage(
-          telefone,
-          "Tudo certo! 💚 Não enviaremos mais lembretes de carrinho por WhatsApp. Se quiser receber novamente no futuro, você pode autorizar no checkout.",
-        );
+        // Bloqueia campanhas em toda a central, não apenas lembretes de carrinho.
+        const numeroBase = normalizarTelefoneBrasileiro(telefone);
+        const {error: optOutGlobalErro} = numeroBase
+          ? await supabase.from("whatsapp_marketing_optout").upsert({
+              numero_base: numeroBase,
+              origem: "whatsapp_parar",
+              atualizado_em: new Date().toISOString(),
+            },{onConflict:"numero_base"})
+          : {error: new Error("Número brasileiro inválido para descadastro")};
+        if (optOutGlobalErro) {
+          console.error("Falha ao registrar descadastro global de campanhas:",optOutGlobalErro.message);
+        }
+        const confirmado = !optOutGlobalErro && !optOutError;
+        const respostaOptOut = confirmado
+          ? "Tudo certo! 💚 Registramos sua preferência: você não receberá mais campanhas nem lembretes promocionais da SaborosaMente neste número. Mensagens relacionadas a pedidos e atendimento continuam disponíveis."
+          : "Recebemos seu pedido para parar mensagens promocionais, mas houve um problema ao registrar a preferência. Nossa equipe precisa verificar a solicitação; por favor, peça um atendente nesta conversa. 💚";
+        await sendWhatsAppMessage(telefone, respostaOptOut);
         return new Response("OK", { status: 200 });
       }
 
