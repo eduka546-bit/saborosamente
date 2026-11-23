@@ -610,7 +610,7 @@ async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }
     const desc = p.descricao ? " — " + String(p.descricao).slice(0, 100) : "";
     const precos = tipo === "marmita"
       ? "preço conforme tabela por faixa acima"
-      : ["200g: " + valores(Number(p.preco ?? 0)),
+      : [Number(p.preco) > 0 ? "200g: " + valores(Number(p.preco)) : "valor inicial: confirmar",
          ...(Number(p.preco_300g) > 0 ? ["300g: " + valores(Number(p.preco_300g))] : []),
          ...(Number(p.preco_400g) > 0 ? ["400g: " + valores(Number(p.preco_400g))] : [])].join(" | ");
     const estoque = p.controle_estoque
@@ -2815,7 +2815,7 @@ Deno.serve(async (req: Request) => {
         { texto: cardapioContexto },
         entregasContexto,
         settingsContexto,
-        { texto: arquivosContexto },
+        { texto: arquivosContexto, arquivos: arquivosPermitidos },
         modulosPrompt,
       ] = await Promise.all([
         getProdutosContexto(),
@@ -2945,30 +2945,32 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
 
         // ── Enviar arquivo (imagem, PDF, documento) ──────────────────────
         else if (resultado.nome === "enviar_arquivo") {
-          const { url, tipo, nome, mensagem } = resultado.args;
-
-          const legenda = removerLinksDeArquivos(mensagem ?? "Aqui está o arquivo solicitado.");
-
-          let midiaEnviada = true;
-          if (tipo === "imagem") {
-            midiaEnviada = await sendWhatsAppImage(telefone, url, legenda);
-          } else {
-            const filename = "Cardápio Saborosamente.pdf";
-            midiaEnviada = await sendWhatsAppDocument(telefone, url, filename, legenda);
-          }
-
-          await appendMensagem(conversa.id, historico, {
-            role: "assistant",
-            content: `[Arquivo enviado: ${nome ?? url}] ${legenda}`,
-          });
-          if (!midiaEnviada) {
-            await sendWhatsAppMessage(
-              telefone,
-              "Não consegui entregar o arquivo agora. Vou tentar novamente quando você solicitar. 🙏",
-            );
+          const { url, tipo, mensagem } = resultado.args ?? {};
+          // URL vinda do modelo é não confiável: somente arquivos previamente
+          // aprovados pela equipe em agente_arquivos podem ser enviados.
+          const autorizado = (arquivosPermitidos ?? []).find(
+            (arquivo: any) => arquivo.url === url && typeof url === "string" &&
+              url.startsWith("https://") &&
+              (tipo === "imagem" ? arquivo.tipo === "imagem" : arquivo.tipo === "pdf"),
+          );
+          if (!autorizado) {
+            const aviso = "Não consegui encontrar esse arquivo no catálogo aprovado. Vou pedir que nossa equipe confira para você. 💚";
+            await sendWhatsAppMessage(telefone, aviso);
+            await appendMensagem(conversa.id, historico, { role: "assistant", content: aviso });
             return new Response("OK", { status: 200 });
           }
-          await new Promise((resolve) => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
+          const legenda = removerLinksDeArquivos(String(mensagem ?? "Aqui está o arquivo solicitado."));
+          const enviado = tipo === "imagem"
+            ? await sendWhatsAppImage(telefone, autorizado.url, legenda)
+            : await sendWhatsAppDocument(telefone, autorizado.url, "Cardápio Saborosamente.pdf", legenda);
+          if (!enviado) {
+            await sendWhatsAppMessage(telefone, "Não consegui entregar o arquivo agora. Vou pedir ajuda à equipe. 🙏");
+            return new Response("OK", { status: 200 });
+          }
+          await appendMensagem(conversa.id, historico, {
+            role: "assistant", content: "[Arquivo enviado: " + autorizado.nome + "] " + legenda,
+          });
+          await new Promise(resolve => setTimeout(resolve, MEDIA_DELIVERY_BUFFER_MS));
           await sendMenuInterativo(telefone);
         }
 
