@@ -93,8 +93,16 @@ export function WhatsAppIAAssistant({ dark, initialQuestion = "", onApply, onOrd
       if (modo === "venda") {
         if(!data?.pedido || !data?.resumo || !data?.estadoVenda)
           throw new Error(data?.error || "A IA não retornou um carrinho válido.");
-        if(data?.erroValidacao)
-          throw new Error("A atualização tentou remover itens sem autorização. Mantive o carrinho anterior.");
+        if(data?.erroValidacao) {
+          setPedido(data.pedido);
+          setResumoVenda(data.resumo);
+          setSugestoesVenda([]);
+          throw new Error(
+            (Array.isArray(data.resumo?.pendencias) ? data.resumo.pendencias : [])
+              .filter((p:unknown)=>typeof p==="string").slice(0,3).join(" ")
+              || "A alteração não passou na conferência de itens e estoque. O carrinho anterior foi preservado."
+          );
+        }
         const proposto=normalizarEstadoVenda(data.estadoVenda);
         setEstadoVenda(proposto);
         setPedido(data.pedido);
