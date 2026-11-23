@@ -5,7 +5,7 @@ import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
 import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
-import { normalizarEstadoVenda, resumirVenda, sugestoesDeVenda, textoProximaFaixa } from "../../../src/lib/whatsapp-ia-sales.ts";
+import { normalizarEstadoVenda, validarTransicaoVenda, resumirVenda, sugestoesDeVenda, textoProximaFaixa } from "../../../src/lib/whatsapp-ia-sales.ts";
 import { normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import {
   criarMemoriaCliente, pedidosRelacionadosAoTelefone, querRepetirUltimoPedido,
@@ -164,17 +164,37 @@ Deno.serve(async (req) => {
       const pedido=validarSugestaoPedido(raw,produtos.data ?? [],precos);
       if (modoVenda) {
         const proposto=normalizarEstadoVenda(raw);
-        const anteriores=estadoAnterior?.itens ?? [];
-        if (anteriores.length && !proposto.itens.length && !/\b(zerar|limpar|cancelar|esvaziar)\b/i.test(body.pergunta)) {
-          pedido.pendencias.push("A IA tentou apagar o carrinho. Nenhuma mudança foi aplicada; a equipe deve conferir a solicitação.");
-          return json({pedido,estadoVenda:estadoAnterior,erroValidacao:true,consultadoEm:fatos.atualizadoEm});
+        const anterior=estadoAnterior??normalizarEstadoVenda(null);
+        const perdas=validarTransicaoVenda(anterior,proposto,body.pergunta);
+        const apenasValidos=validarSugestaoPedido({itens:proposto.itens,pendencias:[]},produtos.data??[],precos);
+        const errosDeCatalogo=apenasValidos.pendencias;
+        if (perdas.length || errosDeCatalogo.length) {
+          const anteriorRecalculado=resumirVenda(anterior,{
+            itens:anterior.itens,pendencias:[...perdas,...errosDeCatalogo,
+              "A proposta não foi aplicada ao carrinho. Corrija as informações e tente novamente."],
+          },produtos.data??[],precos,fatos.cidades.map(c=>c.cidade));
+          return json({
+            pedido:anteriorRecalculado.pedido,estadoVenda:anterior,
+            erroValidacao:true,
+            resumo:{itensTotal:anteriorRecalculado.itensTotal,texto:anteriorRecalculado.resumo,
+              pendencias:anteriorRecalculado.pendencias,perguntaSeguinte:anteriorRecalculado.perguntaSeguinte,
+              aplicavelNoFormulario:false,proximaFaixa:null},
+            consultadoEm:fatos.atualizadoEm,
+          });
         }
-        const resumo=resumirVenda(proposto,{itens:raw.itens,pendencias:[...pedido.pendencias]},produtos.data ?? [],precos,
-          fatos.cidades.map(c=>c.cidade));
+        // Nunca encaminhar para o navegador IDs, quantidades ou preços não validados.
+        const estadoSeguro={
+          ...proposto,
+          itens:apenasValidos.itens.map(i=>({productId:i.productId,
+            weight:i.weight,quantity:i.quantity})),
+        };
+        const resumo=resumirVenda(estadoSeguro,{itens:estadoSeguro.itens,
+          pendencias:Array.isArray(raw.pendencias)?raw.pendencias:[]},
+          produtos.data??[],precos,fatos.cidades.map(c=>c.cidade));
         const favoritos=memoria?.favoritos.map(x=>x.productId)??[];
         const sugestoes=sugestoesDeVenda(resumo.pedido,produtos.data ?? [],precos,favoritos);
         return json({
-          pedido:resumo.pedido,estadoVenda:proposto,
+          pedido:resumo.pedido,estadoVenda:estadoSeguro,
           resumo:{itensTotal:resumo.itensTotal,texto:resumo.resumo,pendencias:resumo.pendencias,
             perguntaSeguinte:resumo.perguntaSeguinte,aplicavelNoFormulario:resumo.aplicavelNoFormulario,
             proximaFaixa:textoProximaFaixa(resumo,precos)},
