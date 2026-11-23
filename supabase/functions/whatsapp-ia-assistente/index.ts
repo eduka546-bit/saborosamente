@@ -5,6 +5,7 @@ import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
 import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
+import { normalizarEstadoVenda, validarTransicaoVenda, resumirVenda, sugestoesDeVenda, textoProximaFaixa } from "../../../src/lib/whatsapp-ia-sales.ts";
 import { normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import {
   criarMemoriaCliente, pedidosRelacionadosAoTelefone, querRepetirUltimoPedido,
@@ -37,7 +38,9 @@ Deno.serve(async (req) => {
     const modoContexto = body?.modo === "contexto";
     if (!modoContexto && (typeof body?.pergunta !== "string" || !body.pergunta.trim() || body.pergunta.length > 1500))
       return json({ error: "Escreva uma pergunta de até 1.500 caracteres." }, 400);
-    const montarPedido = body?.modo === "pedido";
+    const modoVenda = body?.modo === "venda";
+    const montarPedido = body?.modo === "pedido" || modoVenda;
+    const estadoAnterior = modoVenda ? normalizarEstadoVenda(body?.estadoVenda) : null;
     // Nunca aceitar telefone fornecido pelo navegador: a conversa determina o
     // contato e a autorização sempre exige uma sessão administrativa válida.
     let telefoneConversa: string | null = null;
@@ -91,7 +94,7 @@ Deno.serve(async (req) => {
     }
     const pediuRepetir = montarPedido && typeof body.pergunta==="string" && querRepetirUltimoPedido(body.pergunta);
     const mesmoPedido = pediuRepetir && repeticaoSemAlteracoes(body.pergunta);
-    if (mesmoPedido) {
+    if (mesmoPedido && !modoVenda) {
       const anterior=memoria?.ultimoPedido;
       if(!anterior?.itens.length) return json({
         pedido:{itens:[],pendencias:["Não encontrei um pedido entregue anterior com sabores e tamanhos identificáveis nesta conversa. Monte manualmente ou confirme os dados com o cliente."],subtotal:0},
@@ -126,8 +129,13 @@ Deno.serve(async (req) => {
           kcal: p["tabela_nutricional_"+v.weight]?.kcal ?? null, proteina: p["tabela_nutricional_"+v.weight]?.prot ?? null })),
     })).filter(p => p.variantes.length);
     const contextoMemoria = memoria ? contextoDePreferenciasParaIA(memoria) : "Sem histórico de compras confirmado para esta conversa.";
+    const contextoVenda = modoVenda
+      ? "\nCARRINHO ATUAL VALIDADO (cada resposta devolve o carrinho COMPLETO): " + JSON.stringify(estadoAnterior) +
+        "\nRegra: alterações somam/removem apenas o solicitado. Não apague sabores anteriores ao adicionar um item. Nunca invente pedido, entrega, pagamento, frete, endereço ou consentimento. Se pedido incompleto, mantenha as escolhas anteriores e pergunte o dado que falta." +
+        "\nEXEMPLOS DE ALTERAÇÃO OBRIGATÓRIA: se havia 4 unidades A/300g e o cliente pedir para mudar UMA para 400g, retorne 3 unidades A/300g + 1 unidade A/400g (NÃO 4 de 400g). Se havia 2 de B/400g e o cliente pedir UMA de 300g no lugar, retorne 1 B/400g + 1 B/300g. Se pedir para TROCAR 2 unidades A por C, diminua A em 2 e acrescente C em 2. Não coloque itens com quantidade 0. Sem estoque suficiente, mantenha o que já estava confirmado no rascunho e peça para escolher alternativa; nunca force uma reserva."
+      : "";
     const prompt = montarPedido
-      ? "Você prepara apenas rascunhos de pedido para revisão humana. Retorne JSON com itens (array de {productId, weight, quantity}) e pendencias (array de textos). Utilize somente IDs e tamanhos disponíveis no catálogo. Não adivinhe sabores, quantidade ou tamanho que não estejam explícitos: sinalize pendência. Se o cliente pedir uma sugestão de sabores, sugira somente produtos disponíveis e respeite a quantidade e tamanho informados. Para sugestões mais leves use apenas calorias cadastradas na gramatura pedida; se faltarem dados sinalize pendência. Não faça promessas nutricionais ou médicas, não considere preços ditos pelo cliente, não trate combos prontos/personalizadas como produtos avulsos. Não execute ações. Se não for pedido, retorne itens vazios. Se o cliente pedir para repetir ou ajustar seu último pedido, use os itens exatos do HISTÓRICO VERIFICADO; só proponha alterações explicitamente solicitadas e marque pendências se não estiver claro quais itens trocar. Não trate histórico como pedido confirmado, reserva ou pagamento. Se o histórico está ausente, nunca invente o último pedido. Não presuma endereço, alergia, condições médicas ou identidade. HISTÓRICO VERIFICADO (interno da equipe, não compartilhar dados de terceiros): " + contextoMemoria + " Catálogo JSON: " + JSON.stringify(catalogoPedido)
+      ? "Você prepara apenas rascunhos de pedido para revisão humana. Retorne JSON com itens (array de {productId, weight, quantity}) e pendencias (array de textos). Utilize somente IDs e tamanhos disponíveis no catálogo. Não adivinhe sabores, quantidade ou tamanho que não estejam explícitos: sinalize pendência. Se o cliente pedir uma sugestão de sabores, sugira somente produtos disponíveis e respeite a quantidade e tamanho informados. Para sugestões mais leves use apenas calorias cadastradas na gramatura pedida; se faltarem dados sinalize pendência. Não faça promessas nutricionais ou médicas, não considere preços ditos pelo cliente, não trate combos prontos/personalizadas como produtos avulsos. Não execute ações. Se não for pedido, retorne itens vazios. Se estiver em VENDA ASSISTIDA, responda JSON contendo sempre itens (carrinho COMPLETO de {productId,weight,quantity}), recebimento ({metodo:'entrega'|'retirada'|null,cidade,bairro,horario}) e pendencias (array); preserve o que já foi escolhido pelo cliente e só altere o que a nova mensagem pediu. Não declare data ou taxa de frete confirmada, apenas preferência. Nunca confunda sugestão com item escolhido: não acrescente sugestões sem o cliente pedir explicitamente. Se o cliente pedir para repetir ou ajustar seu último pedido, use os itens exatos do HISTÓRICO VERIFICADO; só proponha alterações explicitamente solicitadas e marque pendências se não estiver claro quais itens trocar. Não trate histórico como pedido confirmado, reserva ou pagamento. Se o histórico está ausente, nunca invente o último pedido. Não presuma endereço, alergia, condições médicas ou identidade. HISTÓRICO VERIFICADO (interno da equipe, não compartilhar dados de terceiros): " + contextoMemoria + " Catálogo JSON: " + JSON.stringify(catalogoPedido) + contextoVenda
       : INSTRUCOES_ASSISTENTE_IA + formatarTreinamentos(treinos.data ?? []) +
         "\nCONTEXTO DE COMPRAS (apenas da conversa; nunca divulgar sem solicitação e conferência pela equipe): " + contextoMemoria +
         "\nFATOS ATUAIS (JSON):\n" + JSON.stringify(fatos);
@@ -155,6 +163,45 @@ Deno.serve(async (req) => {
     if (montarPedido) {
       const raw = JSON.parse(resposta);
       const pedido=validarSugestaoPedido(raw,produtos.data ?? [],precos);
+      if (modoVenda) {
+        const proposto=normalizarEstadoVenda(raw);
+        const anterior=estadoAnterior??normalizarEstadoVenda(null);
+        const perdas=validarTransicaoVenda(anterior,proposto,body.pergunta);
+        const apenasValidos=validarSugestaoPedido({itens:proposto.itens,pendencias:[]},produtos.data??[],precos);
+        const errosDeCatalogo=apenasValidos.pendencias;
+        if (perdas.length || errosDeCatalogo.length) {
+          const anteriorRecalculado=resumirVenda(anterior,{
+            itens:anterior.itens,pendencias:[...perdas,...errosDeCatalogo,
+              "A proposta não foi aplicada ao carrinho. Corrija as informações e tente novamente."],
+          },produtos.data??[],precos,fatos.cidades.map(c=>c.cidade));
+          return json({
+            pedido:anteriorRecalculado.pedido,estadoVenda:anterior,
+            erroValidacao:true,
+            resumo:{itensTotal:anteriorRecalculado.itensTotal,texto:anteriorRecalculado.resumo,
+              pendencias:anteriorRecalculado.pendencias,perguntaSeguinte:anteriorRecalculado.perguntaSeguinte,
+              aplicavelNoFormulario:false,proximaFaixa:null},
+            consultadoEm:fatos.atualizadoEm,
+          });
+        }
+        // Nunca encaminhar para o navegador IDs, quantidades ou preços não validados.
+        const estadoSeguro={
+          ...proposto,
+          itens:apenasValidos.itens.map(i=>({productId:i.productId,
+            weight:i.weight,quantity:i.quantity})),
+        };
+        const resumo=resumirVenda(estadoSeguro,{itens:estadoSeguro.itens,
+          pendencias:Array.isArray(raw.pendencias)?raw.pendencias:[]},
+          produtos.data??[],precos,fatos.cidades.map(c=>c.cidade));
+        const favoritos=memoria?.favoritos.map(x=>x.productId)??[];
+        const sugestoes=sugestoesDeVenda(resumo.pedido,produtos.data ?? [],precos,favoritos);
+        return json({
+          pedido:resumo.pedido,estadoVenda:estadoSeguro,
+          resumo:{itensTotal:resumo.itensTotal,texto:resumo.resumo,pendencias:resumo.pendencias,
+            perguntaSeguinte:resumo.perguntaSeguinte,aplicavelNoFormulario:resumo.aplicavelNoFormulario,
+            proximaFaixa:textoProximaFaixa(resumo,precos)},
+          sugestoes,consultadoEm:fatos.atualizadoEm,origem:"venda_assistida",
+        });
+      }
       if(pediuRepetir && memoria?.ultimoPedido?.itens.length) {
         pedido.pendencias.push(...verificarTrocasDaRecompra(
           body.pergunta,memoria.ultimoPedido.itens,pedido.itens,
