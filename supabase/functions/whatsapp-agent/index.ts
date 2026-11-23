@@ -3,6 +3,8 @@ import { identificarAcaoMarketing, executarCardapioEMenu, normalizarCTA } from "
 import { pedidosVisiveisAoContato, normalizarTelefoneBrasileiro, telefonesDoMesmoContato } from "../../../src/lib/whatsapp-ia-privacy.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { regraEntregaCidade, DIAS_SEMANA } from "../../../src/lib/entrega-config.ts";
+import { montarFatosIA } from "../../../src/lib/whatsapp-ia-facts.ts";
+import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
@@ -624,6 +626,26 @@ async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }
   if (!produtos.length) linhas.push("Nenhum produto público disponível. Não inventar sabores ou preços.");
   linhas.push("Se o estoque está esgotado ou a confirmar, nunca garantir a unidade. Feriados e dias disponíveis devem ser confirmados com a equipe.");
   return { texto: linhas.join("\n"), produtos };
+}
+
+// Mesmo cálculo verificável do simulador: usa apenas cardápio e dados públicos.
+// Quando a consulta falha, devolve null e o fluxo normal continua; nunca inventa valores.
+async function responderComercialComDadosAtuais(pergunta: string): Promise<string | null> {
+  const t = pergunta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (!/(preco|valor|quanto cust|quanto fica|desconto|faixa|frete|taxa|entrega|entregam|debito|acrescimo|peixe|tilapia|personalizad|calorias|proteina|marketing|ofertas|publicidade|cardapio)/.test(t)) return null;
+  try {
+    const [produtos, taxas, loja] = await Promise.all([
+      supabase.from("produtos").select("id,nome,descricao,ingredientes,tipo_produto,peso,categoria,preco,preco_300g,preco_400g,controle_estoque,estoque_200g,estoque_300g,estoque_400g,ativo,visivel_online,categorias(nome),tabela_nutricional_200g,tabela_nutricional_300g,tabela_nutricional_400g").eq("ativo",true).eq("visivel_online",true).order("nome"),
+      supabase.from("delivery_rates").select("cidade,bairro,valor").eq("ativo",true).order("cidade").order("bairro"),
+      supabase.from("site_settings").select("parametros_loja,endereco,horarios_funcionamento,payment_methods,meal_flags,card_flags,cashback_ativo,cashback_percentual,cashback_validade_dias,cashback_minimo_uso,cashback_limite_desconto_pct").single(),
+    ]);
+    if(produtos.error||taxas.error||loja.error||!loja.data) return null;
+    const fatos = montarFatosIA(produtos.data??[],taxas.data??[],loja.data);
+    return respostaComercialDeterministica(pergunta,fatos);
+  } catch (e) {
+    console.warn("Consulta comercial segura indisponível:", e instanceof Error ? e.message : "erro");
+    return null;
+  }
 }
 
 async function getEntregasContexto(): Promise<string> {
@@ -2406,7 +2428,8 @@ Deno.serve(async (req: Request) => {
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
-      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut)) {
+      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut) ||
+          /^(?:quero|nao quero|gostaria|preciso|por favor).{0,75}(?:parar de receber|nao receber|cancelar).{0,45}(?:publicidade|marketing|promocoes|ofertas|mensagens)/.test(textoOptOut)) {
         const telefoneCompleto = String(telefone ?? "").replace(/\D/g, "");
         const telefoneLocal = telefoneCompleto.startsWith("55")
           ? telefoneCompleto.slice(2)
@@ -2430,10 +2453,23 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        await sendWhatsAppMessage(
-          telefone,
-          "Tudo certo! 💚 Não enviaremos mais lembretes de carrinho por WhatsApp. Se quiser receber novamente no futuro, você pode autorizar no checkout.",
-        );
+        // Bloqueia campanhas em toda a central, não apenas lembretes de carrinho.
+        const numeroBase = normalizarTelefoneBrasileiro(telefone);
+        const {error: optOutGlobalErro} = numeroBase
+          ? await supabase.from("whatsapp_marketing_optout").upsert({
+              numero_base: numeroBase,
+              origem: "whatsapp_parar",
+              atualizado_em: new Date().toISOString(),
+            },{onConflict:"numero_base"})
+          : {error: new Error("Número brasileiro inválido para descadastro")};
+        if (optOutGlobalErro) {
+          console.error("Falha ao registrar descadastro global de campanhas:",optOutGlobalErro.message);
+        }
+        const confirmado = !optOutGlobalErro && !optOutError;
+        const respostaOptOut = confirmado
+          ? "Tudo certo! 💚 Registramos sua preferência: você não receberá mais campanhas nem lembretes promocionais da SaborosaMente neste número. Mensagens relacionadas a pedidos e atendimento continuam disponíveis."
+          : "Recebemos seu pedido para parar mensagens promocionais, mas houve um problema ao registrar a preferência. Nossa equipe precisa verificar a solicitação; por favor, peça um atendente nesta conversa. 💚";
+        await sendWhatsAppMessage(telefone, respostaOptOut);
         return new Response("OK", { status: 200 });
       }
 
@@ -2557,6 +2593,39 @@ Deno.serve(async (req: Request) => {
         });
         if (resultado.menuEnviado) await appendMensagem(conversa.id, historico, { role: "assistant", content: "[Menu principal enviado]" });
         return new Response("OK", { status: 200 });
+      }
+
+      // Pedidos explícitos de atendimento humano e reclamações críticas não
+      // passam por sugestão do modelo: devem de fato assumir modo humano.
+      const textoParaEquipe = normalizarCTA(String(texto ?? ""));
+      const solicitarHumano =
+        /^(atendente|humano|falar com atendente|falar com a equipe|falar com alguem|quero atendente)$/.test(textoParaEquipe) ||
+        /\b(falar com atendente|falar com alguem|falar com uma pessoa|atendimento humano|alguem da loja|preciso de atendente|quero atendente)\b/.test(textoParaEquipe);
+      const reclamaCritica =
+        /\b(corpo estranho|cobraram duas vezes|cobrado duas vezes|cobranca duplicada|marmita veio aberta|entrega atrasada|pedido nao foi produzido|nao foi produzida|reclamacao formal)\b/.test(textoParaEquipe) ||
+        /\b(cancelar|estornar|reembolso)\b.{0,40}\bpedido\b/.test(textoParaEquipe);
+      if (conversa?.id && conversa.modo !== "humano" && (solicitarHumano || reclamaCritica)) {
+        await appendMensagem(conversa.id, historico, {
+          role: "user", whatsapp_message_id: msg.id,
+          ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}),
+          content: texto || menuId || "",
+        });
+        const {error:handoffErro} = await supabase.from("whatsapp_conversas")
+          .update({modo:"humano"}).eq("id",conversa.id).select("id").single();
+        if(handoffErro) {
+          console.error("Falha ao transferir para equipe:",handoffErro.message);
+          await sendWhatsAppMessage(telefone,"Não consegui transferir o atendimento agora. Tente novamente em instantes, por favor. 💚");
+          return new Response("OK",{status:200});
+        }
+        await registrarEvento("escalacao_humano",telefone,conversa.id,{
+          origem:reclamaCritica?"reclamacao_critica":"pedido_explicito_de_atendente",
+        });
+        const textoConfirmacao = reclamaCritica
+          ? "Sinto muito pelo que aconteceu. 💚 Nosso atendimento humano vai assumir esta conversa para verificar a situação com cuidado."
+          : "Claro! 💚 Nossa equipe vai assumir o atendimento por aqui. Você não precisa sair desta conversa.";
+        await sendWhatsAppMessage(telefone,textoConfirmacao);
+        await appendMensagem(conversa.id,historico,{role:"assistant",content:textoConfirmacao});
+        return new Response("OK",{status:200});
       }
 
       // ── Modo humano: só salva, exceto cardápio solicitado pelo botão acima ─
@@ -2866,6 +2935,12 @@ PREÇOS POR FAIXA (sempre observar ao informar valores):
 - Para calcular uma estimativa, pergunte o tamanho e a quantidade total. Sopas e complementos contam no total de itens, mas mantêm preço próprio. Combos prontos têm preços próprios e não recebem descontos adicionais.
 - Nunca apresente um total com taxa de entrega, cupons, adicionais, cashback ou prazo garantido sem os dados reais do checkout.
 - Se o cliente pedir um valor que não consta na tabela ou pedir um desconto especial, ofereça confirmação com a equipe.
+- O débito e crédito, assim como cartões alimentação/refeição, NÃO têm taxa ou acréscimo. Não confundir adicionais de preparo/talheres com taxas do cartão.
+- O frete promocional R$5 é EXCLUSIVO de SÃO BENTO DO SUL com 5+ marmitas elegíveis. Em Campo Alegre e outras cidades, a taxa depende do bairro.
+- Quando a pessoa pedir marmitas personalizadas, siga a produção e entrega na semana seguinte, nunca prometa entrega no mesmo dia.
+- Para recomendações de calorias ou proteínas, só use dados nutricionais de pratos disponíveis; não recomende combo pronto no lugar da marmita pedida.
+- A palavra PARAR serve APENAS para opt-out de publicidade. NUNCA oriente responder PARAR para falar com atendente, para entrar no grupo de ofertas ou para solicitar pedido. Nessas situações, use transferir_para_humano ou peça que escreva ATENDENTE.
+- Nunca afirme que existe um link do grupo de ofertas, promoção diária ou outra condição se não estiver nos dados atuais.
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
@@ -2915,6 +2990,20 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           whatsapp_media_id: msg.type === "image" ? msg.image?.id : (msg.audio?.id ?? msg.voice?.id),
         } : {}),
       });
+
+      // Respostas objetivas de preço, estoque, frete e produção devem vir
+      // dos cálculos do site, não de uma inferência generativa.
+      if (typeof texto === "string" && texto.length <= 1500) {
+        const respostaVerificada = await responderComercialComDadosAtuais(texto);
+        if (respostaVerificada) {
+          const enviada = await sendWhatsAppMessage(telefone, respostaVerificada);
+          if (enviada) {
+            await appendMensagem(conversa.id, historico, {role:"assistant",content:respostaVerificada});
+            await registrarEvento("resposta_comercial_verificada",telefone,conversa.id,{origem:"tabela_do_site"});
+          }
+          return new Response("OK", {status:200});
+        }
+      }
 
       // ── Chama OpenAI ─────────────────────────────────────────────────────
       const resultado = await chamarOpenAI(systemPrompt, historico, pedidoEmAndamento);

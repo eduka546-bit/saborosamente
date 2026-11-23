@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.0";
 import { authorizationError, authorizeAdminOrService } from "../_shared/authorization.ts";
+import { normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
 
 const WHATSAPP_TOKEN = Deno.env.get("WHATSAPP_TOKEN")!;
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
@@ -254,6 +255,22 @@ async function processar(payload: Payload): Promise<void> {
     if (atual?.status !== "enviando") return;
     if (i > 0) await sleep(DELAY_MS);
 
+    // Respeita descadastro mesmo quando o contato já estava na fila da campanha.
+    // Consulta imediatamente antes de cada envio para evitar disparos após PARAR.
+    const numeroBase = normalizarTelefoneBrasileiro(envios[i].telefone);
+    if (numeroBase) {
+      const {data:optOut,error:optOutErro} = await supabase
+        .from("whatsapp_marketing_optout").select("numero_base")
+        .eq("numero_base",numeroBase).maybeSingle();
+      if (optOutErro) throw new Error("Não consegui confirmar preferência de marketing. Envio interrompido por segurança.");
+      if (optOut) {
+        await supabase.from("campanhas_whatsapp_envios").update({
+          status:"bloqueado",
+          erro_mensagem:"Contato solicitou descadastro de campanhas no WhatsApp.",
+        }).eq("id",envios[i].id).eq("status","pendente");
+        continue;
+      }
+    }
     const resultado = await enviar(String(envios[i].telefone), mensagem, imagem_url, video_url, template, media_id);
     if (resultado.sucesso) {
       await supabase.from("campanhas_whatsapp_envios").update({

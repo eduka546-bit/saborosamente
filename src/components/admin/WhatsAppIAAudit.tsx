@@ -12,6 +12,9 @@ type Resultado = {
   classificacao: "sinalizada" | "revisao" | "erro";
   alertas: string[];
   parecer: "pendente" | "correta" | "incorreta";
+  runId?: string;
+  fonte?: "regra_verificada" | "modelo";
+  observacoes?: string;
 };
 const money = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
 const STORAGE_KEY = "saborosamente:wa-auditoria-100:v1";
@@ -36,6 +39,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [resultados, setResultados] = useState<Resultado[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [executando, setExecutando] = useState(false);
+  const [carregandoRevisao, setCarregandoRevisao] = useState(false);
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 });
   const [mensagem, setMensagem] = useState("");
   const [filtro, setFiltro] = useState("todos");
@@ -57,6 +61,44 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(resultados)); }
     catch { /* relatório ainda pode ser exportado */ }
   }, [resultados, carregado]);
+
+  const carregarRevisaoTecnica = async () => {
+    if (executando || carregandoRevisao) return;
+    if (resultados.some(r => r.parecer !== "pendente") &&
+        !window.confirm("Carregar a primeira revisão técnica vai substituir os resultados locais. Continue?")) return;
+    setCarregandoRevisao(true); setMensagem("");
+    try {
+      // Leitura sob RLS: só usuários administradores podem acessar esta auditoria.
+      const db = supabase as any;
+      const {data:lotes,error:e1} = await db.from("whatsapp_ia_audit_runs")
+        .select("id,rodada,estado").eq("rodada",4).order("criado_em",{ascending:false}).limit(20);
+      if(e1)throw e1;
+      const ids=(lotes??[]).filter((x:any)=>x.estado==="concluido").map((x:any)=>x.id);
+      if(ids.length!==10)throw new Error("A revisão técnica final ainda não está completa.");
+      const {data:rows,error:e2}=await db.from("whatsapp_ia_audit_results")
+        .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao,observacoes,fonte")
+        .in("run_id",ids).order("cenario_id",{ascending:true}).limit(110);
+      if(e2)throw e2;
+      const nova:Resultado[]=(rows??[]).map((x:any)=>{
+        const c=CENARIOS_AUDITORIA.find(q=>q.id===x.cenario_id);
+        const alertas=Array.isArray(x.alertas)?x.alertas.map(String):[];
+        return {
+          id:Number(x.cenario_id),categoria:String(x.categoria),
+          pergunta:String(x.pergunta),objetivo:c?.objetivo??"Revisar com dados reais do site",
+          resposta:String(x.resposta??""),alertas,
+          classificacao:x.status==="erro"?"erro":alertas.length?"sinalizada":"revisao",
+          parecer:["correta","incorreta"].includes(x.revisao)?x.revisao:"pendente",
+          runId:String(x.run_id),
+          observacoes:String(x.observacoes??""),fonte:x.fonte==="regra_verificada"?"regra_verificada":"modelo",
+        };
+      });
+      nova.sort((a,b)=>a.id-b.id);
+      if(nova.length!==100)throw new Error("Esperava 100 respostas finais, mas recebi "+nova.length+".");
+      setResultados(nova);setProgresso({atual:nova.length,total:100});
+      setMensagem("Revisão técnica carregada. Confira as respostas finais da IA e marque o que ainda precisar ajustar.");
+    } catch(e){setMensagem("Não foi possível carregar a revisão técnica: "+(e instanceof Error?e.message:"erro desconhecido"));}
+    finally{setCarregandoRevisao(false);}
+  };
 
   const executar = async (quantidade: number) => {
     if (executando) return;
@@ -109,8 +151,28 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     }
   };
 
-  const definirParecer = (id: number, parecer: Resultado["parecer"]) =>
+  const definirParecer = async (id: number, parecer: Resultado["parecer"]) => {
+    const atual=resultados.find(r=>r.id===id);
+    if (!atual) return;
     setResultados((atuais) => atuais.map((r) => r.id === id ? { ...r, parecer } : r));
+    if (atual.runId) {
+      const {error}=await (supabase as any).from("whatsapp_ia_audit_results")
+        .update({revisao:parecer}).eq("run_id",atual.runId).eq("cenario_id",id);
+      if(error){
+        setResultados((atuais)=>atuais.map(r=>r.id===id?{...r,parecer:atual.parecer}:r));
+        setMensagem("Não consegui salvar sua revisão no servidor. Verifique o acesso administrativo.");
+      }
+    }
+  };
+
+  const salvarObservacao = async (id: number, observacoes: string) => {
+    const atual = resultados.find(r => r.id === id);
+    if (!atual?.runId) return;
+    const {error} = await (supabase as any).from("whatsapp_ia_audit_results")
+      .update({observacoes: observacoes.slice(0,1000)})
+      .eq("run_id", atual.runId).eq("cenario_id", id);
+    if (error) setMensagem("Não consegui salvar uma observação. Tente novamente.");
+  };
 
   const filtrados = resultados.filter(r =>
     (filtro === "todos" || r.categoria === filtro) && (!somenteSinalizados || r.classificacao !== "revisao"));
@@ -128,11 +190,16 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       não alteram estoque nem ativam atendimento automático.
     </p>
     <p className="text-xs opacity-80">
-      O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
+      A primeira revisão já foi executada pela equipe técnica. Você pode carregar as respostas finais para sua segunda verificação. As marcações feitas sobre essa revisão também são salvas no servidor; testes novos continuam locais. O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
       preço, disponibilidade ou entrega estão corretos. Marque cada resposta como correta ou incorreta
       após conferir as informações reais.
     </p>
     <div className="flex flex-wrap gap-2">
+      <button type="button" disabled={executando || carregandoRevisao} onClick={() => void carregarRevisaoTecnica()}
+        className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+        {carregandoRevisao && <Loader2 size={15} className="animate-spin"/>}
+        Carregar revisão feita pela equipe técnica
+      </button>
       <button type="button" disabled={executando} onClick={() => void executar(10)}
         className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {executando ? <Loader2 size={15} className="animate-spin"/> : <Play size={15}/>} Testar 10 casos
@@ -199,8 +266,18 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
             <span className="mt-1 block font-normal opacity-80">{r.pergunta}</span>
           </summary>
           <p className="mt-2 text-[11px] opacity-70">Objetivo: {r.objetivo}</p>
+          {r.fonte && <p className="mt-1 text-[11px] opacity-70">Fonte: {r.fonte==="regra_verificada"?"Dados calculados do site":"Resposta gerada pela OpenAI"}</p>}
           <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-[#00a884]/10 p-2 text-xs">{r.resposta || "(sem resposta)"}</p>
           {r.alertas.map((a, i) => <p key={i} className="mt-1 flex items-center gap-1 text-xs text-orange-500"><AlertTriangle size={13}/>{a}</p>)}
+          {r.runId && <div className="mt-2 space-y-1">
+            <label htmlFor={"nota-qa-"+r.id} className="block text-[11px] opacity-70">O que você gostaria de mudar?</label>
+            <textarea id={"nota-qa-"+r.id} rows={2} maxLength={1000}
+              placeholder="Digite sugestões ou correções para nossa equipe."
+              value={r.observacoes??""}
+              onChange={e=>setResultados(atuais=>atuais.map(x=>x.id===r.id?{...x,observacoes:e.target.value}:x))}
+              onBlur={e=>void salvarObservacao(r.id,e.target.value)}
+              className="w-full resize-y rounded border border-current/20 bg-transparent p-2 text-xs"/>
+          </div>}
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => definirParecer(r.id, "correta")}
               className="rounded-lg border border-green-600 px-2 py-1 text-xs text-green-600">Correta</button>
