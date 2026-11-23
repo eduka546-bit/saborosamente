@@ -102,4 +102,25 @@ describe("bateria de 100 simulações determinísticas de venda (sem disparos e 
     expect(x.resumo).toContain("Subtotal das refeições");
     expect(x.aplicavelNoFormulario).toBe(x.pedido.itens.length>0&&x.pedido.pendencias.length===0);
   });
+  it("bloqueia carrinho com estoque não controlado até conferência da equipe",()=>{
+    const custom=[...produtos,p("incerto","Frango Especial",5,{controle_estoque:false})];
+    const e=estado([item(2,"incerto")]);
+    const r=resumirVenda(e,{itens:e.itens,pendencias:[]},custom,{},["São Bento do Sul"]);
+    expect(r.pendencias.some(x=>x.includes("disponibilidade não confirmada"))).toBe(true);
+    expect(r.aplicavelNoFormulario).toBe(false);
+  });
+  it("troca de uma unidade não pode retirar duas nem acrescentar quantidade diferente",()=>{
+    const anterior=estado([item(4),item(2,"b","400g")]);
+    const excedeu=estado([item(4),item(1,"c","300g")]);
+    const v=validarTransicaoVenda(anterior,excedeu,"Troque uma unidade de Tilápia 400g por Lasanha 300g");
+    expect(v.some(x=>x.includes("solicitou alterar 1"))).toBe(true);
+    const correto=estado([item(4),item(1,"b","400g"),item(1,"c","300g")]);
+    expect(validarTransicaoVenda(anterior,correto,"Troque uma unidade de Tilápia 400g por Lasanha 300g")).toEqual([]);
+  });
+  it("adicionar uma unidade não pode virar duas no modelo",()=>{
+    const prev=estado([item(4)]);
+    const depois=estado([item(4),item(2,"b")]);
+    expect(validarTransicaoVenda(prev,depois,"Acrescente 1 de Tilápia de 300g").some(x=>x.includes("solicitou adicionar 1"))).toBe(true);
+  });
+
 });
