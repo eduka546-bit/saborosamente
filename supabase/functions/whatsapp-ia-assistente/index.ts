@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { montarFatosIA, perguntaSemIdentificadores, INSTRUCOES_ASSISTENTE_IA } from "../../../src/lib/whatsapp-ia-facts.ts";
 import { formatarTreinamentos } from "../../../src/lib/whatsapp-ia-training.ts";
 import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
+import { conferirVenda, prepararVendaIA, normalizarEstadoVenda } from "../../../src/lib/whatsapp-ia-sales.ts";
 import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
 import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
@@ -35,7 +36,11 @@ Deno.serve(async (req) => {
     if (roleError || !role) return json({ error: "Acesso administrativo necessário." }, 403);
     const body = await req.json().catch(() => null);
     const modoContexto = body?.modo === "contexto";
-    if (!modoContexto && (typeof body?.pergunta !== "string" || !body.pergunta.trim() || body.pergunta.length > 1500))
+    const modoConferirVenda = body?.modo === "venda_revisar";
+    const modoVenda = body?.modo === "venda";
+    if (!["contexto","venda_revisar","venda","pedido","resposta",undefined].includes(body?.modo))
+      return json({error:"Modo de atendimento inválido."},400);
+    if (!modoContexto && !modoConferirVenda && (typeof body?.pergunta !== "string" || !body.pergunta.trim() || body.pergunta.length > 1500))
       return json({ error: "Escreva uma pergunta de até 1.500 caracteres." }, 400);
     const montarPedido = body?.modo === "pedido";
     // Nunca aceitar telefone fornecido pelo navegador: a conversa determina o
@@ -89,6 +94,92 @@ Deno.serve(async (req) => {
       if (!memoria) return json({error:"Escolha uma conversa para consultar a memória."},400);
       return json({memoria, consultadoEm:fatos.atualizadoEm});
     }
+    // O carrinho é apenas uma simulação: sem inserções em pedidos, estoque ou WhatsApp.
+    // Recalcula preço e estoque no servidor em cada interação.
+    if (modoVenda || modoConferirVenda) {
+      const estadoAnterior = normalizarEstadoVenda(body?.estadoVenda);
+      const precosAtuais = loja.data.parametros_loja?.precos_marmita;
+      if (modoConferirVenda) {
+        return json({venda:conferirVenda({
+          anterior:estadoAnterior,produtos:produtos.data ?? [],precos:precosAtuais,fatos,
+        }),consultadoEm:fatos.atualizadoEm,origem:"revalidacao_sem_ia"});
+      }
+      const mensagem=perguntaSemIdentificadores(body.pergunta);
+      const mesmoPedido = !estadoAnterior.itens.length && memoria?.ultimoPedido?.itens.length &&
+        querRepetirUltimoPedido(mensagem) && repeticaoSemAlteracoes(mensagem);
+      if (mesmoPedido) {
+        const retorno=prepararVendaIA({
+          raw:{acao:"atualizar",itens:memoria!.ultimoPedido!.itens,
+            pendencias:memoria!.ultimoPedido!.naoReconhecidos
+              ? ["O pedido histórico tem itens não identificados. Revise-os manualmente."]:[]},
+          anterior:estadoAnterior,pergunta:mensagem,
+          produtos:produtos.data ?? [],precos:precosAtuais,fatos,
+        });
+        return json({venda:retorno,consultadoEm:fatos.atualizadoEm,origem:"repeticao_calculada"});
+      }
+      if(!key) return json({error:"Chave da IA não configurada."},503);
+      const catalogoSeguro=(produtos.data ?? []).map((p:any)=>({
+        productId:p.id,nome:p.nome,tipo:p.tipo_produto,
+        variantes:catalogVariants(p,normalizarPrecosMarmita(precosAtuais))
+          .filter(v=>v.orderable).map(v=>({
+            weight:v.weight,estoque:v.stock,kcal:p["tabela_nutricional_"+v.weight]?.kcal??null,
+            proteina:p["tabela_nutricional_"+v.weight]?.prot??null,
+          })),
+      })).filter(p=>p.variantes.length>0);
+      const contexto=memoria && querRepetirUltimoPedido(mensagem)
+        ? contextoDePreferenciasParaIA(memoria) : "Não consulte dados pessoais; escolha apenas produtos do catálogo.";
+      const instrucaoVenda=[
+        "Você é um interpretador de pedidos da SaborosaMente PARA A EQUIPE, não um caixa automático.",
+        "Leia a mensagem e o ESTADO ATUAL do carrinho. Devolva somente um objeto JSON:",
+        '{"acao":"manter|atualizar|limpar","itens":[{"productId":"id","weight":"300g","quantity":2}],"entrega":{"modalidade":"entrega|retirada|null","cidade":"...","bairro":"...","preferencia":"..."},"pendencias":["perguntas não respondidas"]}.',
+        "Quando atualizar, itens deve conter o carrinho COMPLETO resultante, não somente o produto alterado.",
+        "Acao manter = não mudar itens. Nunca limpar a não ser que o cliente peça explicitamente zerar o carrinho.",
+        "Para acrescentar itens, preserve os existentes. Para trocar/retirar, mude somente o que o cliente pediu.",
+        "Sem sabor, tamanho ou quantidade definidos, nunca invente. Inclua a parte inequívoca e registre pendências.",
+        "Nunca aceitar ID fora do catálogo ou gramatura inexistente. Não incluir combos prontos ou personalizadas como marmitas avulsas.",
+        "Se o cliente pedir opções mais leves, comparar somente calorias cadastradas na gramatura informada; sem dado, perguntar.",
+        "Não solicitar nome, telefone, endereço completo, CPF, cartão ou dados privados.",
+        "Não calcular valores, descontos ou frete: o servidor fará isso. Não afirmar que enviou mensagens, criou pedidos ou reservou estoque.",
+        "Cidade e bairro somente se constarem nas rotas. Preferência de data/horário é apenas pedido do cliente, jamais confirmação de agenda.",
+        "ENTREGA: mantenha campos anteriores se não forem alterados explicitamente.",
+        "O cliente pode pedir várias trocas na mesma mensagem. Nunca transformar pedido pago/cancelamento de compra em comando para limpar carrinho.",
+        "Histórico anterior só quando explicitamente solicitado, nunca inventar últimos pedidos.",
+        "ESTADO ATUAL JSON:",JSON.stringify(estadoAnterior),
+        "HISTÓRICO PERMITIDO:",contexto,
+        "CIDADES E BAIRROS:",JSON.stringify(fatos.cidades.map(c=>({
+          cidade:c.cidade,bairros:c.bairros.map(b=>b.bairro),
+        }))),
+        "CATÁLOGO ATUAL JSON:",JSON.stringify(catalogoSeguro),
+      ].join("\n");
+      let respostaModelo:Response;
+      try {
+        respostaModelo=await fetch("https://api.openai.com/v1/chat/completions",{
+          method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+          signal:AbortSignal.timeout(32000),
+          body:JSON.stringify({model:"gpt-4o-mini",temperature:0.1,max_tokens:1600,
+            response_format:{type:"json_object"},
+            messages:[
+              {role:"system",content:instrucaoVenda},
+              {role:"user",content:mensagem},
+            ]}),
+        });
+      } catch { return json({error:"Não foi possível consultar a IA de vendas. O carrinho anterior foi preservado."},503); }
+      if(!respostaModelo.ok)
+        return json({error:"A IA de vendas está indisponível. O carrinho anterior foi preservado."},503);
+      const payloadModelo=await respostaModelo.json();
+      const respostaTexto=payloadModelo.choices?.[0]?.message?.content;
+      if(typeof respostaTexto!=="string")
+        return json({error:"Resposta incompleta da IA. O carrinho foi preservado."},503);
+      let proposta:unknown;
+      try { proposta=JSON.parse(respostaTexto); }
+      catch { return json({error:"Resposta inválida da IA. O carrinho foi preservado."},503); }
+      const venda=prepararVendaIA({
+        raw:proposta,anterior:estadoAnterior,pergunta:mensagem,
+        produtos:produtos.data ?? [],precos:precosAtuais,fatos,
+      });
+      return json({venda,consultadoEm:fatos.atualizadoEm,origem:"venda_ia_revisada"});
+    }
+
     const pediuRepetir = montarPedido && typeof body.pergunta==="string" && querRepetirUltimoPedido(body.pergunta);
     const mesmoPedido = pediuRepetir && repeticaoSemAlteracoes(body.pergunta);
     if (mesmoPedido) {
