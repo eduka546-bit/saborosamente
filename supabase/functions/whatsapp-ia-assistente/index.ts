@@ -4,6 +4,7 @@ import { formatarTreinamentos } from "../../../src/lib/whatsapp-ia-training.ts";
 import { validarSugestaoPedido } from "../../../src/lib/whatsapp-ia-order.ts";
 import { catalogVariants } from "../../../src/lib/whatsapp-catalog.ts";
 import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
+import { respostaComercialDeterministica } from "../../../src/lib/whatsapp-ia-commercial.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,16 @@ Deno.serve(async (req) => {
     if ([produtos, taxas, loja, grupos, ingredientes].some(r => r.error) || !loja.data)
       return json({ error: "Não consegui consultar os dados atuais da loja. Tente novamente." }, 503);
     const fatos = montarFatosIA(produtos.data ?? [], taxas.data ?? [], loja.data, grupos.data ?? [], ingredientes.data ?? []);
+    if (!montarPedido) {
+      const calculada = respostaComercialDeterministica(body.pergunta, fatos);
+      if (calculada) return json({
+        resposta: calculada,
+        consultadoEm: fatos.atualizadoEm,
+        produtos: fatos.catalogo.length,
+        cidades: fatos.cidades.length,
+        fonte: "regra_comercial_verificada",
+      });
+    }
     const precos = loja.data.parametros_loja?.precos_marmita;
     const catalogoPedido = (produtos.data ?? []).map((p: any) => ({
       productId: p.id, nome: p.nome, variantes: catalogVariants(p, normalizarPrecosMarmita(precos))
