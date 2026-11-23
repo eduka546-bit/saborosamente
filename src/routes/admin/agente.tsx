@@ -29,6 +29,7 @@ import {
   Paperclip,
   ShoppingCart,
   Store,
+  Heart,
   Smile,
   Plus,
   Pin,
@@ -1908,6 +1909,10 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       {!somenteCampanha && (
         <div className="shrink-0 px-4 pt-2 flex flex-wrap items-center gap-2 justify-end">
           <button onClick={() => setSalesDialog({mode: "catalog"})} className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${t.text} hover:bg-black/10`}><Store size={15}/> Catálogo</button>
+          <button type="button" onClick={() => setAssistenteAberto(v=>!v)}
+            className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${assistenteAberto?"bg-[#00a884] text-white":t.text+" hover:bg-black/10"}`}>
+            <Heart size={15}/> {assistenteAberto ? "Fechar memória" : "Memória e recompra"}
+          </button>
           <button onClick={() => setSalesDialog({mode: "order"})} disabled={responsavelOutro} className="flex gap-1 items-center rounded-lg bg-[#008069] text-white px-2 py-1.5 text-xs font-semibold disabled:opacity-50"><ShoppingCart size={15}/> Lançar pedido</button>
           <WhatsAppBusinessDetails key={conversa.id} conversa={conversa} estado={estado}
             etiquetas={business.etiquetas} equipe={business.equipe} dark={dark}
@@ -1926,12 +1931,25 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
           />
         </div>
       )}
+      {!somenteCampanha && assistenteAberto && <div className="shrink-0 mx-4 mt-2 max-h-[45dvh] overflow-y-auto">
+        <WhatsAppIAAssistant key={conversa.id} dark={dark}
+          initialQuestion={String([...mensagensCompletas].reverse().find(m => m.role === "user")?.content ?? "")}
+          conversationId={conversa.id}
+          onApply={isHumano && !janela24hEncerrada && !responsavelOutro
+            ? texto => { setMsgText(atual=>atual.trim() ? atual+"\n\n"+texto : texto);setAssistenteAberto(false); }
+            : undefined}
+          onOrder={isHumano && !responsavelOutro ? items => {
+            setSalesDialog({mode:"order",items});
+            setAssistenteAberto(false);
+          } : undefined}/>
+      </div>}
       {salesDialog && <WhatsAppOrderDialog mode={salesDialog.mode} conversation={{ id: conversa.id, nome: conversa.nome || "", telefone: String(conversa.telefone || "") }} catalogItem={salesDialog.item} catalogItems={salesDialog.items} canShare={isHumano && !janela24hEncerrada && !responsavelOutro && !sending} onClose={() => setSalesDialog(null)} onShare={prepararProduto} onOrder={(item) => {
         if (responsavelOutro) { toast.error("Transfira o atendimento antes de lançar o pedido."); return; }
         setSalesDialog({mode: "order", item});
       }} onSaved={() => {
         setSalesDialog(null);
         void queryClient.invalidateQueries({ queryKey: ["whatsapp-contexto-cliente", telefoneBusca] });
+        void queryClient.invalidateQueries({ queryKey: ["wa-ia-memoria-cliente", conversa.id] });
         void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
         void queryClient.invalidateQueries({ queryKey: ["whatsapp-public-catalog"] });
         void queryClient.invalidateQueries({ queryKey: ["whatsapp-admin-products"] });
@@ -2169,12 +2187,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
             {!janela24hEncerrada && (
               <div className="mb-2">
                 <button type="button" onClick={() => setAssistenteAberto(v => !v)} className="flex items-center gap-1 text-xs font-semibold text-[#00a884]">
-                  <Bot size={15}/> {assistenteAberto ? "Fechar assistente" : "Sugerir resposta com IA"}
+                  <Bot size={15}/> {assistenteAberto ? "Fechar memória e IA" : "Memória e IA · Repetir pedido"}
                 </button>
-                {assistenteAberto && <div className="mt-2"><WhatsAppIAAssistant key={conversa.id} dark={dark}
-                  initialQuestion={String([...mensagensCompletas].reverse().find(m => m.role === "user")?.content ?? "")}
-                  onApply={texto => { setMsgText(atual => atual.trim() ? atual + "\n\n" + texto : texto); setAssistenteAberto(false); }}
-                  onOrder={items => { if(responsavelOutro||!isHumano){toast.error("Assuma o atendimento antes de montar o pedido.");return;} setSalesDialog({mode:"order",items});setAssistenteAberto(false); }}/></div>}
               </div>
             )}
             {janela24hEncerrada && (
