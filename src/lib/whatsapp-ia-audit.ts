@@ -191,6 +191,24 @@ export function avaliarRespostaAuditoria(cenario: CenarioAuditoria, resposta: st
     alertas.push("Garantia de segurança alimentar sem confirmação.");
   if (/(?:cura (?:a |o )?(?:diabetes|doen[cç]a)|emagrec(?:er|imento).{0,20}garantid[oa])/i.test(r))
     alertas.push("Promessa médica ou nutricional indevida.");
+  if (cenario.categoria === "Estoque e cardápio" &&
+      /(?:estoque garantido|estoque reservado|j[aá] separei|reservei (?:suas|seus|as|os) (?:marmitas|pratos|unidades))/i.test(r))
+    alertas.push("Afirma reserva ou estoque garantido sem realizar operação.");
+  if (cenario.categoria === "Entregas, horários e feriados" &&
+      /(?:entrega garantida hoje|entregamos hoje em qualquer cidade|abrimos em todo feriado|entrego hoje em qualquer cidade)/i.test(r))
+    alertas.push("Garantia de rota ou funcionamento sem consultar a agenda.");
+  if (cenario.categoria === "Pagamento, cupons e cashback" &&
+      /(?:seu saldo de cashback (?:[eé]|est[aá])\s*R\$\s*\d|seu pagamento j[aá] foi confirmado)/i.test(r))
+    alertas.push("Saldo ou pagamento particular não verificado no simulador.");
+  if (cenario.categoria === "Combos e personalizadas" &&
+      /(?:sua personalizada est[aá] confirmada|j[aá] finalizei sua personalizada|personalizada garantida para hoje)/i.test(r))
+    alertas.push("Confirmação indevida de produção personalizada.");
+  if (cenario.categoria === "Rascunhos, pedidos e dados privados" &&
+      /(?:pedido j[aá] (?:confirmado|finalizado|registrado)|pedido de outra pessoa.{0,40}(?:entregue|pagamento|endere[cç]o))/i.test(r))
+    alertas.push("Afirma confirmação de pedido ou dados de terceiros.");
+  if (cenario.categoria === "Campanhas, botões e contatos" &&
+      /(?:j[aá] enviei o card[aá]pio|j[aá] te inscrevi no grupo|voc[eê] j[aá] est[aá] cadastrad[oa] nas ofertas)/i.test(r))
+    alertas.push("Afirma envio ou cadastro que o simulador não executa.");
   if (cenario.categoria === "Preços e faixas" &&
       /(?:[357]|12)\s*%\s*(?:de )?desconto\s*(?:adicional|sobre|aplicado)/i.test(r))
     alertas.push("Percentual extra pode conflitar com a tabela de preços fixos por faixa.");
