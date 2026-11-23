@@ -149,13 +149,17 @@ export function resumoVendaWhatsApp(pedido:SugestaoPedido,entrega:EntregaVenda,p
   if(pendencias.length)linhas.push("⚠️ *Antes de confirmar:* "+pendencias.slice(0,4).join(" | "));
   if(oportunidade)linhas.push("💚 "+oportunidade.mensagem);
   linhas.push("Esta é uma *simulação* para conferência da equipe, não é um pedido confirmado, pago nem reservado.");
-  const proximaPergunta=pendencias[0] || (!count
-    ? "Quais sabores, tamanhos e quantidades você gostaria?"
+  const duvidaEstoque=pendencias.some(p=>/estoque|esgotado|indisponível/i.test(p));
+  const duvidaSabores=pendencias.some(p=>/sabor|quantidade faltante|unidades.*proposta|proposta.*unidades/i.test(p));
+  const proximaPergunta=duvidaEstoque ? "Algum sabor está indisponível. Você prefere escolher outra opção disponível?"
+    : duvidaSabores ? "Pode confirmar os sabores e quantidades que faltam no carrinho?"
+    : !count ? "Quais sabores, tamanhos e quantidades você gostaria?"
     : !entrega.modalidade ? "Você prefere entrega ou retirada na loja?"
     : entrega.modalidade==="entrega" && !entrega.cidade ? "Em qual cidade você quer receber?"
     : entrega.modalidade==="entrega" && !entrega.bairro ? "Qual é seu bairro para conferirmos o frete?"
     : !entrega.preferencia ? "Qual dia e horário de preferência? Vamos confirmar a agenda."
-    : "Posso deixar esta prévia para a equipe revisar e confirmar os dados?");
+    : pendencias.length ? "Nossa equipe precisa conferir algumas informações antes de confirmar. Pode esclarecer os pontos destacados?"
+    : "Posso deixar esta prévia para a equipe revisar e confirmar os dados?";
   return {resumo:linhas.join("\n"),proximaPergunta};
 }
 function quantidadeTotalPedida(pergunta:string):number|null {
@@ -165,12 +169,68 @@ function quantidadeTotalPedida(pergunta:string):number|null {
   const n=Number(m[1]);
   return n>=1 && n<=200 ? n : null;
 }
+
+const palavrasNumeros:Record<string,number>={um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,vinte:20};
+function quantidadeTexto(valor:string):number|null {
+  const n=Number(valor);
+  return Number.isInteger(n) && n>0 && n<=200 ? n : palavrasNumeros[valor]??null;
+}
+function quantidadeDeAcrescimo(pergunta:string):number|null {
+  const p=normal(pergunta);
+  const m=p.match(/\b(?:adiciona(?:r)?|adicione|acrescenta(?:r)?|acrescente|coloca(?:r)?|inclua|inclui(?:r)?|soma(?:r)?|mais)\s+(?:mais\s+)?(\d{1,3}|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte)\b/);
+  return m ? quantidadeTexto(m[1]) : null;
+}
+function quantidadeDeRemocao(pergunta:string):number|null {
+  const p=normal(pergunta);
+  const m=p.match(/\b(?:retire|retira(?:r)?|tire|tira(?:r)?|remova|remover|exclua|excluir|reduza|reduzir|diminua|diminuir)\s+(?:(?:as|os|uma|um)\s+)?(\d{1,3}|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez)\b/);
+  return m ? quantidadeTexto(m[1]) : null;
+}
+function quantidadeDeTroca(pergunta:string):number|null {
+  const p=normal(pergunta);
+  const m=p.match(/\b(?:troca(?:r)?|troque|substitui(?:r)?|substitua)\s+(?:(?:as|os)\s+)?(\d{1,3}|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez)\b/);
+  return m ? quantidadeTexto(m[1]) : null;
+}
+function diferencasDeItens(antes:EstadoVenda["itens"],depois:EstadoVenda["itens"]) {
+  const contar=(a:EstadoVenda["itens"])=>{
+    const x=new Map<string,number>();
+    for(const i of a)x.set(key(i),(x.get(key(i))??0)+i.quantity);
+    return x;
+  };
+  const a=contar(antes),b=contar(depois),chaves=new Set([...a.keys(),...b.keys()]);
+  return { adicionadas:[...chaves].reduce((n,k)=>n+Math.max(0,(b.get(k)??0)-(a.get(k)??0)),0),
+    removidas:[...chaves].reduce((n,k)=>n+Math.max(0,(a.get(k)??0)-(b.get(k)??0)),0) };
+}
+/** Não atribuir automaticamente um prato específico quando a categoria possui várias receitas. */
+function ambiguidadesDeSabores(pergunta:string,produtos:any[]):string[] {
+  const p=normal(pergunta);
+  if(/\b(sugira|sugerir|sortidas|sortidos|variadas|variados|voce escolhe|surpreenda)\b/.test(p))
+    return [];
+  const principais=["frango","carne","lasanha","escondidinho","estrogonofe","tilapia"];
+  const genericas=principais.filter(termo=>new RegExp("\\b"+termo+"\\b").test(p));
+  const pendencias:string[]=[];
+  for(const termo of genericas){
+    const matches=produtos.filter(p=>p.ativo===true&&p.visivel_online===true&&
+      normal(String(p.nome)).includes(termo));
+    if(matches.length<=1)continue;
+    // O cliente pode escrever só o nome resumido do prato; um segundo descritor
+    // reconhecido deve distinguir a receita sem exigir descrição integral.
+    const descritores=new Set(matches.flatMap(x=>normal(String(x.nome))
+      .split(/\s+/).filter(w=>w.length>=5&&![
+        "frango","carne","lasanha","escondidinho","estrogonofe","tilapia",
+        "molho","arroz","batata","pratos","pesto","feito","molhos","branco",
+      ].includes(w))));
+    const detalhou=[...descritores].some(w=>new RegExp("\\b"+w+"\\b").test(p));
+    if(!detalhou)pendencias.push("Há várias opções de "+termo+" no cardápio. Confirme o sabor exato antes de aplicar a sugestão.");
+  }
+  return pendencias;
+}
+
 function textoExpressaLimpar(pergunta:string) {
   const p=normal(pergunta);
-  return /(?:zerar|limpar|esvaziar)\s+(?:o\s+)?(?:carrinho|rascunho)|(?:cancelar|apagar)\s+(?:o\s+)?(?:carrinho|rascunho)/.test(p);
+  return /(?:zerar|zere|limpar|limpe|esvaziar|esvazie)\s+(?:(?:o|a)\s+)?(?:carrinho|simulacao|rascunho)|(?:cancelar|apagar|apague)\s+(?:o\s+)?(?:carrinho|rascunho)/.test(p);
 }
 function textoExpressaRemover(pergunta:string) {
-  return /\b(tirar|retirar|remover|excluir|apagar|troca|trocar|substituir|alterar|mudar|corrigir|reduzir|diminuir|em vez de|somente|s[oó]|sem)\b/i.test(pergunta);
+  return /\b(tirar|tire|tira|retirar|retire|retira|remover|remova|excluir|exclua|apagar|apague|troca|trocar|troque|substituir|substitua|alterar|altere|mudar|mude|corrigir|corrija|reduzir|reduza|diminuir|diminua|em vez de|somente|apenas|s[oó]|sem)\b/i.test(pergunta);
 }
 
 /** Uma resposta JSON da IA é apenas proposta. Operações e cálculos são validados de novo no servidor. */
@@ -180,7 +240,10 @@ export function prepararVendaIA(args:{
   const anterior=normalizarEstadoVenda(args.anterior);
   const raw=args.raw && typeof args.raw==="object" ? args.raw as Record<string,unknown> : {};
   const pendencias:string[] = Array.isArray(raw.pendencias)
-    ? raw.pendencias.filter((p):p is string=>typeof p==="string").slice(0,8).map(p=>p.slice(0,180)) : [];
+    ? raw.pendencias.filter((p):p is string=>typeof p==="string").slice(0,8)
+      .map(p=>p.slice(0,180))
+      .filter(p=>!/^\s*(?:perguntas? (?:nao|não) respondidas|informa[cç][oõ]es? pendentes|confirmar dados|aguardando resposta)\s*\.?$/i.test(p))
+    : [];
   let itens=anterior.itens;
   const acao=raw.acao;
   if (acao==="limpar") {
@@ -198,8 +261,18 @@ export function prepararVendaIA(args:{
         const antes=new Map(anterior.itens.map(i=>[key(i),i.quantity]));
         const depois=new Map(candidato.map(i=>[key(i),i.quantity]));
         const diminuiu=[...antes].some(([k,q])=>(depois.get(k)??0)<q);
+        const diferencas=diferencasDeItens(anterior.itens,candidato);
+        const adicionar=quantidadeDeAcrescimo(args.pergunta);
+        const retirar=quantidadeDeRemocao(args.pergunta);
+        const trocar=quantidadeDeTroca(args.pergunta);
         if(diminuiu && !textoExpressaRemover(args.pergunta) && anteriorValidado.itens.length){
           pendencias.push("A IA tentou retirar itens sem solicitação explícita. Mantive o carrinho anterior.");
+        } else if(adicionar!==null && diferencas.adicionadas!==adicionar) {
+          pendencias.push("O cliente pediu acrescentar "+adicionar+" unidade(s), mas a proposta acrescentou "+diferencas.adicionadas+". Mantive o carrinho anterior.");
+        } else if(retirar!==null && (diferencas.removidas!==retirar || diferencas.adicionadas>0)){
+          pendencias.push("A remoção solicitada foi de "+retirar+" unidade(s), mas a IA propôs outra alteração. Mantive o carrinho anterior.");
+        } else if(trocar!==null && (diferencas.removidas!==trocar || diferencas.adicionadas!==trocar)){
+          pendencias.push("A troca solicitada foi de "+trocar+" unidade(s), mas a IA alterou outras quantidades. Mantive o carrinho anterior.");
         } else itens=candidato;
       }
     }
@@ -207,6 +280,7 @@ export function prepararVendaIA(args:{
 
   const pedido=validarCarrinho(itens,args.produtos,args.precos);
   pendencias.push(...pedido.pendencias);
+  if(acao==="atualizar")pendencias.push(...ambiguidadesDeSabores(args.pergunta,args.produtos));
   if (!anterior.itens.length && acao==="atualizar") {
     const solicitadas=quantidadeTotalPedida(args.pergunta);
     const sugeridas=totalUnidades(itens);
