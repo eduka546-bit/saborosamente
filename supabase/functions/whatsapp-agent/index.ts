@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { identificarAcaoMarketing, executarCardapioEMenu, normalizarCTA } from "../../../src/lib/whatsapp-marketing-replies.ts";
+import { pedidosVisiveisAoContato, normalizarTelefoneBrasileiro } from "../../../src/lib/whatsapp-ia-privacy.ts";
+import { normalizarPrecosMarmita } from "../../../src/lib/combo-rules.ts";
+import { regraEntregaCidade, DIAS_SEMANA } from "../../../src/lib/entrega-config.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variáveis de ambiente — validadas no startup para falhar cedo e com clareza
@@ -532,28 +535,30 @@ const STATUS_PEDIDO_MSG: Record<string, string> = {
   cancelado: "foi cancelado ❌",
 };
 
+// Consulta apenas pedidos cujo telefone cadastrado foi identificado com o remetente
+// autenticado pelo webhook da Meta. O protocolo isolado não dá acesso a dados.
+async function buscarPedidosVerificados(telefone: string, campos: string, protocolo?: string): Promise<any[]> {
+  const numero = normalizarTelefoneBrasileiro(telefone);
+  if (!numero) return [];
+  const sufixo = numero.slice(-4);
+  const { data, error } = await supabase.from("pedidos")
+    .select(campos)
+    .ilike("telefone_cliente", "%" + sufixo + "%")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return pedidosVisiveisAoContato(data ?? [], numero, protocolo);
+}
+
 // Consulta o status de um pedido. Se houver protocolo, busca por ele; senão,
 // o pedido mais recente do telefone. Retorna uma mensagem pronta ao cliente.
 async function consultarPedidoStatus(telefone: string, protocolo?: string): Promise<string> {
   try {
-    let query = supabase
-      .from("pedidos")
-      .select("id, status, created_at, metodo_entrega, valor_total")
-      .order("created_at", { ascending: false })
-      .limit(1);
-
     const protoLimpo = (protocolo ?? "").replace(/[^0-9a-fA-F]/g, "");
-    if (protoLimpo.length >= 6) {
-      query = query.ilike("id", `${protoLimpo}%`);
-    } else {
-      query = query.eq("telefone_cliente", telefone);
-    }
-
-    const { data: pedidos, error } = await query;
-    if (error) {
-      console.error("consultarPedidoStatus erro:", JSON.stringify(error));
-      return "Tive um problema para consultar seu pedido agora 😔 Pode tentar de novo em instantes?";
-    }
+    const pedidos = await buscarPedidosVerificados(
+      telefone, "id,status,created_at,metodo_entrega,valor_total,telefone_cliente",
+      protoLimpo.length >= 6 ? protoLimpo : undefined,
+    );
 
     const pedido = pedidos?.[0];
     if (!pedido) {
@@ -577,29 +582,48 @@ async function consultarPedidoStatus(telefone: string, protocolo?: string): Prom
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }> {
-  const { data: produtos, error } = await supabase
-    .from("produtos")
-    .select("id, nome, preco, preco_300g, preco_400g, descricao, imagem_url, categorias(nome)")
-    .eq("ativo", true)
-    .order("nome")
-    .limit(80);
-
-  if (error) console.error("getProdutosContexto erro:", JSON.stringify(error));
-  if (!produtos?.length) return { texto: "", produtos: [] };
-
-  const linhas = produtos.map((p: any) => {
-    const cat = p.categorias?.nome ?? "Sem categoria";
-    let precos = `R$ ${Number(p.preco).toFixed(2)}`;
-    if (p.preco_300g) precos += ` | 300g: R$ ${Number(p.preco_300g).toFixed(2)}`;
-    if (p.preco_400g) precos += ` | 400g: R$ ${Number(p.preco_400g).toFixed(2)}`;
-    const desc = p.descricao ? ` — ${p.descricao.slice(0, 80)}` : "";
-    return `- [ID:${p.id}] ${p.nome} (${cat}) — ${precos}${desc}`;
-  });
-
-  return {
-    texto: `\n\nCARDÁPIO COMPLETO (sempre consulte aqui antes de informar preços):\n${linhas.join("\n")}`,
-    produtos,
-  };
+  const [consulta, configuracao] = await Promise.all([
+    supabase.from("produtos")
+      .select("id,nome,preco,preco_300g,preco_400g,descricao,tipo_produto,controle_estoque,estoque_200g,estoque_300g,estoque_400g,imagem_url,categorias(nome)")
+      .eq("ativo", true).eq("visivel_online", true).order("nome").limit(100),
+    supabase.from("site_settings").select("parametros_loja").maybeSingle(),
+  ]);
+  if (consulta.error) {
+    console.error("getProdutosContexto erro:", consulta.error.message);
+    return { texto: "\nCARDÁPIO TEMPORARIAMENTE INDISPONÍVEL: não forneça preços ou estoque; encaminhe ao atendente.", produtos: [] };
+  }
+  const produtos = consulta.data ?? [];
+  const tabela = normalizarPrecosMarmita(configuracao.data?.parametros_loja?.precos_marmita);
+  const valores = (p: number) => "R$ " + p.toFixed(2).replace(".", ",");
+  const faixas = ["200g","300g","400g"] as const;
+  const linhas = [
+    "\nTABELA ATUAL DE PREÇOS DAS MARMITAS (fixa por tamanho e quantidade total, NÃO aplicar desconto percentual adicional):",
+    ...faixas.map(t => t + " — 1–4 un: " + valores(tabela[t].unit) +
+      " | 5–9 un: " + valores(tabela[t].t5) + " | 10–19 un: " +
+      valores(tabela[t].t10) + " | 20+ un: " + valores(tabela[t].t20)),
+    "Sopas, complementos e combos prontos têm preço próprio. Sopas e complementos contam no total de itens, mas não recebem desconto da tabela. Combos prontos não ganham desconto adicional.",
+    "\nCARDÁPIO PÚBLICO E ESTOQUE POR TAMANHO:",
+  ];
+  for (const p of produtos) {
+    const categoria = p.categorias?.nome ?? "Sem categoria";
+    const tipo = String(p.tipo_produto || "").toLowerCase();
+    const desc = p.descricao ? " — " + String(p.descricao).slice(0, 100) : "";
+    const precos = tipo === "marmita"
+      ? "preço conforme tabela por faixa acima"
+      : ["200g: " + valores(Number(p.preco ?? 0)),
+         ...(Number(p.preco_300g) > 0 ? ["300g: " + valores(Number(p.preco_300g))] : []),
+         ...(Number(p.preco_400g) > 0 ? ["400g: " + valores(Number(p.preco_400g))] : [])].join(" | ");
+    const estoque = p.controle_estoque
+      ? ["200g","300g","400g"].map(t => {
+          const valor = p["estoque_" + t];
+          return t + ": " + (valor == null ? "confirmar" : Number(valor) > 0 ? Number(valor) + " un" : "ESGOTADO");
+        }).join(" | ")
+      : "confirmar disponibilidade com a equipe";
+    linhas.push("- " + p.nome + " (" + tipo + "; " + categoria + ") — " + precos + " | Estoque: " + estoque + desc);
+  }
+  if (!produtos.length) linhas.push("Nenhum produto público disponível. Não inventar sabores ou preços.");
+  linhas.push("Se o estoque está esgotado ou a confirmar, nunca garantir a unidade. Feriados e dias disponíveis devem ser confirmados com a equipe.");
+  return { texto: linhas.join("\n"), produtos };
 }
 
 async function getEntregasContexto(): Promise<string> {
@@ -625,6 +649,14 @@ async function getEntregasContexto(): Promise<string> {
   ];
   for (const [cidade, bairros] of Object.entries(porCidade)) {
     linhas.push(`\n📍 ${cidade}:`);
+    const rota = regraEntregaCidade(cidade);
+    if (rota.diasPermitidos?.length) {
+      linhas.push("  - Dias: " + rota.diasPermitidos.map(d => DIAS_SEMANA[d]).join(", ") +
+        (rota.minUnidades ? " | Mínimo: " + rota.minUnidades + " unidades" : "") +
+        (rota.cutoffMesmoDia ? " | Prazo de pedido no mesmo dia: " +
+          String(rota.cutoffMesmoDia.hora).padStart(2,"0") + ":" +
+          String(rota.cutoffMesmoDia.minuto).padStart(2,"0") : ""));
+    }
     for (const b of bairros) {
       linhas.push(`  - ${b.bairro}: R$ ${b.valor.toFixed(2)}`);
     }
@@ -982,24 +1014,13 @@ async function responderAcompanhamentoPedido(telefone: string, texto: string): P
   if (!ehAcompanhamento && !protocolo) return false;
 
   try {
-    // Busca o pedido: por protocolo ou pelo telefone (pedido mais recente)
-    let query = supabase
-      .from("pedidos")
-      .select(
-        "id, status, created_at, metodo_entrega, metodo_pagamento, valor_total, taxa_entrega, horario_recebimento, endereco_rua, endereco_numero, endereco_bairro, endereco_cidade, nome_cliente",
-      )
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (protocolo) {
-      query = query.ilike("id", `${protocolo}%`);
-    } else {
-      const telNum = telefone.replace(/\D/g, "");
-      query = query.eq("telefone_cliente", telNum.startsWith("55") ? telNum : `55${telNum}`);
-    }
-
-    const { data: pedidos, error } = await query;
-    if (error || !pedidos?.length) return false;
+    // Nunca usar um protocolo para consultar dados de outra pessoa.
+    const pedidos = await buscarPedidosVerificados(
+      telefone,
+      "id,status,created_at,metodo_entrega,metodo_pagamento,valor_total,taxa_entrega,horario_recebimento,endereco_rua,endereco_numero,endereco_bairro,endereco_cidade,nome_cliente,telefone_cliente",
+      protocolo ?? undefined,
+    );
+    if (!pedidos.length) return false;
 
     const pedido = pedidos[0];
     const proto = String(pedido.id).slice(0, 8).toUpperCase();
@@ -1066,8 +1087,7 @@ async function responderAcompanhamentoPedido(telefone: string, texto: string): P
     linhas.push(`💰 *Total:* ${valorFmt}`);
     linhas.push("", "Qualquer dúvida é só chamar! 🫶🏼");
 
-    await sendWhatsAppMessage(telefone, linhas.join("\n"));
-    return true;
+    return await sendWhatsAppMessage(telefone, linhas.join("\n"));
   } catch (e: any) {
     console.error("responderAcompanhamentoPedido erro:", e?.message ?? e);
     return false;
