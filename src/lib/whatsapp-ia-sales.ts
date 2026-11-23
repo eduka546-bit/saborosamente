@@ -1,6 +1,6 @@
 import { validarSugestaoPedido, type SugestaoPedido } from "./whatsapp-ia-order.ts";
 import { catalogVariants, type CatalogOrderItem } from "./whatsapp-catalog.ts";
-import { faixaPorQuantidade, isMarmita, normalizarPrecosMarmita } from "./combo-rules.ts";
+import { calcularFrete, isMarmita, normalizarPrecosMarmita, precoCheioMarmita } from "./combo-rules.ts";
 import type { montarFatosIA } from "./whatsapp-ia-facts.ts";
 
 export type ModalidadeVenda = "entrega" | "retirada" | null;
@@ -28,6 +28,9 @@ export type ResultadoVenda = {
   proximaPergunta: string;
   oportunidade: OportunidadeVenda | null;
   podeAbrirRascunho: boolean;
+  economiaFaixa: number;
+  fretePrevisto: number | null;
+  totalPrevisto: number | null;
 };
 export type FatosVenda = ReturnType<typeof montarFatosIA>;
 const vazio = (): EntregaVenda => ({ modalidade: null, cidade: "", bairro: "", preferencia: "" });
@@ -120,7 +123,7 @@ export function oportunidadeVenda(pedido:SugestaoPedido,produtos:any[],precos:un
       "+ itens. Ao escolher mais sabores, os preços das marmitas avulsas são recalculados pela tabela atual.",
   };
 }
-export function resumoVendaWhatsApp(pedido:SugestaoPedido,entrega:EntregaVenda,pendencias:string[],oportunidade:OportunidadeVenda|null):{
+export function resumoVendaWhatsApp(pedido:SugestaoPedido,entrega:EntregaVenda,pendencias:string[],oportunidade:OportunidadeVenda|null,cotacao?:{frete:number|null;total:number|null;economia:number}):{
   resumo:string;proximaPergunta:string;
 } {
   const count=totalUnidades(pedido.itens);
@@ -135,7 +138,14 @@ export function resumoVendaWhatsApp(pedido:SugestaoPedido,entrega:EntregaVenda,p
       (entrega.bairro?" / "+entrega.bairro:"")+".");
     if(entrega.preferencia)linhas.push("Preferência informada: "+entrega.preferencia+" (sujeita à agenda).");
   } else linhas.push("Entrega ou retirada: a escolher.");
-  linhas.push("Frete, descontos adicionais, cupons e valor final: confirmar no checkout.");
+  if(cotacao?.economia && cotacao.economia>0)
+    linhas.push("Economia pela faixa de quantidade: "+money(cotacao.economia)+" (já incluída no subtotal).");
+  if(cotacao?.frete!==null && cotacao?.frete!==undefined)
+    linhas.push("Frete estimado por bairro: "+money(cotacao.frete)+".");
+  else linhas.push("Frete: a confirmar conforme bairro e rota.");
+  if(cotacao?.total!==null && cotacao?.total!==undefined)
+    linhas.push("*Total estimado sem adicionais: "+money(cotacao.total)+"*.");
+  linhas.push("Cupons, cashback, adicionais e total final devem ser conferidos no checkout.");
   if(pendencias.length)linhas.push("⚠️ *Antes de confirmar:* "+pendencias.slice(0,4).join(" | "));
   if(oportunidade)linhas.push("💚 "+oportunidade.mensagem);
   linhas.push("Esta é uma *simulação* para conferência da equipe, não é um pedido confirmado, pago nem reservado.");
@@ -208,13 +218,45 @@ export function prepararVendaIA(args:{
   pendencias.push(...validacaoEntrega.pendencias);
   if (pedido.itens.some(i=>i.estoque===null))
     pendencias.push("Há estoque não controlado. Confirme a disponibilidade com a equipe antes de salvar o pedido.");
+  const q=totalUnidades(pedido.itens);
+  const tabela=normalizarPrecosMarmita(args.precos);
+  const porId=new Map(args.produtos.map(p=>[p.id,p]));
+  const elegiveis=pedido.itens.reduce((n,i)=>{
+    const p=porId.get(i.productId);
+    return n+(p && String(p.tipo_produto).toLowerCase()!=="combo" &&
+      !["sopa","complemento","bebida"].includes(String(p.tipo_produto).toLowerCase()) &&
+      isMarmita(p.nome,p.categorias?.nome??p.categoria)?i.quantity:0);
+  },0);
+  const cheio=pedido.itens.reduce((n,i)=>{
+    const p=porId.get(i.productId);
+    const ehMarmita=p && !["sopa","complemento","bebida","combo"].includes(String(p.tipo_produto).toLowerCase())
+      && isMarmita(p.nome,p.categorias?.nome??p.categoria);
+    return n+(ehMarmita?precoCheioMarmita(i.weight,tabela):i.unitPrice)*i.quantity;
+  },0);
+  const economiaFaixa=Math.round(Math.max(0,cheio-pedido.subtotal)*100)/100;
+  let fretePrevisto:number|null=null;
+  if(validacaoEntrega.entrega.modalidade==="retirada")fretePrevisto=0;
+  if(validacaoEntrega.entrega.modalidade==="entrega") {
+    const cidade=args.fatos.cidades.find(c=>normal(c.cidade)===normal(validacaoEntrega.entrega.cidade));
+    const bairro=cidade?.bairros.find(b=>normal(b.bairro)===normal(validacaoEntrega.entrega.bairro));
+    if(cidade?.minimoUnidades && q<cidade.minimoUnidades)
+      pendencias.push("Pedido mínimo nesta cidade: "+cidade.minimoUnidades+" unidades. O carrinho tem "+q+".");
+    if(bairro && pedido.itens.length && !pedido.pendencias.length)
+      fretePrevisto=calcularFrete({subtotal:pedido.subtotal,
+        totalUnidades:elegiveis,taxaBase:Number(bairro.taxa),
+        cidade:cidade!.cidade,freteGratisAPartirDe:999999,minQuantidadeSBS:5,fretePromoSBS:5});
+  }
+  const totalPrevisto=fretePrevisto===null?null:Math.round((pedido.subtotal+fretePrevisto)*100)/100;
   const oportunidade=pendencias.length?null:oportunidadeVenda(pedido,args.produtos,args.precos);
   const unicas=[...new Set(pendencias)].slice(0,12);
-  const resumo=resumoVendaWhatsApp(pedido,validacaoEntrega.entrega,unicas,oportunidade);
+  const resumo=resumoVendaWhatsApp(pedido,validacaoEntrega.entrega,unicas,oportunidade,{
+    frete:fretePrevisto,total:totalPrevisto,economia:economiaFaixa,
+  });
   return {
     estado:{itens,entrega:validacaoEntrega.entrega},
     pedido,pendencias:unicas,resumo:resumo.resumo,proximaPergunta:resumo.proximaPergunta,
     oportunidade,podeAbrirRascunho:pedido.itens.length>0 && !unicas.length,
+    economiaFaixa,fretePrevisto,totalPrevisto,
   };
 }
 /** Revalidação sem modelo para restaurar rascunhos, nunca usa preços persistidos no navegador. */
