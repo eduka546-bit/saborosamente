@@ -148,6 +148,13 @@ export function resumoVendaWhatsApp(pedido:SugestaoPedido,entrega:EntregaVenda,p
     : "Posso deixar esta prévia para a equipe revisar e confirmar os dados?");
   return {resumo:linhas.join("\n"),proximaPergunta};
 }
+function quantidadeTotalPedida(pergunta:string):number|null {
+  const p=normal(pergunta);
+  const m=p.match(/(?:quero|preciso(?: de)?|monta(?:r)?|comprar|separa(?:r)?|pedido de)\s+(?:um total de\s+)?(\d{1,3})\s*(?:marmitas?|refeicoes?|unidades?|pratos?)\b/);
+  if(!m)return null;
+  const n=Number(m[1]);
+  return n>=1 && n<=200 ? n : null;
+}
 function textoExpressaLimpar(pergunta:string) {
   const p=normal(pergunta);
   return /(?:zerar|limpar|esvaziar)\s+(?:o\s+)?(?:carrinho|rascunho)|(?:cancelar|apagar)\s+(?:o\s+)?(?:carrinho|rascunho)/.test(p);
@@ -190,6 +197,13 @@ export function prepararVendaIA(args:{
 
   const pedido=validarCarrinho(itens,args.produtos,args.precos);
   pendencias.push(...pedido.pendencias);
+  if (!anterior.itens.length && acao==="atualizar") {
+    const solicitadas=quantidadeTotalPedida(args.pergunta);
+    const sugeridas=totalUnidades(itens);
+    if(solicitadas!==null && solicitadas!==sugeridas)
+      pendencias.push("O cliente pediu "+solicitadas+" unidades, mas a proposta tem "+
+        sugeridas+". Confirme os sabores e a quantidade faltante.");
+  }
   const validacaoEntrega=validarEntregaVenda(raw.entrega,anterior.entrega,args.fatos);
   pendencias.push(...validacaoEntrega.pendencias);
   if (pedido.itens.some(i=>i.estoque===null))
