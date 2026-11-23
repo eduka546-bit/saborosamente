@@ -165,6 +165,15 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     }
   };
 
+  const salvarObservacao = async (id: number, observacoes: string) => {
+    const atual = resultados.find(r => r.id === id);
+    if (!atual?.runId) return;
+    const {error} = await (supabase as any).from("whatsapp_ia_audit_results")
+      .update({observacoes: observacoes.slice(0,1000)})
+      .eq("run_id", atual.runId).eq("cenario_id", id);
+    if (error) setMensagem("Não consegui salvar uma observação. Tente novamente.");
+  };
+
   const filtrados = resultados.filter(r =>
     (filtro === "todos" || r.categoria === filtro) && (!somenteSinalizados || r.classificacao !== "revisao"));
   const sinalizados = resultados.filter(r => r.classificacao === "sinalizada").length;
@@ -260,6 +269,15 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
           {r.fonte && <p className="mt-1 text-[11px] opacity-70">Fonte: {r.fonte==="regra_verificada"?"Dados calculados do site":"Resposta gerada pela OpenAI"}</p>}
           <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-[#00a884]/10 p-2 text-xs">{r.resposta || "(sem resposta)"}</p>
           {r.alertas.map((a, i) => <p key={i} className="mt-1 flex items-center gap-1 text-xs text-orange-500"><AlertTriangle size={13}/>{a}</p>)}
+          {r.runId && <div className="mt-2 space-y-1">
+            <label htmlFor={"nota-qa-"+r.id} className="block text-[11px] opacity-70">O que você gostaria de mudar?</label>
+            <textarea id={"nota-qa-"+r.id} rows={2} maxLength={1000}
+              placeholder="Digite sugestões ou correções para nossa equipe."
+              value={r.observacoes??""}
+              onChange={e=>setResultados(atuais=>atuais.map(x=>x.id===r.id?{...x,observacoes:e.target.value}:x))}
+              onBlur={e=>void salvarObservacao(r.id,e.target.value)}
+              className="w-full resize-y rounded border border-current/20 bg-transparent p-2 text-xs"/>
+          </div>}
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => definirParecer(r.id, "correta")}
               className="rounded-lg border border-green-600 px-2 py-1 text-xs text-green-600">Correta</button>
