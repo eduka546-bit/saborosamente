@@ -52,6 +52,7 @@ import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
 import { WhatsAppIAAssistant } from "@/components/admin/WhatsAppIAAssistant";
 import { WhatsAppIAAudit } from "@/components/admin/WhatsAppIAAudit";
+import { WhatsAppIASalesAudit } from "@/components/admin/WhatsAppIASalesAudit";
 import { WhatsAppCampaignActions, WhatsAppTrainingCenter } from "@/components/admin/WhatsAppIASettings";
 import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 import { BotaoNotificacoes, WhatsAppBusinessDetails, estadoPadrao, useWhatsAppAlerts, useWhatsAppBusiness } from "@/components/admin/WhatsAppBusinessTools";
@@ -562,7 +563,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
   const t = dark ? DARK : LIGHT;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook" | "simulador" | "auditoria" | "treinamento" | "botoes">("simulador");
+  const [tab, setTab] = useState<"instrucoes" | "modulos" | "arquivos" | "webhook" | "simulador" | "auditoria" | "auditoria_vendas" | "treinamento" | "botoes">("simulador");
   const [uploading, setUploading] = useState(false);
   const [novoArquivo, setNovoArquivo] = useState({ nome: "", descricao: "", tipo: "imagem" });
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
@@ -712,6 +713,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
     { id: "instrucoes", label: "Instruções" },
     { id: "simulador", label: "Testar IA" },
     { id: "auditoria", label: "Auditoria 100" },
+    { id: "auditoria_vendas", label: "Auditoria Vendas 100" },
     { id: "treinamento", label: "Treinamento" },
     { id: "botoes", label: "Botões de campanha" },
     { id: "modulos", label: "🧩 Módulos" },
@@ -747,6 +749,7 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {tab === "simulador" && <WhatsAppIAAssistant dark={dark}/>}
         {tab === "auditoria" && <WhatsAppIAAudit dark={dark}/>}
+        {tab === "auditoria_vendas" && <WhatsAppIASalesAudit dark={dark}/>}
         {tab === "treinamento" && <WhatsAppTrainingCenter/>}
         {tab === "botoes" && <WhatsAppCampaignActions/>}
         {/* ── Instruções ── */}
