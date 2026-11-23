@@ -109,7 +109,7 @@ export function oportunidadeVenda(pedido:SugestaoPedido,produtos:any[],precos:un
     p.tipo_produto!=="combo" && p.tipo_produto!=="sopa" && p.tipo_produto!=="complemento" &&
     isMarmita(p.nome,p.categorias?.nome??p.categoria)).flatMap(p=>{
       const variante=catalogVariants(p,tabela).find(v=>v.weight===tamanho && v.orderable &&
-        (v.stock===null || v.stock>=faltam));
+        (v.stock!==null && v.stock>=faltam));
       return variante ? [{productId:String(p.id),nome:String(p.nome),
         weight:variante.weight,jaNoCarrinho:existentes.has(p.id)}] : [];
     }).sort((a,b)=>Number(a.jaNoCarrinho)-Number(b.jaNoCarrinho))
@@ -153,7 +153,7 @@ function textoExpressaLimpar(pergunta:string) {
   return /(?:zerar|limpar|esvaziar)\s+(?:o\s+)?(?:carrinho|rascunho)|(?:cancelar|apagar)\s+(?:o\s+)?(?:carrinho|rascunho)/.test(p);
 }
 function textoExpressaRemover(pergunta:string) {
-  return /\b(tirar|retirar|remover|excluir|apagar|trocar|substituir|alterar|mudar|corrigir|reduzir|diminuir|em vez de|somente|s[oó]|sem)\b/i.test(pergunta);
+  return /\b(tirar|retirar|remover|excluir|apagar|troca|trocar|substituir|alterar|mudar|corrigir|reduzir|diminuir|em vez de|somente|s[oó]|sem)\b/i.test(pergunta);
 }
 
 /** Uma resposta JSON da IA é apenas proposta. Operações e cálculos são validados de novo no servidor. */
@@ -194,7 +194,7 @@ export function prepararVendaIA(args:{
   pendencias.push(...validacaoEntrega.pendencias);
   if (pedido.itens.some(i=>i.estoque===null))
     pendencias.push("Há estoque não controlado. Confirme a disponibilidade com a equipe antes de salvar o pedido.");
-  const oportunidade=oportunidadeVenda(pedido,args.produtos,args.precos);
+  const oportunidade=pendencias.length?null:oportunidadeVenda(pedido,args.produtos,args.precos);
   const unicas=[...new Set(pendencias)].slice(0,12);
   const resumo=resumoVendaWhatsApp(pedido,validacaoEntrega.entrega,unicas,oportunidade);
   return {
