@@ -12,6 +12,7 @@ type Resultado = {
   classificacao: "sinalizada" | "revisao" | "erro";
   alertas: string[];
   parecer: "pendente" | "correta" | "incorreta";
+  runId?: string;
 };
 const money = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
 const STORAGE_KEY = "saborosamente:wa-auditoria-100:v1";
@@ -36,6 +37,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [resultados, setResultados] = useState<Resultado[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [executando, setExecutando] = useState(false);
+  const [carregandoRevisao, setCarregandoRevisao] = useState(false);
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 });
   const [mensagem, setMensagem] = useState("");
   const [filtro, setFiltro] = useState("todos");
@@ -57,6 +59,42 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(resultados)); }
     catch { /* relatório ainda pode ser exportado */ }
   }, [resultados, carregado]);
+
+  const carregarRevisaoTecnica = async () => {
+    if (executando || carregandoRevisao) return;
+    if (resultados.some(r => r.parecer !== "pendente") &&
+        !window.confirm("Carregar a primeira revisão técnica vai substituir os resultados locais. Continue?")) return;
+    setCarregandoRevisao(true); setMensagem("");
+    try {
+      // Leitura sob RLS: só usuários administradores podem acessar esta auditoria.
+      const db = supabase as any;
+      const {data:lotes,error:e1} = await db.from("whatsapp_ia_audit_runs")
+        .select("id,rodada,estado").eq("rodada",2).order("criado_em",{ascending:false}).limit(20);
+      if(e1)throw e1;
+      const ids=(lotes??[]).filter((x:any)=>x.estado==="concluido").map((x:any)=>x.id);
+      if(!ids.length)throw new Error("A segunda rodada de testes ainda não está disponível.");
+      const {data:rows,error:e2}=await db.from("whatsapp_ia_audit_results")
+        .select("run_id,cenario_id,categoria,pergunta,resposta,alertas,status,erro,revisao")
+        .in("run_id",ids).order("cenario_id",{ascending:true}).limit(110);
+      if(e2)throw e2;
+      const nova:Resultado[]=(rows??[]).map((x:any)=>{
+        const c=CENARIOS_AUDITORIA.find(q=>q.id===x.cenario_id);
+        const alertas=Array.isArray(x.alertas)?x.alertas.map(String):[];
+        return {
+          id:Number(x.cenario_id),categoria:String(x.categoria),
+          pergunta:String(x.pergunta),objetivo:c?.objetivo??"Revisar com dados reais do site",
+          resposta:String(x.resposta??""),alertas,
+          classificacao:x.status==="erro"?"erro":alertas.length?"sinalizada":"revisao",
+          parecer:["correta","incorreta"].includes(x.revisao)?x.revisao:"pendente",
+          runId:String(x.run_id),
+        };
+      });
+      nova.sort((a,b)=>a.id-b.id);
+      setResultados(nova);setProgresso({atual:nova.length,total:100});
+      setMensagem("Revisão técnica carregada. Confira as respostas finais da IA e marque o que ainda precisar ajustar.");
+    } catch(e){setMensagem("Não foi possível carregar a revisão técnica: "+(e instanceof Error?e.message:"erro desconhecido"));}
+    finally{setCarregandoRevisao(false);}
+  };
 
   const executar = async (quantidade: number) => {
     if (executando) return;
@@ -109,8 +147,19 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
     }
   };
 
-  const definirParecer = (id: number, parecer: Resultado["parecer"]) =>
+  const definirParecer = async (id: number, parecer: Resultado["parecer"]) => {
+    const atual=resultados.find(r=>r.id===id);
+    if (!atual) return;
     setResultados((atuais) => atuais.map((r) => r.id === id ? { ...r, parecer } : r));
+    if (atual.runId) {
+      const {error}=await (supabase as any).from("whatsapp_ia_audit_results")
+        .update({revisao:parecer}).eq("run_id",atual.runId).eq("cenario_id",id);
+      if(error){
+        setResultados((atuais)=>atuais.map(r=>r.id===id?{...r,parecer:atual.parecer}:r));
+        setMensagem("Não consegui salvar sua revisão no servidor. Verifique o acesso administrativo.");
+      }
+    }
+  };
 
   const filtrados = resultados.filter(r =>
     (filtro === "todos" || r.categoria === filtro) && (!somenteSinalizados || r.classificacao !== "revisao"));
@@ -128,11 +177,16 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       não alteram estoque nem ativam atendimento automático.
     </p>
     <p className="text-xs opacity-80">
-      O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
+      A primeira revisão já foi executada pela equipe técnica. Você pode carregar as respostas finais para sua segunda verificação. As marcações feitas sobre essa revisão também são salvas no servidor; testes novos continuam locais. O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
       preço, disponibilidade ou entrega estão corretos. Marque cada resposta como correta ou incorreta
       após conferir as informações reais.
     </p>
     <div className="flex flex-wrap gap-2">
+      <button type="button" disabled={executando || carregandoRevisao} onClick={() => void carregarRevisaoTecnica()}
+        className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+        {carregandoRevisao && <Loader2 size={15} className="animate-spin"/>}
+        Carregar revisão feita pela equipe técnica
+      </button>
       <button type="button" disabled={executando} onClick={() => void executar(10)}
         className="inline-flex items-center gap-1 rounded-lg bg-[#00a884] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
         {executando ? <Loader2 size={15} className="animate-spin"/> : <Play size={15}/>} Testar 10 casos
