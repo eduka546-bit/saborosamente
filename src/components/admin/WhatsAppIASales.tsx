@@ -154,12 +154,15 @@ export function WhatsAppIASales({dark,conversationId,onApply,onOrder}:{
         </div>)}
       </div>
       <p className="font-bold">Subtotal: {catalogMoney(atual.pedido.subtotal)}</p>
+      {atual.economiaFaixa>0&&<p className="text-xs text-[#00a884]">Economia estimada pela faixa: {catalogMoney(atual.economiaFaixa)} (já incluída no subtotal).</p>}
+      {atual.fretePrevisto!==null&&<p className="text-xs">Frete estimado conforme rota e bairro: {catalogMoney(atual.fretePrevisto)}</p>}
+      {atual.totalPrevisto!==null&&<p className="font-bold">Total estimado sem adicionais: {catalogMoney(atual.totalPrevisto)}</p>}
       <p className="text-xs opacity-75">
         {atual.estado.entrega.modalidade==="retirada"?"Retirada na loja":
           atual.estado.entrega.modalidade==="entrega"
           ?"Entrega"+(atual.estado.entrega.cidade?" — "+atual.estado.entrega.cidade:"")+
            (atual.estado.entrega.bairro?" / "+atual.estado.entrega.bairro:""):"Entrega ou retirada: a escolher"}.
-        Frete e total final dependem da conferência no checkout.
+        A taxa e o total final ainda dependem da conferência no checkout.
       </p>
       {atual.oportunidade&&<div className="space-y-1 rounded-lg bg-[#00a884]/10 p-3 text-xs">
         <p className="flex items-center gap-2 font-semibold"><Sparkles size={15}/> Sugestão de venda</p>
