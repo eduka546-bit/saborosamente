@@ -2169,10 +2169,11 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
             {!janela24hEncerrada && (
               <div className="mb-2">
                 <button type="button" onClick={() => setAssistenteAberto(v => !v)} className="flex items-center gap-1 text-xs font-semibold text-[#00a884]">
-                  <Bot size={15}/> {assistenteAberto ? "Fechar assistente" : "Sugerir resposta com IA"}
+                  <Bot size={15}/> {assistenteAberto ? "Fechar memória e IA" : "Memória e IA · Repetir pedido"}
                 </button>
                 {assistenteAberto && <div className="mt-2"><WhatsAppIAAssistant key={conversa.id} dark={dark}
                   initialQuestion={String([...mensagensCompletas].reverse().find(m => m.role === "user")?.content ?? "")}
+                  conversationId={conversa.id}
                   onApply={texto => { setMsgText(atual => atual.trim() ? atual + "\n\n" + texto : texto); setAssistenteAberto(false); }}
                   onOrder={items => { if(responsavelOutro||!isHumano){toast.error("Assuma o atendimento antes de montar o pedido.");return;} setSalesDialog({mode:"order",items});setAssistenteAberto(false); }}/></div>}
               </div>
