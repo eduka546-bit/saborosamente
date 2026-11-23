@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   criarMemoriaCliente, pedidosRelacionadosAoTelefone,
   pesoDoItemHistorico, querRepetirUltimoPedido,
-  repeticaoSemAlteracoes, contextoDePreferenciasParaIA,
+  repeticaoSemAlteracoes, contextoDePreferenciasParaIA, verificarTrocasDaRecompra,
 } from "./whatsapp-ia-customer-memory";
 import { validarSugestaoPedido } from "./whatsapp-ia-order";
 
@@ -73,6 +73,16 @@ describe("memória de compras do WhatsApp",()=>{
     expect(repeticaoSemAlteracoes("Quero o mesmo pedido sem arroz")).toBe(false);
     expect(querRepetirUltimoPedido("Repete meu pedido")).toBe(true);
     expect(repeticaoSemAlteracoes("Quero 5 marmitas de 400g")).toBe(false);
+  });
+  it("impede troca de duas unidades que altere o total ou troque quantidades erradas",()=>{
+    const anterior=[{productId:"p1",weight:"300g" as const,quantity:5},{productId:"p2",weight:"400g" as const,quantity:5}];
+    const correto=[{productId:"p1",weight:"300g",quantity:3},{productId:"p2",weight:"400g",quantity:5},{productId:"p3",weight:"300g",quantity:2}];
+    expect(verificarTrocasDaRecompra("Repete o último, mas troca 2 marmitas por algo mais leve",anterior,correto)).toEqual([]);
+    const somou=[...correto,{productId:"p3",weight:"300g",quantity:2}];
+    expect(verificarTrocasDaRecompra("troca duas marmitas",anterior,somou).some(p=>p.includes("total"))).toBe(true);
+    const uma=[{productId:"p1",weight:"300g",quantity:4},{productId:"p2",weight:"400g",quantity:5},{productId:"p3",weight:"300g",quantity:1}];
+    expect(verificarTrocasDaRecompra("troca 2 marmitas",anterior,uma).some(p=>p.includes("2 unidades"))).toBe(true);
+    expect(verificarTrocasDaRecompra("Quero apenas repetir",anterior,anterior)).toEqual([]);
   });
   it("recalcula preço e recusa estoque esgotado quando repete",()=>{
     const m=criarMemoriaCliente("5547999999999",pedidos,itens,produtos,{});
