@@ -130,3 +130,37 @@ export function contextoDePreferenciasParaIA(memoria: MemoriaCliente): string {
     aviso:"Dados de compras anteriores consultados apenas pela equipe; não revelá-los automaticamente ao cliente. Não inferir doenças, alergias ou dieta. Não repetir item oculto/esgotado. Conferir estoque e preços atuais.",
   });
 }
+
+/** Uma troca substitui itens, mas não cria ou apaga unidades sem confirmação.
+ * Funciona também quando a IA propõe apenas parte dos sabores.
+ */
+export function verificarTrocasDaRecompra(
+  texto: string, anteriores: MemoriaItem[], propostos: Array<{productId:string;weight:string;quantity:number}>,
+): string[] {
+  const normalizado=texto.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  if(!/(troca|trocar|substitu|no lugar de)/.test(normalizado))return [];
+  const totalAnterior=anteriores.reduce((n,i)=>n+i.quantity,0);
+  const totalNovo=propostos.reduce((n,i)=>n+i.quantity,0);
+  const pendencias:string[]=[];
+  if(!totalAnterior)return ["Não há último pedido entregue para conferir a troca."];
+  if(totalNovo!==totalAnterior)pendencias.push(
+    "A troca alterou o total de "+totalAnterior+" para "+totalNovo+" unidades. Confira quantidades antes de aplicar.",
+  );
+  const contar=(items:Array<{productId:string;weight:string;quantity:number}>)=>{
+    const m=new Map<string,number>();
+    for(const i of items){const k=i.productId+":"+i.weight;m.set(k,(m.get(k)??0)+i.quantity);}
+    return m;
+  };
+  const antes=contar(anteriores),depois=contar(propostos);
+  const chaves=new Set([...antes.keys(),...depois.keys()]);
+  const removidas=[...chaves].reduce((n,k)=>n+Math.max(0,(antes.get(k)??0)-(depois.get(k)??0)),0);
+  const adicionadas=[...chaves].reduce((n,k)=>n+Math.max(0,(depois.get(k)??0)-(antes.get(k)??0)),0);
+  if(!removidas && !adicionadas)pendencias.push("Nenhuma troca foi identificada. Confirme quais sabores devem mudar.");
+  if(/\b(2|duas|dois)\b.{0,50}(?:marmitas?|unidades?|por algo|por outra)/.test(normalizado) ||
+     /(?:troca|trocar|substitu).{0,14}\b(2|duas|dois)\b/.test(normalizado)) {
+    if(removidas!==2 || adicionadas!==2) pendencias.push(
+      "O cliente solicitou trocar 2 unidades, mas a sugestão alterou "+removidas+" retirada(s) e "+adicionadas+" adicionada(s). Revise antes de aplicar.",
+    );
+  }
+  return pendencias;
+}
