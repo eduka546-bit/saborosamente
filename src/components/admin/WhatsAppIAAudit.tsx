@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { AlertTriangle, Download, Loader2, Play, ShieldCheck, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Download, Loader2, Play, ShieldCheck, Square, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { avaliarRespostaAuditoria, CENARIOS_AUDITORIA, type CenarioAuditoria } from "@/lib/whatsapp-ia-audit";
 
@@ -14,6 +14,7 @@ type Resultado = {
   parecer: "pendente" | "correta" | "incorreta";
 };
 const money = (n: number) => new Intl.NumberFormat("pt-BR").format(n);
+const STORAGE_KEY = "saborosamente:wa-auditoria-100:v1";
 
 function exportarResultados(resultados: Resultado[]) {
   const conteudo = JSON.stringify({
@@ -33,6 +34,7 @@ function exportarResultados(resultados: Resultado[]) {
 
 export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [resultados, setResultados] = useState<Resultado[]>([]);
+  const [carregado, setCarregado] = useState(false);
   const [executando, setExecutando] = useState(false);
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 });
   const [mensagem, setMensagem] = useState("");
@@ -40,6 +42,21 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
   const [somenteSinalizados, setSomenteSinalizados] = useState(false);
   const cancelado = useRef(false);
   const categorias = [...new Set(CENARIOS_AUDITORIA.map(c => c.categoria))];
+  useEffect(() => {
+    try {
+      const salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (Array.isArray(salvo) && salvo.length <= 100 && salvo.every(item => Number.isInteger(item?.id) && typeof item?.pergunta === "string")) {
+        setResultados(salvo);
+      }
+    } catch { /* armazenamento indisponível */ }
+    setCarregado(true);
+    return () => { cancelado.current = true; };
+  }, []);
+  useEffect(() => {
+    if (!carregado) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(resultados)); }
+    catch { /* relatório ainda pode ser exportado */ }
+  }, [resultados, carregado]);
 
   const executar = async (quantidade: number) => {
     if (executando) return;
@@ -111,7 +128,7 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       não alteram estoque nem ativam atendimento automático.
     </p>
     <p className="text-xs opacity-80">
-      O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
+      O relatório fica salvo neste navegador até ser limpo. O verificador identifica indícios de respostas perigosas, mas não confirma automaticamente se
       preço, disponibilidade ou entrega estão corretos. Marque cada resposta como correta ou incorreta
       após conferir as informações reais.
     </p>
@@ -131,6 +148,11 @@ export function WhatsAppIAAudit({ dark }: { dark: boolean }) {
       <button type="button" disabled={!resultados.length} onClick={() => exportarResultados(resultados)}
         className="inline-flex items-center gap-1 rounded-lg border border-current/20 px-3 py-2 text-xs disabled:opacity-40">
         <Download size={14}/> Exportar relatório
+      </button>
+      <button type="button" disabled={executando || !resultados.length}
+        onClick={() => { if (window.confirm("Limpar o relatório salvo neste navegador?")) { setResultados([]); setMensagem(""); setProgresso({atual:0,total:0}); } }}
+        className="inline-flex items-center gap-1 rounded-lg border border-current/20 px-3 py-2 text-xs disabled:opacity-40">
+        <Trash2 size={14}/> Limpar
       </button>
     </div>
     {progresso.total > 0 && <div className="space-y-1">
