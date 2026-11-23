@@ -75,7 +75,7 @@ export function WhatsAppIAAssistant({ dark, initialQuestion = "", onApply, onOrd
     catch{setFeedback("Não foi possível salvar a correção.");}finally{setSalvando(false);}
   }
   return <section className={`rounded-xl border p-3 space-y-3 text-sm ${dark ? "bg-[#182229] border-[#3b4a54] text-white" : "bg-white border-gray-200 text-gray-900"}`}>
-    <p className="flex items-center gap-2 font-bold text-[#00a884]"><Bot size={18}/>{onApply ? "Assistente Saborosa" : "Simulador da Saborosa"}</p>
+    <p className="flex items-center gap-2 font-bold text-[#00a884]"><Bot size={18}/>{conversationId || onApply ? "Assistente Saborosa" : "Simulador da Saborosa"}</p>
     <p className="text-xs opacity-80">Teste ou revise a pergunta sem CPF, endereço completo ou informações pessoais. Nenhuma mensagem será enviada.</p>
     {conversationId && <div className="space-y-2 rounded-lg border border-[#00a884]/30 bg-[#00a884]/5 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
