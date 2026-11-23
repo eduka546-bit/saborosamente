@@ -100,7 +100,7 @@ export function respostaComercialDeterministica(pergunta:string, fatos:FatosCome
     return "Depende da *cidade* e do dia da entrega. Nas rotas semanais, pedidos após o horário limite ficam para a próxima data disponível. 💚\nQual é a sua cidade e bairro?";
   }
 
-  const consultaPreco=/(?:preco|valor|quanto custa|quanto custam|quanto fica|quanto ficam|desconto|faixa)/.test(texto);
+  const consultaPreco=/(?:preco|valor|custa|custam|quanto fica|quanto ficam|desconto|faixa)/.test(texto);
   const ehComboPronto=/\bcombo(s)? pronto(s)?\b|combo pratos|combo mais leves|combo mais vendidos/.test(texto);
   const somenteSopa=/\bsopas?\b/.test(texto) && !/\b(marmita|marmitas|prato|pratos|refeicao|refeicoes)\b/.test(texto);
   if(!consultaPreco||ehComboPronto||somenteSopa) return null;
