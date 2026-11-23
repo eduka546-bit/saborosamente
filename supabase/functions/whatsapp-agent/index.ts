@@ -926,7 +926,7 @@ async function buscarClientePorTelefone(
   const sufixo = tel.slice(-8);
   const { data: candidatos, error } = await supabase
     .from("profiles")
-    .select("id, nome, telefone, cpf")
+    .select("id, nome, telefone")
     .not("telefone", "is", null)
     .ilike("telefone", `%${sufixo}%`)
     .limit(50);
@@ -941,44 +941,12 @@ async function buscarClientePorTelefone(
   return { encontrado: true, contexto, profile };
 }
 
+// CPF informado no chat não autentica o titular da conta; nunca pesquisar
+// perfil nem vincular telefone automaticamente só com essa informação.
 async function buscarClientePorCpf(
-  cpf: string,
-  telefone: string,
+  _cpf: string, _telefone: string,
 ): Promise<{ encontrado: boolean; contexto: string; profile: any }> {
-  // Remove tudo que não é número
-  const cpfNum = cpf.replace(/\D/g, "");
-  if (cpfNum.length !== 11) return { encontrado: false, contexto: "", profile: null };
-
-  // Busca candidatos pelos dígitos do CPF e compara de forma EXATA (o CPF no
-  // banco pode ter máscara). Evita casar por substring/CPF parcial.
-  const { data: candidatos } = await supabase
-    .from("profiles")
-    .select("id, nome, telefone, cpf")
-    .ilike("cpf", `%${cpfNum}%`)
-    .limit(20);
-
-  const profile =
-    (candidatos ?? []).find((p: any) => String(p.cpf ?? "").replace(/\D/g, "") === cpfNum) ?? null;
-  if (!profile) return { encontrado: false, contexto: "", profile: null };
-
-  // Segurança/privacidade: só vincula este telefone ao cadastro se ele NÃO tiver
-  // telefone cadastrado. Se já houver um telefone (mesmo diferente), NÃO
-  // sobrescrevemos — assim ninguém "rouba" um cadastro alheio informando o CPF.
-  const telefoneCadastrado = String(profile.telefone ?? "").replace(/\D/g, "");
-  if (telefone && !telefoneCadastrado) {
-    await supabase.from("profiles").update({ telefone }).eq("id", profile.id);
-    console.log(
-      `Telefone ${telefone} vinculado ao perfil ${profile.id} via CPF (perfil sem telefone)`,
-    );
-  } else if (telefone && !telefonesBatem(telefone, telefoneCadastrado)) {
-    // Cadastro já pertence a outro número: reconhece para leitura mas não vincula.
-    console.warn(
-      `CPF ${cpfNum} consultado do telefone ${telefone}, mas o cadastro já tem outro telefone. Vínculo NÃO alterado.`,
-    );
-  }
-
-  const contexto = await montarContextoCliente(profile);
-  return { encontrado: true, contexto, profile };
+  return { encontrado: false, contexto: "", profile: null };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1143,18 +1111,6 @@ const FUNCTIONS_SCHEMA = [
         motivo: { type: "string", description: "Por que o cliente quer saber o cashback" },
       },
       required: ["motivo"],
-    },
-  },
-  {
-    name: "buscar_cliente_cpf",
-    description:
-      "Busca o cadastro do cliente pelo CPF quando não foi possível reconhecê-lo pelo telefone. Use quando o cliente informar o CPF durante a conversa. Se encontrar, o sistema vincula o telefone automaticamente.",
-    parameters: {
-      type: "object",
-      properties: {
-        cpf: { type: "string", description: "CPF informado pelo cliente (apenas números)" },
-      },
-      required: ["cpf"],
     },
   },
   {
@@ -2874,7 +2830,7 @@ Deno.serve(async (req: Request) => {
         ? clienteResult.contexto
         : `\n\nCLIENTE NÃO CADASTRADO: telefone ${telefone}${nomeContato ? `, nome do WhatsApp: ${nomeContato}` : ""}.
 Se for a primeira mensagem, cumprimente e atenda normalmente.
-Se o cliente disser o CPF, use a função buscar_cliente_cpf para verificar o cadastro.`;
+Não solicite CPF ou dados sensíveis. Oriente cadastro ou verificação de identidade no site.`;
 
       // Instrução de saudação na primeira mensagem
       const saudacaoCtx = primeiraMsg
@@ -2897,29 +2853,25 @@ ${saudacaoCtx}
 
 REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
 
-1. NUNCA invente preços — consulte o CARDÁPIO COMPLETO acima antes de informar qualquer valor.
+1. NUNCA invente preços — consulte a TABELA ATUAL DE PREÇOS DAS MARMITAS e o CARDÁPIO PÚBLICO acima antes de informar valores. Se os dados não estiverem disponíveis, peça conferência humana.
 2. NUNCA confirme entrega em bairro/cidade fora da lista ÁREAS DE ENTREGA.
 3. Para enviar arquivos: use a função enviar_arquivo com a URL exata da lista ARQUIVOS DISPONÍVEIS.
-4. Para buscar cliente por CPF: use a função buscar_cliente_cpf quando o cliente informar o CPF.
+4. Nunca peça CPF, dados de cartão ou senha pelo WhatsApp; um CPF isolado não verifica identidade. Para reconhecer cadastro, use apenas o telefone da conversa; se houver dúvida, encaminhe à equipe.
 5. Site para pedidos online: ${SITE_URL}
 6. Quando o cliente perguntar sobre o andamento/status de um pedido ("cadê meu pedido?", "já saiu?"), use a função consultar_pedido. Se ele informar o protocolo/número, repasse; senão a função busca o pedido mais recente do número dele.
 
-PREÇOS E DESCONTO PROGRESSIVO (aplicar SEMPRE que informar valores):
-- Ao informar o valor de uma marmita, apresente como "a partir de R$ X,XX", porque o preço final cai conforme a quantidade (desconto progressivo).
-- Explique de forma curta e simpática o desconto progressivo nas MARMITAS:
-  • 5 ou mais marmitas: 3% de desconto
-  • 10 ou mais marmitas: 7% de desconto
-  • 20 ou mais marmitas: 12% de desconto
-- A quantidade que define a faixa é o TOTAL de itens do pedido. Sopas e complementos CONTAM nessa quantidade, mas eles NÃO recebem desconto (o desconto incide só sobre as marmitas).
-- Não prometa um valor final fechado com desconto sem saber a quantidade. Se o cliente ainda não disse quantas, diga o "a partir de" e convide a montar o combo: "Quanto mais marmitas, maior o desconto 😉".
-- Nunca invente outras porcentagens além dessas. Se o cliente pedir algo fora dessas faixas, explique as faixas reais.
+PREÇOS POR FAIXA (sempre observar ao informar valores):
+- As marmitas avulsas têm PREÇOS FIXOS POR GRAMATURA E QUANTIDADE TOTAL (1–4, 5–9, 10–19, 20+). Use SOMENTE a tabela acima. NÃO aplique novamente 3%, 7% ou 12% sobre esses valores: essas porcentagens são rótulos aproximados de marketing.
+- Para calcular uma estimativa, pergunte o tamanho e a quantidade total. Sopas e complementos contam no total de itens, mas mantêm preço próprio. Combos prontos têm preços próprios e não recebem descontos adicionais.
+- Nunca apresente um total com taxa de entrega, cupons, adicionais, cashback ou prazo garantido sem os dados reais do checkout.
+- Se o cliente pedir um valor que não consta na tabela ou pedir um desconto especial, ofereça confirmação com a equipe.
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
 REGRA IMPORTANTE: Você NÃO fecha o pedido nem escolhe os produtos com o cliente.
 Seu papel é coletar as INFORMAÇÕES INICIAIS (nome, endereço, forma de pagamento) e depois TRANSFERIR PARA UM HUMANO da equipe, que vai escolher os produtos e fechar o pedido com o cliente.
 Se o cliente já disser um produto que quer (ex: "quero a parmegiana"), NÃO comece a montar o pedido — apenas registre mentalmente e siga coletando os dados iniciais. Seja transparente logo no início: avise que vai pegar alguns dados e depois conectar com a equipe para finalizar. Exemplo: "Que ótimo! 😊 Vou pegar alguns dados rapidinho e já te conecto com nossa equipe pra fechar seu pedido certinho. Pode ser?"
-A ÚNICA EXCEÇÃO é quando o cliente pedir para **repetir o último pedido** ("o de sempre", "quero o mesmo", "repetir pedido"): nesse caso, você pode usar a função criar_pedido diretamente com os itens do último pedido.
+Mesmo para repetir o último pedido, você nunca pode usar criar_pedido; peça que a equipe confira e finalize.
 NUNCA invente endereço, valores ou dados que você não tem. Se não souber, pergunte.
 
 ETAPA 1 — IDENTIFICAR O CLIENTE (obrigatória, antes de qualquer coisa):
@@ -2929,9 +2881,7 @@ ${
     : `⚠️ Cliente NÃO identificado ainda. Ao iniciar um pedido, pergunte o nome completo primeiro:
    "Para começar seu pedido, qual é o seu nome completo? 😊"
    → Com o nome: busque no banco usando o número de telefone já registrado.
-   → Se não encontrar pelo nome/telefone: "Não encontrei seu cadastro. Qual é o seu CPF para eu verificar?"
-   → Se encontrar pelo CPF: use a função buscar_cliente_cpf e confirme: "Encontrei! ✅ Seja bem-vindo de volta, [nome]!"
-   → Se não encontrar de jeito nenhum: "Tudo bem! Vou criar seu cadastro. Pode continuar 😊" — colete nome e telefone.`
+   → Se não encontrar cadastro pelo telefone, não solicite CPF. Oriente login/cadastro pelo site ou transferência para a equipe. Não afirme que criou conta, confirmou identidade ou alterou telefone.`
 }
 
 ETAPA 2 — ENTREGA OU RETIRADA:
@@ -3033,25 +2983,11 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
 
         // ── Buscar cliente por CPF ────────────────────────────────────────
         else if (resultado.nome === "buscar_cliente_cpf") {
-          const { cpf } = resultado.args;
-          const cpfResult = await buscarClientePorCpf(cpf, telefone);
-
-          let resposta: string;
-          if (cpfResult.encontrado) {
-            const nomeCliente = cpfResult.profile?.nome?.split(" ")[0] ?? "cliente";
-            resposta = `Ótimo! Encontrei seu cadastro 😊 Seja bem-vindo de volta, *${nomeCliente}*! Já vinculamos seu número para as próximas vezes. Posso te ajudar?`;
-            await appendMensagem(conversa.id, historico, {
-              role: "system",
-              content: cpfResult.contexto,
-            });
-          } else {
-            resposta =
-              "Não encontrei nenhum cadastro com esse CPF. Sem problema! Pode continuar normalmente que vou te ajudar 😊";
-          }
-
-          await sendWhatsAppMessage(telefone, resposta);
-          await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
-          await sendMenuComDelay(telefone);
+          // Compatibilidade com modelos antigos: não pesquisa CPF nem confirma
+          // identidade sem verificação no site ou da equipe.
+          const aviso = "Para proteger seus dados, não confirmamos cadastro apenas pelo CPF no WhatsApp. 💚 Entre na sua conta pelo site ou fale com nossa equipe para verificar com segurança.";
+          await sendWhatsAppMessage(telefone, aviso);
+          await appendMensagem(conversa.id, historico, { role: "assistant", content: aviso });
         }
 
         // ── Consultar cashback ────────────────────────────────────────────
@@ -3065,7 +3001,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           }
           if (!profile?.id) {
             const msg =
-              "Não encontrei seu cadastro para verificar o cashback 😊 Você tem conta no nosso site? Me diga seu CPF que eu verifico!";
+              "Não encontrei uma conta associada a este número para consultar o cashback 😊 Acesse sua conta pelo site ou peça ajuda à equipe para confirmar com segurança.";
             await sendWhatsAppMessage(telefone, msg);
             await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
           } else {
