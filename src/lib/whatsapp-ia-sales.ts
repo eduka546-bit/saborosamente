@@ -40,6 +40,33 @@ export function normalizarEstadoVenda(raw:unknown):EstadoVenda {
   }};
 }
 
+/** Impede que o modelo remova itens antigos sem pedido explícito de troca/remoção. */
+export function validarTransicaoVenda(
+  anterior:EstadoVenda, proximo:EstadoVenda, mensagem:string,
+):string[] {
+  const antes=normalizarEstadoVenda(anterior),depois=normalizarEstadoVenda(proximo);
+  const texto=normal(mensagem);
+  const autorizaRetirada=/(troca|trocar|retira|retirar|remove|remover|tira|tirar|substitu|sem |diminu|reduz|menos |zerar|esvaziar|limpar|cancelar)/.test(texto);
+  const mensagens:string[]=[];
+  if(!autorizaRetirada) {
+    const qtd=new Map(depois.itens.map(i=>[i.productId+":"+i.weight,i.quantity]));
+    for(const item of antes.itens) {
+      const atual=qtd.get(item.productId+":"+item.weight)??0;
+      if(atual<item.quantity){
+        mensagens.push("A atualização retirou ou reduziu "+item.quantity+" unidade(s) anteriores de "+
+          item.productId+" / "+item.weight+" sem pedido explícito. O carrinho anterior deve ser preservado.");
+      }
+    }
+  }
+  if(depois.itens.reduce((n,i)=>n+i.quantity,0)>200)
+    mensagens.push("Carrinho acima de 200 unidades. Monte o pedido manualmente.");
+  if(antes.recebimento.metodo && depois.recebimento.metodo &&
+     antes.recebimento.metodo!==depois.recebimento.metodo &&
+     !/(entrega|entregar|retirada|retirar|buscar|receber)/.test(texto))
+    mensagens.push("A IA alterou entrega/retirada sem solicitação. Confira o recebimento.");
+  return mensagens;
+}
+
 /** Nunca retira a pendência de um modelo nem confirma entrega quando falta bairro/data. */
 export function resumirVenda(
   estadoBruto:unknown, rawPedido:unknown, produtos:any[], precos:unknown,
