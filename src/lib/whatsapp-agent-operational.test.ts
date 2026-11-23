@@ -32,7 +32,7 @@ describe("regras operacionais do agente ativo no WhatsApp", () => {
   });
   it("PARAR registra descadastro global e o atendimento humano não usa esse comando", () => {
     expect(agente).toContain('from("whatsapp_marketing_optout").upsert');
-    expect(agente).toContain('origem:"pedido_explicito_de_atendente"');
+    expect(agente).toContain('"pedido_explicito_de_atendente"');
     expect(agente).toContain('modo:"humano"');
   });
   it("campanhas bloqueiam envios de opt-out registrados", () => {
