@@ -34,7 +34,7 @@ export function permiteTrocarSaborPedido(pedido: {status?: string | null; estoqu
     item.id && item.produto_id &&
     (Number(item.quantidade) || 0) > 0 &&
     pedido.estoque_baixado &&
-    !["cancelado", "entregue", "rascunho"].includes(String(pedido.status || "").toLowerCase()) &&
+    ["pendente", "preparando"].includes(String(pedido.status || "").toLowerCase()) &&
     tamanhoDeEstoqueTroca(item.produtos?.tipo_produto, tamanho),
   );
 }
