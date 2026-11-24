@@ -3,6 +3,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAdminOrder, updateAdminOrderStatus } from "@/lib/orders.functions";
+import { trocarSaborPedidoAdmin } from "@/lib/order-flavor-swap.functions";
+import { permiteTrocarSaborPedido, saldoParaTroca } from "@/lib/order-flavor-swap";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,8 +126,10 @@ export function DashboardPedidosPreview() {
   const client = useQueryClient();
   const statusFn = useServerFn(updateAdminOrderStatus);
   const updateOrderFn = useServerFn(updateAdminOrder);
+  const trocarSaborFn = useServerFn(trocarSaborPedidoAdmin);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<any>(null);
+  const [troca, setTroca] = useState<{pedidoId:string; itemId:string; produtoOriginalId:string; saborAnterior:string; tipo:string; tamanho:string; quantidadeMax:number; quantidade:number; novoProdutoId:string; confirmado:boolean} | null>(null);
   const [viewMode, setViewMode] = useState<"quadro" | "lista">("quadro");
   const [originFilter, setOriginFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -232,7 +236,7 @@ export function DashboardPedidosPreview() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousOverflow; };
-  }, [selected?.id, editing?.id]);
+  }, [selected?.id, editing?.id, troca?.pedidoId]);
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["admin-orders-dashboard-preview"],
     queryFn: async () => {
@@ -271,12 +275,70 @@ export function DashboardPedidosPreview() {
   const { data: productsForEdit = [] } = useQuery({
     queryKey: ["admin-products-order-edit"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g,tipo_produto,categorias(nome)").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g,tipo_produto,controle_estoque,estoque_200g,estoque_300g,estoque_400g,categorias(nome)").eq("ativo", true).order("nome");
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 60_000,
   });
+  const { data: historicoTrocas = [] } = useQuery({
+    queryKey: ["admin-pedido-trocas-sabor", selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedido_trocas_sabor")
+        .select("id,quantidade,tamanho,produto_anterior_nome,produto_novo_nome,confirmado_em")
+        .eq("pedido_id", selected.id)
+        .order("confirmado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const abrirTrocaSabor = (pedido: any, item: any) => {
+    const tamanho = itemWeight(item);
+    if (!permiteTrocarSaborPedido(pedido, item, tamanho)) {
+      toast.error("Este item não está liberado para troca. Confira o status, a baixa original e o tamanho.");
+      return;
+    }
+    setEditing(null);
+    setTroca({
+      pedidoId: pedido.id, itemId: item.id, produtoOriginalId: item.produto_id,
+      saborAnterior: itemName(item), tipo: String(item.produtos?.tipo_produto || ""),
+      tamanho, quantidadeMax: Number(item.quantidade), quantidade: Number(item.quantidade),
+      novoProdutoId: "", confirmado: false,
+    });
+  };
+  const confirmarTrocaSabor = async () => {
+    if (!troca || !troca.confirmado || !troca.novoProdutoId || busyId) return;
+    const produto = (productsForEdit as any[]).find(p => p.id === troca.novoProdutoId);
+    const saldo = produto ? saldoParaTroca(produto, troca.tamanho) : null;
+    if (!produto || saldo === null || saldo < troca.quantidade) {
+      toast.error("O novo sabor não possui estoque suficiente para a quantidade escolhida.");
+      return;
+    }
+    setBusyId(troca.pedidoId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const resultado = await trocarSaborFn({ data: {
+        accessToken: session.access_token, pedidoId: troca.pedidoId,
+        itemId: troca.itemId, novoProdutoId: troca.novoProdutoId,
+        quantidade: troca.quantidade, confirmadoComCliente: true,
+      } });
+      await Promise.all([
+        client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]}),
+        client.invalidateQueries({queryKey:["admin-orders"]}),
+        client.invalidateQueries({queryKey:["admin-products-order-edit"]}),
+        client.invalidateQueries({queryKey:["admin-pedido-trocas-sabor",troca.pedidoId]}),
+      ]);
+      setTroca(null);
+      setSelected(null);
+      toast.success(`Troca salva: ${resultado.quantidade}x ${resultado.sabor_novo}. Estoque corrigido e histórico registrado.`);
+    } catch (error: any) {
+      toast.error(error?.message || "Falha ao trocar o sabor. O pedido e o estoque foram preservados.");
+    } finally {
+      setBusyId(null);
+    }
+  };
   // Centraliza Realtime, aviso de novos pedidos e impressão automática
   // na mesma tela. A antiga tela não monta mais um segundo monitor.
   useEffect(() => {
