@@ -19,6 +19,8 @@ describe("troca operacional de sabores", () => {
     expect(permiteTrocarSaborPedido({status:"entregue",estoque_baixado:true},item,"300g")).toBe(false);
     expect(permiteTrocarSaborPedido({status:"cancelado",estoque_baixado:true},item,"300g")).toBe(false);
     expect(permiteTrocarSaborPedido({status:"rascunho",estoque_baixado:true},item,"300g")).toBe(false);
+    expect(permiteTrocarSaborPedido({status:"saiu para entrega",estoque_baixado:true},item,"300g")).toBe(false);
+    expect(permiteTrocarSaborPedido({status:"pronto para retirada",estoque_baixado:true},item,"300g")).toBe(false);
   });
   it("não confunde personalizadas, combos ou marmitas sem tamanho", () => {
     expect(permiteTrocarSaborPedido({status:"pendente",estoque_baixado:true},{id:"x",produto_id:null,quantidade:1,produtos:{tipo_produto:"marmita"}},"300g")).toBe(false);
