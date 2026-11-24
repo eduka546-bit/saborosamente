@@ -7,6 +7,8 @@ create table if not exists public.pedido_trocas_sabor (
   item_resultante_id uuid not null,
   produto_anterior_id uuid not null references public.produtos(id),
   produto_novo_id uuid not null references public.produtos(id),
+  produto_anterior_nome text not null,
+  produto_novo_nome text not null,
   quantidade integer not null check (quantidade > 0 and quantidade <= 500),
   tamanho text not null,
   confirmado_com_cliente boolean not null default true check (confirmado_com_cliente),
@@ -153,11 +155,11 @@ begin
 
   insert into public.pedido_trocas_sabor (
     pedido_id, item_anterior_id, item_resultante_id,
-    produto_anterior_id, produto_novo_id, quantidade, tamanho,
+    produto_anterior_id, produto_novo_id, produto_anterior_nome, produto_novo_nome, quantidade, tamanho,
     confirmado_com_cliente, confirmado_por
   ) values (
     p_pedido_id, v_item.id, v_resultado_id,
-    v_antigo.id, v_novo.id, p_quantidade, v_tamanho,
+    v_antigo.id, v_novo.id, v_antigo.nome, v_novo.nome, p_quantidade, v_tamanho,
     true, p_ator_id
   );
   update public.pedidos set updated_at = now() where id = p_pedido_id;
