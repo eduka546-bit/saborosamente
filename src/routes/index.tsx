@@ -1136,6 +1136,20 @@ function Index() {
             </h2>
           </div>
 
+          <section className="bf-preview-banner" aria-label="Prévia Black Friday">
+            <div className="bf-preview-copy">
+              <span className="bf-preview-kicker">26 • 27 • 28 DE NOVEMBRO</span>
+              <h2>A MAIOR <strong>BLACK FRIDAY</strong></h2>
+              <p>Monte seu combo do seu jeito, a partir de 5 unidades.</p>
+              <span className="bf-preview-action">Oferta especial · Prévia visual</span>
+            </div>
+            <div className="bf-preview-prices">
+              {[["Pequena · 200g", "14,00"], ["Média · 300g", "17,00"], ["Grande · 400g", "20,00"], ["Sopas", "16,00"]].map(([label, price]) => (
+                <div key={label}><span>{label}</span><strong>R$ {price}</strong><small>por unidade</small></div>
+              ))}
+              <p>Sem limite de unidades, conforme estoque. Não cumulativa.</p>
+            </div>
+          </section>
           <div className="grid gap-4 lg:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}

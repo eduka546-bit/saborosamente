@@ -168,6 +168,12 @@ function RootComponent() {
     pathname === "/auth" ||
     pathname === "/login";
 
+  useEffect(() => {
+    const publicPath = !/^\/(admin|cozinha|acesso)(?:[/-]|$)/.test(pathname);
+    document.documentElement.classList.toggle("black-friday-preview", publicPath);
+    return () => document.documentElement.classList.remove("black-friday-preview");
+  }, [pathname]);
+
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
     const admin = pathname.startsWith("/admin");
