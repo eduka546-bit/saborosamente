@@ -61,8 +61,8 @@ begin
 
   select * into v_pedido from public.pedidos where id = p_pedido_id for update;
   if not found then raise exception 'Pedido não encontrado'; end if;
-  if lower(coalesce(v_pedido.status,'')) in ('cancelado','entregue','rascunho') then
-    raise exception 'Pedidos cancelados, entregues ou rascunhos não permitem troca de sabor';
+  if lower(coalesce(v_pedido.status,'')) not in ('pendente','preparando') then
+    raise exception 'Trocas só são permitidas antes de separar ou despachar o pedido';
   end if;
   if not coalesce(v_pedido.estoque_baixado,false) then
     raise exception 'A baixa original do pedido ainda não foi concluída. Confira o estoque antes de trocar o sabor';
@@ -159,7 +159,8 @@ begin
     confirmado_com_cliente, confirmado_por
   ) values (
     p_pedido_id, v_item.id, v_resultado_id,
-    v_antigo.id, v_novo.id, v_antigo.nome, v_novo.nome, p_quantidade, v_tamanho,
+    v_antigo.id, v_novo.id, v_antigo.nome, v_novo.nome, p_quantidade,
+    case when v_antigo.tipo_produto = 'complemento' then '150g' else v_tamanho end,
     true, p_ator_id
   );
   update public.pedidos set updated_at = now() where id = p_pedido_id;
