@@ -661,6 +661,60 @@ export function DashboardPedidosPreview() {
           <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
       </div>, document.body)}
+      {troca && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[10070] flex items-center justify-center bg-black/60 p-3" onClick={() => { if (!busyId) setTroca(null); }}>
+          <div role="dialog" aria-modal="true" aria-label="Trocar sabor do pedido" onClick={e => e.stopPropagation()}
+            className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div><h2 className="text-lg font-extrabold text-[#1d5733]">Trocar sabor do pedido</h2>
+                <p className="mt-1 text-xs text-gray-500">Após confirmação com o cliente, o sistema devolve o sabor antigo ao estoque e baixa o novo.</p></div>
+              <button aria-label="Fechar" disabled={Boolean(busyId)} onClick={() => setTroca(null)}><X size={19}/></button>
+            </div>
+            <div className="rounded-lg bg-[#f1f7f0] p-3 text-sm">
+              <p className="font-bold">{troca.saborAnterior}</p>
+              <p className="mt-1 text-xs text-gray-600">Tamanho: {troca.tamanho} · Quantidade atual: {troca.quantidadeMax}</p>
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-bold text-[#285138]">
+              Quantas unidades serão substituídas?
+              <input type="number" min={1} max={troca.quantidadeMax} step={1}
+                className="rounded-lg border p-2 font-normal" value={troca.quantidade}
+                onChange={e=>setTroca(t=>t ? {...t, quantidade:Number(e.target.value), confirmado:false}:t)} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-bold text-[#285138]">
+              Novo sabor — mesmo tipo e tamanho
+              <select className="rounded-lg border p-2 font-normal" value={troca.novoProdutoId}
+                onChange={e=>setTroca(t=>t ? {...t, novoProdutoId:e.target.value, confirmado:false}:t)}>
+                <option value="">Selecione o sabor de substituição</option>
+                {(productsForEdit as any[]).filter(p=>p.id !== troca.produtoOriginalId &&
+                  p.tipo_produto === troca.tipo && p.controle_estoque &&
+                  Number(saldoParaTroca(p,troca.tamanho) ?? 0) > 0).map(p=>
+                  <option key={p.id} value={p.id}>{p.nome} · {saldoParaTroca(p,troca.tamanho)} disponíveis</option>)}
+              </select>
+            </label>
+            {troca.novoProdutoId && (() => {
+              const p=(productsForEdit as any[]).find(x=>x.id===troca.novoProdutoId);
+              const disponivel=p ? saldoParaTroca(p,troca.tamanho) : null;
+              return <p className={disponivel !== null && disponivel >= troca.quantidade ? "text-xs text-green-700" : "text-xs font-bold text-red-600"}>
+                Saldo disponível: {disponivel ?? "não informado"} · Após troca: {disponivel === null ? "—" : disponivel - troca.quantidade}
+              </p>;
+            })()}
+            <label className="flex items-start gap-2 rounded-lg border border-[#cce1cd] bg-[#f4faf3] p-3 text-xs font-semibold text-[#225535]">
+              <input type="checkbox" className="mt-0.5" checked={troca.confirmado}
+                onChange={e=>setTroca(t=>t ? {...t, confirmado:e.target.checked}:t)}/>
+              Confirmei com o cliente essa substituição e a quantidade. Manter o valor cobrado e atualizar pedido, estoque e histórico.
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={Boolean(busyId) || !troca.confirmado || !troca.novoProdutoId ||
+                !Number.isInteger(troca.quantidade) || troca.quantidade < 1 || troca.quantidade > troca.quantidadeMax ||
+                Number(saldoParaTroca((productsForEdit as any[]).find(p=>p.id===troca.novoProdutoId) || {id:""},troca.tamanho) ?? 0) < troca.quantidade}
+                className="flex-1 rounded-lg bg-[#245b38] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                onClick={() => void confirmarTrocaSabor()}>{busyId ? "Salvando..." : "Confirmar troca e corrigir estoque"}</button>
+              <button type="button" disabled={Boolean(busyId)} onClick={() => setTroca(null)}
+                className="rounded-lg border px-4 py-2 text-sm">Cancelar</button>
+            </div>
+          </div>
+        </div>, document.body
+      )}
       {selected && typeof document !== "undefined" && (() => {
         const totalUnits = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0), 0);
         const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Sopas": 0, "Personalizados": 0 };
