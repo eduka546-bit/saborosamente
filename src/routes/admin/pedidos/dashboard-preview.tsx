@@ -647,9 +647,13 @@ export function DashboardPedidosPreview() {
             </div>
             <section className="rounded-xl border border-[#dfe9df] p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-[#245b38]">Itens do pedido</h3><button type="button" onClick={()=>setEditing((prev:any)=>({...prev,itens:[...(prev.itens||[]),{produto_id:"",nome_item:"",quantidade:1,preco_unitario:0,observacao:""}]}))} className="inline-flex items-center gap-1 rounded-lg bg-[#e8f4ea] px-3 py-2 text-xs font-bold text-[#245b38]"><Plus size={14}/> Adicionar item</button></div>
               <div className="space-y-2">{(editing.itens||[]).map((item:any,index:number)=><div key={item.id||index} className="grid grid-cols-1 gap-2 rounded-xl border bg-[#fbfdfb] p-3 sm:grid-cols-[1fr_80px_110px_36px]">
-                <select className="min-w-0 rounded-lg border p-2 text-sm" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
+                <select disabled={Boolean(item.id && item.produto_id)} title={item.id && item.produto_id ? "Para trocar sabor use o botão Trocar sabor, após confirmar com o cliente." : "Selecione o produto"} className="min-w-0 rounded-lg border p-2 text-sm disabled:bg-gray-100" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
                 <input aria-label="Quantidade" type="number" min="1" className="rounded-lg border p-2 text-sm" value={item.quantidade??1} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,quantidade:e.target.value}:row)}))}/><input aria-label="Preço unitário" type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm" value={item.preco_unitario??0} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,preco_unitario:e.target.value}:row)}))}/><button type="button" aria-label="Remover item" disabled={(editing.itens||[]).length<=1} onClick={()=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).filter((_:any,i:number)=>i!==index)}))} className="text-red-600 disabled:opacity-30"><X size={18}/></button>
                 {!item.produto_id && <input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Nome do item avulso" value={item.nome_item||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,nome_item:e.target.value}:row)}))}/>}<input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Observação do item, ex.: Peso: 300g" value={item.observacao||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,observacao:e.target.value}:row)}))}/>
+                {permiteTrocarSaborPedido(editing, item, itemWeight(item)) && (
+                  <button type="button" className="sm:col-span-4 w-fit rounded-lg border border-[#bfd9c6] bg-[#edf7ee] px-3 py-2 text-xs font-bold text-[#245b38]"
+                    onClick={() => abrirTrocaSabor(editing, item)}>Trocar sabor após confirmação do cliente</button>
+                )}
                 <DetalhesMontagemPersonalizada item={item}/>
               </div>)}</div></section>
             <label className="flex flex-col gap-1 text-xs font-semibold"><span>Observações gerais</span><textarea className="rounded-lg border p-2 text-sm font-normal" rows={2} value={editing.observacao??editing.observacoes??""} onChange={e=>setEditing((prev:any)=>({...prev,observacao:e.target.value}))}/></label>
@@ -790,6 +794,10 @@ export function DashboardPedidosPreview() {
                       <p className="break-words font-semibold leading-snug text-[#19372a]">{itemName(item)}</p>
                       {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-[10px] leading-tight text-[#76887d] sm:hidden">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p>}
                       {itemNote(item) && <p className="mt-0.5 hidden truncate text-[10px] text-[#76887d] sm:block">{itemNote(item)}</p>}
+                      {permiteTrocarSaborPedido(selected, item, itemWeight(item)) && (
+                        <button type="button" className="mt-1.5 rounded-lg border border-[#bad8bf] bg-[#f0f8f0] px-2 py-1 text-[10px] font-bold text-[#215c36] hover:bg-[#dff0e1]"
+                          onClick={() => abrirTrocaSabor(selected, item)}>Trocar sabor</button>
+                      )}
                     </div>
                     <span className="hidden justify-self-center rounded-lg bg-[#fff0f0] px-1.5 py-1 text-[11px] text-[#954646] sm:inline">{itemWeight(item) || "—"}</span>
                     <div className="min-w-0 text-right">
@@ -802,6 +810,14 @@ export function DashboardPedidosPreview() {
                 </div>
               </section>
 
+              {historicoTrocas.length > 0 && (
+                <section className="rounded-xl border border-[#e3ebe2] bg-[#f8fbf7] p-3">
+                  <h3 className="mb-2 text-xs font-bold text-[#245b38]">Trocas confirmadas com o cliente</h3>
+                  <div className="space-y-1 text-[11px] text-[#52695a]">
+                    {historicoTrocas.map((t:any) => <p key={t.id}>{t.quantidade}x {t.produto_anterior_nome} → {t.produto_novo_nome} ({t.tamanho}) · {new Date(t.confirmado_em).toLocaleString("pt-BR")}</p>)}
+                  </div>
+                </section>
+              )}
               <div className="grid grid-cols-2 gap-2 xl:grid-cols-[1.25fr_1fr_.9fr]">
                 <section className="min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 sm:p-3">
                   <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold text-[#1a3927] sm:text-sm"><CreditCard size={16} className="shrink-0 text-[#195b3b]"/> Formas de pagamento</h3>
