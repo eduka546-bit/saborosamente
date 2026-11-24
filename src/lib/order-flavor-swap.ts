@@ -19,7 +19,9 @@ export function tamanhoDeEstoqueTroca(tipo: string | null | undefined, tamanho: 
 export function saldoParaTroca(produto: ProdutoTroca, tamanho: string): number | null {
   const coluna = tamanhoDeEstoqueTroca(produto.tipo_produto, tamanho);
   if (!coluna) return null;
-  return Number(produto["estoque_" + coluna] ?? 0);
+  if (coluna === "200g") return Number(produto.estoque_200g ?? 0);
+  if (coluna === "300g") return Number(produto.estoque_300g ?? 0);
+  return Number(produto.estoque_400g ?? 0);
 }
 
 export function permiteTrocarSaborPedido(pedido: {status?: string | null; estoque_baixado?: boolean | null}, item: {
