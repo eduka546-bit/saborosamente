@@ -3,6 +3,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useServerFn } from "@tanstack/react-start";
 import { updateAdminOrder, updateAdminOrderStatus } from "@/lib/orders.functions";
+import { trocarSaborPedidoAdmin } from "@/lib/order-flavor-swap.functions";
+import { permiteTrocarSaborPedido, saldoParaTroca } from "@/lib/order-flavor-swap";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,8 +126,10 @@ export function DashboardPedidosPreview() {
   const client = useQueryClient();
   const statusFn = useServerFn(updateAdminOrderStatus);
   const updateOrderFn = useServerFn(updateAdminOrder);
+  const trocarSaborFn = useServerFn(trocarSaborPedidoAdmin);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<any>(null);
+  const [troca, setTroca] = useState<{pedidoId:string; itemId:string; produtoOriginalId:string; saborAnterior:string; tipo:string; tamanho:string; quantidadeMax:number; quantidade:number; novoProdutoId:string; confirmado:boolean} | null>(null);
   const [viewMode, setViewMode] = useState<"quadro" | "lista">("quadro");
   const [originFilter, setOriginFilter] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -232,7 +236,7 @@ export function DashboardPedidosPreview() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousOverflow; };
-  }, [selected?.id, editing?.id]);
+  }, [selected?.id, editing?.id, troca?.pedidoId]);
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["admin-orders-dashboard-preview"],
     queryFn: async () => {
@@ -271,12 +275,70 @@ export function DashboardPedidosPreview() {
   const { data: productsForEdit = [] } = useQuery({
     queryKey: ["admin-products-order-edit"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g,tipo_produto,categorias(nome)").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("produtos").select("id,nome,preco,preco_300g,preco_400g,tipo_produto,controle_estoque,estoque_200g,estoque_300g,estoque_400g,categorias(nome)").eq("ativo", true).order("nome");
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 60_000,
   });
+  const { data: historicoTrocas = [] } = useQuery({
+    queryKey: ["admin-pedido-trocas-sabor", selected?.id],
+    enabled: Boolean(selected?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedido_trocas_sabor")
+        .select("id,quantidade,tamanho,produto_anterior_nome,produto_novo_nome,confirmado_em")
+        .eq("pedido_id", selected.id)
+        .order("confirmado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const abrirTrocaSabor = (pedido: any, item: any) => {
+    const tamanho = itemWeight(item);
+    if (!permiteTrocarSaborPedido(pedido, item, tamanho)) {
+      toast.error("Este item não está liberado para troca. Confira o status, a baixa original e o tamanho.");
+      return;
+    }
+    setEditing(null);
+    setTroca({
+      pedidoId: pedido.id, itemId: item.id, produtoOriginalId: item.produto_id,
+      saborAnterior: itemName(item), tipo: String(item.produtos?.tipo_produto || ""),
+      tamanho, quantidadeMax: Number(item.quantidade), quantidade: Number(item.quantidade),
+      novoProdutoId: "", confirmado: false,
+    });
+  };
+  const confirmarTrocaSabor = async () => {
+    if (!troca || !troca.confirmado || !troca.novoProdutoId || busyId) return;
+    const produto = (productsForEdit as any[]).find(p => p.id === troca.novoProdutoId);
+    const saldo = produto ? saldoParaTroca(produto, troca.tamanho) : null;
+    if (!produto || saldo === null || saldo < troca.quantidade) {
+      toast.error("O novo sabor não possui estoque suficiente para a quantidade escolhida.");
+      return;
+    }
+    setBusyId(troca.pedidoId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const resultado = await trocarSaborFn({ data: {
+        accessToken: session.access_token, pedidoId: troca.pedidoId,
+        itemId: troca.itemId, novoProdutoId: troca.novoProdutoId,
+        quantidade: troca.quantidade, confirmadoComCliente: true,
+      } });
+      await Promise.all([
+        client.invalidateQueries({queryKey:["admin-orders-dashboard-preview"]}),
+        client.invalidateQueries({queryKey:["admin-orders"]}),
+        client.invalidateQueries({queryKey:["admin-products-order-edit"]}),
+        client.invalidateQueries({queryKey:["admin-pedido-trocas-sabor",troca.pedidoId]}),
+      ]);
+      setTroca(null);
+      setSelected(null);
+      toast.success(`Troca salva: ${resultado.quantidade}x ${resultado.sabor_novo}. Estoque corrigido e histórico registrado.`);
+    } catch (error: any) {
+      toast.error(error?.message || "Falha ao trocar o sabor. O pedido e o estoque foram preservados.");
+    } finally {
+      setBusyId(null);
+    }
+  };
   // Centraliza Realtime, aviso de novos pedidos e impressão automática
   // na mesma tela. A antiga tela não monta mais um segundo monitor.
   useEffect(() => {
@@ -585,9 +647,13 @@ export function DashboardPedidosPreview() {
             </div>
             <section className="rounded-xl border border-[#dfe9df] p-3"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-[#245b38]">Itens do pedido</h3><button type="button" onClick={()=>setEditing((prev:any)=>({...prev,itens:[...(prev.itens||[]),{produto_id:"",nome_item:"",quantidade:1,preco_unitario:0,observacao:""}]}))} className="inline-flex items-center gap-1 rounded-lg bg-[#e8f4ea] px-3 py-2 text-xs font-bold text-[#245b38]"><Plus size={14}/> Adicionar item</button></div>
               <div className="space-y-2">{(editing.itens||[]).map((item:any,index:number)=><div key={item.id||index} className="grid grid-cols-1 gap-2 rounded-xl border bg-[#fbfdfb] p-3 sm:grid-cols-[1fr_80px_110px_36px]">
-                <select className="min-w-0 rounded-lg border p-2 text-sm" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
+                <select disabled={Boolean(item.id && item.produto_id)} title={item.id && item.produto_id ? "Para trocar sabor use o botão Trocar sabor, após confirmar com o cliente." : "Selecione o produto"} className="min-w-0 rounded-lg border p-2 text-sm disabled:bg-gray-100" value={item.produto_id||""} onChange={e=>{const product=(productsForEdit as any[]).find(p=>p.id===e.target.value);setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,produto_id:e.target.value,nome_item:product?.nome||row.nome_item,preco_unitario:product?Number(product.preco||0):row.preco_unitario}:row)}));}}><option value="">Item avulso</option>{(productsForEdit as any[]).map(product=><option key={product.id} value={product.id}>{product.nome}</option>)}</select>
                 <input aria-label="Quantidade" type="number" min="1" className="rounded-lg border p-2 text-sm" value={item.quantidade??1} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,quantidade:e.target.value}:row)}))}/><input aria-label="Preço unitário" type="number" min="0" step="0.01" className="rounded-lg border p-2 text-sm" value={item.preco_unitario??0} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,preco_unitario:e.target.value}:row)}))}/><button type="button" aria-label="Remover item" disabled={(editing.itens||[]).length<=1} onClick={()=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).filter((_:any,i:number)=>i!==index)}))} className="text-red-600 disabled:opacity-30"><X size={18}/></button>
                 {!item.produto_id && <input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Nome do item avulso" value={item.nome_item||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,nome_item:e.target.value}:row)}))}/>}<input className="sm:col-span-3 rounded-lg border p-2 text-sm" placeholder="Observação do item, ex.: Peso: 300g" value={item.observacao||""} onChange={e=>setEditing((prev:any)=>({...prev,itens:(prev.itens||[]).map((row:any,i:number)=>i===index?{...row,observacao:e.target.value}:row)}))}/>
+                {permiteTrocarSaborPedido(editing, item, itemWeight(item)) && (
+                  <button type="button" className="sm:col-span-4 w-fit rounded-lg border border-[#bfd9c6] bg-[#edf7ee] px-3 py-2 text-xs font-bold text-[#245b38]"
+                    onClick={() => abrirTrocaSabor(editing, item)}>Trocar sabor após confirmação do cliente</button>
+                )}
                 <DetalhesMontagemPersonalizada item={item}/>
               </div>)}</div></section>
             <label className="flex flex-col gap-1 text-xs font-semibold"><span>Observações gerais</span><textarea className="rounded-lg border p-2 text-sm font-normal" rows={2} value={editing.observacao??editing.observacoes??""} onChange={e=>setEditing((prev:any)=>({...prev,observacao:e.target.value}))}/></label>
@@ -595,6 +661,60 @@ export function DashboardPedidosPreview() {
           <div className="flex flex-wrap gap-2 border-t p-4"><button disabled={busyId===editing.id} onClick={saveQuickEdit} className="flex-1 rounded-lg bg-[#28633c] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Salvar alterações</button><button onClick={()=>setEditing(null)} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button></div>
         </div>
       </div>, document.body)}
+      {troca && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[10070] flex items-center justify-center bg-black/60 p-3" onClick={() => { if (!busyId) setTroca(null); }}>
+          <div role="dialog" aria-modal="true" aria-label="Trocar sabor do pedido" onClick={e => e.stopPropagation()}
+            className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div><h2 className="text-lg font-extrabold text-[#1d5733]">Trocar sabor do pedido</h2>
+                <p className="mt-1 text-xs text-gray-500">Após confirmação com o cliente, o sistema devolve o sabor antigo ao estoque e baixa o novo.</p></div>
+              <button aria-label="Fechar" disabled={Boolean(busyId)} onClick={() => setTroca(null)}><X size={19}/></button>
+            </div>
+            <div className="rounded-lg bg-[#f1f7f0] p-3 text-sm">
+              <p className="font-bold">{troca.saborAnterior}</p>
+              <p className="mt-1 text-xs text-gray-600">Tamanho: {troca.tamanho} · Quantidade atual: {troca.quantidadeMax}</p>
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-bold text-[#285138]">
+              Quantas unidades serão substituídas?
+              <input type="number" min={1} max={troca.quantidadeMax} step={1}
+                className="rounded-lg border p-2 font-normal" value={troca.quantidade}
+                onChange={e=>setTroca(t=>t ? {...t, quantidade:Number(e.target.value), confirmado:false}:t)} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-bold text-[#285138]">
+              Novo sabor — mesmo tipo e tamanho
+              <select className="rounded-lg border p-2 font-normal" value={troca.novoProdutoId}
+                onChange={e=>setTroca(t=>t ? {...t, novoProdutoId:e.target.value, confirmado:false}:t)}>
+                <option value="">Selecione o sabor de substituição</option>
+                {(productsForEdit as any[]).filter(p=>p.id !== troca.produtoOriginalId &&
+                  p.tipo_produto === troca.tipo && p.controle_estoque &&
+                  Number(saldoParaTroca(p,troca.tamanho) ?? 0) > 0).map(p=>
+                  <option key={p.id} value={p.id}>{p.nome} · {saldoParaTroca(p,troca.tamanho)} disponíveis</option>)}
+              </select>
+            </label>
+            {troca.novoProdutoId && (() => {
+              const p=(productsForEdit as any[]).find(x=>x.id===troca.novoProdutoId);
+              const disponivel=p ? saldoParaTroca(p,troca.tamanho) : null;
+              return <p className={disponivel !== null && disponivel >= troca.quantidade ? "text-xs text-green-700" : "text-xs font-bold text-red-600"}>
+                Saldo disponível: {disponivel ?? "não informado"} · Após troca: {disponivel === null ? "—" : disponivel - troca.quantidade}
+              </p>;
+            })()}
+            <label className="flex items-start gap-2 rounded-lg border border-[#cce1cd] bg-[#f4faf3] p-3 text-xs font-semibold text-[#225535]">
+              <input type="checkbox" className="mt-0.5" checked={troca.confirmado}
+                onChange={e=>setTroca(t=>t ? {...t, confirmado:e.target.checked}:t)}/>
+              Confirmei com o cliente essa substituição e a quantidade. Manter o valor cobrado e atualizar pedido, estoque e histórico.
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={Boolean(busyId) || !troca.confirmado || !troca.novoProdutoId ||
+                !Number.isInteger(troca.quantidade) || troca.quantidade < 1 || troca.quantidade > troca.quantidadeMax ||
+                Number(saldoParaTroca((productsForEdit as any[]).find(p=>p.id===troca.novoProdutoId) || {id:""},troca.tamanho) ?? 0) < troca.quantidade}
+                className="flex-1 rounded-lg bg-[#245b38] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                onClick={() => void confirmarTrocaSabor()}>{busyId ? "Salvando..." : "Confirmar troca e corrigir estoque"}</button>
+              <button type="button" disabled={Boolean(busyId)} onClick={() => setTroca(null)}
+                className="rounded-lg border px-4 py-2 text-sm">Cancelar</button>
+            </div>
+          </div>
+        </div>, document.body
+      )}
       {selected && typeof document !== "undefined" && (() => {
         const totalUnits = (selected.itens || []).reduce((sum: number, item: any) => sum + Number(item.quantidade || 0), 0);
         const counts: Record<string, number> = { "150g": 0, "200g": 0, "300g": 0, "400g": 0, "Sopas": 0, "Personalizados": 0 };
@@ -728,6 +848,10 @@ export function DashboardPedidosPreview() {
                       <p className="break-words font-semibold leading-snug text-[#19372a]">{itemName(item)}</p>
                       {(itemWeight(item) || itemNote(item)) && <p className="mt-0.5 text-[10px] leading-tight text-[#76887d] sm:hidden">{[itemWeight(item), itemNote(item)].filter(Boolean).join(" · ")}</p>}
                       {itemNote(item) && <p className="mt-0.5 hidden truncate text-[10px] text-[#76887d] sm:block">{itemNote(item)}</p>}
+                      {permiteTrocarSaborPedido(selected, item, itemWeight(item)) && (
+                        <button type="button" className="mt-1.5 rounded-lg border border-[#bad8bf] bg-[#f0f8f0] px-2 py-1 text-[10px] font-bold text-[#215c36] hover:bg-[#dff0e1]"
+                          onClick={() => abrirTrocaSabor(selected, item)}>Trocar sabor</button>
+                      )}
                     </div>
                     <span className="hidden justify-self-center rounded-lg bg-[#fff0f0] px-1.5 py-1 text-[11px] text-[#954646] sm:inline">{itemWeight(item) || "—"}</span>
                     <div className="min-w-0 text-right">
@@ -740,6 +864,14 @@ export function DashboardPedidosPreview() {
                 </div>
               </section>
 
+              {historicoTrocas.length > 0 && (
+                <section className="rounded-xl border border-[#e3ebe2] bg-[#f8fbf7] p-3">
+                  <h3 className="mb-2 text-xs font-bold text-[#245b38]">Trocas confirmadas com o cliente</h3>
+                  <div className="space-y-1 text-[11px] text-[#52695a]">
+                    {historicoTrocas.map((t:any) => <p key={t.id}>{t.quantidade}x {t.produto_anterior_nome} → {t.produto_novo_nome} ({t.tamanho}) · {new Date(t.confirmado_em).toLocaleString("pt-BR")}</p>)}
+                  </div>
+                </section>
+              )}
               <div className="grid grid-cols-2 gap-2 xl:grid-cols-[1.25fr_1fr_.9fr]">
                 <section className="min-w-0 rounded-2xl border border-[#e1eae1] p-2.5 sm:p-3">
                   <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold text-[#1a3927] sm:text-sm"><CreditCard size={16} className="shrink-0 text-[#195b3b]"/> Formas de pagamento</h3>
