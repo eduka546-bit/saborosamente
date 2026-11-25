@@ -52,8 +52,7 @@ import {
   normalizarMarmitaConfig,
   type MarmitaGrupo,
 } from "@/lib/marmita-personalizada-config";
-import { WelcomePopup } from "@/components/welcome-popup";
-import { MonthlyRafflePopup } from "@/components/monthly-raffle-popup";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DeliveryRegionMiniMap, HomeInfoModal } from "@/components/home-info-modal";
 
 const normalizeText = (value: unknown) =>
@@ -328,6 +327,17 @@ function Index() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
+  const [bfPopupOpen, setBfPopupOpen] = useState(false);
+  useEffect(() => {
+    const key = "saborosamente.bf-preview-popup-2026";
+    try { if (sessionStorage.getItem(key)) return; } catch {}
+    const timer = window.setTimeout(() => setBfPopupOpen(true), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
+  const dismissBfPopup = () => {
+    setBfPopupOpen(false);
+    try { sessionStorage.setItem("saborosamente.bf-preview-popup-2026", "1"); } catch {}
+  };
   const [combosProntosModalOpen, setCombosProntosModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -779,11 +789,28 @@ function Index() {
     <>
       {/* Promoção com regulamento: desligada até aprovação e ativação pelo admin.
           Não sobrepõe o pop-up de boas-vindas: somente um pode aparecer. */}
-      {settings?.sorteio_ativo ? (
-        <MonthlyRafflePopup regulamentoUrl={settings.sorteio_regulamento_url} />
-      ) : settings?.popup_boas_vindas?.ativo ? (
-        <WelcomePopup config={settings.popup_boas_vindas as any} />
-      ) : null}
+      <Dialog open={bfPopupOpen} onOpenChange={(open) => { if (!open) dismissBfPopup(); }}>
+        <DialogContent className="bf-campaign-popup max-h-[90dvh] w-[calc(100%-24px)] max-w-lg overflow-y-auto rounded-3xl border-0 p-5 sm:p-7">
+          <DialogDescription className="text-center text-sm font-medium !text-[#e0ebdf]">
+            Nosso site está de cara nova nesse período de Black Friday!
+          </DialogDescription>
+          <DialogTitle className="text-center !text-white">
+            <span className="block text-xl font-bold tracking-wider">A MAIOR</span>
+            <span className="block text-4xl font-extrabold !text-[#a5cf53] sm:text-5xl">BLACK FRIDAY</span>
+            <span className="block text-lg">SaborosaMente</span>
+          </DialogTitle>
+          <p className="text-center text-sm font-bold !text-[#eac66d]">26, 27 e 28 de novembro</p>
+          <div className="bf-preview-prices">
+            {[["Pequena · 200g","14,00"],["Média · 300g","17,00"],["Grande · 400g","20,00"],["Sopas","16,00"]].map(([label,price]) => (
+              <div key={label}><span>{label}</span><strong>R$ {price}</strong><small>por unidade</small></div>
+            ))}
+          </div>
+          <p className="text-center font-bold !text-white">Monte seu combo a partir de 5 unidades!</p>
+          <p className="text-center text-sm !text-[#e0ebdf]">Misture sabores e tamanhos, sem limite de quantidade.</p>
+          <button type="button" className="rounded-xl bg-[#a5cf53] px-4 py-3 font-bold text-[#101210]" onClick={() => { dismissBfPopup(); window.requestAnimationFrame(() => document.querySelector(".bf-preview-banner")?.scrollIntoView({behavior:"smooth",block:"center"})); }}>APROVEITAR BLACK FRIDAY</button>
+          <p className="text-center text-xs !text-[#e0ebdf]">Oferta não cumulativa. Sujeita à disponibilidade de estoque.</p>
+        </DialogContent>
+      </Dialog>
 
       <HomeInfoModal kind="delivery" open={deliveryModalOpen} onOpenChange={setDeliveryModalOpen} />
       <HomeInfoModal kind="store" open={storeModalOpen} onOpenChange={setStoreModalOpen} />

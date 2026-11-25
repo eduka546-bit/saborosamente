@@ -723,3 +723,6 @@ html.black-friday-preview,.black-friday-preview body {background:#282e2a;}
 @media(max-width:480px){
   .black-friday-preview #produtos-grid > .mb-6 > .min-w-0 > .mt-2 {gap:6px;padding-inline:8px;flex-wrap:wrap;}
 }
+
+.black-friday-preview [role="dialog"].bf-campaign-popup {background:#282e2a!important;color:#f8f7ef!important;}
+.black-friday-preview .bf-campaign-popup > button[aria-label],.black-friday-preview .bf-campaign-popup > button.absolute {color:#fff;}
