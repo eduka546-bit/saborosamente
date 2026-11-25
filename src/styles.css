@@ -642,22 +642,26 @@ iframe[src*="lovable.dev/badge"] {
 
 /* Black Friday: preserve the original storefront and apply campaign green only. */
 html.black-friday-preview { --accent: #8bb924; --lime: #8bb924; }
-/* Black canvas around light content panels, including checkout and cart. */
-html.black-friday-preview, .black-friday-preview body {background:#282e2a;}
+/* Continuous charcoal canvas; only actual content cards and dialogs stay light. */
+html.black-friday-preview,.black-friday-preview body {background:#282e2a;}
 .black-friday-preview .flex.min-h-screen.flex-col.bg-gradient-to-b {background:#282e2a!important;}
 .black-friday-preview main {background:transparent;padding:12px clamp(10px,2vw,28px) 24px;}
-.black-friday-preview main section:not(.bf-preview-banner) {border:0;}
-.black-friday-preview main section:not(.bf-preview-banner):is([class*="bg-[#fbfaf5]"],.bg-white) {background:transparent!important;padding-inline:0;}
-.black-friday-preview main section:not(.bf-preview-banner):is([class*="bg-[#fbfaf5]"],.bg-white) > [class*="max-w-7xl"] {background:#fbfaf5;border-radius:18px;padding:clamp(14px,2.5vw,32px);}
-.black-friday-preview main section#cardapio {background:#fbfaf5;border-radius:18px;padding:clamp(14px,2.5vw,32px);}
-.black-friday-preview main > section:not(.bf-preview-banner) {background:#fbfaf5;border-radius:18px;}
-.black-friday-preview main > section[class*="max-w-6xl"], .black-friday-preview main > section[class*="max-w-xl"] {background:#fbfaf5;border-radius:18px;padding-inline:clamp(14px,2.5vw,32px);}
+.black-friday-preview main section:not(.bf-preview-banner):is([class*="bg-[#fbfaf5]"],.bg-white) {background:transparent!important;border-color:transparent;padding-inline:0;}
+.black-friday-preview main section:not(.bf-preview-banner) > [class*="max-w-7xl"] {background:transparent!important;box-shadow:none;}
+.black-friday-preview main section#cardapio,.black-friday-preview main > section:not(.bf-preview-banner) {background:transparent!important;}
+.black-friday-preview main section > div[class*="max-w-7xl"] > :is(.mb-4,.mb-5,.mb-6,.text-center) :is(h1,h2,p):not([class*="bg-"]),
+.black-friday-preview main section > h1,
+.black-friday-preview main section > p {color:#f8f7ef!important;}
+.black-friday-preview main section > div[class*="max-w-7xl"] > :is(.mb-4,.mb-5,.mb-6,.text-center) :is(h1,h2) span {color:#a5cf53!important;}
+.black-friday-preview main section > div[class*="max-w-7xl"] > .mb-4 > p {color:#a5cf53!important;}
+.black-friday-preview main section#cardapio :is(h1.text-foreground,h2.text-primary,h3.text-primary) {color:#f8f7ef;}
+.black-friday-preview main section#cardapio :is(.bg-white,.bg-card) :is(h1.text-foreground,h2.text-primary,h3.text-primary) {color:#075636;}
+.black-friday-preview main section > :is(a,button)[class*="text-muted-foreground"] {color:#dce6d8;}
 .black-friday-preview header.relative > div:first-child {background-color:#282e2a!important;color:#f8f7ef!important;}
-.black-friday-preview .bf-preview-banner { isolation:isolate; }
+.black-friday-preview .bf-preview-banner {isolation:isolate;}
 .black-friday-preview [role="dialog"] {color:#233b2d;background-color:#fbfaf5;color-scheme:light;}
 .black-friday-preview [role="dialog"] :is(input,textarea,select) {color-scheme:light;}
-
-@media(max-width:640px){.black-friday-preview main {padding-inline:8px;padding-top:8px;} .black-friday-preview main section#cardapio {padding-inline:12px;}}
+@media(max-width:640px){.black-friday-preview main {padding-inline:8px;padding-top:8px;}}
 .black-friday-preview .bf-preview-banner {display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:0 0 24px;padding:clamp(20px,4vw,48px);border:1px solid #536637;border-radius:24px;background:radial-gradient(ellipse at 10% 0%,#28623d,transparent 65%),#064d2f;color:#f8f7ef;}
 .black-friday-preview .bf-preview-kicker {color:#eac66d;font-weight:700;letter-spacing:.12em;font-size:.8rem;}
 .black-friday-preview .bf-preview-copy h2 {font-family:var(--font-display);font-size:clamp(2rem,5vw,4rem);line-height:1; margin:14px 0;}
