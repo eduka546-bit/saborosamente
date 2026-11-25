@@ -640,25 +640,10 @@ iframe[src*="lovable.dev/badge"] {
   }
 }
 
-/* Black Friday: dark page canvas, original light reading surfaces. */
-html.black-friday-preview { color-scheme:light; background:#101210; }
-.black-friday-preview body {background:#101210;}
-.black-friday-preview body > #root {background:#101210;}
-.black-friday-preview .flex.min-h-screen.flex-col.bg-gradient-to-b {background:#101210!important;}
-.black-friday-preview main {background:transparent;}
-/* Give each public page a readable light surface; on the homepage retain dark gutters. */
-.black-friday-preview main > :not(script):not(style) {background-color:#f8f7ef;}
-.black-friday-preview main section {color:#233b2d;}
-.black-friday-preview main section:not(.bf-preview-banner) {background-color:#f8f7ef;}
-.black-friday-preview main section#cardapio {background:#f8f7ef;border-radius:20px;margin-top:18px;margin-bottom:18px;}
-.black-friday-preview main section.bf-preview-banner {color:#f8f7ef;}
-.black-friday-preview main section.bf-preview-banner h2 {color:#f8f7ef;}
-.black-friday-preview header.relative > div:first-child {background-color:#101210!important;color:#f8f7ef!important;}
-.black-friday-preview :is(button,a,input,select,textarea):focus-visible {outline:2px solid #78922f;outline-offset:3px;}
-@media(min-width:768px){
-  .black-friday-preview main {padding-inline:12px;}
-}
-.black-friday-preview .bf-preview-banner {display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:0 0 24px;padding:clamp(20px,4vw,48px);border:1px solid #536637;border-radius:24px;background:radial-gradient(ellipse at 10% 0%,#25402c,transparent 60%),#111713;color:#f8f7ef;}
+/* Black Friday: preserve the original storefront and apply campaign green only. */
+html.black-friday-preview { --accent: #8bb924; --lime: #8bb924; }
+.black-friday-preview .bf-preview-banner { isolation:isolate; }
+.black-friday-preview .bf-preview-banner {display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:0 0 24px;padding:clamp(20px,4vw,48px);border:1px solid #536637;border-radius:24px;background:radial-gradient(ellipse at 10% 0%,#28623d,transparent 65%),#064d2f;color:#f8f7ef;}
 .black-friday-preview .bf-preview-kicker {color:#eac66d;font-weight:700;letter-spacing:.12em;font-size:.8rem;}
 .black-friday-preview .bf-preview-copy h2 {font-family:var(--font-display);font-size:clamp(2rem,5vw,4rem);line-height:1; margin:14px 0;}
 .black-friday-preview .bf-preview-copy h2 strong {display:block;color:#a5cf53;}
