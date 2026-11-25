@@ -655,18 +655,37 @@ html.black-friday-preview {
   --sun: #eac66d; --sun-foreground: #151811;
   --destructive: #e88a80; --destructive-foreground: #171010;
 }
-.black-friday-preview :is(.bg-white,[class*="bg-white/"],.bg-gray-50,.bg-gray-100,.bg-slate-50) { background-color: #1c211e !important; }
-.black-friday-preview :is(.text-black,.text-gray-900,.text-gray-800,.text-gray-700,.text-slate-900,.text-slate-800) { color: #f8f7ef !important; }
-.black-friday-preview :is(.text-gray-600,.text-gray-500,.text-slate-600,.text-slate-500) { color: #bac5b9 !important; }
-.black-friday-preview :is(.border-gray-100,.border-gray-200,.border-gray-300) { border-color: #38443a !important; }
-.black-friday-preview :is(main,footer) [class*="bg-[#"]:not([class*="text-white"]) { background-color: #202722; }
-.black-friday-preview :is(main,footer) [class*="bg-[linear-gradient"] { background-image: linear-gradient(145deg,#202923,#17201a) !important; }
-.black-friday-preview :is(main,footer,[role="dialog"]) :is([class*="text-[#0"],[class*="text-[#1"],[class*="text-[#2"],[class*="text-[#3"],[class*="text-[#4"],[class*="text-[#5"],[class*="text-[#6"]) { color: #c4dda9 !important; }
-.black-friday-preview :is(main,footer,[role="dialog"]) [class*="border-[#"] { border-color: #38443a; }
-.black-friday-preview header.relative > div[style*="background-color"] { background-color: #18211b !important; color:#f8f7ef !important; }
-.black-friday-preview header.relative > div[style*="background-color"] :is(nav a, nav button,button[aria-label],a[aria-label]) { color: #e5efdd !important; }
-.black-friday-preview header img[alt="SaborosaMente"] { filter: drop-shadow(0 0 1px #f8f7ef); }
-.black-friday-preview :is(input,textarea,select) { background-color:#202622; color:#f8f7ef; }
+
+/* Surfaces: preserve photos and colored action buttons; darken light pastel surfaces. */
+.black-friday-preview :is(.bg-white,[class*="bg-white/"],.bg-gray-50,.bg-gray-100,.bg-slate-50,.bg-neutral-50,.bg-stone-50) {background-color:#1c211e!important;}
+.black-friday-preview :is([class*="bg-[#e"],[class*="bg-[#f"],[class*="bg-[#d"]):not([class*="bg-[#f6d83d"]):not([class*="bg-[#f5d94a"]) {background-color:#252e27!important;}
+.black-friday-preview :is([class*="bg-[linear-gradient"],[class*="bg-[radial-gradient"]) {background-image:linear-gradient(145deg,#253329,#19221c)!important;}
+.black-friday-preview :is(.text-black,.text-gray-900,.text-gray-800,.text-gray-700,.text-slate-900,.text-slate-800,.text-neutral-900,.text-neutral-800,.text-neutral-700,.text-zinc-900) {color:#f8f7ef!important;}
+.black-friday-preview :is(.text-gray-600,.text-gray-500,.text-gray-400,.text-slate-600,.text-slate-500,.text-slate-400,.text-neutral-600,.text-neutral-500,.text-zinc-600,.text-stone-600) {color:#c6d0c3!important;}
+.black-friday-preview :is([class*="text-[#0"],[class*="text-[#1"],[class*="text-[#2"],[class*="text-[#3"],[class*="text-[#4"],[class*="text-[#5"],[class*="text-[#6"],[class*="text-[#7"],[class*="text-[#8"]) {color:#c5e2ae!important;}
+.black-friday-preview :is([class*="text-[#9"],[class*="text-[#a"],[class*="text-[#b"],[class*="text-[#c"],[class*="text-[#d"]) {color:#f3cd83!important;}
+.black-friday-preview :is(.text-green-600,.text-green-700,.text-green-800,.text-green-900,.text-emerald-700,.text-emerald-800) {color:#a9df9b!important;}
+.black-friday-preview :is(.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-yellow-600,.text-yellow-700,.text-yellow-800) {color:#f5d786!important;}
+.black-friday-preview :is(.text-red-500,.text-red-600,.text-red-700,.text-red-800,.text-red-900) {color:#ffaaa0!important;}
+.black-friday-preview :is(.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900) {color:#acd4ff!important;}
+.black-friday-preview :is(.bg-green-50,.bg-green-100,[class*="bg-green-50/"]) {background-color:#203b2b!important;}
+.black-friday-preview :is(.bg-yellow-50,.bg-yellow-100,.bg-yellow-200,.bg-amber-50,.bg-amber-100) {background-color:#3b321e!important;}
+.black-friday-preview :is(.bg-red-50,.bg-red-100) {background-color:#40282a!important;}
+.black-friday-preview :is(.bg-blue-50,.bg-blue-100) {background-color:#223444!important;}
+.black-friday-preview :is([class*="border-[#"],.border-gray-100,.border-gray-200,.border-gray-300,.border-green-200,.border-amber-200,.border-blue-200,.border-red-200) {border-color:#465448!important;}
+.black-friday-preview :is(button,a,span,div)[class*="bg-[#f5d94a"],.black-friday-preview :is(button,a,span,div)[class*="bg-[#f6d83d"] {background-color:#eac66d!important;color:#172019!important;}
+.black-friday-preview :is([class*="bg-[#f5d94a"],[class*="bg-[#f6d83d"]) :is(svg,span,strong,p) {color:#172019!important;}
+.black-friday-preview :is(button,a).bg-primary {color:#142015!important;}
+.black-friday-preview :is(button,a).bg-primary :is(span,svg,strong) {color:#142015!important;}
+.black-friday-preview :is(button,a):is([class*="bg-[#086e45"],[class*="bg-[#087443"],[class*="bg-[#075636"],[class*="bg-[#075d3a"]) {color:#fff!important;}
+.black-friday-preview :is(button,a):is([class*="bg-[#086e45"],[class*="bg-[#087443"],[class*="bg-[#075636"],[class*="bg-[#075d3a"]) :is(span,svg,strong) {color:#fff!important;}
+.black-friday-preview header.relative > div[style*="background-color"] {background-color:#18211b!important;color:#f8f7ef!important;}
+.black-friday-preview header.relative > div[style*="background-color"] :is(nav a,nav button,button[aria-label],a[aria-label]) {color:#e5efdd!important;}
+.black-friday-preview header img[alt="SaborosaMente"] {filter:drop-shadow(0 0 1px #f8f7ef);}
+.black-friday-preview :is(input,textarea,select) {background-color:#202622;color:#f8f7ef;}
+.black-friday-preview :is(input,textarea)::placeholder {color:#b5c2b2;opacity:1;}
+.black-friday-preview :is(button,a,input,select,textarea):focus-visible {outline:2px solid #eac66d;outline-offset:3px;}
+.black-friday-preview button:disabled {opacity:.65;}
 .black-friday-preview .bf-preview-banner {display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:0 0 24px;padding:clamp(20px,4vw,48px);border:1px solid #536637;border-radius:24px;background:radial-gradient(ellipse at 10% 0%,#25402c,transparent 60%),#111713;color:#f8f7ef;}
 .black-friday-preview .bf-preview-kicker {color:#eac66d;font-weight:700;letter-spacing:.12em;font-size:.8rem;}
 .black-friday-preview .bf-preview-copy h2 {font-family:var(--font-display);font-size:clamp(2rem,5vw,4rem);line-height:1; margin:14px 0;}
