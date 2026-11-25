@@ -694,3 +694,16 @@ html.black-friday-preview,.black-friday-preview body {background:#282e2a;}
 }
 .black-friday-preview main section:has(> div > .bf-preview-banner) > div > .mb-4 h2 span {color:#a5cf53!important;}
 .black-friday-preview main section:has(> div > .grid.items-start.lg\:grid-cols-3) > div > .mb-4 > p {color:#a5cf53!important;}
+
+/* Catalog: readable labels on charcoal; keep filters and product content light.
+   During the visual preview, hide the regular progressive-discount widget. */
+.black-friday-preview #produtos-grid > .mb-6 {grid-template-columns:minmax(0,1fr)!important;}
+.black-friday-preview #produtos-grid > .mb-6 #descontos {display:none!important;}
+.black-friday-preview #produtos-grid > .mb-6 > .min-w-0 > .mt-3 > p,
+.black-friday-preview #produtos-grid > .space-y-8 > div > p,
+.black-friday-preview #produtos-grid > .py-10 > p {color:#e0e8de!important;}
+.black-friday-preview #produtos-grid > .space-y-8 > div > h3 {color:#f8f7ef!important;}
+.black-friday-preview #produtos-grid > .mb-6 > .min-w-0 > .mt-2 {background:#fbfaf5!important;color:#24432f!important;}
+.black-friday-preview #produtos-grid > .mb-6 > .min-w-0 > .mt-2 > span {color:#24432f;}
+.black-friday-preview #produtos-grid > .mb-6 > .min-w-0 > .mt-3 > h1 {color:#f8f7ef!important;}
+.black-friday-preview #produtos-grid > .py-10 > button {color:#a5cf53!important;}
