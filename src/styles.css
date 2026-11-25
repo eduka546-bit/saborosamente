@@ -643,8 +643,8 @@ iframe[src*="lovable.dev/badge"] {
 /* Black Friday: preserve the original storefront and apply campaign green only. */
 html.black-friday-preview { --accent: #8bb924; --lime: #8bb924; }
 /* Black canvas around light content panels, including checkout and cart. */
-html.black-friday-preview, .black-friday-preview body {background:#101210;}
-.black-friday-preview .flex.min-h-screen.flex-col.bg-gradient-to-b {background:#101210!important;}
+html.black-friday-preview, .black-friday-preview body {background:#282e2a;}
+.black-friday-preview .flex.min-h-screen.flex-col.bg-gradient-to-b {background:#282e2a!important;}
 .black-friday-preview main {background:transparent;padding:12px clamp(10px,2vw,28px) 24px;}
 .black-friday-preview main section:not(.bf-preview-banner) {border:0;}
 .black-friday-preview main section:not(.bf-preview-banner):is([class*="bg-[#fbfaf5]"],.bg-white) {background:transparent!important;padding-inline:0;}
@@ -652,8 +652,11 @@ html.black-friday-preview, .black-friday-preview body {background:#101210;}
 .black-friday-preview main section#cardapio {background:#fbfaf5;border-radius:18px;padding:clamp(14px,2.5vw,32px);}
 .black-friday-preview main > section:not(.bf-preview-banner) {background:#fbfaf5;border-radius:18px;}
 .black-friday-preview main > section[class*="max-w-6xl"], .black-friday-preview main > section[class*="max-w-xl"] {background:#fbfaf5;border-radius:18px;padding-inline:clamp(14px,2.5vw,32px);}
-.black-friday-preview header.relative > div:first-child {background-color:#101210!important;color:#f8f7ef!important;}
+.black-friday-preview header.relative > div:first-child {background-color:#282e2a!important;color:#f8f7ef!important;}
 .black-friday-preview .bf-preview-banner { isolation:isolate; }
+.black-friday-preview [role="dialog"] {color:#233b2d;background-color:#fbfaf5;color-scheme:light;}
+.black-friday-preview [role="dialog"] :is(input,textarea,select) {color-scheme:light;}
+
 @media(max-width:640px){.black-friday-preview main {padding-inline:8px;padding-top:8px;} .black-friday-preview main section#cardapio {padding-inline:12px;}}
 .black-friday-preview .bf-preview-banner {display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:0 0 24px;padding:clamp(20px,4vw,48px);border:1px solid #536637;border-radius:24px;background:radial-gradient(ellipse at 10% 0%,#28623d,transparent 65%),#064d2f;color:#f8f7ef;}
 .black-friday-preview .bf-preview-kicker {color:#eac66d;font-weight:700;letter-spacing:.12em;font-size:.8rem;}
