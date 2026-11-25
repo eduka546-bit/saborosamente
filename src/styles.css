@@ -671,3 +671,22 @@ html.black-friday-preview, .black-friday-preview body {background:#282e2a;}
 .black-friday-preview .bf-preview-prices p {color:#e2e9da;font-size:.8rem;}
 .black-friday-preview .bf-preview-prices p {grid-column:1/-1;text-align:center;}
 @media(max-width:700px){.black-friday-preview .bf-preview-banner {grid-template-columns:1fr;gap:18px;}}
+
+/* Remove the light backing panels around the home info and order-choice cards.
+   Keep the cards themselves and dialogs in their original light palette. */
+.black-friday-preview main section:has(> div > .bf-preview-banner),
+.black-friday-preview main section:has(> div > .grid.items-start.lg\:grid-cols-3) {
+  background:transparent!important;
+}
+.black-friday-preview main section:has(> div > .bf-preview-banner) > div,
+.black-friday-preview main section:has(> div > .grid.items-start.lg\:grid-cols-3) > div {
+  background:transparent!important;
+  box-shadow:none;
+  padding-block:0;
+}
+.black-friday-preview main section:has(> div > .bf-preview-banner) > div > .mb-4 :is(h2,p),
+.black-friday-preview main section:has(> div > .grid.items-start.lg\:grid-cols-3) > div > .mb-4 :is(h2,p) {
+  color:#f8f7ef!important;
+}
+.black-friday-preview main section:has(> div > .bf-preview-banner) > div > .mb-4 h2 span {color:#a5cf53!important;}
+.black-friday-preview main section:has(> div > .grid.items-start.lg\:grid-cols-3) > div > .mb-4 > p {color:#a5cf53!important;}
