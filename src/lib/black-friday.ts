@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-export const BF_START = Date.parse("2026-11-26T03:00:00Z");
+export const BF_START = Date.parse("2026-11-25T00:00:00Z");
 export const BF_END = Date.parse("2026-11-29T03:00:00Z");
 export function isBlackFridayActive(now = Date.now()) { return now >= BF_START && now < BF_END; }
 export function useBlackFridayActive() {
