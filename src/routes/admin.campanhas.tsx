@@ -1174,7 +1174,9 @@ function AdminCampaignPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            midiaManipulada.current = true;\n                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);\n                            setImagemPreview(null);
+                            midiaManipulada.current = true;
+                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
+                            setImagemPreview(null);
                             setImagemFile(null);
                           }}
                           className="text-xs text-red-600 hover:underline"
@@ -1219,7 +1221,9 @@ function AdminCampaignPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            midiaManipulada.current = true;\n                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);\n                            setVideoPreview(null);
+                            midiaManipulada.current = true;
+                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
+                            setVideoPreview(null);
                             setVideoFile(null);
                           }}
                           className="text-xs text-red-600 hover:underline"
