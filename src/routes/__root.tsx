@@ -1,3 +1,4 @@
+import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -156,6 +157,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const pathname = router.state.location.pathname;
+  const bfActive = useBlackFridayActive();
   const [isAdminPath, setIsAdminPath] = useState(false);
   const [isKitchenPath, setIsKitchenPath] = useState(false);
   const [isAccessPath, setIsAccessPath] = useState(false);
@@ -167,6 +169,12 @@ function RootComponent() {
     pathname.startsWith("/pedido") ||
     pathname === "/auth" ||
     pathname === "/login";
+
+  useEffect(() => {
+    const publicPath = !/^\/(admin|cozinha|acesso)(?:[/-]|$)/.test(pathname);
+    document.documentElement.classList.toggle("black-friday-preview", publicPath && bfActive);
+    return () => document.documentElement.classList.remove("black-friday-preview");
+  }, [pathname, bfActive]);
 
   // Sincronizar admin/login path após mount para evitar hydration mismatch
   useEffect(() => {
@@ -299,7 +307,7 @@ function RootComponent() {
         <Toaster position="top-right" closeButton={false} offset={20} />
         {mounted && !isAdminPath && !isKitchenPath && !isAccessPath && !hideFloatingPurchaseWidget && (
           <CartSheet>
-            <FloatingDiscountWidget />
+            {!bfActive && <FloatingDiscountWidget />}
           </CartSheet>
         )}
       </CartProvider>

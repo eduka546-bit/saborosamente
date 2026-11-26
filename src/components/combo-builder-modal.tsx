@@ -1,3 +1,4 @@
+import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
  * ComboBuilderModal
@@ -86,6 +87,7 @@ interface ComboItem {
 }
 
 interface ComboBuilderModalProps {
+  blackFriday?: boolean;
   isOpen: boolean;
   onClose: () => void;
   combo: {
@@ -98,7 +100,7 @@ interface ComboBuilderModalProps {
   bestSellerRank?: Map<string, number>;
 }
 
-export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSellerIds, bestSellerRank }: ComboBuilderModalProps) {
+export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSellerIds, bestSellerRank, blackFriday = false }: ComboBuilderModalProps) {
   const { add, lines: cartLines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<ComboItem[]>([]);
@@ -196,7 +198,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
     let subtotalEfetivo = 0;
     for (const i of items) {
       const semDesc = isNoDiscount(i.categoria);
-      if (semDesc) {
+      if (blackFriday || semDesc) {
         subtotalCheio += i.preco * i.quantity;
         subtotalEfetivo += i.preco * i.quantity;
       } else {
@@ -212,13 +214,14 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
       discount: Math.max(0, subtotalCheio - subtotalEfetivo),
       total: subtotalEfetivo,
     };
-  }, [items, tabelaPrecos]);
+  }, [items, tabelaPrecos, blackFriday]);
 
   // Early return APÓS todos os hooks
   if (!isOpen) return null;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getPrice(product: any, weight: string) {
+    if(blackFriday) return blackFridayPrice(product.tipo_produto,weight) ?? 0;
     const cat = product.categorias?.nome || product.categoria || "";
     if (isNoDiscountLocal(cat)) return product.preco ?? 0;
     if (weight === "300g" && product.preco_300g) return product.preco_300g;
@@ -299,12 +302,13 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
   }
 
   function handleAddToCart() {
+    if (blackFriday && (!isBlackFridayActive() || totalQty < 5)) { toast.error("Black Friday: mínimo de 5 unidades durante a campanha."); return; }
     if (items.length === 0) {
       toast.error("Adicione pelo menos 1 item ao combo.");
       return;
     }
     items.forEach((item) => {
-      add(item.productId, item.quantity, item.weight);
+      add(item.productId, item.quantity, item.weight, blackFriday ? {consumo:"congelada",blackFriday:true} : undefined);
     });
     toast.success(`Combo adicionado!`, {
       description: `${totalQty} itens${discount > 0 ? ` — você economiza ${formatBRL(discount)}` : ""}`,
@@ -334,11 +338,11 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             <div className="min-w-0 basis-[37%] shrink-0 sm:basis-[35%] lg:basis-[34%]">
               <h2 className="text-[15px] font-bold leading-tight sm:text-xl">{combo.nome}</h2>
               <p className="mt-1 text-[10px] leading-snug text-white/85 sm:text-sm lg:text-base">
-                Escolha suas marmitas — quanto mais, maior o desconto!
+                {blackFriday ? "Misture marmitas e sopas a partir de 5 unidades!" : "Escolha suas marmitas — quanto mais, maior o desconto!"}
               </p>
             </div>
 
-            <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 md:pr-10 md:pt-0 lg:pl-5 lg:pr-12">
+            {blackFriday ? <div className="flex-1 text-center font-bold">{totalQty < 5 ? `Faltam ${5-totalQty} unidades` : "Oferta liberada!"}<p className="text-xs">200g R$14 · 300g R$17 · 400g R$20 · Sopas R$16</p></div> : <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 md:pr-10 md:pt-0 lg:pl-5 lg:pr-12">
               <div className="mx-auto grid w-full max-w-[560px] grid-cols-3 gap-1 sm:gap-2">
                 {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
                   const active = totalQty >= rule.min;
@@ -362,7 +366,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                   ? <>Faltam <strong className="font-bold text-white">{nextRule.min - totalQty} {nextRule.min - totalQty === 1 ? "marmita" : "marmitas"}</strong> para <strong className="font-bold text-white">{nextRule.badge}</strong></>
                   : <strong className="text-white">Parabéns! Você desbloqueou o maior desconto: {currentRule?.badge}.</strong>}
               </p>
-            </div>
+            </div>}
           </div>
 
           <button
@@ -497,7 +501,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
               ) : (
                 filteredProducts.map((product: any) => {
                   const cat = product.categorias?.nome || product.categoria || "";
-                  const noDiscount = isNoDiscount(cat);
+                  const noDiscount = blackFriday || isNoDiscount(cat);
                   const weights = getWeights(product);
 
                   return (
@@ -505,7 +509,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                       key={product.id}
                       className="rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all overflow-hidden"
                     >
-                      <button type="button" onClick={() => setDetailProduct(product)}
+                      <button type="button" onClick={() => { if(!blackFriday) setDetailProduct(product); }}
                         aria-label={"Ver informações completas de " + product.nome}
                         className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-[#f6f9f4]">
                         <div className="h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:h-24 sm:w-24">
@@ -641,7 +645,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={items.length === 0}
+              disabled={items.length === 0 || (blackFriday && totalQty < 5)}
               className={cn(
                 "col-start-2 row-start-2 flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold leading-tight transition-colors sm:text-xs md:mt-3 md:min-h-12 md:gap-2 md:rounded-2xl md:py-3.5 md:text-base",
                 items.length > 0
@@ -657,7 +661,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             </button>
 
             {/* Aviso de preço fixo somente quando houver sopas/complementos. */}
-            {items.some((i) => isNoDiscountLocal(i.categoria)) && (
+            {!blackFriday && items.some((i) => isNoDiscountLocal(i.categoria)) && (
               <div className="col-span-2 row-start-3 flex items-start gap-1.5 rounded-lg bg-blue-50 p-2 text-[11px] text-blue-700 md:mt-3 md:mx-4 md:text-sm">
                 <Info size={13} className="mt-0.5 shrink-0" />
                 <span>Sopas e complementos têm preço fixo, sem desconto, mas contam na quantidade do combo.</span>

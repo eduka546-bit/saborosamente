@@ -1,3 +1,4 @@
+import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { isHighProteinFlavor, maxProteinForFlavor } from "@/lib/nutrition-rules";
@@ -54,6 +55,7 @@ import {
 } from "@/lib/marmita-personalizada-config";
 import { WelcomePopup } from "@/components/welcome-popup";
 import { MonthlyRafflePopup } from "@/components/monthly-raffle-popup";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DeliveryRegionMiniMap, HomeInfoModal } from "@/components/home-info-modal";
 
 const normalizeText = (value: unknown) =>
@@ -328,6 +330,20 @@ function Index() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [comboModalOpen, setComboModalOpen] = useState(false);
+  const bfActive = useBlackFridayActive();
+  const [bfComboOpen, setBfComboOpen] = useState(false);
+  const [bfPopupOpen, setBfPopupOpen] = useState(false);
+  useEffect(() => {
+    if(!bfActive) { setBfPopupOpen(false); setBfComboOpen(false); return; }
+    const key = "saborosamente.bf-preview-popup-2026";
+    try { if (sessionStorage.getItem(key)) return; } catch {}
+    const timer = window.setTimeout(() => setBfPopupOpen(true), 650);
+    return () => window.clearTimeout(timer);
+  }, [bfActive]);
+  const dismissBfPopup = () => {
+    setBfPopupOpen(false);
+    try { sessionStorage.setItem("saborosamente.bf-preview-popup-2026", "1"); } catch {}
+  };
   const [combosProntosModalOpen, setCombosProntosModalOpen] = useState(false);
   const [marmitaModalOpen, setMarmitaModalOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -779,11 +795,29 @@ function Index() {
     <>
       {/* Promoção com regulamento: desligada até aprovação e ativação pelo admin.
           Não sobrepõe o pop-up de boas-vindas: somente um pode aparecer. */}
-      {settings?.sorteio_ativo ? (
-        <MonthlyRafflePopup regulamentoUrl={settings.sorteio_regulamento_url} />
-      ) : settings?.popup_boas_vindas?.ativo ? (
-        <WelcomePopup config={settings.popup_boas_vindas as any} />
-      ) : null}
+      {!bfActive ? (settings?.sorteio_ativo ? <MonthlyRafflePopup regulamentoUrl={settings.sorteio_regulamento_url} /> : settings?.popup_boas_vindas?.ativo ? <WelcomePopup config={settings.popup_boas_vindas as any} /> : null) : <Dialog open={bfPopupOpen} onOpenChange={(open) => { if (!open) dismissBfPopup(); }}>
+        <DialogContent className="bf-campaign-popup max-h-[90dvh] w-[calc(100%-24px)] max-w-lg overflow-y-auto rounded-3xl border-0 p-5 sm:p-7">
+          <DialogDescription className="text-center text-sm font-medium !text-[#e0ebdf]">
+            Nosso site está de cara nova nesse período de Black Friday!
+          </DialogDescription>
+          <DialogTitle className="text-center !text-white">
+            <span className="block text-xl font-bold tracking-wider">A MAIOR</span>
+            <span className="block text-4xl font-extrabold !text-[#a5cf53] sm:text-5xl">BLACK FRIDAY</span>
+            <span className="block text-lg">SaborosaMente</span>
+          </DialogTitle>
+          <p className="text-center text-sm font-bold !text-[#eac66d]">26, 27 e 28 de novembro</p>
+          <div className="bf-preview-prices">
+            {[["Pequena · 200g","14,00"],["Média · 300g","17,00"],["Grande · 400g","20,00"],["Sopas","16,00"]].map(([label,price]) => (
+              <div key={label}><span>{label}</span><strong>R$ {price}</strong><small>por unidade</small></div>
+            ))}
+          </div>
+          <p className="text-center font-bold !text-white">Monte seu combo a partir de 5 unidades!</p>
+          <p className="text-center text-sm !text-[#e0ebdf]">Misture sabores e tamanhos, sem limite de quantidade.</p>
+          <button type="button" className="rounded-xl bg-[#a5cf53] px-4 py-3 font-bold text-[#101210]" onClick={() => { dismissBfPopup(); setBfComboOpen(true); }}>APROVEITAR BLACK FRIDAY</button>
+          <p className="text-center text-xs !text-[#e0ebdf]">Oferta não cumulativa. Sujeita à disponibilidade de estoque.</p>
+        </DialogContent>
+      </Dialog>}
+      {bfActive && <ComboBuilderModal blackFriday isOpen={bfComboOpen} onClose={()=>setBfComboOpen(false)} combo={{id:"black-friday-2026",nome:"Combo Especial Black Friday"}} products={products.filter((p:any)=>["marmita","sopa"].includes(p.tipo_produto)).map((p:any)=>({...p,categoria:p.categorias?.nome||"Marmita",imagem:p.imagem_url}))} bestSellerIds={bestSellerIds} bestSellerRank={bestSellerRank} />}
 
       <HomeInfoModal kind="delivery" open={deliveryModalOpen} onOpenChange={setDeliveryModalOpen} />
       <HomeInfoModal kind="store" open={storeModalOpen} onOpenChange={setStoreModalOpen} />
@@ -1136,6 +1170,20 @@ function Index() {
             </h2>
           </div>
 
+          {bfActive && <section className="bf-preview-banner" aria-label="Black Friday">
+            <div className="bf-preview-copy">
+              <span className="bf-preview-kicker">26 • 27 • 28 DE NOVEMBRO</span>
+              <h2>A MAIOR <strong>BLACK FRIDAY</strong></h2>
+              <p>Monte seu combo do seu jeito, a partir de 5 unidades.</p>
+              <button className="bf-preview-action" type="button" onClick={()=>setBfComboOpen(true)}>Montar Combo Black Friday</button>
+            </div>
+            <div className="bf-preview-prices">
+              {[["Pequena · 200g", "14,00"], ["Média · 300g", "17,00"], ["Grande · 400g", "20,00"], ["Sopas", "16,00"]].map(([label, price]) => (
+                <div key={label}><span>{label}</span><strong>R$ {price}</strong><small>por unidade</small></div>
+              ))}
+              <p>Sem limite de unidades, conforme estoque. Não cumulativa.</p>
+            </div>
+          </section>}
           <div className="grid gap-4 lg:grid-cols-3">
             <OrderChoiceBanner
               icon={Gift}
