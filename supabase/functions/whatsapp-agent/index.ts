@@ -76,6 +76,16 @@ function respostaBlack(pergunta:string,historico:any[],now=Date.now()):string|nu
  if(!/black|promocao|desconto|preco|valor|quanto|custa|cada/.test(n)) return null;
  return "🔥 *Black Friday SaborosaMente* — a partir de 5 unidades:\n• Marmita 200g: R$ 14,00 cada\n• Marmita 300g: R$ 17,00 cada\n• Marmita 400g: R$ 20,00 cada\n• Sopa 400g: R$ 16,00 cada\nEm São Bento do Sul, frete R$ 5,00 a partir de 5 unidades. Até 28/11 às 23h59. Peça em https://saborosamente.com 💚";
 }
+function mensagemAutomaticaExterna(texto: string): boolean {
+  const t = normalizarCTA(texto);
+  if (!t) return false;
+  // Não confundir perguntas reais de compra com saudações de empresas.
+  if (/\b(quero comprar|quero pedir|gostaria de comprar|quanto custa|qual o valor|voces entregam|quero o cardapio|quero fazer um pedido)\b/.test(t)) return false;
+  return /\b(mensagem automatica|resposta automatica|mensagem de ausencia|assistente virtual|atendimento automatizado|sou (?:um|uma|o|a) (?:robo|bot|assistente virtual))\b/.test(t)
+    || /\b(obrigad[oa] por (?:entrar em contato|seu contato|nos contatar)|agradecemos (?:o|seu) contato|agradecemos por entrar em contato)\b/.test(t)
+    || /\b(estamos (?:fora do horario|ausentes|indisponiveis)|nosso horario de atendimento|retornaremos (?:em breve|assim que possivel|no proximo expediente)|em breve (?:retornaremos|um atendente|responderemos)|sua mensagem sera respondida|aguarde (?:um|o) atendente|escolha uma das opcoes abaixo|digite o numero da opcao|selecione uma das opcoes|seu protocolo de atendimento)\b/.test(t);
+}
+
 async function aindaIA(id:string) {
  const {data,error}=await supabase.from("whatsapp_conversas").select("modo").eq("id",id).maybeSingle();
  const {data:cfg,error:err}=await supabase.from("agente_config").select("ativo").maybeSingle();
@@ -2546,6 +2556,13 @@ Deno.serve(async (req: Request) => {
           : "Recebemos seu pedido para parar mensagens promocionais, mas houve um problema ao registrar a preferência. Nossa equipe precisa verificar a solicitação; por favor, peça um atendente nesta conversa. 💚";
         await sendWhatsAppMessage(telefone, respostaOptOut);
         await appendMensagem(conversaEntrada.id, historicoEntrada, { role: "assistant", content: respostaOptOut });
+        return new Response("OK", { status: 200 });
+      }
+
+      // Mensagens automáticas de outros negócios permanecem no histórico,
+      // mas jamais disparam IA, menus, automações de keyword ou recuperação.
+      if (!msg.interactive && !msg.button && mensagemAutomaticaExterna(texto)) {
+        await registrarEvento("mensagem_automatica_ignorada", telefone, conversaEntrada.id, { origem: "filtro_antiloop" });
         return new Response("OK", { status: 200 });
       }
 
