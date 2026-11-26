@@ -28,6 +28,7 @@ import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
+import { orderWhatsappMessage, phoneForWhatsapp } from "@/lib/order-whatsapp";
 import { getPublicSiteSettings } from "@/lib/site-settings";
 import { configEntregaParaCidade } from "@/lib/entrega-config";
 import { defaultCardFlags, defaultMealFlags, enabledOrDefault } from "@/lib/payment-options";
@@ -189,7 +190,7 @@ export type OrderConversation = { id: string; nome: string; telefone: string };
 
 export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, initialCartId, conversation, catalogItem, catalogItems, onSaved, onSavingChange }: {
   initialCustomerId?: string; initialHistoryId?: string; initialCartId?: string;
-  conversation?: OrderConversation; catalogItem?: CatalogOrderItem; catalogItems?: CatalogOrderItem[]; onSaved?: () => void; onSavingChange?: (value: boolean) => void;
+  conversation?: OrderConversation; catalogItem?: CatalogOrderItem; catalogItems?: CatalogOrderItem[]; onSaved?: (confirmation?: { text: string; phone: string }) => void; onSavingChange?: (value: boolean) => void;
 }) {
   const navigate = useNavigate();
   const draftKey = whatsappDraftKey(initialCustomerId, initialHistoryId, initialCartId, conversation?.id);
@@ -902,7 +903,22 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       } else if (recoveredCart && data?.carrinhoRecuperadoStatus === "nao_atualizado") {
         toast.warning("Pedido lançado, mas confirme o status do carrinho recuperado na lista.");
       }
-      if (onSaved) onSaved();
+      if (onSaved) {
+        const confirmation = orderWhatsappMessage({
+          id: String(data.id ?? ""), nome_cliente: nome, telefone_cliente: telefone, origem: origemPedido,
+          metodo_entrega: metodoEntrega, horario_recebimento: horario, metodo_pagamento: pagamento, tipo_cartao: tipoCartao,
+          endereco_rua: rua, endereco_numero: numero, endereco_bairro: bairro, endereco_cidade: cidade,
+          endereco_complemento: complemento, endereco_referencia: referencia, endereco_cep: cep,
+          valor_total: data.valor_total ?? total,
+          itens: items.map(item => ({
+            nome_item: item.nomeItem || products.find(p=>p.id===item.productId)?.nome,
+            quantidade: item.quantity, preco_unitario: item.unitPrice,
+            tamanho: products.find(p=>p.id===item.productId)?.tipo_produto==="complemento" ? "150g" : item.weight,
+            observacao: item.observacao,
+          })),
+        });
+        onSaved({ text: confirmation, phone: phoneForWhatsapp(telefone) });
+      }
       else navigate({ to: "/admin/pedidos" as any });
     },
     onError: (error: any) => {
