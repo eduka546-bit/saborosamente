@@ -22,7 +22,7 @@ import { AdminHeader } from "@/components/admin-header";
 import { FloatingDiscountWidget } from "@/components/floating-discount-widget";
 import { CartSheet } from "@/components/cart-sheet";
 import { AnalyticsObserver } from "@/components/analytics-observer";
-import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
+import { recoverFromStaleServerFunction, recarregarComProtecao } from "@/lib/server-function-recovery";
 
 const SUPABASE_PUBLIC_ORIGIN = "https://lxcgbrovdmpjatywweiv.supabase.co";
 
@@ -196,7 +196,7 @@ function RootComponent() {
     const onPreloadError = () => {
       if (sessionStorage.getItem(key) === "1") return;
       sessionStorage.setItem(key, "1");
-      window.location.reload();
+      recarregarComProtecao();
     };
     window.addEventListener("vite:preloadError", onPreloadError as EventListener);
     const clearGuard = window.setTimeout(() => sessionStorage.removeItem(key), 10_000);
@@ -232,7 +232,7 @@ function RootComponent() {
             sessionStorage.getItem(reloadKey) !== "1"
           ) {
             sessionStorage.setItem(reloadKey, "1");
-            window.location.reload();
+            recarregarComProtecao();
           }
         }
       } catch {

@@ -75,7 +75,7 @@ function EmailMarketingPage() {
       return data?.broadcasts?.some((c: Broadcast) => c.status === "running") ? 5_000 : 30_000;
     },
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
   const info = overview.data as any;
   const contatos = (info?.contacts ?? []) as Contact[];

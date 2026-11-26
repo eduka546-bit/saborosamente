@@ -52,7 +52,7 @@ function AdminLayout() {
         if (!active || currentRevision !== revision) return;
         if (error) {
           console.warn("[admin] Não foi possível verificar a permissão de acesso:", error);
-          setAuthState("error");
+          if (verifiedUserId !== session.user.id) setAuthState("error");
           return;
         }
         const access = roles?.some((role: any) => role.role === "admin")
@@ -66,7 +66,7 @@ function AdminLayout() {
       } catch (error) {
         if (!active || currentRevision !== revision) return;
         console.warn("[admin] Falha na verificação de acesso:", error);
-        setAuthState("error");
+        if (verifiedUserId !== session.user.id) setAuthState("error");
       } finally {
         window.clearTimeout(timeout);
         controllers.delete(controller);
@@ -78,7 +78,12 @@ function AdminLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // Supabase emits SIGNED_IN on tab focus and TOKEN_REFRESHED during renewal.
       // A verified session for the same user must not unmount the entire admin.
-      if (session?.user && verifiedUserId === session.user.id && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) return;
+      if (session?.user && verifiedUserId === session.user.id && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) {
+        // Recheck roles in the background without destroying the open workspace.
+        const currentRevision = ++revision;
+        window.setTimeout(() => { if (active && currentRevision === revision) void verificarAcesso(session, currentRevision); }, 0);
+        return;
+      }
       const currentRevision = ++revision;
       if (event === "SIGNED_OUT" || !session) {
         verifiedUserId = null;

@@ -113,9 +113,7 @@ function AdminSiteConfig() {
   const [formData, setFormData] = useState<any>(null);
 
   useEffect(() => {
-    if (settings) {
-      setFormData(settings);
-    }
+    if (settings) setFormData((current: any) => current ?? settings);
   }, [settings]);
 
   const updateMutation = useMutation({

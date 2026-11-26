@@ -233,7 +233,7 @@ function AdminCampaignPage() {
       return data || [];
     },
     staleTime: 5000, // Reduzir para sempre carregar fresco
-    refetchOnWindowFocus: true, // Refetch quando voltar à janela
+    refetchOnWindowFocus: false, // Refetch quando voltar à janela
     refetchOnMount: true, // Refetch ao montar
   });
 
@@ -247,7 +247,7 @@ function AdminCampaignPage() {
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
   const cidadesDinamicas = Array.from(new Set(clientesDinamicos.map(c => c.cidade?.trim()).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, "pt-BR"));
   const carregarClientesCidade = (cidade: string) => {

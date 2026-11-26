@@ -1,3 +1,17 @@
+import { toast } from "sonner";
+export function recarregarComProtecao(): boolean {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  if (/^\/(admin(?:[/.\-]|$)|cozinha(?:[/.\-]|$)|checkout(?:\/|$)|perfil(?:\/|$))/.test(path)) {
+    toast.warning("Há uma nova versão do sistema. Salve o trabalho em andamento antes de atualizar.", {
+      id: "sm-atualizacao-disponivel", duration: Infinity,
+      action: { label: "Atualizar", onClick: () => window.location.reload() },
+    });
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
 const RELOAD_KEY = "saborosamente.server_fn_reload_at";
 
 function messageOf(error: unknown) {
@@ -22,6 +36,5 @@ export function recoverFromStaleServerFunction(error: unknown): boolean {
   if (Number.isFinite(previous) && now - previous < 60_000) return false;
 
   sessionStorage.setItem(RELOAD_KEY, String(now));
-  window.location.reload();
-  return true;
+  return recarregarComProtecao();
 }

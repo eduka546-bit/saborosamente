@@ -2354,7 +2354,7 @@ function AdminAgentePage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("agente_config").select("*").single();
       if (error) throw error;
-      if (data) setConfig(data);
+      if (data) setConfig((current: any) => current ?? data);
       return data;
     },
     refetchInterval: 60_000,
