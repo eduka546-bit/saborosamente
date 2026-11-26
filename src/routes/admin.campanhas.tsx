@@ -38,6 +38,20 @@ export const Route = createFileRoute("/admin/campanhas")({
 // no Brasil. A cobrança efetiva continua sendo a apurada pela Meta.
 const TARIFA_MARKETING_BR = 0.3217;
 const WHATSAPP_DRAFT_KEY = "saborosamente:whatsapp-marketing:rascunho:v1";
+const LIMITE_CAMPANHA = 2000;
+const PAGINA_CONTATOS = 1000;
+
+async function buscarContatosLista(listaId: string) {
+  const registros = [];
+  for (let inicio = 0; ; inicio += PAGINA_CONTATOS) {
+    const { data, error } = await supabase.from("contatos_lista").select("*")
+      .eq("lista_id", listaId).order("created_at").order("id")
+      .range(inicio, inicio + PAGINA_CONTATOS - 1);
+    if (error) throw error;
+    registros.push(...(data ?? []));
+    if ((data ?? []).length < PAGINA_CONTATOS) return registros;
+  }
+}
 
 type WhatsAppDraft = {
   nome: string;
@@ -399,13 +413,15 @@ function AdminCampaignPage() {
     queryKey: ["envios-campanha", campanhaDetalhes],
     queryFn: async () => {
       if (!campanhaDetalhes) return [];
-      const { data, error } = await supabase
-        .from("campanhas_whatsapp_envios")
-        .select("*")
-        .eq("campanha_id", campanhaDetalhes)
-        .order("created_at");
-      if (error) throw error;
-      return data || [];
+      const registros = [];
+      for (let inicio = 0; ; inicio += PAGINA_CONTATOS) {
+        const { data, error } = await supabase.from("campanhas_whatsapp_envios")
+          .select("*").eq("campanha_id", campanhaDetalhes)
+          .order("created_at").order("id").range(inicio, inicio + PAGINA_CONTATOS - 1);
+        if (error) throw error;
+        registros.push(...(data ?? []));
+        if ((data ?? []).length < PAGINA_CONTATOS) return registros;
+      }
     },
     enabled: !!campanhaDetalhes,
     refetchInterval: campanhaDetalhes ? 3000 : false, // Atualiza a cada 3s
@@ -583,13 +599,8 @@ function AdminCampaignPage() {
 
   const carregarContatosLista = async (listaId: string) => {
     try {
-      const { data } = await supabase
-        .from("contatos_lista")
-        .select("*")
-        .eq("lista_id", listaId)
-        .order("created_at");
-
-      setContatosLista(data || []);
+      const data = await buscarContatosLista(listaId);
+      setContatosLista(data);
       setListaEditando(listaId);
     } catch (err) {
       toast.error("Erro ao carregar contatos");
@@ -728,6 +739,9 @@ function AdminCampaignPage() {
         throw new Error("Digite uma mensagem");
       }
 
+      if (contatosSelecionados.length > LIMITE_CAMPANHA) {
+        throw new Error(`Selecione até ${LIMITE_CAMPANHA} contatos por campanha.`);
+      }
       if (!usarTemplate || !templateSelecionado) {
         throw new Error(
           "Selecione um template aprovado da Meta para enviar a contatos que ainda não falaram com você",
@@ -856,7 +870,11 @@ function AdminCampaignPage() {
         },
       });
 
-      if (fnError) throw fnError;
+      if (fnError) {
+        const detalhe = fnError.context instanceof Response
+          ? await fnError.context.json().catch(() => null) : null;
+        throw new Error(detalhe?.error || fnError.message);
+      }
 
       return campanha;
     },
@@ -1424,19 +1442,19 @@ function AdminCampaignPage() {
                         carregarClientesCidade(e.target.value.slice(7));
                         return;
                       }
-                      setListaCarregada(e.target.value);
-                      const { data } = await supabase
-                        .from("contatos_lista")
-                        .select("telefone")
-                        .eq("lista_id", e.target.value);
-
-                      if (data && data.length > 0) {
-                        const telefones = data.map((c: any) => c.telefone).filter(Boolean);
+                      const listaId = e.target.value;
+                      setListaCarregada(listaId);
+                      setContatosEditaveis([]);
+                      try {
+                        const data = await buscarContatosLista(listaId);
+                        const telefones = [...new Set(data.map(c => c.telefone).filter(Boolean))];
                         setContatosEditaveis(telefones);
-                        toast.success(`✓ ${telefones.length} contatos carregados!`);
-                      } else {
-                        setContatosEditaveis([]);
-                        toast.error("Nenhum contato encontrado nessa lista");
+                        if (!telefones.length) toast.error("Nenhum contato encontrado nessa lista");
+                        else if (telefones.length > LIMITE_CAMPANHA) toast.warning(`Lista com ${telefones.length} contatos. Selecione até ${LIMITE_CAMPANHA} por campanha.`);
+                        else toast.success(`✓ ${telefones.length} contatos carregados!`);
+                      } catch {
+                        setListaCarregada(null);
+                        toast.error("Erro ao carregar a lista completa. Tente novamente.");
                       }
                     }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
