@@ -12,14 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessoRouteImport } from './routes/acesso'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as ApiEmailMarketingTickRouteImport } from './routes/api.email-marketing-tick'
-import { Route as EmailCancelarRouteImport } from './routes/email-cancelar'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CozinhaRouteImport } from './routes/cozinha'
 import { Route as CozinhaLoginRouteImport } from './routes/cozinha-login'
+import { Route as EmailCancelarRouteImport } from './routes/email-cancelar'
 import { Route as FaleConoscoRouteImport } from './routes/fale-conosco'
 import { Route as IndicarRouteImport } from './routes/indicar'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
@@ -32,7 +31,6 @@ import { Route as AdminAutomacoesRouteImport } from './routes/admin/automacoes'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin/avaliacoes'
 import { Route as AdminBebidasRouteImport } from './routes/admin.bebidas'
 import { Route as AdminCampanhasRouteImport } from './routes/admin.campanhas'
-import { Route as AdminEmailMarketingRouteImport } from './routes/admin.email-marketing'
 import { Route as AdminCashbackRouteImport } from './routes/admin/cashback'
 import { Route as AdminCategoriasRouteImport } from './routes/admin/categorias'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
@@ -41,6 +39,7 @@ import { Route as AdminCombosProntosRouteImport } from './routes/admin/combos-pr
 import { Route as AdminComplementosRouteImport } from './routes/admin/complementos'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminCustosRouteImport } from './routes/admin.custos'
+import { Route as AdminEmailMarketingRouteImport } from './routes/admin.email-marketing'
 import { Route as AdminEmbalagensRouteImport } from './routes/admin/embalagens'
 import { Route as AdminInteligenciaRouteImport } from './routes/admin.inteligencia'
 import { Route as AdminOuvidoriaRouteImport } from './routes/admin/ouvidoria'
@@ -50,6 +49,7 @@ import { Route as AdminPontuacaoRouteImport } from './routes/admin/pontuacao'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminRegistrarP10RouteImport } from './routes/admin.registrar-p10'
 import { Route as AdminStorageCleanupRouteImport } from './routes/admin/storage-cleanup'
+import { Route as ApiEmailMarketingTickRouteImport } from './routes/api.email-marketing-tick'
 import { Route as CozinhaEtiquetasRouteImport } from './routes/cozinha.etiquetas'
 import { Route as CozinhaFichasRouteImport } from './routes/cozinha.fichas'
 import { Route as PedidoIndexRouteImport } from './routes/pedido/index'
@@ -121,16 +121,6 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiEmailMarketingTickRoute = ApiEmailMarketingTickRouteImport.update({
-  id: '/api/email-marketing-tick',
-  path: '/api/email-marketing-tick',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmailCancelarRoute = EmailCancelarRouteImport.update({
-  id: '/email-cancelar',
-  path: '/email-cancelar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -154,6 +144,11 @@ const CozinhaRoute = CozinhaRouteImport.update({
 const CozinhaLoginRoute = CozinhaLoginRouteImport.update({
   id: '/cozinha-login',
   path: '/cozinha-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailCancelarRoute = EmailCancelarRouteImport.update({
+  id: '/email-cancelar',
+  path: '/email-cancelar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaleConoscoRoute = FaleConoscoRouteImport.update({
@@ -216,11 +211,6 @@ const AdminCampanhasRoute = AdminCampanhasRouteImport.update({
   path: '/campanhas',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminEmailMarketingRoute = AdminEmailMarketingRouteImport.update({
-  id: '/email-marketing',
-  path: '/email-marketing',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminCashbackRoute = AdminCashbackRouteImport.update({
   id: '/cashback',
   path: '/cashback',
@@ -259,6 +249,11 @@ const AdminCuponsRoute = AdminCuponsRouteImport.update({
 const AdminCustosRoute = AdminCustosRouteImport.update({
   id: '/custos',
   path: '/custos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEmailMarketingRoute = AdminEmailMarketingRouteImport.update({
+  id: '/email-marketing',
+  path: '/email-marketing',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminEmbalagensRoute = AdminEmbalagensRouteImport.update({
@@ -305,6 +300,11 @@ const AdminStorageCleanupRoute = AdminStorageCleanupRouteImport.update({
   id: '/storage-cleanup',
   path: '/storage-cleanup',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiEmailMarketingTickRoute = ApiEmailMarketingTickRouteImport.update({
+  id: '/api/email-marketing-tick',
+  path: '/api/email-marketing-tick',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CozinhaEtiquetasRoute = CozinhaEtiquetasRouteImport.update({
   id: '/etiquetas',
@@ -577,14 +577,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
-  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
-  '/email-cancelar': typeof EmailCancelarRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
+  '/email-cancelar': typeof EmailCancelarRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -596,7 +595,6 @@ export interface FileRoutesByFullPath {
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
-  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
@@ -605,6 +603,7 @@ export interface FileRoutesByFullPath {
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/custos': typeof AdminCustosRoute
+  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
@@ -614,6 +613,7 @@ export interface FileRoutesByFullPath {
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
   '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
   '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -675,6 +675,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
+  '/email-cancelar': typeof EmailCancelarRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -686,7 +687,6 @@ export interface FileRoutesByTo {
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
-  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
@@ -695,6 +695,7 @@ export interface FileRoutesByTo {
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/custos': typeof AdminCustosRoute
+  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
@@ -703,6 +704,7 @@ export interface FileRoutesByTo {
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
   '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
   '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -760,14 +762,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
-  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
-  '/email-cancelar': typeof EmailCancelarRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/cozinha': typeof CozinhaRouteWithChildren
   '/cozinha-login': typeof CozinhaLoginRoute
+  '/email-cancelar': typeof EmailCancelarRoute
   '/fale-conosco': typeof FaleConoscoRoute
   '/indicar': typeof IndicarRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -779,7 +780,6 @@ export interface FileRoutesById {
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/bebidas': typeof AdminBebidasRoute
   '/admin/campanhas': typeof AdminCampanhasRoute
-  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/cashback': typeof AdminCashbackRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
@@ -788,6 +788,7 @@ export interface FileRoutesById {
   '/admin/complementos': typeof AdminComplementosRoute
   '/admin/cupons': typeof AdminCuponsRouteWithChildren
   '/admin/custos': typeof AdminCustosRoute
+  '/admin/email-marketing': typeof AdminEmailMarketingRoute
   '/admin/embalagens': typeof AdminEmbalagensRoute
   '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/ouvidoria': typeof AdminOuvidoriaRoute
@@ -797,6 +798,7 @@ export interface FileRoutesById {
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/registrar-p10': typeof AdminRegistrarP10Route
   '/admin/storage-cleanup': typeof AdminStorageCleanupRoute
+  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
   '/cozinha/etiquetas': typeof CozinhaEtiquetasRoute
   '/cozinha/fichas': typeof CozinhaFichasRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -855,14 +857,13 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso'
     | '/admin'
-    | '/api/email-marketing-tick'
-    | '/email-cancelar'
     | '/admin-login'
     | '/auth'
     | '/carrinho'
     | '/checkout'
     | '/cozinha'
     | '/cozinha-login'
+    | '/email-cancelar'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -874,7 +875,6 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/bebidas'
     | '/admin/campanhas'
-    | '/admin/email-marketing'
     | '/admin/cashback'
     | '/admin/categorias'
     | '/admin/clientes'
@@ -883,6 +883,7 @@ export interface FileRouteTypes {
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/custos'
+    | '/admin/email-marketing'
     | '/admin/embalagens'
     | '/admin/inteligencia'
     | '/admin/ouvidoria'
@@ -892,6 +893,7 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/api/email-marketing-tick'
     | '/cozinha/etiquetas'
     | '/cozinha/fichas'
     | '/produto/$id'
@@ -953,6 +955,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/cozinha'
     | '/cozinha-login'
+    | '/email-cancelar'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -964,7 +967,6 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/bebidas'
     | '/admin/campanhas'
-    | '/admin/email-marketing'
     | '/admin/cashback'
     | '/admin/categorias'
     | '/admin/clientes'
@@ -973,6 +975,7 @@ export interface FileRouteTypes {
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/custos'
+    | '/admin/email-marketing'
     | '/admin/embalagens'
     | '/admin/inteligencia'
     | '/admin/ouvidoria'
@@ -981,12 +984,11 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/api/email-marketing-tick'
     | '/cozinha/etiquetas'
     | '/cozinha/fichas'
     | '/produto/$id'
     | '/admin'
-    | '/api/email-marketing-tick'
-    | '/email-cancelar'
     | '/pedido'
     | '/admin/config/alerta-estoque'
     | '/admin/config/area'
@@ -1039,14 +1041,13 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso'
     | '/admin'
-    | '/api/email-marketing-tick'
-    | '/email-cancelar'
     | '/admin-login'
     | '/auth'
     | '/carrinho'
     | '/checkout'
     | '/cozinha'
     | '/cozinha-login'
+    | '/email-cancelar'
     | '/fale-conosco'
     | '/indicar'
     | '/meus-pedidos'
@@ -1058,7 +1059,6 @@ export interface FileRouteTypes {
     | '/admin/avaliacoes'
     | '/admin/bebidas'
     | '/admin/campanhas'
-    | '/admin/email-marketing'
     | '/admin/cashback'
     | '/admin/categorias'
     | '/admin/clientes'
@@ -1067,6 +1067,7 @@ export interface FileRouteTypes {
     | '/admin/complementos'
     | '/admin/cupons'
     | '/admin/custos'
+    | '/admin/email-marketing'
     | '/admin/embalagens'
     | '/admin/inteligencia'
     | '/admin/ouvidoria'
@@ -1076,6 +1077,7 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/admin/registrar-p10'
     | '/admin/storage-cleanup'
+    | '/api/email-marketing-tick'
     | '/cozinha/etiquetas'
     | '/cozinha/fichas'
     | '/produto/$id'
@@ -1131,8 +1133,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiEmailMarketingTickRoute: typeof ApiEmailMarketingTickRoute
-  EmailCancelarRoute: typeof EmailCancelarRoute
   AcessoRoute: typeof AcessoRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
@@ -1141,11 +1141,13 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   CozinhaRoute: typeof CozinhaRouteWithChildren
   CozinhaLoginRoute: typeof CozinhaLoginRoute
+  EmailCancelarRoute: typeof EmailCancelarRoute
   FaleConoscoRoute: typeof FaleConoscoRoute
   IndicarRoute: typeof IndicarRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  ApiEmailMarketingTickRoute: typeof ApiEmailMarketingTickRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   PedidoIndexRoute: typeof PedidoIndexRoute
 }
@@ -1171,20 +1173,6 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/email-marketing-tick': {
-      id: '/api/email-marketing-tick'
-      path: '/api/email-marketing-tick'
-      fullPath: '/api/email-marketing-tick'
-      preLoaderRoute: typeof ApiEmailMarketingTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/email-cancelar': {
-      id: '/email-cancelar'
-      path: '/email-cancelar'
-      fullPath: '/email-cancelar'
-      preLoaderRoute: typeof EmailCancelarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-login': {
@@ -1227,6 +1215,13 @@ declare module '@tanstack/react-router' {
       path: '/cozinha-login'
       fullPath: '/cozinha-login'
       preLoaderRoute: typeof CozinhaLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-cancelar': {
+      id: '/email-cancelar'
+      path: '/email-cancelar'
+      fullPath: '/email-cancelar'
+      preLoaderRoute: typeof EmailCancelarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fale-conosco': {
@@ -1313,13 +1308,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCampanhasRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/email-marketing': {
-      id: '/admin/email-marketing'
-      path: '/email-marketing'
-      fullPath: '/admin/email-marketing'
-      preLoaderRoute: typeof AdminEmailMarketingRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/cashback': {
       id: '/admin/cashback'
       path: '/cashback'
@@ -1374,6 +1362,13 @@ declare module '@tanstack/react-router' {
       path: '/custos'
       fullPath: '/admin/custos'
       preLoaderRoute: typeof AdminCustosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/email-marketing': {
+      id: '/admin/email-marketing'
+      path: '/email-marketing'
+      fullPath: '/admin/email-marketing'
+      preLoaderRoute: typeof AdminEmailMarketingRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/embalagens': {
@@ -1438,6 +1433,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/storage-cleanup'
       preLoaderRoute: typeof AdminStorageCleanupRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/email-marketing-tick': {
+      id: '/api/email-marketing-tick'
+      path: '/api/email-marketing-tick'
+      fullPath: '/api/email-marketing-tick'
+      preLoaderRoute: typeof ApiEmailMarketingTickRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/cozinha/etiquetas': {
       id: '/cozinha/etiquetas'
@@ -1839,7 +1841,6 @@ interface AdminRouteChildren {
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
   AdminBebidasRoute: typeof AdminBebidasRoute
   AdminCampanhasRoute: typeof AdminCampanhasRoute
-  AdminEmailMarketingRoute: typeof AdminEmailMarketingRoute
   AdminCashbackRoute: typeof AdminCashbackRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminClientesRoute: typeof AdminClientesRoute
@@ -1848,6 +1849,7 @@ interface AdminRouteChildren {
   AdminComplementosRoute: typeof AdminComplementosRoute
   AdminCuponsRoute: typeof AdminCuponsRouteWithChildren
   AdminCustosRoute: typeof AdminCustosRoute
+  AdminEmailMarketingRoute: typeof AdminEmailMarketingRoute
   AdminEmbalagensRoute: typeof AdminEmbalagensRoute
   AdminInteligenciaRoute: typeof AdminInteligenciaRoute
   AdminOuvidoriaRoute: typeof AdminOuvidoriaRoute
@@ -1903,7 +1905,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
   AdminBebidasRoute: AdminBebidasRoute,
   AdminCampanhasRoute: AdminCampanhasRoute,
-  AdminEmailMarketingRoute: AdminEmailMarketingRoute,
   AdminCashbackRoute: AdminCashbackRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminClientesRoute: AdminClientesRoute,
@@ -1912,6 +1913,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminComplementosRoute: AdminComplementosRoute,
   AdminCuponsRoute: AdminCuponsRouteWithChildren,
   AdminCustosRoute: AdminCustosRoute,
+  AdminEmailMarketingRoute: AdminEmailMarketingRoute,
   AdminEmbalagensRoute: AdminEmbalagensRoute,
   AdminInteligenciaRoute: AdminInteligenciaRoute,
   AdminOuvidoriaRoute: AdminOuvidoriaRoute,
@@ -1977,8 +1979,6 @@ const CozinhaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiEmailMarketingTickRoute: ApiEmailMarketingTickRoute,
-  EmailCancelarRoute: EmailCancelarRoute,
   AcessoRoute: AcessoRoute,
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
@@ -1987,11 +1987,13 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   CozinhaRoute: CozinhaRouteWithChildren,
   CozinhaLoginRoute: CozinhaLoginRoute,
+  EmailCancelarRoute: EmailCancelarRoute,
   FaleConoscoRoute: FaleConoscoRoute,
   IndicarRoute: IndicarRoute,
   MeusPedidosRoute: MeusPedidosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  ApiEmailMarketingTickRoute: ApiEmailMarketingTickRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   PedidoIndexRoute: PedidoIndexRoute,
 }
