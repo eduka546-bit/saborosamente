@@ -156,7 +156,7 @@ export interface ProductCardProps {
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   const bfActive = useBlackFridayActive();
-  const { add, count, lines, setQuantity } = useCart();
+  const { add, count, lines, setQuantity, bfEligibleCount } = useCart();
   const [imageIndex, setImageIndex] = useState(0);
   const tabelaPrecos = usePrecosMarmita();
   const [comboOpen, setComboOpen] = useState(false);
@@ -200,14 +200,14 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   };
   const comboUnits = Number(String(product.nome || "").match(/(\d+)\s*(?:un|unidades?)/i)?.[1] || 0);
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
-  const priceForWeight = (weight: string) => (bfActive ? (isComboPronto && comboUnits ? (blackFridayPrice("marmita",weight) ?? 0)*comboUnits : blackFridayPrice(String(product.tipo_produto),isSopa?"400g":weight)) : null) ?? (isSopa
+  const priceForWeight = (weight: string) => (bfActive && (isComboPronto || bfEligibleCount>=5) ? (isComboPronto && comboUnits ? (blackFridayPrice("marmita",weight) ?? 0)*comboUnits : blackFridayPrice(String(product.tipo_produto),isSopa?"400g":weight)) : null) ?? (isSopa
     ? 18.0
     : weight === "300g" && product.preco_300g
       ? product.preco_300g
       : weight === "400g" && product.preco_400g
         ? product.preco_400g
         : product.preco);
-  const currentPrice = priceForWeight(selectedWeight);
+  const currentPrice = bfActive && !isComboPronto && product.tipo_produto==="marmita" && bfEligibleCount<5 ? precoCheioMarmita(selectedWeight,tabelaPrecos) || priceForWeight(selectedWeight) : priceForWeight(selectedWeight);
 
   // Imagem por tamanho — usa a específica se cadastrada, senão a principal
   const currentImage = (() => {

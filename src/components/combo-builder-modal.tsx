@@ -84,6 +84,7 @@ interface ComboItem {
   nome: string;
   preco: number;
   categoria: string;
+  tipo: string;
   imagem: string;
 }
 
@@ -103,7 +104,7 @@ interface ComboBuilderModalProps {
 
 export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSellerIds, bestSellerRank, blackFriday = false }: ComboBuilderModalProps) {
   const bfActive = useBlackFridayActive();
-  const { add, lines: cartLines } = useCart();
+  const { add, lines: cartLines, bfEligibleCount } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [items, setItems] = useState<ComboItem[]>([]);
   const [search, setSearch] = useState("");
@@ -194,18 +195,23 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
   }, [products, selectedCategory, search, selectedFilters, bestSellerIds, bestSellerRank]);
 
   // ── Totais (usa a tabela de preços por faixa — mesma lógica do carrinho) ────
+  const eligibleSelected = items.reduce((n,i)=>n+(blackFridayPrice(i.tipo,i.weight)!==null?i.quantity:0),0);
+  const projectedEligible = bfEligibleCount + eligibleSelected;
+  const bfUnlocked = bfActive && projectedEligible >= 5;
   const { totalQty, subtotal, discount, total } = useMemo(() => {
     const totalQty = items.reduce((s, i) => s + i.quantity, 0);
     let subtotalCheio = 0;
     let subtotalEfetivo = 0;
     for (const i of items) {
       const semDesc = isNoDiscount(i.categoria);
-      if (blackFriday || semDesc) {
+      const promo = bfUnlocked ? blackFridayPrice(i.tipo,i.weight) : null;
+      if(promo !== null){subtotalCheio += promo*i.quantity; subtotalEfetivo += promo*i.quantity;}
+      else if (semDesc) {
         subtotalCheio += i.preco * i.quantity;
         subtotalEfetivo += i.preco * i.quantity;
       } else {
         const cheio = precoCheioMarmita(i.weight, tabelaPrecos) || i.preco;
-        const efetivo = precoMarmitaPorFaixa(i.weight, totalQty, cheio, tabelaPrecos);
+        const efetivo = precoMarmitaPorFaixa(i.weight, bfActive ? 1 : totalQty, cheio, tabelaPrecos);
         subtotalCheio += cheio * i.quantity;
         subtotalEfetivo += efetivo * i.quantity;
       }
@@ -216,14 +222,16 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
       discount: Math.max(0, subtotalCheio - subtotalEfetivo),
       total: subtotalEfetivo,
     };
-  }, [items, tabelaPrecos, blackFriday]);
+  }, [items, tabelaPrecos, bfUnlocked, bfActive]);
 
   // Early return APÓS todos os hooks
   if (!isOpen) return null;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function getPrice(product: any, weight: string) {
-    if(bfActive) {const price=blackFridayPrice(product.tipo_produto,weight); if(price!==null) return price;}
+    if(bfUnlocked) {const price=blackFridayPrice(product.tipo_produto,weight); if(price!==null) return price;}
+    if(product.tipo_produto==="sopa") return 18;
+    if(bfActive && product.tipo_produto==="marmita") return precoCheioMarmita(weight,tabelaPrecos);
     const cat = product.categorias?.nome || product.categoria || "";
     if (isNoDiscountLocal(cat)) return product.preco ?? 0;
     if (weight === "300g" && product.preco_300g) return product.preco_300g;
@@ -272,7 +280,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
 
   function changeQty(product: any, weight: string, delta: number) {
     const cat = product.categorias?.nome || product.categoria || "";
-    const preco = getPrice(product, weight);
+    const preco = product.tipo_produto==="sopa" ? 18 : product.tipo_produto==="marmita" ? precoCheioMarmita(weight,tabelaPrecos) : (weight==="300g"?product.preco_300g:weight==="400g"?product.preco_400g:product.preco) ?? product.preco ?? 0;
     const key = getItemKey(product.id, weight);
 
     setItems((prev) => {
@@ -297,6 +305,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
           nome: product.nome,
           preco,
           categoria: cat,
+          tipo: String(product.tipo_produto),
           imagem: product.imagem_url || product.imagem || "",
         },
       ];
@@ -304,7 +313,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
   }
 
   function handleAddToCart() {
-    if (blackFriday && (!isBlackFridayActive() || totalQty < 5)) { toast.error("Black Friday: mínimo de 5 unidades durante a campanha."); return; }
+    if (blackFriday && (!isBlackFridayActive() || projectedEligible < 5)) { toast.error("Black Friday: mínimo de 5 unidades durante a campanha."); return; }
     if (items.length === 0) {
       toast.error("Adicione pelo menos 1 item ao combo.");
       return;
@@ -344,7 +353,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
               </p>
             </div>
 
-            {bfActive ? <div className="flex-1 text-center font-bold">{blackFriday && totalQty < 5 ? `Faltam ${5-totalQty} unidades` : "Oferta liberada!"}<p className="text-xs">200g R$14 · 300g R$17 · 400g R$20 · Sopas R$16</p></div> : <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 md:pr-10 md:pt-0 lg:pl-5 lg:pr-12">
+            {bfActive ? <div className="flex-1 text-center font-bold">{projectedEligible < 5 ? `Faltam ${5-projectedEligible} unidades para a Black Friday` : "Oferta liberada!"}<p className="text-xs">200g R$14 · 300g R$17 · 400g R$20 · Sopas R$16</p></div> : <div className="min-w-0 flex-1 self-stretch border-l border-white/40 pl-1.5 pt-8 sm:pl-3 md:pr-10 md:pt-0 lg:pl-5 lg:pr-12">
               <div className="mx-auto grid w-full max-w-[560px] grid-cols-3 gap-1 sm:gap-2">
                 {[...COMBO_RULES].sort((a, b) => a.min - b.min).map((rule) => {
                   const active = totalQty >= rule.min;
@@ -566,7 +575,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                                 <div className="flex min-w-0 flex-col items-center justify-center leading-tight">
                                   {hasDiscount && <span className="whitespace-nowrap text-[9px] text-gray-500 line-through">{formatBRL(fullPrice)}</span>}
                                   <span className="whitespace-nowrap text-[10px] font-bold text-[#086e45] sm:text-xs">
-                                    {formatBRL(hasDiscount ? tierPrice : price)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={w} />
+                                    {formatBRL(hasDiscount ? tierPrice : price)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={w} enabled={bfUnlocked} />
                                   </span>
                                 </div>
                               </div>
@@ -621,7 +630,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                       <p className="truncate font-medium leading-tight text-gray-800">{item.nome}</p>
                       <p className="text-gray-600">{item.weight}</p>
                     </div>
-                    <span className="shrink-0 font-bold text-gray-600">{formatBRL(item.preco * item.quantity)}</span>
+                    <span className="shrink-0 font-bold text-gray-600">{formatBRL(((bfUnlocked ? blackFridayPrice(item.tipo,item.weight) : null) ?? item.preco) * item.quantity)}</span>
                   </div>
                 ))
               )}
@@ -647,7 +656,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={items.length === 0 || (blackFriday && totalQty < 5)}
+              disabled={items.length === 0 || (blackFriday && projectedEligible < 5)}
               className={cn(
                 "col-start-2 row-start-2 flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold leading-tight transition-colors sm:text-xs md:mt-3 md:min-h-12 md:gap-2 md:rounded-2xl md:py-3.5 md:text-base",
                 items.length > 0
@@ -690,7 +699,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
           onClose={() => setDetailProduct(null)}
           product={detailProduct}
           allProducts={products}
-          comboCount={totalQty}
+          comboCount={eligibleSelected}
           onAddToCombo={(weight, quantity) => {
             changeQty(detailProduct, weight, quantity);
             setDetailProduct(null);

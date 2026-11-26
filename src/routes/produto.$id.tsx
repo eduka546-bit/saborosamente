@@ -81,7 +81,7 @@ function ProdutoPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
   const bfActive = useBlackFridayActive();
-  const { add, count, lines } = useCart();
+  const { add, count, lines, bfEligibleCount } = useCart();
   const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -233,7 +233,8 @@ function ProdutoPage() {
   const soldOut = remainingStock !== null && remainingStock <= 0;
   const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
 
-  const currentPrice = (bfActive ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (isSopa
+  const bfUnlocked = bfActive && bfEligibleCount + (blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight)!==null?quantity:0) >= 5;
+  const currentPrice = (bfUnlocked ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
       ? product.preco_300g
@@ -242,12 +243,12 @@ function ProdutoPage() {
         : product.preco);
 
   const basePrice =
-    ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+    !bfUnlocked && ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
       ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
       : currentPrice;
   const effectivePrice =
-    ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
-      ? precoMarmitaPorFaixa(selectedWeight, count + quantity, basePrice, tabelaPrecos)
+    !bfUnlocked && ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)
+      ? precoMarmitaPorFaixa(selectedWeight, bfActive ? 1 : count + quantity, basePrice, tabelaPrecos)
       : currentPrice;
   const purchaseTotal = effectivePrice * quantity;
 
@@ -532,7 +533,7 @@ function ProdutoPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-4xl font-semibold text-primary bg-gradient-brand bg-clip-text text-transparent">
-                {formatBRL(purchaseTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
+                {formatBRL(purchaseTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} enabled={bfUnlocked} />
               </span>
             </div>
 

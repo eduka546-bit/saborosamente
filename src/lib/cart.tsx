@@ -113,6 +113,7 @@ export interface CartLineDetailed extends CartLine {
 interface CartContextValue {
   lines: CartLineDetailed[];
   count: number;
+  bfEligibleCount: number;
   subtotal: number;
   discount: number;
   shipping: number;
@@ -668,6 +669,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return acc + line.quantity * un;
     }, 0);
 
+    const bfEligibleCount = linhasResolvidas.reduce((sum,{line,product}) => sum + (line.custom ? 0 : line.comboPronto ? line.quantity*line.comboPronto.totalUnits : blackFridayPrice(String(product.tipo_produto),product.tipo_produto==="sopa"?"400g":line.weight || "200g")!==null ? line.quantity : 0),0);
+    const bfUnlocked = bfActive && bfEligibleCount >= 5;
+
     // A promoção de frete de SBS considera apenas marmitas.
     // Sopas, complementos e bebidas não liberam o frete de R$ 5.
     const marmitasParaFreteSBS = linhasResolvidas.reduce((acc, { line, product }) => {
@@ -705,7 +709,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const categoria = product.categoria ?? "";
       const isSopa = categoria.toLowerCase().includes("sopa");
       const semDesconto = isNoDiscount(categoria);
-      const bfPrice = bfActive ? blackFridayPrice(String((product as any).tipo_produto),isSopa ? "400g" : (line.weight || "200g")) : null;
+      const bfPrice = bfUnlocked ? blackFridayPrice(String((product as any).tipo_produto),isSopa ? "400g" : (line.weight || "200g")) : null;
       if (bfPrice !== null) return {...line, product, subtotal:(bfPrice+(line.opcoes?.consumo==="pronta"?adicionalPronta:0)+(line.opcoes?.consumo==="pronta"&&line.opcoes?.garfoEFaca?adicionalGarfo:0))*line.quantity, precoCheio:bfPrice+(line.opcoes?.consumo==="pronta"?adicionalPronta:0)+(line.opcoes?.consumo==="pronta"&&line.opcoes?.garfoEFaca?adicionalGarfo:0)};
 
       // Preço "cheio" do item (sem desconto de faixa)
@@ -775,6 +779,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return {
       lines: detailed,
       count,
+      bfEligibleCount,
       subtotal,
       discount,
       shipping,

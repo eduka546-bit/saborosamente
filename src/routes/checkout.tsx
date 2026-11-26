@@ -772,7 +772,7 @@ function Checkout() {
 
   const onSubmit = async (data: CheckoutForm) => {
     const bfLines = lines.filter(l=>l.opcoes?.blackFriday);
-    if (bfLines.length && (!isBlackFridayActive() || bfLines.reduce((s,l)=>s+l.quantity,0)<5)) { alert("Confira o combo Black Friday: mínimo de 5 unidades e somente durante a campanha."); return; }
+    if (bfLines.length && (!isBlackFridayActive() || lines.reduce((s,l)=>s+(l.custom?0:l.comboPronto?l.quantity*l.comboPronto.totalUnits:blackFridayPrice(String(l.product.tipo_produto),l.product.tipo_produto==="sopa"?"400g":l.weight||"200g")!==null?l.quantity:0),0)<5)) { alert("Confira o combo Black Friday: mínimo de 5 unidades e somente durante a campanha."); return; }
     if (conferirEstoqueAtual()) return;
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.

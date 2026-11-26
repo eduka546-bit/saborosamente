@@ -283,9 +283,11 @@ export const createOrder = createServerFn({ method: "POST" })
     }, 0);
 
     const bfActive = isBlackFridayActive();
+    const bfEligibleCount = data.items.reduce((sum,item)=>{ if(item.custom)return sum; const p:any=item.productId?productMap.get(item.productId):null; if(!p)return sum; if(item.comboPronto)return sum+item.quantity*item.comboPronto.totalUnits; const tipo=String(p.tipo_produto??"marmita").toLowerCase(); return sum+(blackFridayPrice(tipo,tipo==="sopa"?"400g":item.weight||"200g")!==null?item.quantity:0); },0);
+    const bfUnlocked = bfActive && bfEligibleCount >= 5;
     const bfItems = data.items.filter(i=>i.opcoes?.blackFriday);
     if(bfItems.length && !bfActive) throw new Error("A Black Friday terminou. Remova os itens promocionais e monte seu pedido novamente.");
-    if(bfItems.length && bfItems.reduce((s,i)=>s+i.quantity,0)<5) throw new Error("O combo Black Friday exige pelo menos 5 unidades.");
+    if(bfItems.length && !bfUnlocked) throw new Error("O combo Black Friday exige pelo menos 5 unidades.");
     if(bfItems.some(i=>i.custom||i.comboPronto||i.opcoes?.consumo!=="congelada"||i.opcoes?.garfoEFaca)) throw new Error("Item Black Friday inválido.");
     if(bfActive && (data.cupom || data.cashbackUsado > 0)) throw new Error("Descontos não cumulativos durante a Black Friday.");
     const authoritativeItems = data.items.map((item) => {
@@ -386,12 +388,12 @@ export const createOrder = createServerFn({ method: "POST" })
         if(price===null) throw new Error("Produto ou tamanho inválido para Black Friday.");
         return {item,product:p,fullUnitPrice:price,effectiveUnitPrice:price};
       }
-      const campaignPrice = bfActive ? blackFridayPrice(tipo,isSopa ? "400g" : (item.weight || "200g")) : null;
+      const campaignPrice = bfUnlocked ? blackFridayPrice(tipo,isSopa ? "400g" : (item.weight || "200g")) : null;
       const fixedPrice = tipo !== "marmita" || isNoDiscount(categoria);
       const fullBase = campaignPrice ?? (
         tipo === "marmita" && !fixedPrice
           ? precoCheioMarmita(item.weight, tabelaPrecos) || precoCatalogo
-          : precoCatalogo);
+          : isSopa ? 18 : precoCatalogo);
       const effectiveBase = campaignPrice ?? (
         tipo === "marmita" && !fixedPrice
           ? precoMarmitaPorFaixa(item.weight, bfActive ? 1 : totalUnidades, fullBase, tabelaPrecos)

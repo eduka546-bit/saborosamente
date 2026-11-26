@@ -77,7 +77,7 @@ export function ProductDetailModal({
   comboCount,
 }: ProductDetailModalProps) {
   const bfActive = useBlackFridayActive();
-  const { add, count, lines } = useCart();
+  const { add, count, lines, bfEligibleCount } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [requestedQuantity, setRequestedQuantity] = useState(1);
@@ -181,7 +181,7 @@ export function ProductDetailModal({
   const currentImage = allImages[currentImageIndex] || principal;
 
   const isSopa = categoriaNome.toLowerCase().includes("sopa");
-  const currentPrice = (bfActive ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (isSopa
+  const normalCurrentPrice = (isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
       ? product.preco_300g
@@ -221,6 +221,8 @@ export function ProductDetailModal({
   const soldOut = remainingStock !== null && remainingStock <= 0;
   const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
   const projectedCount = (comboCount ?? count) + quantity;
+  const bfUnlocked = bfActive && bfEligibleCount + (comboCount ?? 0) + (blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight)!==null?quantity:0) >= 5;
+  const currentPrice = (bfUnlocked ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (bfActive && product.tipo_produto==="marmita" ? precoCheioMarmita(selectedWeight,tabelaPrecos) || normalCurrentPrice : normalCurrentPrice);
 
   const currentRestrictions =
     selectedWeight === "200g" && product.restricoes_200g
@@ -267,7 +269,7 @@ export function ProductDetailModal({
   };
 
   const fullPriceForWeight = (w: string) => {
-    if(bfActive) {const p=blackFridayPrice(String(product.tipo_produto),isSopa?"400g":w); if(p!==null) return p;}
+    if(bfUnlocked) {const p=blackFridayPrice(String(product.tipo_produto),isSopa?"400g":w); if(p!==null) return p;}
     if (isSopa) return 18;
     if (ehMarmita && !isNoDiscount(categoriaNome)) {
       return precoCheioMarmita(w, tabelaPrecos) || Number(product.preco || 0);
@@ -280,7 +282,7 @@ export function ProductDetailModal({
   const priceForWeight = (w: string) => {
     const full = fullPriceForWeight(w);
     return ehMarmita && !isNoDiscount(categoriaNome)
-      ? precoMarmitaPorFaixa(w, projectedCount, full, tabelaPrecos)
+      ? precoMarmitaPorFaixa(w, bfActive ? 1 : projectedCount, full, tabelaPrecos)
       : full;
   };
 
@@ -450,12 +452,12 @@ export function ProductDetailModal({
                       {formatBRL(precoCheioTotal * quantity)}
                     </span>
                     <span className="text-[21px] font-bold leading-tight text-[#086e45] min-[390px]:text-2xl md:text-3xl">
-                      {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
+                      {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} enabled={bfUnlocked} />
                     </span>
                   </>
                 ) : (
                   <span className="text-[21px] font-bold leading-tight text-primary min-[390px]:text-2xl md:text-3xl">
-                    {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
+                    {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} enabled={bfUnlocked} />
                   </span>
                 )}
               </div>
@@ -755,7 +757,7 @@ export function ProductDetailModal({
                             {candidate.nome}
                           </p>
                           <p className="mt-1 text-base font-semibold text-primary">
-                            {formatBRL(Number((bfActive ? blackFridayPrice(String(candidate.tipo_produto),relatedWeight) : null) ?? relatedPrice ?? 0))} <BlackFridayBadge tipo={String(candidate.tipo_produto ?? "")} weight={relatedWeight} />
+                            {formatBRL(Number((bfUnlocked ? blackFridayPrice(String(candidate.tipo_produto),relatedWeight) : null) ?? relatedPrice ?? 0))} <BlackFridayBadge tipo={String(candidate.tipo_produto ?? "")} weight={relatedWeight} enabled={bfUnlocked} />
                           </p>
                         </div>
                         <button

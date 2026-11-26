@@ -12,3 +12,6 @@ export function blackFridayPrice(tipo: string, weight?: string): number | null {
  if(tipo!=="marmita") return null;
  return weight==="200g"?14:weight==="300g"?17:weight==="400g"?20:null;
 }
+
+export const BF_MIN_UNITS = 5;
+export function blackFridayUnlocked(active: boolean, units: number) { return active && units >= BF_MIN_UNITS; }
