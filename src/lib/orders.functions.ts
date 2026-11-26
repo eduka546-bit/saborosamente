@@ -666,6 +666,7 @@ export const createOrder = createServerFn({ method: "POST" })
       horario_recebimento: `${dataProgramadaEfetiva} • ${faixaHorarioEfetiva}`,
       metodo_pagamento: data.pagamento,
       observacao: [
+        bfActive ? "[BLACK_FRIDAY_2026]" : null,
         data.observacoes,
         data.troco ? `Troco para: ${data.troco}` : null,
         data.tipoCartao ? `Cartão: ${data.tipoCartao}` : null,
@@ -716,6 +717,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
 
       const partes: string[] = [];
+      if (item.opcoes?.blackFriday) partes.push("Combo Black Friday");
       if (item.weight) partes.push(`Peso: ${item.weight}`);
       if (item.opcoes) {
         partes.push(item.opcoes.consumo === "pronta" ? "Pronta p/ consumo" : "Congelada");
@@ -796,7 +798,7 @@ export const createOrder = createServerFn({ method: "POST" })
         origem: "site",
       },
       p_items: itemsToInsert,
-      p_stock_ops: [],
+      p_stock_ops: bfItems.length ? [...stockMap.values()].sort((a,b)=>a.productId.localeCompare(b.productId)||a.weight.localeCompare(b.weight)) : [],
       p_referral: referralPayload,
     });
 
@@ -808,11 +810,13 @@ export const createOrder = createServerFn({ method: "POST" })
     // Estoque e avisos operacionais são executados depois, sem atrasar nem impedir a compra.
     void (async () => {
       try {
+        if (!bfItems.length) {
         const { error: stockError } = await supabase.rpc("baixar_estoque_pedido_sem_bloqueio", {
           p_order_id: order.id,
           p_stock_ops: [...stockMap.values()],
         });
         if (stockError) console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
+        }
       } catch (stockError) {
         console.error("Não foi possível registrar a baixa de estoque do pedido", stockError);
       }
