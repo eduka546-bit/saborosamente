@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/email-marketing")({
 });
 
 type Aba = "criar" | "contatos" | "historico";
-type Broadcast = { id: string; name?: string; subject?: string; status?: string; created_at?: string; scheduled_at?: string; sent_at?: string };
+type Broadcast = { id: string; name?: string; subject?: string; status?: string; created_at?: string; scheduled_at?: string; progress?: { total:number;pendentes:number;processando:number;enviados:number;falhas:number;incertos:number;cancelados:number } };
 type Contact = { id: string; email: string; first_name?: string; last_name?: string; unsubscribed?: boolean };
 
 const INITIAL = {
@@ -34,8 +34,8 @@ const dataBr = (data?: string) =>
   data ? new Date(data).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
 const statusLabel: Record<string, string> = {
-  draft: "Rascunho", scheduled: "Agendada", queued: "Na fila",
-  sent: "Enviada", sending: "Enviando", failed: "Falhou", cancelled: "Cancelada",
+  draft: "Rascunho", running: "Na fila diária", paused: "Pausada", completed: "Concluída",
+  pending:"Pendente", processing:"Processando", sent:"Enviado",failed:"Falhou",uncertain:"Sem confirmação",cancelled:"Cancelado",
 };
 
 function EmailMarketingPage() {
@@ -46,7 +46,7 @@ function EmailMarketingPage() {
   const [emailContato, setEmailContato] = useState("");
   const [consentimento, setConsentimento] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [agendar, setAgendar] = useState("");
+  const [agendamentos, setAgendamentos] = useState<Record<string,string>>({});
   const [detalhes, setDetalhes] = useState<any>(null);
   const [busca, setBusca] = useState("");
 
@@ -60,6 +60,8 @@ function EmailMarketingPage() {
   const contatos = (info?.contacts ?? []) as Contact[];
   const campanhas = (info?.broadcasts ?? []) as Broadcast[];
   const contatosAtivos = contatos.filter(c => !c.unsubscribed).length;
+  const quotaUsada = Number(info?.dailyMarketing ?? 0);
+  const quotaDisponivel = Math.max(0, 80 - quotaUsada);
 
   async function executar(fn: () => Promise<unknown>, ok: string) {
     if (ocupado) return;
@@ -96,24 +98,33 @@ function EmailMarketingPage() {
         setForm(INITIAL);
         setAba("historico");
       }
-    }, "Rascunho criado no Resend, ainda não enviado.");
+    }, "Rascunho criado, sem disparar e-mails.");
   };
 
   const enviar = (campanha: Broadcast) => {
-    if (contatosAtivos === 0) return toast.error("Adicione primeiro contatos que autorizaram receber e-mails.");
-    if (info?.contactsMore) return toast.error("A lista ultrapassa 100 contatos: revise a audiência no Resend antes do envio.");
+    if (contatosAtivos === 0) return toast.error("Adicione contatos que autorizaram e-mails promocionais.");
+    const agendar = agendamentos[campanha.id] || "";
     if (!window.confirm(
-      `Confirma ${agendar ? "AGENDAR" : "ENVIAR"} a campanha "${campanha.name || campanha.subject}" para até ${contatosAtivos} contato(s) inscrito(s)?\n\nEssa ação pode gerar disparos reais pelo Resend.`
+      `Deseja ATIVAR a fila da campanha "${campanha.name || campanha.subject}" para os ${contatosAtivos} contatos inscritos?\n\nO envio será gradual: até 80 e-mails de marketing por dia, somando todas as campanhas. Os restantes seguem nos dias seguintes, sem repetir destinatários desta campanha.\n\nO processamento automático ocorre às 9h (horário de Brasília).`
     )) return;
     void executar(async () => {
-      await emailMarketingAdmin({
+      const result = await emailMarketingAdmin({
         data: {
           action: "send", id: campanha.id, token: await token(), confirmed: true,
           ...(agendar ? { scheduledAt: new Date(agendar).toISOString() } : {}),
         },
       });
-      setAgendar("");
-    }, agendar ? "Campanha agendada no Resend." : "Envio iniciado no Resend.");
+      if (result.action === "send") {
+        setAgendamentos(prev => ({ ...prev, [campanha.id]: "" }));
+        toast.info(`${result.recipients} destinatário(s) entraram na fila, sem duplicatas.`);
+      }
+    }, "Campanha ativada na fila diária. Nenhum e-mail foi disparado neste momento.");
+  };
+
+  const alterarEstado = (campanha: Broadcast, action: "pause" | "resume") => {
+    void executar(async () => {
+      await emailMarketingAdmin({ data: { action, id: campanha.id, token: await token() } });
+    }, action === "pause" ? "Campanha pausada." : "Campanha retomada.");
   };
 
   const verDetalhes = (campanha: Broadcast) => {
@@ -142,7 +153,7 @@ function EmailMarketingPage() {
 
       {overview.isError && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          Não foi possível carregar os dados do Resend: {overview.error instanceof Error ? overview.error.message : "tente novamente."}
+          Não foi possível carregar o E-mail Marketing: {overview.error instanceof Error ? overview.error.message : "tente novamente."}
         </div>
       )}
 
@@ -150,14 +161,31 @@ function EmailMarketingPage() {
         {[
           { label: "Contatos inscritos", val: contatosAtivos, icon: Users },
           { label: "Rascunhos", val: campanhas.filter(c => c.status === "draft").length, icon: Mail },
-          { label: "Campanhas enviadas", val: campanhas.filter(c => c.status === "sent").length, icon: Send },
-          { label: "Agendadas", val: campanhas.filter(c => c.status === "scheduled").length, icon: Clock },
+          { label: "Campanhas na fila", val: campanhas.filter(c => c.status === "running").length, icon: Send },
+          { label: "E-mails do dia", val: `${quotaUsada}/80`, icon: Clock },
         ].map(({label,val,icon:Icon}) => (
           <div key={label} className="rounded-2xl border border-[#dae7d8] bg-white p-4">
             <div className="flex items-center gap-2 text-xs font-semibold text-[#58715d]"><Icon size={15} />{label}</div>
             <p className="mt-3 text-3xl font-black text-[#064D2F]">{val}</p>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-2xl border border-[#dae7d8] bg-white p-4 text-sm text-[#315640]">
+        <p className="font-bold text-[#064D2F]">Distribuição automática das campanhas</p>
+        <p className="mt-1">
+          Até <strong>80 e-mails de marketing por dia</strong>, compartilhados entre as campanhas, com
+          <strong> 20 envios reservados</strong> para atualizações de pedidos. A fila continua nos próximos dias sem duplicar
+          o mesmo e-mail por campanha. Processamento diário às <strong>9h (Brasília)</strong>.
+        </p>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e8efdf]">
+          <div className="h-full bg-[#8BB924]" style={{width: `${Math.min(100,quotaUsada/80*100)}%`}} />
+        </div>
+        <p className="mt-2 text-xs text-gray-600">
+          Hoje: {quotaUsada} reserva(s) utilizada(s) no marketing · {quotaDisponivel} disponível(is) na fila.
+          {info?.usage?.daily?.limit != null && ` Resend: ${info.usage.daily.used}/${info.usage.daily.limit} e-mails na cota diária.`}
+          {info?.usage?.monthly?.limit != null && ` Cota mensal: ${info.usage.monthly.used}/${info.usage.monthly.limit}.`}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-2">
@@ -258,14 +286,14 @@ function EmailMarketingPage() {
               ))}
               {contatos.length === 0 && <p className="py-8 text-center text-sm text-gray-500">Nenhum contato de marketing cadastrado ainda.</p>}
             </div>
-            {info?.contactsMore && <p className="mt-3 text-xs text-amber-700">Exibindo os primeiros 100 contatos; consulte o Resend para a lista completa.</p>}
+            {info?.contactsMore && <p className="mt-3 text-xs text-amber-700">Exibindo os primeiros 1.000 contatos cadastrados. Os demais permanecem elegíveis para a fila.</p>}
           </section>
         </div>
       )}
 
       {aba === "historico" && (
         <section className="space-y-4 rounded-2xl border bg-white p-5">
-          <div><h2 className="text-lg font-bold text-[#064D2F]">Campanhas de e-mail</h2><p className="text-sm text-gray-500">Histórico separado das campanhas de WhatsApp. Envio somente após sua confirmação.</p></div>
+          <div><h2 className="text-lg font-bold text-[#064D2F]">Campanhas de e-mail</h2><p className="text-sm text-gray-500">Envios programados por campanha, com relatório de destinatários e sem repetição.</p></div>
           <div className="space-y-3">
             {campanhas.map(c => (
               <div key={c.id} className="rounded-xl border border-gray-200 p-4">
@@ -273,21 +301,31 @@ function EmailMarketingPage() {
                   <div><p className="font-semibold text-gray-900">{c.name || c.subject}</p><p className="mt-1 text-xs text-gray-500">{c.subject} · Criada em {dataBr(c.created_at)}</p></div>
                   <span className="rounded-full bg-[#eff5e9] px-3 py-1 text-xs font-bold text-[#064D2F]">{statusLabel[c.status || ""] || c.status || "—"}</span>
                 </div>
+                {(c.progress?.total ?? 0) > 0 && (
+                  <div className="mt-3 space-y-2 text-xs text-gray-700">
+                    <div className="h-2 overflow-hidden rounded-full bg-[#e8efdf]">
+                      <div className="h-full bg-[#8BB924]" style={{width:`${(c.progress!.enviados/Math.max(1,c.progress!.total))*100}%`}} />
+                    </div>
+                    <p>{c.progress?.enviados} enviados · {c.progress?.pendentes} pendentes · {c.progress?.processando} processando · {c.progress?.falhas} falhas · {c.progress?.incertos} sem confirmação · {c.progress?.cancelados} cancelados</p>
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => verDetalhes(c)} disabled={ocupado}><Eye className="mr-1 h-4 w-4" /> Detalhes</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => verDetalhes(c)} disabled={ocupado}><Eye className="mr-1 h-4 w-4" /> Destinatários</Button>
                   {c.status === "draft" && (
                     <Button type="button" size="sm" disabled={ocupado || !contatosAtivos} onClick={() => enviar(c)} className="bg-[#064D2F] hover:bg-[#003923]">
-                      <Send className="mr-1 h-4 w-4" /> {agendar ? "Agendar envio" : "Enviar agora"}
+                      <Send className="mr-1 h-4 w-4" /> Ativar fila diária
                     </Button>
                   )}
+                  {c.status === "running" && <Button size="sm" variant="outline" disabled={ocupado} onClick={() => alterarEstado(c,"pause")}>Pausar</Button>}
+                  {c.status === "paused" && <Button size="sm" variant="outline" disabled={ocupado} onClick={() => alterarEstado(c,"resume")}>Retomar</Button>}
                 </div>
                 {c.status === "draft" && (
                   <label className="mt-3 block max-w-sm space-y-1 text-xs font-medium text-gray-600">
-                    Agendar para (opcional; data e hora locais)
-                    <Input type="datetime-local" value={agendar} onChange={e => setAgendar(e.target.value)} />
+                    Iniciar fila a partir de (opcional)
+                    <Input type="datetime-local" value={agendamentos[c.id] || ""} onChange={e => setAgendamentos(prev=>({...prev,[c.id]:e.target.value}))} />
                   </label>
                 )}
-                {c.scheduled_at && <p className="mt-2 text-xs text-gray-500">Agendada: {dataBr(c.scheduled_at)}</p>}
+                {c.scheduled_at && c.status !== "draft" && <p className="mt-2 text-xs text-gray-500">Início autorizado: {dataBr(c.scheduled_at)}</p>}
               </div>
             ))}
             {campanhas.length === 0 && <p className="py-8 text-center text-sm text-gray-500">Nenhuma campanha de e-mail criada ainda.</p>}
@@ -296,11 +334,16 @@ function EmailMarketingPage() {
             <div className="rounded-xl border border-[#cfe0d1] bg-[#f6faf5] p-4">
               <div className="flex justify-between gap-3"><h3 className="font-bold text-[#064D2F]">{detalhes.name || detalhes.subject}</h3><button type="button" className="text-sm underline" onClick={() => setDetalhes(null)}>Fechar</button></div>
               <p className="mt-2 text-sm text-gray-600">Status: {statusLabel[detalhes.status] || detalhes.status}</p>
-              {(["sent", "delivered", "opened", "clicked"] as const).some(k => typeof detalhes[k] === "number") && (
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(["sent","delivered","opened","clicked"] as const).map(k => <div key={k} className="rounded-lg bg-white p-3 text-sm"><div className="text-xs capitalize text-gray-500">{k}</div><strong>{detalhes[k] ?? "—"}</strong></div>)}
-                </div>
-              )}
+              <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                {(detalhes.recipients ?? []).map((item: any) => (
+                  <div key={item.email} className="rounded-lg border border-[#dae7d8] bg-white p-3 text-xs">
+                    <div className="flex flex-wrap justify-between gap-2"><strong>{item.nome || item.email}</strong><span>{statusLabel[item.status] || item.status}</span></div>
+                    <p className="mt-1 break-all text-gray-500">{item.email} · {item.sent_at ? dataBr(item.sent_at) : "Ainda não enviado"}</p>
+                    {item.error_message && <p className="mt-1 text-amber-800">{item.error_message}</p>}
+                  </div>
+                ))}
+                {(!detalhes.recipients || detalhes.recipients.length===0) && <p className="py-4 text-xs text-gray-500">Ative a campanha para gerar os destinatários.</p>}
+              </div>
             </div>
           )}
         </section>
