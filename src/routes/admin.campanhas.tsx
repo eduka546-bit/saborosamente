@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,6 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  readCampaignDraft, writeCampaignDraft, clearCampaignDraft,
+  saveCampaignMediaDraft, loadCampaignMediaDraft, clearCampaignMediaDraft,
+} from "@/lib/campaign-draft-storage";
 
 export const Route = createFileRoute("/admin/campanhas")({
   component: AdminCampaignPage,
@@ -33,27 +37,53 @@ export const Route = createFileRoute("/admin/campanhas")({
 // Tarifa de lista da Meta para template de Marketing entregue a destinatários
 // no Brasil. A cobrança efetiva continua sendo a apurada pela Meta.
 const TARIFA_MARKETING_BR = 0.3217;
+const WHATSAPP_DRAFT_KEY = "saborosamente:whatsapp-marketing:rascunho:v1";
+
+type WhatsAppDraft = {
+  nome: string;
+  mensagem: string;
+  midiaTipo: "imagem" | "video" | "nenhuma";
+  contatosEditaveis: string[];
+  mostrarListaCompleta: boolean;
+  listaCarregada: string | null;
+  templateSelecionado: any;
+  templateVariaveis: string[];
+  usarTemplate: boolean;
+};
+
+const EMPTY_WHATSAPP_DRAFT: WhatsAppDraft = {
+  nome: "", mensagem: "", midiaTipo: "nenhuma", contatosEditaveis: [],
+  mostrarListaCompleta: false, listaCarregada: null,
+  templateSelecionado: null, templateVariaveis: [], usarTemplate: false,
+};
 
 function formatarMoeda(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function AdminCampaignPage() {
+  const draftInicial = useRef<WhatsAppDraft | null>(null);
+  if (!draftInicial.current) {
+    draftInicial.current = readCampaignDraft(WHATSAPP_DRAFT_KEY, EMPTY_WHATSAPP_DRAFT);
+  }
+  const midiaManipulada = useRef(false);
+  const [rascunhoSalvo, setRascunhoSalvo] = useState(false);
+  const [restaurandoMidia, setRestaurandoMidia] = useState(draftInicial.current.midiaTipo !== "nenhuma");
   const [tabAtivo, setTabAtivo] = useState<"criar" | "contatos" | "historico" | "templates">(
     "criar",
   );
-  const [nomesCampanha, setNomesCampanha] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  const [nomesCampanha, setNomesCampanha] = useState(draftInicial.current.nome);
+  const [mensagem, setMensagem] = useState(draftInicial.current.mensagem);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">("nenhuma");
+  const [midiaTipo, setMidiaTipo] = useState<"imagem" | "video" | "nenhuma">(draftInicial.current.midiaTipo);
   const [enviando, setEnviando] = useState(false);
   const [midiaTrocandoId, setMidiaTrocandoId] = useState<string | null>(null);
   const [campanhaAcaoId, setCampanhaAcaoId] = useState<string | null>(null);
-  const [mostrarListaCompleta, setMostrarListaCompleta] = useState(false);
-  const [contatosEditaveis, setContatosEditaveis] = useState<string[]>([]);
+  const [mostrarListaCompleta, setMostrarListaCompleta] = useState(draftInicial.current.mostrarListaCompleta);
+  const [contatosEditaveis, setContatosEditaveis] = useState<string[]>(draftInicial.current.contatosEditaveis);
   const [campanhaDetalhes, setCampanhaDetalhes] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -220,12 +250,12 @@ function AdminCampaignPage() {
   const [listaEditando, setListaEditando] = useState<any>(null);
   const [contatosLista, setContatosLista] = useState<any[]>([]);
   const listaInputRef = useRef<HTMLInputElement>(null);
-  const [listaCarregada, setListaCarregada] = useState<string | null>(null);
+  const [listaCarregada, setListaCarregada] = useState<string | null>(draftInicial.current.listaCarregada);
 
   // Estado para templates
-  const [templateSelecionado, setTemplateSelecionado] = useState<any>(null);
-  const [templateVariaveis, setTemplateVariaveis] = useState<string[]>([]);
-  const [usarTemplate, setUsarTemplate] = useState(false);
+  const [templateSelecionado, setTemplateSelecionado] = useState<any>(draftInicial.current.templateSelecionado);
+  const [templateVariaveis, setTemplateVariaveis] = useState<string[]>(draftInicial.current.templateVariaveis);
+  const [usarTemplate, setUsarTemplate] = useState(draftInicial.current.usarTemplate);
   const [novoTemplate, setNovoTemplate] = useState({
     name: "",
     category: "MARKETING",
@@ -243,6 +273,44 @@ function AdminCampaignPage() {
   });
   const [imagemModelo, setImagemModelo] = useState<File | null>(null);
   const [videoModelo, setVideoModelo] = useState<File | null>(null);
+
+  // Guarda o preenchimento, mas nunca uma autorização para disparar.
+  useEffect(() => {
+    const preenchido = Boolean(
+      nomesCampanha || mensagem || contatosEditaveis.length || listaCarregada ||
+      usarTemplate || midiaTipo !== "nenhuma",
+    );
+    if (!preenchido) {
+      clearCampaignDraft(WHATSAPP_DRAFT_KEY);
+      setRascunhoSalvo(false);
+      return;
+    }
+    setRascunhoSalvo(writeCampaignDraft(WHATSAPP_DRAFT_KEY, {
+      nome: nomesCampanha, mensagem, midiaTipo, contatosEditaveis,
+      mostrarListaCompleta, listaCarregada, templateSelecionado, templateVariaveis, usarTemplate,
+    } satisfies WhatsAppDraft));
+  }, [
+    nomesCampanha, mensagem, midiaTipo, contatosEditaveis, mostrarListaCompleta,
+    listaCarregada, templateSelecionado, templateVariaveis, usarTemplate,
+  ]);
+
+  useEffect(() => {
+    let ativo = true;
+    void loadCampaignMediaDraft(WHATSAPP_DRAFT_KEY).then((midia) => {
+      if (!ativo || midiaManipulada.current || !midia ||
+          midia.kind !== draftInicial.current?.midiaTipo) return;
+      if (midia.kind === "imagem") setImagemFile(midia.file);
+      if (midia.kind === "video") setVideoFile(midia.file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!ativo || midiaManipulada.current) return;
+        if (midia.kind === "imagem") setImagemPreview(reader.result as string);
+        if (midia.kind === "video") setVideoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(midia.file);
+    }).finally(() => { if (ativo) setRestaurandoMidia(false); });
+    return () => { ativo = false; };
+  }, []);
 
   // Query para buscar templates aprovados da Meta
   const {
@@ -371,6 +439,11 @@ function AdminCampaignPage() {
       return;
     }
 
+    midiaManipulada.current = true;
+    setRestaurandoMidia(false);
+    void saveCampaignMediaDraft(WHATSAPP_DRAFT_KEY, file, "imagem").then((salvo) => {
+      if (!salvo) toast.warning("A imagem não pôde ser salva neste navegador. Se recarregar, selecione novamente.");
+    });
     setImagemFile(file);
     setMidiaTipo("imagem");
     setVideoFile(null);
@@ -397,6 +470,11 @@ function AdminCampaignPage() {
       return;
     }
 
+    midiaManipulada.current = true;
+    setRestaurandoMidia(false);
+    void saveCampaignMediaDraft(WHATSAPP_DRAFT_KEY, file, "video").then((salvo) => {
+      if (!salvo) toast.warning("O vídeo não pôde ser salvo neste navegador. Se recarregar, selecione novamente.");
+    });
     setVideoFile(file);
     setMidiaTipo("video");
     setImagemFile(null);
@@ -814,6 +892,11 @@ function AdminCampaignPage() {
       }
 
       toast.success(`✓ Campanha iniciada! Enviando para ${campanha.contatos_total} contatos...`);
+      clearCampaignDraft(WHATSAPP_DRAFT_KEY);
+      void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
+      setListaCarregada(null);
+      setContatosEditaveis([]);
+      setMostrarListaCompleta(false);
       setMensagem("");
       setNomesCampanha("");
       setImagemFile(null);
@@ -992,6 +1075,12 @@ function AdminCampaignPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           {/* Formulário */}
           <div className="space-y-6">
+            <p className="text-xs text-gray-500" role="status">
+              {rascunhoSalvo
+                ? "✓ Rascunho salvo automaticamente neste navegador (mensagem, público e template)."
+                : "Preencha a campanha para salvar automaticamente neste navegador."}
+              {restaurandoMidia && " Recuperando imagem ou vídeo…"}
+            </p>
             {/* Nome da Campanha */}
             <div className="bg-white rounded-xl border p-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -1013,6 +1102,11 @@ function AdminCampaignPage() {
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => {
+                    if (midiaTipo !== "imagem") {
+                      midiaManipulada.current = true;
+                      setRestaurandoMidia(false);
+                      void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
+                    }
                     setMidiaTipo("imagem");
                     setVideoFile(null);
                     setVideoPreview(null);
@@ -1027,6 +1121,11 @@ function AdminCampaignPage() {
                 </button>
                 <button
                   onClick={() => {
+                    if (midiaTipo !== "video") {
+                      midiaManipulada.current = true;
+                      setRestaurandoMidia(false);
+                      void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
+                    }
                     setMidiaTipo("video");
                     setImagemFile(null);
                     setImagemPreview(null);
@@ -1041,6 +1140,9 @@ function AdminCampaignPage() {
                 </button>
                 <button
                   onClick={() => {
+                    midiaManipulada.current = true;
+                    setRestaurandoMidia(false);
+                    void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);
                     setMidiaTipo("nenhuma");
                     setImagemFile(null);
                     setImagemPreview(null);
@@ -1072,7 +1174,7 @@ function AdminCampaignPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setImagemPreview(null);
+                            midiaManipulada.current = true;\n                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);\n                            setImagemPreview(null);
                             setImagemFile(null);
                           }}
                           className="text-xs text-red-600 hover:underline"
@@ -1117,7 +1219,7 @@ function AdminCampaignPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setVideoPreview(null);
+                            midiaManipulada.current = true;\n                            void clearCampaignMediaDraft(WHATSAPP_DRAFT_KEY);\n                            setVideoPreview(null);
                             setVideoFile(null);
                           }}
                           className="text-xs text-red-600 hover:underline"
@@ -1586,6 +1688,7 @@ function AdminCampaignPage() {
                 onClick={() => handleEnviar(contatosEditaveis.filter((t) => t.trim()))}
                 disabled={
                   enviando ||
+                  restaurandoMidia ||
                   contatosEditaveis.filter((t) => t.trim()).length === 0 ||
                   !mensagem.trim()
                 }
