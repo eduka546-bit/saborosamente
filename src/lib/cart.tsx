@@ -688,12 +688,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       if (line.comboPronto) {
-        const precoCombo =
-          line.weight === "300g" && product.preco_300g
+        const precoCombo = (bfActive ? (blackFridayPrice("marmita",line.weight) ?? 0) * line.comboPronto.totalUnits : 0) ||
+          (          line.weight === "300g" && product.preco_300g
             ? product.preco_300g
             : line.weight === "400g" && product.preco_400g
               ? product.preco_400g
-              : product.preco;
+              : product.preco);
         return {
           ...line,
           product,
@@ -705,8 +705,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const categoria = product.categoria ?? "";
       const isSopa = categoria.toLowerCase().includes("sopa");
       const semDesconto = isNoDiscount(categoria);
-      const bfPrice = bfActive && line.opcoes?.blackFriday ? blackFridayPrice(String((product as any).tipo_produto),line.weight) : null;
-      if (bfPrice !== null) return {...line, product, subtotal:bfPrice*line.quantity, precoCheio:bfPrice};
+      const bfPrice = bfActive ? blackFridayPrice(String((product as any).tipo_produto),isSopa ? "400g" : (line.weight || "200g")) : null;
+      if (bfPrice !== null) return {...line, product, subtotal:(bfPrice+(line.opcoes?.consumo==="pronta"?adicionalPronta:0)+(line.opcoes?.consumo==="pronta"&&line.opcoes?.garfoEFaca?adicionalGarfo:0))*line.quantity, precoCheio:bfPrice+(line.opcoes?.consumo==="pronta"?adicionalPronta:0)+(line.opcoes?.consumo==="pronta"&&line.opcoes?.garfoEFaca?adicionalGarfo:0)};
 
       // Preço "cheio" do item (sem desconto de faixa)
       let precoCheio: number;

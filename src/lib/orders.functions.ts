@@ -375,8 +375,8 @@ export const createOrder = createServerFn({ method: "POST" })
         return {
           item,
           product: p,
-          fullUnitPrice: roundMoney(precoCatalogo),
-          effectiveUnitPrice: roundMoney(precoCatalogo),
+          fullUnitPrice: roundMoney(bfActive ? (blackFridayPrice("marmita",item.weight) ?? 0)*esperado : precoCatalogo),
+          effectiveUnitPrice: roundMoney(bfActive ? (blackFridayPrice("marmita",item.weight) ?? 0)*esperado : precoCatalogo),
           comboComponents,
         };
       }
@@ -386,15 +386,16 @@ export const createOrder = createServerFn({ method: "POST" })
         if(price===null) throw new Error("Produto ou tamanho inválido para Black Friday.");
         return {item,product:p,fullUnitPrice:price,effectiveUnitPrice:price};
       }
+      const campaignPrice = bfActive ? blackFridayPrice(tipo,isSopa ? "400g" : (item.weight || "200g")) : null;
       const fixedPrice = tipo !== "marmita" || isNoDiscount(categoria);
-      const fullBase =
+      const fullBase = campaignPrice ?? (
         tipo === "marmita" && !fixedPrice
           ? precoCheioMarmita(item.weight, tabelaPrecos) || precoCatalogo
-          : precoCatalogo;
-      const effectiveBase =
+          : precoCatalogo);
+      const effectiveBase = campaignPrice ?? (
         tipo === "marmita" && !fixedPrice
           ? precoMarmitaPorFaixa(item.weight, bfActive ? 1 : totalUnidades, fullBase, tabelaPrecos)
-          : fullBase;
+          : fullBase);
 
       const optionExtra =
         tipo === "marmita"

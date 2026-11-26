@@ -1,3 +1,4 @@
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { ProductFacts } from "@/components/product-facts";
 import { useEffect, useRef, useState } from "react";
@@ -74,6 +75,7 @@ export function ProductDetailModal({
   onAddToCombo,
   comboCount,
 }: ProductDetailModalProps) {
+  const bfActive = useBlackFridayActive();
   const { add, count, lines } = useCart();
   const tabelaPrecos = usePrecosMarmita();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -178,13 +180,13 @@ export function ProductDetailModal({
   const currentImage = allImages[currentImageIndex] || principal;
 
   const isSopa = categoriaNome.toLowerCase().includes("sopa");
-  const currentPrice = isSopa
+  const currentPrice = (bfActive ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
       ? product.preco_300g
       : selectedWeight === "400g" && product.preco_400g
         ? product.preco_400g
-        : product.preco;
+        : product.preco);
 
   const currentNutritional =
     selectedWeight === "200g" && product.tabela_nutricional_200g
@@ -264,6 +266,7 @@ export function ProductDetailModal({
   };
 
   const fullPriceForWeight = (w: string) => {
+    if(bfActive) {const p=blackFridayPrice(String(product.tipo_produto),isSopa?"400g":w); if(p!==null) return p;}
     if (isSopa) return 18;
     if (ehMarmita && !isNoDiscount(categoriaNome)) {
       return precoCheioMarmita(w, tabelaPrecos) || Number(product.preco || 0);
@@ -425,7 +428,7 @@ export function ProductDetailModal({
         <div className="col-start-1 row-start-1 min-w-0">
           {(() => {
             const semDesconto = isNoDiscount(categoriaNome);
-            const podeTerDesconto = ehMarmita && !semDesconto;
+            const podeTerDesconto = !bfActive && ehMarmita && !semDesconto;
             const precoCheio = podeTerDesconto
               ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice
               : currentPrice;

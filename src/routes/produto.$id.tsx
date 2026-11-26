@@ -1,3 +1,4 @@
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { TabelaNutricionalExpansivel } from "@/components/product-detail-modal";
 import { ProductFacts } from "@/components/product-facts";
@@ -78,6 +79,7 @@ export const Route = createFileRoute("/produto/$id")({
 function ProdutoPage() {
   const { id } = Route.useParams();
   const navigate = Route.useNavigate();
+  const bfActive = useBlackFridayActive();
   const { add, count, lines } = useCart();
   const [tabelaNutricionalAberta, setTabelaNutricionalAberta] = useState(false);
   const [selectedWeight, setSelectedWeight] = useState<string>("");
@@ -230,13 +232,13 @@ function ProdutoPage() {
   const soldOut = remainingStock !== null && remainingStock <= 0;
   const quantity = Math.max(1, Math.min(requestedQuantity, remainingStock ?? requestedQuantity));
 
-  const currentPrice = isSopa
+  const currentPrice = (bfActive ? blackFridayPrice(String(product.tipo_produto),isSopa?"400g":selectedWeight) : null) ?? (isSopa
     ? 18.0
     : selectedWeight === "300g" && product.preco_300g
       ? product.preco_300g
       : selectedWeight === "400g" && product.preco_400g
         ? product.preco_400g
-        : product.preco;
+        : product.preco);
 
   const basePrice =
     ehMarmita && !isNoDiscount(product.categorias?.nome || product.categoria)

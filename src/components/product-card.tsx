@@ -1,3 +1,4 @@
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import {
   Minus,
   Plus,
@@ -153,6 +154,7 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
+  const bfActive = useBlackFridayActive();
   const { add, count, lines, setQuantity } = useCart();
   const [imageIndex, setImageIndex] = useState(0);
   const tabelaPrecos = usePrecosMarmita();
@@ -197,13 +199,13 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
   };
   const comboUnits = Number(String(product.nome || "").match(/(\d+)\s*(?:un|unidades?)/i)?.[1] || 0);
   const isSopa = product.categoria?.toLowerCase().includes("sopa");
-  const priceForWeight = (weight: string) => isSopa
+  const priceForWeight = (weight: string) => (bfActive ? (isComboPronto && comboUnits ? (blackFridayPrice("marmita",weight) ?? 0)*comboUnits : blackFridayPrice(String(product.tipo_produto),isSopa?"400g":weight)) : null) ?? (isSopa
     ? 18.0
     : weight === "300g" && product.preco_300g
       ? product.preco_300g
       : weight === "400g" && product.preco_400g
         ? product.preco_400g
-        : product.preco;
+        : product.preco);
   const currentPrice = priceForWeight(selectedWeight);
 
   // Imagem por tamanho — usa a específica se cadastrada, senão a principal
@@ -292,7 +294,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
 
   // ── Desconto progressivo por faixa (só marmitas) ───────────────────────────
   const categoriaCard = product.categorias?.nome || product.categoria || "";
-  const podeTerDesconto = !combo && !isSopa && !isNoDiscount(categoriaCard);
+  const podeTerDesconto = !bfActive && !combo && !isSopa && !isNoDiscount(categoriaCard);
   const precoCheioCard = podeTerDesconto ? precoCheioMarmita(selectedWeight, tabelaPrecos) || currentPrice : currentPrice;
   const precoFaixaCard = podeTerDesconto
     ? precoMarmitaPorFaixa(selectedWeight, count, precoCheioCard, tabelaPrecos)

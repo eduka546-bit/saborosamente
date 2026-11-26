@@ -1,3 +1,4 @@
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
  * ComboSaboresModal — Modal de escolha de sabores para combos prontos.
@@ -25,6 +26,7 @@ interface ComboSaboresModalProps {
 }
 
 export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200g" }: ComboSaboresModalProps) {
+  const bfActive = useBlackFridayActive();
   const dialogRef = useCommerceDialog(isOpen, onClose);
   const { addComboPronto, lines } = useCart();
   const isMaisLeves = combo?.subgrupo === "MAIS LEVES" || /^Combo Pratos Mais Leves\s*-/i.test(combo?.nome ?? "");
@@ -75,10 +77,11 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
   }, [isOpen, combo?.id, initialWeight]);
 
   const precoCombo = useMemo(() => {
+    if(bfActive) return (blackFridayPrice("marmita",selectedWeight) ?? 0)*totalCombo;
     if (selectedWeight === "200g") return combo?.preco ?? 0;
     if (selectedWeight === "400g") return combo?.preco_400g ?? combo?.preco ?? 0;
     return combo?.preco_300g ?? combo?.preco ?? 0;
-  }, [combo, selectedWeight]);
+  }, [combo, selectedWeight, bfActive, totalCombo]);
 
   const estoqueDisponivel = (prod: any) =>
     estoqueLivreCombo(prod, selectedWeight, lines);
@@ -221,7 +224,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
     { label: "P", value: "200g", preco: combo.preco },
     ...(combo.preco_300g ? [{ label: "M", value: "300g", preco: combo.preco_300g }] : []),
     ...(combo.preco_400g ? [{ label: "G", value: "400g", preco: combo.preco_400g }] : []),
-  ];
+  ].map(w=>({...w,preco:bfActive ? (blackFridayPrice("marmita",w.value) ?? 0)*totalCombo : w.preco}));
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4">

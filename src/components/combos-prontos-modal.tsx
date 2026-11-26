@@ -1,3 +1,4 @@
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { useMemo, useState } from "react";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 import { createPortal } from "react-dom";
@@ -47,6 +48,7 @@ export function CombosProntosModal({
   onClose,
   products,
 }: CombosProntosModalProps) {
+  const bfActive = useBlackFridayActive();
   const dialogRef = useCommerceDialog(isOpen, onClose);
   const [categoria, setCategoria] = useState<GrupoCombo | null>(null);
   const [comboEscolhido, setComboEscolhido] = useState<any>(null);
@@ -174,7 +176,7 @@ export function CombosProntosModal({
                     { nome: "P", descricao: "200g", peso: "200g", preco: produto.preco },
                     ...(produto.preco_300g != null ? [{ nome: "M", descricao: "300g", peso: "300g", preco: produto.preco_300g }] : []),
                     ...(produto.preco_400g != null ? [{ nome: "G", descricao: "400g", peso: "400g", preco: produto.preco_400g }] : []),
-                  ];
+                  ].map(p=>({...p,preco:bfActive ? (blackFridayPrice("marmita",p.peso) ?? 0)*unidades : p.preco}));
                   return (
                     <article key={produto.id} className="rounded-2xl border border-[#dde8d9] bg-white p-4 shadow-sm">
                       <div className="mb-3 flex items-center justify-between gap-2">
