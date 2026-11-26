@@ -50,6 +50,7 @@ import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
 import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
+import { WhatsAppHistoricoImport } from "@/components/admin/WhatsAppHistoricoImport";
 import { WhatsAppIAAssistant } from "@/components/admin/WhatsAppIAAssistant";
 import { WhatsAppIAAudit } from "@/components/admin/WhatsAppIAAudit";
 import { WhatsAppCampaignActions, WhatsAppTrainingCenter } from "@/components/admin/WhatsAppIASettings";
@@ -1909,6 +1910,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       {!somenteCampanha && (
         <div className="shrink-0 px-4 pt-2 flex flex-wrap items-center gap-2 justify-end">
           <button onClick={() => setSalesDialog({mode: "catalog"})} className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${t.text} hover:bg-black/10`}><Store size={15}/> Catálogo</button>
+          <WhatsAppHistoricoImport key={conversa.id} conversaId={conversa.id}
+            contato={conversa.nome || "Contato"} telefone={String(conversa.telefone || "")} dark={dark}/>
           <button type="button" onClick={() => setAssistenteAberto(v=>!v)}
             className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${assistenteAberto?"bg-[#00a884] text-white":t.text+" hover:bg-black/10"}`}>
             <Heart size={15}/> {assistenteAberto ? "Fechar memória" : "Memória e recompra"}
@@ -1997,6 +2000,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       )}
       {/* Mensagens */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {!hasNextPage && !buscaMsg && !somenteCampanha && paginasHistorico &&
+          mensagensCompletas.length>0 && mensagensCompletas.length<=30 && (
+          <p className={`mx-auto mb-3 max-w-xl rounded-lg border px-3 py-2 text-center text-[11px] ${t.textSub}`}
+            title="Histórico do site; mensagens do WhatsApp Business anteriores à conexão dependem de sincronização ou importação">
+            Estas são as mensagens arquivadas neste site. Se havia conversas anteriores no WhatsApp Business
+            e elas não aparecem, use <strong>Histórico antigo</strong> acima para importar o arquivo exportado.
+          </p>
+        )}
         {hasNextPage && !buscaMsg && (
           <div className="flex justify-center py-2">
             <button type="button" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}
