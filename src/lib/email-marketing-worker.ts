@@ -52,6 +52,12 @@ async function mark(id:number, status:string, fields:Record<string,unknown>={}){
 async function deliver(item:QueueItem) {
   const db=createServerClient();
   try{
+    const {data:campaign,error:campaignError}=await (db as any).from("email_marketing_campaigns").select("status").eq("id",item.campaign_id).single();
+    if(campaignError)throw campaignError;
+    if(item.campaign_id==="52655cd2-2d6f-4ed5-a229-fd566fee9150" && Date.now()>=Date.parse("2026-11-29T03:00:00Z")){
+      await mark(item.dispatch_id,"cancelled",{error_message:"Black Friday encerrada."});return "cancelled";
+    }
+    if(campaign.status!=="running"){await mark(item.dispatch_id,"pending");return "deferred";}
     const {data:consent,error:checkError}=await (db as any).from("email_marketing_consents")
       .select("revogado_em,unsubscribe_token").eq("email",item.email).maybeSingle();
     if(checkError)throw checkError;
@@ -80,6 +86,9 @@ async function deliver(item:QueueItem) {
     const inlineHeader=item.html.match(/<!--INLINE_BF_HEADER:([A-Za-z0-9+/=]+)-->/);
     const emailBody=inlineHeader?item.html.replace(inlineHeader[0],""):item.html;
     if(emailBody.includes("cid:bf-header-2026")&&!inlineHeader)throw new Error("Banner da campanha ausente.");
+    if(item.campaign_id==="52655cd2-2d6f-4ed5-a229-fd566fee9150" && Date.now()>=Date.parse("2026-11-29T03:00:00Z")){
+      await mark(item.dispatch_id,"cancelled",{error_message:"Black Friday encerrada."});return "cancelled";
+    }
     const response=await api<{id?:string}>("/emails",{
       method:"POST",
       headers:{"Idempotency-Key":`email-marketing/${item.campaign_id}/${item.dispatch_id}`},
@@ -131,9 +140,10 @@ export async function processEmailMarketingDay() {
     const batch=(claimed||[]) as QueueItem[];
     if(batch.length===0){stopReason="Fila diária vazia ou campanhas agendadas para depois.";break;}
     // Até 3 requisições simultâneas para respeitar o rate limit do Resend.
-    for(let i=0;i<batch.length;i+=3){
-      const outcomes=await Promise.all(batch.slice(i,i+3).map(deliver));
+    for(let i=0;i<batch.length;i+=1){
+      const outcomes=await Promise.all(batch.slice(i,i+1).map(deliver));
       processed+=outcomes.length;
+      await new Promise(resolve=>setTimeout(resolve,600));
       success+=outcomes.filter(x=>x==="sent").length;
       issues+=outcomes.filter(x=>x==="uncertain").length;
       cancelled+=outcomes.filter(x=>x==="cancelled").length;
