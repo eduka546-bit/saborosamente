@@ -28,6 +28,11 @@ import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
 import { toast } from "sonner";
+import { getPublicSiteSettings } from "@/lib/site-settings";
+import { configEntregaParaCidade } from "@/lib/entrega-config";
+import { defaultCardFlags, defaultMealFlags, enabledOrDefault } from "@/lib/payment-options";
+import { normalizarPrecosMarmita, precoMarmitaPorFaixa, unidadesDoItem } from "@/lib/combo-rules";
+import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import type { CatalogOrderItem } from "@/lib/whatsapp-catalog";
 
 export const Route = createFileRoute("/admin/pedidos/whatsapp")({
@@ -615,6 +620,40 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     staleTime: 30_000,
   });
 
+  const { data: locais = [] } = useQuery({
+    queryKey: ["delivery-rates-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("delivery_rates").select("cidade,bairro,valor,ativo").eq("ativo", true).order("cidade").order("bairro");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const { data: settings } = useQuery({ queryKey: ["whatsapp-order-site-settings"], queryFn: getPublicSiteSettings });
+  const blackAtiva = useBlackFridayActive();
+  const norm = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const cidadesDisponiveis = [...new Set(locais.map(l => l.cidade))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const bairrosDisponiveis = locais.filter(l => norm(l.cidade) === norm(cidade));
+  const horariosDisponiveis = configEntregaParaCidade(settings?.parametros_loja?.entrega, cidade).horarios;
+  const bandeiras = enabledOrDefault(pagamento === "alimentacao" ? settings?.meal_flags : settings?.card_flags, pagamento === "alimentacao" ? defaultMealFlags : defaultCardFlags);
+  const totalUnidadesPreco = items.reduce((n,item) => { const p=products.find(p=>p.id===item.productId); return n+item.quantity*unidadesDoItem(p?.nome,p?.tipo_produto ?? undefined); },0);
+  const tabelaPreco = normalizarPrecosMarmita(settings?.parametros_loja?.precos_marmita);
+  const aplicarPrecosSite = () => {
+    dadosEditadosRef.current = true;
+    if (!settings) { toast.error("Aguarde o carregamento dos preços do site."); return; }
+    if (descontoAplicado > 0) { toast.error("Remova ou confira o desconto adicional antes de aplicar os preços do site."); return; }
+    setItems(current=>current.map(item=>{
+      const p=products.find(p=>p.id===item.productId);
+      if (!p || item.nomeItem || ehPersonalizadaPedido({nome_item:item.nomeItem,observacao:item.observacao})) return item;
+      const tipo=String(p.tipo_produto ?? "").toLowerCase();
+      const promo=blackAtiva && totalUnidadesPreco>=5 ? blackFridayPrice(tipo,item.weight) : null;
+      if (promo !== null) return {...item,unitPrice:promo};
+      if (tipo==="marmita") return {...item,unitPrice:precoMarmitaPorFaixa(item.weight,blackAtiva ? 1 : totalUnidadesPreco,priceFor(p,item.weight),tabelaPreco)};
+      return item;
+    }));
+    setTotalConfirmado(null);
+    toast.success("Preços do site aplicados. Confira o total antes de salvar.");
+  };
+
   const productsByCode = useMemo(() => {
     const map = new Map<string, Product>();
     products.forEach((p) => {
@@ -1059,10 +1098,12 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
               <div>
                 <label className="text-xs font-bold text-gray-500">Horário de entrega (opcional)</label>
                 <Input
+                  list="wa-order-horarios"
                   value={horario}
                   onChange={(e) => setHorario(e.target.value)}
-                  placeholder="Ex.: após 17h"
+                  placeholder="Selecione ou digite"
                 />
+                <datalist id="wa-order-horarios">{horariosDisponiveis.map(h=><option key={h} value={h}/>)}</datalist>
               </div>
             )}
             <div>
@@ -1087,10 +1128,12 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
               <div>
                 <label className="text-xs font-bold text-gray-500">Cartão/bandeira (opcional)</label>
                 <Input
+                  list="wa-order-bandeiras"
                   value={tipoCartao}
                   onChange={(e) => setTipoCartao(e.target.value)}
-                  placeholder="Ex.: crédito Visa, Alelo..."
+                  placeholder="Selecione ou digite"
                 />
+                <datalist id="wa-order-bandeiras">{bandeiras.map(b=>String(b.name ?? b.label ?? "")).filter(Boolean).map(b=><option key={b} value={b}/>)}</datalist>
               </div>
             )}
           </section>
@@ -1122,11 +1165,13 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500">Bairro {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={bairro} onChange={(e) => { setBairro(e.target.value); setEnderecoOrigem("pedido"); }} />
+                  <Input list="wa-order-bairros" value={bairro} onChange={(e) => { setBairro(e.target.value); setEnderecoOrigem("pedido"); const local=bairrosDisponiveis.find(l=>norm(l.bairro)===norm(e.target.value)); if(local && metodoEntrega==="entrega") setTaxaEntrega(Number(local.valor)); }} placeholder="Selecione ou digite" />
+                  <datalist id="wa-order-bairros">{bairrosDisponiveis.map(l=><option key={l.bairro} value={l.bairro}>{money(Number(l.valor))}</option>)}</datalist>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500">Cidade {metodoEntrega === "entrega" ? "*" : ""}</label>
-                  <Input value={cidade} onChange={(e) => { setCidade(e.target.value); setEnderecoOrigem("pedido"); }} />
+                  <Input list="wa-order-cidades" value={cidade} onChange={(e) => { setCidade(e.target.value); setEnderecoOrigem("pedido"); }} placeholder="Selecione ou digite" />
+                  <datalist id="wa-order-cidades">{cidadesDisponiveis.map(c=><option key={c} value={c}/>)}</datalist>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1370,6 +1415,8 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
 
           <section className="bg-white border rounded-xl p-5">
             <div className="space-y-2 text-sm">
+              <Button type="button" variant="outline" className="w-full" disabled={!items.length || !settings} onClick={aplicarPrecosSite}>{blackAtiva ? "Aplicar preços Black Friday / site" : "Aplicar desconto progressivo do site"}</Button>
+              <p className="text-xs text-gray-500">{totalUnidadesPreco} unidades · preços por faixa, sem desconto duplicado. Valores manuais continuam editáveis.</p>
               <div className="flex justify-between">
                 <span className="text-gray-500">Produtos</span>
                 <span className="font-semibold">{money(subtotal)}</span>
