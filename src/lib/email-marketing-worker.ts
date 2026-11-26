@@ -77,13 +77,17 @@ async function deliver(item:QueueItem) {
       .replaceAll("{{primeiro_nome}}",html?escapeHtml(firstName||""):firstName||"")
       .replaceAll("{{nome_completo}}",html?escapeHtml(firstName?fullName:""):firstName?fullName:"");
     const url="https://saborosamente.com/email-cancelar?t="+item.unsub_token;
+    const inlineHeader=item.html.match(/<!--INLINE_BF_HEADER:([A-Za-z0-9+/=]+)-->/);
+    const emailBody=inlineHeader?item.html.replace(inlineHeader[0],""):item.html;
+    if(emailBody.includes("cid:bf-header-2026")&&!inlineHeader)throw new Error("Banner da campanha ausente.");
     const response=await api<{id?:string}>("/emails",{
       method:"POST",
       headers:{"Idempotency-Key":`email-marketing/${item.campaign_id}/${item.dispatch_id}`},
       body:{
         from:process.env.RESEND_FROM_EMAIL||"SaborosaMente <pedidos@saborosamente.com>",
         to:[item.email],subject:personalize(item.assunto),
-        html:personalize(item.html,true).replaceAll("__EMAIL_UNSUBSCRIBE_URL__",url),
+        html:personalize(emailBody,true).replaceAll("__EMAIL_UNSUBSCRIBE_URL__",url),
+        ...(inlineHeader?{attachments:[{filename:"black-friday-2026.png",content:inlineHeader[1],content_type:"image/png",content_id:"bf-header-2026"}]}:{}),
         text:[personalize(item.assunto),personalize(item.mensagem),"","Cancelar inscrição: "+url].join("\n\n"),
         headers:{
           "List-Unsubscribe":"<"+url+">",
