@@ -26,6 +26,7 @@ function AdminLayout() {
   useEffect(() => {
     let active = true;
     let revision = 0;
+    let verifiedUserId: string | null = null;
     const controllers = new Set<AbortController>();
 
     // Recebe a sessão emitida pelo Supabase, evitando chamar getSession()
@@ -59,6 +60,7 @@ function AdminLayout() {
           : roles?.some((role: any) => role.role === "custos")
             ? "custos"
             : null;
+        verifiedUserId = access ? session.user.id : null;
         setAccess(access);
         setAuthState(access ? "authorized" : "unauthorized");
       } catch (error) {
@@ -74,8 +76,12 @@ function AdminLayout() {
     // INITIAL_SESSION chega também na primeira abertura. Qualquer consulta
     // ao banco precisa acontecer fora do callback para não bloquear o auth lock.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Supabase emits SIGNED_IN on tab focus and TOKEN_REFRESHED during renewal.
+      // A verified session for the same user must not unmount the entire admin.
+      if (session?.user && verifiedUserId === session.user.id && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) return;
       const currentRevision = ++revision;
       if (event === "SIGNED_OUT" || !session) {
+        verifiedUserId = null;
         if (active) {
           setAccess(null);
           setAuthState("unauthorized");

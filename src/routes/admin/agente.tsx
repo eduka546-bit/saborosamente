@@ -1260,6 +1260,14 @@ const EMOJIS_RAPIDOS = [
   "🚚","📦","🛒","💳","💰","📍","📅","⏰","📲","💬",
 ];
 
+// Session storage is scoped to the browser tab; keep unsent drafts across remounts.
+function lerEstadoWhatsApp<T>(key: string, fallback: T): T {
+  try { const raw = sessionStorage.getItem(key); return raw === null ? fallback : JSON.parse(raw) as T; } catch { return fallback; }
+}
+function salvarEstadoWhatsApp(key: string, value: unknown) {
+  try { if (value === null || value === "") sessionStorage.removeItem(key); else sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
 // ── Tela de chat de uma conversa ──────────────────────────────────────────────
 function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: any) {
   const t = dark ? DARK : LIGHT;
@@ -1276,9 +1284,16 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
   });
   const responsavelOutro = !!estado.responsavel_id && estado.responsavel_id !== usuarioLogado?.id;
   const nomeResponsavel = business.equipe.find((item: any) => item.id === estado.responsavel_id)?.nome || "Outro atendente";
-  const [msgText, setMsgText] = useState("");
+  const draftChatKey = "sm:wa:chat:" + conversa.id;
+  const [msgText, setMsgTextState] = useState<string>(()=>lerEstadoWhatsApp(draftChatKey,""));
+  const setMsgText = (value: string | ((previous: string)=>string)) => {
+    setMsgTextState(previous => { const next = typeof value === "function" ? value(previous) : value; salvarEstadoWhatsApp(draftChatKey,next); return next; });
+  };
   const [assistenteAberto, setAssistenteAberto] = useState(false);
-  const [salesDialog, setSalesDialog] = useState<{ mode: "catalog" | "order"; item?: CatalogOrderItem; items?: CatalogOrderItem[] } | null>(null);
+  type SalesDialogState = { mode: "catalog" | "order"; item?: CatalogOrderItem; items?: CatalogOrderItem[] } | null;
+  const salesKey = "sm:wa:sales:" + conversa.id;
+  const [salesDialog, setSalesDialogState] = useState<SalesDialogState>(()=>lerEstadoWhatsApp(salesKey,null));
+  const setSalesDialog = (value: SalesDialogState) => { salvarEstadoWhatsApp(salesKey,value?.mode==="order"?{mode:"order"}:null);setSalesDialogState(value); };
   const [modeloSelecionado, setModeloSelecionado] = useState("");
   const [confirmouAutorizacao, setConfirmouAutorizacao] = useState(false);
   const [enviandoModelo, setEnviandoModelo] = useState(false);
@@ -2321,7 +2336,8 @@ function AdminAgentePage() {
   const [config, setConfig] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveIdState] = useState<string | null>(()=>lerEstadoWhatsApp("sm:wa:active",null));
+  const setActiveId = (id: string | null) => { salvarEstadoWhatsApp("sm:wa:active",id);setActiveIdState(id); };
   const [showConfig, setShowConfig] = useState(false);
   const [filterModo, setFilterModo] = useState<"todos" | "pendentes" | "respondidas" | "ia" | "humano" | "campanhas" | "nao_lidas" | "arquivadas">("todos");
   const [etiquetaFiltro, setEtiquetaFiltro] = useState("");
