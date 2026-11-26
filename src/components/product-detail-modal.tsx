@@ -281,7 +281,7 @@ export function ProductDetailModal({
 
   const priceForWeight = (w: string) => {
     const full = fullPriceForWeight(w);
-    return ehMarmita && !isNoDiscount(categoriaNome)
+    return !bfUnlocked && ehMarmita && !isNoDiscount(categoriaNome)
       ? precoMarmitaPorFaixa(w, bfActive ? 1 : projectedCount, full, tabelaPrecos)
       : full;
   };
