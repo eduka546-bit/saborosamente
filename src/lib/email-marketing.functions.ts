@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { processEmailMarketingDay } from "./email-marketing-worker";
 import { createServerClient } from "@/integrations/supabase/server";
 
 const EMAIL_MARKETING_SEGMENT_ID = "1b02150d-58d5-4ffe-afd7-c8105f2c9fb1";
@@ -7,6 +8,8 @@ const API_URL = "https://api.resend.com";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("overview"), token: z.string().min(10) }),
+  z.object({ action: z.literal("process_now"), token: z.string().min(10), confirmed: z.literal(true) }),
+  z.object({ action: z.literal("preview"), token: z.string().min(10), id: z.uuid() }),
   z.object({
     action: z.literal("add_contact"), token: z.string().min(10),
     email: z.email().max(320), nome: z.string().trim().min(2).max(140),
@@ -107,6 +110,15 @@ export const emailMarketingAdmin = createServerFn({ method: "POST" })
       .select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
     if (roleError || !role) throw new Error("Apenas administradores podem acessar E-mail Marketing.");
 
+    if(data.action==="process_now"){
+      const result=await processEmailMarketingDay(1);
+      return {action:"process_now" as const,...result};
+    }
+    if(data.action==="preview"){
+      const {data:row,error}=await (db as any).from("email_marketing_campaigns").select("html").eq("id",data.id).single();
+      if(error)throw error;
+      return {action:"preview" as const,html:String(row.html).replace(/<!--INLINE_BF_HEADER:[A-Za-z0-9+/=]+-->/,"").replaceAll("{{primeiro_nome}}","Maria").replaceAll("{{nome_completo}}","Maria Silva").replaceAll("__EMAIL_UNSUBSCRIBE_URL__","#")};
+    }
     if (data.action === "overview") {
       const [people, campaigns, stats, daily, usage] = await Promise.all([
         (db as any).from("email_marketing_consents").select("email,nome,revogado_em,consentido_em",{ count:"exact" }).order("consentido_em",{ ascending:false }).limit(1000),
@@ -183,6 +195,7 @@ export const emailMarketingAdmin = createServerFn({ method: "POST" })
     }
 
     if (data.action === "send") {
+      if(data.id==="52655cd2-2d6f-4ed5-a229-fd566fee9150" && Date.now()>=Date.parse("2026-11-29T03:00:00Z"))throw new Error("Black Friday encerrada.");
       let start: string | null=null;
       if(data.scheduledAt){
         const date=new Date(data.scheduledAt);
@@ -190,6 +203,7 @@ export const emailMarketingAdmin = createServerFn({ method: "POST" })
           throw new Error("Agende para pelo menos cinco minutos a partir de agora.");
         start=date.toISOString();
       }
+      if(data.id==="52655cd2-2d6f-4ed5-a229-fd566fee9150" && start && Date.parse(start)>=Date.parse("2026-11-29T03:00:00Z"))throw new Error("Agendamento posterior ao encerramento da Black Friday.");
       const { data: amount,error }=await (db as any).rpc("email_marketing_activate_campaign",{
         p_id:data.id,p_start_at:start,
       });
