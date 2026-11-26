@@ -231,6 +231,8 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
   const [produtoRapido, setProdutoRapido] = useState("");
+  const [buscaProdutoRapido, setBuscaProdutoRapido] = useState("");
+  const [buscaProdutoAberta, setBuscaProdutoAberta] = useState(false);
   const [pesoRapido, setPesoRapido] = useState<DraftItem["weight"]>("300g");
   const [qtdRapida, setQtdRapida] = useState(1);
   const [personalizadaOpen, setPersonalizadaOpen] = useState(false);
@@ -943,6 +945,8 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
 
   if (conversation) {
     const produtoEscolhido = products.find(p => p.id === produtoRapido);
+    const termosProduto = norm(buscaProdutoRapido).split(/\s+/).filter(Boolean);
+    const resultadosProduto = products.filter(p => termosProduto.every(t => norm(p.nome).includes(t) || norm(codeOf(p.nome)).includes(t)));
     const tipoEscolhido = String(produtoEscolhido?.tipo_produto ?? "").toLowerCase();
     const pesoEscolhido = tipoEscolhido === "sopa" ? "400g" : tipoEscolhido === "complemento" ? "200g" : pesoRapido;
     const addRapido = () => {
@@ -950,6 +954,9 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       dadosEditadosRef.current = true;
       setItems(current => [...current, {key:newKey(),productId:produtoEscolhido.id,quantity:qtdRapida,weight:pesoEscolhido,unitPrice:priceFor(produtoEscolhido,pesoEscolhido),observacao:""}]);
       setQtdRapida(1);
+      setProdutoRapido("");
+      setBuscaProdutoRapido("");
+      setBuscaProdutoAberta(false);
     };
     const taxaDoBairro = (c:string,b:string) => locais.find(l=>norm(l.cidade)===norm(c)&&norm(l.bairro)===norm(b));
     const campo = "space-y-1 min-w-0";
@@ -971,7 +978,11 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       </section>
       <section className={sec}>
         <h2 className="font-bold">Produtos · {totalUnidadesPreco} un.</h2>
-        <select aria-label="Produto" className={selectClass} value={produtoRapido} onChange={e=>setProdutoRapido(e.target.value)}><option value="">Selecione o produto</option>{products.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}</select>
+        <div className="space-y-1">
+          <Input aria-label="Buscar produto por nome ou código" placeholder="Buscar produto (ex.: TD01, frango)" value={buscaProdutoRapido} onFocus={()=>setBuscaProdutoAberta(true)} onChange={e=>{setBuscaProdutoRapido(e.target.value);setProdutoRapido("");setBuscaProdutoAberta(true);}} onKeyDown={e=>{if(e.key==="Enter"&&buscaProdutoAberta&&resultadosProduto.length===1){e.preventDefault();setProdutoRapido(resultadosProduto[0].id);setBuscaProdutoRapido(resultadosProduto[0].nome);setBuscaProdutoAberta(false);}}}/>
+          {buscaProdutoAberta&&<div className="max-h-44 overflow-y-auto rounded-md border divide-y bg-white">{resultadosProduto.length ? resultadosProduto.map(p=><button type="button" key={p.id} className="block w-full px-2 py-2 text-left text-xs hover:bg-green-50 focus:bg-green-50" onClick={()=>{setProdutoRapido(p.id);setBuscaProdutoRapido(p.nome);setBuscaProdutoAberta(false);}}>{p.nome}</button>) : <p className="p-2 text-xs text-gray-500">{productsLoading?"Carregando produtos...":"Nenhum produto encontrado."}</p>}</div>}
+          {produtoEscolhido&&!buscaProdutoAberta&&<p className="text-xs text-green-700">Produto selecionado</p>}
+        </div>
         <div className="grid grid-cols-[1fr_72px_1fr] gap-2">
           <select aria-label="Tamanho" className={selectClass} value={pesoEscolhido} onChange={e=>setPesoRapido(e.target.value as DraftItem["weight"])} disabled={tipoEscolhido==="sopa"||tipoEscolhido==="complemento"}>{tipoEscolhido==="complemento"?<option value="200g">150g</option>:tipoEscolhido==="sopa"?<option value="400g">400g</option>:<><option value="200g">200g</option><option value="300g">300g</option><option value="400g">400g</option></>}</select>
           <Input aria-label="Quantidade" type="number" min={1} value={qtdRapida} onChange={e=>setQtdRapida(Number(e.target.value))}/>
