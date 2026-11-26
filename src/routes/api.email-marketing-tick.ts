@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { processEmailMarketingDay } from "@/lib/email-marketing-worker";
 
 export const Route = createFileRoute("/api/email-marketing-tick")({
+  // @ts-expect-error TanStack Start aceita server.handlers em runtime; tipagem do Router ainda defasada.
   server: {
     handlers: {
-      GET: async ({ request }) => {
+      GET: async ({ request }: { request: Request }) => {
         const secret=process.env.CRON_SECRET;
         if(!secret || request.headers.get("authorization")!=="Bearer "+secret) {
           return Response.json({error:"Não autorizado"},{status:401});
