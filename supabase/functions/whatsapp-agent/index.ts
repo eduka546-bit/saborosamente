@@ -43,6 +43,46 @@ const MSG_ERRO_TECNICO = "Desculpe, tive um problema técnico. Tente novamente e
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+const blackAtiva = (now = Date.now()) => now >= Date.parse("2026-11-25T00:00:00Z") && now < Date.parse("2026-11-29T03:00:00Z");
+const blackTexto = () => blackAtiva() ? "BLACK FRIDAY VIGENTE ATÉ 29/11/2026 ÀS 00h (Brasília): a partir de 5 unidades, marmita 200g R$14, 300g R$17, 400g R$20, sopa 400g R$16, por unidade. De 1 a 4 unidades: preço normal. Não acumular desconto progressivo. Frete São Bento do Sul R$5 a partir de 5 unidades; outras cidades conforme cadastro. Confira disponibilidade e finalize em https://saborosamente.com." : "Black Friday de novembro de 2026 encerrada ou não vigente; não ofereça seus preços.";
+function lojaAberta(now = new Date()) {
+ const parts = new Intl.DateTimeFormat("en-US",{timeZone:"America/Sao_Paulo",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(now);
+ const get=(k:string)=>parts.find(p=>p.type===k)?.value ?? "";
+ const m=Number(get("hour"))*60+Number(get("minute"));
+ return get("weekday")!=="Sun" && m>=570 && m<(get("weekday")==="Sat"?780:1140);
+}
+function avisoEquipe() { return lojaAberta() ? "Nossa equipe vai continuar por aqui." : "Nossa equipe está fora do horário de atendimento e vai conferir sua solicitação no próximo expediente. Você também pode finalizar pelo site: https://saborosamente.com 💚"; }
+function respostaBlack(pergunta:string,historico:any[],now=Date.now()):string|null {
+ if(!blackAtiva(now)) return null;
+ const n=normalizarCTA(pergunta);
+ const curta=/^(cada|por unidade|isso mesmo|esse valor|esse preco|e o frete|frete|quanto|qual valor)[?!. ]*$/.test(n);
+ const anterior=historico.filter(m=>m.role==="user"||m.role==="assistant").slice(-6).map(m=>String(m.content??"")).join(" ");
+ const ctx=normalizarCTA(curta?anterior+" "+pergunta:pergunta);
+ if(!/(black|promocao|desconto|preco|valor|quanto|custa|cada|unidade|frete|14 reais|17 reais|20 reais|16 reais|r\$)/.test(ctx)) return null;
+ if(/personalizad|complemento|cashback|cupom|combo pronto|alerg|lactose|gluten|reclam|pedido.*atras/.test(ctx)) return null;
+ if(/frete|taxa de entrega/.test(n)) {
+   if(/sao bento do sul|\bsbs\b/.test(ctx)) return "Em São Bento do Sul, o frete continua *R$ 5,00 a partir de 5 unidades*, inclusive na Black Friday! 💚";
+   return null;
+ }
+ const sopa=/\bsopas?\b|caldos?/.test(ctx), marmita=/marmita|refeicao|refeicoes|prato/.test(ctx);
+ const pesos=[...new Set([...ctx.matchAll(/\b(200|300|400)\s*g\b/g)].map(m=>m[1]))];
+ const q=n.match(/\b(\d{1,3})\s*(?:marmitas?|refeicoes|unidades?|pratos?|sopas?|un\b)/);
+ if(q&&Number(q[1])<5) return null;
+ if(sopa&&!marmita) return "Na Black Friday, cada sopa ou caldo de 400g sai por *R$ 16,00*, a partir de 5 unidades. 💚";
+ if(pesos.length===1&&!sopa) {
+   const valor=pesos[0]==="200"?14:pesos[0]==="300"?17:20;
+   return "Na Black Friday, cada marmita de "+pesos[0]+"g sai por *R$ "+valor+",00*, na compra de 5 ou mais unidades. 💚";
+ }
+ if(!/black|promocao|desconto|preco|valor|quanto|custa|cada/.test(n)) return null;
+ return "🔥 *Black Friday SaborosaMente* — a partir de 5 unidades:\n• Marmita 200g: R$ 14,00 cada\n• Marmita 300g: R$ 17,00 cada\n• Marmita 400g: R$ 20,00 cada\n• Sopa 400g: R$ 16,00 cada\nEm São Bento do Sul, frete R$ 5,00 a partir de 5 unidades. Até 28/11 às 23h59. Peça em https://saborosamente.com 💚";
+}
+async function aindaIA(id:string) {
+ const {data,error}=await supabase.from("whatsapp_conversas").select("modo").eq("id",id).maybeSingle();
+ const {data:cfg,error:err}=await supabase.from("agente_config").select("ativo").maybeSingle();
+ return !error&&!err&&!!data&&data.modo!=="humano"&&cfg?.ativo===true;
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // WhatsApp Cloud API helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -599,7 +639,8 @@ async function getProdutosContexto(): Promise<{ texto: string; produtos: any[] }
   const valores = (p: number) => "R$ " + p.toFixed(2).replace(".", ",");
   const faixas = ["200g","300g","400g"] as const;
   const linhas = [
-    "\nTABELA ATUAL DE PREÇOS DAS MARMITAS (fixa por tamanho e quantidade total, NÃO aplicar desconto percentual adicional):",
+    "\n" + blackTexto(),
+    "\nTABELA NORMAL DE PREÇOS DAS MARMITAS (durante a Black, usar esta tabela apenas para 1–4 unidades):",
     ...faixas.map(t => t + " — 1–4 un: " + valores(tabela[t].unit) +
       " | 5–9 un: " + valores(tabela[t].t5) + " | 10–19 un: " +
       valores(tabela[t].t10) + " | 20+ un: " + valores(tabela[t].t20)),
@@ -2661,9 +2702,7 @@ Deno.serve(async (req: Request) => {
         await registrarEvento("escalacao_humano",telefone,conversa.id,{
           origem:reclamaCritica?"reclamacao_critica":"pedido_explicito_de_atendente",
         });
-        const textoConfirmacao = reclamaCritica
-          ? "Sinto muito pelo que aconteceu. 💚 Nosso atendimento humano vai assumir esta conversa para verificar a situação com cuidado."
-          : "Claro! 💚 Nossa equipe vai assumir o atendimento por aqui. Você não precisa sair desta conversa.";
+        const textoConfirmacao = (reclamaCritica ? "Sinto muito pelo que aconteceu. 💚 " : "Claro! 💚 ") + avisoEquipe();
         await sendWhatsAppMessage(telefone,textoConfirmacao);
         await appendMensagem(conversa.id,historico,{role:"assistant",content:textoConfirmacao});
         return new Response("OK",{status:200});
@@ -2766,7 +2805,7 @@ Deno.serve(async (req: Request) => {
       // Só reenviamos o menu automaticamente quando NÃO houver um clique de menu
       // pendente — caso contrário o clique do cliente seria perdido e o switch
       // abaixo não seria executado.
-      if ((primeiraMsg || pediuMenu) && !menuId && !respostaTemplate) {
+      if ((pediuMenu || (primeiraMsg && /^(oi|ola|bom dia|boa tarde|boa noite|oie|oii)[!. ]*$/.test(normalizarCTA(texto)))) && !menuId && !respostaTemplate) {
         if (primeiraMsg) {
           await verificarEExecutarAutomacoes(telefone, texto, conversa, historico, "primeira_msg", {
             primeiraMsg: true,
@@ -2797,7 +2836,7 @@ Deno.serve(async (req: Request) => {
               origem: "menu_atendente",
             });
             // Texto editável no admin (chave menu_atendente); fallback embutido.
-            const msg =
+            const msg = !lojaAberta() ? avisoEquipe() :
               (await getConteudoFixo("menu_atendente", primeiroNome)) ??
               (primeiroNome
                 ? `Tudo bem, ${primeiroNome}! 😊 Vou te conectar com nossa equipe agora. Um momento!`
@@ -2854,7 +2893,7 @@ Deno.serve(async (req: Request) => {
               origem: "menu_pedido",
             });
             // Texto editável no admin (chave menu_pedido); fallback embutido.
-            const msg =
+            const msg = !lojaAberta() ? avisoEquipe() :
               (await getConteudoFixo("menu_pedido", primeiroNome)) ??
               (primeiroNome
                 ? `Perfeito, ${primeiroNome}! 🛒 Vou te conectar com nossa equipe pra fazer seu pedido certinho. Um momento!`
@@ -2870,7 +2909,7 @@ Deno.serve(async (req: Request) => {
           case "duvida_entrega":
           case "duvida_pagamento":
           case "duvida_descontos": {
-            const respostaFixa = await getRespostaFixa(menuId);
+            const respostaFixa = menuId === "duvida_descontos" && blackAtiva() ? respostaBlack("black friday",[]) : await getRespostaFixa(menuId);
             if (respostaFixa) {
               await sendWhatsAppMessage(telefone, respostaFixa);
               await appendMensagem(conversa.id, historico, {
@@ -2940,7 +2979,7 @@ Se for a primeira mensagem, cumprimente e atenda normalmente.
 Não solicite CPF ou dados sensíveis. Oriente cadastro ou verificação de identidade no site.`;
 
       // Instrução de saudação na primeira mensagem
-      const saudacaoCtx = primeiraMsg
+      const saudacaoCtx = primeiraMsg && /^(oi|ola|bom dia|boa tarde|boa noite)[!. ]*$/.test(normalizarCTA(texto))
         ? clienteResult.encontrado
           ? `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: Use a função enviar_menu para mostrar as opções. Antes do menu, mande uma mensagem calorosa chamando pelo nome: "Oii, ${clienteResult.profile?.nome?.split(" ")[0] ?? ""}! Que bom ter você aqui 🫶🏼"`
           : `\n\nINSTRUÇÃO ESPECIAL — PRIMEIRA MENSAGEM: Use a função enviar_menu para mostrar as opções ao cliente. Antes do menu, mande uma saudação calorosa curta.`
@@ -2959,6 +2998,9 @@ ${clienteCtx}
 ${saudacaoCtx}
 
 REGRAS OPERACIONAIS FIXAS (sempre aplicar, independente dos módulos):
+${blackTexto()}
+${lojaAberta() ? "Expediente normal agora, sujeito a exceções." : "FORA DO HORÁRIO: não prometa resposta humana imediata. Oriente site ou coleta de pedido para próximo expediente."}
+Loja: Rua Augusto Wunderwald, nº7, Sala 1, Progresso, São Bento do Sul. Seg-sex 9h30–19h, sábado 9h30–13h. Aqueça em até 7 minutos; conservação congelada até 6 meses conforme etiqueta. Cartões alimentação/refeição, débito e crédito sem acréscimo. Responda à pergunta atual usando contexto anterior, inclusive perguntas curtas como Cada?. Não repita menu ou saudação desnecessariamente. Na Black Friday as regras promocionais acima têm prioridade sobre qualquer tabela normal, texto antigo ou módulo. Se cliente quiser comprar, ofereça https://saborosamente.com e, se preferir WhatsApp, colete sabores, tamanhos, quantidades, nome, entrega/retirada, endereço, horário e pagamento sem confirmar estoque reservado ou pedido. Encaminhe resumo à equipe. Nunca conclua pedido automaticamente.
 
 1. NUNCA invente preços — consulte a TABELA ATUAL DE PREÇOS DAS MARMITAS e o CARDÁPIO PÚBLICO acima antes de informar valores. Se os dados não estiverem disponíveis, peça conferência humana.
 2. NUNCA confirme entrega em bairro/cidade fora da lista ÁREAS DE ENTREGA.
@@ -2986,8 +3028,8 @@ PREÇOS POR FAIXA (sempre observar ao informar valores):
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
 
 REGRA IMPORTANTE: Você NÃO fecha o pedido nem escolhe os produtos com o cliente.
-Seu papel é coletar as INFORMAÇÕES INICIAIS (nome, endereço, forma de pagamento) e depois TRANSFERIR PARA UM HUMANO da equipe, que vai escolher os produtos e fechar o pedido com o cliente.
-Se o cliente já disser um produto que quer (ex: "quero a parmegiana"), NÃO comece a montar o pedido — apenas registre mentalmente e siga coletando os dados iniciais. Seja transparente logo no início: avise que vai pegar alguns dados e depois conectar com a equipe para finalizar. Exemplo: "Que ótimo! 😊 Vou pegar alguns dados rapidinho e já te conecto com nossa equipe pra fechar seu pedido certinho. Pode ser?"
+Seu papel é coletar as informações iniciais e os itens desejados (sabores, tamanhos e quantidades), depois transferir à equipe ou orientar o checkout. Não finalize nem reserve estoque.
+Se o cliente disser um produto, registre no resumo e ajude a escolher tamanho e quantidade; não confirme pedido. Seja transparente logo no início: avise que vai pegar alguns dados e depois conectar com a equipe para finalizar. Exemplo: "Que ótimo! 😊 Vou pegar alguns dados rapidinho e já te conecto com nossa equipe pra fechar seu pedido certinho. Pode ser?"
 Mesmo para repetir o último pedido, você nunca pode usar criar_pedido; peça que a equipe confira e finalize.
 NUNCA invente endereço, valores ou dados que você não tem. Se não souber, pergunte.
 
@@ -3035,8 +3077,9 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
       // Respostas objetivas de preço, estoque, frete e produção devem vir
       // dos cálculos do site, não de uma inferência generativa.
       if (typeof texto === "string" && texto.length <= 1500) {
-        const respostaVerificada = await responderComercialComDadosAtuais(texto);
+        const respostaVerificada = respostaBlack(texto,historico) ?? (blackAtiva() && /preco|valor|quanto|desconto|custa|cada|frete/i.test(normalizarCTA(texto)) ? null : await responderComercialComDadosAtuais(texto));
         if (respostaVerificada) {
+          if (!(await aindaIA(conversa.id))) return new Response("OK",{status:200});
           const enviada = await sendWhatsAppMessage(telefone, respostaVerificada);
           if (enviada) {
             await appendMensagem(conversa.id, historico, {role:"assistant",content:respostaVerificada});
@@ -3048,6 +3091,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
 
       // ── Chama OpenAI ─────────────────────────────────────────────────────
       const resultado = await chamarOpenAI(systemPrompt, historico, pedidoEmAndamento);
+      if (!(await aindaIA(conversa.id))) return new Response("OK",{status:200});
 
       // ── Processa resultado ───────────────────────────────────────────────
       if (resultado.tipo === "function") {
@@ -3175,9 +3219,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
             resumo,
           });
           const nomeCliente = clienteResult?.profile?.nome?.split(" ")[0] ?? null;
-          const msg = nomeCliente
-            ? `Perfeito, ${nomeCliente}! 😊 Vou te conectar com alguém da equipe pra continuarem juntos. Um momento!`
-            : "Perfeito! 😊 Vou te conectar com alguém da equipe pra continuarem juntos. Um momento!";
+          const msg = (nomeCliente ? `Perfeito, ${nomeCliente}! 😊 ` : "Perfeito! 😊 ") + avisoEquipe();
           await sendWhatsAppMessage(telefone, msg);
           await appendMensagem(conversa.id, historico, { role: "assistant", content: msg });
           // Se houver resumo, salva como mensagem de sistema para a equipe ver.
@@ -3239,8 +3281,8 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           }
         } else {
           // Resposta conversacional normal.
-          await sendWhatsAppMessage(telefone, resposta);
-          await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
+          const enviada = await sendWhatsAppMessage(telefone, resposta);
+          if (enviada) await appendMensagem(conversa.id, historico, { role: "assistant", content: resposta });
 
           // Chatbot: depois de responder, reexibe o menu para o cliente ter um
           // próximo passo claro — EXCETO se há um pedido em andamento (o menu
@@ -3248,7 +3290,7 @@ REGRA ABSOLUTA: Você NUNCA finaliza um pedido sozinha, em NENHUMA situação �
           // direta esperando resposta. Assim o fluxo fica guiado sem grudar o
           // menu no meio de uma conversa que claramente continua.
           const perguntaAberta = /\?\s*$/.test(resposta.trim());
-          if (!pedidoEmAndamento && !perguntaAberta) {
+          if (false && !pedidoEmAndamento && !perguntaAberta) {
             await sendMenuComDelay(telefone);
           }
         }
