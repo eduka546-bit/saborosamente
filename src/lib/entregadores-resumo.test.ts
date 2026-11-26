@@ -81,9 +81,11 @@ describe("resumo de entregas para motoristas", () => {
     expect(link).toBeTruthy();
     const url = new URL(link!);
     expect(url.origin).toBe("https://www.google.com");
-    expect(url.pathname).toBe("/maps/search/");
+    expect(url.pathname).toBe("/maps/dir/");
     expect(url.searchParams.get("api")).toBe("1");
-    const busca = url.searchParams.get("query")!;
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    const busca = url.searchParams.get("destination")!;
     expect(busca).toContain("Rua Ermelino Becker, 53");
     expect(busca).toContain("Centro");
     expect(busca).toContain("Rio Negro");
@@ -111,8 +113,8 @@ describe("resumo de entregas para motoristas", () => {
     const p: PedidoRota = { ...base, endereco_rua: null, endereco_numero: null,
       endereco: "Av. Argolo 397", endereco_cidade: "São Bento do Sul" };
     const link = linkGoogleMapsEntrega(p)!;
-    expect(new URL(link).searchParams.get("query")).toContain("Av. Argolo 397");
-    expect(new URL(link).searchParams.get("query")).toContain("São Bento do Sul");
+    expect(new URL(link).searchParams.get("destination")).toContain("Av. Argolo 397");
+    expect(new URL(link).searchParams.get("destination")).toContain("São Bento do Sul");
   });
 
   it("listas vazias e endereços ausentes não compartilham clientes indevidamente", () => {
