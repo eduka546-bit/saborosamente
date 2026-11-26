@@ -252,6 +252,19 @@ async function processarCarrinho(
     return { id: carrinho.id, ok: false, motivo: "sem telefone" };
   }
 
+  // Global marketing opt-out overrides any newly created cart consent.
+  const digits = String(telefone).replace(/\D/g, "");
+  const numeroBase = digits.startsWith("55") && (digits.length === 12 || digits.length === 13) ? digits.slice(2) : digits;
+  if (!/^\d{10,11}$/.test(numeroBase)) {
+    return { id: carrinho.id, ok: false, motivo: "telefone inválido para verificar preferência" };
+  }
+  const { data: optOut, error: optOutError } = await supabase
+    .from("whatsapp_marketing_optout").select("numero_base")
+    .eq("numero_base", numeroBase).maybeSingle();
+  if (optOutError || optOut) {
+    return { id: carrinho.id, ok: false, motivo: optOutError ? "preferência de marketing não verificada" : "descadastro de marketing" };
+  }
+
   const nome = String(carrinho.nome ?? "cliente").trim().split(/\s+/)[0] || "cliente";
   const valor = Number(carrinho.valor_total ?? 0);
   const resultado = await enviarTemplate(telefone, config.template_meta, nome, valor);
