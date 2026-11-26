@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/email-marketing")({
   ssr: false,
 });
 
-type Aba = "criar" | "contatos" | "historico";
+type Aba = "criar" | "campanhas" | "contatos" | "historico";
 type Broadcast = { id: string; name?: string; subject?: string; status?: string; created_at?: string; scheduled_at?: string; progress?: { total:number;pendentes:number;processando:number;enviados:number;falhas:number;incertos:number;cancelados:number } };
 type Contact = { id: string; email: string; first_name?: string; last_name?: string; unsubscribed?: boolean };
 
@@ -111,7 +111,7 @@ function EmailMarketingPage() {
       });
       if (result.action === "create_draft") {
         setForm(INITIAL);
-        setAba("historico");
+        setAba("campanhas");
       }
     }, "Rascunho criado, sem disparar e-mails.");
   };
@@ -206,6 +206,7 @@ function EmailMarketingPage() {
       <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-2">
         {([
           ["criar", "Criar campanha", Plus],
+          ["campanhas", "Minhas campanhas", Mail],
           ["contatos", "Lista de e-mails", Users],
           ["historico", "Histórico e envios", Clock],
         ] as const).map(([id, nome, Icon]) => (
@@ -309,11 +310,11 @@ function EmailMarketingPage() {
         </div>
       )}
 
-      {aba === "historico" && (
+      {(aba === "campanhas" || aba === "historico") && (
         <section className="space-y-4 rounded-2xl border bg-white p-5">
-          <div><h2 className="text-lg font-bold text-[#064D2F]">Campanhas de e-mail</h2><p className="text-sm text-gray-500">Envios programados por campanha, com relatório de destinatários e sem repetição.</p></div>
+          <div><h2 className="text-lg font-bold text-[#064D2F]">{aba === "campanhas" ? "Minhas campanhas" : "Histórico de envios"}</h2><p className="text-sm text-gray-500">Envios programados por campanha, com relatório de destinatários e sem repetição.</p></div>
           <div className="space-y-3">
-            {campanhas.map(c => (
+            {campanhas.filter(c => aba === "campanhas" || c.status !== "draft").map(c => (
               <div key={c.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div><p className="font-semibold text-gray-900">{c.name || c.subject}</p><p className="mt-1 text-xs text-gray-500">{c.subject} · Criada em {dataBr(c.created_at)}</p></div>
@@ -346,7 +347,7 @@ function EmailMarketingPage() {
                 {c.scheduled_at && c.status !== "draft" && <p className="mt-2 text-xs text-gray-500">Início autorizado: {dataBr(c.scheduled_at)}</p>}
               </div>
             ))}
-            {campanhas.length === 0 && <p className="py-8 text-center text-sm text-gray-500">Nenhuma campanha de e-mail criada ainda.</p>}
+            {campanhas.filter(c => aba === "campanhas" || c.status !== "draft").length === 0 && <p className="py-8 text-center text-sm text-gray-500">{aba === "campanhas" ? "Nenhuma campanha de e-mail criada ainda." : "Nenhum histórico de envio ainda."}</p>}
           </div>
           {detalhes && (
             <div className="rounded-xl border border-[#cfe0d1] bg-[#f6faf5] p-4">
