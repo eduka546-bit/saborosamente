@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { Minus, Plus, Trash2, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { sortOrderItems } from "@/lib/order-item-order";
@@ -98,7 +99,7 @@ export function CartSheet({ children }: { children: React.ReactNode }) {
                           </button>
                         </div>
                         <span className="text-base font-semibold text-primary">
-                          {formatBRL(lineTotal)}
+                          {formatBRL(lineTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={weight || product.peso} />
                         </span>
                       </div>
                     </div>

@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
 /**
@@ -236,7 +237,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
           <div>
             <h2 className="text-lg font-bold">{combo.nome}</h2>
             <p className="text-base text-white/75">
-              {isMaisLeves ? "Pratos mais leves selecionados para você" : `Escolha ${totalCombo} sabores`} — {formatBRL(precoCombo)}
+              {isMaisLeves ? "Pratos mais leves selecionados para você" : `Escolha ${totalCombo} sabores`} — {formatBRL(precoCombo)} <BlackFridayBadge tipo="combo" weight={selectedWeight} />
             </p>
           </div>
           <button
@@ -269,7 +270,7 @@ export function ComboSaboresModal({ isOpen, onClose, combo, initialWeight = "200
             >
               {w.label} ({w.value})
               <span className="block text-sm font-medium text-gray-600 mt-0.5">
-                {formatBRL(w.preco)}
+                {formatBRL(w.preco)} <BlackFridayBadge tipo="combo" weight={w.value} />
               </span>
             </button>
           ))}

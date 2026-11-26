@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Gift, Minus, Plus, Trash2 } from "lucide-react";
 import { FREE_SHIPPING_FROM, useCart } from "@/lib/cart";
@@ -163,7 +164,7 @@ function Carrinho() {
                 <div className="flex-1">
                   <h2 className="text-base font-semibold">{product.nome}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {weight || product.peso} • {formatBRL(lineTotal / Math.max(1, quantity))} cada
+                    {weight || product.peso} • {formatBRL(lineTotal / Math.max(1, quantity))} cada <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={weight || product.peso} />
                   </p>
                   {custom && (
                     <p className="mt-0.5 text-sm text-muted-foreground">

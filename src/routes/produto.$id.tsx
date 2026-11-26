@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { TabelaNutricionalExpansivel } from "@/components/product-detail-modal";
@@ -531,7 +532,7 @@ function ProdutoPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-4xl font-semibold text-primary bg-gradient-brand bg-clip-text text-transparent">
-                {formatBRL(purchaseTotal)}
+                {formatBRL(purchaseTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
               </span>
             </div>
 

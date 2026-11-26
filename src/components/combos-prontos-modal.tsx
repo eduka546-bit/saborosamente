@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { useMemo, useState } from "react";
 import { useCommerceDialog } from "@/lib/use-commerce-dialog";
@@ -194,7 +195,7 @@ export function CombosProntosModal({
                             aria-label={`Selecionar combo de ${unidades} unidades, ${p.descricao}, por ${formatBRL(Number(p.preco))}`}
                             className="flex min-h-[76px] flex-col items-center justify-center rounded-xl border-2 border-[#d8e6d8] bg-[#fafdf9] px-1 py-2 text-center text-[#064d2f] transition hover:border-[#086e45] hover:bg-[#edf5e6]">
                             <span className="text-sm font-extrabold">{p.nome} <span className="text-xs font-medium">({p.descricao})</span></span>
-                            <span className="mt-1 text-sm font-bold">{formatBRL(Number(p.preco))}</span>
+                            <span className="mt-1 text-sm font-bold">{formatBRL(Number(p.preco))} <BlackFridayBadge tipo="combo" weight={p.peso} /></span>
                             <ChevronRight size={14} className="mt-1" />
                           </button>
                         ))}

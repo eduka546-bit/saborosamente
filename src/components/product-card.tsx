@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import {
   Minus,
@@ -518,7 +519,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                     {isComboPronto ? (
                       <span className="flex flex-col items-center leading-tight">
                         <span>{comboUnits ? `${comboUnits}un - ` : ""}{weightLabel(w)} ({w})</span>
-                        <span className="mt-0.5 font-semibold">{formatBRL(priceForWeight(w))}</span>
+                        <span className="mt-0.5 font-semibold">{formatBRL(priceForWeight(w))} <BlackFridayBadge tipo="combo" weight={w} /></span>
                       </span>
                     ) : weightLabel(w)}
                   </button>
@@ -559,7 +560,7 @@ export function ProductCard({ product, allProducts = [] }: ProductCardProps) {
                   </>
                 ) : (
                   <span className="text-2xl font-semibold text-[#086e45]">
-                    {formatBRL(currentPrice)}
+                    {formatBRL(currentPrice)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
                   </span>
                 )}
               </div>

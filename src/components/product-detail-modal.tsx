@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { WhatsappIcon } from "@/components/whatsapp-icon";
 import { ProductFacts } from "@/components/product-facts";
@@ -449,12 +450,12 @@ export function ProductDetailModal({
                       {formatBRL(precoCheioTotal * quantity)}
                     </span>
                     <span className="text-[21px] font-bold leading-tight text-[#086e45] min-[390px]:text-2xl md:text-3xl">
-                      {formatBRL(precoFinal * quantity)}
+                      {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
                     </span>
                   </>
                 ) : (
                   <span className="text-[21px] font-bold leading-tight text-primary min-[390px]:text-2xl md:text-3xl">
-                    {formatBRL(precoFinal * quantity)}
+                    {formatBRL(precoFinal * quantity)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={isSopa ? "400g" : selectedWeight} />
                   </span>
                 )}
               </div>
@@ -754,7 +755,7 @@ export function ProductDetailModal({
                             {candidate.nome}
                           </p>
                           <p className="mt-1 text-base font-semibold text-primary">
-                            {formatBRL(Number(relatedPrice || 0))}
+                            {formatBRL(Number((bfActive ? blackFridayPrice(String(candidate.tipo_produto),relatedWeight) : null) ?? relatedPrice ?? 0))} <BlackFridayBadge tipo={String(candidate.tipo_produto ?? "")} weight={relatedWeight} />
                           </p>
                         </div>
                         <button

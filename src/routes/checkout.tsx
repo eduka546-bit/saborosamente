@@ -1,3 +1,4 @@
+import { BlackFridayBadge } from "@/components/black-friday-badge";
 import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
@@ -1183,7 +1184,7 @@ function Checkout() {
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 font-semibold">{formatBRL(lineTotal)}</span>
+                <span className="shrink-0 font-semibold">{formatBRL(lineTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={weight || product.peso} /></span>
               </li>
             ))}
           </ul>
@@ -2054,7 +2055,7 @@ function Checkout() {
                     </span>
                   )}
                 </span>
-                <span className="font-medium">{formatBRL(lineTotal)}</span>
+                <span className="font-medium">{formatBRL(lineTotal)} <BlackFridayBadge tipo={String(product.tipo_produto ?? "")} weight={weight || product.peso} /></span>
               </li>
             ))}
           </ul>
