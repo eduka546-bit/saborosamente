@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/email-marketing")({
 });
 
 type Aba = "criar" | "campanhas" | "contatos" | "historico";
-type Broadcast = { id: string; name?: string; subject?: string; status?: string; created_at?: string; scheduled_at?: string; progress?: { total:number;pendentes:number;processando:number;enviados:number;falhas:number;incertos:number;cancelados:number } };
+type Broadcast = { id: string; name?: string; subject?: string; status?: string; created_at?: string; updated_at?: string; scheduled_at?: string; progress?: { total:number;pendentes:number;processando:number;enviados:number;falhas:number;incertos:number;cancelados:number } };
 type Contact = { id: string; email: string; first_name?: string; last_name?: string; unsubscribed?: boolean };
 
 const INITIAL = {
@@ -59,6 +59,7 @@ function EmailMarketingPage() {
   const [rascunhoSalvo, setRascunhoSalvo] = useState(false);
   const [detalhes, setDetalhes] = useState<any>(null);
   const [busca, setBusca] = useState("");
+  const [preview, setPreview] = useState<string|null>(null);
 
   // Guarda apenas os campos em elaboração; criar/ativar disparos continua exigindo ação explícita.
   useEffect(() => {
@@ -151,6 +152,22 @@ function EmailMarketingPage() {
     }, "Detalhes atualizados.");
   };
 
+  const visualizar = (campanha: Broadcast) => {
+    void executar(async () => {
+      const result = await emailMarketingAdmin({data:{action:"preview",id:campanha.id,token:await token()}});
+      if(result.action==="preview") setPreview(result.html);
+    },"Prévia carregada.");
+  };
+  const processarAgora = () => {
+    if(!window.confirm("Processar agora os destinatários das campanhas ativas, respeitando as cotas e os horários?")) return;
+    void executar(async()=>{
+      for(let i=0;i<16;i++){
+        const result=await emailMarketingAdmin({data:{action:"process_now",token:await token(),confirmed:true}});
+        if(result.action!=="process_now" || result.processed===0)break;
+        toast.info(result.success+" enviados neste lote; "+result.issues+" sem confirmação.");
+      }
+    },"Processamento manual encerrado. Confira os resultados.");
+  };
   const campo = (key: keyof typeof INITIAL, value: string) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
@@ -317,7 +334,7 @@ function EmailMarketingPage() {
             {campanhas.filter(c => aba === "campanhas" || c.status !== "draft").map(c => (
               <div key={c.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div><p className="font-semibold text-gray-900">{c.name || c.subject}</p><p className="mt-1 text-xs text-gray-500">{c.subject} · Criada em {dataBr(c.created_at)}</p></div>
+                  <div><p className="font-semibold text-gray-900">{c.name || c.subject}</p><p className="mt-1 text-xs text-gray-500">{c.subject} · Criada em {dataBr(c.created_at)} · Atualizada em {dataBr(c.updated_at)}</p></div>
                   <span className="rounded-full bg-[#eff5e9] px-3 py-1 text-xs font-bold text-[#064D2F]">{statusLabel[c.status || ""] || c.status || "—"}</span>
                 </div>
                 {(c.progress?.total ?? 0) > 0 && (
@@ -329,12 +346,14 @@ function EmailMarketingPage() {
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => visualizar(c)} disabled={ocupado}>Visualizar e-mail</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => verDetalhes(c)} disabled={ocupado}><Eye className="mr-1 h-4 w-4" /> Destinatários</Button>
                   {c.status === "draft" && (
                     <Button type="button" size="sm" disabled={ocupado || !contatosAtivos} onClick={() => enviar(c)} className="bg-[#064D2F] hover:bg-[#003923]">
                       <Send className="mr-1 h-4 w-4" /> Ativar fila diária
                     </Button>
                   )}
+                  {c.status === "running" && <Button size="sm" disabled={ocupado} onClick={processarAgora}>Processar envios agora</Button>}
                   {c.status === "running" && <Button size="sm" variant="outline" disabled={ocupado} onClick={() => alterarEstado(c,"pause")}>Pausar</Button>}
                   {c.status === "paused" && <Button size="sm" variant="outline" disabled={ocupado} onClick={() => alterarEstado(c,"resume")}>Retomar</Button>}
                 </div>
@@ -349,6 +368,7 @@ function EmailMarketingPage() {
             ))}
             {campanhas.filter(c => aba === "campanhas" || c.status !== "draft").length === 0 && <p className="py-8 text-center text-sm text-gray-500">{aba === "campanhas" ? "Nenhuma campanha de e-mail criada ainda." : "Nenhum histórico de envio ainda."}</p>}
           </div>
+          {preview && <div className="rounded-xl border p-4"><div className="flex justify-between"><strong>Prévia do e-mail salvo</strong><button type="button" onClick={()=>setPreview(null)}>Fechar</button></div><iframe title="Prévia do e-mail" sandbox="" srcDoc={preview} className="mt-3 h-[800px] w-full border rounded-lg" /></div>}
           {detalhes && (
             <div className="rounded-xl border border-[#cfe0d1] bg-[#f6faf5] p-4">
               <div className="flex justify-between gap-3"><h3 className="font-bold text-[#064D2F]">{detalhes.name || detalhes.subject}</h3><button type="button" className="text-sm underline" onClick={() => setDetalhes(null)}>Fechar</button></div>
