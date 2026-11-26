@@ -16,14 +16,15 @@ function validToken(url:string){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(t)?t:null;
 }
 export const Route=createFileRoute("/email-cancelar")({
+  // @ts-expect-error TanStack Start aceita server.handlers em runtime; tipagem do Router ainda defasada.
   server:{
     handlers:{
-      GET:async({request})=>{
+      GET:async({request}:{request:Request})=>{
         const token=validToken(request.url);
         if(!token) return new Response("Link inválido.",{status:400});
         return page("Cancelar e-mails promocionais","Confirma que não deseja mais receber ofertas por e-mail?",token,true);
       },
-      POST:async({request})=>{
+      POST:async({request}:{request:Request})=>{
         const token=validToken(request.url);
         if(!token)return new Response("Link inválido.",{status:400});
         const db=createServerClient();
