@@ -2306,6 +2306,37 @@ Deno.serve(async (req: Request) => {
       if (!msg) return new Response("OK", { status: 200 });
       const telefone = msg.from;
       const nomeContato = value?.contacts?.[0]?.profile?.name;
+      // Persist original text and interactive replies before any response or dedupe.
+      // Snapshot previous state so early persistence does not change greeting logic.
+      const conversaEntrada = await getOrCreateConversa(telefone, nomeContato);
+      if (!conversaEntrada) return new Response("Invalid sender", { status: 400 });
+      const primeiraMsgEntrada = conversaComecouNovamente(conversaEntrada, conversaEntrada.mensagens ?? []);
+      let historicoEntrada: any[] = conversaEntrada.mensagens ?? [];
+      for (const evento of mensagensComTexto) {
+        const botao = evento.interactive?.button_reply;
+        const lista = evento.interactive?.list_reply;
+        const template = evento.button;
+        const tipo = botao ? "botao" : lista ? "lista" : template ? "botao_template" : null;
+        const original = evento.text?.body ?? botao?.title ?? lista?.title ?? template?.text ?? template?.payload;
+        if (!original && !tipo) continue; // Media retains its dedicated attachment path below.
+        const destino = evento.from === telefone ? conversaEntrada : await getOrCreateConversa(evento.from);
+        if (!destino) continue;
+        try {
+          const atualizado = await appendMensagem(destino.id, destino.mensagens ?? [], {
+            role: "user",
+            content: String(original ?? "Opção selecionada"),
+            whatsapp_message_id: evento.id,
+            ...(evento.context?.id ? { reply_to_message_id: evento.context.id } : {}),
+            ...(tipo ? { tipo_interacao: tipo, titulo_interacao: String(original ?? "Opção selecionada"),
+              identificador_interacao: String(botao?.id ?? lista?.id ?? template?.payload ?? "") } : {}),
+            timestamp: /^\d{10}$/.test(String(evento.timestamp)) ? new Date(Number(evento.timestamp) * 1000).toISOString() : new Date().toISOString(),
+          });
+          if (destino.id === conversaEntrada.id) historicoEntrada = atualizado;
+        } catch (e) {
+          console.error("Falha ao salvar mensagem original:", e);
+          return new Response("Retry message persistence", { status: 503 });
+        }
+      }
 
       // ── Mensagens em lote ────────────────────────────────────────────────
       // Raramente o WhatsApp entrega mais de uma mensagem no mesmo webhook
@@ -2473,6 +2504,7 @@ Deno.serve(async (req: Request) => {
           ? "Tudo certo! 💚 Registramos sua preferência: você não receberá mais campanhas nem lembretes promocionais da SaborosaMente neste número. Mensagens relacionadas a pedidos e atendimento continuam disponíveis."
           : "Recebemos seu pedido para parar mensagens promocionais, mas houve um problema ao registrar a preferência. Nossa equipe precisa verificar a solicitação; por favor, peça um atendente nesta conversa. 💚";
         await sendWhatsAppMessage(telefone, respostaOptOut);
+        await appendMensagem(conversaEntrada.id, historicoEntrada, { role: "assistant", content: respostaOptOut });
         return new Response("OK", { status: 200 });
       }
 
@@ -2535,6 +2567,7 @@ Deno.serve(async (req: Request) => {
             // Prefixo discreto ajuda a IA a saber que veio de um áudio.
             texto = transcricao;
           } else {
+            await appendMensagem(conversaMidia.id, conversaMidia.mensagens ?? [], { role: "user", whatsapp_message_id: msg.id, content: "[Áudio recebido]", ...(mediaAnexo ? { media_path: mediaAnexo.path, media_type: msg.type, mime_type: mediaAnexo.mime, whatsapp_media_id: mediaId } : {}) });
             await sendWhatsAppMessage(
               telefone,
               "Oi! 😊 Tentei ouvir seu áudio mas não consegui entender direito. Pode escrever ou mandar de novo? 🫶🏼",
@@ -2554,6 +2587,7 @@ Deno.serve(async (req: Request) => {
             partes.push(`Conteúdo da imagem: ${descricao}`);
             texto = partes.join("\n");
           } else {
+            await appendMensagem(conversaMidia.id, conversaMidia.mensagens ?? [], { role: "user", whatsapp_message_id: msg.id, content: legendaCliente || "[Imagem recebida]", ...(mediaAnexo ? { media_path: mediaAnexo.path, media_type: msg.type, mime_type: mediaAnexo.mime, whatsapp_media_id: mediaId } : {}) });
             await sendWhatsAppMessage(
               telefone,
               "Oi! 😊 Recebi sua imagem mas não consegui analisar agora. Pode me dizer por texto o que você precisa? 🫶🏼",
@@ -2561,7 +2595,11 @@ Deno.serve(async (req: Request) => {
             return new Response("OK", { status: 200 });
           }
         } else {
-          // Outros tipos ainda sem suporte (vídeo, sticker, localização...).
+          // Preserve unsupported or human-mode media even without AI analysis.
+          const idMidia = msg[msg.type]?.id ?? msg.audio?.id ?? msg.voice?.id;
+          const baixada = idMidia ? await baixarMidiaWhatsApp(idMidia) : null;
+          const anexo = baixada ? await salvarMidiaRecebida(telefone, msg.id, idMidia, baixada) : null;
+          await appendMensagem(conversaMidia.id, conversaMidia.mensagens ?? [], { role: "user", whatsapp_message_id: msg.id, content: msg[msg.type]?.caption || `[${msg.type || "mensagem"} recebido]`, ...(anexo ? { media_path: anexo.path, media_type: msg.type, mime_type: anexo.mime, whatsapp_media_id: idMidia } : {}) });
           if (!emAtendimentoHumano) {
             await sendWhatsAppMessage(
               telefone,
@@ -2576,7 +2614,7 @@ Deno.serve(async (req: Request) => {
       const conversa = await getOrCreateConversa(telefone, nomeContato);
       let historico: any[] = conversa?.mensagens ?? [];
       const pedidoEmAndamento = conversa?.pedido_em_andamento ?? null;
-      const primeiraMsg = conversaComecouNovamente(conversa, historico);
+      const primeiraMsg = primeiraMsgEntrada;
       const nomeConhecido = nomeContato ?? conversa?.nome ?? null;
 
       // Resposta explícita a uma campanha: cardápio PRIMEIRO, menu DEPOIS.
@@ -2660,7 +2698,7 @@ Deno.serve(async (req: Request) => {
         const respostaCliente = texto || menuId || "";
         // Passa um histórico com a resposta em memória (sem persistir ainda) para
         // que a condição por "mensagem" enxergue a resposta do cliente.
-        const historicoComResposta = [...historico, { role: "user",
+        const historicoComResposta = historico.some(m => msg.id && m.whatsapp_message_id === msg.id) ? historico : [...historico, { role: "user",
             whatsapp_message_id: msg.id,
             ...(msg.context?.id ? { reply_to_message_id: msg.context.id } : {}), content: respostaCliente }];
         const retomou = await retomarPorResposta(
