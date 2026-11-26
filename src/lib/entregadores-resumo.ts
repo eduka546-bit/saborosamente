@@ -5,6 +5,7 @@ export type PedidoRota = {
   status?: string | null;
   nome_cliente?: string | null;
   cliente_nome?: string | null;
+  telefone_cliente?: string | null;
   metodo_entrega?: string | null;
   metodo_pagamento?: string | null;
   tipo_cartao?: string | null;
@@ -71,6 +72,24 @@ export function enderecoCompleto(p: PedidoRota): string {
   return String(p.endereco ?? "").trim();
 }
 
+/** Link pesquisável, sem complemento/referência para não confundir o destino.
+ * O endereço escrito acima continua completo para orientar o entregador.
+ */
+export function linkGoogleMapsEntrega(p: PedidoRota): string | null {
+  const ruaNumero = [String(p.endereco_rua ?? "").trim(), String(p.endereco_numero ?? "").trim()]
+    .filter(Boolean).join(", ");
+  const enderecoBase = ruaNumero || String(p.endereco ?? "").trim();
+  if (!enderecoBase) return null;
+  const localizacao = [
+    enderecoBase,
+    String(p.endereco_bairro ?? "").trim(),
+    String(p.endereco_cidade ?? "").trim(),
+    String(p.endereco_cep ?? "").trim(),
+    "Brasil",
+  ].filter(Boolean).join(", ");
+  return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(localizacao) + "&travelmode=driving&dir_action=navigate";
+}
+
 export function enderecoIncompleto(p: PedidoRota) {
   return !String(p.endereco_rua ?? "").trim() && !String(p.endereco ?? "").trim();
 }
@@ -133,6 +152,10 @@ export function textoResumoEntregador(pedidos: PedidoRota[], rota: DiaRota, data
       partes.push(numero + ". Nome: " + String(p.nome_cliente ?? p.cliente_nome ?? "Cliente não identificado").trim() +
         " - Cidade: " + String(p.endereco_cidade ?? "").trim());
       partes.push("Endereço: " + enderecoCompleto(p));
+      const telefone = String(p.telefone_cliente ?? "").trim();
+      partes.push("Telefone: " + (telefone || "não informado"));
+      const maps = linkGoogleMapsEntrega(p);
+      if (maps) partes.push("📍 Google Maps: " + maps);
       const pagamento = cobrancaNoMotorista(p);
       if (pagamento) partes.push("Valor e forma de pagamento: " + pagamento);
       partes.push("");

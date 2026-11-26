@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cobrancaNoMotorista, dataEntregaProgramada, diaDaSemana,
-  enderecoCompleto, pedidoDaRota, proximaDataRota, rotaDaCidade,
+  enderecoCompleto, linkGoogleMapsEntrega, pedidoDaRota, proximaDataRota, rotaDaCidade,
   textoResumoEntregador, type PedidoRota,
 } from "./entregadores-resumo";
 
@@ -9,6 +9,7 @@ const base: PedidoRota = {
   id: "pedido-a", nome_cliente: "Cliente Exemplo", endereco_cidade: "Rio Negro",
   endereco_rua: "Rua Ermelino Becker", endereco_numero: "53", endereco_bairro: "Centro",
   metodo_entrega: "entrega", status: "preparando", valor_total: 127.5,
+  telefone_cliente: "(47) 99999-1234",
   metodo_pagamento: "cartao",
 };
 
@@ -72,6 +73,48 @@ describe("resumo de entregas para motoristas", () => {
     expect(t).not.toContain("PIX");
     expect(t).not.toContain("Link de pagamento");
     expect(t).toContain("Total de entregas: 3");
+  });
+
+  it("coloca telefone e link Google Maps diretamente na mensagem enviada ao entregador", () => {
+    const p: PedidoRota = { ...base, endereco_complemento: "Fundos, portão azul", endereco_referencia: "Ao lado do mercado", endereco_cep: "83880-000" };
+    const link = linkGoogleMapsEntrega(p);
+    expect(link).toBeTruthy();
+    const url = new URL(link!);
+    expect(url.origin).toBe("https://www.google.com");
+    expect(url.pathname).toBe("/maps/dir/");
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    const busca = url.searchParams.get("destination")!;
+    expect(busca).toContain("Rua Ermelino Becker, 53");
+    expect(busca).toContain("Centro");
+    expect(busca).toContain("Rio Negro");
+    expect(busca).toContain("83880-000");
+    expect(busca).toContain("Brasil");
+    expect(busca).not.toContain("Fundos");
+    expect(busca).not.toContain("Ao lado do mercado");
+
+    const texto = textoResumoEntregador([p], "sexta", "2026-10-09");
+    expect(texto).toContain("Telefone: (47) 99999-1234");
+    expect(texto).toContain("📍 Google Maps: " + link);
+    expect(texto).toContain("Compl.: Fundos, portão azul");
+    expect(texto).toContain("Ref.: Ao lado do mercado");
+  });
+
+  it("não inventa telefone e omite link se não houver endereço pesquisável", () => {
+    const p: PedidoRota = { ...base, telefone_cliente: null };
+    expect(textoResumoEntregador([p], "sexta", "2026-10-09")).toContain("Telefone: não informado");
+    expect(linkGoogleMapsEntrega({ ...p, endereco_rua: "", endereco_numero: "", endereco: "" })).toBeNull();
+    expect(textoResumoEntregador([{ ...p, endereco_rua: "", endereco: "" }], "sexta", "2026-10-09"))
+      .not.toContain("Google Maps:");
+  });
+
+  it("aceita endereço legado como destino e não usa dados inexistentes", () => {
+    const p: PedidoRota = { ...base, endereco_rua: null, endereco_numero: null,
+      endereco: "Av. Argolo 397", endereco_cidade: "São Bento do Sul" };
+    const link = linkGoogleMapsEntrega(p)!;
+    expect(new URL(link).searchParams.get("destination")).toContain("Av. Argolo 397");
+    expect(new URL(link).searchParams.get("destination")).toContain("São Bento do Sul");
   });
 
   it("listas vazias e endereços ausentes não compartilham clientes indevidamente", () => {
