@@ -1,3 +1,4 @@
+import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import {
   createContext,
   useCallback,
@@ -63,6 +64,7 @@ export interface CartItemOpcoes {
   consumo: "pronta" | "congelada";
   /** Só relevante quando consumo === "pronta". */
   garfoEFaca?: boolean;
+  blackFriday?: boolean;
 }
 
 /** Item escolhido dentro de uma marmita personalizada. */
@@ -149,7 +151,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 function mesmaOpcao(a?: CartItemOpcoes, b?: CartItemOpcoes): boolean {
   if (!a && !b) return true;
   if (!a || !b) return false;
-  return a.consumo === b.consumo && Boolean(a.garfoEFaca) === Boolean(b.garfoEFaca);
+  return a.consumo === b.consumo && Boolean(a.garfoEFaca) === Boolean(b.garfoEFaca) && Boolean(a.blackFriday) === Boolean(b.blackFriday);
 }
 
 // Constrói um Product "sintético" para uma marmita personalizada, de modo que
@@ -189,6 +191,7 @@ function readStorage(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const bfActive = useBlackFridayActive();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBairro, setSelectedBairro] = useState<string>("");
@@ -702,6 +705,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const categoria = product.categoria ?? "";
       const isSopa = categoria.toLowerCase().includes("sopa");
       const semDesconto = isNoDiscount(categoria);
+      const bfPrice = bfActive && line.opcoes?.blackFriday ? blackFridayPrice(String((product as any).tipo_produto),line.weight) : null;
+      if (bfPrice !== null) return {...line, product, subtotal:bfPrice*line.quantity, precoCheio:bfPrice};
 
       // Preço "cheio" do item (sem desconto de faixa)
       let precoCheio: number;
@@ -724,7 +729,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const precoEfetivo =
         isSopa || semDesconto
           ? precoCheio
-          : precoMarmitaPorFaixa(line.weight, count, precoCheio, tabelaPrecos);
+          : precoMarmitaPorFaixa(line.weight, bfActive ? 1 : count, precoCheio, tabelaPrecos);
 
       // Adicional por opções: "Pronta para consumo" +R$X, "Garfo e faca" +R$X.
       const adicionalOpcoes =
@@ -788,7 +793,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clear,
       markConverted,
     };
-  }, [lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, markConverted]);
+  }, [bfActive, lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, markConverted]);
 
   return (
     <>
@@ -796,7 +801,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         {children}
       </CartContext.Provider>
       <ExitIntentModal
-        isOpen={exitModalOpen}
+        isOpen={!bfActive && exitModalOpen}
         onClose={() => setExitModalOpen(false)}
       />
     </>

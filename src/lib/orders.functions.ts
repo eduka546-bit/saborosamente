@@ -1,3 +1,4 @@
+import { isBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createServerClient } from "@/integrations/supabase/server";
@@ -50,6 +51,7 @@ const orderItemSchema = z.object({
     .object({
       consumo: z.enum(["pronta", "congelada"]),
       garfoEFaca: z.boolean().optional(),
+      blackFriday: z.boolean().optional(),
     })
     .optional(),
   comboPronto: z
@@ -280,6 +282,12 @@ export const createOrder = createServerFn({ method: "POST" })
       return isMarmita(p.nome, categoria) ? acc + item.quantity : acc;
     }, 0);
 
+    const bfActive = isBlackFridayActive();
+    const bfItems = data.items.filter(i=>i.opcoes?.blackFriday);
+    if(bfItems.length && !bfActive) throw new Error("A Black Friday terminou. Remova os itens promocionais e monte seu pedido novamente.");
+    if(bfItems.length && bfItems.reduce((s,i)=>s+i.quantity,0)<5) throw new Error("O combo Black Friday exige pelo menos 5 unidades.");
+    if(bfItems.some(i=>i.custom||i.comboPronto||i.opcoes?.consumo!=="congelada"||i.opcoes?.garfoEFaca)) throw new Error("Item Black Friday inválido.");
+    if(bfActive && (data.cupom || data.cashbackUsado > 0)) throw new Error("Descontos não cumulativos durante a Black Friday.");
     const authoritativeItems = data.items.map((item) => {
       if (item.custom) {
         if (!personalizadaCfg.ativo) throw new Error("Marmitas personalizadas estão indisponíveis.");
@@ -373,6 +381,11 @@ export const createOrder = createServerFn({ method: "POST" })
         };
       }
 
+      if(item.opcoes?.blackFriday) {
+        const price=blackFridayPrice(tipo,item.weight);
+        if(price===null) throw new Error("Produto ou tamanho inválido para Black Friday.");
+        return {item,product:p,fullUnitPrice:price,effectiveUnitPrice:price};
+      }
       const fixedPrice = tipo !== "marmita" || isNoDiscount(categoria);
       const fullBase =
         tipo === "marmita" && !fixedPrice
@@ -380,7 +393,7 @@ export const createOrder = createServerFn({ method: "POST" })
           : precoCatalogo;
       const effectiveBase =
         tipo === "marmita" && !fixedPrice
-          ? precoMarmitaPorFaixa(item.weight, totalUnidades, fullBase, tabelaPrecos)
+          ? precoMarmitaPorFaixa(item.weight, bfActive ? 1 : totalUnidades, fullBase, tabelaPrecos)
           : fullBase;
 
       const optionExtra =
@@ -424,7 +437,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profile?.indicado_por && profile?.indicado_por_em) {
+    if (!bfActive && profile?.indicado_por && profile?.indicado_por_em) {
       const referralAgeMs = Date.now() - new Date(profile.indicado_por_em).getTime();
       const referralWithin30Days =
         referralAgeMs >= 0 && referralAgeMs <= 30 * 24 * 60 * 60 * 1000;

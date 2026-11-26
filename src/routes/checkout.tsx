@@ -1,3 +1,4 @@
+import { isBlackFridayActive, useBlackFridayActive, blackFridayPrice } from "@/lib/black-friday";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -221,6 +222,7 @@ function Checkout() {
 
   // ── cupom de desconto ─────────────────────────────────────────────────────
   const [couponInput, setCouponInput] = useState(search.cupom ?? "");
+  const bfActive = useBlackFridayActive();
   const [appliedCoupon, setAppliedCoupon] = useState<{
     codigo: string;
     tipo: string;
@@ -251,6 +253,7 @@ function Checkout() {
   }, []);
 
   async function applyCoupon(code: string, viaLink = false) {
+    if (bfActive) { setCouponError("Cupons indisponíveis durante a Black Friday."); return; }
     const c = (code || couponInput).trim().toUpperCase();
     if (!c) return;
     setCouponLoading(true);
@@ -341,13 +344,13 @@ function Checkout() {
     excluirComboPronto: appliedCoupon?.excluir_combo_pronto,
   });
   const descontoProgressivoAplicado = couponCalc.descontoProgressivoAplicado;
-  const couponDiscount = appliedCoupon ? couponCalc.descontoCupom : 0;
+  const couponDiscount = !bfActive && appliedCoupon ? couponCalc.descontoCupom : 0;
   const totalCheckout = couponCalc.subtotalBaseProdutos + shippingCheckout;
 
   // Benefício de indicação: preserva a base que já era usada antes desta campanha.
   const baseIndicacao = subtotalEfetivoCarrinho;
-  const descontoIndicacao = indicacaoElegivel ? baseIndicacao * 0.05 : 0;
-  const couponProductDiscount = appliedCoupon ? couponCalc.descontoCupomProdutos : 0;
+  const descontoIndicacao = !bfActive && indicacaoElegivel ? baseIndicacao * 0.05 : 0;
+  const couponProductDiscount = !bfActive && appliedCoupon ? couponCalc.descontoCupomProdutos : 0;
   const produtosLiquidos = Math.max(
     0,
     couponCalc.subtotalBaseProdutos - descontoIndicacao - couponProductDiscount,
@@ -357,7 +360,7 @@ function Checkout() {
   const cashbackMaxDesc = cashbackConfig
     ? calcularCashbackUtilizavel(cashbackSaldo, produtosLiquidos, cashbackConfig)
     : 0;
-  const cashbackDesconto = cashbackAtivado ? cashbackMaxDesc : 0;
+  const cashbackDesconto = !bfActive && cashbackAtivado ? cashbackMaxDesc : 0;
   const finalTotal = Math.max(
     0,
     totalCheckout - couponDiscount - descontoIndicacao - cashbackDesconto,
@@ -767,6 +770,8 @@ function Checkout() {
   }
 
   const onSubmit = async (data: CheckoutForm) => {
+    const bfLines = lines.filter(l=>l.opcoes?.blackFriday);
+    if (bfLines.length && (!isBlackFridayActive() || bfLines.reduce((s,l)=>s+l.quantity,0)<5)) { alert("Confira o combo Black Friday: mínimo de 5 unidades e somente durante a campanha."); return; }
     if (conferirEstoqueAtual()) return;
     // Exige login antes de finalizar — leva para a página de login/registro,
     // que volta ao checkout depois de autenticar.
@@ -896,7 +901,7 @@ function Checkout() {
           valorTotal: finalTotal,
           taxaEntrega: shippingCheckout,
           desconto: descontoProgressivoAplicado + couponDiscount,
-          cupom: appliedCoupon?.codigo,
+          cupom: bfActive ? undefined : appliedCoupon?.codigo,
           troco: data.troco,
           tipoCartao: selectedFlag || undefined,
           userId: sessaoDoPedido.user.id,
@@ -1763,14 +1768,14 @@ function Checkout() {
             )}
           </fieldset>
 
-          {indicacaoElegivel && (
+          {!bfActive && indicacaoElegivel && (
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-base text-green-800">
               <strong>Indicação aplicada:</strong> você recebe 5% de desconto nesta primeira compra.
             </div>
           )}
 
           {/* ── cupom de desconto ─────────────────────────────────────── */}
-          <div>
+          {!bfActive && <div>
             <label className="text-base font-medium">Cupom de desconto</label>
             <div className="mt-1.5 flex gap-2">
               <input
@@ -1917,10 +1922,10 @@ function Checkout() {
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* ── cashback ───────────────────────────────────────────────── */}
-          {session && cashbackSaldo > 0 && cashbackConfig?.ativo && (
+          {!bfActive && session && cashbackSaldo > 0 && cashbackConfig?.ativo && (
             <div
               className={cn(
                 "rounded-2xl border p-4 space-y-2 transition-all",
