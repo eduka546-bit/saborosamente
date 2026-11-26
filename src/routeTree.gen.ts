@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessoRouteImport } from './routes/acesso'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ApiEmailMarketingTickRouteImport } from './routes/api.email-marketing-tick'
+import { Route as EmailCancelarRouteImport } from './routes/email-cancelar'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
@@ -117,6 +119,16 @@ const AdminRoute = AdminRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin-login',
   path: '/admin-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEmailMarketingTickRoute = ApiEmailMarketingTickRouteImport.update({
+  id: '/api/email-marketing-tick',
+  path: '/api/email-marketing-tick',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailCancelarRoute = EmailCancelarRouteImport.update({
+  id: '/email-cancelar',
+  path: '/email-cancelar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -565,6 +577,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
+  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
+  '/email-cancelar': typeof EmailCancelarRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
@@ -746,6 +760,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
   '/admin': typeof AdminRouteWithChildren
+  '/api/email-marketing-tick': typeof ApiEmailMarketingTickRoute
+  '/email-cancelar': typeof EmailCancelarRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
@@ -839,6 +855,8 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso'
     | '/admin'
+    | '/api/email-marketing-tick'
+    | '/email-cancelar'
     | '/admin-login'
     | '/auth'
     | '/carrinho'
@@ -967,6 +985,8 @@ export interface FileRouteTypes {
     | '/cozinha/fichas'
     | '/produto/$id'
     | '/admin'
+    | '/api/email-marketing-tick'
+    | '/email-cancelar'
     | '/pedido'
     | '/admin/config/alerta-estoque'
     | '/admin/config/area'
@@ -1019,6 +1039,8 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso'
     | '/admin'
+    | '/api/email-marketing-tick'
+    | '/email-cancelar'
     | '/admin-login'
     | '/auth'
     | '/carrinho'
@@ -1109,6 +1131,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiEmailMarketingTickRoute: typeof ApiEmailMarketingTickRoute
+  EmailCancelarRoute: typeof EmailCancelarRoute
   AcessoRoute: typeof AcessoRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
@@ -1147,6 +1171,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/email-marketing-tick': {
+      id: '/api/email-marketing-tick'
+      path: '/api/email-marketing-tick'
+      fullPath: '/api/email-marketing-tick'
+      preLoaderRoute: typeof ApiEmailMarketingTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-cancelar': {
+      id: '/email-cancelar'
+      path: '/email-cancelar'
+      fullPath: '/email-cancelar'
+      preLoaderRoute: typeof EmailCancelarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-login': {
@@ -1939,6 +1977,8 @@ const CozinhaRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiEmailMarketingTickRoute: ApiEmailMarketingTickRoute,
+  EmailCancelarRoute: EmailCancelarRoute,
   AcessoRoute: AcessoRoute,
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
