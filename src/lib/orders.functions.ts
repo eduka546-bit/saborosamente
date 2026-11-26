@@ -285,9 +285,7 @@ export const createOrder = createServerFn({ method: "POST" })
     const bfActive = isBlackFridayActive();
     const bfEligibleCount = data.items.reduce((sum,item)=>{ if(item.custom)return sum; const p:any=item.productId?productMap.get(item.productId):null; if(!p)return sum; if(item.comboPronto)return sum+item.quantity*item.comboPronto.totalUnits; const tipo=String(p.tipo_produto??"marmita").toLowerCase(); return sum+(blackFridayPrice(tipo,tipo==="sopa"?"400g":item.weight||"200g")!==null?item.quantity:0); },0);
     const bfUnlocked = bfActive && bfEligibleCount >= 5;
-    const bfItems = data.items.filter(i=>i.opcoes?.blackFriday);
-    if(bfItems.length && !bfActive) throw new Error("A Black Friday terminou. Remova os itens promocionais e monte seu pedido novamente.");
-    if(bfItems.length && !bfUnlocked) throw new Error("O combo Black Friday exige pelo menos 5 unidades.");
+    const bfItems = bfUnlocked ? data.items.filter(i=>i.opcoes?.blackFriday) : [];
     if(bfItems.some(i=>i.custom||i.comboPronto||i.opcoes?.consumo!=="congelada"||i.opcoes?.garfoEFaca)) throw new Error("Item Black Friday inválido.");
     if(bfActive && (data.cupom || data.cashbackUsado > 0)) throw new Error("Descontos não cumulativos durante a Black Friday.");
     const authoritativeItems = data.items.map((item) => {
@@ -383,7 +381,7 @@ export const createOrder = createServerFn({ method: "POST" })
         };
       }
 
-      if(item.opcoes?.blackFriday) {
+      if(bfUnlocked && item.opcoes?.blackFriday) {
         const price=blackFridayPrice(tipo,item.weight);
         if(price===null) throw new Error("Produto ou tamanho inválido para Black Friday.");
         return {item,product:p,fullUnitPrice:price,effectiveUnitPrice:price};
@@ -720,7 +718,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
 
       const partes: string[] = [];
-      if (item.opcoes?.blackFriday) partes.push("Combo Black Friday");
+      if (bfUnlocked && item.opcoes?.blackFriday) partes.push("Combo Black Friday");
       if (item.weight) partes.push(`Peso: ${item.weight}`);
       if (item.opcoes) {
         partes.push(item.opcoes.consumo === "pronta" ? "Pronta p/ consumo" : "Congelada");
