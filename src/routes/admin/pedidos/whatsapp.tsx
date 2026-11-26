@@ -230,6 +230,9 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
   const [percentualDesconto, setPercentualDesconto] = useState<number | null>(null);
   const [avisosInterpretacao, setAvisosInterpretacao] = useState<string[]>([]);
   const [items, setItems] = useState<DraftItem[]>([]);
+  const [produtoRapido, setProdutoRapido] = useState("");
+  const [pesoRapido, setPesoRapido] = useState<DraftItem["weight"]>("300g");
+  const [qtdRapida, setQtdRapida] = useState(1);
   const [personalizadaOpen, setPersonalizadaOpen] = useState(false);
   const [personalizadaKey, setPersonalizadaKey] = useState<string | null>(null);
   const { data: personalizadaData, isLoading: personalizadaLoading, isError: personalizadaError, refetch: recarregarPersonalizadas } = useQuery({
@@ -937,6 +940,77 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     descontoAplicado >= 0 && cashbackUsado >= 0 &&
     descontoAplicado + cashbackUsado <= subtotal + (metodoEntrega === "entrega" ? taxaEntrega : 0) &&
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
+
+  if (conversation) {
+    const produtoEscolhido = products.find(p => p.id === produtoRapido);
+    const tipoEscolhido = String(produtoEscolhido?.tipo_produto ?? "").toLowerCase();
+    const pesoEscolhido = tipoEscolhido === "sopa" ? "400g" : tipoEscolhido === "complemento" ? "200g" : pesoRapido;
+    const addRapido = () => {
+      if (!produtoEscolhido || !Number.isInteger(qtdRapida) || qtdRapida < 1) return;
+      dadosEditadosRef.current = true;
+      setItems(current => [...current, {key:newKey(),productId:produtoEscolhido.id,quantity:qtdRapida,weight:pesoEscolhido,unitPrice:priceFor(produtoEscolhido,pesoEscolhido),observacao:""}]);
+      setQtdRapida(1);
+    };
+    const taxaDoBairro = (c:string,b:string) => locais.find(l=>norm(l.cidade)===norm(c)&&norm(l.bairro)===norm(b));
+    const campo = "space-y-1 min-w-0";
+    const selectClass = "w-full h-9 rounded-md border border-gray-200 px-2 text-sm bg-white";
+    const sec = "rounded-lg border bg-white p-3 space-y-2";
+    return <div className="p-2 space-y-2 text-sm" onChangeCapture={()=>{dadosEditadosRef.current=true;}}>
+      <section className={sec}>
+        <h2 className="font-bold">Cliente</h2>
+        <Input aria-label="Nome do cliente" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Nome do cliente"/>
+        <Input aria-label="Telefone" value={telefone} onChange={e=>setTelefone(e.target.value)} placeholder="Telefone"/>
+        <details className="text-xs"><summary className="cursor-pointer text-green-800 font-semibold">Cadastro e e-mail {selectedCustomer ? "· vinculado" : ""}</summary>
+          <div className="space-y-2 pt-2">
+            <Input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-mail (opcional)"/>
+            <Input value={customerSearch} onChange={e=>setCustomerSearch(e.target.value)} placeholder="Buscar conta"/>
+            {selectedCustomer && <div className="flex justify-between gap-2"><span>{selectedCustomer.nome}</span><button type="button" onClick={()=>{setSelectedCustomer(null);setSalvarEnderecoCadastro(false);}}>Desvincular</button></div>}
+            {!selectedCustomer && registeredCustomers.map(p=><button type="button" key={p.id} className="block w-full text-left border rounded p-2" onClick={()=>selecionarConta(p)}>{p.nome} · {p.telefone}</button>)}
+          </div>
+        </details>
+      </section>
+      <section className={sec}>
+        <h2 className="font-bold">Produtos · {totalUnidadesPreco} un.</h2>
+        <select aria-label="Produto" className={selectClass} value={produtoRapido} onChange={e=>setProdutoRapido(e.target.value)}><option value="">Selecione o produto</option>{products.map(p=><option key={p.id} value={p.id}>{p.nome}</option>)}</select>
+        <div className="grid grid-cols-[1fr_72px_1fr] gap-2">
+          <select aria-label="Tamanho" className={selectClass} value={pesoEscolhido} onChange={e=>setPesoRapido(e.target.value as DraftItem["weight"])} disabled={tipoEscolhido==="sopa"||tipoEscolhido==="complemento"}>{tipoEscolhido==="complemento"?<option value="200g">150g</option>:tipoEscolhido==="sopa"?<option value="400g">400g</option>:<><option value="200g">200g</option><option value="300g">300g</option><option value="400g">400g</option></>}</select>
+          <Input aria-label="Quantidade" type="number" min={1} value={qtdRapida} onChange={e=>setQtdRapida(Number(e.target.value))}/>
+          <Button type="button" size="sm" onClick={addRapido} disabled={!produtoEscolhido||qtdRapida<1}>Adicionar</Button>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="w-full" onClick={()=>abrirPersonalizada()} disabled={!personalizadaData?.grupos.some(g=>g.ingredientes.length)}>+ Personalizada</Button>
+        {items.map(item=>{const p=products.find(p=>p.id===item.productId);const personalizada=ehPersonalizadaPedido({nome_item:item.nomeItem,observacao:item.observacao});return <div key={item.key} className="border rounded p-2 space-y-1">
+          <div className="flex items-start justify-between gap-1"><span className="font-medium text-xs">{item.nomeItem||p?.nome||"Produto"} · {p?.tipo_produto==="complemento"?"150g":item.weight}</span><button type="button" aria-label="Remover item" className="text-red-600" onClick={()=>{dadosEditadosRef.current=true;setItems(v=>v.filter(x=>x.key!==item.key));}}><Trash2 size={16}/></button></div>
+          <div className="grid grid-cols-[65px_1fr_auto] gap-2 items-end"><label className="text-xs">Qtd.<Input type="number" min={1} value={item.quantity} onChange={e=>setItems(v=>v.map(x=>x.key===item.key?{...x,quantity:Math.max(1,Number(e.target.value))}:x))}/></label><label className="text-xs">R$/un<Input type="number" min={0} step="0.01" value={item.unitPrice} onChange={e=>setItems(v=>v.map(x=>x.key===item.key?{...x,unitPrice:Number(e.target.value)}:x))}/></label><strong className="pb-2 text-xs">{money(item.quantity*item.unitPrice)}</strong></div>
+          {!personalizada&&p&&item.quantity>stockFor(p,item.weight)&&<p className="text-xs text-amber-700">Estoque insuficiente · confira antes de salvar.</p>}
+          {personalizada&&<button type="button" className="text-xs text-green-800 underline" onClick={()=>abrirPersonalizada(item.key)}>Editar montagem</button>}
+        </div>})}
+        <Button type="button" variant="outline" className="w-full" disabled={!items.length||!settings} onClick={aplicarPrecosSite}>{blackAtiva?"Aplicar preços Black Friday":"Aplicar preços por quantidade"}</Button>
+      </section>
+      <section className={sec}>
+        <h2 className="font-bold">Recebimento</h2>
+        <div className="grid grid-cols-2 gap-2">{(["entrega","retirada"] as const).map(m=><button key={m} type="button" aria-pressed={metodoEntrega===m} className={`rounded border p-2 font-semibold ${metodoEntrega===m?"border-green-700 bg-green-50 text-green-800":"border-gray-200"}`} onClick={()=>{dadosEditadosRef.current=true;setMetodoEntrega(m);if(m==="retirada")setTaxaEntrega(0);else {const l=taxaDoBairro(cidade,bairro);if(l)setTaxaEntrega(Number(l.valor));}}}>{m==="entrega"?"Entrega":"Retirada"}</button>)}</div>
+        {metodoEntrega==="entrega" && <><label className={campo}>Cidade<Input list="wa-quick-cidades" value={cidade} onChange={e=>{setCidade(e.target.value);setBairro("");setEnderecoOrigem("pedido");}}/><datalist id="wa-quick-cidades">{cidadesDisponiveis.map(c=><option key={c} value={c}/>)}</datalist></label>
+        <label className={campo}>Bairro<Input list="wa-quick-bairros" value={bairro} onChange={e=>{setBairro(e.target.value);setEnderecoOrigem("pedido");const l=taxaDoBairro(cidade,e.target.value);if(l)setTaxaEntrega(Number(l.valor));}}/><datalist id="wa-quick-bairros">{bairrosDisponiveis.map(l=><option key={l.bairro} value={l.bairro}/>)}</datalist></label>
+        <div className="grid grid-cols-[1fr_75px] gap-2"><label className={campo}>Rua<Input value={rua} onChange={e=>{setRua(e.target.value);setEnderecoOrigem("pedido");}}/></label><label className={campo}>Nº<Input value={numero} onChange={e=>{setNumero(e.target.value);setEnderecoOrigem("pedido");}}/></label></div>
+        <Input value={complemento} onChange={e=>{setComplemento(e.target.value);setEnderecoOrigem("pedido");}} placeholder="Complemento (opcional)"/>
+        <Input value={referencia} onChange={e=>setReferencia(e.target.value)} placeholder="Referência (opcional)"/>
+        <label className={campo}>Frete (R$)<Input type="number" min={0} step="0.01" value={taxaEntrega} onChange={e=>setTaxaEntrega(Number(e.target.value))}/></label>
+        {selectedCustomer&&<button type="button" className="text-xs text-green-800 underline" onClick={usarEnderecoDaConta}>Usar endereço cadastrado</button>}</>}
+        <label className={campo}>Horário<Input list="wa-quick-horarios" value={horario} onChange={e=>setHorario(e.target.value)} placeholder="Selecione ou digite"/><datalist id="wa-quick-horarios">{horariosDisponiveis.map(h=><option key={h} value={h}/>)}</datalist></label>
+      </section>
+      <section className={sec}>
+        <h2 className="font-bold">Pagamento</h2>
+        <select aria-label="Forma de pagamento" className={selectClass} value={pagamento} onChange={e=>setPagamento(e.target.value)}>{[["nao_informado","A combinar"],["cartao","Cartão"],["pix","PIX"],["alimentacao","Alimentação/Refeição"],["dinheiro","Dinheiro"],["mercadopago","Mercado Pago"],["link","Link de pagamento"],["online_pago","Já pago"],["pagamento_parcial","Pagamento parcial"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
+        {(pagamento==="cartao"||pagamento==="alimentacao")&&<><Input list="wa-quick-bandeiras" value={tipoCartao} onChange={e=>setTipoCartao(e.target.value)} placeholder="Bandeira (opcional)"/><datalist id="wa-quick-bandeiras">{bandeiras.map(b=>String(b.name??b.label??"")).filter(Boolean).map(b=><option key={b} value={b}/>)}</datalist></>}
+        <label className={campo}>Desconto adicional (R$)<Input type="number" min={0} step="0.01" value={descontoAplicado} onChange={e=>{setDescontoAplicado(Number(e.target.value));setPercentualDesconto(null);}}/></label>
+        <details><summary className="cursor-pointer text-xs font-semibold text-green-800">Mais opções</summary><div className="space-y-2 pt-2"><label className={campo}>Cashback já pago<Input type="number" min={0} step="0.01" value={cashbackUsado} onChange={e=>setCashbackUsado(Number(e.target.value))}/></label><Input value={cep} onChange={e=>{setCep(e.target.value);setEnderecoOrigem("pedido");}} placeholder="CEP"/><textarea className="w-full border rounded p-2 text-sm" value={observacao} onChange={e=>setObservacao(e.target.value)} placeholder="Observações"/><textarea className="w-full border rounded p-2 text-sm" value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="Colar pedido pronto"/><Button type="button" variant="outline" size="sm" onClick={parseWhatsappText} disabled={productsLoading}>Interpretar texto</Button>{selectedCustomer&&metodoEntrega==="entrega"&&enderecoDiferente&&<label className="flex gap-2 text-xs"><input type="checkbox" checked={salvarEnderecoCadastro} onChange={e=>setSalvarEnderecoCadastro(e.target.checked)}/>Atualizar endereço no cadastro</label>}</div></details>
+        {avisosInterpretacao.map((aviso,i)=><p key={i} className="text-xs text-amber-700">{aviso}</p>)}
+        {totalMismatch&&<label className="flex gap-2 text-xs text-amber-800"><input type="checkbox" checked={totalConfirmado===total} onChange={e=>setTotalConfirmado(e.target.checked?total:null)}/>Conferi a diferença do comprovante ({money(declaredTotal??0)}) e autorizo o novo total.</label>}
+      </section>
+      <div className="sticky bottom-0 bg-white border-t p-3 space-y-1 shadow-lg"><div className="flex justify-between text-xs"><span>Produtos {money(subtotal)}</span><span>Frete {money(metodoEntrega==="entrega"?taxaEntrega:0)}</span></div><div className="flex justify-between font-bold text-lg"><span>Total</span><span className="text-green-800">{money(total)}</span></div><Button className="w-full bg-green-700 hover:bg-green-800" disabled={!canSubmit||createMutation.isPending} onClick={()=>createMutation.mutate()}>{createMutation.isPending?"Salvando...":"Salvar pedido e conferir mensagem"}</Button>{!canSubmit&&<p className="text-xs text-gray-500">Confira nome, produtos, endereço (entrega) e valores.</p>}</div>
+      {personalizadaOpen&&personalizadaData&&<MarmitaPersonalizadaModal isOpen grupos={personalizadaData.grupos} config={personalizadaData.config} initialQuantity={items.find(i=>i.key===personalizadaKey)?.quantity} onAdd={adicionarPersonalizada} onClose={()=>setPersonalizadaOpen(false)}/>}
+    </div>;
+  }
 
   return (
     <div className={`max-w-[1400px] mx-auto ${conversation ? "p-3" : "p-4 md:p-6 min-h-screen"}`}
