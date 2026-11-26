@@ -2689,7 +2689,7 @@ function AdminAgentePage() {
   }, [activeId]);
 
   return (
-    <div className={`flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
+    <div data-whatsapp-workspace className={`relative flex h-[calc(100vh-56px)] overflow-hidden ${t.app}`}>
       {/* ── Sidebar esquerda ── */}
       <div
         className={`flex flex-col w-full md:w-[380px] shrink-0 border-r ${t.sidebar} ${t.divider} ${activeId && !showConfig ? "hidden md:flex" : "flex"}`}

@@ -884,9 +884,9 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     (metodoEntrega === "retirada" || (rua.trim() && bairro.trim() && cidade.trim()));
 
   return (
-    <div className={`p-4 md:p-6 max-w-[1400px] mx-auto ${conversation ? "" : "min-h-screen"}`}
+    <div className={`max-w-[1400px] mx-auto ${conversation ? "p-3" : "p-4 md:p-6 min-h-screen"}`}
       onChangeCapture={() => { dadosEditadosRef.current = true; }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className={`flex flex-col justify-between gap-4 mb-6 ${conversation ? "" : "md:flex-row md:items-center"}`}>
         <div>
           {!conversation && <a
             href="/admin/pedidos"
@@ -921,7 +921,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.4fr] gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${conversation ? "" : "xl:grid-cols-[1fr_1.4fr]"}`}>
         <div className="space-y-6">
           <section className="bg-white border rounded-xl p-5 space-y-3">
             <h2 className="font-bold text-gray-800 flex items-center gap-2">
@@ -1227,7 +1227,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
                 return (
                   <div
                     key={item.key}
-                    className="border rounded-xl p-4 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_90px_90px_120px_42px] gap-3 items-end"
+                    className={`border rounded-xl p-4 grid grid-cols-1 gap-3 items-end ${conversation ? "" : "md:grid-cols-[minmax(0,1fr)_90px_90px_120px_42px]"}`}
                   >
                     <div>
                       <label className="text-xs font-bold text-gray-500">Produto</label>
@@ -1336,15 +1336,15 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
                       <Trash2 size={17} />
                     </Button>
 
-                    {montagem && <div className="md:col-span-5 rounded-lg bg-green-50 p-3 text-xs text-green-900">
+                    {montagem && <div className={`${conversation ? "" : "md:col-span-5"} rounded-lg bg-green-50 p-3 text-xs text-green-900`}>
                       <strong>Montagem por unidade:</strong>
                       <p className="mt-1">{montagem.ingredientes.map(i => `${i.gramatura === null ? "" : `${i.gramatura}g `}${i.nome}${i.modoPreparo ? ` (${i.modoPreparo})` : ""}`).join(" + ")}</p>
                     </div>}
-                    {personalizada && !montagem && <div className="md:col-span-5 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+                    {personalizada && !montagem && <div className={`${conversation ? "" : "md:col-span-5"} flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900`}>
                       <span>Montagem não registrada.</span>
                       <Button type="button" size="sm" variant="outline" disabled={!personalizadaData?.grupos.some(g => g.ingredientes.length)} onClick={() => abrirPersonalizada(item.key)}>Montar personalizada</Button>
                     </div>}
-                    <div className="md:col-span-5 flex justify-between gap-3 text-xs">
+                    <div className={`${conversation ? "" : "md:col-span-5"} flex justify-between gap-3 text-xs`}>
                       <span className={item.nomeItem ? "text-amber-700 font-semibold" : insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
                         {item.nomeItem ? "Registro manual — não baixa estoque" : <>Estoque: {stock}{insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}</>}
                       </span>
