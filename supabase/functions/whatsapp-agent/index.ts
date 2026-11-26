@@ -2427,8 +2427,9 @@ Deno.serve(async (req: Request) => {
         .trim()
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens"].includes(textoOptOut) ||
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[.!?,;]+$/g, "").trim().replace(/\s+/g, " ");
+      if (["parar", "sair", "stop", "parar lembretes", "parar mensagens", "cancelar ofertas", "cancelar promocoes", "sair da lista", "sair da lista de ofertas", "nao quero mais receber promocoes", "nao quero mais receber ofertas"].includes(textoOptOut) ||
           /^(?:quero|nao quero|gostaria|preciso|por favor).{0,75}(?:parar de receber|nao receber|cancelar).{0,45}(?:publicidade|marketing|promocoes|ofertas|mensagens)/.test(textoOptOut)) {
         const telefoneCompleto = String(telefone ?? "").replace(/\D/g, "");
         const telefoneLocal = telefoneCompleto.startsWith("55")
@@ -2438,8 +2439,9 @@ Deno.serve(async (req: Request) => {
           new Set([telefoneCompleto, telefoneLocal].filter(Boolean)),
         );
 
+        let optOutError: { message: string } | null = null;
         if (telefones.length > 0) {
-          const { error: optOutError } = await supabase
+          const { error: recoveryError } = await supabase
             .from("carrinhos_abandonados")
             .update({
               recuperacao_whatsapp_consentimento: false,
@@ -2448,6 +2450,7 @@ Deno.serve(async (req: Request) => {
             })
             .in("telefone", telefones);
 
+          optOutError = recoveryError;
           if (optOutError) {
             console.error("Falha ao registrar opt-out de recuperação:", optOutError.message);
           }
@@ -2458,7 +2461,7 @@ Deno.serve(async (req: Request) => {
         const {error: optOutGlobalErro} = numeroBase
           ? await supabase.from("whatsapp_marketing_optout").upsert({
               numero_base: numeroBase,
-              origem: "whatsapp_parar",
+              origem: textoOptOut === "sair" ? "whatsapp_sair" : "whatsapp_parar",
               atualizado_em: new Date().toISOString(),
             },{onConflict:"numero_base"})
           : {error: new Error("Número brasileiro inválido para descadastro")};
@@ -2939,7 +2942,7 @@ PREÇOS POR FAIXA (sempre observar ao informar valores):
 - O frete promocional R$5 é EXCLUSIVO de SÃO BENTO DO SUL com 5+ marmitas elegíveis. Em Campo Alegre e outras cidades, a taxa depende do bairro.
 - Quando a pessoa pedir marmitas personalizadas, siga a produção e entrega na semana seguinte, nunca prometa entrega no mesmo dia.
 - Para recomendações de calorias ou proteínas, só use dados nutricionais de pratos disponíveis; não recomende combo pronto no lugar da marmita pedida.
-- A palavra PARAR serve APENAS para opt-out de publicidade. NUNCA oriente responder PARAR para falar com atendente, para entrar no grupo de ofertas ou para solicitar pedido. Nessas situações, use transferir_para_humano ou peça que escreva ATENDENTE.
+- As palavras SAIR e PARAR servem APENAS para opt-out de publicidade. NUNCA oriente responder PARAR para falar com atendente, para entrar no grupo de ofertas ou para solicitar pedido. Nessas situações, use transferir_para_humano ou peça que escreva ATENDENTE.
 - Nunca afirme que existe um link do grupo de ofertas, promoção diária ou outra condição se não estiver nos dados atuais.
 
 FLUXO OBRIGATÓRIO PARA PEDIDOS — siga esta sequência sem pular etapas:
