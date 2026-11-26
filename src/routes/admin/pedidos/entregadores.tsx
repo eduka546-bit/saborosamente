@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
   cobrancaNoMotorista, dataEntregaProgramada, diaDaSemana, enderecoCompleto,
-  enderecoIncompleto, pedidoDaRota, proximaDataRota,
+  enderecoIncompleto, linkGoogleMapsEntrega, pedidoDaRota, proximaDataRota,
   textoResumoEntregador, type DiaRota, type PedidoRota,
 } from "@/lib/entregadores-resumo";
 
@@ -40,7 +40,7 @@ function ResumoEntregadoresPage() {
       const limite = new Date(Date.now() - 90 * 86400_000).toISOString();
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id,created_at,nome_cliente,cliente_nome,status,metodo_entrega,metodo_pagamento,tipo_cartao,valor_total,total,endereco_cidade,endereco_rua,endereco_numero,endereco_bairro,endereco_complemento,endereco_referencia,endereco_cep,endereco,horario_recebimento")
+        .select("id,created_at,nome_cliente,cliente_nome,telefone_cliente,status,metodo_entrega,metodo_pagamento,tipo_cartao,valor_total,total,endereco_cidade,endereco_rua,endereco_numero,endereco_bairro,endereco_complemento,endereco_referencia,endereco_cep,endereco,horario_recebimento")
         .eq("metodo_entrega", "entrega")
         .gte("created_at", limite)
         .order("created_at", { ascending: false })
@@ -136,7 +136,7 @@ function ResumoEntregadoresPage() {
           <Truck size={25} /> Resumo para entregadores
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Monte a lista de entregas e envie pelo WhatsApp, sem expor valores de pedidos pagos por PIX ou link.
+          Monte a lista com telefone e Google Maps de cada cliente e envie pelo WhatsApp, sem expor valores de pedidos pagos por PIX ou link.
         </p>
       </div>
 
@@ -224,6 +224,14 @@ function ResumoEntregadoresPage() {
                       <span className="text-[11px] text-amber-700">Sem data programada</span>}
                   </div>
                   <p className="text-xs text-gray-600 mt-1">{enderecoCompleto(p) || "Endereço ausente"}</p>
+                  <p className="text-xs text-gray-600 mt-1">Telefone: {p.telefone_cliente?.trim() || "não informado"}</p>
+                  {!incompleto && linkGoogleMapsEntrega(p) && (
+                    <a href={linkGoogleMapsEntrega(p)!} target="_blank" rel="noopener noreferrer"
+                      className="mt-1 inline-block text-xs font-semibold text-green-700 underline"
+                      onClick={event => event.stopPropagation()}>
+                      Abrir endereço no Google Maps
+                    </a>
+                  )}
                   {incompleto ? <p className="text-xs text-red-600 mt-1">Preencha o endereço no pedido antes de incluir no resumo.</p> :
                     cobrancaNoMotorista(p) && <p className="text-xs text-green-800 mt-1">Cobrar: {cobrancaNoMotorista(p)}</p>}
                 </div>
