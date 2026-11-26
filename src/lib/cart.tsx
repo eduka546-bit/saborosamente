@@ -447,9 +447,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     staleTime: 1000 * 60 * 5,
   });
-  const tabelaPrecos = normalizarPrecosMarmita(
+  const tabelaPrecos = useMemo(() => normalizarPrecosMarmita(
     (settingsPrecos as any)?.parametros_loja?.precos_marmita,
-  );
+  ), [settingsPrecos]);
   // Acréscimos editáveis (pronta para consumo / garfo e faca).
   const acrescimosDb = (settingsPrecos as any)?.parametros_loja?.acrescimos;
   const adicionalPronta = Number(acrescimosDb?.pronta) || ADICIONAL_PRONTA;
@@ -609,43 +609,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setLines([]), []);
 
-  // ── Carrinho abandonado ───────────────────────────────────────────────────
-  // Precisa do value calculado abaixo, então usamos um useMemo intermediário
-  // para passar lines detalhadas ao hook sem duplicar a lógica.
-  const detailedForHook = useMemo(
-    () =>
-      lines.flatMap((line) => {
-        // Marmita personalizada: dados vêm do próprio item, não do catálogo.
-        if (line.custom) {
-          const product = customToProduct(line.custom);
-          return [{ ...line, product, subtotal: line.custom.precoUnitario * line.quantity }];
-        }
-        const catalogId = line.comboPronto?.comboId ?? line.productId;
-        const product = cachedProducts.find((p) => p.id === catalogId);
-        if (!product) return [];
-        const price =
-          line.weight === "300g" && product.preco_300g
-            ? product.preco_300g
-            : line.weight === "400g" && product.preco_400g
-              ? product.preco_400g
-              : product.preco;
-        return [{ ...line, product, subtotal: price * line.quantity }];
-      }),
-    [lines],
-  );
-
-  const totalForHook = useMemo(
-    () => detailedForHook.reduce((s, l) => s + l.subtotal, 0),
-    [detailedForHook],
-  );
-
-  const { markConverted } = useAbandonedCart({
-    lines: detailedForHook,
-    total: totalForHook,
-    onExitIntent: () => setExitModalOpen(true),
-  });
-
-  const value = useMemo<CartContextValue>(() => {
+  const value = useMemo<Omit<CartContextValue, "markConverted">>(() => {
     // Resolve os produtos das linhas (ignora os que ainda não carregaram).
     // Marmitas personalizadas usam um Product sintético (customToProduct).
     const linhasResolvidas = lines.flatMap((line) => {
@@ -796,13 +760,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQuantity,
       remove,
       clear,
-      markConverted,
     };
-  }, [bfActive, lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, add, addCustom, addComboPronto, setQuantity, remove, clear, markConverted]);
+  }, [bfActive, lines, serverProducts, selectedCity, selectedBairro, tabelaPrecos, adicionalPronta, adicionalGarfo, taxas, add, addCustom, addComboPronto, setQuantity, remove, clear]);
+
+  const onAbandonedExit = useCallback(() => setExitModalOpen(true), []);
+  const { markConverted } = useAbandonedCart({
+    lines: value.lines,
+    total: Math.max(0, value.subtotal - value.discount),
+    onExitIntent: onAbandonedExit,
+  });
 
   return (
     <>
-      <CartContext.Provider value={value}>
+      <CartContext.Provider value={{...value, markConverted}}>
         {children}
       </CartContext.Provider>
       <ExitIntentModal

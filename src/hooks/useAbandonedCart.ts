@@ -1,3 +1,4 @@
+import { isBlackFridayActive } from "@/lib/black-friday";
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAbandonedCartSessionId } from "@/lib/abandoned-cart-session";
@@ -9,6 +10,9 @@ interface UseAbandonedCartOptions {
     weight?: string;
     product?: any;
     subtotal?: number;
+    custom?: unknown;
+    comboPronto?: { comboId: string; totalUnits: number };
+    opcoes?: { consumo?: string; garfoEFaca?: boolean; blackFriday?: boolean };
   }>;
   total: number;
   /** Convite de saída para o Grupo de Ofertas, sem gerar cupom. */
@@ -47,7 +51,12 @@ export function useAbandonedCart({ lines, total, onExitIntent }: UseAbandonedCar
           quantity: l.quantity,
           weight: l.weight,
           nome: l.product?.nome ?? l.productId,
-          preco: l.product?.preco ?? 0,
+          preco: (l.subtotal ?? 0) / Math.max(1,l.quantity),
+          tipo_produto: l.product?.tipo_produto ?? null,
+          custom: Boolean(l.custom),
+          comboPronto: l.comboPronto ?? null,
+          opcoes: l.opcoes ?? null,
+          blackFridaySnapshot: isBlackFridayActive(),
           subtotal: l.subtotal ?? 0,
           imagem: l.product?.imagem_url ?? "",
         }));

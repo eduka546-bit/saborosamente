@@ -1,3 +1,7 @@
+import { useBlackFridayActive } from "@/lib/black-friday";
+import { getAdminProducts } from "@/lib/products.functions";
+import { usePrecosMarmita } from "@/lib/use-precos-marmita";
+import { repriceOpenCart } from "@/lib/abandoned-cart-pricing";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +77,14 @@ function AdminCarrinhosAbandonadosPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
-  const [selectedCarrinho, setSelectedCarrinho] = useState<any>(null);
+  const [selectedSnapshot, setSelectedCarrinho] = useState<any>(null);
+  const bfActive = useBlackFridayActive();
+  const tabelaPrecos = usePrecosMarmita();
+  const { data: catalog = [] } = useQuery({queryKey:["abandoned-cart-price-catalog"],queryFn:getAdminProducts,staleTime:60_000});
+  const {data: priceSettings} = useQuery({queryKey:["site-settings-precos"],queryFn:async()=>{const {data}=await supabase.from("site_settings").select("parametros_loja").maybeSingle();return data;},staleTime:300_000});
+  const priceExtras = (priceSettings as any)?.parametros_loja?.acrescimos;
+  const priceCart = (c:any) => repriceOpenCart(c,catalog,tabelaPrecos,bfActive,priceExtras);
+  const selectedCarrinho = selectedSnapshot ? priceCart(selectedSnapshot) : null;
   useEffect(() => {
     if (!selectedCarrinho) return;
     const fecharEsc = (event: KeyboardEvent) => {
@@ -131,10 +142,10 @@ function AdminCarrinhosAbandonadosPage() {
         : Number.NEGATIVE_INFINITY;
       if (!atual || instante > instanteAtual) porSessao.set(chave, carrinho);
     }
-    return [...porSessao.values()].sort(
+    return [...porSessao.values()].map(priceCart).sort(
       (a, b) => new Date(b.updated_at ?? b.created_at).getTime() - new Date(a.updated_at ?? a.created_at).getTime(),
     );
-  }, [data]);
+  }, [data,catalog,tabelaPrecos,bfActive,priceExtras]);
 
   const filtered = useMemo(
     () =>
@@ -169,7 +180,7 @@ function AdminCarrinhosAbandonadosPage() {
     const itens = (carrinho.itens as any[])
       .map((i: any) => `• ${itemQuantidade(i)}× ${i.nome ?? i.productId}${itemTamanho(i) ? ` — ${itemTamanho(i)}` : ""}`)
       .join("\n");
-    const coupon = carrinho.cupom_oferta
+    const coupon = !bfActive && carrinho.cupom_oferta
       ? `\n\n🎟️ Use o cupom *${carrinho.cupom_oferta}* para garantir seu desconto!`
       : "";
     const msg = encodeURIComponent(
@@ -370,7 +381,7 @@ function AdminCarrinhosAbandonadosPage() {
                       R$ {Number(c.valor_total).toFixed(2).replace(".", ",")}
                     </td>
                     <td className="px-6 py-4">
-                      {c.cupom_oferta ? (
+                      {!bfActive && c.cupom_oferta ? (
                         <span className="text-xs font-black tracking-widest text-[#5850ec] bg-[#5850ec]/10 px-2 py-1 rounded-lg">
                           {c.cupom_oferta}
                         </span>
@@ -398,7 +409,7 @@ function AdminCarrinhosAbandonadosPage() {
                           size="icon"
                           className="h-8 w-8 text-gray-400 hover:text-[#5850ec]"
                           title="Ver detalhes"
-                          onClick={() => setSelectedCarrinho(c)}
+                          onClick={() => setSelectedCarrinho(data.find((raw:any)=>raw.id===c.id) ?? c)}
                         >
                           <Eye size={15} />
                         </Button>
@@ -529,7 +540,7 @@ function AdminCarrinhosAbandonadosPage() {
                 </p>
               </div>
 
-              {selectedCarrinho.cupom_oferta && (
+              {!bfActive && selectedCarrinho.cupom_oferta && (
                 <div className="bg-[#5850ec]/5 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-500 mb-1">Cupom gerado pelo exit intent</p>
                   <p className="font-black tracking-widest text-[#5850ec]">
