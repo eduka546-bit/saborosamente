@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { emailMarketingAdmin } from "@/lib/email-marketing.functions";
+import { readCampaignDraft, writeCampaignDraft } from "@/lib/campaign-draft-storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,8 @@ const INITIAL = {
   botaoTexto: "Fazer meu pedido", botaoUrl: "https://saborosamente.com",
   imagemUrl: "",
 };
+const EMAIL_DRAFT_KEY = "saborosamente:email-marketing:rascunho:v1";
+type EmailDraft = { form: typeof INITIAL; agendamentos: Record<string, string>; aba: Aba };
 
 async function token() {
   const { data, error } = await supabase.auth.getSession();
@@ -40,15 +43,27 @@ const statusLabel: Record<string, string> = {
 
 function EmailMarketingPage() {
   const queryClient = useQueryClient();
-  const [aba, setAba] = useState<Aba>("criar");
-  const [form, setForm] = useState(INITIAL);
+  const draftInicial = useRef<EmailDraft | null>(null);
+  if (!draftInicial.current) {
+    draftInicial.current = readCampaignDraft(EMAIL_DRAFT_KEY, {
+      form: INITIAL, agendamentos: {}, aba: "criar" as Aba,
+    });
+  }
+  const [aba, setAba] = useState<Aba>(draftInicial.current.aba);
+  const [form, setForm] = useState(draftInicial.current.form);
   const [nomeContato, setNomeContato] = useState("");
   const [emailContato, setEmailContato] = useState("");
   const [consentimento, setConsentimento] = useState(false);
   const [ocupado, setOcupado] = useState(false);
-  const [agendamentos, setAgendamentos] = useState<Record<string,string>>({});
+  const [agendamentos, setAgendamentos] = useState<Record<string,string>>(draftInicial.current.agendamentos);
+  const [rascunhoSalvo, setRascunhoSalvo] = useState(false);
   const [detalhes, setDetalhes] = useState<any>(null);
   const [busca, setBusca] = useState("");
+
+  // Guarda apenas os campos em elaboração; criar/ativar disparos continua exigindo ação explícita.
+  useEffect(() => {
+    setRascunhoSalvo(writeCampaignDraft(EMAIL_DRAFT_KEY, { form, agendamentos, aba }));
+  }, [form, agendamentos, aba]);
 
   const overview = useQuery({
     queryKey: ["email-marketing-overview"],
@@ -228,6 +243,9 @@ function EmailMarketingPage() {
                 <Input type="url" value={form.botaoUrl} onChange={e => campo("botaoUrl",e.target.value)} />
               </label>
             </div>
+            <p className="text-xs text-gray-500" role="status">
+              {rascunhoSalvo ? "✓ Rascunho salvo automaticamente neste navegador. Pode sair e voltar sem perder o preenchimento." : "O navegador não permitiu salvar o rascunho localmente."}
+            </p>
             <Button disabled={ocupado || !form.assunto || !form.mensagem} className="w-full bg-[#064D2F] hover:bg-[#003923]" type="submit">
               {ocupado ? "Salvando..." : "Salvar rascunho (sem enviar)"}
             </Button>
