@@ -726,3 +726,23 @@ html.black-friday-preview,.black-friday-preview body {background:#282e2a;}
 
 .black-friday-preview [role="dialog"].bf-campaign-popup {background:#282e2a!important;color:#f8f7ef!important;}
 .black-friday-preview .bf-campaign-popup > button[aria-label],.black-friday-preview .bf-campaign-popup > button.absolute {color:#fff;}
+
+/* Black Friday combo only: charcoal shell, black header, light product cards. */
+.black-friday-preview [role="dialog"].bf-combo-dialog {background:#282e2a!important;color:#f8f7ef!important;}
+.black-friday-preview .bf-combo-dialog > .bf-combo-header,
+.black-friday-preview .bf-combo-dialog > .bf-combo-header > div:first-child {background:#111111!important;color:#fff!important;}
+.black-friday-preview .bf-combo-header :is(h2,p) {color:#f8f7ef!important;}
+.black-friday-preview .bf-combo-catalog,
+.black-friday-preview .bf-combo-controls,
+.black-friday-preview .bf-combo-products,
+.black-friday-preview .bf-combo-summary {background:#282e2a!important;border-color:#49534b!important;}
+.black-friday-preview .bf-combo-controls input {background:#fbfaf5!important;color:#233b2d!important;}
+.black-friday-preview .bf-combo-controls [aria-label="Categorias de marmitas"] button:not([aria-pressed="true"]) {background:#f8f7ef!important;color:#344238!important;}
+.black-friday-preview .bf-combo-controls > .rounded-xl {background:#fbfaf5!important;color:#233b2d!important;}
+.black-friday-preview .bf-combo-product,
+.black-friday-preview .bf-combo-product:hover {background:#fbfaf5!important;color:#233b2d!important;border-color:#e1e5da!important;}
+.black-friday-preview .bf-combo-products > .text-center {color:#e0e8de!important;}
+.black-friday-preview .bf-combo-summary :is(h3,.text-gray-500,.text-gray-600,.text-gray-800,.text-gray-900) {color:#f8f7ef!important;}
+.black-friday-preview .bf-combo-summary [class*="text-[#086e45]"],.black-friday-preview .bf-combo-summary .text-green-700 {color:#b3db69!important;}
+.black-friday-preview .bf-combo-summary :is(.border-t,.border-b) {border-color:#49534b!important;}
+.black-friday-preview .bf-combo-summary button:disabled {background:#424a44!important;color:#c8d0c8!important;}

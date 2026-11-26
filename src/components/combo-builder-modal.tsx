@@ -331,9 +331,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Monte seu Combo" className="relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Monte seu Combo" className={cn("relative w-full max-w-5xl max-h-[100dvh] md:max-h-[95vh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col overflow-hidden", blackFriday && "bf-combo-dialog")}>
         {/* Cabeçalho único em todas as telas: título à esquerda e descontos à direita. */}
-        <header className="relative shrink-0 bg-[#086e45] px-2 pb-2 pt-2 text-white sm:px-4 lg:px-7 lg:py-3">
+        <header className={cn("relative shrink-0 bg-[#086e45] px-2 pb-2 pt-2 text-white sm:px-4 lg:px-7 lg:py-3", blackFriday && "bf-combo-header")}>
           <div className="flex min-w-0 flex-row items-center gap-1.5 sm:gap-3 lg:gap-5">
             <div className="min-w-0 basis-[37%] shrink-0 sm:basis-[35%] lg:basis-[34%]">
               <h2 className="text-[15px] font-bold leading-tight sm:text-xl">{combo.nome}</h2>
@@ -381,9 +381,9 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
 
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           {/* Coluna esquerda — catálogo */}
-          <div className="flex-1 flex flex-col overflow-hidden md:border-r">
+          <div className={cn("flex-1 flex flex-col overflow-hidden md:border-r", blackFriday && "bf-combo-catalog")}>
             {/* Busca + filtro avançado ao lado, categorias em linha única */}
-            <div className="relative shrink-0 space-y-2 px-3 pb-3 pt-3 md:px-4">
+            <div className={cn("relative shrink-0 space-y-2 px-3 pb-3 pt-3 md:px-4", blackFriday && "bf-combo-controls")}>
               <div className="flex items-center gap-2">
                 <div className="relative min-w-0 flex-1">
                   <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -493,7 +493,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
             </div>
 
             {/* Lista de produtos */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+            <div className={cn("flex-1 overflow-y-auto px-4 pb-4 space-y-3", blackFriday && "bf-combo-products")}>
               {filteredProducts.length === 0 ? (
                 <div className="py-12 text-center text-gray-600 text-base">
                   Nenhum produto encontrado.
@@ -507,7 +507,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
                   return (
                     <div
                       key={product.id}
-                      className="rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all overflow-hidden"
+                      className={cn("rounded-2xl border border-gray-100 hover:border-[#086e45]/20 hover:bg-gray-50/50 transition-all overflow-hidden", blackFriday && "bf-combo-product")}
                     >
                       <button type="button" onClick={() => { if(!blackFriday) setDetailProduct(product); }}
                         aria-label={"Ver informações completas de " + product.nome}
@@ -595,7 +595,7 @@ export function ComboBuilderModal({ isOpen, onClose, combo, products, bestSeller
           </div>
 
           {/* Rodapé compacto no mobile; sidebar completa no desktop. */}
-          <div className="grid w-full shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2.5 md:flex md:w-72 md:flex-col md:gap-0 md:border-t-0 md:px-0 md:pb-0 md:pt-0">
+          <div className={cn("grid w-full shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2.5 md:flex md:w-72 md:flex-col md:gap-0 md:border-t-0 md:px-0 md:pb-0 md:pt-0", blackFriday && "bf-combo-summary")}>
             {/* À direita do mobile: resumo do combo e quantidade. */}
             <div className="col-start-2 row-start-1 flex min-w-0 items-center justify-between gap-1 md:border-b md:px-4 md:pb-2 md:pt-4">
               <h3 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-[#064e32] md:gap-2 md:text-lg">
