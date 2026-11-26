@@ -119,11 +119,11 @@ async function deliver(item:QueueItem) {
   }
 }
 
-export async function processEmailMarketingDay() {
+export async function processEmailMarketingDay(maxRounds=20) {
   const db=createServerClient();
   let processed=0,success=0,issues=0,cancelled=0;
   let stopReason="Nenhum contato pendente.";
-  for(let round=0;round<20;round++){
+  for(let round=0;round<Math.max(1,Math.min(20,maxRounds));round++){
     // Checa as cotas ANTES de cada lote. Nunca usar fallback que dispare
     // campanhas enquanto a API de uso não estiver disponível.
     const usage=await api<ResendUsage>("/usage");
