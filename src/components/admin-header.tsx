@@ -71,7 +71,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Campanhas",
     icon: MessageSquare,
-    items: [{ label: "WhatsApp em Massa", href: "/admin/campanhas" }],
+    items: [
+      { label: "WhatsApp em Massa", href: "/admin/campanhas" },
+      { label: "E-mail Marketing", href: "/admin/email-marketing" },
+    ],
   },
   {
     label: "Financeiro",
