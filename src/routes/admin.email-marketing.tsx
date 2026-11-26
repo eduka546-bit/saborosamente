@@ -69,7 +69,12 @@ function EmailMarketingPage() {
   const overview = useQuery({
     queryKey: ["email-marketing-overview"],
     queryFn: async () => emailMarketingAdmin({ data: { action: "overview", token: await token() } }),
-    staleTime: 30_000,
+    staleTime: 3_000,
+    refetchInterval: (query) => {
+      const data = query.state.data as any;
+      return data?.broadcasts?.some((c: Broadcast) => c.status === "running") ? 5_000 : 30_000;
+    },
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
   const info = overview.data as any;
@@ -177,6 +182,7 @@ function EmailMarketingPage() {
         <div>
           <div className="flex items-center gap-2 text-[#064D2F]"><Mail className="h-6 w-6" /><h1 className="text-2xl font-black md:text-3xl">E-mail Marketing</h1></div>
           <p className="mt-1 text-sm text-gray-600">Campanhas de e-mail independentes do WhatsApp, integradas ao Resend.</p>
+          <p className="mt-1 text-xs text-gray-500" role="status">{campanhas.some(c => c.status === "running") ? "● Atualização automática a cada 5 segundos" : "Atualização automática a cada 30 segundos"}{overview.dataUpdatedAt > 0 ? " · Última consulta: " + new Date(overview.dataUpdatedAt).toLocaleTimeString("pt-BR") : ""}</p>
         </div>
         <Button type="button" variant="outline" onClick={() => overview.refetch()} disabled={overview.isFetching}>
           <RefreshCw className={`mr-2 h-4 w-4 ${overview.isFetching ? "animate-spin" : ""}`} /> Atualizar
