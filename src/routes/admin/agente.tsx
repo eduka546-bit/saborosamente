@@ -50,6 +50,7 @@ import { WhatsAppComposer } from "@/components/admin/WhatsAppComposer";
 import { WhatsAppVoiceRecorder, AUDIO_TIPOS_META } from "@/components/admin/WhatsAppVoiceRecorder";
 import { WhatsAppReports } from "@/components/admin/WhatsAppReports";
 import { WhatsAppOrderDialog } from "@/components/admin/WhatsAppOrderDialog";
+import { WhatsAppHistoricoImport } from "@/components/admin/WhatsAppHistoricoImport";
 import { WhatsAppIAAssistant } from "@/components/admin/WhatsAppIAAssistant";
 import { WhatsAppIAAudit } from "@/components/admin/WhatsAppIAAudit";
 import { WhatsAppCampaignActions, WhatsAppTrainingCenter } from "@/components/admin/WhatsAppIASettings";
@@ -598,6 +599,22 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
   });
 
   const [sincronizandoCoexistencia, setSincronizandoCoexistencia] = useState<string | null>(null);
+  const { data: ultimaSincronizacaoHistorico } = useQuery({
+    queryKey: ["whatsapp-coexistencia-historico-progresso"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("agente_eventos")
+        .select("tipo,detalhe,created_at")
+        .in("tipo", ["coexistencia_history_sync", "coexistencia_history_sync_erro"])
+        .order("created_at", { ascending: false })
+        .limit(1).maybeSingle();
+      if (error) throw error;
+      return data as { tipo: string; detalhe: any; created_at: string } | null;
+    },
+    enabled: tab === "webhook",
+    refetchInterval: 15000,
+    retry: false,
+  });
+
 
   const iniciarSyncCoexistencia = async (syncType: "history" | "smb_app_state_sync") => {
     setSincronizandoCoexistencia(syncType);
@@ -609,8 +626,8 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
       if (data?.error) throw new Error(data.error);
       toast.success(
         syncType === "history"
-          ? "Sincronização do histórico iniciada."
-          : "Sincronização dos contatos iniciada.",
+          ? "Solicitação enviada à Meta. O histórico só será importado se a Meta disponibilizar os dados; acompanhe o recebimento abaixo."
+          : "Solicitação de sincronização dos contatos enviada à Meta.",
       );
     } catch (error: any) {
       toast.error(error?.message || "Não foi possível iniciar a sincronização.");
@@ -1090,6 +1107,28 @@ function PainelConfig({ dark, config, setConfig, saveConfig, saving, onClose, on
                       {coexistencia?.platform_type ? ` · ${coexistencia.platform_type}` : ""}
                     </div>
                   </div>
+
+                  {coexistencia?.is_on_biz_app && (
+                    <div className="rounded-lg border border-current/15 px-3 py-2 text-[11px] leading-relaxed">
+                      {ultimaSincronizacaoHistorico?.tipo === "coexistencia_history_sync"
+                        ? <p>
+                            <strong>Histórico recebido da Meta:</strong>{" "}
+                            {new Date(ultimaSincronizacaoHistorico.created_at).toLocaleString("pt-BR")}.
+                            {Number.isFinite(Number(ultimaSincronizacaoHistorico.detalhe?.progress))
+                              ? " Progresso informado: "+ultimaSincronizacaoHistorico.detalhe.progress+"%." : ""}
+                            {Number(ultimaSincronizacaoHistorico.detalhe?.mensagens)>0
+                              ? " Mensagens no último lote: "+ultimaSincronizacaoHistorico.detalhe.mensagens+"." : ""}
+                          </p>
+                        : ultimaSincronizacaoHistorico?.tipo === "coexistencia_history_sync_erro"
+                        ? <p className="text-amber-500"><strong>A Meta recusou a sincronização:</strong> confira
+                            a autorização de compartilhamento do histórico no WhatsApp Business e as limitações de prazo.</p>
+                        : <p><strong>Nenhum lote de histórico antigo recebido da Meta neste site.</strong>{" "}
+                            A conexão com a API não importa automaticamente conversas anteriores sem uma sincronização autorizada.
+                          </p>}
+                      <p className="mt-1 opacity-75">Se a sincronização não estiver disponível, abra a conversa
+                        na central e use <strong>Histórico antigo</strong> para importar a exportação .txt sem mídia.</p>
+                    </div>
+                  )}
 
                   {coexistencia?.is_on_biz_app && (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1909,6 +1948,8 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       {!somenteCampanha && (
         <div className="shrink-0 px-4 pt-2 flex flex-wrap items-center gap-2 justify-end">
           <button onClick={() => setSalesDialog({mode: "catalog"})} className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${t.text} hover:bg-black/10`}><Store size={15}/> Catálogo</button>
+          <WhatsAppHistoricoImport key={conversa.id} conversaId={conversa.id}
+            contato={conversa.nome || "Contato"} telefone={String(conversa.telefone || "")} dark={dark}/>
           <button type="button" onClick={() => setAssistenteAberto(v=>!v)}
             className={`flex gap-1 items-center rounded-lg px-2 py-1.5 text-xs font-semibold ${assistenteAberto?"bg-[#00a884] text-white":t.text+" hover:bg-black/10"}`}>
             <Heart size={15}/> {assistenteAberto ? "Fechar memória" : "Memória e recompra"}
@@ -1997,6 +2038,14 @@ function ChatView({ conversa, dark, onBack, onToggleModo, iaAtiva, business }: a
       )}
       {/* Mensagens */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-[6%] py-3 space-y-0.5">
+        {!hasNextPage && !buscaMsg && !somenteCampanha && paginasHistorico &&
+          mensagensCompletas.length>0 && mensagensCompletas.length<=30 && (
+          <p className={`mx-auto mb-3 max-w-xl rounded-lg border px-3 py-2 text-center text-[11px] ${t.textSub}`}
+            title="Histórico do site; mensagens do WhatsApp Business anteriores à conexão dependem de sincronização ou importação">
+            Estas são as mensagens arquivadas neste site. Se havia conversas anteriores no WhatsApp Business
+            e elas não aparecem, use <strong>Histórico antigo</strong> acima para importar o arquivo exportado.
+          </p>
+        )}
         {hasNextPage && !buscaMsg && (
           <div className="flex justify-center py-2">
             <button type="button" onClick={() => void fetchNextPage()} disabled={isFetchingNextPage}

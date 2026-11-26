@@ -1954,40 +1954,40 @@ async function registrarIdCoexistencia(messageId: string | undefined, telefone: 
   return true;
 }
 
-async function appendMensagemCoexistencia(
+/** Arquiva o lote inteiro antes de atualizar o cache recente da conversa.
+ * O banco mantém uma janela de 30 para a IA, mas as páginas do painel consultam
+ * whatsapp_mensagens_historico sem limite total de mensagens.
+ */
+async function appendMensagensCoexistencia(
   telefone: string,
   nome: string | undefined,
-  novaMensagem: any,
+  mensagens: any[],
   assumirHumano = false,
-) {
+): Promise<void> {
+  if (!mensagens.length) return;
   const conversa = await getOrCreateConversa(telefone, nome);
-  if (!conversa?.id) return;
+  if (!conversa?.id) throw new Error("Falha ao identificar conversa da sincronização");
+  // Uma chamada por lote (não por mensagem); lock transacional protege contra
+  // mensagens da IA/atendente chegando simultaneamente ao histórico importado.
+  for (let inicio = 0; inicio < mensagens.length; inicio += 200) {
+    const lote = mensagens.slice(inicio, inicio + 200);
+    const { error } = await supabase.rpc("whatsapp_coexistencia_registrar_lote", {
+      p_conversa_id: conversa.id,
+      p_mensagens: lote,
+      p_assumir_humano: assumirHumano,
+      p_nome: nome || null,
+    });
+    if (error) {
+      console.error("Erro ao arquivar lote de mensagens do WhatsApp Business:", error.message);
+      throw new Error("Falha ao salvar histórico do WhatsApp Business");
+    }
+  }
+}
 
-  // Busca o estado mais recente para reduzir risco de sobrescrever mensagens
-  // recebidas em paralelo durante a sincronização.
-  const { data: fresca } = await supabase
-    .from("whatsapp_conversas")
-    .select("mensagens,ultima_msg,modo,nome")
-    .eq("id", conversa.id)
-    .maybeSingle();
-
-  const atuais = Array.isArray(fresca?.mensagens) ? fresca.mensagens : (conversa.mensagens ?? []);
-  const messageId = novaMensagem?.whatsapp_message_id;
-  if (messageId && atuais.some((m: any) => m?.whatsapp_message_id === messageId)) return;
-
-  const atualizadas = [...atuais, novaMensagem]
-    .sort((a: any, b: any) => new Date(a?.timestamp ?? 0).getTime() - new Date(b?.timestamp ?? 0).getTime())
-    .slice(-30);
-
-  const atualUltima = fresca?.ultima_msg ? new Date(fresca.ultima_msg).getTime() : 0;
-  const novaTs = novaMensagem?.timestamp ? new Date(novaMensagem.timestamp).getTime() : Date.now();
-  const ultimaMsg = new Date(Math.max(atualUltima || 0, novaTs || 0, Date.now() - 1)).toISOString();
-
-  const update: Record<string, unknown> = { mensagens: atualizadas, ultima_msg: ultimaMsg };
-  if (assumirHumano) update.modo = "humano";
-  if (!fresca?.nome && nome) update.nome = nome;
-
-  await supabase.from("whatsapp_conversas").update(update).eq("id", conversa.id);
+async function appendMensagemCoexistencia(
+  telefone: string, nome: string | undefined, mensagem: any, assumirHumano = false,
+) {
+  await appendMensagensCoexistencia(telefone, nome, [mensagem], assumirHumano);
 }
 
 async function processarCoexistenciaEchoes(value: any) {
@@ -1995,8 +1995,6 @@ async function processarCoexistenciaEchoes(value: any) {
   for (const echo of echoes) {
     const telefone = normalizarTelefoneCoexistencia(echo?.to);
     if (!telefone) continue;
-    if (!(await registrarIdCoexistencia(echo?.id, telefone))) continue;
-
     const nome = await nomeContatoPorTelefone(telefone);
     const timestamp = timestampMetaParaIso(echo?.timestamp);
     await appendMensagemCoexistencia(
@@ -2014,6 +2012,10 @@ async function processarCoexistenciaEchoes(value: any) {
       },
       true,
     );
+
+    // Só registra deduplicação depois de persistir com sucesso. A tabela de
+    // histórico já possui chave única por ID Meta.
+    if (echo?.id) await registrarIdCoexistencia(echo.id, telefone);
 
     await registrarEvento("mensagem_manual_business_app", telefone, null, {
       whatsapp_message_id: echo?.id ?? null,
@@ -2092,51 +2094,55 @@ async function processarCoexistenciaHistorico(value: any) {
 
   for (const bloco of blocos) {
     if (Array.isArray(bloco?.errors) && bloco.errors.length) {
-      console.warn("Sincronização de histórico não disponível:", JSON.stringify(bloco.errors));
+      const codes = bloco.errors.map((x: any) => String(x?.code ?? "desconhecido")).slice(0, 5);
+      console.warn("A Meta informou erro de sincronização do histórico:", codes.join(","));
+      await registrarEvento("coexistencia_history_sync_erro", numeroEmpresa, null, { codigos: codes });
       continue;
     }
 
+    let conversasNoLote = 0;
+    let mensagensNoLote = 0;
     const threads = Array.isArray(bloco?.threads) ? bloco.threads : [];
     for (const thread of threads) {
       const telefoneThread = normalizarTelefoneCoexistencia(thread?.id);
       if (!telefoneThread) continue;
       const nome = await nomeContatoPorTelefone(telefoneThread);
       const mensagens = Array.isArray(thread?.messages) ? thread.messages : [];
-
-      for (const msg of mensagens) {
+      const historicoCompleto = mensagens.flatMap((msg: any) => {
         const from = normalizarTelefoneCoexistencia(msg?.from);
         const to = normalizarTelefoneCoexistencia(msg?.to);
         const enviadaPelaEmpresa =
           !!numeroEmpresa && (from === numeroEmpresa || (to === telefoneThread && from !== telefoneThread));
         const telefoneCliente = telefoneThread || (enviadaPelaEmpresa ? to : from);
-        if (!telefoneCliente) continue;
+        if (!telefoneCliente) return [];
+        return [{
+          role: enviadaPelaEmpresa ? "assistant" : "user",
+          content: conteudoMensagemCoexistencia(msg),
+          manual: enviadaPelaEmpresa,
+          source: enviadaPelaEmpresa ? "business_app_history" : "business_app_history_inbound",
+          timestamp: timestampMetaParaIso(msg?.timestamp),
+          ...(msg?.id ? { whatsapp_message_id: msg.id } : {}),
+          ...(msg?.history_context?.status ? { deliveryStatus: msg.history_context.status } : {}),
+          ...(msg?.type ? { media_type: msg.type } : {}),
+        }];
+      });
+      if (!historicoCompleto.length) continue;
 
-        await appendMensagemCoexistencia(
-          telefoneCliente,
-          nome,
-          {
-            role: enviadaPelaEmpresa ? "assistant" : "user",
-            content: conteudoMensagemCoexistencia(msg),
-            manual: enviadaPelaEmpresa,
-            source: enviadaPelaEmpresa ? "business_app_history" : "business_app_history_inbound",
-            timestamp: timestampMetaParaIso(msg?.timestamp),
-            ...(msg?.id ? { whatsapp_message_id: msg.id } : {}),
-            ...(msg?.history_context?.status ? { deliveryStatus: msg.history_context.status } : {}),
-            ...(msg?.type ? { media_type: msg.type } : {}),
-          },
-          false,
-        );
-      }
+      // Preserva TODAS as mensagens de cada thread e não só as últimas 30.
+      // Repetições do mesmo chunk são seguras: chave única por ID da Meta.
+      await appendMensagensCoexistencia(telefoneThread, nome, historicoCompleto, false);
+      conversasNoLote++;
+      mensagensNoLote += historicoCompleto.length;
     }
 
     const progresso = Number(bloco?.metadata?.progress);
-    if (Number.isFinite(progresso)) {
-      await registrarEvento("coexistencia_history_sync", numeroEmpresa, null, {
-        phase: bloco?.metadata?.phase ?? null,
-        chunk_order: bloco?.metadata?.chunk_order ?? null,
-        progress: progresso,
-      });
-    }
+    await registrarEvento("coexistencia_history_sync", numeroEmpresa, null, {
+      phase: bloco?.metadata?.phase ?? null,
+      chunk_order: bloco?.metadata?.chunk_order ?? null,
+      progress: Number.isFinite(progresso) ? progresso : null,
+      conversas: conversasNoLote,
+      mensagens: mensagensNoLote,
+    });
   }
 }
 
@@ -2187,27 +2193,21 @@ Deno.serve(async (req: Request) => {
       }
       if (!body) return new Response("OK", { status: 200 });
 
-      const entry = body?.entry?.[0];
-      const changes = entry?.changes?.[0];
-      const value = changes?.value;
+      // A Meta pode enviar várias mudanças no mesmo webhook. Não descartar
+      // chunks de "history" que não sejam o primeiro item do payload.
+      const todasMudancas = (Array.isArray(body?.entry) ? body.entry : [])
+        .flatMap((entry: any) => Array.isArray(entry?.changes) ? entry.changes : []);
+      for (const change of todasMudancas) {
+        if (change?.field === "history") await processarCoexistenciaHistorico(change.value);
+        if (change?.field === "smb_message_echoes") await processarCoexistenciaEchoes(change.value);
+        if (change?.field === "smb_app_state_sync") await processarCoexistenciaContatos(change.value);
+      }
+      const changes = todasMudancas.find((change: any) =>
+        !["history", "smb_message_echoes", "smb_app_state_sync"].includes(String(change?.field)));
+      if (!changes) return new Response("OK", { status: 200 });
+      const value = changes.value;
       const messages = value?.messages;
-      const webhookField = changes?.field;
-
-      // Coexistence: eventos adicionais do WhatsApp Business App.
-      // Eles não passam pelo fluxo da IA; apenas sincronizam histórico/contatos
-      // e espelham no painel mensagens que a equipe enviou pelo app/web.
-      if (webhookField === "smb_message_echoes") {
-        await processarCoexistenciaEchoes(value);
-        return new Response("OK", { status: 200 });
-      }
-      if (webhookField === "smb_app_state_sync") {
-        await processarCoexistenciaContatos(value);
-        return new Response("OK", { status: 200 });
-      }
-      if (webhookField === "history") {
-        await processarCoexistenciaHistorico(value);
-        return new Response("OK", { status: 200 });
-      }
+      const webhookField = changes.field;
 
       // Eventos de status chegam em webhooks separados das mensagens recebidas.
       // Associamos o id devolvido pela Meta ao envio da campanha para diferenciar
