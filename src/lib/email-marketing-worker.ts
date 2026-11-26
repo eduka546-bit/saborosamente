@@ -69,15 +69,22 @@ async function deliver(item:QueueItem) {
       await mark(item.dispatch_id,"cancelled",{error_message:"Inscrição cancelada no Resend."});
       return "cancelled";
     }
+    const fullName=(item.nome||"").trim();
+    const firstName=/^(cliente|sem nome|não informado)$/i.test(fullName)?"":fullName.split(/\s+/)[0];
+    const escapeHtml=(s:string)=>s.replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]||ch));
+    const personalize=(s:string,html=false)=>s
+      .replace(/Olá,\s*\{\{primeiro_nome\}\}/gi,firstName?"Olá, "+(html?escapeHtml(firstName):firstName):"Olá")
+      .replaceAll("{{primeiro_nome}}",html?escapeHtml(firstName||""):firstName||"")
+      .replaceAll("{{nome_completo}}",html?escapeHtml(firstName?fullName:""):firstName?fullName:"");
     const url="https://saborosamente.com/email-cancelar?t="+item.unsub_token;
     const response=await api<{id?:string}>("/emails",{
       method:"POST",
       headers:{"Idempotency-Key":`email-marketing/${item.campaign_id}/${item.dispatch_id}`},
       body:{
         from:process.env.RESEND_FROM_EMAIL||"SaborosaMente <pedidos@saborosamente.com>",
-        to:[item.email],subject:item.assunto,
-        html:item.html.replaceAll("__EMAIL_UNSUBSCRIBE_URL__",url),
-        text:[item.assunto,item.mensagem,"","Cancelar inscrição: "+url].join("\n\n"),
+        to:[item.email],subject:personalize(item.assunto),
+        html:personalize(item.html,true).replaceAll("__EMAIL_UNSUBSCRIBE_URL__",url),
+        text:[personalize(item.assunto),personalize(item.mensagem),"","Cancelar inscrição: "+url].join("\n\n"),
         headers:{
           "List-Unsubscribe":"<"+url+">",
           "List-Unsubscribe-Post":"List-Unsubscribe=One-Click",
