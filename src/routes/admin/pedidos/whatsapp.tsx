@@ -24,6 +24,7 @@ import { extrairMontagemPersonalizadaPedido, formatarMontagemPersonalizadaPedido
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
+import { codigoComboPronto } from "@/lib/combo-pronto-codigo";
 import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
 import { whatsappDraftKey, lerRascunhoWhatsapp, salvarRascunhoWhatsapp, limparRascunhoWhatsapp, enderecoAoSelecionarCliente, type OrigemEndereco } from "@/lib/whatsapp-order-draft";
@@ -663,7 +664,8 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
   const productsByCode = useMemo(() => {
     const map = new Map<string, Product>();
     products.forEach((p) => {
-      const code = codeOf(p.nome);
+      // Combos prontos são itens do catálogo, não sabores TD a serem inventados.
+      const code = p.tipo_produto === "combo" ? codigoComboPronto(p.nome) : codeOf(p.nome);
       if (code) map.set(code, p);
     });
     return map;
@@ -992,7 +994,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
         {items.map(item=>{const p=products.find(p=>p.id===item.productId);const personalizada=ehPersonalizadaPedido({nome_item:item.nomeItem,observacao:item.observacao});return <div key={item.key} className="border rounded p-2 space-y-1">
           <div className="flex items-start justify-between gap-1"><span className="font-medium text-xs">{item.nomeItem||p?.nome||"Produto"} · {p?.tipo_produto==="complemento"?"150g":item.weight}</span><button type="button" aria-label="Remover item" className="text-red-600" onClick={()=>{dadosEditadosRef.current=true;setItems(v=>v.filter(x=>x.key!==item.key));}}><Trash2 size={16}/></button></div>
           <div className="grid grid-cols-[65px_1fr_auto] gap-2 items-end"><label className="text-xs">Qtd.<Input type="number" min={1} value={item.quantity} onChange={e=>setItems(v=>v.map(x=>x.key===item.key?{...x,quantity:Math.max(1,Number(e.target.value))}:x))}/></label><label className="text-xs">R$/un<Input type="number" min={0} step="0.01" value={item.unitPrice} onChange={e=>setItems(v=>v.map(x=>x.key===item.key?{...x,unitPrice:Number(e.target.value)}:x))}/></label><strong className="pb-2 text-xs">{money(item.quantity*item.unitPrice)}</strong></div>
-          {!personalizada&&p&&item.quantity>stockFor(p,item.weight)&&<p className="text-xs text-amber-700">Estoque insuficiente · confira antes de salvar.</p>}
+          {!personalizada&&p&&p.tipo_produto!=="combo"&&item.quantity>stockFor(p,item.weight)&&<p className="text-xs text-amber-700">Estoque insuficiente · confira antes de salvar.</p>}
           {personalizada&&<button type="button" className="text-xs text-green-800 underline" onClick={()=>abrirPersonalizada(item.key)}>Editar montagem</button>}
         </div>})}
         <Button type="button" variant="outline" className="w-full" disabled={!items.length||!settings} onClick={aplicarPrecosSite}>{blackAtiva?"Aplicar preços Black Friday":"Aplicar preços por quantidade"}</Button>
@@ -1368,7 +1370,8 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
                 const personalizada = ehPersonalizadaPedido({ nome_item: item.nomeItem, observacao: item.observacao });
                 const product = products.find((p) => p.id === item.productId);
                 const stock = stockFor(product, item.weight);
-                const insufficient = item.quantity > stock;
+                const ehComboPronto = product?.tipo_produto === "combo";
+                const insufficient = !ehComboPronto && item.quantity > stock;
 
                 return (
                   <div
@@ -1492,7 +1495,9 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
                     </div>}
                     <div className={`${conversation ? "" : "md:col-span-5"} flex justify-between gap-3 text-xs`}>
                       <span className={item.nomeItem ? "text-amber-700 font-semibold" : insufficient ? "text-red-600 font-bold" : "text-gray-500"}>
-                        {item.nomeItem ? "Registro manual — não baixa estoque" : <>Estoque: {stock}{insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}</>}
+                        {item.nomeItem ? "Registro manual — não baixa estoque" : ehComboPronto
+                          ? "Combo pronto — sem baixa individual de sabores"
+                          : <>Estoque: {stock}{insufficient ? ` — saldo após salvar: ${stock - item.quantity} (permitido no admin)` : ""}</>}
                       </span>
                       <span className="font-bold text-gray-700">
                         {money(item.quantity * item.unitPrice)}
