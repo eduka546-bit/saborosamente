@@ -57,11 +57,6 @@ const apelidos: Record<string, string> = {
 const normalizar = (texto: string) => texto.normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "").toLowerCase()
   .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-const codigoProduto = (produto: ProdutoPorNome) =>
-  produto.nome.match(/^\s*(TD|SO|CO)\s*0*(\d{1,2})\b/i)
-    ?.slice(1).join("") // substituído abaixo pela forma canônica
-    ?? "";
-
 const pesoDaLinha = (texto: string): PesoPedido | null => {
   const n = normalizar(texto);
   const m = n.match(/\b(200|300|400)\s*g\b/);
