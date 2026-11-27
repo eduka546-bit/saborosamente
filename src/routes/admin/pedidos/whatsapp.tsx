@@ -710,7 +710,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       return;
     }
 
-    let interpretado = interpretarResumoWhatsapp(pasteText);
+    let interpretado = interpretarResumoWhatsapp(pasteText, { blackFridayAtiva: blackAtiva });
     const ehP10 = interpretado.valorPago !== undefined;
     if (ehP10) {
       try {

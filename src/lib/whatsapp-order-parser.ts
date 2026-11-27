@@ -95,7 +95,10 @@ const cabecalhoBloco = /^(\d+)\s*[-–]\s*((?:Refei(?:ç|c)(?:[õo]es|[ãa]o)|So
 // "2 x 8,90un - 2 x 18,00".
 const precoLinha = /(?:^|[\s-])(\d+)\s*x\s*(?:R\$\s*)?([\d.,]+)(?:\s*(?:\/\s*)?un(?:idades?)?)?(?=\s|$)/i;
 
-export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
+export function interpretarResumoWhatsapp(
+  texto: string,
+  opcoes: { blackFridayAtiva?: boolean } = {},
+): PedidoInterpretado {
   // Comprovantes da Pedidos10 exigem tratamento distinto para combo fechado,
   // endereços estruturados e sabores com gramaturas mistas.
   const p10 = interpretarComprovanteP10(texto);
@@ -138,9 +141,26 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   }
   if (blocoAtual) blocos.push(interpretarBloco(blocoAtual));
 
+  // Pedido curto da equipe: "20x14,00" seguido de "12xTD(8) + 8xTD(23)".
+  // Exige linha isolada de quantidade x preço; nunca confunde "12xTD08" com preço.
+  const faixaCompacta = !blocos.length && !temRecibo
+    ? linhas.map(l => l.match(/^(\d{1,3})\s*x\s*(?:R\$\s*)?(\d+(?:[.,]\d{1,2}))(?:\s*(?:\/\s*)?un(?:idades?)?)?\s*$/i))
+        .find((m): m is RegExpMatchArray => m !== null) ?? null
+    : null;
+  const qtdCompacta = faixaCompacta ? Number(faixaCompacta[1]) : null;
+  const precoCompacto = faixaCompacta ? valor(faixaCompacta[2]) : null;
+  // Não usar um preço antigo para presumir gramatura fora da Black; nesse caso
+  // o atendente precisa especificar P/M/G e recebe um aviso visível.
+  const pesoDeclarado = !blocos.length
+    ? linha(/^(?:tamanho|peso|gramatura)\s*:/i).match(/\b(200|300|400)\s*g\b/i)?.[1] ??
+      ({P:"200", M:"300", G:"400"} as Record<string,string>)[linha(/^(?:tamanho|peso|gramatura)\s*:/i).match(/\b([PMG])\b/i)?.[1]?.toUpperCase() ?? ""]
+    : undefined;
+  const precoBlack = opcoes.blackFridayAtiva && precoCompacto !== null
+    ? ({14:"200g",17:"300g",20:"400g"} as Record<number, PesoPedido>)[precoCompacto]
+    : undefined;
   const blocoPrincipal = blocos.find((b) => b.tipo !== "complemento") ?? blocos[0];
-  const peso = blocoPrincipal?.peso ?? "300g";
-  const precoUnitario = blocoPrincipal?.itens[0]?.precoUnitario ??
+  const peso = blocoPrincipal?.peso ?? (pesoDeclarado ? (pesoDeclarado + "g") as PesoPedido : undefined) ?? precoBlack ?? "300g";
+  const precoUnitario = blocoPrincipal?.itens[0]?.precoUnitario ?? precoCompacto ??
     valor(texto.replace(/[_*]/g, "").match(/\b\d+\s*x\s*(?:R\$\s*)?([\d.,]+)\s*(?:\/\s*)?un(?:idades?)?\b/i)?.[1]);
   const itensDetalhados: ItemDetalhado[] = blocos.length
     ? blocos.flatMap((b) => b.itens)
@@ -152,8 +172,9 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
 
   const itens = itensDetalhados.map(({ codigo, quantidade }) => ({ codigo, quantidade }));
   const refeicoes = blocos.find((b) => b.tipo === "refeicoes");
-  const quantidadeDeclarada = refeicoes?.quantidadeDeclarada ?? null;
-  const subtotalDeclarado = refeicoes?.subtotalDeclarado ?? null;
+  const quantidadeDeclarada = refeicoes?.quantidadeDeclarada ?? qtdCompacta;
+  const subtotalDeclarado = refeicoes?.subtotalDeclarado ??
+    (qtdCompacta !== null && precoCompacto !== null ? centavos(qtdCompacta * precoCompacto) : null);
 
   const entrega = linha(/^(?:Taxa de )?Entrega(?:\s*\/\s*Retirada)?\s*:/i);
   const local = linha(/^Local\s+de\s+Entrega(?:\s*\/\s*Retirada)?\s*:/i);
@@ -237,6 +258,13 @@ export function interpretarResumoWhatsapp(texto: string): PedidoInterpretado {
   const descontoValor = descontoPercentual !== null
     ? centavos(bruto * descontoPercentual / 100) : (descontoFixo ?? 0);
   const avisos = blocos.flatMap((b) => b.avisos);
+  if (faixaCompacta) {
+    const unidadesCodificadas = itens.reduce((sum, item) => sum + item.quantidade, 0);
+    if (qtdCompacta !== unidadesCodificadas)
+      avisos.push(`Resumo compacto: preço para ${qtdCompacta} unidades, mas os códigos representam ${unidadesCodificadas}. Confira antes de salvar.`);
+    if (!pesoDeclarado && !precoBlack)
+      avisos.push("Tamanho não informado: confirme 200g (P), 300g (M) ou 400g (G) antes de salvar.");
+  }
   if (temRecibo && itens.length) {
     avisos.push("Comprovante sem preços individuais: o subtotal foi dividido entre as unidades. Confira os valores antes de salvar.");
     const subtotalCalculado = centavos(itensDetalhados.reduce((sum, item) => sum + item.quantidade * (item.precoUnitario ?? 0), 0));
