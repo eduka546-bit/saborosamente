@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   MapPin,
@@ -200,6 +200,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
   const pedidoSalvoRef = useRef(false);
   const [draftReadyKey, setDraftReadyKey] = useState<string | null>(null);
   const createOrderFn = useServerFn(createWhatsappAdminOrder);
+  const queryClient = useQueryClient();
 
   const [pasteText, setPasteText] = useState("");
   const [nome, setNome] = useState(conversation?.nome || "");
@@ -697,7 +698,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     ]);
   };
 
-  const parseWhatsappText = () => {
+  const parseWhatsappText = async () => {
     dadosEditadosRef.current = true;
     setTotalConfirmado(null);
     if (!pasteText.trim()) {
@@ -749,18 +750,47 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     }
     if (interpretado.cidadeSigla === "SBS") setCidade("São Bento do Sul");
 
+    // Se o catálogo carregado no navegador estiver antigo/incompleto,
+    // revalida combos prontos diretamente no banco antes de dizer que não existem.
+    const mapaProdutos = new Map(productsByCode);
+    const faltamCombos = interpretado.itens.some(item =>
+      item.codigo.startsWith("__COMBO_") && !mapaProdutos.has(item.codigo));
+    if (faltamCombos) {
+      const { data: combosAtuais, error: comboError } = await supabase
+        .from("produtos")
+        .select("id,nome,tipo_produto,preco,preco_300g,preco_400g,estoque_200g,estoque_300g,estoque_400g")
+        .eq("ativo", true).eq("tipo_produto", "combo").limit(100);
+      if (comboError) {
+        toast.error("Não foi possível atualizar o catálogo de combos. Confira a conexão e tente novamente.");
+        return;
+      }
+      const combosEncontrados = (combosAtuais ?? []) as Product[];
+      for (const product of combosEncontrados) {
+        const code = codigoComboPronto(product.nome);
+        if (code) mapaProdutos.set(code, product);
+      }
+      // Evita que o seletor de produtos perca um combo encontrado na consulta atualizada.
+      queryClient.setQueryData<Product[]>(["whatsapp-admin-products"], anterior => {
+        const porId = new Map((anterior ?? []).map(produto => [produto.id, produto]));
+        combosEncontrados.forEach(produto => porId.set(produto.id, produto));
+        return [...porId.values()];
+      });
+    }
     const faltantes = [...new Set(interpretado.itens
-      .filter((item) => !productsByCode.has(item.codigo) && !itemManualPorCodigo(item.codigo))
-      .map((item) => item.codigo))];
+      .filter(item => !mapaProdutos.has(item.codigo) && !itemManualPorCodigo(item.codigo))
+      .map(item => item.codigo))];
     if (faltantes.length > 0) {
       setItems([]);
-      toast.error(`Produto(s) não encontrado(s): ${faltantes.join(", ")}. Confira os códigos.`);
+      const combos = faltantes.filter(code => code.startsWith("__COMBO_"));
+      toast.error(combos.length
+        ? "Combo pronto não localizado nem após atualizar o catálogo. Confira se o produto está ativo ou atualize esta página (Ctrl+F5)."
+        : `Produto(s) não encontrado(s): ${faltantes.join(", ")}. Confira os códigos.`);
       return;
     }
     const quantidadeInterpretada = interpretado.itens.reduce((total, item) => total + item.quantidade, 0);
     if (quantidadeInterpretada === 0) {
       setItems([]);
-      toast.error("Não encontrei os sabores. Use 1xTD01, 1xTD(1-9-11) ou 1xSO04.");
+      toast.error("Não encontrei os itens do pedido. Para Combo Pronto use, por exemplo: 1 - Combo Mais Vendidos 10un (P) - 140,00.");
       return;
     }
     if (interpretado.blocos.length <= 1 &&
@@ -772,7 +802,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     }
 
     const novosItens: DraftItem[] = interpretado.itensDetalhados.map((item) => {
-      const product = productsByCode.get(item.codigo);
+      const product = mapaProdutos.get(item.codigo);
       const nomeItem = itemManualPorCodigo(item.codigo);
       return {
         key: newKey(),
