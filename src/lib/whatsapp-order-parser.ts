@@ -1,4 +1,5 @@
 import { interpretarComprovanteP10 } from "./pedidos10-whatsapp-parser";
+import { codigoComboPronto } from "./combo-pronto-codigo";
 
 /**
  * Interpreta resumos recebidos pelo WhatsApp, sem registrar nem modificar pedidos.
@@ -267,17 +268,20 @@ function interpretarBloco(raw: {
     : /^Complementos?\b/i.test(raw.titulo) ? "complemento" : "refeicoes";
   const ehSopa = /^Sopas?\b/i.test(raw.titulo);
   const ehPersonalizada = /^Personalizadas?\b/i.test(raw.titulo);
+  const codigoCombo = codigoComboPronto(raw.titulo);
   const semSaborParaBaixa = ehPersonalizada || raw.linhas.some((linha) => /\bsortidas?\b/i.test(linha));
-  const pesoExibicao = tipo === "complemento"
-    ? "150g" : ehSopa
-      ? "400g" : (raw.titulo.match(/(200|300|400)\s*g/i)?.[1] ?? "300") + "g";
+  const tamanhoLetra = raw.titulo.match(/\(([PMG])\)/i)?.[1]?.toUpperCase();
+  const pesoTitulo = raw.titulo.match(/(200|300|400)\s*g/i)?.[1] ??
+    (tamanhoLetra === "P" ? "200" : tamanhoLetra === "G" ? "400" : "300");
+  const pesoExibicao = tipo === "complemento" ? "150g" : ehSopa ? "400g" : pesoTitulo + "g";
   // Complementos 150g usam o estoque_200g no banco de dados.
   const peso = (tipo === "complemento" ? "200g" : pesoExibicao) as PesoPedido;
   const codigoLinhas = raw.linhas.filter((l) => /^\d+\s*x\s*[A-Z]{2}\s*\(?\s*\d/i.test(l));
   const codigos = codigoLinhas.flatMap(lerCodigos);
   const avisos: string[] = [];
   const unidadeCombo = tipo === "combo"
-    ? Number(raw.linhas.join(" ").match(/Combo\s*(\d+)\s*un/i)?.[1] ?? 0)
+    ? Number(raw.titulo.match(/\b(5|10|20)\s*un(?:idades?)?\b/i)?.[1] ??
+      raw.linhas.join(" ").match(/Combo\s*(\d+)\s*un/i)?.[1] ?? 0)
     : 0;
   const esperado = tipo === "combo" && unidadeCombo > 0
     ? raw.quantidade * unidadeCombo : raw.quantidade;
@@ -285,14 +289,27 @@ function interpretarBloco(raw: {
   if (codigos.length && quantidadeReal !== esperado) {
     avisos.push(raw.titulo + ": declara " + esperado + " unidades, mas os códigos representam " + quantidadeReal + ".");
   }
-  if (!codigos.length && !semSaborParaBaixa) avisos.push(raw.titulo + ": não foram encontrados sabores válidos.");
+  if (!codigos.length && !semSaborParaBaixa && !codigoCombo)
+    avisos.push(raw.titulo + ": não foram encontrados sabores válidos.");
 
   const faixasPrecos = raw.linhas
     .flatMap((l) => [...l.matchAll(new RegExp(precoLinha.source, "gi"))])
     .map((m) => ({ quantidade: Number(m[1]), preco: valor(m[2]) ?? 0 }));
 
   const itens: ItemDetalhado[] = [];
-  if (!codigos.length && semSaborParaBaixa) {
+  if (!codigos.length && codigoCombo) {
+    // Combo pronto fechado: 1 item comercial com 10 refeições, sem sabores TD.
+    // O estoque de combos não baixa marmitas individuais.
+    const preco = raw.subtotal !== null && raw.quantidade > 0
+      ? centavos(raw.subtotal / raw.quantidade) : null;
+    itens.push({
+      codigo: codigoCombo,
+      quantidade: raw.quantidade,
+      precoUnitario: preco,
+      peso,
+      pesoExibicao,
+    });
+  } else if (!codigos.length && semSaborParaBaixa) {
     // Itens sortidos e personalizados não informam sabores. Eles são lançados
     // somente como registro comercial, sem produto vinculado ou baixa de estoque.
     const preco = raw.subtotal !== null && raw.quantidade > 0
