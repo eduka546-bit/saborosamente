@@ -24,6 +24,7 @@ import { extrairMontagemPersonalizadaPedido, formatarMontagemPersonalizadaPedido
 import { supabase } from "@/integrations/supabase/client";
 import { createWhatsappAdminOrder } from "@/lib/admin-whatsapp-order.functions";
 import { interpretarResumoWhatsapp } from "@/lib/whatsapp-order-parser";
+import { interpretarListaSaboresPorNome } from "@/lib/whatsapp-named-item-parser";
 import { codigoComboPronto } from "@/lib/combo-pronto-codigo";
 import { completarSaboresSemCodigoP10 } from "@/lib/pedidos10-whatsapp-parser";
 import { recoverFromStaleServerFunction } from "@/lib/server-function-recovery";
@@ -712,6 +713,21 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
 
     let interpretado = interpretarResumoWhatsapp(pasteText, { blackFridayAtiva: blackAtiva });
     const ehP10 = interpretado.valorPago !== undefined;
+    // Lista informal enviada sem códigos ou blocos ("2x Sopa de canja",
+    // "Todas de 400g: ..."). Resolve pelos produtos ativos e preserva todas
+    // as linhas: não salva uma lista parcialmente reconhecida.
+    const nomes = !ehP10 && interpretado.itens.length === 0 && interpretado.blocos.length === 0
+      ? interpretarListaSaboresPorNome(pasteText, products, {blackFridayAtiva: blackAtiva})
+      : null;
+    if (nomes && nomes.itens.length > 0 && nomes.naoIdentificados.length > 0) {
+      setItems([]);
+      const erro = "Confira antes de lançar. Não identifiquei com segurança: " +
+        nomes.naoIdentificados.join("; ");
+      setAvisosInterpretacao([erro]);
+      toast.error(erro, {duration: 12000});
+      return;
+    }
+    const itensPorNome = nomes?.itens.length ? nomes.itens : null;
     if (ehP10) {
       try {
         interpretado = completarSaboresSemCodigoP10(pasteText, interpretado, products);
@@ -776,7 +792,7 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
         return [...porId.values()];
       });
     }
-    const faltantes = [...new Set(interpretado.itens
+    const faltantes = itensPorNome ? [] : [...new Set(interpretado.itens
       .filter(item => !mapaProdutos.has(item.codigo) && !itemManualPorCodigo(item.codigo))
       .map(item => item.codigo))];
     if (faltantes.length > 0) {
@@ -787,13 +803,15 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
         : `Produto(s) não encontrado(s): ${faltantes.join(", ")}. Confira os códigos.`);
       return;
     }
-    const quantidadeInterpretada = interpretado.itens.reduce((total, item) => total + item.quantidade, 0);
+    const quantidadeInterpretada = itensPorNome
+      ? itensPorNome.reduce((total, item) => total + item.quantidade, 0)
+      : interpretado.itens.reduce((total, item) => total + item.quantidade, 0);
     if (quantidadeInterpretada === 0) {
       setItems([]);
       toast.error("Não encontrei os itens do pedido. Para Combo Pronto use, por exemplo: 1 - Combo Mais Vendidos 10un (P) - 140,00.");
       return;
     }
-    if (interpretado.blocos.length <= 1 &&
+    if (!itensPorNome && interpretado.blocos.length <= 1 &&
         interpretado.quantidadeDeclarada !== null &&
         quantidadeInterpretada !== interpretado.quantidadeDeclarada) {
       setItems([]);
@@ -801,19 +819,25 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
       return;
     }
 
-    const novosItens: DraftItem[] = interpretado.itensDetalhados.map((item) => {
-      const product = mapaProdutos.get(item.codigo);
-      const nomeItem = itemManualPorCodigo(item.codigo);
-      return {
-        key: newKey(),
-        productId: product?.id ?? "",
-        nomeItem: nomeItem ?? undefined,
-        quantity: item.quantidade,
-        weight: item.peso,
-        unitPrice: item.precoUnitario ?? priceFor(product, item.peso),
-        observacao: nomeItem ? "Item manual sem baixa de estoque" : "",
-      };
-    });
+    const novosItens: DraftItem[] = itensPorNome
+      ? itensPorNome.map(item => ({
+          key: newKey(), productId: item.productId,
+          quantity: item.quantidade, weight: item.peso,
+          unitPrice: item.precoUnitario, observacao: "",
+        }))
+      : interpretado.itensDetalhados.map((item) => {
+          const product = mapaProdutos.get(item.codigo);
+          const nomeItem = itemManualPorCodigo(item.codigo);
+          return {
+            key: newKey(),
+            productId: product?.id ?? "",
+            nomeItem: nomeItem ?? undefined,
+            quantity: item.quantidade,
+            weight: item.peso,
+            unitPrice: item.precoUnitario ?? priceFor(product, item.peso),
+            observacao: nomeItem ? "Item manual sem baixa de estoque" : "",
+          };
+        });
 
     setItems(novosItens);
     if (interpretado.telefone) setTelefone(interpretado.telefone);
@@ -846,8 +870,9 @@ export function WhatsappAdminOrderForm({ initialCustomerId, initialHistoryId, in
     setDescontoAplicado(interpretado.descontoValor);
     setCashbackUsado(interpretado.cashbackUsado);
     setPercentualDesconto(interpretado.descontoPercentual);
-    setAvisosInterpretacao(interpretado.avisos);
-    if (interpretado.avisos.length) {
+    const avisos = itensPorNome ? nomes?.avisos ?? [] : interpretado.avisos;
+    setAvisosInterpretacao(avisos);
+    if (avisos.length) {
       toast.info("Confira os avisos e os valores do comprovante antes de salvar.");
     }
     setDeclaredTotal(interpretado.totalPedido);
