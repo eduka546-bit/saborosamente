@@ -102,7 +102,7 @@ export function interpretarListaSaboresPorNome(
     if (/^(?:pedido\b|cliente\s*:|telefone\s*:|fone\s*:|whatsapp\s*:|endere[cç]o\s*:|entrega\s*:|taxa\s*:|forma\s+de\s+pagamento\s*:|pagamento\s*:|total\s*:|hor[aá]rio\s*:|retirada\b|valor\s+black\s*[-:]|refer[eê]ncia\s*:)/i.test(linha)) continue;
     if (/^\d+\s*x\s*(?:R\$\s*)?\d+[.,]\d{1,2}\s*$/i.test(linha)) continue;
 
-    if (/^(?:todas?\s+de|tamanho|gramatura|peso)\s*[:\-]/i.test(linha)) {
+    if (/^(?:todas?\s+de\s*(?:200|300|400)\s*g\s*:|tamanhos?\s*[:\-]|gramatura\s*[:\-]|peso\s*[:\-])/i.test(linha)) {
       tamanho = pesoDaLinha(linha);
       if (!tamanho) avisos.push("Não foi possível identificar o tamanho: " + linha);
       modo = "marmita";
